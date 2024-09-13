@@ -1,5 +1,5 @@
 {
-  "name": "rmu-tactical-api",
+  "name": "rmu-api-tactical",
   "version": "0.1.0",
   "main": "index.js",
   "scripts": {
