@@ -1,0 +1,21 @@
+{
+  "name": "rmu-tactical-api",
+  "version": "0.1.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/app.js"
+  },
+  "keywords": [],
+  "author": {
+    "name": "Luis Cabrera",
+    "email": "lab.cabrera@gmail.com"
+  },
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "mongodb": "^6.9.0",
+    "mongoose": "^8.6.2"
+  }
+}

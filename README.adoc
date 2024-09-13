@@ -1,0 +1,28 @@
+= Rolemaster Unified Tactical API
+
+Mock version for frontend developing: https://github.com/labcabrera/rmu-fe/
+
+----
+npm install
+
+node src/app.js
+
+curl http://localhost:3001/v1/tactical-games
+----
+
+----
+docker network create rmu-network
+----
+
+----
+curl -H 'Content-Type: application/json' \
+    -d '{ "name":"Batalla de Mordor 1","user":"lab.cabrera@gmail.com","description":"Sample description"}' \
+    -X POST \
+    http://localhost:3001/v1/tactical-games
+----
+
+Obtener todos los juegos
+
+----
+curl http://localhost:3001/v1/tactical-games
+----
