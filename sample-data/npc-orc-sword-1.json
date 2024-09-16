@@ -1,59 +1,64 @@
 {
-    "name": "Orc - Scimitar - Lvl 1",
-    "level": 1,
-    "race": "ork",
-    "size": "medium",
-    "armorType": 6,
+    "name": "Orc - Scimitar - Lvl 2",
+    "info": {
+        "level": 2,
+        "race": "ork",
+        "size": "medium",
+        "armorType": 6
+    },
     "hp": {
         "max": 25,
         "current": 25
     },
     "skills": [
         {
-            "skill": "melee-weapon:blade",
+            "skillId": "melee-weapon:blade",
             "bonus": 60
         },
         {
-            "skill": "awareness",
+            "skillId": "awareness",
             "bonus": 15
         },
         {
-            "skill": "perception",
+            "skillId": "perception",
             "bonus": 10
         },
         {
-            "skill": "gymnastic",
+            "skillId": "gymnastic",
             "bonus": 20
         },
         {
-            "skill": "acrobatics",
+            "skillId": "acrobatics",
             "bonus": 5
         },
         {
-            "skill": "jumping",
+            "skillId": "jumping",
             "bonus": 10
         },
         {
-            "skill": "movement",
+            "skillId": "movement",
             "bonus": 5
         }
     ],
     "items": [
         {
             "name": "Scimitar",
-            "type": "weapon",
+            "category": "weapon",
+            "itemTypeId": "scimitar",
             "attackTable": "scimitar",
-            "skill": "melee-weapon:blade"
+            "skillId": "melee-weapon:blade"
         },
         {
             "name": "Normal Shield",
-            "type": "shield",
+            "category": "shield",
+            "itemTypeId": "shield",
             "attackTable": "shield",
-            "skill": "melee-weapon:shield"
+            "skillId": "melee-weapon:shield"
         },
         {
             "name": "Rigid Leather Armor",
-            "type": "armor"
+            "category": "armor",
+            "itemTypeId": "rigid-leather-armor"
         }
     ],
     "equipment": {
