@@ -1,24 +1,32 @@
 const express = require('express');
-const { MongoClient } = require('mongodb');
 const router = express.Router();
 const TacticalGame = require("../models/tactical-game")
 
 router.get('/', async (req, res) => {
     try {
-        const games = await TacticalGame.find();
-        res.json(games);
+        const page = req.query.page ? parseInt(req.query.page) : 0;
+        const size = req.query.size ? parseInt(req.query.size) : 10;
+        const skip = page * size;
+        const games = await TacticalGame.find().skip(skip).limit(size).sort({ updatedAt: -1 });
+        const count = await TacticalGame.countDocuments();
+        res.json({ content: games, pagination: { page: page, size: size, totalElements: count } });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 });
 
-router.get('/:id', (req, res) => {
-    const gameId = parseInt(req.params.id);
-    const game = games.find((u) => u.id === gameId);
-    if (!user) {
-        return res.status(404).json({ message: 'Tactical game not found' });
+router.get('/:gameId', async (req, res) => {
+    try {
+        const gameId = req.params.gameId;
+        const readedGame = await TacticalGame.findById(gameId);
+        if (!readedGame) {
+            res.status(404).json({ message: 'Tactical game not found' });
+        } else {
+            res.json(readedGame);
+        }
+    } catch (error) {
+        res.status(500).json({ message: error.message, stack: error.stack });
     }
-    res.json(user);
 });
 
 router.post('/', async (req, res) => {
@@ -35,14 +43,14 @@ router.post('/', async (req, res) => {
     }
 });
 
-router.put('/:id', async (req, res) => {
+router.patch('/:id', async (req, res) => {
     console.log("Tactical game update << " + req.params.id);
     try {
         const updatedGame = await TacticalGame.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!updatedGame) {
             return res.status(404).json({ message: 'Tactical game not found' });
         }
-        res.json(updatedItem);
+        res.json(updatedGame);
     } catch (error) {
         res.status(400).json({ message: error.message });
     }

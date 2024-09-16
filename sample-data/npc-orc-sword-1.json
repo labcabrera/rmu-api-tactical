@@ -1,0 +1,66 @@
+{
+    "name": "Orc - Scimitar - Lvl 1",
+    "level": 1,
+    "race": "ork",
+    "size": "medium",
+    "armorType": 6,
+    "hp": {
+        "max": 25,
+        "current": 25
+    },
+    "skills": [
+        {
+            "skill": "melee-weapon:blade",
+            "bonus": 60
+        },
+        {
+            "skill": "awareness",
+            "bonus": 15
+        },
+        {
+            "skill": "perception",
+            "bonus": 10
+        },
+        {
+            "skill": "gymnastic",
+            "bonus": 20
+        },
+        {
+            "skill": "acrobatics",
+            "bonus": 5
+        },
+        {
+            "skill": "jumping",
+            "bonus": 10
+        },
+        {
+            "skill": "movement",
+            "bonus": 5
+        }
+    ],
+    "items": [
+        {
+            "name": "Scimitar",
+            "type": "weapon",
+            "attackTable": "scimitar",
+            "skill": "melee-weapon:blade"
+        },
+        {
+            "name": "Normal Shield",
+            "type": "shield",
+            "attackTable": "shield",
+            "skill": "melee-weapon:shield"
+        },
+        {
+            "name": "Rigid Leather Armor",
+            "type": "armor"
+        }
+    ],
+    "equipment": {
+        "mainHand": "Scimitar",
+        "offHand": "Normal Shield",
+        "body": "Rigid Leather Armor",
+        "head": ""
+    },
+    "description": "Lorem ipsum"
+}

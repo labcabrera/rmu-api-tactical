@@ -26,3 +26,9 @@ Obtener todos los juegos
 ----
 curl http://localhost:3001/v1/tactical-games
 ----
+
+Add new tactical character
+
+----
+curl -H 'Content-Type: application/json' -d @./sample-data/npc-orc-sword-1.json -X POST http://localhost:3001/v1/characters/tactical-game/66e4013c3f76f8ce094a5a95
+----

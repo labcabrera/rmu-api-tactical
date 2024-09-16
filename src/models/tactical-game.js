@@ -17,7 +17,10 @@ const tacticalGameSchema = new mongoose.Schema({
         type: String,
         required: false
     }
-}, { timestamps: true });
+}, {
+    timestamps: true,
+    collection: "tactical-games"
+});
 
 const TacticalGame = mongoose.model('TacticalGame', tacticalGameSchema);
 
