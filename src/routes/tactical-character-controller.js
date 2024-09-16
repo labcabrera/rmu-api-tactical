@@ -6,7 +6,7 @@ const TacticalGame = require("../models/tactical-game")
 
 router.get('/:characterId', async (req, res) => {
     try {
-        const characterId = req.params.gameId;
+        const characterId = req.params.characterId;
         const readedCharacter = await TacticalCharacter.findById(characterId);
         if (!readedCharacter) {
             res.status(404).json({ message: "Tactical character not found" });
@@ -18,17 +18,35 @@ router.get('/:characterId', async (req, res) => {
     }
 });
 
-router.get('/tactical-game/:gameId', async (req, res) => {
+router.delete('/:characterId', async (req, res) => {
     try {
-        const gameId = req.params.gameId;
-        const games = await TacticalCharacter.find({ tacticalGameId: gameId });
-        res.json(games);
+        console.log("Tactical character delete << " + req.params.characterId);
+        const characterId = req.params.characterId;
+        const deletedCharacter = await TacticalCharacter.findByIdAndDelete(characterId);
+        if (!deletedCharacter) {
+            return res.status(404).json({ message: 'Tactical character not found' });
+        }
+        res.status(204).send();
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 });
 
-router.post('/tactical-game/:gameId', async (req, res) => {
+router.get('/tactical-games/:gameId', async (req, res) => {
+    try {
+        const gameId = req.params.gameId;
+        const page = req.query.page ? parseInt(req.query.page) : 0;
+        const size = req.query.size ? parseInt(req.query.size) : 10;
+        const skip = page * size;
+        const readedCharacters = await TacticalCharacter.find({ tacticalGameId: gameId }).skip(skip).limit(size).sort({ updatedAt: -1 });
+        const count = await TacticalCharacter.countDocuments({ tacticalGameId: gameId });
+        res.json({ content: readedCharacters, pagination: { page: page, size: size, totalElements: count } });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+router.post('/tactical-games/:gameId', async (req, res) => {
     try {
         const gameId = req.params.gameId;
         const game = await TacticalGame.findById(gameId);

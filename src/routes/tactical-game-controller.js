@@ -20,19 +20,18 @@ router.get('/:gameId', async (req, res) => {
         const gameId = req.params.gameId;
         const readedGame = await TacticalGame.findById(gameId);
         if (!readedGame) {
-            res.status(404).json({ message: 'Tactical game not found' });
-        } else {
-            res.json(readedGame);
+            return res.status(404).json({ message: 'Tactical game not found' });
         }
+        res.json(readedGame);
     } catch (error) {
         res.status(500).json({ message: error.message, stack: error.stack });
     }
 });
 
 router.post('/', async (req, res) => {
-    console.log("Tactical game creation << " + req.params.name);
-    const { name, user, description } = req.body;
     try {
+        console.log("Tactical game creation << " + req.body.name);
+        const { name, user, description } = req.body;
         const newGame = new TacticalGame({ name, user, description });
         newGame.status = 'created';
         const savedGame = await newGame.save();
@@ -44,9 +43,10 @@ router.post('/', async (req, res) => {
 });
 
 router.patch('/:id', async (req, res) => {
-    console.log("Tactical game update << " + req.params.id);
     try {
-        const updatedGame = await TacticalGame.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        console.log("Tactical game update << " + req.params.id);
+        const { name, description } = req.body;
+        const updatedGame = await TacticalGame.findByIdAndUpdate(req.params.id, { name, description }, { new: true });
         if (!updatedGame) {
             return res.status(404).json({ message: 'Tactical game not found' });
         }
@@ -56,13 +56,15 @@ router.patch('/:id', async (req, res) => {
     }
 });
 
-router.delete('/:id', async (req, res) => {
-    console.log("Tactical game delete << " + req.params.id);
+router.delete('/:gameId', async (req, res) => {
     try {
-        const id = req.params.id;
-        const deletedGame = await TacticalGame.findByIdAndDelete(id);
-        if (!deletedGame) return res.status(404).json({ message: 'Tactical game not found' });
-        res.json({ message: 'Deleted tactical game ' + id });
+        console.log("Tactical game delete << " + req.params.gameId);
+        const gameId = req.params.gameId;
+        const deletedGame = await TacticalGame.findByIdAndDelete(gameId);
+        if (!deletedGame) {
+            return res.status(404).json({ message: 'Tactical game not found' });
+        }
+        res.status(204).send();
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

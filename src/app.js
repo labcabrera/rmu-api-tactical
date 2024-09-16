@@ -14,8 +14,8 @@ mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('Connected to ' + MONGO_URI))
   .catch((err) => console.log('Error connecting to ' + MONGO_URI, err));
 
-const usersRouter = require('./routes/tactical-games');
-const charactersRouter = require('./routes/characters');
+const usersRouter = require('./routes/tactical-game-controller');
+const charactersRouter = require('./routes/tactical-character-controller');
 
 app.use('/v1/tactical-games', usersRouter);
 app.use('/v1/characters', charactersRouter);
