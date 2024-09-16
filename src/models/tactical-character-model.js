@@ -1,7 +1,26 @@
 const mongoose = require('mongoose');
 
+const characterInfoSchema = new mongoose.Schema({
+    level: {
+        type: Number,
+        required: true
+    },
+    race:  {
+        type: String,
+        required: true
+    },
+    size: {
+        type: String,
+        required: true
+    },
+    armorType: {
+        type: Number,
+        required: true
+    }
+});
+
 const characterSkillSchema = new mongoose.Schema({
-    skill: {
+    skillId: {
         type: String,
         required: true
     },
@@ -13,9 +32,10 @@ const characterSkillSchema = new mongoose.Schema({
 
 const characterItemSchema = new mongoose.Schema({
     name: String,
-    type: String,
+    category: String,
+    itemTypeId: String,
     attackTable: String,
-    skill: String
+    skillId: String
 });
 
 const characterEquipment = new mongoose.Schema({
@@ -40,27 +60,12 @@ const tacticalCharacterSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    level: {
-        type: Number,
-        required: true
-    },
-    race: {
-        type: String,
-        required: true
-    },
-    size: {
-        type: String,
-        required: true
-    },
-    armorType: {
-        type: Number,
-        required: true
-    },
-    effects: [characterEffect],
+    info: characterInfoSchema,
     hp: {
         current: Number,
         max: Number
     },
+    effects: [characterEffect],
     skills: [characterSkillSchema],
     items: [characterItemSchema],
     equipment: characterEquipment,
