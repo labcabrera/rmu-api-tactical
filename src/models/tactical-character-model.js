@@ -62,8 +62,8 @@ const tacticalCharacterSchema = new mongoose.Schema({
     },
     info: characterInfoSchema,
     hp: {
-        current: Number,
-        max: Number
+        max: Number,
+        current: Number
     },
     effects: [characterEffect],
     skills: [characterSkillSchema],

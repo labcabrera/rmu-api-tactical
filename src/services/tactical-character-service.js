@@ -17,7 +17,7 @@ const findCharactersByGameId = async (gameId, page, size) => {
 const createCharacter = async (gameId, data) => {
     const game = await TacticalGame.findById(gameId);
     if (!game) {
-        throw "Tactical game not found";
+        throw { message: "Tactical game not found" };
     }
     const { name, info, hp, skills, items, equipment, description } = data;
     const newCharacter = new TacticalCharacter({ name, info, hp, skills, items, equipment, description });
@@ -34,7 +34,7 @@ const addCharacterEffect = async (characterId, data) => {
         { $push: { effects: effects } },
         { new: true });
     if (!updatedCharacter) {
-        throw 'Tactical character not found';
+        throw { message: 'Tactical character not found' };
     }
 }
 
@@ -44,8 +44,27 @@ const deleteCharacterEffect = async (characterId, effectId) => {
         { $pull: { effects: { _id: effectId } } },
         { new: true });
     if (!updatedCharacter) {
-        throw 'Tactical character not found';
+        throw { message: 'Tactical character not found' };
     }
+    return toJSON(updatedCharacter);
+}
+
+const setCurrentHp = async (characterId, hp) => {
+    const readedCharacter = await TacticalCharacter.findById(characterId);
+    if (!readedCharacter) {
+        throw { status: 400, message: "Character not found" };
+    }
+    const maxHp = readedCharacter.hp.max;
+    const currentHp = readedCharacter.hp.current;
+    if (hp > maxHp) {
+        throw { status: 400, message: "Value (" + hp + ") exceeds the character's maximum life points (" + maxHp + ")" };
+    } else if (hp === currentHp) {
+        throw { status: 304, message: "Not modified" };
+    }
+    const updatedCharacter = await TacticalCharacter.findByIdAndUpdate(
+        characterId,
+        { hp: { max: maxHp, current: hp } },
+        { new: true });
     return toJSON(updatedCharacter);
 }
 
@@ -60,10 +79,19 @@ const toJSON = (character) => {
             size: character.info.size,
             armorType: character.info.armorType
         },
+        hp: {
+            max: character.hp.max,
+            current: character.hp.current
+        },
         effects: character.effects.map(mapEffect),
         skills: character.skills.map(mapSkill),
         items: character.items.map(mapItem),
-        equipment: character.equipment,
+        equipment: {
+            mainHand: character.equipment.mainHand,
+            offHand: character.equipment.offHand,
+            head: character.equipment.head,
+            body: character.equipment.body
+        },
         description: character.description,
         createdAt: character.createdAt,
         updatedAt: character.updatedAt
@@ -103,5 +131,6 @@ module.exports = {
     findCharactersByGameId,
     createCharacter,
     addCharacterEffect,
-    deleteCharacterEffect
+    deleteCharacterEffect,
+    setCurrentHp
 };

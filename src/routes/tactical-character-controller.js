@@ -1,8 +1,6 @@
 const express = require('express');
-const { MongoClient } = require('mongodb');
 const router = express.Router();
 const TacticalCharacter = require("../models/tactical-character-model")
-const TacticalGame = require("../models/tactical-game-model")
 const tacticalCharacterService = require("../services/tactical-character-service");
 
 router.get('/:characterId', async (req, res) => {
@@ -46,20 +44,10 @@ router.post('/:characterId/management/hp/:hp', async (req, res) => {
     try {
         const characterId = req.params.characterId;
         const hp = parseInt(req.params.hp);
-        const readedCharacter = await TacticalCharacter.findById(characterId);
-        if (hp > readedCharacter.hp.max) {
-            return res.status(404).json({ message: 'The value exceeds the character\'s maximum life points' });
-        }
-        const updatedCharacter = await TacticalCharacter.findByIdAndUpdate(
-            characterId,
-            { hp: { max: readedCharacter.hp.max, current: hp } },
-            { new: true });
-        if (!updatedCharacter) {
-            return res.status(404).json({ message: 'Tactical character not found' });
-        }
+        const updatedCharacter = await tacticalCharacterService.setCurrentHp(characterId, hp);
         res.json(updatedCharacter);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(error.status ? error.status : 500).json({ message: error.message });
     }
 });
 
@@ -73,7 +61,7 @@ router.delete('/:characterId', async (req, res) => {
         }
         res.status(204).send();
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(error.status ? error.status : 500).json({ message: error.message });
     }
 });
 
