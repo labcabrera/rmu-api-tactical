@@ -1,18 +1,35 @@
 const express = require('express');
 const { MongoClient } = require('mongodb');
 const router = express.Router();
-const TacticalCharacter = require("../models/tactical-character")
-const TacticalGame = require("../models/tactical-game")
+const TacticalCharacter = require("../models/tactical-character-model")
+const TacticalGame = require("../models/tactical-game-model")
 
 router.get('/:characterId', async (req, res) => {
     try {
         const characterId = req.params.characterId;
         const readedCharacter = await TacticalCharacter.findById(characterId);
         if (!readedCharacter) {
-            res.status(404).json({ message: "Tactical character not found" });
-        } else {
-            res.json(readedCharacter);
+            return res.status(404).json({ message: "Tactical character not found" });
         }
+        res.json(readedCharacter);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+router.post('/:characterId/management/effects', async (req, res) => {
+    try {
+        const characterId = req.params.characterId;
+        const { type, value, rounds } = req.body;
+        const effects = { type: type, value: value, rounds: rounds };
+        const updatedCharacter = await TacticalCharacter.findByIdAndUpdate(
+            characterId,
+            { $push: { effects: effects } },
+            { new: true });
+        if (!updatedCharacter) {
+            return res.status(404).json({ message: 'Tactical character not found' });
+        }
+        res.json(updatedCharacter);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

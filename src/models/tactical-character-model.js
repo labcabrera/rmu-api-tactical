@@ -25,10 +25,10 @@ const characterEquipment = new mongoose.Schema({
     head: String
 });
 
-const characterStatus = new mongoose.Schema({
+const characterEffect = new mongoose.Schema({
     type: String,
-    rounds: Number,
-    bonus: Number
+    value: Number,
+    rounds: Number
 });
 
 const tacticalCharacterSchema = new mongoose.Schema({
@@ -56,7 +56,7 @@ const tacticalCharacterSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
-    status: [characterStatus],
+    effects: [characterEffect],
     hp: {
         current: Number,
         max: Number

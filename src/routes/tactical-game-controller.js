@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const TacticalGame = require("../models/tactical-game")
+const TacticalGame = require("../models/tactical-game-model")
 
 router.get('/', async (req, res) => {
     try {
