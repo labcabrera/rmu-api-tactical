@@ -20,7 +20,9 @@ const save = async (user, data) => {
     const newGame = new TacticalGame({
         user: user,
         name: data.name,
-        description: data.description
+        description: data.description,
+        status: 'created',
+        round: 0
     });
     const savedGame = await newGame.save();
     return toJSON(savedGame);
@@ -47,6 +49,8 @@ const toJSON = (tacticalGame) => {
     return {
         id: tacticalGame._id,
         name: tacticalGame.name,
+        status: tacticalGame.status,
+        round: tacticalGame.round,
         user: tacticalGame.user,
         description: tacticalGame.description,
         createdAt: tacticalGame.createdAt,

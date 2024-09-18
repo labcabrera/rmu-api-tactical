@@ -13,10 +13,14 @@ const tacticalGameSchema = new mongoose.Schema({
         type: String,
         required: false
     },
+    round: {
+        type: Number,
+        required: true
+    },
     description: {
         type: String,
         required: false
-    }
+    },
 }, {
     timestamps: true,
     collection: "tactical-games"
