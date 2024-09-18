@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const TacticalCharacter = require("../models/tactical-character-model")
+const TacticalCharacter = require("../models/tactical-character-model");
 const tacticalCharacterService = require("../services/tactical-character-service");
 
 router.get('/:characterId', async (req, res) => {
