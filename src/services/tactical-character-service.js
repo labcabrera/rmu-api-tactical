@@ -19,15 +19,22 @@ const insert = async (user, data) => {
     if (!tacticalGame) {
         throw { status: 400, message: "Tactical game not found" };
     }
-    const { name, info, hp, skills, items, equipment, description } = data;
+    if (!data.faction) {
+        throw { status: 400, message: "Required faction" };
+    }
+    if (!tacticalGame.factions.includes(data.faction)) {
+        throw { status: 400, message: "Invalid faction" };
+    }
+    const { name, tacticalGameId, faction, info, hp, skills, items, equipment, description } = data;
     const newCharacter = new TacticalCharacter({
-        name: data.name,
-        tacticalGameId: data.tacticalGameId,
-        info: data.info,
-        hp: data.hp,
-        skills: data.skills,
-        items: data.items,
-        description: data.description,
+        name: name,
+        tacticalGameId: tacticalGameId,
+        faction: faction,
+        info: info,
+        hp: hp,
+        skills: skills,
+        items: items,
+        description: description,
         equipment: {
             mainHand: null,
             offHand: null,
@@ -96,6 +103,7 @@ const toJSON = (character) => {
         id: character._id,
         tacticalGameId: character.tacticalGameId,
         name: character.name,
+        faction: character.faction,
         info: {
             level: character.info.level,
             race: character.info.race,

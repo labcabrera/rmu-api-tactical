@@ -5,7 +5,7 @@ const characterInfoSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
-    race:  {
+    race: {
         type: String,
         required: true
     },
@@ -57,6 +57,10 @@ const tacticalCharacterSchema = new mongoose.Schema({
         required: true
     },
     tacticalGameId: {
+        type: String,
+        required: true
+    },
+    faction: {
         type: String,
         required: true
     },
