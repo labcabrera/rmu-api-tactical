@@ -9,7 +9,7 @@ const characterInfoSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    size: {
+    sizeId: {
         type: String,
         required: true
     },

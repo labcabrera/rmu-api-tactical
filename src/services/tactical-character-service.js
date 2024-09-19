@@ -107,7 +107,7 @@ const toJSON = (character) => {
         info: {
             level: character.info.level,
             race: character.info.race,
-            size: character.info.size,
+            sizeId: character.info.sizeId,
             armorType: character.info.armorType
         },
         hp: {
