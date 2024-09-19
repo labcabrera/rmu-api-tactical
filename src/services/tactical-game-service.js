@@ -20,7 +20,7 @@ const findAll = async (page, size) => {
 const insert = async (user, data) => {
     var factions = data.factions;
     if (!factions || factions.length === 0) {
-        factions = ["Light","Evil"];
+        factions = ["Light","Evil", "Neutral"];
     }
     const newGame = new TacticalGame({
         user: user,
