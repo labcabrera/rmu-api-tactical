@@ -14,17 +14,40 @@ const findCharactersByGameId = async (gameId, page, size) => {
     return { content: content, pagination: { page: page, size: size, totalElements: count } };
 }
 
-const createCharacter = async (gameId, data) => {
-    const game = await TacticalGame.findById(gameId);
-    if (!game) {
-        throw { message: "Tactical game not found" };
+const insert = async (user, data) => {
+    const tacticalGame = await TacticalGame.findById(data.tacticalGameId);
+    if (!tacticalGame) {
+        throw { status: 400, message: "Tactical game not found" };
     }
     const { name, info, hp, skills, items, equipment, description } = data;
-    const newCharacter = new TacticalCharacter({ name, info, hp, skills, items, equipment, description });
-    newCharacter.tacticalGameId = gameId;
+    const newCharacter = new TacticalCharacter({
+        name: data.name,
+        tacticalGameId: data.tacticalGameId,
+        info: data.info,
+        hp: data.hp,
+        skills: data.skills,
+        items: data.items,
+        description: data.description,
+        equipment: {
+            mainHand: null,
+            offHand: null,
+            head: null,
+            body: null
+        },
+        user: user
+    });
     const savedCharacter = await newCharacter.save();
     return toJSON(savedCharacter);
-}
+};
+
+const update = async (characterId, data) => {
+    const { name, description } = data;
+    const updatedCharacter = await TacticalCharacter.findByIdAndUpdate(characterId, { name, description }, { new: true });
+    if (!updatedCharacter) {
+        throw new { status: 404, message: "Tactical character not found" };
+    };
+    return toJSON(updatedCharacter);
+};
 
 const addCharacterEffect = async (characterId, data) => {
     const { type, value, rounds } = data;
@@ -129,7 +152,8 @@ const mapItem = (item) => {
 module.exports = {
     findCharacterById,
     findCharactersByGameId,
-    createCharacter,
+    insert,
+    update,
     addCharacterEffect,
     deleteCharacterEffect,
     setCurrentHp

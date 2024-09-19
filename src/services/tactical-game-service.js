@@ -1,4 +1,5 @@
 const TacticalGame = require("../models/tactical-game-model");
+const TacticalCharacter = require("../models/tactical-character-model");
 
 const findById = async (id) => {
     const readedGame = await TacticalGame.findById(id);
@@ -16,12 +17,17 @@ const findAll = async (page, size) => {
     return { content: content, pagination: { page: page, size: size, totalElements: count } };
 };
 
-const save = async (user, data) => {
+const insert = async (user, data) => {
+    var factions = data.factions;
+    if (!factions || factions.length === 0) {
+        factions = ["Light","Evil"];
+    }
     const newGame = new TacticalGame({
         user: user,
         name: data.name,
         description: data.description,
         status: 'created',
+        factions: factions,
         round: 0
     });
     const savedGame = await newGame.save();
@@ -32,15 +38,20 @@ const update = async (gameId, data) => {
     const { name, description } = data;
     const updatedGame = await TacticalGame.findByIdAndUpdate(gameId, { name, description }, { new: true });
     if (!updatedGame) {
-        throw new { status: 404, message: "Race not found" };
+        throw new { status: 404, message: "Tactical game not found" };
     };
     return toJSON(updatedGame);
 };
 
 const deleteById = async (gameId) => {
+    const currentGame = await TacticalGame.findById(gameId);
+    // Delete characters
+    await TacticalCharacter.deleteMany({tacticalGameId: gameId});
+    // Delete actions
+    // TODO
     const deletedGame = await TacticalGame.findByIdAndDelete(gameId);
     if (!deletedGame) {
-        throw { status: 404, message: "Race not found" };
+        throw { status: 404, message: "Tactical game not found" };
     }
 }
 
@@ -51,8 +62,9 @@ const toJSON = (tacticalGame) => {
         name: tacticalGame.name,
         status: tacticalGame.status,
         round: tacticalGame.round,
-        user: tacticalGame.user,
+        factions: tacticalGame.factions,
         description: tacticalGame.description,
+        user: tacticalGame.user,
         createdAt: tacticalGame.createdAt,
         updatedAt: tacticalGame.updatedAt
     };
@@ -61,7 +73,7 @@ const toJSON = (tacticalGame) => {
 module.exports = {
     findById,
     findAll,
-    save,
+    insert,
     update,
     deleteById
 };

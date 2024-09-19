@@ -16,6 +16,27 @@ router.get('/:characterId', async (req, res) => {
     }
 });
 
+router.post('/', async (req, res) => {
+    try {
+        //TODO read from JWT
+        const user = "lab.cabrera@gmail.com";
+        const savedCharacter = await tacticalCharacterService.insert(user, req.body);
+        res.status(201).json(savedCharacter);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+router.patch('/:characterId', async (req, res) => {
+    try {
+        const characterId = req.params.characterId;
+        const updatedCharacter = await tacticalCharacterService.update(characterId, req.body);
+        res.status(200).json(updatedCharacter);
+    } catch (error) {
+        res.status(error.status? error.status : 500).json({ message: error.message });
+    }
+});
+
 router.post('/:characterId/management/effects', async (req, res) => {
     try {
         const characterId = req.params.characterId;
@@ -77,14 +98,6 @@ router.get('/tactical-games/:gameId', async (req, res) => {
     }
 });
 
-router.post('/tactical-games/:gameId', async (req, res) => {
-    try {
-        const gameId = req.params.gameId;
-        const savedCharacter = await tacticalCharacterService.createCharacter(gameId, req.body);
-        res.status(201).json(savedCharacter);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
+
 
 module.exports = router;

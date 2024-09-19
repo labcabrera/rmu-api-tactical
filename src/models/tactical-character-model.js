@@ -68,7 +68,10 @@ const tacticalCharacterSchema = new mongoose.Schema({
     effects: [characterEffect],
     skills: [characterSkillSchema],
     items: [characterItemSchema],
-    equipment: characterEquipment,
+    equipment: {
+        type: characterEquipment,
+        required: false
+    },
     description: {
         type: String,
         required: false

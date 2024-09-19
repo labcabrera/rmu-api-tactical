@@ -31,7 +31,7 @@ router.post('/', async (req, res) => {
         console.log("Tactical game creation << " + req.body.name);
         //TODO JWT
         const user = "lab.cabrera@gmail.com";
-        const newGame = await tacticalGameService.save(user, req.body);
+        const newGame = await tacticalGameService.insert(user, req.body);
         res.status(201).json(newGame);
     } catch (error) {
         console.log(error);

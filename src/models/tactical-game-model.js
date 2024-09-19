@@ -17,10 +17,11 @@ const tacticalGameSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    factions: [String],
     description: {
         type: String,
         required: false
-    },
+    }
 }, {
     timestamps: true,
     collection: "tactical-games"
