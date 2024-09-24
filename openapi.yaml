@@ -1,0 +1,216 @@
+openapi: 3.1.0
+info:
+  title: RMU Tactical API
+  description: RMU Tactical API
+  contact:
+    name: Luis Cabrera
+    url: https://github.com/labcabrera
+    email: lab.cabrera@gmail.com
+  version: 0.1.0
+servers:
+  - url: http://localhost:3003/v1
+tags:
+  - name: Tactical games
+    description: Tactical games
+paths:
+  /tactical-games:
+    get:
+      tags:
+        - Tactical games
+      summary: Find tactical games
+      operationId: findTacticalGames
+      parameters:
+        - name: search
+          in: query
+          description: Search expression
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Zero-based page index (0..N)
+          required: false
+          schema:
+            minimum: 0
+            type: integer
+            format: int32
+            default: 0
+          example: 0    
+        - name: size
+          in: query
+          description: The size of the page to be returned
+          required: false
+          schema:
+            minimum: 1
+            type: integer
+            format: int32
+            default: 10           
+          example: 10
+        - name: sort
+          in: query
+          description: Sorting criteria
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              example: id,desc
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedContentTacticalGame'
+    post:
+      tags:
+        - Tactical games
+      summary: Creates a new tactical game
+      operationId: createTacticalGame
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TacticalGameCreationCmd'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedContentTacticalGame'
+        '400':
+          description: Tactical game not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /tactical-games/{tacticalGameId}:
+    get:
+      tags:
+        - Tactical games
+      summary: Find tactical game by id
+      operationId: findTacticalGameById
+      parameters:
+        - name: tacticalGameId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TacticalGame'
+        '404':
+          description: Tactical game not found
+    delete:
+      tags:
+        - Tactical games
+      summary: Delete tactical game by id
+      operationId: deleteTacticalGame
+      parameters:
+        - name: tacticalGameId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: OK
+        '404':
+          description: Tactical game not found
+components:
+  schemas:
+    TacticalGame:
+      type: object
+      required:
+        - id
+        - name
+        - status
+        - round
+        - user
+      properties:
+        id:
+          type: string
+          description: Tactical game identifier
+          example: 66545720ccc0b409343736b2
+        name:
+          type: string
+          description: Tactical game name
+          example: Tactical game demo
+        status:
+          $ref: '#/components/schemas/TacticalGameState'
+        round:
+          type: integer
+          format: int32
+          description: Tactical game current round
+          example: 1
+        factions:
+          type: array
+          items:
+            type: string
+        user:
+          type: string
+          description: Tactical game owner
+    TacticalGameState:
+      type: string
+      description: Tactical game current state
+      enum:
+        - created
+        - open
+        - closed
+    TacticalGameCreationCmd:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          description: Tactical game identifier
+          example: 66545720ccc0b409343736b2
+        name:
+          type: string
+          description: Tactical game name
+          example: Tactical game demo
+        factions:
+          type: array
+          items:
+            type: string
+    PagedContentTacticalGame:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/TacticalGame'
+        info:
+          $ref: '#/components/schemas/PagedContentInfo'
+    PagedContentInfo:
+      type: object
+      properties:
+        size:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+        page:
+          type: integer
+          format: int32
+    ApiError:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date
