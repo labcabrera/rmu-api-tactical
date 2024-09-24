@@ -71,16 +71,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TacticalGameCreationCmd'
+              $ref: '#/components/schemas/TacticalGameCreateCmd'
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PagedContentTacticalGame'
+                $ref: '#/components/schemas/TacticalGame'
         '400':
-          description: Tactical game not found
+          description: Invalid tactical game creation data
           content:
             application/json:
               schema:
@@ -106,6 +106,41 @@ paths:
                 $ref: '#/components/schemas/TacticalGame'
         '404':
           description: Tactical game not found
+    patch:
+      tags:
+        - Tactical games
+      summary: Updates a tactical game
+      operationId: updateTacticalGame
+      parameters:
+        - name: tacticalGameId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TacticalGameUpdateCmd'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TacticalGame'
+        '400':
+          description: Invalid tactical game update data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Tactical game not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
     delete:
       tags:
         - Tactical games
@@ -162,11 +197,26 @@ components:
         - created
         - open
         - closed
-    TacticalGameCreationCmd:
+    TacticalGameCreateCmd:
       type: object
       required:
         - id
         - name
+      properties:
+        name:
+          type: string
+          description: Tactical game name
+          example: Tactical game demo
+        factions:
+          type: array
+          items:
+            type: string
+        description:
+          type: string
+          description: Tactical game description
+          example: Tactical game demo description
+    TacticalGameUpdateCmd:
+      type: object
       properties:
         id:
           type: string
