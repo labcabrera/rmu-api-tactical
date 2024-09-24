@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
         const response = await tacticalCharacterService.find(searchExpression, tacticalGameId, page, size);
         res.json(response);
     } catch (error) {
-        res.status(error.status ? error.status : 500).json({ message: error.message });
+        sendErrorResponse(res, error);
     }
 });
 
@@ -25,7 +25,7 @@ router.get('/:characterId', async (req, res) => {
         }
         res.json(readedCharacter);
     } catch (error) {
-        res.status(error.status ? error.status : 500).json({ message: error.message });
+        sendErrorResponse(res, error);
     }
 });
 
@@ -36,7 +36,7 @@ router.post('/', async (req, res) => {
         const savedCharacter = await tacticalCharacterService.insert(user, req.body);
         res.status(201).json(savedCharacter);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        sendErrorResponse(res, error);
     }
 });
 
@@ -46,7 +46,7 @@ router.patch('/:characterId', async (req, res) => {
         const updatedCharacter = await tacticalCharacterService.update(characterId, req.body);
         res.status(200).json(updatedCharacter);
     } catch (error) {
-        res.status(error.status? error.status : 500).json({ message: error.message });
+        sendErrorResponse(res, error);
     }
 });
 
@@ -59,7 +59,7 @@ router.post('/:characterId/management/effects', async (req, res) => {
         }
         res.json(updatedCharacter);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        sendErrorResponse(res, error);
     }
 });
 
@@ -70,7 +70,7 @@ router.delete('/:characterId/management/effects/:effectId', async (req, res) => 
         const updatedCharacter = tacticalCharacterService.deleteCharacterEffect(characterId, effectId);
         res.status(204).send();
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        sendErrorResponse(res, error);
     }
 });
 
@@ -81,7 +81,7 @@ router.post('/:characterId/management/hp/:hp', async (req, res) => {
         const updatedCharacter = await tacticalCharacterService.setCurrentHp(characterId, hp);
         res.json(updatedCharacter);
     } catch (error) {
-        res.status(error.status ? error.status : 500).json({ message: error.message });
+        sendErrorResponse(res, error);
     }
 });
 
@@ -95,7 +95,7 @@ router.delete('/:characterId', async (req, res) => {
         }
         res.status(204).send();
     } catch (error) {
-        res.status(error.status ? error.status : 500).json({ message: error.message });
+        sendErrorResponse(res, error);
     }
 });
 
@@ -107,10 +107,16 @@ router.get('/tactical-games/:gameId', async (req, res) => {
         const response = await tacticalCharacterService.findCharactersByGameId(gameId, page, size);
         res.json(response);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        sendErrorResponse(res, error);
     }
 });
 
-
+const sendErrorResponse = (res, error) => {
+    res.status(error.status ? error.status : 500).json({
+        code: error.status ? error.status.toString() : "500",
+        message: error.message,
+        timestamp: new Date().toISOString()
+    });
+}
 
 module.exports = router;

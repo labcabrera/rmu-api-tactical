@@ -452,11 +452,16 @@ components:
       type: object
       required:
         - name
+        - tacticalGameId
       properties:
         name:
           type: string
           description: Tactical character name
           example: Orc 1
+        tacticalGameId:
+          type: string
+          description: Tactical game identifier
+          example: 66545720ccc0b409343736b2
         faction:
           type: string
           description: Tactical character faction
