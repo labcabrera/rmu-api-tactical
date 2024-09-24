@@ -1,16 +1,20 @@
 const TacticalCharacter = require("../models/tactical-character-model")
 const TacticalGame = require("../models/tactical-game-model")
 
-const findCharacterById = async (characterId) => {
+const findById = async (characterId) => {
     const readed = await TacticalCharacter.findById(characterId);
     return readed ? toJSON(readed) : readed;
 };
 
-const findCharactersByGameId = async (gameId, page, size) => {
+const find = async (searchExpression, tacticalGameId, page, size) => {
+    let filter = {};
+    if(tacticalGameId) {
+        filter.tacticalGameId = tacticalGameId;
+    }
     const skip = page * size;
-    const readedCharacters = await TacticalCharacter.find({ tacticalGameId: gameId }).skip(skip).limit(size).sort({ updatedAt: -1 });
-    const count = await TacticalCharacter.countDocuments({ tacticalGameId: gameId });
-    const content = readedCharacters.map(toJSON);
+    const list = await TacticalCharacter.find(filter).skip(skip).limit(size).sort({ updatedAt: -1 });
+    const count = await TacticalCharacter.countDocuments(filter);
+    const content = list.map(toJSON);
     return { content: content, pagination: { page: page, size: size, totalElements: count } };
 }
 
@@ -158,8 +162,8 @@ const mapItem = (item) => {
 }
 
 module.exports = {
-    findCharacterById,
-    findCharactersByGameId,
+    findById,
+    find,
     insert,
     update,
     addCharacterEffect,

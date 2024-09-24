@@ -7,9 +7,11 @@ const tacticalGameService = require("../services/tactical-game-service");
 
 router.get('/', async (req, res) => {
     try {
+        const searchExpression = req.query.search;
+        const username = req.query.username;
         const page = req.query.page ? parseInt(req.query.page) : 0;
         const size = req.query.size ? parseInt(req.query.size) : 10;
-        const response = await tacticalGameService.findAll(page, size);
+        const response = await tacticalGameService.find(searchExpression, username, page, size);
         res.json(response);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -39,7 +41,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-router.patch('/:id', async (req, res) => {
+router.patch('/:gameId', async (req, res) => {
     try {
         console.log("Tactical game update << " + req.params.id);
         const gameId = req.params.gameId;

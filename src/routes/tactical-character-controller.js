@@ -3,16 +3,29 @@ const router = express.Router();
 const TacticalCharacter = require("../models/tactical-character-model");
 const tacticalCharacterService = require("../services/tactical-character-service");
 
+router.get('/', async (req, res) => {
+    try {
+        const searchExpression = req.query.search;
+        const tacticalGameId = req.query.tacticalGameId;
+        const page = req.query.page ? parseInt(req.query.page) : 0;
+        const size = req.query.size ? parseInt(req.query.size) : 10;
+        const response = await tacticalCharacterService.find(searchExpression, tacticalGameId, page, size);
+        res.json(response);
+    } catch (error) {
+        res.status(error.status ? error.status : 500).json({ message: error.message });
+    }
+});
+
 router.get('/:characterId', async (req, res) => {
     try {
         const characterId = req.params.characterId;
-        const readedCharacter = await tacticalCharacterService.findCharacterById(characterId);
+        const readedCharacter = await tacticalCharacterService.findById(characterId);
         if (!readedCharacter) {
             return res.status(404).json({ message: "Tactical character not found" });
         }
         res.json(readedCharacter);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(error.status ? error.status : 500).json({ message: error.message });
     }
 });
 

@@ -222,6 +222,12 @@ paths:
           required: false
           schema:
             type: string
+        - name: tacticalGameId
+          in: query
+          description: Tactical game identifier
+          required: false
+          schema:
+            type: string
         - name: page
           in: query
           description: Zero-based page index (0..N)

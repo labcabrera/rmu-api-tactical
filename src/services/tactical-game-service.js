@@ -9,18 +9,22 @@ const findById = async (id) => {
     return toJSON(readedGame);
 }
 
-const findAll = async (page, size) => {
+const find = async (searchExpression, username, page, size) => {
+    let filter = {};
+    if(username) {
+        filter.username = username;
+    }
     const skip = page * size;
-    const list = await TacticalGame.find().skip(skip).limit(size).sort({ updatedAt: -1 });
-    const count = await TacticalGame.countDocuments();
+    const list = await TacticalGame.find(filter).skip(skip).limit(size).sort({ updatedAt: -1 });
+    const count = await TacticalGame.countDocuments(filter);
     const content = list.map(toJSON);
     return { content: content, pagination: { page: page, size: size, totalElements: count } };
-};
+}
 
 const insert = async (user, data) => {
     var factions = data.factions;
     if (!factions || factions.length === 0) {
-        factions = ["Light","Evil", "Neutral"];
+        factions = ["Light", "Evil", "Neutral"];
     }
     const newGame = new TacticalGame({
         user: user,
@@ -46,7 +50,7 @@ const update = async (gameId, data) => {
 const deleteById = async (gameId) => {
     const currentGame = await TacticalGame.findById(gameId);
     // Delete characters
-    await TacticalCharacter.deleteMany({tacticalGameId: gameId});
+    await TacticalCharacter.deleteMany({ tacticalGameId: gameId });
     // Delete actions
     // TODO
     const deletedGame = await TacticalGame.findByIdAndDelete(gameId);
@@ -72,7 +76,7 @@ const toJSON = (tacticalGame) => {
 
 module.exports = {
     findById,
-    findAll,
+    find,
     insert,
     update,
     deleteById
