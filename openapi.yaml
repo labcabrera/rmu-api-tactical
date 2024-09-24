@@ -12,6 +12,8 @@ servers:
 tags:
   - name: Tactical games
     description: Tactical games
+  - name: Tactical characters
+    description: Tactical characters
 paths:
   /tactical-games:
     get:
@@ -157,6 +159,200 @@ paths:
           description: OK
         '404':
           description: Tactical game not found
+  /tactical-games/{tacticalGameId}/start:
+    post:
+      tags:
+        - Tactical games
+      summary: Start tactical game
+      operationId: startTacticalGame
+      parameters:
+        - name: tacticalGameId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TacticalGame'
+        '404':
+          description: Tactical game not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /tactical-games/{tacticalGameId}/close:
+    post:
+      tags:
+        - Tactical games
+      summary: Close tactical game
+      operationId: closeTacticalGame
+      parameters:
+        - name: tacticalGameId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TacticalGame'
+        '404':
+          description: Tactical game not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /characters:
+    get:
+      tags:
+        - Tactical characters
+      summary: Find tactical characters
+      operationId: findTacticalCharacters
+      parameters:
+        - name: search
+          in: query
+          description: Search expression
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Zero-based page index (0..N)
+          required: false
+          schema:
+            minimum: 0
+            type: integer
+            format: int32
+            default: 0
+          example: 0    
+        - name: size
+          in: query
+          description: The size of the page to be returned
+          required: false
+          schema:
+            minimum: 1
+            type: integer
+            format: int32
+            default: 10           
+          example: 10
+        - name: sort
+          in: query
+          description: Sorting criteria
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              example: id,desc
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedContentTacticalCharacter'
+    post:
+      tags:
+        - Tactical characters
+      summary: Creates a new tactical character
+      operationId: createTacticalCharacter
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TacticalCharacterCreateCmd'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TacticalCharacter'
+        '400':
+          description: Invalid tactical game creation data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /characters/{characterId}:
+    get:
+      tags:
+        - Tactical characters
+      summary: Find tactical character by id
+      operationId: findTacticalCharacterById
+      parameters:
+        - name: characterId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TacticalCharacter'
+        '404':
+          description: Tactical character not found
+    patch:
+      tags:
+        - Tactical characters
+      summary: Updates a tactical character
+      operationId: updateTacticalCharacter
+      parameters:
+        - name: characterId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TacticalCharacterUpdateCmd'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TacticalCharacter'
+        '400':
+          description: Invalid tactical character update data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Tactical character not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    delete:
+      tags:
+        - Tactical characters
+      summary: Delete tactical character by id
+      operationId: deleteTacticalCharacter
+      parameters:
+        - name: characterId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: OK
+        '404':
+          description: Tactical character not found
 components:
   schemas:
     TacticalGame:
@@ -200,7 +396,6 @@ components:
     TacticalGameCreateCmd:
       type: object
       required:
-        - id
         - name
       properties:
         name:
@@ -230,6 +425,51 @@ components:
           type: array
           items:
             type: string
+    TacticalCharacter:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Tactical character identifier
+          example: 66545720ccc0b409343736b2
+        name:
+          type: string
+          description: Tactical character name
+          example: Orc 1
+        faction:
+          type: string
+          example: Evil
+        user:
+          type: string
+          description: Tactical game owner
+    TacticalCharacterCreateCmd:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Tactical character name
+          example: Orc 1
+        faction:
+          type: string
+          description: Tactical character faction
+          example: Evil
+        description:
+          type: string
+          description: Tactical character description
+          example: Orc 1 description
+    TacticalCharacterUpdateCmd:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Tactical character name
+          example: Tactical game demo
+        faction:
+          type: string
+          description: Tactical character faction
+          example: Evil
     PagedContentTacticalGame:
       type: object
       properties:
@@ -237,6 +477,15 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TacticalGame'
+        info:
+          $ref: '#/components/schemas/PagedContentInfo'
+    PagedContentTacticalCharacter:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/TacticalCharacter'
         info:
           $ref: '#/components/schemas/PagedContentInfo'
     PagedContentInfo:
