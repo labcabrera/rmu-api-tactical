@@ -3,6 +3,10 @@ const TacticalCharacter = require('../models/tactical-character-model');
 const TacticalCharacterRound = require('../models/tactical-character-round-model');
 const TacticalGamePhase = require('../constants/tactical-game-phase');
 const tacticalGameService = require('../services/tactical-game-service');
+const tacticalCharacterConverter = require('../converters/tactical-character-converter');
+
+const tacticalGameConverter = require('../converters/tactical-game-converter');
+const tacticalCharacterRoundConverter = require('../converters/tactical-character-round-converter');
 
 const startRound = async (tacticalGameId) => {
     const tacticalGame = await TacticalGame.findById(tacticalGameId);
@@ -18,12 +22,12 @@ const startRound = async (tacticalGameId) => {
     };
     const characters = await TacticalCharacter.find({ tacticalGameId: tacticalGameId });
     characters.map(c => { createTacticalCharacterRound(c, newRound) });
-    return tacticalGameService.toJSON(updatedGame);
+    return tacticalGameConverter.toJSON(updatedGame);
 };
 
 const findTacticalCharacterRounds = async (tacticalGameId, round) => {
     const list = await TacticalCharacterRound.find({ tacticalGameId: tacticalGameId, round: round });
-    return list.map(toJSON);
+    return list.map(tacticalCharacterRoundConverter.toJSON);
 };
 
 const createTacticalCharacterRound = async (character, round) => {
@@ -37,6 +41,7 @@ const createTacticalCharacterRound = async (character, round) => {
         tacticalCharacterId: character.id,
         initiative: {
             base: baseInitiative,
+            penalty: 0,
             roll: 0,
             total: baseInitiative
         },
@@ -44,19 +49,6 @@ const createTacticalCharacterRound = async (character, round) => {
     });
     const savedCharacterRound = await newCharacterRound.save();
     return savedCharacterRound;
-};
-
-const toJSON = (tacticalCharacterRound) => {
-    return {
-        id: tacticalCharacterRound._id,
-        tacticalGameId: tacticalCharacterRound.tacticalGameId,
-        round: tacticalCharacterRound.round,
-        tacticalCharacterId: tacticalCharacterRound.tacticalCharacterId,
-        initiative: tacticalCharacterRound.initiative,
-        actionPoints: tacticalCharacterRound.actionPoints,
-        createdAt: tacticalCharacterRound.createdAt,
-        updatedAt: tacticalCharacterRound.updatedAt,
-    };
 };
 
 module.exports = {

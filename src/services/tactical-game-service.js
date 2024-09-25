@@ -1,25 +1,27 @@
 const TacticalGame = require("../models/tactical-game-model");
 const TacticalCharacter = require("../models/tactical-character-model");
 
+const tacticalGameConverter = require("../converters/tactical-game-converter");
+
 const findById = async (id) => {
     const readedGame = await TacticalGame.findById(id);
     if (!readedGame) {
         throw new { status: 404, message: "Tactical game not found" };
     }
-    return toJSON(readedGame);
-}
+    return tacticalGameConverter.toJSON(readedGame);
+};
 
 const find = async (searchExpression, username, page, size) => {
     let filter = {};
-    if(username) {
+    if (username) {
         filter.username = username;
     }
     const skip = page * size;
     const list = await TacticalGame.find(filter).skip(skip).limit(size).sort({ updatedAt: -1 });
     const count = await TacticalGame.countDocuments(filter);
-    const content = list.map(toJSON);
+    const content = list.map(tacticalGameConverter.toJSON);
     return { content: content, pagination: { page: page, size: size, totalElements: count } };
-}
+};
 
 const insert = async (user, data) => {
     var factions = data.factions;
@@ -35,7 +37,7 @@ const insert = async (user, data) => {
         round: 0
     });
     const savedGame = await newGame.save();
-    return toJSON(savedGame);
+    return tacticalGameConverter.toJSON(savedGame);
 };
 
 const update = async (gameId, data) => {
@@ -44,7 +46,7 @@ const update = async (gameId, data) => {
     if (!updatedGame) {
         throw new { status: 404, message: "Tactical game not found" };
     };
-    return toJSON(updatedGame);
+    return tacticalGameConverter.toJSON(updatedGame);
 };
 
 const deleteById = async (gameId) => {
@@ -57,29 +59,12 @@ const deleteById = async (gameId) => {
     if (!deletedGame) {
         throw { status: 404, message: "Tactical game not found" };
     }
-}
-
-
-const toJSON = (tacticalGame) => {
-    return {
-        id: tacticalGame._id,
-        name: tacticalGame.name,
-        status: tacticalGame.status,
-        round: tacticalGame.round,
-        phase: tacticalGame.phase,
-        factions: tacticalGame.factions,
-        description: tacticalGame.description,
-        user: tacticalGame.user,
-        createdAt: tacticalGame.createdAt,
-        updatedAt: tacticalGame.updatedAt
-    };
-}
+};
 
 module.exports = {
     findById,
     find,
     insert,
     update,
-    deleteById,
-    toJSON
+    deleteById
 };

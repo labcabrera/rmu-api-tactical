@@ -8,6 +8,7 @@ const tacticalCharacterAction = new mongoose.Schema({
 
 const tacticalCharacterRoundInitiativeSchema = new mongoose.Schema({
     base: Number,
+    penalty: Number,
     roll: Number,
     total: Number
 }, { _id: false });

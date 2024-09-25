@@ -1,20 +1,24 @@
 const TacticalCharacter = require("../models/tactical-character-model")
 const TacticalGame = require("../models/tactical-game-model")
+const tacticalCharacterConverter = require('../converters/tactical-character-converter');
 
 const findById = async (characterId) => {
     const readed = await TacticalCharacter.findById(characterId);
-    return readed ? toJSON(readed) : readed;
+    if (!readed) {
+        throw new { status: 404, message: 'Tactical character not found' };
+    }
+    return tacticalCharacterConverter.toJSON(readed);
 };
 
 const find = async (searchExpression, tacticalGameId, page, size) => {
     let filter = {};
-    if(tacticalGameId) {
+    if (tacticalGameId) {
         filter.tacticalGameId = tacticalGameId;
     }
     const skip = page * size;
     const list = await TacticalCharacter.find(filter).skip(skip).limit(size).sort({ updatedAt: -1 });
     const count = await TacticalCharacter.countDocuments(filter);
-    const content = list.map(toJSON);
+    const content = list.map(tacticalCharacterConverter.toJSON);
     return { content: content, pagination: { page: page, size: size, totalElements: count } };
 }
 
@@ -48,7 +52,7 @@ const insert = async (user, data) => {
         user: user
     });
     const savedCharacter = await newCharacter.save();
-    return toJSON(savedCharacter);
+    return tacticalCharacterConverter.toJSON(savedCharacter);
 };
 
 const update = async (characterId, data) => {
@@ -57,7 +61,7 @@ const update = async (characterId, data) => {
     if (!updatedCharacter) {
         throw new { status: 404, message: "Tactical character not found" };
     };
-    return toJSON(updatedCharacter);
+    return tacticalCharacterConverter.toJSON(updatedCharacter);
 };
 
 const addCharacterEffect = async (characterId, data) => {
@@ -100,65 +104,6 @@ const setCurrentHp = async (characterId, hp) => {
         { hp: { max: maxHp, current: hp } },
         { new: true });
     return toJSON(updatedCharacter);
-}
-
-const toJSON = (character) => {
-    return {
-        id: character._id,
-        tacticalGameId: character.tacticalGameId,
-        name: character.name,
-        faction: character.faction,
-        info: {
-            level: character.info.level,
-            race: character.info.race,
-            sizeId: character.info.sizeId,
-            armorType: character.info.armorType
-        },
-        hp: {
-            max: character.hp.max,
-            current: character.hp.current
-        },
-        effects: character.effects.map(mapEffect),
-        skills: character.skills.map(mapSkill),
-        items: character.items.map(mapItem),
-        equipment: {
-            mainHand: character.equipment.mainHand,
-            offHand: character.equipment.offHand,
-            head: character.equipment.head,
-            body: character.equipment.body
-        },
-        description: character.description,
-        createdAt: character.createdAt,
-        updatedAt: character.updatedAt
-    };
-}
-
-const mapEffect = (effect) => {
-    return {
-        id: effect._id,
-        type: effect.type,
-        vale: effect.vale,
-        rounds: effect.rounds
-    }
-}
-
-const mapSkill = (skill) => {
-    return {
-        id: skill._id,
-        skillId: skill.skillId,
-        bonus: skill.bonus
-    }
-}
-
-const mapItem = (item) => {
-    return {
-        id: item._id,
-        name: item.name,
-        category: item.category,
-        itemTypeId: item.itemTypeId,
-        attackTable: item.attackTable,
-        skillId: item.skillId
-    }
 }
 
 module.exports = {

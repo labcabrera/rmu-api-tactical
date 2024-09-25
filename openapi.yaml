@@ -16,6 +16,8 @@ tags:
     description: Tactical characters
   - name: Tactical game rounds
     description: Tactical game rounds
+  - name: Initiative
+    description: Initiative
 paths:
   /tactical-games:
     get:
@@ -236,8 +238,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiError'
-                
+                $ref: '#/components/schemas/ApiError'   
   /characters:
     get:
       tags:
@@ -392,6 +393,37 @@ paths:
           description: OK
         '404':
           description: Tactical character not found
+  /initiative/{characterRoundId}/roll/{initiativeRoll}:
+    post:
+      tags:
+        - Initiative
+      summary: Set character initiative
+      operationId: updateCharacterInitiative
+      parameters:
+        - name: characterRoundId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: initiativeRoll
+          in: path
+          required: true
+          schema:
+            type: number
+            format: int32
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TacticalCharacterRound'
+        '404':
+          description: Tactical character round not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
 components:
   schemas:
     TacticalGame:
@@ -536,6 +568,27 @@ components:
           format: int32
         tacticalCharacterId:
           type: string
+        initiative:
+          $ref: '#/components/schemas/TacticalCharacterRoundInitiative'
+    TacticalCharacterRoundInitiative:
+      type: object
+      properties:
+        base:
+          type: number
+          format: int32
+          example: 12
+        penalty:
+          type: number
+          format: int32
+          example: -5
+        roll:
+          type: number
+          format: int32
+          example: 6
+        total:
+          type: number
+          format: int32
+          example: 13
     PagedContentTacticalGame:
       type: object
       properties:
