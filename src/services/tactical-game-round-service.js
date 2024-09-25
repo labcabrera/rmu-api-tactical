@@ -10,6 +10,14 @@ const tacticalCharacterRoundConverter = require('../converters/tactical-characte
 
 const startRound = async (tacticalGameId) => {
     const tacticalGame = await TacticalGame.findById(tacticalGameId);
+    const characters = await TacticalCharacter.find({ tacticalGameId: tacticalGameId });
+    if (!tacticalGame) {
+        throw { state: 400, message: 'Tactical game not found' };
+    }
+    if(characters.length < 1) {
+        throw { state: 400, message: 'No characters associated with the tactical game have been defined' };
+    }
+
     const newRound = tacticalGame.round + 1;
     const update = {
         status: 'started',
@@ -20,7 +28,6 @@ const startRound = async (tacticalGameId) => {
     if (!updatedGame) {
         throw { status: 404, message: 'Tactical game not found' };
     };
-    const characters = await TacticalCharacter.find({ tacticalGameId: tacticalGameId });
     characters.map(c => { createTacticalCharacterRound(c, newRound) });
     return tacticalGameConverter.toJSON(updatedGame);
 };
