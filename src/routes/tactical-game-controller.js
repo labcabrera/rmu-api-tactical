@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 
-const TacticalGame = require("../models/tactical-game-model")
-
 const tacticalGameService = require("../services/tactical-game-service");
+const tacticalGameRoundService = require("../services/tactical-game-round-service");
+const errorService = require("../services/error-service");
 
 router.get('/', async (req, res) => {
     try {
@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
         const response = await tacticalGameService.find(searchExpression, username, page, size);
         res.json(response);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        errorService.sendErrorResponse(error);
     }
 });
 
@@ -60,6 +60,29 @@ router.delete('/:gameId', async (req, res) => {
         res.status(204).send();
     } catch (error) {
         res.status(error.status ? error.status : 500).json({ message: error.message });
+    }
+});
+
+router.get('/:tacticalGameId/rounds/:round/characters', async (req, res) => {
+    try {
+        const tacticalGameId = req.params.tacticalGameId;
+        const round = parseInt(req.params.round);
+        const result = await tacticalGameRoundService.findTacticalCharacterRounds(tacticalGameId, round);
+        res.json(result);
+    } catch (error) {
+        errorService.sendErrorResponse(error);
+    }
+});
+
+router.post('/:tacticalGameId/rounds/start', async (req, res) => {
+    try {
+        const tacticalGameId = req.params.tacticalGameId;
+        console.log("Tactical game round start << " + tacticalGameId);
+        const result = await tacticalGameRoundService.startRound(tacticalGameId);
+        res.status(200).json(result);
+    } catch (error) {
+        console.log(error);
+        res.status(400).json({ message: error.message });
     }
 });
 

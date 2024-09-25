@@ -6,8 +6,14 @@ const tacticalCharacterAction = new mongoose.Schema({
     phaseEnd: Number
 });
 
+const tacticalCharacterRoundInitiativeSchema = new mongoose.Schema({
+    base: Number,
+    roll: Number,
+    total: Number
+}, { _id: false });
+
 const tacticalCharacterRoundSchema = new mongoose.Schema({
-    tacticalCharacterId: {
+    tacticalGameId: {
         type: String,
         required: true
     },
@@ -15,11 +21,18 @@ const tacticalCharacterRoundSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
-    initiative: {
-        type: Number,
-        required: false
+    tacticalCharacterId: {
+        type: String,
+        required: true
     },
-    actions: [tacticalCharacterAction]
+    initiative: {
+        type: tacticalCharacterRoundInitiativeSchema,
+        required: true
+    },
+    actionPoints: {
+        type: Number,
+        required: true
+    }
 }, {
     timestamps: true,
     collection: "tactical-character-rounds"

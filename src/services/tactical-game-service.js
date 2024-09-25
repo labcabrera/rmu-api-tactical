@@ -79,5 +79,6 @@ module.exports = {
     find,
     insert,
     update,
-    deleteById
+    deleteById,
+    toJSON
 };

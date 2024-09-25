@@ -34,6 +34,15 @@ app.get('/', (req, res) => {
   res.redirect('/api-docs');
 });
 
+app.use((req, res, next) => {
+  res.status(404).json({ code: "400", message: "Invalid path", timestamp: new Date().toISOString() });
+});
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ code: "500", message: "Internal server error", timestamp: new Date().toISOString() });
+});
+
 app.listen(PORT, () => {
   console.log(`API started on ${PORT}`);
 });

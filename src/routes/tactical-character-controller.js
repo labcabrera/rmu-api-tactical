@@ -117,6 +117,6 @@ const sendErrorResponse = (res, error) => {
         message: error.message,
         timestamp: new Date().toISOString()
     });
-}
+};
 
 module.exports = router;
