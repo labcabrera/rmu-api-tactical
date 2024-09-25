@@ -17,11 +17,11 @@ const characterInfoSchema = new mongoose.Schema({
         type: Number,
         required: true
     }
-});
+}, { _id: false });
 
 const characterInitiativeSchema = new mongoose.Schema({
     base: Number
-});
+}, { _id: false });
 
 const characterSkillSchema = new mongoose.Schema({
     skillId: {
@@ -47,7 +47,7 @@ const characterEquipment = new mongoose.Schema({
     offHand: String,
     body: String,
     head: String
-});
+}, { _id: false });
 
 const characterEffectSchema = new mongoose.Schema({
     type: String,
@@ -74,7 +74,7 @@ const tacticalCharacterSchema = new mongoose.Schema({
         current: Number
     },
     effects: [characterEffectSchema],
-    initiative: [characterInitiativeSchema],
+    initiative: characterInitiativeSchema,
     skills: [characterSkillSchema],
     items: [characterItemSchema],
     equipment: {

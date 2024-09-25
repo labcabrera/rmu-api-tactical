@@ -14,6 +14,7 @@ const toJSON = (character) => {
             max: character.hp.max,
             current: character.hp.current
         },
+        initiative: character.initiative,
         effects: character.effects.map(mapEffect),
         skills: character.skills.map(mapSkill),
         items: character.items.map(mapItem),
