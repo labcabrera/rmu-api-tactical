@@ -418,6 +418,8 @@ components:
           format: int32
           description: Tactical game current round
           example: 1
+        phase:
+          $ref: '#/components/schemas/TacticalGamePhase'
         factions:
           type: array
           items:
@@ -432,6 +434,13 @@ components:
         - created
         - open
         - closed
+    TacticalGamePhase:
+      type: string
+      description: Tactical game current phase
+      enum:
+        - initiative
+        - actions
+        - upkeep
     TacticalGameCreateCmd:
       type: object
       required:

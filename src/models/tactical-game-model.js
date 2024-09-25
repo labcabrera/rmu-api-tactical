@@ -17,6 +17,10 @@ const tacticalGameSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    phase: {
+        type: String,
+        required: false
+    },
     factions: [String],
     description: {
         type: String,

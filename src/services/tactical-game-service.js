@@ -66,6 +66,7 @@ const toJSON = (tacticalGame) => {
         name: tacticalGame.name,
         status: tacticalGame.status,
         round: tacticalGame.round,
+        phase: tacticalGame.phase,
         factions: tacticalGame.factions,
         description: tacticalGame.description,
         user: tacticalGame.user,

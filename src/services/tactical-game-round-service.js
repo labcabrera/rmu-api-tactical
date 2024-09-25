@@ -1,6 +1,7 @@
 const TacticalGame = require('../models/tactical-game-model');
 const TacticalCharacter = require('../models/tactical-character-model');
 const TacticalCharacterRound = require('../models/tactical-character-round-model');
+const TacticalGamePhase = require('../constants/tactical-game-phase');
 const tacticalGameService = require('../services/tactical-game-service');
 
 const startRound = async (tacticalGameId) => {
@@ -8,7 +9,8 @@ const startRound = async (tacticalGameId) => {
     const newRound = tacticalGame.round + 1;
     const update = {
         status: 'started',
-        round: newRound
+        round: newRound,
+        phase: TacticalGamePhase.INITIATIVE
     };
     const updatedGame = await TacticalGame.findByIdAndUpdate(tacticalGameId, update, { new: true });
     if (!updatedGame) {
@@ -55,7 +57,7 @@ const toJSON = (tacticalCharacterRound) => {
         createdAt: tacticalCharacterRound.createdAt,
         updatedAt: tacticalCharacterRound.updatedAt,
     };
-}
+};
 
 module.exports = {
     startRound,
