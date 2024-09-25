@@ -4,7 +4,7 @@ const tacticalCharacterGameConverter = require('../converters/tactical-character
 const updateInitiative = async (tacticalCharacterRoundId, initiativeRoll) => {
     const characterRound = await TacticalCharacterRound.findById(tacticalCharacterRoundId);
     if (!characterRound) {
-        throw new { status: 404, message: 'Tactical character round not found' }
+        throw { status: 404, message: 'Tactical character round not found' }
     }
     const base = characterRound.initiative.base ? characterRound.initiative.base : 0;
     const penalty = characterRound.initiative.penalty ? characterRound.initiative.penalty : 0;
@@ -19,7 +19,7 @@ const updateInitiative = async (tacticalCharacterRoundId, initiativeRoll) => {
     };
     const updated = await TacticalCharacterRound.findByIdAndUpdate(tacticalCharacterRoundId, update, { new: true });
     if (!updated) {
-        throw new { status: 404, message: 'Tactical character round not found' };
+        throw { status: 404, message: 'Tactical character round not found' };
     };
     return tacticalCharacterGameConverter.toJSON(updated);
 };

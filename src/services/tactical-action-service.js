@@ -1,13 +1,13 @@
-const TacticalGame = require("../models/tactical-game-model");
-const TacticalCharacter = require("../models/tactical-character-model");
-const TacticalAction = require("../models/tactical-action-model");
+const TacticalGame = require('../models/tactical-game-model');
+const TacticalCharacter = require('../models/tactical-character-model');
+const TacticalAction = require('../models/tactical-action-model');
 
-const tacticalActionConverter = require("../converters/tactical-action-converter");
+const tacticalActionConverter = require('../converters/tactical-action-converter');
 
 const findById = async (id) => {
     const readed = await TacticalAction.findById(id);
     if (!readed) {
-        throw new { status: 404, message: "Tactical action not found" };
+        throw { status: 404, message: 'Tactical action not found' };
     }
     return tacticalActionConverter.toJSON(readed);
 };
@@ -48,7 +48,7 @@ const update = async (actionId, data) => {
     const { description } = data;
     const updatedAction = await TacticalAction.findByIdAndUpdate(actionId, { description }, { new: true });
     if (!updatedAction) {
-        throw new { status: 404, message: "Tactical action not found" };
+        throw { status: 404, message: 'Tactical action not found' };
     };
     return tacticalActionConverter.toJSON(updatedAction);
 };
@@ -56,7 +56,7 @@ const update = async (actionId, data) => {
 const deleteById = async (actionId) => {
     const deletedAction = await TacticalAction.findByIdAndDelete(actionId);
     if (!deletedAction) {
-        throw { status: 404, message: "Tactical action not found" };
+        throw { status: 404, message: 'Tactical action not found' };
     }
 };
 

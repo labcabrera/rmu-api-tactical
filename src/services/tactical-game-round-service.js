@@ -18,7 +18,7 @@ const startRound = async (tacticalGameId) => {
     };
     const updatedGame = await TacticalGame.findByIdAndUpdate(tacticalGameId, update, { new: true });
     if (!updatedGame) {
-        throw new { status: 404, message: 'Tactical game not found' };
+        throw { status: 404, message: 'Tactical game not found' };
     };
     const characters = await TacticalCharacter.find({ tacticalGameId: tacticalGameId });
     characters.map(c => { createTacticalCharacterRound(c, newRound) });

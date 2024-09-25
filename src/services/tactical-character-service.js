@@ -5,7 +5,7 @@ const tacticalCharacterConverter = require('../converters/tactical-character-con
 const findById = async (characterId) => {
     const readed = await TacticalCharacter.findById(characterId);
     if (!readed) {
-        throw new { status: 404, message: 'Tactical character not found' };
+        throw { status: 404, message: 'Tactical character not found' };
     }
     return tacticalCharacterConverter.toJSON(readed);
 };
@@ -60,7 +60,7 @@ const update = async (characterId, data) => {
     const { name, description } = data;
     const updatedCharacter = await TacticalCharacter.findByIdAndUpdate(characterId, { name, description }, { new: true });
     if (!updatedCharacter) {
-        throw new { status: 404, message: "Tactical character not found" };
+        throw { status: 404, message: "Tactical character not found" };
     };
     return tacticalCharacterConverter.toJSON(updatedCharacter);
 };
