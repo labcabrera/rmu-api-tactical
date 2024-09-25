@@ -24,10 +24,12 @@ mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
 
 const usersRouter = require('./routes/tactical-game-controller');
 const charactersRouter = require('./routes/tactical-character-controller');
+const actionRouter = require('./routes/tactical-action-controller');
 const initiativeRouter = require('./routes/initiative-controller');
 
 app.use('/v1/tactical-games', usersRouter);
 app.use('/v1/characters', charactersRouter);
+app.use('/v1/actions', actionRouter);
 app.use('/v1/initiative', initiativeRouter);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
