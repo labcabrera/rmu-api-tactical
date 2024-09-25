@@ -74,7 +74,10 @@ const tacticalCharacterSchema = new mongoose.Schema({
         current: Number
     },
     effects: [characterEffectSchema],
-    initiative: characterInitiativeSchema,
+    initiative: {
+        type: characterInitiativeSchema,
+        required: true
+    },
     skills: [characterSkillSchema],
     items: [characterItemSchema],
     equipment: {
