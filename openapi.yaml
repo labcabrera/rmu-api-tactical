@@ -18,6 +18,8 @@ tags:
     description: Tactical game rounds
   - name: Initiative
     description: Initiative
+  - name: Actions
+    description: Actions
 paths:
   /tactical-games:
     get:
@@ -424,6 +426,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+  /actions/character/{tacticalCharacter}:
+    post:
+      tags:
+        - Actions
+      parameters:
+        - name: tacticalCharacter
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TacticalActionCreateCmd'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TacticalAction'
 components:
   schemas:
     TacticalGame:
@@ -589,6 +613,36 @@ components:
           type: number
           format: int32
           example: 13
+    TacticalAction:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          $ref: '#/components/schemas/TacticalActionType'
+    TacticalActionCreateCmd:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/TacticalActionType'
+        phaseStart:
+          type: number
+          format: int32
+          description: Phase start
+          example: 0
+        actionPoints:
+          type: number
+          format: int32
+          description: Action points
+          example: 3
+    TacticalActionType:
+      type: string
+      description: Tactical action type
+      enum:
+        - movement
+        - attack
+        - staticAction
+        - maneouver
     PagedContentTacticalGame:
       type: object
       properties:
