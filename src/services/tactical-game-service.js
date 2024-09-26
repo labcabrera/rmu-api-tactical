@@ -1,12 +1,14 @@
-const TacticalGame = require("../models/tactical-game-model");
-const TacticalCharacter = require("../models/tactical-character-model");
+const TacticalGame = require('../models/tactical-game-model');
+const TacticalCharacter = require('../models/tactical-character-model');
+const TacticalCharacterRound = require('../models/tactical-character-round-model');
+const TacticalAction = require('../models/tactical-action-model');
 
-const tacticalGameConverter = require("../converters/tactical-game-converter");
+const tacticalGameConverter = require('../converters/tactical-game-converter');
 
 const findById = async (id) => {
     const readedGame = await TacticalGame.findById(id);
     if (!readedGame) {
-        throw { status: 404, message: "Tactical game not found" };
+        throw { status: 404, message: 'Tactical game not found' };
     }
     return tacticalGameConverter.toJSON(readedGame);
 };
@@ -26,7 +28,7 @@ const find = async (searchExpression, username, page, size) => {
 const insert = async (user, data) => {
     var factions = data.factions;
     if (!factions || factions.length === 0) {
-        factions = ["Light", "Evil", "Neutral"];
+        factions = ['Light', 'Evil', 'Neutral'];
     }
     const newGame = new TacticalGame({
         user: user,
@@ -44,20 +46,18 @@ const update = async (gameId, data) => {
     const { name, description } = data;
     const updatedGame = await TacticalGame.findByIdAndUpdate(gameId, { name, description }, { new: true });
     if (!updatedGame) {
-        throw { status: 404, message: "Tactical game not found" };
+        throw { status: 404, message: 'Tactical game not found' };
     };
     return tacticalGameConverter.toJSON(updatedGame);
 };
 
 const deleteById = async (gameId) => {
-    const currentGame = await TacticalGame.findById(gameId);
-    // Delete characters
     await TacticalCharacter.deleteMany({ tacticalGameId: gameId });
-    // Delete actions
-    // TODO
+    await TacticalCharacterRound.deleteMany({ tacticalGameId: gameId });
+    await TacticalAction.deleteMany({ tacticalGameId: gameId });
     const deletedGame = await TacticalGame.findByIdAndDelete(gameId);
     if (!deletedGame) {
-        throw { status: 404, message: "Tactical game not found" };
+        throw { status: 404, message: 'Tactical game not found' };
     }
 };
 
