@@ -46,11 +46,30 @@ const characterSkillSchema = new mongoose.Schema({
 });
 
 const characterItemSchema = new mongoose.Schema({
-    name: String,
-    category: String,
-    itemTypeId: String,
-    attackTable: String,
-    skillId: String
+    itemTypeId: {
+      type: String,
+      required: true  
+    },
+    category: {
+        type: String,
+        required: true
+    },
+    weaponRange: {
+        type: String,
+        required: false,
+    },
+    weaponType: {
+        type: String,
+        required: false
+    },
+    attackTable: {
+        type: String,
+        required: false
+    },
+    skillId: {
+        type: String,
+        required: false
+    }
 });
 
 const characterEquipment = new mongoose.Schema({

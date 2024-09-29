@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
+
 const TacticalCharacter = require("../models/tactical-character-model");
 const tacticalCharacterService = require("../services/tactical-character-service");
+const tacticalCharacterItemService = require("../services/tactical-character-item-service");
 
 router.get('/', async (req, res) => {
     try {
@@ -45,6 +47,27 @@ router.patch('/:characterId', async (req, res) => {
         const characterId = req.params.characterId;
         const updatedCharacter = await tacticalCharacterService.update(characterId, req.body);
         res.status(200).json(updatedCharacter);
+    } catch (error) {
+        sendErrorResponse(res, error);
+    }
+});
+
+router.post('/:characterId/items', async (req, res) => {
+    try {
+        const characterId = req.params.characterId;
+        const savedCharacter = await tacticalCharacterItemService.addItem(characterId, req.body);
+        res.status(200).json(savedCharacter);
+    } catch (error) {
+        sendErrorResponse(res, error);
+    }
+});
+
+router.delete('/:characterId/items/:itemId', async (req, res) => {
+    try {
+        const characterId = req.params.characterId;
+        const itemId = req.params.itemId;
+        const savedCharacter = await tacticalCharacterItemService.deleteItem(characterId, itemId);
+        res.status(200).json(savedCharacter);
     } catch (error) {
         sendErrorResponse(res, error);
     }

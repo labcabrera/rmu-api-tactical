@@ -81,7 +81,7 @@ const addCharacterEffect = async (characterId, data) => {
     if (!updatedCharacter) {
         throw { message: 'Tactical character not found' };
     }
-}
+};
 
 const deleteCharacterEffect = async (characterId, effectId) => {
     const updatedCharacter = await TacticalCharacter.findByIdAndUpdate(
@@ -92,7 +92,7 @@ const deleteCharacterEffect = async (characterId, effectId) => {
         throw { message: 'Tactical character not found' };
     }
     return toJSON(updatedCharacter);
-}
+};
 
 const setCurrentHp = async (characterId, hp) => {
     const readedCharacter = await TacticalCharacter.findById(characterId);
@@ -121,7 +121,7 @@ const buildCharacterUpdate = (data, currentCharacter) => {
     if (data.faction) {
         update.faction = data.faction;
     }
-    if(data.description) {
+    if (data.description) {
         update.description = data.description;
     }
     buildCharacterUpdateInfo(update, data, currentCharacter);
@@ -140,10 +140,10 @@ const buildCharacterUpdateInfo = (update, data, currentCharacter) => {
         if (data.info.race) {
             update.info.race = data.info.race;
         }
-        if(data.info.sizeId) {
+        if (data.info.sizeId) {
             update.info.sizeId = data.info.sizeId;
         }
-        if(data.info.baseMovementRate) {
+        if (data.info.baseMovementRate) {
             update.info.baseMovementRate = data.info.baseMovementRate;
         }
     }
