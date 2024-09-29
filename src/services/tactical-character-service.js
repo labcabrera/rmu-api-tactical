@@ -54,7 +54,8 @@ const insert = async (user, data) => {
         user: user
     });
     const savedCharacter = await newCharacter.save();
-    return tacticalCharacterConverter.toJSON(savedCharacter);
+    const equipedCharacter = await loadDefaultEquipment(savedCharacter);
+    return tacticalCharacterConverter.toJSON(equipedCharacter);
 };
 
 const update = async (characterId, data) => {
@@ -106,7 +107,23 @@ const setCurrentHp = async (characterId, hp) => {
         { hp: { max: maxHp, current: hp } },
         { new: true });
     return toJSON(updatedCharacter);
-}
+};
+
+const loadDefaultEquipment = async (character) => {
+    const weapons = character.items.filter(e => e.category === 'weapon');
+    const shields = character.items.filter(e => e.category === 'shield');
+    character.equipment.mainHand = weapons.length > 0 ? weapons[0].id : null;
+    if (shields.length > 0) {
+        character.equipment.offHand = shields.length > 0 ? shields[0].id : null;
+    } else if (weapons.length > 1) {
+        character.equipment.offHand = weapons.length > 0 ? weapons[1].id : null;
+    }
+    const armor = character.items.find(e => e.category === 'armor');
+    if (armor) {
+        character.equipment.body = armor.id;
+    }
+    return character.save();
+};
 
 module.exports = {
     findById,
