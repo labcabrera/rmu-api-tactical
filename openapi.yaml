@@ -165,6 +165,7 @@ paths:
           description: OK
         '404':
           description: Tactical game not found
+
   /tactical-games/{tacticalGameId}/close:
     post:
       tags:
@@ -395,6 +396,81 @@ paths:
           description: OK
         '404':
           description: Tactical character not found
+
+  /characters/{characterId}/items:
+    post:
+      tags:
+        - Tactical characters
+      summary: Add item to character
+      operationId: addItem
+      parameters:
+        - name: characterId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TacticalCharacterAddItemCmd'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TacticalCharacter'
+        '400':
+          description: Invalid tactical game creation data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Tactical character not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /characters/{characterId}/items/{itemId}:
+    delete:
+      tags:
+        - Tactical characters
+      summary: Delete character item
+      operationId: deleteItem
+      parameters:
+        - name: characterId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TacticalCharacter'
+        '400':
+          description: Invalid item identifier
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Tactical character not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
   /initiative/{characterRoundId}/roll/{initiativeRoll}:
     post:
       tags:
@@ -579,6 +655,18 @@ components:
           type: string
           description: Tactical character faction
           example: Evil
+    TacticalCharacterAddItemCmd:
+      type: object
+      required:
+        - itemTypeId
+        - category
+      properties:
+        itemTypeId:
+          type: string
+          example: dager
+        category:
+          type: string
+          example: weapon
     TacticalCharacterRound:
       type: object
       properties:
