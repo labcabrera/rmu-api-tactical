@@ -4,12 +4,8 @@ const toJSON = (character) => {
         tacticalGameId: character.tacticalGameId,
         name: character.name,
         faction: character.faction,
-        info: {
-            level: character.info.level,
-            race: character.info.race,
-            sizeId: character.info.sizeId,
-            armorType: character.info.armorType
-        },
+        info: character.info,
+        defense: character.defense,
         hp: {
             max: character.hp.max,
             current: character.hp.current

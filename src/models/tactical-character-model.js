@@ -13,7 +13,18 @@ const characterInfoSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    baseMovementRate: {
+        type: Number,
+        required: true
+    }
+}, { _id: false });
+
+const characterDefenseSchema = new mongoose.Schema({
     armorType: {
+        type: Number,
+        required: true
+    },
+    defensiveBonus: {
         type: Number,
         required: true
     }
@@ -69,6 +80,7 @@ const tacticalCharacterSchema = new mongoose.Schema({
         required: true
     },
     info: characterInfoSchema,
+    defense: characterDefenseSchema,
     hp: {
         max: Number,
         current: Number
