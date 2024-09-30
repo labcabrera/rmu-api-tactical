@@ -471,6 +471,37 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
 
+  /characters/{characterId}/equipment:
+    post:
+      tags:
+        - Tactical characters
+      summary: Equip or unequip carried items
+      operationId: equipItem
+      parameters:
+        - name: characterId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TacticalCharacterEquipItemCmd'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TacticalCharacter'
+        '404':
+          description: Tactical character not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
   /initiative/{characterRoundId}/roll/{initiativeRoll}:
     post:
       tags:
@@ -667,6 +698,15 @@ components:
         category:
           type: string
           example: weapon
+    TacticalCharacterEquipItemCmd:
+      type: object
+      required:
+        - itemId
+      properties:
+        itemId:
+          type: string
+        slot:
+          type: string
     TacticalCharacterRound:
       type: object
       properties:

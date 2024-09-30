@@ -49,18 +49,17 @@ const equip = async (characterId, data) => {
     if (!itemId) {
         throw { status: 400, message: 'Required itemId' };
     }
-    if (!slot) {
-        throw { status: 400, message: 'Required slot' };
-    }
-    switch (slot) {
-        case 'mainHand': break;
-        case 'offHand': break;
-        case 'body': break;
-        case 'head': break;
-        case 'arms': break;
-        case 'legs': break;
-        default:
-            throw { status: 400, message: 'Invalid item slot' };
+    if (slot) {
+        switch (slot) {
+            case 'mainHand': break;
+            case 'offHand': break;
+            case 'body': break;
+            case 'head': break;
+            case 'arms': break;
+            case 'legs': break;
+            default:
+                throw { status: 400, message: 'Invalid item slot' };
+        }
     }
     const item = currentCharacter.items.find(e => e.id == itemId);
     if (!item) {
@@ -75,7 +74,9 @@ const equip = async (characterId, data) => {
             update.equipment[checkSlot] = null;
         }
     }
-    update.equipment[slot] = itemId;
+    if (slot) {
+        update.equipment[slot] = itemId;
+    }
     const updated = await TacticalCharacter.findOneAndUpdate({ _id: characterId }, update, {
         new: true,
         upsert: true
