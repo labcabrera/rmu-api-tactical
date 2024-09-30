@@ -16,6 +16,10 @@ const characterInfoSchema = new mongoose.Schema({
     baseMovementRate: {
         type: Number,
         required: true
+    },
+    weight: {
+        type: Number,
+        required: false
     }
 }, { _id: false });
 
@@ -45,7 +49,32 @@ const characterSkillSchema = new mongoose.Schema({
     }
 });
 
+const characterItemWeaponSchema = new mongoose.Schema({
+    type: String,
+    attackTable: String,
+    skillId: String,
+    fumble: Number,
+    sizeAdjustment: Number
+}, { _id: false });
+
+const characterItemRangeSchema = new mongoose.Schema({
+    from: Number,
+    to: Number,
+    bonus: Number
+}, { _id: false });
+
+const characterItemInfoSchema = new mongoose.Schema({
+    length: Number,
+    strength: Number,
+    weight: Number,
+    productionTime: Number
+}, { _id: false });
+
 const characterItemSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: true
+    },
     itemTypeId: {
       type: String,
       required: true  
@@ -54,29 +83,17 @@ const characterItemSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    weaponRange: {
-        type: String,
-        required: false,
-    },
-    weaponType: {
-        type: String,
-        required: false
-    },
-    attackTable: {
-        type: String,
-        required: false
-    },
-    skillId: {
-        type: String,
-        required: false
-    }
+    weapon: characterItemWeaponSchema,
+    weaponRange: [characterItemRangeSchema],
+    info: characterItemInfoSchema
 });
 
 const characterEquipment = new mongoose.Schema({
     mainHand: String,
     offHand: String,
     body: String,
-    head: String
+    head: String,
+    weight: Number
 }, { _id: false });
 
 const characterEffectSchema = new mongoose.Schema({

@@ -18,7 +18,8 @@ const toJSON = (character) => {
             mainHand: character.equipment.mainHand,
             offHand: character.equipment.offHand,
             head: character.equipment.head,
-            body: character.equipment.body
+            body: character.equipment.body,
+            weight: character.equipment.weight
         },
         description: character.description,
         createdAt: character.createdAt,
@@ -46,11 +47,11 @@ const mapSkill = (skill) => {
 const mapItem = (item) => {
     return {
         id: item._id,
-        name: item.name,
-        category: item.category,
         itemTypeId: item.itemTypeId,
-        attackTable: item.attackTable,
-        skillId: item.skillId
+        name: item.name,
+        weapon: item.weapon,
+        weaponRange: item.weaponRange,
+        info: item.info
     }
 };
 

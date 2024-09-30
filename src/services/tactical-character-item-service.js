@@ -6,11 +6,14 @@ const addItem = async (characterId, item) => {
     if (!current) {
         throw { state: 404, message: 'Tactical character not found' };
     }
-    if(!item.itemTypeId) {
+    if (!item.itemTypeId) {
         throw { state: 400, message: 'Required itemTypeId' };
     }
-    if(!item.category) {
+    if (!item.category) {
         throw { state: 400, message: 'Required category' };
+    }
+    if (!item.name) {
+        item.name = item.itemTypeId;
     }
     //TODO fetch
     const updatedCharacter = await TacticalCharacter.findByIdAndUpdate(
@@ -20,7 +23,8 @@ const addItem = async (characterId, item) => {
     if (!updatedCharacter) {
         throw { message: 'Tactical character not found' };
     }
-    return tacticalCharacterConverter.toJSON(updatedCharacter);
+    const updatedWeight = await updateWeight(updatedCharacter);
+    return tacticalCharacterConverter.toJSON(updatedWeight);
 };
 
 const deleteItem = async (characterId, itemId) => {
@@ -31,10 +35,36 @@ const deleteItem = async (characterId, itemId) => {
     if (!updatedCharacter) {
         throw { message: 'Tactical character not found' };
     }
-    return tacticalCharacterConverter.toJSON(updatedCharacter);
+    const updatedWeight = await updateWeight(updatedCharacter);
+    return tacticalCharacterConverter.toJSON(updatedWeight);
+};
+
+const getCharacterWeight = (character) => {
+    return character.items.reduce((accumulator, item) => accumulator + getItemWeight(item), 0);
+}
+
+const updateWeight = async (character) => {
+    const total = getCharacterWeight(character);
+    const update = {
+        equipment: character.equipment
+    };
+    update.equipment.weight = total;
+    const updated = await TacticalCharacter.findOneAndUpdate({ _id: character._id }, update, {
+        new: true,
+        upsert: true
+    });
+    return updated;
+};
+
+const getItemWeight = (item) => {
+    if (!item.info || !item.info.weight) {
+        return 0;
+    }
+    return item.info.weight;
 };
 
 module.exports = {
     addItem,
-    deleteItem
+    deleteItem,
+    getCharacterWeight
 };
