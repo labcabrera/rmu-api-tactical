@@ -17,6 +17,10 @@ const characterInfoSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    height: {
+        type: Number,
+        required: false
+    },
     weight: {
         type: Number,
         required: false
@@ -31,6 +35,22 @@ const characterDefenseSchema = new mongoose.Schema({
     defensiveBonus: {
         type: Number,
         required: true
+    },
+    quicknessDefensiveBonus: {
+        type: Number,
+        required: false
+    },
+    passiveDodge: {
+        type: Number,
+        required: false
+    },
+    fullDodge: {
+        type: Number,
+        required: false
+    },
+    passiveBlock: {
+        type: Number,
+        required: false
     }
 }, { _id: false });
 
@@ -68,6 +88,16 @@ const characterItemInfoSchema = new mongoose.Schema({
     strength: Number,
     weight: Number,
     productionTime: Number
+}, { _id: false });
+
+const enduranceInfoSchema = new mongoose.Schema({
+    max: Number,
+    current: Number
+}, { _id: false });
+
+const powerInfoSchema = new mongoose.Schema({
+    max: Number,
+    current: Number
 }, { _id: false });
 
 const characterItemSchema = new mongoose.Schema({
@@ -121,6 +151,8 @@ const tacticalCharacterSchema = new mongoose.Schema({
         max: Number,
         current: Number
     },
+    endurance: enduranceInfoSchema,
+    power: powerInfoSchema,
     effects: [characterEffectSchema],
     initiative: {
         type: characterInitiativeSchema,

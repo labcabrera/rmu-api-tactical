@@ -34,18 +34,19 @@ const insert = async (user, data) => {
     if (!tacticalGame.factions.includes(data.faction)) {
         throw { status: 400, message: "Invalid faction" };
     }
-    const { name, tacticalGameId, faction, info, defense, hp, initiative, skills, items, description } = data;
     const newCharacter = new TacticalCharacter({
-        name: name,
-        tacticalGameId: tacticalGameId,
-        faction: faction,
-        info: info,
-        defense: defense,
-        hp: hp,
-        initiative: initiative,
-        skills: skills,
-        items: items,
-        description: description,
+        name: data.name,
+        tacticalGameId: data.tacticalGameId,
+        faction: data.faction,
+        info: data.info,
+        defense: data.defense,
+        hp: data.hp,
+        endurance: data.endurance,
+        power: data.power,
+        initiative: data.initiative,
+        skills: data.skills,
+        items: data.items,
+        description: data.description,
         equipment: {
             mainHand: null,
             offHand: null,

@@ -6,21 +6,14 @@ const toJSON = (character) => {
         faction: character.faction,
         info: character.info,
         defense: character.defense,
-        hp: {
-            max: character.hp.max,
-            current: character.hp.current
-        },
+        hp: character.hp,
+        endurance: character.endurance,
+        power: character.power,
         initiative: character.initiative,
         effects: character.effects.map(mapEffect),
         skills: character.skills.map(mapSkill),
         items: character.items.map(mapItem),
-        equipment: {
-            mainHand: character.equipment.mainHand,
-            offHand: character.equipment.offHand,
-            head: character.equipment.head,
-            body: character.equipment.body,
-            weight: character.equipment.weight
-        },
+        equipment: character.equipment,
         description: character.description,
         createdAt: character.createdAt,
         updatedAt: character.updatedAt
