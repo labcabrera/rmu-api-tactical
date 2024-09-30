@@ -73,6 +73,16 @@ router.delete('/:characterId/items/:itemId', async (req, res) => {
     }
 });
 
+router.post('/:characterId/equipment', async (req, res) => {
+    try {
+        const characterId = req.params.characterId;
+        const savedCharacter = await tacticalCharacterItemService.equip(characterId, req.body);
+        res.status(200).json(savedCharacter);
+    } catch (error) {
+        sendErrorResponse(res, error);
+    }
+});
+
 router.post('/:characterId/management/effects', async (req, res) => {
     try {
         const characterId = req.params.characterId;
