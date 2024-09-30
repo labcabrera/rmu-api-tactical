@@ -49,25 +49,38 @@ const equip = async (characterId, data) => {
     if (!itemId) {
         throw { status: 400, message: 'Required itemId' };
     }
-    if (slot) {
-        switch (slot) {
-            case 'mainHand': break;
-            case 'offHand': break;
-            case 'body': break;
-            case 'head': break;
-            case 'arms': break;
-            case 'legs': break;
-            default:
-                throw { status: 400, message: 'Invalid item slot' };
-        }
-    }
     const item = currentCharacter.items.find(e => e.id == itemId);
     if (!item) {
         throw { status: 400, message: 'Invalid itemId' };
     }
+    if (slot) {
+        switch (slot) {
+            case 'mainHand':
+            case 'offHand':
+                if (item.category === 'armor') {
+                    throw { status: 400, message: 'Can not equip armor types in main hand or off-hand' };
+                }
+                break;
+            case 'body':
+            case 'head':
+            case 'arms':
+            case 'legs':
+                if (item.category !== 'armor') {
+                    throw { status: 400, message: 'Required armor type for the requested slot' };
+                }
+                break;
+            default:
+                throw { status: 400, message: 'Invalid item slot' };
+        }
+    }
     const update = {
         equipment: currentCharacter.equipment
     };
+    // Update equiped armor type
+    if(slot === 'body' && item.armor && item.armor.armorType) {
+        update.defense = currentCharacter.defense;
+        update.defense.armorType = item.armor.armorType;
+    }
     const slots = ['mainHand', 'offHand', 'body', 'head', 'arms', 'legs'];
     for (const checkSlot of slots) {
         if (update.equipment[checkSlot] == itemId) {
@@ -76,6 +89,11 @@ const equip = async (characterId, data) => {
     }
     if (slot) {
         update.equipment[slot] = itemId;
+    }
+    // No armor equiped
+    if(update.equipment.body === null) {
+        update.defense = currentCharacter.defense;
+        update.defense.armorType = 1;
     }
     const updated = await TacticalCharacter.findOneAndUpdate({ _id: characterId }, update, {
         new: true,

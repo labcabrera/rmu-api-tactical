@@ -90,6 +90,15 @@ const characterItemInfoSchema = new mongoose.Schema({
     productionTime: Number
 }, { _id: false });
 
+const characterItemArmorSchema = new mongoose.Schema({
+    slot: String,
+    armorType: Number,
+    enc: Number,
+    maneuver: Number,
+    rangedPenalty: Number,
+    perception: Number
+}, { _id: false });
+
 const enduranceInfoSchema = new mongoose.Schema({
     max: Number,
     current: Number
@@ -106,8 +115,8 @@ const characterItemSchema = new mongoose.Schema({
         required: true
     },
     itemTypeId: {
-      type: String,
-      required: true  
+        type: String,
+        required: true
     },
     category: {
         type: String,
@@ -115,6 +124,7 @@ const characterItemSchema = new mongoose.Schema({
     },
     weapon: characterItemWeaponSchema,
     weaponRange: [characterItemRangeSchema],
+    armor: characterItemArmorSchema,
     info: characterItemInfoSchema
 });
 
