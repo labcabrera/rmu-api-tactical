@@ -59,15 +59,35 @@ const characterInitiativeSchema = new mongoose.Schema({
 }, { _id: false });
 
 const characterSkillSchema = new mongoose.Schema({
+    skillCategoryId: {
+        type: String,
+        required: true
+    },
     skillId: {
         type: String,
         required: true
     },
-    bonus: {
+    attributeBonus: {
+        type: Number,
+        required: true
+    },
+    racialBonus: {
+        type: Number,
+        required: true
+    },
+    developmentBonus: {
+        type: Number,
+        required: true
+    },
+    customBonus: {
+        type: Number,
+        required: true
+    },
+    totalBonus: {
         type: Number,
         required: true
     }
-}, { _id: false });
+});
 
 const characterItemWeaponSchema = new mongoose.Schema({
     type: String,
