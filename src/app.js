@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const fs = require('fs');
 const swaggerUi = require('swagger-ui-express');
-const YAML = require('yaml');
+const yaml = require('yaml');
 const path = require('path');
 
 const app = express();
@@ -13,7 +13,7 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/rmu-tactic
 
 const openapiFilePath = path.join(__dirname, '../openapi.yaml');
 const openapiFile = fs.readFileSync(openapiFilePath, 'utf8')
-const swaggerDocument = YAML.parse(openapiFile);
+const swaggerDocument = yaml.parse(openapiFile);
 
 app.use(express.json());
 app.use(cors());
@@ -22,14 +22,14 @@ mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('Connected to ' + MONGO_URI))
   .catch((err) => console.log('Error connecting to ' + MONGO_URI, err));
 
-const usersRouter = require('./routes/tactical-game-controller');
-const charactersRouter = require('./routes/tactical-character-controller');
-const actionRouter = require('./routes/tactical-action-controller');
+const tacticalGameRouter = require('./routes/tactical-game-controller');
+const tacticalCharactersRouter = require('./routes/tactical-character-controller');
+const tacticalActionRouter = require('./routes/tactical-action-controller');
 const initiativeRouter = require('./routes/initiative-controller');
 
-app.use('/v1/tactical-games', usersRouter);
-app.use('/v1/characters', charactersRouter);
-app.use('/v1/actions', actionRouter);
+app.use('/v1/tactical-games', tacticalGameRouter);
+app.use('/v1/characters', tacticalCharactersRouter);
+app.use('/v1/actions', tacticalActionRouter);
 app.use('/v1/initiative', initiativeRouter);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
