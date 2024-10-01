@@ -34,6 +34,7 @@ const insert = async (user, data) => {
     if (!tacticalGame.factions.includes(data.faction)) {
         throw { status: 400, message: "Invalid faction" };
     }
+    const processedSkills = await processSkills(data.skills);
     const newCharacter = new TacticalCharacter({
         name: data.name,
         tacticalGameId: data.tacticalGameId,
@@ -44,7 +45,7 @@ const insert = async (user, data) => {
         endurance: data.endurance,
         power: data.power,
         initiative: data.initiative,
-        skills: data.skills,
+        skills: processedSkills,
         items: data.items,
         description: data.description,
         equipment: {
@@ -199,6 +200,53 @@ const loadDefaultEquipment = async (character) => {
         character.equipment.body = armor.id;
     }
     return character.save();
+};
+
+const processSkills = async (skills) => {
+    if(!skills || skills.length == 0) {
+        return [];
+    }
+    //TODO env url
+    const response = await fetch(`http://localhost:3001/v1/skills`);
+    if (response.status != 200) {
+        throw { status: 500, message: 'Error reading skills' };
+    }
+    const responseBody = await response.json();
+    const readedSkills = responseBody.content;
+    return skills.map(e => {
+        const readedSkill = readedSkills.find(s => s.id == e.skillId);
+        if(!readedSkill) {
+            throw { status: 500, message: `Invalid skill identifier '${e.skillId}'` };
+        }
+        //TODO
+        const attributeBonus = 0;
+        const racialBonus = 0;
+        const developmentBonus = 0;
+        const customBonus = e.customBonus ? e.customBonus : 0;
+        const totalBonus = attributeBonus + racialBonus + developmentBonus + customBonus;
+        return {
+            skillId: readedSkill.id,
+            skillCategoryId: readedSkill.categoryId,
+            attributeBonus: attributeBonus,
+            racialBonus: racialBonus,
+            developmentBonus: developmentBonus,
+            customBonus: customBonus,
+            totalBonus: totalBonus
+        };
+    });
+};
+
+const fetchSkill = async (skillId) => {
+    const url = `http://localhost:3001/v1/skills/${skillId}`;
+    const response = await fetch(url);
+    switch (response.status) {
+        case 200:
+            return await response.json();
+        case 404:
+            throw { status: 404, message: 'Skill not found' };
+        default:
+            throw { status: 500, message: `Error reading skill` };
+    }
 };
 
 module.exports = {
