@@ -1,5 +1,25 @@
 const mongoose = require('mongoose');
 
+const characterStatSchema = new mongoose.Schema({
+    bonus: Number,
+    racial: Number,
+    custom: Number,
+    totalBonus: Number
+}, { _id: false });
+
+const characterStatisticsSchema = new mongoose.Schema({
+    ag: characterStatSchema,
+    co: characterStatSchema,
+    em: characterStatSchema,
+    in: characterStatSchema,
+    me: characterStatSchema,
+    pr: characterStatSchema,
+    qu: characterStatSchema,
+    re: characterStatSchema,
+    sd: characterStatSchema,
+    st: characterStatSchema,
+}, { _id: false });
+
 const characterInfoSchema = new mongoose.Schema({
     level: {
         type: Number,
@@ -176,6 +196,7 @@ const tacticalCharacterSchema = new mongoose.Schema({
         required: true
     },
     info: characterInfoSchema,
+    statistics: characterStatisticsSchema,
     defense: characterDefenseSchema,
     hp: {
         max: Number,

@@ -3,6 +3,9 @@ const TacticalGame = require("../models/tactical-game-model")
 const tacticalCharacterConverter = require('../converters/tactical-character-converter');
 const tacticalCharacterItemService = require('./tactical-character-item-service');
 
+//TODO
+const API_CORE_URL = 'http://localhost:3001/v1';
+
 const findById = async (characterId) => {
     const readed = await TacticalCharacter.findById(characterId);
     if (!readed) {
@@ -34,12 +37,18 @@ const insert = async (user, data) => {
     if (!tacticalGame.factions.includes(data.faction)) {
         throw { status: 400, message: "Invalid faction" };
     }
+    if (!data.info || !data.info.race) {
+        throw { status: 400, message: 'Required race' };
+    }
+    const raceInfo = await readRaceInfo(data.info.race);
+    const processedStatistics = processStatistics(raceInfo, data.statistics);
     const processedSkills = await processSkills(data.skills);
     const newCharacter = new TacticalCharacter({
         name: data.name,
         tacticalGameId: data.tacticalGameId,
         faction: data.faction,
         info: data.info,
+        statistics: processedStatistics,
         defense: data.defense,
         hp: data.hp,
         endurance: data.endurance,
@@ -203,11 +212,10 @@ const loadDefaultEquipment = async (character) => {
 };
 
 const processSkills = async (skills) => {
-    if(!skills || skills.length == 0) {
+    if (!skills || skills.length == 0) {
         return [];
     }
-    //TODO env url
-    const response = await fetch(`http://localhost:3001/v1/skills`);
+    const response = await fetch(`${API_CORE_URL}/skills`);
     if (response.status != 200) {
         throw { status: 500, message: 'Error reading skills' };
     }
@@ -215,7 +223,7 @@ const processSkills = async (skills) => {
     const readedSkills = responseBody.content;
     return skills.map(e => {
         const readedSkill = readedSkills.find(s => s.id == e.skillId);
-        if(!readedSkill) {
+        if (!readedSkill) {
             throw { status: 500, message: `Invalid skill identifier '${e.skillId}'` };
         }
         //TODO
@@ -236,17 +244,38 @@ const processSkills = async (skills) => {
     });
 };
 
-const fetchSkill = async (skillId) => {
-    const url = `http://localhost:3001/v1/skills/${skillId}`;
-    const response = await fetch(url);
-    switch (response.status) {
-        case 200:
-            return await response.json();
-        case 404:
-            throw { status: 404, message: 'Skill not found' };
-        default:
-            throw { status: 500, message: `Error reading skill` };
+const readRaceInfo = async (raceId) => {
+    const response = await fetch(`${API_CORE_URL}/races/${raceId}`);
+    if (response.status != 200) {
+        throw { status: 500, message: `Invalid race identifier ${raceId}` };
     }
+    const responseBody = await response.json();
+    return responseBody;
+};
+
+const processStatistics = (raceInfo, statistics) => {
+    const values = ['ag', 'co', 'em', 'in', 'me', 'pr', 'qu', 're', 'sd', 'st'];
+    const result = {};
+    values.forEach(e => {
+        var racial = 0;
+        if (raceInfo && raceInfo.defaultStatBonus && raceInfo.defaultStatBonus[e]) {
+            racial = raceInfo.defaultStatBonus[e];
+        }
+        const bonus = 0;
+        var custom = 0;
+        if(statistics && statistics[e] && statistics[e].custom) {
+            custom = statistics[e].custom;
+        }
+        const total = bonus + racial + custom;
+        result[e] = {
+            bonus: bonus,
+            racial: racial,
+            custom: custom,
+            totalBonus: total
+        }
+
+    });
+    return result;
 };
 
 module.exports = {

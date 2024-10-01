@@ -5,6 +5,7 @@ const toJSON = (character) => {
         name: character.name,
         faction: character.faction,
         info: character.info,
+        statistics: character.statistics,
         defense: character.defense,
         hp: character.hp,
         endurance: character.endurance,
