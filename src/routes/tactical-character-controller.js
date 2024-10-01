@@ -4,6 +4,7 @@ const router = express.Router();
 const TacticalCharacter = require("../models/tactical-character-model");
 const tacticalCharacterService = require("../services/tactical-character-service");
 const tacticalCharacterItemService = require("../services/tactical-character-item-service");
+const tacticalCharacterSkillService = require("../services/tactical-character-skill-service");
 
 router.get('/', async (req, res) => {
     try {
@@ -47,6 +48,27 @@ router.patch('/:characterId', async (req, res) => {
         const characterId = req.params.characterId;
         const updatedCharacter = await tacticalCharacterService.update(characterId, req.body);
         res.status(200).json(updatedCharacter);
+    } catch (error) {
+        sendErrorResponse(res, error);
+    }
+});
+
+router.post('/:characterId/skills', async (req, res) => {
+    try {
+        const characterId = req.params.characterId;
+        const savedCharacter = await tacticalCharacterSkillService.addSkill(characterId, req.body);
+        res.status(200).json(savedCharacter);
+    } catch (error) {
+        sendErrorResponse(res, error);
+    }
+});
+
+router.delete('/:characterId/skills/:itemId', async (req, res) => {
+    try {
+        const characterId = req.params.characterId;
+        const skillId = req.params.itemId;
+        const savedCharacter = await tacticalCharacterSkillService.deleteSkill(characterId, skillId);
+        res.status(200).json(savedCharacter);
     } catch (error) {
         sendErrorResponse(res, error);
     }
