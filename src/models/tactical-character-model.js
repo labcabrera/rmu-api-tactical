@@ -33,10 +33,6 @@ const characterInfoSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    baseMovementRate: {
-        type: Number,
-        required: true
-    },
     height: {
         type: Number,
         required: false
@@ -75,7 +71,12 @@ const characterDefenseSchema = new mongoose.Schema({
 }, { _id: false });
 
 const characterInitiativeSchema = new mongoose.Schema({
-    base: Number
+    baseBonus: Number,
+    customBonus: Number,
+    totalBonus: {
+        type: Number,
+        required: true
+    }
 }, { _id: false });
 
 const characterSkillSchema = new mongoose.Schema({
@@ -139,9 +140,23 @@ const characterItemArmorSchema = new mongoose.Schema({
     perception: Number
 }, { _id: false });
 
-const enduranceInfoSchema = new mongoose.Schema({
-    max: Number,
-    current: Number
+const enduranceSchema = new mongoose.Schema({
+    max: {
+        type: Number,
+        required: true
+    },
+    current: {
+        type: Number,
+        required: true
+    },
+    accumulator: {
+        type: Number,
+        required: true
+    },
+    fatiguePenalty: {
+        type: Number,
+        required: true
+    }
 }, { _id: false });
 
 const powerInfoSchema = new mongoose.Schema({
@@ -167,6 +182,17 @@ const characterItemSchema = new mongoose.Schema({
     armor: characterItemArmorSchema,
     info: characterItemInfoSchema
 });
+
+const characterMovementSchema = new mongoose.Schema({
+    baseMovementRate: {
+        type: Number,
+        required: true
+    },
+    strideBonus: {
+        type: Number,
+        required: true
+    }
+}, { _id: false });
 
 const characterEquipment = new mongoose.Schema({
     mainHand: String,
@@ -197,12 +223,13 @@ const tacticalCharacterSchema = new mongoose.Schema({
     },
     info: characterInfoSchema,
     statistics: characterStatisticsSchema,
+    movement: characterMovementSchema,
     defense: characterDefenseSchema,
     hp: {
         max: Number,
         current: Number
     },
-    endurance: enduranceInfoSchema,
+    endurance: enduranceSchema,
     power: powerInfoSchema,
     effects: [characterEffectSchema],
     initiative: {

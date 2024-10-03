@@ -2,6 +2,7 @@ const TacticalCharacter = require("../models/tactical-character-model")
 const TacticalGame = require("../models/tactical-game-model")
 const tacticalCharacterConverter = require('../converters/tactical-character-converter');
 const tacticalCharacterItemService = require('./tactical-character-item-service');
+const tacticalCharacterCalculations = require('./tactical-character-calculations');
 
 //TODO
 const API_CORE_URL = 'http://localhost:3001/v1';
@@ -37,23 +38,54 @@ const insert = async (user, data) => {
     if (!tacticalGame.factions.includes(data.faction)) {
         throw { status: 400, message: "Invalid faction" };
     }
-    if (!data.info || !data.info.race) {
-        throw { status: 400, message: 'Required race' };
-    }
+    if (!data.info || !data.info.race) throw { status: 400, message: 'Required race' };
+    if (!data.endurance || !data.endurance.max) throw { status: 400, message: 'Required endurance' };
+    if (!data.hp || !data.hp.max) throw { status: 400, message: 'Required HP' };
+
     const raceInfo = await readRaceInfo(data.info.race);
     const processedStatistics = processStatistics(raceInfo, data.statistics);
     const processedSkills = await processSkills(data.skills);
+    const endurance = {
+        max: data.endurance.max,
+        current: data.endurance.current ? data.endurance.current : data.endurance.max,
+        accumulator: data.endurance.accumulator ? data.endurance.accumulator : 0,
+        fatiguePenalty: data.endurance.fatiguePenalty ? data.endurance.fatiguePenalty : 0,
+    };
+    const strideBonus = data.movement && data.movement.strideBonus ? data.movement.strideBonus : 0;
+    const bmr = tacticalCharacterCalculations.getBaseMovementRate(strideBonus, processedStatistics.qu.totalBonus);
+    const movement = {
+        baseMovementRate: bmr,
+        strideBonus: strideBonus
+    };
+    const hp = {
+        max: data.hp.max,
+        current: data.hp.current ? data.hp.current : data.hp.max
+    };
+    const powerMax = data.power && data.power.max ? data.power.max : 0;
+    const powerCurrent = data.power && data.power.current ? data.power.current : powerMax;
+    const power = {
+        max: powerMax,
+        current: powerCurrent
+    };
+    const initiativeBaseBonus = processedStatistics.qu.totalBonus;
+    const initiativeCustomBonus = data.initiative && data.initiative.customBonus ? data.initiative.customBonus : 0
+    const initiative = {
+        baseBonus: initiativeBaseBonus,
+        customBonus: initiativeCustomBonus,
+        totalBonus: initiativeBaseBonus + initiativeCustomBonus
+    };
     const newCharacter = new TacticalCharacter({
         name: data.name,
         tacticalGameId: data.tacticalGameId,
         faction: data.faction,
         info: data.info,
         statistics: processedStatistics,
+        movement: movement,
         defense: data.defense,
-        hp: data.hp,
-        endurance: data.endurance,
-        power: data.power,
-        initiative: data.initiative,
+        hp: hp,
+        endurance: endurance,
+        power: power,
+        initiative: initiative,
         skills: processedSkills,
         items: data.items,
         description: data.description,
@@ -245,12 +277,16 @@ const processSkills = async (skills) => {
 };
 
 const readRaceInfo = async (raceId) => {
-    const response = await fetch(`${API_CORE_URL}/races/${raceId}`);
-    if (response.status != 200) {
-        throw { status: 500, message: `Invalid race identifier ${raceId}` };
+    try {
+        const response = await fetch(`${API_CORE_URL}/races/${raceId}`);
+        if (response.status != 200) {
+            throw { status: 500, message: `Invalid race identifier ${raceId}` };
+        }
+        const responseBody = await response.json();
+        return responseBody;
+    } catch (error) {
+        throw new {status:500, message: `Error reading race info. ${error.message}`};
     }
-    const responseBody = await response.json();
-    return responseBody;
 };
 
 const processStatistics = (raceInfo, statistics) => {
@@ -263,7 +299,7 @@ const processStatistics = (raceInfo, statistics) => {
         }
         const bonus = 0;
         var custom = 0;
-        if(statistics && statistics[e] && statistics[e].custom) {
+        if (statistics && statistics[e] && statistics[e].custom) {
             custom = statistics[e].custom;
         }
         const total = bonus + racial + custom;
