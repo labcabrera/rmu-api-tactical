@@ -169,11 +169,35 @@ const buildCharacterUpdate = (data, currentCharacter) => {
     if (data.description) {
         update.description = data.description;
     }
+    buildCharacterUpdateStatistics(update, data, currentCharacter);
     buildCharacterUpdateInfo(update, data, currentCharacter);
     buildCharacterUpdateDefense(update, data, currentCharacter);
     buildCharacterUpdateHp(update, data, currentCharacter);
     buildCharacterUpdateInitiative(update, data, currentCharacter);
+    buildCharacterUpdateMovement(update, data, currentCharacter);
     return update;
+};
+
+const buildCharacterUpdateStatistics = (update, data, currentCharacter) => {
+    if (data.statistics) {
+        const values = ['ag', 'co', 'em', 'in', 'me', 'pr', 'qu', 're', 'sd', 'st'];
+        const statUpdate = {};
+        const statistics = data.statistics;
+        values.forEach(e => {
+            const racial = currentCharacter.statistics[e].racial;
+            const bonus = statistics[e].bonus ? statistics[e].bonus : currentCharacter[e].bonus;
+            const custom = statistics[e].custom ? statistics[e].custom : currentCharacter[e].custom;
+            const total = bonus + racial + custom;
+            statUpdate[e] = {
+                bonus: bonus,
+                racial: racial,
+                custom: custom,
+                totalBonus: total
+            }
+
+        });
+        update.statistics = statUpdate;
+    }
 };
 
 const buildCharacterUpdateInfo = (update, data, currentCharacter) => {
@@ -225,6 +249,17 @@ const buildCharacterUpdateInitiative = (update, data, currentCharacter) => {
             update.initiative.base = data.initiative.base;
         }
     }
+};
+
+const buildCharacterUpdateMovement = (update, data, currentCharacter) => {
+    if (data.movement) {
+        const strideBonus = data.movement.strideBonus ? data.movement.strideBonus : currentCharacter.movement.strideBonus;
+        const quBonus = currentCharacter.statistics.qu.totalBonus;
+        update.movement = {
+            baseMovementRate: tacticalCharacterCalculations.getBaseMovementRate(strideBonus, quBonus),
+            strideBonus: strideBonus
+        }
+    };
 };
 
 const loadDefaultEquipment = async (character) => {
@@ -285,7 +320,7 @@ const readRaceInfo = async (raceId) => {
         const responseBody = await response.json();
         return responseBody;
     } catch (error) {
-        throw new {status:500, message: `Error reading race info. ${error.message}`};
+        throw new { status: 500, message: `Error reading race info. ${error.message}` };
     }
 };
 
