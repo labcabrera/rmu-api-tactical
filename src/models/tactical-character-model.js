@@ -92,15 +92,20 @@ const characterInitiativeSchema = new mongoose.Schema({
 }, { _id: false });
 
 const characterSkillSchema = new mongoose.Schema({
-    skillCategoryId: {
-        type: String,
-        required: true
-    },
     skillId: {
         type: String,
         required: true
     },
-    attributeBonus: {
+    specialization: {
+        type: String,
+        required: false,
+    },
+    statistics: [String],
+    ranks: {
+        type: Number,
+        required: false,
+    },
+    statBonus: {
         type: Number,
         required: true
     },

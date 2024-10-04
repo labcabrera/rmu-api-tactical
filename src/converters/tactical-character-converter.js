@@ -34,9 +34,11 @@ const mapEffect = (effect) => {
 const mapSkill = (skill) => {
     return {
         id: skill._id,
-        skillCategoryId: skill.skillCategoryId,
         skillId: skill.skillId,
-        attributeBonus: skill.attributeBonus,
+        specialization: skill.specialization,
+        statistics: skill.statistics,
+        ranks: skill.ranks,
+        statBonus: skill.statBonus,
         racialBonus: skill.racialBonus,
         developmentBonus: skill.developmentBonus,
         customBonus: skill.customBonus,

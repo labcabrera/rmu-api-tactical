@@ -1,28 +1,52 @@
 const TacticalCharacter = require("../models/tactical-character-model")
 const tacticalCharacterConverter = require('../converters/tactical-character-converter');
 
+//TODO env
+const APP_CORE_URL = 'http://localhost:3001/v1';
+
 const addSkill = async (characterId, data) => {
-    const current = await TacticalCharacter.findById(characterId);
-    if (!current) {
+    validateAddSkillData(data);
+    const currentCharacter = await TacticalCharacter.findById(characterId);
+
+    if (!currentCharacter) {
         throw { status: 404, message: 'Tactical character not found' };
     }
-    if (!data.skillId) {
-        throw { status: 400, message: 'Required skillId' };
-    }
+
     const readedSkill = await fetchSkill(data.skillId);
-    if (current.skills.some(e => e.skillId == data.skillId)) {
+    if (currentCharacter.skills.some(e => e.skillId == data.skillId)) {
         throw { status: 400, message: 'Character already has the selected skill' };
     }
-    //TODO resolve bonus
+    const readedSkillCategory = await fetchSkillCategory(readedSkill.categoryId);
+
+    const ranks = data.ranks ? data.ranks : 0;
+    const specialization = data.specialization ? data.specialization : null;
+    
+    const statistics = readedSkillCategory.bonus;
+    statistics.push(readedSkill.bonus[0]);
+    
+    var statBonus = 0;
+    statistics.forEach(e => {
+        statBonus += currentCharacter.statistics[e].totalBonus;
+    });
+    
+    //TODO
+    const racialBonus = 0;
+    const developmentBonus = ranks > 0 ? 5 * ranks : -20;
+    const customBonus = data.customBonus ? data.customBonus : 0;
+    
+    const totalBonus = statBonus + racialBonus + developmentBonus + customBonus;
+    
     const newSkill = {
-        skillCategoryId: readedSkill.categoryId,
         skillId: data.skillId,
-        attributeBonus: data.attributeBonus ? data.attributeBonus : 0,
-        racialBonus: data.racialBonus ? data.racialBonus : 0,
-        developmentBonus: data.developmentBonus ? data.developmentBonus : 0,
-        customBonus: data.customBonus ? data.customBonus : 0
+        specialization: specialization,
+        statistics: statistics,
+        ranks: ranks,
+        statBonus: statBonus,
+        racialBonus: racialBonus,
+        developmentBonus: developmentBonus,
+        customBonus: customBonus,
+        totalBonus: totalBonus
     };
-    newSkill.totalBonus = newSkill.attributeBonus + newSkill.racialBonus + newSkill.developmentBonus + newSkill.customBonus;
     const updatedCharacter = await TacticalCharacter.findByIdAndUpdate(
         characterId,
         { $push: { skills: newSkill } },
@@ -44,10 +68,12 @@ const deleteSkill = async (characterId, skillId) => {
     return tacticalCharacterConverter.toJSON(updatedCharacter);
 };
 
+const validateAddSkillData = (data) => {
+    if (!data.skillId) throw { status: 400, message: 'Required skillId' };
+};
+
 const fetchSkill = async (skillId) => {
-    //TODO env url
-    const url = `http://localhost:3001/v1/skills/${skillId}`;
-    const response = await fetch(url);
+    const response = await fetch(`${APP_CORE_URL}/skills/${skillId}`);
     switch (response.status) {
         case 200:
             return await response.json();
@@ -55,6 +81,18 @@ const fetchSkill = async (skillId) => {
             throw { status: 404, message: 'Skill not found' };
         default:
             throw { status: 500, message: `Error reading skill` };
+    }
+};
+
+const fetchSkillCategory = async (categoryId) => {
+    const response = await fetch(`${APP_CORE_URL}/skill-categories/${categoryId}`);
+    switch (response.status) {
+        case 200:
+            return await response.json();
+        case 404:
+            throw { status: 500, message: 'Invalid skill category' };
+        default:
+            throw { status: 500, message: `Error reading skill category` };
     }
 };
 
