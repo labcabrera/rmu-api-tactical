@@ -62,7 +62,7 @@ const updateSkill = async (characterId, skillId, data) => {
     const developmentBonus = getRankBonus(ranks);
     const customBonus = data.customBonus ? data.customBonus : currentSkill.customBonus;
     const totalBonus = statBonus + racialBonus + developmentBonus + customBonus;
-    const updatedCharacter = await TacticalCharacter.updateOne(
+    const updatedCharacter = await TacticalCharacter.findOneAndUpdate(
         {
             _id: characterId,
             'skills.skillId': skillId
@@ -71,9 +71,11 @@ const updateSkill = async (characterId, skillId, data) => {
             $set: {
                 'skills.$.ranks': ranks,
                 'skills.$.customBonus': customBonus,
+                'skills.$.developmentBonus': developmentBonus,
                 'skills.$.totalBonus': totalBonus
             }
-        }
+        },
+        { new: true }
     );
     return tacticalCharacterConverter.toJSON(updatedCharacter);
 };
