@@ -64,6 +64,17 @@ router.post('/:characterId/skills', async (req, res) => {
     }
 });
 
+router.patch('/:characterId/skills/:skillId', async (req, res) => {
+    try {
+        const characterId = req.params.characterId;
+        const skillId = req.params.skillId;
+        const savedCharacter = await tacticalCharacterSkillService.updateSkill(characterId, skillId, req.body);
+        res.status(200).json(savedCharacter);
+    } catch (error) {
+        sendErrorResponse(res, error);
+    }
+});
+
 router.delete('/:characterId/skills/:itemId', async (req, res) => {
     try {
         const characterId = req.params.characterId;

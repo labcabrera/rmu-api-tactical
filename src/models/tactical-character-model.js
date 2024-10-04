@@ -125,7 +125,7 @@ const characterSkillSchema = new mongoose.Schema({
         type: Number,
         required: true
     }
-});
+}, { _id: false });
 
 const characterItemWeaponSchema = new mongoose.Schema({
     type: String,
