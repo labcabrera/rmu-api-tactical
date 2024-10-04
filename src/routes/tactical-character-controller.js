@@ -5,6 +5,7 @@ const TacticalCharacter = require("../models/tactical-character-model");
 const tacticalCharacterService = require("../services/tactical-character-service");
 const tacticalCharacterItemService = require("../services/tactical-character-item-service");
 const tacticalCharacterSkillService = require("../services/tactical-character-skill-service");
+const tacticalCharacterUpdateService = require('../services/tactical-character-update-service');
 
 router.get('/', async (req, res) => {
     try {
@@ -46,7 +47,7 @@ router.post('/', async (req, res) => {
 router.patch('/:characterId', async (req, res) => {
     try {
         const characterId = req.params.characterId;
-        const updatedCharacter = await tacticalCharacterService.update(characterId, req.body);
+        const updatedCharacter = await tacticalCharacterUpdateService.update(characterId, req.body);
         res.status(200).json(updatedCharacter);
     } catch (error) {
         sendErrorResponse(res, error);

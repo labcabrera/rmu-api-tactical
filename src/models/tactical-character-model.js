@@ -1,10 +1,22 @@
 const mongoose = require('mongoose');
 
 const characterStatSchema = new mongoose.Schema({
-    bonus: Number,
-    racial: Number,
-    custom: Number,
-    totalBonus: Number
+    bonus: {
+        type: Number,
+        required: true,
+    },
+    racial: {
+        type: Number,
+        required: true,
+    },
+    custom: {
+        type: Number,
+        required: true,
+    },
+    totalBonus: {
+        type: Number,
+        required: true,
+    },
 }, { _id: false });
 
 const characterStatisticsSchema = new mongoose.Schema({
@@ -188,7 +200,11 @@ const characterMovementSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
-    strideBonus: {
+    strideRacialBonus: {
+        type: Number,
+        required: true
+    },
+    strideCustomBonus: {
         type: Number,
         required: true
     }
