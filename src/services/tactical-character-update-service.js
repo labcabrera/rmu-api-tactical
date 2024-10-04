@@ -39,11 +39,10 @@ const buildCharacterUpdateStatistics = (update, data, currentCharacter) => {
     if (data.statistics) {
         const values = ['ag', 'co', 'em', 'in', 'me', 'pr', 'qu', 're', 'sd', 'st'];
         const statUpdate = {};
-        const statistics = data.statistics;
         values.forEach(e => {
             const racial = currentCharacter.statistics[e].racial;
-            const bonus = statistics[e].bonus ? statistics[e].bonus : currentCharacter[e].bonus;
-            const custom = statistics[e].custom ? statistics[e].custom : currentCharacter[e].custom;
+            const bonus = isDefinedStatisticVale(data, e, 'bonus') ? data.statistics[e].bonus : currentCharacter.statistics[e].bonus;
+            const custom = isDefinedStatisticVale(data, e, 'custom') ? data.statistics[e].custom : currentCharacter.statistics[e].custom;
             const total = bonus + racial + custom;
             statUpdate[e] = {
                 bonus: bonus,
@@ -55,6 +54,14 @@ const buildCharacterUpdateStatistics = (update, data, currentCharacter) => {
         });
         update.statistics = statUpdate;
     }
+};
+
+const isDefinedStatisticVale = (data, statName, bonusType) => {
+    if(!data.statistics || !data.statistics[statName]) {
+        return false
+    }
+    const check = data.statistics[statName][bonusType];
+    return typeof check !== 'undefined'
 };
 
 const buildCharacterUpdateInfo = (update, data, currentCharacter) => {
