@@ -30,6 +30,8 @@ const buildCharacterUpdate = (data, currentCharacter) => {
     buildCharacterUpdateInfo(update, data, currentCharacter);
     buildCharacterUpdateDefense(update, data, currentCharacter);
     buildCharacterUpdateHp(update, data, currentCharacter);
+    buildCharacterEnduranceHp(update, data, currentCharacter);
+    buildCharacterUpdatePower(update, data, currentCharacter);
     buildCharacterUpdateInitiative(update, data, currentCharacter);
     buildCharacterUpdateMovement(update, data, currentCharacter);
     return update;
@@ -102,6 +104,36 @@ const buildCharacterUpdateHp = (update, data, currentCharacter) => {
         }
         if (data.hp.current) {
             update.hp.current = data.hp.current;
+        }
+    }
+};
+
+const buildCharacterEnduranceHp = (update, data, currentCharacter) => {
+    if (data.endurance) {
+        update.endurance = currentCharacter.endurance;
+        if (data.endurance.max) {
+            update.endurance.max = data.endurance.max;
+        }
+        if (data.endurance.current) {
+            update.endurance.current = data.endurance.current;
+        }
+        if (data.endurance.accumulator) {
+            update.endurance.accumulator = data.endurance.accumulator;
+        }
+        if (data.endurance.fatiguePenalty) {
+            update.endurance.fatiguePenalty = data.endurance.fatiguePenalty;
+        }
+    }
+};
+
+const buildCharacterUpdatePower = (update, data, currentCharacter) => {
+    if (data.power) {
+        update.power = currentCharacter.power;
+        if (data.power.max) {
+            update.power.max = data.power.max;
+        }
+        if (data.power.current) {
+            update.power.current = data.power.current;
         }
     }
 };
