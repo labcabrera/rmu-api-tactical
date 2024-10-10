@@ -77,7 +77,7 @@ const equip = async (characterId, data) => {
         equipment: currentCharacter.equipment
     };
     // Update equiped armor type
-    if(slot === 'body' && item.armor && item.armor.armorType) {
+    if (slot === 'body' && item.armor && item.armor.armorType) {
         update.defense = currentCharacter.defense;
         update.defense.armorType = item.armor.armorType;
     }
@@ -90,8 +90,12 @@ const equip = async (characterId, data) => {
     if (slot) {
         update.equipment[slot] = itemId;
     }
+    if (slot && slot === 'mainHand' && item.weapon && item.weapon.requiredHands > 1) {
+        update.equipment.offHand = null;
+    }
+    //TODO check equip offHand for validate 1H weapon in the other
     // No armor equiped
-    if(update.equipment.body === null) {
+    if (update.equipment.body === null) {
         update.defense = currentCharacter.defense;
         update.defense.armorType = 1;
     }

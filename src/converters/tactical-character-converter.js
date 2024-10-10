@@ -53,6 +53,7 @@ const mapItem = (item) => {
         name: item.name,
         weapon: item.weapon,
         weaponRange: item.weaponRange,
+        armor: item.armor,
         info: item.info
     }
 };

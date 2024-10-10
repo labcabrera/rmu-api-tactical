@@ -128,11 +128,30 @@ const characterSkillSchema = new mongoose.Schema({
 }, { _id: false });
 
 const characterItemWeaponSchema = new mongoose.Schema({
-    type: String,
-    attackTable: String,
-    skillId: String,
-    fumble: Number,
-    sizeAdjustment: Number
+    attackTable: {
+        type: String,
+        required: true
+    },
+    skillId: {
+        type: String,
+        required: true
+    },
+    fumble: {
+        type: Number,
+        required: true
+    },
+    sizeAdjustment: {
+        type: Number,
+        required: true
+    },
+    requiredHands: {
+        type: Number,
+        required: true
+    },
+    throwable: {
+        type: Boolean,
+        required: true
+    }
 }, { _id: false });
 
 const characterItemRangeSchema = new mongoose.Schema({
@@ -149,12 +168,30 @@ const characterItemInfoSchema = new mongoose.Schema({
 }, { _id: false });
 
 const characterItemArmorSchema = new mongoose.Schema({
-    slot: String,
-    armorType: Number,
-    enc: Number,
-    maneuver: Number,
-    rangedPenalty: Number,
-    perception: Number
+    slot: {
+        type: String,
+        required: true,
+    },
+    armorType: {
+        type: Number,
+        required: true,
+    },
+    enc: {
+        type: Number,
+        required: true,
+    },
+    maneuver: {
+        type: Number,
+        required: true,
+    },
+    rangedPenalty: {
+        type: Number,
+        required: true,
+    },
+    perception: {
+        type: Number,
+        required: true
+    }
 }, { _id: false });
 
 const enduranceSchema = new mongoose.Schema({
