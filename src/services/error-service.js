@@ -1,13 +1,13 @@
 const sendErrorResponse = (res, error) => {
-    console.log(error);
     try {
-        res.status(error.status ? error.status : 500).json({
-            code: error.status ? error.status.toString() : "500",
+        const status = error.status || 500;
+        res.status(status).json({
+            code: status.toString(),
             message: error.message,
             timestamp: new Date().toISOString()
         });
     } catch (ignore) {
-        console.log(ignore);
+        console.error(ignore);
     }
 };
 

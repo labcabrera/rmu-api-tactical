@@ -5,11 +5,8 @@ const TacticalAction = require('../models/tactical-action-model');
 const tacticalActionConverter = require('../converters/tactical-action-converter');
 
 const findById = async (id) => {
-    const readed = await TacticalAction.findById(id);
-    if (!readed) {
-        throw { status: 404, message: 'Tactical action not found' };
-    }
-    return tacticalActionConverter.toJSON(readed);
+    const action = await TacticalAction.findById(id);
+    return tacticalActionConverter.toJSON(handleNotFoundError(action, 'Tactical action not found'));
 };
 
 const find = async (tacticalGameId, tacticalCharacterId, round, page, size) => {
@@ -70,10 +67,7 @@ const fetchExistingTacticalGame = async (tacticalGameId) => {
     }
     try {
         const tacticalGame = await TacticalGame.findById(tacticalGameId);
-        if (!tacticalGame) {
-            throw { status: 404, message: 'Invalid tactical game' };
-        }
-        return tacticalGame;
+        return handleNotFoundError(tacticalGame, 'Invalid tactical game');
     } catch (error) {
         throw { status: 404, message: 'Invalid tactical game' };
     }
@@ -85,13 +79,17 @@ const fetchExistingCharacter = async (tacticalCharacterId) => {
     }
     try {
         const tacticalCharacter = await TacticalCharacter.findById(tacticalCharacterId);
-        if (!tacticalCharacter) {
-            throw { status: 404, message: 'Invalid tactical character' };
-        }
-        return tacticalCharacter;
+        return handleNotFoundError(tacticalCharacter, 'Invalid tactical character');
     } catch (error) {
         throw { status: 404, message: 'Invalid tactical character' };
     }
+};
+
+const handleNotFoundError = (entity, message) => {
+    if (!entity) {
+        throw { status: 404, message };
+    }
+    return entity;
 };
 
 module.exports = {
