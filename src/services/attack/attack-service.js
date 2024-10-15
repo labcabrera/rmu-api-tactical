@@ -3,6 +3,7 @@ const TacticalAction = require('../../models/tactical-action-model');
 
 const attackerBonusProcessor = require('./attacker-bonus-processor');
 const defenderBonusProcessor = require('./defender-bonus-processor');
+const attackBonusProcessor = require('./attack-bonus-processor');
 
 const prepare = async (action) => {
     const character = await TacticalCharacter.findById(action.tacticalCharacterId);
@@ -23,8 +24,9 @@ const createMainHandAttack = async (action, character) => {
         defenderBonusModifiers: [],
         attackBonusModifiers: [],
     };
-    attackerBonusProcessor.resolveAttackerBonus(action, character, attack.attackerBonusModifiers);
-    defenderBonusProcessor.resolveDefenderBonus(action, null, attack.defenderBonusModifiers);
+    attackerBonusProcessor.process(action, character, attack.attackerBonusModifiers);
+    defenderBonusProcessor.process(action, null, attack.defenderBonusModifiers);
+    attackBonusProcessor.process(action, attack.attackBonusModifiers);
     calculateTotalBonus(attack);
     return attack;
 };

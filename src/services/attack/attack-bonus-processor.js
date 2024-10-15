@@ -1,9 +1,9 @@
-const process = (action, character, bonus) => {
+const process = (action, bonus) => {
     const bonusProcessors = {
-        'db': dbProcessor,
+        'restricted-quarters': restrictedQuartersProcessor,
     };
     for (const key in bonusProcessors) {
-        value = bonusProcessors[key](action, character);
+        value = bonusProcessors[key](action);
         if (value != 0) {
             bonus.push({
                 type: key,
@@ -13,8 +13,9 @@ const process = (action, character, bonus) => {
     }
 };
 
-const dbProcessor = (action, character) => {
-    return -20;
+const restrictedQuartersProcessor = (action) => {
+    //TODO
+    return -5;
 }
 
 module.exports = {

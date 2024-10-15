@@ -1,4 +1,4 @@
-const resolveAttackerBonus = (action, character, bonus) => {
+const process = (action, character, bonus) => {
     const bonusProcessors = {
         'bo': boProcessor,
         'action-points-penalty': actionPointsPenaltyProcessor
@@ -29,5 +29,5 @@ const actionPointsPenaltyProcessor = (action, character) => {
 }
 
 module.exports = {
-    resolveAttackerBonus
+    process
 };
