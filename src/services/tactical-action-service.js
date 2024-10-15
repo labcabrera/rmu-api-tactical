@@ -106,11 +106,11 @@ const validateActionData = (data) => {
 };
 
 const validateAttackData = (data) => {
-    const validModes = ['mainHand', 'offHand', 'dual',];
-    if (!data.attackInfo) throw { status: 400, message: 'Required attack information' };
-    if (!data.attackInfo.mainTargetId && !data.attackInfo.offHandTargetId) throw { status: 400, message: 'Required target' };
-    if (!data.attackInfo.mode) throw { status: 400, message: 'Required attack mode' };
-    if (!validModes.includes(data.attackInfo.mode)) throw { status: 400, message: 'Invalid attack mode' };
+    // const validModes = ['mainHand', 'offHand', 'dual',];
+    // if (!data.attackInfo) throw { status: 400, message: 'Required attack information' };
+    // if (!data.attackInfo.mainTargetId && !data.attackInfo.offHandTargetId) throw { status: 400, message: 'Required target' };
+    // if (!data.attackInfo.mode) throw { status: 400, message: 'Required attack mode' };
+    // if (!validModes.includes(data.attackInfo.mode)) throw { status: 400, message: 'Invalid attack mode' };
     data.attackInfo.chargeSpeed = data.attackInfo.chargeSpeed || 'none';
     data.attackInfo.restrictedQuarters = data.attackInfo.restrictedQuarters || 'none';
     data.attackInfo.parry = data.attackInfo.parry || 0;

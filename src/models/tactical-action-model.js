@@ -52,21 +52,22 @@ const tacticalActionAttak = new mongoose.Schema({
     }
 }, { _id: false });
 
+const tacticalAttackInfoTargetSchema = new mongoose.Schema({
+    targetId: {
+        type: String,
+        required: true
+    },
+    range: {
+        type: Number,
+        required: false
+    },
+    cover: {
+        type: String,
+        required: false
+    }
+}, { _id: false });
 
 const tacticalActionAttackInfoSchema = new mongoose.Schema({
-    mode: {
-        type: String,
-        required: true,
-        enum: attackMode
-    },
-    mainTargetId: {
-        type: String,
-        required: false
-    },
-    offHandTargetId: {
-        type: String,
-        required: false
-    },
     parry: {
         type: Number,
         required: true
@@ -79,6 +80,10 @@ const tacticalActionAttackInfoSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    attacks: {
+        mainHand: tacticalAttackInfoTargetSchema,
+        offHand: tacticalAttackInfoTargetSchema
+    }
 }, { _id: false });
 
 const tacticalActionSchema = new mongoose.Schema({
@@ -108,8 +113,8 @@ const tacticalActionSchema = new mongoose.Schema({
     },
     attackInfo: tacticalActionAttackInfoSchema,
     attacks: {
-        mainAttack: tacticalActionAttak,
-        offHandAttack: tacticalActionAttak,
+        mainHand: tacticalActionAttak,
+        offHand: tacticalActionAttak,
     },
     description: {
         type: String,
