@@ -14,6 +14,10 @@ const tacticalActionAttackModifier = new mongoose.Schema({
 }, { _id: false });
 
 const tacticalActionAttak = new mongoose.Schema({
+    status: {
+        type: String,
+        required: true
+    },
     mode: {
         type: String,
         required: true,
@@ -103,7 +107,10 @@ const tacticalActionSchema = new mongoose.Schema({
         required: true
     },
     attackInfo: tacticalActionAttackInfoSchema,
-    attacks: [tacticalActionAttak],
+    attacks: {
+        mainAttack: tacticalActionAttak,
+        offHandAttack: tacticalActionAttak,
+    },
     description: {
         type: String,
         required: false

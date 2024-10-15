@@ -10,21 +10,24 @@ const prepare = async (action) => {
     if (!character) {
         throw { status: 404, message: 'Tactical character not found' };
     }
-    const mainAttack = await createMainHandAttack(action, character);
-    action.attacks = [];
-    action.attacks.push(mainAttack);
+    action.attacks = {};
+    if (action.attackInfo.mode === 'mainHand') {
+        action.attacks.mainAttack = await createMainHandAttack(action, character);
+    }
     const result = TacticalAction.updateOne(action);
     return action;
 };
 
 const createMainHandAttack = async (action, character) => {
     const attack = {
-        type: 'mainHand',
+        status: 'pending',
+        mode: 'mainHand',
+        targetId: action.attackInfo.mainTargetId,
         attackerBonusModifiers: [],
         defenderBonusModifiers: [],
         attackBonusModifiers: [],
     };
-    attackerBonusProcessor.process(action, character, attack.attackerBonusModifiers);
+    attackerBonusProcessor.process(action, character, 'mainAttack', attack.attackerBonusModifiers);
     defenderBonusProcessor.process(action, null, attack.defenderBonusModifiers);
     attackBonusProcessor.process(action, attack.attackBonusModifiers);
     calculateTotalBonus(attack);

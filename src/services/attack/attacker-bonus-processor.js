@@ -1,4 +1,4 @@
-const process = (action, character, bonus) => {
+const process = (action, character, attackMode, bonus) => {
     const bonusProcessors = {
         'bo': boProcessor,
         'action-points-penalty': actionPointsPenaltyProcessor
@@ -14,10 +14,9 @@ const process = (action, character, bonus) => {
     }
 };
 
-const boProcessor = (action, character) => {
-    //TODO
+const boProcessor = (action, character, attackMode) => {
     return 50;
-}
+};
 
 const actionPointsPenaltyProcessor = (action, character) => {
     switch (action.actionPoints) {
@@ -26,7 +25,21 @@ const actionPointsPenaltyProcessor = (action, character) => {
         case 3: return -25;
         default: return 0;
     }
-}
+};
+
+const resolveAttackWeapon = (action, character, attackMode) => {
+    var item = null;
+    switch (attackMode) {
+        case 'mainHand':
+            const itemId = character.equipment.mainHand;
+            item = character.items.find(i => i.id === itemId);
+            break;
+    }
+    if (action.attackInfo.weapon) {
+        return action.attackInfo.weapon;
+    }
+    return character.mainHand;
+};
 
 module.exports = {
     process
