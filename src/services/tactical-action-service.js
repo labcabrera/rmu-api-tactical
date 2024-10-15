@@ -31,18 +31,17 @@ const insert = async (data) => {
     validateActionData(data);
     const tacticalGame = await fetchExistingTacticalGame(data.tacticalGameId);
     const tacticalCharacter = await fetchExistingCharacter(data.tacticalCharacterId);
-    const round = data.round ? data.round : tacticalGame.round;
+    const round = data.round || tacticalGame.round;
     const description = data.description || tacticalCharacter.name + " > " + data.type;
-
     const newAction = new TacticalAction({
         tacticalGameId: data.tacticalGameId,
         round: round,
         tacticalCharacterId: data.tacticalCharacterId,
         type: data.type,
-        description: description,
         phaseStart: data.phaseStart,
         actionPoints: data.actionPoints,
-        attackInfo: data.attackInfo
+        attackInfo: data.attackInfo,
+        description: description,
     });
     const savedAction = await newAction.save();
     return tacticalActionConverter.toJSON(savedAction);
@@ -91,10 +90,10 @@ const fetchExistingCharacter = async (tacticalCharacterId) => {
 const validateActionData = (data) => {
     if (!data.tacticalGameId) throw { status: 400, message: 'Required tactical game identifier' };
     if (!data.tacticalCharacterId) throw { status: 400, message: 'Required tactical character identifier' };
-    if (!data.round) throw { status: 400, message: 'Required round' };
     if (!data.type) throw { status: 400, message: 'Required action type' };
     if (!data.actionPoints) throw { status: 400, message: 'Required action points' };
-    if (!data.phaseStart) throw { status: 400, message: 'Required start phase' };
+    if (data.phaseStart === undefined) throw { status: 400, message: 'Required start phase' };
+    if (data.phaseStart < 1 || data.phaseStart > 4) throw { status: 400, message: 'Invalid start phase' };
     switch (data.type) {
         case 'attack':
             validateAttackData(data);

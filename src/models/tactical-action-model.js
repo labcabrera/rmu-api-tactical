@@ -19,11 +19,7 @@ const tacticalActionAttak = new mongoose.Schema({
         required: true,
         enum: attackMode
     },
-    mainTargetId: {
-        type: String,
-        required: false
-    },
-    offHandTargetId: {
+    targetId: {
         type: String,
         required: false
     },
@@ -58,6 +54,14 @@ const tacticalActionAttackInfoSchema = new mongoose.Schema({
         type: String,
         required: true,
         enum: attackMode
+    },
+    mainTargetId: {
+        type: String,
+        required: false
+    },
+    offHandTargetId: {
+        type: String,
+        required: false
     },
     parry: {
         type: Number,
