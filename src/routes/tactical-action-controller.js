@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 
-const tacticalActionService = require("../services/tactical-action-service");
 const errorService = require("../services/error-service");
+const tacticalActionService = require("../services/tactical-action-service");
+const tacticalActionPrepareService = require("../services/tactical-action-prepare-service");
 
 router.get('/', async (req, res) => {
     try {
@@ -34,6 +35,17 @@ router.post('/', async (req, res) => {
         res.status(201).json(newAction);
     } catch (error) {
         errorService.sendErrorResponse(res, error);
+    }
+});
+
+router.post('/:actionId/prepare', async (req, res) => {
+    try {
+        const actionId = req.params.actionId;
+        const result = await tacticalActionPrepareService.prepare(actionId);
+        res.status(200).json(result);
+    } catch (error) {
+        console.log(error);
+        res.status(400).json({ message: error.message });
     }
 });
 

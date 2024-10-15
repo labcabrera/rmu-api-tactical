@@ -39,7 +39,8 @@ const insert = async (data) => {
         type: data.type,
         description: description,
         phaseStart: data.phaseStart,
-        actionPoints: data.actionPoints
+        actionPoints: data.actionPoints,
+        attackInfo: data.attackInfo
     });
     const savedAction = await newAction.save();
     return tacticalActionConverter.toJSON(savedAction);
