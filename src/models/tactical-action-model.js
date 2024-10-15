@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 
+const attackMode = ['mainHand', 'offHand', 'dual'];
+
 const tacticalActionAttackModifier = new mongoose.Schema({
     type: {
         type: String,
@@ -12,13 +14,22 @@ const tacticalActionAttackModifier = new mongoose.Schema({
 }, { _id: false });
 
 const tacticalActionAttak = new mongoose.Schema({
-    type: {
+    mode: {
         type: String,
-        required: true
+        required: true,
+        enum: attackMode
     },
-    targetId: {
+    mainTargetId: {
         type: String,
-        required: true
+        required: false
+    },
+    offHandTargetId: {
+        type: String,
+        required: false
+    },
+    range: {
+        type: Number,
+        required: false
     },
     attackerBonusModifiers: [tacticalActionAttackModifier],
     defenderBonusModifiers: [tacticalActionAttackModifier],
@@ -43,9 +54,10 @@ const tacticalActionAttak = new mongoose.Schema({
 
 
 const tacticalActionAttackInfoSchema = new mongoose.Schema({
-    selectedWeapon: {
+    mode: {
         type: String,
-        required: true
+        required: true,
+        enum: attackMode
     },
     parry: {
         type: Number,

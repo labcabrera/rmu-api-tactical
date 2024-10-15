@@ -28,10 +28,12 @@ const find = async (tacticalGameId, tacticalCharacterId, round, page, size) => {
 };
 
 const insert = async (data) => {
+    validateActionData(data);
     const tacticalGame = await fetchExistingTacticalGame(data.tacticalGameId);
     const tacticalCharacter = await fetchExistingCharacter(data.tacticalCharacterId);
     const round = data.round ? data.round : tacticalGame.round;
-    const description = data.description ? data.description : tacticalCharacter.name + " > " + data.type;
+    const description = data.description || tacticalCharacter.name + " > " + data.type;
+
     const newAction = new TacticalAction({
         tacticalGameId: data.tacticalGameId,
         round: round,
@@ -85,6 +87,35 @@ const fetchExistingCharacter = async (tacticalCharacterId) => {
         throw { status: 404, message: 'Invalid tactical character' };
     }
 };
+
+const validateActionData = (data) => {
+    if (!data.tacticalGameId) throw { status: 400, message: 'Required tactical game identifier' };
+    if (!data.tacticalCharacterId) throw { status: 400, message: 'Required tactical character identifier' };
+    if (!data.round) throw { status: 400, message: 'Required round' };
+    if (!data.type) throw { status: 400, message: 'Required action type' };
+    if (!data.actionPoints) throw { status: 400, message: 'Required action points' };
+    if (!data.phaseStart) throw { status: 400, message: 'Required start phase' };
+    switch (data.type) {
+        case 'attack':
+            validateAttackData(data);
+            break;
+        case 'movement':
+            break;
+        default:
+            throw { status: 400, message: 'Tactical action type not supported' };
+    }
+};
+
+const validateAttackData = (data) => {
+    const validModes = ['mainHand', 'offHand', 'dual',];
+    if (!data.attackInfo) throw { status: 400, message: 'Required attack information' };
+    if (!data.attackInfo.mainTargetId && !data.attackInfo.offHandTargetId) throw { status: 400, message: 'Required target' };
+    if (!data.attackInfo.mode) throw { status: 400, message: 'Required attack mode' };
+    if (!validModes.includes(data.attackInfo.mode)) throw { status: 400, message: 'Invalid attack mode' };
+    data.attackInfo.chargeSpeed = data.attackInfo.chargeSpeed || 'none';
+    data.attackInfo.restrictedQuarters = data.attackInfo.restrictedQuarters || 'none';
+    data.attackInfo.parry = data.attackInfo.parry || 0;
+}
 
 const handleNotFoundError = (entity, message) => {
     if (!entity) {
