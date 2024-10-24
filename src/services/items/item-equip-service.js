@@ -40,6 +40,7 @@ const equip = async (characterId, data) => {
         character.defense.armorType = 1;
     }
 
+    calculateAttackBonus(character);
     await character.save();
     return tacticalCharacterConverter.toJSON(character);
 };
@@ -71,6 +72,21 @@ const validateEquipData = (currentCharacter, data) => {
                 throw { status: 400, message: 'Invalid item slot' };
         }
     }
+};
+
+const calculateAttackBonus = (character) => {
+    //TODO
+    const attacks = {
+        mainHand: {
+            bo: -25,
+            attackTable: 'undefined',
+        },
+        offHand: {
+            bo: -25,
+            attackTable: 'undefined',
+        },
+    };
+    character.attacks = attacks;
 };
 
 module.exports = {

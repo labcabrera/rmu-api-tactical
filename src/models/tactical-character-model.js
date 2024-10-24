@@ -270,6 +270,10 @@ const tacticalCharacterAttackSchema = new mongoose.Schema({
     bo: {
         type: Number,
         required: true
+    },
+    attackTable: {
+        type: String,
+        required: true
     }
 }, { _id: false });
 
