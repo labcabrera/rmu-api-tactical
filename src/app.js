@@ -47,6 +47,4 @@ app.use((err, req, res, next) => {
   res.status(500).json({ code: "500", message: "Internal server error", timestamp: new Date().toISOString() });
 });
 
-app.listen(PORT, () => {
-  console.log(`API started on ${PORT}`);
-});
+module.exports = app;

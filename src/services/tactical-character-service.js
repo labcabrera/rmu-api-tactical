@@ -190,6 +190,8 @@ const processSkills = async (skills) => {
             skillId: readedSkill.id,
             skillCategoryId: readedSkill.categoryId,
             attributeBonus: attributeBonus,
+            ranks: 0,
+            statBonus: 0,
             racialBonus: racialBonus,
             developmentBonus: developmentBonus,
             customBonus: customBonus,
