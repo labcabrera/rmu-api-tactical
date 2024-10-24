@@ -5,7 +5,7 @@ const attackerBonusProcessor = require('./attacker-bonus-processor');
 const defenderBonusProcessor = require('./defender-bonus-processor');
 const attackBonusProcessor = require('./attack-bonus-processor');
 
-const prepare = async (action) => {
+const update = async (action, data) => {
     const character = await TacticalCharacter.findById(action.tacticalCharacterId);
     if (!character) {
         throw { status: 404, message: 'Tactical character not found' };
@@ -42,5 +42,5 @@ const calculateTotalBonus = (action) => {
 };
 
 module.exports = {
-    prepare
+    update
 };

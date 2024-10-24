@@ -3,6 +3,7 @@ const TacticalCharacter = require('../models/tactical-character-model');
 const TacticalAction = require('../models/tactical-action-model');
 
 const tacticalActionConverter = require('../converters/tactical-action-converter');
+const attackService = require('./attack/attack-service');
 
 const findById = async (id) => {
     const action = await TacticalAction.findById(id);
@@ -48,12 +49,17 @@ const insert = async (data) => {
 };
 
 const update = async (actionId, data) => {
-    const { description } = data;
-    const updatedAction = await TacticalAction.findByIdAndUpdate(actionId, { description }, { new: true });
-    if (!updatedAction) {
-        throw { status: 404, message: 'Tactical action not found' };
-    };
-    return tacticalActionConverter.toJSON(updatedAction);
+    const action = await TacticalAction.findById(actionId);
+    var actionResult;
+    switch (action.type) {
+        case 'attack':
+            actionResult = await attackService.update(action, data);
+            break;
+        default:
+            throw { status: 400, message: 'Tactical action type not supported' };
+    }
+    const result = TacticalAction.updateOne({ _id: actionId }, actionResult);
+    return tacticalActionConverter.toJSON(result);
 };
 
 const deleteById = async (actionId) => {

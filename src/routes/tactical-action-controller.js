@@ -3,7 +3,7 @@ const router = express.Router();
 
 const errorService = require("../services/error-service");
 const tacticalActionService = require("../services/tactical-action-service");
-const tacticalActionPrepareService = require("../services/tactical-action-prepare-service");
+const tacticalActionPrepareService = require("../services/tactical-action-update-service");
 
 router.get('/', async (req, res) => {
     try {

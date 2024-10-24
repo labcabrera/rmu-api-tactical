@@ -3,7 +3,7 @@ const TacticalAction = require('../models/tactical-action-model');
 const tacticalActionConverter = require('../converters/tactical-action-converter');
 const attackService = require('./attack/attack-service');
 
-const prepare = async (id) => {
+const update = async (id, data) => {
     const action = await TacticalAction.findById(id);
     if (!action) {
         throw { status: 404, message: 'Tactical action not found' };
@@ -19,5 +19,5 @@ const prepare = async (id) => {
 };
 
 module.exports = {
-    prepare
+    update
 };
