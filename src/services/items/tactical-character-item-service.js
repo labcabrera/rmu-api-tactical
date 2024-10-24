@@ -1,28 +1,20 @@
-const TacticalCharacter = require("../models/tactical-character-model")
-const tacticalCharacterConverter = require('../converters/tactical-character-converter');
+const TacticalCharacter = require("../../models/tactical-character-model")
+const tacticalCharacterConverter = require('../../converters/tactical-character-converter');
 
+// adds an item to the inventory without equipping it
 const addItem = async (characterId, item) => {
     const current = await TacticalCharacter.findById(characterId);
-    if (!current) {
-        throw { status: 404, message: 'Tactical character not found' };
-    }
-    if (!item.itemTypeId) {
-        throw { status: 400, message: 'Required itemTypeId' };
-    }
-    if (!item.category) {
-        throw { status: 400, message: 'Required category' };
-    }
+    if (!current) throw { status: 404, message: 'Tactical character not found' };
+    if (!item.itemTypeId) throw { status: 400, message: 'Required itemTypeId' };
+    if (!item.category) throw { status: 400, message: 'Required category' };
     if (!item.name) {
         item.name = item.itemTypeId;
     }
-    //TODO fetch
     const updatedCharacter = await TacticalCharacter.findByIdAndUpdate(
         characterId,
         { $push: { items: item } },
         { new: true });
-    if (!updatedCharacter) {
-        throw { message: 'Tactical character not found' };
-    }
+    if (!updatedCharacter) throw { message: 'Tactical character not found' };
     const updatedWeight = await updateWeight(updatedCharacter);
     return tacticalCharacterConverter.toJSON(updatedWeight);
 };
@@ -40,19 +32,17 @@ const deleteItem = async (characterId, itemId) => {
 };
 
 const equip = async (characterId, data) => {
+    if (!data.itemId) throw { status: 400, message: 'Required itemId' };
+
     const currentCharacter = await TacticalCharacter.findById(characterId);
     const itemId = data.itemId;
     const slot = data.slot;
-    if (!currentCharacter) {
-        throw { status: 404, message: 'Tactical character not found' };
-    }
-    if (!itemId) {
-        throw { status: 400, message: 'Required itemId' };
-    }
+
+    if (!currentCharacter) throw { status: 404, message: 'Tactical character not found' };
+
     const item = currentCharacter.items.find(e => e.id == itemId);
-    if (!item) {
-        throw { status: 400, message: 'Invalid itemId' };
-    }
+    if (!item) throw { status: 400, message: 'Invalid itemId' };
+
     if (slot) {
         switch (slot) {
             case 'mainHand':
@@ -93,7 +83,16 @@ const equip = async (characterId, data) => {
     if (slot && slot === 'mainHand' && item.weapon && item.weapon.requiredHands > 1) {
         update.equipment.offHand = null;
     }
-    //TODO check equip offHand for validate 1H weapon in the other
+    if (slot && slot === 'offHand' && item.weapon && item.weapon.requiredHands > 1) {
+        throw { status: 400, message: 'Two handed weapons cant be equiped in offHand slot' };
+    }
+    // if an offHand item is equipped and you have a two-handed weapon, it is unequipped.
+    if(slot && slot === 'offHand' && currentCharacter.equipment.mainHand) {
+        const mainHandItem = currentCharacter.items.find(e => e.id == currentCharacter.equipment.mainHand);
+        if(mainHandItem.weapon && mainHandItem.weapon.requiredHands > 1) {
+            update.equipment.mainHand = null;
+        }
+    }
     // No armor equiped
     if (update.equipment.body === null) {
         update.defense = currentCharacter.defense;

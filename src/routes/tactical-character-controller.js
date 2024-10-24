@@ -3,7 +3,7 @@ const router = express.Router();
 
 const TacticalCharacter = require("../models/tactical-character-model");
 const tacticalCharacterService = require("../services/tactical-character-service");
-const tacticalCharacterItemService = require("../services/tactical-character-item-service");
+const tacticalCharacterItemService = require("../services/items/tactical-character-item-service");
 const tacticalCharacterSkillService = require("../services/tactical-character-skill-service");
 const tacticalCharacterUpdateService = require('../services/tactical-character-update-service');
 

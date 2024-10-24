@@ -266,6 +266,18 @@ const characterEffectSchema = new mongoose.Schema({
     rounds: Number
 });
 
+const tacticalCharacterAttackSchema = new mongoose.Schema({
+    bo: {
+        type: Number,
+        required: true
+    }
+}, { _id: false });
+
+const tacticalCharacterAttacksSchema = new mongoose.Schema({
+    mainHand: tacticalCharacterAttackSchema,
+    offHand: tacticalCharacterAttackSchema,
+}, { _id: false });
+
 const tacticalCharacterSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -300,6 +312,7 @@ const tacticalCharacterSchema = new mongoose.Schema({
         type: characterEquipment,
         required: false
     },
+    attacks: tacticalCharacterAttacksSchema,
     description: {
         type: String,
         required: false

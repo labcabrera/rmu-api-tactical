@@ -1,8 +1,9 @@
 const TacticalCharacter = require("../models/tactical-character-model")
 const TacticalGame = require("../models/tactical-game-model")
-const tacticalCharacterConverter = require('../converters/tactical-character-converter');
-const tacticalCharacterItemService = require('./tactical-character-item-service');
+
+const tacticalCharacterItemService = require('./items/tactical-character-item-service');
 const tacticalCharacterCalculations = require('./tactical-character-calculations');
+const tacticalCharacterConverter = require('../converters/tactical-character-converter');
 
 //TODO
 const API_CORE_URL = 'http://localhost:3001/v1';
