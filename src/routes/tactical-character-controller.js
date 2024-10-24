@@ -3,7 +3,8 @@ const router = express.Router();
 
 const TacticalCharacter = require("../models/tactical-character-model");
 const tacticalCharacterService = require("../services/tactical-character-service");
-const tacticalCharacterItemService = require("../services/items/tactical-character-item-service");
+const itemService = require("../services/items/item-service");
+const itemEquipService = require("../services/items/item-equip-service");
 const tacticalCharacterSkillService = require("../services/tactical-character-skill-service");
 const tacticalCharacterUpdateService = require('../services/tactical-character-update-service');
 
@@ -89,7 +90,7 @@ router.delete('/:characterId/skills/:itemId', async (req, res) => {
 router.post('/:characterId/items', async (req, res) => {
     try {
         const characterId = req.params.characterId;
-        const savedCharacter = await tacticalCharacterItemService.addItem(characterId, req.body);
+        const savedCharacter = await itemService.addItem(characterId, req.body);
         res.status(200).json(savedCharacter);
     } catch (error) {
         sendErrorResponse(res, error);
@@ -100,7 +101,7 @@ router.delete('/:characterId/items/:itemId', async (req, res) => {
     try {
         const characterId = req.params.characterId;
         const itemId = req.params.itemId;
-        const savedCharacter = await tacticalCharacterItemService.deleteItem(characterId, itemId);
+        const savedCharacter = await itemService.deleteItem(characterId, itemId);
         res.status(200).json(savedCharacter);
     } catch (error) {
         sendErrorResponse(res, error);
@@ -110,7 +111,7 @@ router.delete('/:characterId/items/:itemId', async (req, res) => {
 router.post('/:characterId/equipment', async (req, res) => {
     try {
         const characterId = req.params.characterId;
-        const savedCharacter = await tacticalCharacterItemService.equip(characterId, req.body);
+        const savedCharacter = await itemEquipService.equip(characterId, req.body);
         res.status(200).json(savedCharacter);
     } catch (error) {
         sendErrorResponse(res, error);

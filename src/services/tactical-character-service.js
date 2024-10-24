@@ -1,7 +1,7 @@
 const TacticalCharacter = require("../models/tactical-character-model")
 const TacticalGame = require("../models/tactical-game-model")
 
-const tacticalCharacterItemService = require('./items/tactical-character-item-service');
+const itemService = require('./items/item-service');
 const tacticalCharacterCalculations = require('./tactical-character-calculations');
 const tacticalCharacterConverter = require('../converters/tactical-character-converter');
 
@@ -98,7 +98,7 @@ const insert = async (user, data) => {
             offHand: null,
             head: null,
             body: null,
-            weight: tacticalCharacterItemService.getCharacterWeight(data)
+            weight: itemService.getCharacterWeight(data)
         },
         user: user
     });
