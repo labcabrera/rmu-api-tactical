@@ -12,6 +12,7 @@ const toJSON = (character) => {
         endurance: character.endurance,
         power: character.power,
         initiative: character.initiative,
+        attacks: character.attacks,
         effects: character.effects.map(mapEffect),
         skills: character.skills.map(mapSkill),
         items: character.items.map(mapItem),

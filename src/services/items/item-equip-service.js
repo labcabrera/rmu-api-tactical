@@ -29,9 +29,9 @@ const equip = async (characterId, data) => {
     if (slot && slot === 'offHand' && item.weapon && item.weapon.requiredHands > 1) {
         throw { status: 400, message: 'Two handed weapons cant be equiped in offHand slot' };
     }
-    if(slot && slot === 'offHand' && character.equipment.mainHand) {
+    if (slot && slot === 'offHand' && character.equipment.mainHand) {
         const mainHandItem = character.items.find(e => e.id == character.equipment.mainHand);
-        if(mainHandItem.weapon && mainHandItem.weapon.requiredHands > 1) {
+        if (mainHandItem.weapon && mainHandItem.weapon.requiredHands > 1) {
             character.equipment.mainHand = null;
         }
     }
@@ -75,18 +75,23 @@ const validateEquipData = (currentCharacter, data) => {
 };
 
 const calculateAttackBonus = (character) => {
-    //TODO
-    const attacks = {
-        mainHand: {
-            bo: -25,
-            attackTable: 'undefined',
-        },
-        offHand: {
-            bo: -25,
-            attackTable: 'undefined',
-        },
-    };
+    const attacks = {};
+    calculateAttackBonusSlot(character, attacks, 'mainHand');
+    calculateAttackBonusSlot(character, attacks, 'offHand');
     character.attacks = attacks;
+};
+
+const calculateAttackBonusSlot = (character, attacks, slot) => {
+    if (character.equipment[slot]) {
+        const item = character.items.find(e => e.id == character.equipment[slot]);
+        const skillId = item.weapon.skillId;
+        const skill = character.skills.find(e => e.skillId == skillId);
+        const skillBonus = skill ? skill.totalBonus : -25;
+        attacks[slot] = {
+            bo: skillBonus,
+            attackTable: item.weapon.attackTable,
+        };
+    }
 };
 
 module.exports = {
