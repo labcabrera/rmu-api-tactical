@@ -7,6 +7,7 @@ const itemService = require("../services/items/item-service");
 const itemEquipService = require("../services/items/item-equip-service");
 const tacticalCharacterSkillService = require("../services/tactical-character-skill-service");
 const tacticalCharacterUpdateService = require('../services/tactical-character-update-service');
+const errorService = require("../services/error-service");
 
 router.get('/', async (req, res) => {
     try {
@@ -51,7 +52,7 @@ router.patch('/:characterId', async (req, res) => {
         const updatedCharacter = await tacticalCharacterUpdateService.update(characterId, req.body);
         res.status(200).json(updatedCharacter);
     } catch (error) {
-        sendErrorResponse(res, error);
+        errorService.sendErrorResponse(error);
     }
 });
 

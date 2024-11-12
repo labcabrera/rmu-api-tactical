@@ -2,7 +2,6 @@ const TacticalCharacter = require("../models/tactical-character-model")
 const TacticalGame = require("../models/tactical-game-model")
 
 const itemService = require('./items/item-service');
-const tacticalCharacterCalculations = require('./tactical-character-calculations');
 const tacticalCharacterConverter = require('../converters/tactical-character-converter');
 
 //TODO

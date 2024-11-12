@@ -1,6 +1,7 @@
 const TacticalCharacter = require("../models/tactical-character-model")
 const tacticalCharacterConverter = require('../converters/tactical-character-converter');
-const tacticalCharacterCalculations = require('./tactical-character-calculations');
+
+const movementProcessor = require('./character/processor/movement-processor.js');
 
 const update = async (characterId, data) => {
     const current = await TacticalCharacter.findById(characterId);
@@ -12,6 +13,10 @@ const update = async (characterId, data) => {
     if (!updatedCharacter) {
         throw { status: 404, message: 'Tactical character not found' };
     };
+    //TODO organize processors
+    movementProcessor.process(updatedCharacter);
+
+    const result = await TacticalCharacter.updateOne(updatedCharacter);
     return tacticalCharacterConverter.toJSON(updatedCharacter);
 };
 
@@ -148,12 +153,10 @@ const buildCharacterUpdateInitiative = (update, data, currentCharacter) => {
 };
 
 const buildCharacterUpdateMovement = (update, data, currentCharacter) => {
-    if (data.movement) {
-        const strideBonus = data.movement.strideBonus ? data.movement.strideBonus : currentCharacter.movement.strideBonus;
-        const quBonus = currentCharacter.statistics.qu.totalBonus;
+    if (data.movement && typeof data.movement.strideCustomBonus !== 'undefined') {
         update.movement = {
-            baseMovementRate: tacticalCharacterCalculations.getBaseMovementRate(strideBonus, quBonus),
-            strideBonus: strideBonus
+            strideCustomBonus: data.movement.strideCustomBonus,
+            strideRacialBonus: currentCharacter.movement.strideRacialBonus | 0
         }
     };
 };
