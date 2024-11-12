@@ -1,7 +1,7 @@
 const TacticalCharacter = require("../models/tactical-character-model")
 const tacticalCharacterConverter = require('../converters/tactical-character-converter');
 
-const movementProcessor = require('./character/processor/movement-processor.js');
+const characterProcessor = require('./character-processor-service.js');
 
 const update = async (characterId, data) => {
     const current = await TacticalCharacter.findById(characterId);
@@ -13,10 +13,8 @@ const update = async (characterId, data) => {
     if (!updatedCharacter) {
         throw { status: 404, message: 'Tactical character not found' };
     };
-    //TODO organize processors
-    movementProcessor.process(updatedCharacter);
-
-    const result = await TacticalCharacter.updateOne(updatedCharacter);
+    characterProcessor.process(updatedCharacter);
+    await TacticalCharacter.updateOne({ _id: updatedCharacter._id }, updatedCharacter);
     return tacticalCharacterConverter.toJSON(updatedCharacter);
 };
 

@@ -246,6 +246,10 @@ const characterMovementSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    strideQuBonus: {
+        type: Number,
+        required: true
+    },
     strideCustomBonus: {
         type: Number,
         required: true

@@ -3,6 +3,7 @@ const TacticalGame = require("../models/tactical-game-model")
 
 const itemService = require('./items/item-service');
 const tacticalCharacterConverter = require('../converters/tactical-character-converter');
+const characterProcessor = require('./character-processor-service.js');
 
 //TODO
 const API_CORE_URL = 'http://localhost:3001/v1';
@@ -54,10 +55,10 @@ const insert = async (user, data) => {
     };
     const strideRacialBonus = raceInfo.strideBonus;
     const strideCustomBonus = data.movement && data.movement.strideCustomBonus ? data.movement.strideCustomBonus : 0;
-    const bmr = tacticalCharacterCalculations.getBaseMovementRate(strideRacialBonus + strideCustomBonus, processedStatistics.qu.totalBonus);
     const movement = {
-        baseMovementRate: bmr,
+        baseMovementRate: 0,
         strideCustomBonus: strideCustomBonus,
+        strideQuBonus: 0,
         strideRacialBonus: strideRacialBonus
     };
     const hp = {
@@ -101,7 +102,9 @@ const insert = async (user, data) => {
         },
         user: user
     });
-    const savedCharacter = await newCharacter.save();
+    const savedCharacter = await newCharacter.save();   
+    characterProcessor.process(savedCharacter);
+    await TacticalCharacter.updateOne({ _id: savedCharacter._id }, savedCharacter);
     const equipedCharacter = await loadDefaultEquipment(savedCharacter);
     return tacticalCharacterConverter.toJSON(equipedCharacter);
 };
@@ -237,6 +240,11 @@ const processStatistics = (raceInfo, statistics) => {
     });
     return result;
 };
+
+const executeCharacterProcessors = (character) => {
+    
+
+}
 
 module.exports = {
     findById,
