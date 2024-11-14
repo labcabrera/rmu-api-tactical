@@ -1,8 +1,8 @@
-const TacticalCharacter = require("../models/tactical-character-model")
-const TacticalGame = require("../models/tactical-game-model")
+const TacticalCharacter = require("../models/tactical-character-model.js")
+const TacticalGame = require("../models/tactical-game-model.js")
 
-const itemService = require('./items/item-service');
-const tacticalCharacterConverter = require('../converters/tactical-character-converter');
+const itemService = require('./items/item-service.js');
+const tacticalCharacterConverter = require('../converters/tactical-character-converter.js');
 const characterProcessor = require('./character-processor-service.js');
 
 //TODO

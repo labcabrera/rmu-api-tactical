@@ -1,5 +1,5 @@
-const TacticalCharacter = require("../models/tactical-character-model")
-const tacticalCharacterConverter = require('../converters/tactical-character-converter');
+const TacticalCharacter = require("../models/tactical-character-model.js")
+const tacticalCharacterConverter = require('../converters/tactical-character-converter.js');
 
 const characterProcessor = require('./character-processor-service.js');
 
@@ -55,7 +55,6 @@ const buildCharacterUpdateStatistics = (update, data, currentCharacter) => {
                 custom: custom,
                 totalBonus: total
             }
-
         });
         update.statistics = statUpdate;
     }

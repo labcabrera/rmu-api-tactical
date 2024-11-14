@@ -2,11 +2,11 @@ const express = require('express');
 const router = express.Router();
 
 const TacticalCharacter = require("../models/tactical-character-model");
-const tacticalCharacterService = require("../services/tactical-character-service");
+const tacticalCharacterService = require("../services/character-service");
+const tacticalCharacterUpdateService = require('../services/character-update-service');
 const itemService = require("../services/items/item-service");
 const itemEquipService = require("../services/items/item-equip-service");
 const tacticalCharacterSkillService = require("../services/tactical-character-skill-service");
-const tacticalCharacterUpdateService = require('../services/tactical-character-update-service');
 const errorService = require("../services/error-service");
 
 router.get('/', async (req, res) => {
