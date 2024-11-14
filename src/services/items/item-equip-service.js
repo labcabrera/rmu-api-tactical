@@ -1,5 +1,6 @@
 const TacticalCharacter = require("../../models/tactical-character-model")
 const tacticalCharacterConverter = require('../../converters/tactical-character-converter');
+const characterProcessorService = require('../character-processor-service');
 
 const equip = async (characterId, data) => {
     if (!data.itemId) throw { status: 400, message: 'Required itemId' };
@@ -39,8 +40,7 @@ const equip = async (characterId, data) => {
     if (character.equipment.body === null) {
         character.defense.armorType = 1;
     }
-
-    calculateAttackBonus(character);
+    characterProcessorService.process(character);
     await character.save();
     return tacticalCharacterConverter.toJSON(character);
 };
@@ -71,26 +71,6 @@ const validateEquipData = (currentCharacter, data) => {
             default:
                 throw { status: 400, message: 'Invalid item slot' };
         }
-    }
-};
-
-const calculateAttackBonus = (character) => {
-    const attacks = {};
-    calculateAttackBonusSlot(character, attacks, 'mainHand');
-    calculateAttackBonusSlot(character, attacks, 'offHand');
-    character.attacks = attacks;
-};
-
-const calculateAttackBonusSlot = (character, attacks, slot) => {
-    if (character.equipment[slot]) {
-        const item = character.items.find(e => e.id == character.equipment[slot]);
-        const skillId = item.weapon.skillId;
-        const skill = character.skills.find(e => e.skillId == skillId);
-        const skillBonus = skill ? skill.totalBonus : -25;
-        attacks[slot] = {
-            bo: skillBonus,
-            attackTable: item.weapon.attackTable,
-        };
     }
 };
 
