@@ -76,6 +76,7 @@ const insert = async (user, data) => {
     const initiative = {
         baseBonus: initiativeBaseBonus,
         customBonus: initiativeCustomBonus,
+        penaltyBonus: 0,
         totalBonus: initiativeBaseBonus + initiativeCustomBonus
     };
     const newCharacter = new TacticalCharacter({

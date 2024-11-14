@@ -83,8 +83,18 @@ const characterDefenseSchema = new mongoose.Schema({
 }, { _id: false });
 
 const characterInitiativeSchema = new mongoose.Schema({
-    baseBonus: Number,
-    customBonus: Number,
+    baseBonus: {
+        type: Number,
+        required: true
+    },
+    customBonus: {
+        type: Number,
+        required: true
+    },
+    penaltyBonus: {
+        type: Number,
+        required: true
+    },
     totalBonus: {
         type: Number,
         required: true
