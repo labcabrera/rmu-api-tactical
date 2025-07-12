@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rmu-api-tactical
+  labels:
+    app: rmu-api-tactical
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rmu-api-tactical
+  template:
+    metadata:
+      labels:
+        app: rmu-api-tactical
+    spec:
+      containers:
+      - name: rmu-api-tactical
+        image: labcabrera/rmu-api-tactical:latest
+        ports:
+        - containerPort: 3003
+        env:
+        - name: RMU_MONGO_TACTICAL_URI
+          valueFrom:
+            configMapKeyRef:
+              name: rmu-shared-configmap
+              key: RMU_MONGO_TACTICAL_URI

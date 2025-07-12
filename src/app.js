@@ -9,7 +9,7 @@ const path = require('path');
 const app = express();
 
 const PORT = process.env.PORT || 3003;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/rmu-tactical';
+const MONGO_URI = process.env.RMU_MONGO_TACTICAL_URI || 'mongodb://localhost:27017/rmu-tactical';
 
 const openapiFilePath = path.join(__dirname, '../openapi.yaml');
 const openapiFile = fs.readFileSync(openapiFilePath, 'utf8')

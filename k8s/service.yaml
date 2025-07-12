@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rmu-api-tactical-service
+spec:
+  selector:
+    app: rmu-api-tactical
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 3003
+  type: ClusterIP
