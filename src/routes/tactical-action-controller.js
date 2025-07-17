@@ -41,7 +41,7 @@ router.post('/', async (req, res) => {
 router.post('/:actionId/prepare', async (req, res) => {
     try {
         const actionId = req.params.actionId;
-        const result = await tacticalActionPrepareService.prepare(actionId);
+        const result = await tacticalActionPrepareService.prepare(actionId, req.body);
         res.status(200).json(result);
     } catch (error) {
         console.log(error);

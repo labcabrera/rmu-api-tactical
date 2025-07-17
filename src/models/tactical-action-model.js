@@ -13,6 +13,13 @@ const tacticalActionAttackModifier = new mongoose.Schema({
     }
 }, { _id: false });
 
+const tacticalAttackResult = new mongoose.Schema({
+    damage: {
+        type: Number,
+        required: false
+    }
+}, { _id: false });
+
 const tacticalActionAttak = new mongoose.Schema({
     status: {
         type: String,
@@ -49,7 +56,12 @@ const tacticalActionAttak = new mongoose.Schema({
     totalBonus: {
         type: Number,
         required: true
-    }
+    },
+    attackRoll: {
+        type: Number,
+        required: false
+    },
+    tacticalAttackResult: tacticalAttackResult
 }, { _id: false });
 
 const tacticalAttackInfoTargetSchema = new mongoose.Schema({

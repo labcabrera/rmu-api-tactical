@@ -14,8 +14,12 @@ const update = async (action, data) => {
     if (action.attackInfo.attacks.mainHand) {
         action.attacks.mainHand = await createMainHandAttack(action, character);
     }
-    const result = TacticalAction.updateOne(action);
-    return action;
+    return await TacticalAction.updateOne(action);
+};
+
+const prepare = async (action, requestBody) => {
+    console.log('Preparing attack action:', { actionId: action._id, requestBody });
+    return await update(action, requestBody);
 };
 
 const createMainHandAttack = async (action, character) => {
@@ -42,5 +46,6 @@ const calculateTotalBonus = (action) => {
 };
 
 module.exports = {
-    update
+    update,
+    prepare
 };
