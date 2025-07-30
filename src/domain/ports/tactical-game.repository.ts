@@ -1,8 +1,8 @@
-import { TacticalGameQuery } from '../../application/queries/tactical-game.query';
 import { Page } from '../entities/page.entity';
 import {
     TacticalGame,
 } from '../entities/tactical-game.entity';
+import { TacticalGameQuery } from '../queries/tactical-game.query';
 
 export interface TacticalGameRepository {
 
