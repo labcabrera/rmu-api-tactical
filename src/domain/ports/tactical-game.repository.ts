@@ -10,7 +10,7 @@ export interface TacticalGameRepository {
 
     save(game: TacticalGame): Promise<TacticalGame>;
 
-    update(id: string, game: Partial<TacticalGame>): Promise<TacticalGame | null>;
+    update(id: string, game: Partial<TacticalGame>): Promise<TacticalGame>;
 
     delete(id: string): Promise<void>;
 

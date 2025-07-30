@@ -61,14 +61,16 @@ export class MongoTacticalGameRepository implements TacticalGameRepository {
         return this.toDomainEntity(savedModel);
     }
 
-    async update(id: string, game: Partial<TacticalGame>): Promise<TacticalGame | null> {
+    async update(id: string, game: Partial<TacticalGame>): Promise<TacticalGame> {
         const updatedModel = await TacticalGameModel.findByIdAndUpdate(
             id,
             { $set: game },
             { new: true }
         );
-
-        return updatedModel ? this.toDomainEntity(updatedModel) : null;
+        if (!updatedModel) {
+            throw new Error(`Tactical Game with id ${id} not found`);
+        }
+        return this.toDomainEntity(updatedModel);
     }
 
     async delete(id: string): Promise<void> {

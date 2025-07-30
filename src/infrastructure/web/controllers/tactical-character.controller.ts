@@ -1,10 +1,12 @@
 import express, { Request, Response, Router } from 'express';
 import { CharacterAddItemCommand } from '../../../application/commands/add-item.comand';
 import { EquipItemCommand } from '../../../application/commands/equip-item-command';
-import { TacticalCharacterApplicationService } from '../../../application/tactical-character-application.service';
 import { AddItemUseCase } from '../../../application/use-cases/tactical-character/add-item-use-case';
+import { CreateTacticalCharacterUseCase } from '../../../application/use-cases/tactical-character/create-tactical-character-use-case';
 import { DeleteItemUseCase } from '../../../application/use-cases/tactical-character/delete-item-use-case';
+import { DeleteTacticalCharacterUseCase } from '../../../application/use-cases/tactical-character/delete-tactical-character-use-case';
 import { EquipItemUseCase } from '../../../application/use-cases/tactical-character/equip-item-use-case';
+import { FindTacticalCharacterByIdUseCase } from '../../../application/use-cases/tactical-character/find-tactical-character-by-id-use-case';
 import { FindTacticalCharactersUseCase } from '../../../application/use-cases/tactical-character/find-tactical-character-use-case';
 import {
     CreateTacticalCharacterCommand
@@ -14,17 +16,12 @@ import { TacticalCharacterQuery } from '../../../domain/queries/tactical-charact
 import { DependencyContainer } from '../../dependency-container';
 import { ErrorHandler } from '../error-handler';
 
-interface CharacterQuery {
-    search?: string;
-    tacticalGameId?: string;
-    page?: string;
-    size?: string;
-}
-
 export class TacticalCharacterController {
     private router: Router;
-    private tacticalCharacterApplicationService: TacticalCharacterApplicationService;
     private findCharacterUseCase: FindTacticalCharactersUseCase;
+    private findCharacterByIdUseCase: FindTacticalCharacterByIdUseCase;
+    private createCharacterUseCase: CreateTacticalCharacterUseCase;
+    private deleteCharacterUseCase: DeleteTacticalCharacterUseCase;
     private addItemUseCase: AddItemUseCase;
     private deleteItemUseCase: DeleteItemUseCase;
     private equipItemUseCase: EquipItemUseCase;
@@ -33,8 +30,10 @@ export class TacticalCharacterController {
     constructor() {
         this.router = express.Router();
         const container = DependencyContainer.getInstance();
-        this.tacticalCharacterApplicationService = container.tacticalCharacterApplicationService;
         this.findCharacterUseCase = container.findTacticalCharacterUseCase;
+        this.findCharacterByIdUseCase = container.findTacticalCharacterByIdUseCase;
+        this.createCharacterUseCase = container.createTacticalCharacterUseCase;
+        this.deleteCharacterUseCase = container.deleteTacticalCharacterUseCase;
         this.addItemUseCase = container.addItemUseCase;
         this.deleteItemUseCase = container.deleteItemUseCase;
         this.equipItemUseCase = container.equipItemUseCase;
@@ -53,19 +52,14 @@ export class TacticalCharacterController {
         this.router.post('/:characterId/equipment', this.equipItem.bind(this));
     }
 
-    private async findCharacters(req: Request<{}, {}, {}, CharacterQuery>, res: Response): Promise<void> {
+    private async findCharacters(req: Request, res: Response): Promise<void> {
         try {
-            this.logger.info(`TacticalCharacterController: Finding tactical characters << ${JSON.stringify(req.query)}`);
-            const searchExpression = req.query.search as string;
-            const tacticalGameId = req.query.tacticalGameId as string;
-            const page = req.query.page ? parseInt(req.query.page) : 0;
-            const size = req.query.size ? parseInt(req.query.size) : 10;
-            this.logger.info(`Search tactical characters << search: ${searchExpression || 'none'}, gameId: ${tacticalGameId}, page: ${page}, size: ${size}`);
+            this.logger.info(`TacticalCharacterController: Finding tactical characters`);
             const query: TacticalCharacterQuery = {
-                searchExpression: searchExpression,
-                tacticalGameId: tacticalGameId,
-                page: page,
-                size: size
+                searchExpression: req.params.search as string,
+                tacticalGameId: req.params.tacticalGameId as string,
+                page: req.params.page ? parseInt(req.params.page) : 0,
+                size: req.params.size ? parseInt(req.params.size) : 10
             };
             const response = await this.findCharacterUseCase.execute(query);
             res.json(response);
@@ -77,12 +71,9 @@ export class TacticalCharacterController {
 
     private async findCharacterById(req: Request, res: Response): Promise<void> {
         try {
+            this.logger.info(`Search tactical character << ${req.params.characterId}`);
             const characterId: string = req.params.characterId!;
-            this.logger.info(`Search tactical character << ${characterId}`);
-
-            const character = await this.tacticalCharacterApplicationService.findById(characterId);
-            this.logger.info(`Found tactical character: ${character.name}`);
-
+            const character = await this.findCharacterByIdUseCase.execute(characterId);
             res.json(character);
         } catch (error: any) {
             this.logger.error(`Error finding tactical character ${req.params.characterId}: ${error.message}`);
@@ -108,8 +99,8 @@ export class TacticalCharacterController {
                 skills: req.body.skills,
                 items: req.body.items
             };
-            const newCharacter = await this.tacticalCharacterApplicationService.create(command);
-            res.status(201).json(newCharacter);
+            const createdCharacter = await this.createCharacterUseCase.execute(command);
+            res.status(201).json(createdCharacter);
         } catch (error: any) {
             this.logger.error(`Error creating tactical character: ${error.message}`);
             res.status(400).json({ message: error.message });
@@ -134,13 +125,10 @@ export class TacticalCharacterController {
 
     private async deleteCharacter(req: Request, res: Response): Promise<void> {
         try {
+            this.logger.info(`Tactical character deletion << ${req.params.characterId}`);
             const characterId: string = req.params.characterId!;
-            this.logger.info(`Tactical character deletion << ${characterId}`);
-
-            await this.tacticalCharacterApplicationService.delete(characterId);
-            this.logger.info(`Tactical character deleted successfully: ${characterId}`);
-
-            res.status(204).send(); // 204 No Content for successful deletion
+            await this.deleteCharacterUseCase.execute(characterId);
+            res.status(204).send();
         } catch (error: any) {
             this.logger.error(`Error deleting tactical character ${req.params.characterId}: ${error.message}`);
             res.status(error.status ? error.status : 500).json({ message: error.message });

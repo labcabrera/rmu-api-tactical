@@ -11,14 +11,13 @@ import { MongoTacticalGameRepository } from './adapters/persistence/repositories
 import { WinstonLogger } from './logger/logger';
 
 // Application layer imports
-import { TacticalCharacterApplicationService } from '../application/tactical-character-application.service';
-import { TacticalGameApplicationService } from '../application/tactical-game-application.service';
 import { UpdateCharacterInitiativeUseCase } from '../application/use-cases/tactical-character-round/update-character-round-initiative-use-case';
 import { AddItemUseCase } from '../application/use-cases/tactical-character/add-item-use-case';
 import { CreateTacticalCharacterUseCase } from '../application/use-cases/tactical-character/create-tactical-character-use-case';
 import { DeleteItemUseCase } from '../application/use-cases/tactical-character/delete-item-use-case';
 import { DeleteTacticalCharacterUseCase } from '../application/use-cases/tactical-character/delete-tactical-character-use-case';
 import { EquipItemUseCase } from '../application/use-cases/tactical-character/equip-item-use-case';
+import { FindTacticalCharacterByIdUseCase } from '../application/use-cases/tactical-character/find-tactical-character-by-id-use-case';
 import { FindTacticalCharactersUseCase } from '../application/use-cases/tactical-character/find-tactical-character-use-case';
 import { UpdateTacticalCharacterUseCase } from '../application/use-cases/tactical-character/update-tactical-character-use-case';
 import { CreateTacticalGameUseCase } from '../application/use-cases/tactical-game/create-tactical-game-use-case';
@@ -45,24 +44,21 @@ export class DependencyContainer {
     private readonly _findTacticalGamesUseCase!: FindTacticalGamesUseCase;
     private readonly _updateTacticalGameUseCase!: UpdateTacticalGameUseCase;
     private readonly _deleteTacticalGameUseCase!: DeleteTacticalGameUseCase;
-    private readonly _startGameRoundUseCase!: StartRoundUseCase;
+    private readonly _startRoundUseCase!: StartRoundUseCase;
 
     // Tactical Character Use Cases
+    private readonly _findTacticalCharacterUseCase!: FindTacticalCharactersUseCase;
+    private readonly _findTacticalCharacterByIdUseCase!: FindTacticalCharacterByIdUseCase;
+
     private readonly _createTacticalCharacterUseCase: CreateTacticalCharacterUseCase;
     private readonly _updateTacticalCharacterUseCase: UpdateTacticalCharacterUseCase;
     private readonly _deleteTacticalCharacterUseCase: DeleteTacticalCharacterUseCase;
     private readonly _updateCharacterInitiativeUseCase: UpdateCharacterInitiativeUseCase;
-    private readonly _findTacticalCharacterUseCase!: FindTacticalCharactersUseCase;
 
     private readonly _addItemUseCase!: AddItemUseCase;
     private readonly _deleteItemUseCase: DeleteItemUseCase;
     private readonly _equipItemUseCase: EquipItemUseCase;
     
-
-    // Application Services
-    private readonly _tacticalGameApplicationService!: TacticalGameApplicationService;
-    private readonly _tacticalCharacterApplicationService!: TacticalCharacterApplicationService;
-
     private constructor() {
         // Configure basic dependencies
         this._logger = new WinstonLogger();
@@ -99,7 +95,7 @@ export class DependencyContainer {
             this._logger,
         );
 
-        this._startGameRoundUseCase = new StartRoundUseCase(
+        this._startRoundUseCase = new StartRoundUseCase(
             this._tacticalGameRepository,
             this._tacticalCharacterRepository,
             this._tacticalCharacterRoundRepository,
@@ -107,6 +103,14 @@ export class DependencyContainer {
         );
 
         // Configure tactical character use cases
+        this._findTacticalCharacterByIdUseCase = new FindTacticalCharacterByIdUseCase(
+            this._tacticalCharacterRepository,
+            this._logger
+        );
+        this._findTacticalCharacterUseCase = new FindTacticalCharactersUseCase(
+            this._tacticalCharacterRepository,
+            this._logger
+        );   
         this._createTacticalCharacterUseCase = new CreateTacticalCharacterUseCase(
             this._tacticalCharacterRepository,
             this._tacticalGameRepository,
@@ -136,10 +140,7 @@ export class DependencyContainer {
         );
 
         
-        this._findTacticalCharacterUseCase = new FindTacticalCharactersUseCase(
-            this._tacticalCharacterRepository,
-            this._logger
-        );        
+     
         this._addItemUseCase = new AddItemUseCase(
             this._tacticalCharacterRepository,
             this._logger
@@ -153,22 +154,7 @@ export class DependencyContainer {
             this._characterProcessorService,
             this._logger
         );
-        
-        // Configure application services
-        this._tacticalGameApplicationService = new TacticalGameApplicationService(
-            this._createTacticalGameUseCase,
-            this._findTacticalGamesUseCase,
-            this._updateTacticalGameUseCase,
-            this._deleteTacticalGameUseCase,
-            this._startGameRoundUseCase
-        );
 
-        this._tacticalCharacterApplicationService = new TacticalCharacterApplicationService(
-            this._tacticalCharacterRepository,
-            this._tacticalGameRepository,
-            this._characterProcessorService,
-            this._logger
-        );
     }
 
     public static getInstance(): DependencyContainer {
@@ -198,14 +184,6 @@ export class DependencyContainer {
         return this._characterProcessorService;
     }
 
-    get tacticalGameApplicationService(): TacticalGameApplicationService {
-        return this._tacticalGameApplicationService;
-    }
-
-    get tacticalCharacterApplicationService(): TacticalCharacterApplicationService {
-        return this._tacticalCharacterApplicationService;
-    }
-
     // Use Case getters
     get createTacticalGameUseCase(): CreateTacticalGameUseCase {
         return this._createTacticalGameUseCase;
@@ -227,11 +205,15 @@ export class DependencyContainer {
         return this._deleteTacticalGameUseCase;
     }
 
-    get startGameRoundUseCase(): StartRoundUseCase {
-        return this._startGameRoundUseCase;
+    get startRoundUseCase(): StartRoundUseCase {
+        return this._startRoundUseCase;
     }
 
     // Tactical Character Use Case getters
+    get findTacticalCharacterByIdUseCase(): FindTacticalCharacterByIdUseCase {
+        return this._findTacticalCharacterByIdUseCase;
+    }
+
     get createTacticalCharacterUseCase(): CreateTacticalCharacterUseCase {
         return this._createTacticalCharacterUseCase;
     }
