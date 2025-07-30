@@ -1,6 +1,6 @@
 import express, { Request, Response, Router } from 'express';
 import { DependencyContainer } from '../../dependency-container';
-import { ErrorHandler } from '../ErrorHandler';
+import { ErrorHandler } from '../error-handler';
 
 export class InitiativeController {
     private router: Router;

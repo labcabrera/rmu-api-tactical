@@ -8,8 +8,8 @@ import { TacticalCharacterRepository } from '../domain/ports/tactical-character.
 import { TacticalGameRepository } from '../domain/ports/tactical-game.repository';
 import { CharacterProcessorService } from '../domain/services/character-processor.service';
 import { CreateTacticalCharacterUseCase } from './use-cases/tactical-character/create-tactical-character-use-case';
-import { DeleteTacticalCharacterUseCase } from './use-cases/tactical-character/DeleteTacticalCharacterUseCase';
-import { UpdateTacticalCharacterUseCase } from './use-cases/tactical-character/UpdateTacticalCharacterUseCase';
+import { DeleteTacticalCharacterUseCase } from './use-cases/tactical-character/delete-tactical-character-use-case';
+import { UpdateTacticalCharacterUseCase } from './use-cases/tactical-character/update-tactical-character-use-case';
 
 export class TacticalCharacterApplicationService {
     private createTacticalCharacterUseCase: CreateTacticalCharacterUseCase;

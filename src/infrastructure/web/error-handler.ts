@@ -1,5 +1,7 @@
 import { Response } from 'express';
 
+//TODO map errors to specific HTTP status codes
+
 export class ErrorHandler {
     static sendErrorResponse(res: Response, error: Error): void {
         console.error('Error:', error.message);

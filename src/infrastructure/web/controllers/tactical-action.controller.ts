@@ -1,5 +1,5 @@
 import express, { Request, Response, Router } from 'express';
-import { ErrorHandler } from '../ErrorHandler';
+import { ErrorHandler } from '../error-handler';
 // TODO: Implement TacticalAction use cases
 // import tacticalActionService from "../../../services/tactical-action-service";
 

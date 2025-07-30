@@ -1,5 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
-import { TacticalGameDocument } from '../types';
+import { TacticalGameDocument } from '../mongo-types';
 
 const TacticalGameSchema: Schema<TacticalGameDocument> = new Schema({
     name: {

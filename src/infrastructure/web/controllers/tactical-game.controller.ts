@@ -7,7 +7,7 @@ import { FindTacticalGamesUseCase } from '../../../application/use-cases/tactica
 import { Logger } from '../../../domain/ports/logger';
 import { TacticalGameQuery } from '../../../domain/queries/tactical-game.query';
 import { DependencyContainer } from '../../dependency-container';
-import { ErrorHandler } from '../ErrorHandler';
+import { ErrorHandler } from '../error-handler';
 
 export class TacticalGameController {
     private router: Router;

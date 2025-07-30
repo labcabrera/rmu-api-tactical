@@ -4,7 +4,7 @@ import {
 } from '../../../../domain/entities/tactical-game.entity';
 import { TacticalGameRepository } from '../../../../domain/ports/tactical-game.repository';
 import { TacticalGameQuery } from '../../../../domain/queries/tactical-game.query';
-import TacticalGameModel from './../models/tactical-game-model';
+import TacticalGameModel from '../models/tactical-game.model';
 
 export class MongoTacticalGameRepository implements TacticalGameRepository {
 

@@ -4,7 +4,7 @@ import { TacticalCharacterRepository } from '../../../domain/ports/tactical-char
 import { CharacterProcessorService } from '../../../domain/services/character-processor.service';
 import { EquipItemCommand } from '../../commands/equip-item-command';
 
-export class CharacterEquipItemUseCase {
+export class EquipItemUseCase {
     constructor(
         private readonly tacticalCharacterRepository: TacticalCharacterRepository,
         private readonly characterProcessorService: CharacterProcessorService,

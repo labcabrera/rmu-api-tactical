@@ -1,5 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
-import { TacticalCharacterRoundDocument } from '../types';
+import { TacticalCharacterRoundDocument } from '../mongo-types';
 
 const tacticalCharacterRoundSchema: Schema<TacticalCharacterRoundDocument> = new mongoose.Schema({
     gameId: {

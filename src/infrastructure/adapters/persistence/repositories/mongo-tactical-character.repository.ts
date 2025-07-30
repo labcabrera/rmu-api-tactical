@@ -2,7 +2,7 @@ import { Page } from '../../../../domain/entities/page.entity';
 import { TacticalCharacter } from '../../../../domain/entities/tactical-character.entity';
 import { TacticalCharacterRepository } from '../../../../domain/ports/tactical-character.repository';
 import { TacticalCharacterQuery } from '../../../../domain/queries/tactical-character.query';
-import TacticalCharacterDocument from './../models/tactical-character-model';
+import TacticalCharacterDocument from '../models/tactical-character.model';
 
 export class MongoTacticalCharacterRepository implements TacticalCharacterRepository {
 

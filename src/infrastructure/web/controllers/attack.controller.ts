@@ -1,5 +1,5 @@
 import express, { Request, Response, Router } from 'express';
-import { ErrorHandler } from '../ErrorHandler';
+import { ErrorHandler } from '../error-handler';
 // TODO: Implement Attack use cases
 // import attackService from "../../../services/attack/attack-service";
 

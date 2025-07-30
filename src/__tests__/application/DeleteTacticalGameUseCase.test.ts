@@ -1,4 +1,4 @@
-import { DeleteTacticalGameUseCase } from '../../application/use-cases/tactical-game/DeleteTacticalGameUseCase';
+import { DeleteTacticalGameUseCase } from '../../application/use-cases/tactical-game/delete-tactical-game-use-case';
 import { FindTacticalGameByIdUseCase } from '../../application/use-cases/tactical-game/FindTacticalGameByIdUseCase';
 import { TacticalGame } from '../../domain/entities/tactical-game.entity';
 import { Logger } from '../../domain/ports/logger';

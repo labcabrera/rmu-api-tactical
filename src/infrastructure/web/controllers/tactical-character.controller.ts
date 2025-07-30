@@ -4,7 +4,7 @@ import { EquipItemCommand } from '../../../application/commands/equip-item-comma
 import { TacticalCharacterApplicationService } from '../../../application/tactical-character-application.service';
 import { AddItemUseCase } from '../../../application/use-cases/tactical-character/add-item-use-case';
 import { DeleteItemUseCase } from '../../../application/use-cases/tactical-character/delete-item-use-case';
-import { CharacterEquipItemUseCase } from '../../../application/use-cases/tactical-character/equip-item-use-case';
+import { EquipItemUseCase } from '../../../application/use-cases/tactical-character/equip-item-use-case';
 import { FindTacticalCharactersUseCase } from '../../../application/use-cases/tactical-character/find-tactical-character-use-case';
 import {
     CreateTacticalCharacterCommand
@@ -12,7 +12,7 @@ import {
 import { Logger } from '../../../domain/ports/logger';
 import { TacticalCharacterQuery } from '../../../domain/queries/tactical-character.query';
 import { DependencyContainer } from '../../dependency-container';
-import { ErrorHandler } from '../ErrorHandler';
+import { ErrorHandler } from '../error-handler';
 
 interface CharacterQuery {
     search?: string;
@@ -27,7 +27,7 @@ export class TacticalCharacterController {
     private findCharacterUseCase: FindTacticalCharactersUseCase;
     private addItemUseCase: AddItemUseCase;
     private deleteItemUseCase: DeleteItemUseCase;
-    private equipItemUseCase: CharacterEquipItemUseCase;
+    private equipItemUseCase: EquipItemUseCase;
     private logger: Logger;
 
     constructor() {
