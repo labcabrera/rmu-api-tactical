@@ -1,7 +1,4 @@
-import app from './app';
+import { WebServer } from './infrastructure/web/express/web.server';
 
-const PORT: number = parseInt(process.env.PORT || '3003', 10);
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+const webServer = new WebServer();
+webServer.start();

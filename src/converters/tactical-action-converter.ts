@@ -1,22 +1,29 @@
 import { TacticalActionModel } from '../types';
+import { TacticalActionDTO } from '../types/dto';
 
-const toJSON = (tacticalAction: TacticalActionModel) => {
-    return {
-        id: tacticalAction._id,
+export const toJSON = (tacticalAction: TacticalActionModel): TacticalActionDTO => {
+    const result: TacticalActionDTO = {
+        id: (tacticalAction._id as any).toString(),
         tacticalGameId: tacticalAction.tacticalGameId,
         round: tacticalAction.round,
         tacticalCharacterId: tacticalAction.tacticalCharacterId,
-        type: tacticalAction.type,
-        phaseStart: tacticalAction.phaseStart,
-        actionPoints: tacticalAction.actionPoints,
-        attackInfo: tacticalAction.attackInfo,
-        attacks: tacticalAction.attacks,
-        description: tacticalAction.description,
-        createdAt: tacticalAction.createdAt,
-        updatedAt: tacticalAction.updatedAt
+        type: tacticalAction.type
     };
+
+    if (tacticalAction.phaseStart) result.phaseStart = tacticalAction.phaseStart;
+    if (tacticalAction.actionPoints) result.actionPoints = tacticalAction.actionPoints;
+    if (tacticalAction.attackInfo) result.attackInfo = tacticalAction.attackInfo;
+    if (tacticalAction.attacks) result.attacks = tacticalAction.attacks;
+    if (tacticalAction.description) result.description = tacticalAction.description;
+    if (tacticalAction.result) result.result = tacticalAction.result;
+    if (tacticalAction.createdAt) result.createdAt = tacticalAction.createdAt;
+    if (tacticalAction.updatedAt) result.updatedAt = tacticalAction.updatedAt;
+
+    return result;
 };
 
-export default {
+const tacticalActionConverter = {
     toJSON
 };
+
+export default tacticalActionConverter;
