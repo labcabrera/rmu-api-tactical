@@ -1,19 +1,23 @@
+import { TacticalGameQuery } from '../../../../application/queries/tactical-game.query';
 import { Page } from '../../../../domain/entities/page.entity';
 import {
     TacticalGame,
-    TacticalGameSearchCriteria
 } from '../../../../domain/entities/tactical-game.entity';
 import { TacticalGameRepository } from '../../../../domain/ports/tactical-game.repository';
 import TacticalGameModel from './../models/tactical-game-model';
 
 export class MongoTacticalGameRepository implements TacticalGameRepository {
 
-    async findById(id: string): Promise<TacticalGame | null> {
+    async findById(id: string): Promise<TacticalGame> {
         const gameModel = await TacticalGameModel.findById(id);
-        return gameModel ? this.toDomainEntity(gameModel) : null;
+        if(!gameModel) {
+            //TODO create domain exception
+            throw new Error(`Tactical Game with id ${id} not found`);
+        }
+        return this.toDomainEntity(gameModel);
     }
 
-    async find(criteria: TacticalGameSearchCriteria): Promise<Page<TacticalGame>> {
+    async find(criteria: TacticalGameQuery): Promise<Page<TacticalGame>> {
         const { searchExpression, username, page, size } = criteria;
         let filter: any = {};
         if (username) {

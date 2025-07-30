@@ -9,10 +9,3 @@ export interface TacticalGame {
     createdAt?: Date;
     updatedAt?: Date;
 }
-
-export interface TacticalGameSearchCriteria {
-    searchExpression?: string;
-    username?: string;
-    page: number;
-    size: number;
-}

@@ -22,7 +22,6 @@ export interface TacticalCharacterDocument extends Document {
     maxHitPoints?: number;
     initiative?: number;
     status?: string;
-    position?: IPosition;
     skills?: ISkill[];
     equipment?: IEquipment[];
     createdAt?: Date;
@@ -53,13 +52,6 @@ export interface TacticalCharacterRoundDocument extends Document {
     actionPoints?: number;
     createdAt?: Date;
     updatedAt?: Date;
-}
-
-// Supporting interfaces for Document models
-export interface IPosition {
-    x: number;
-    y: number;
-    z?: number;
 }
 
 export interface ISkill {

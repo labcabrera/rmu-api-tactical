@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
-import { CharacterEndurance, CharacterHP, CharacterInitiative, CharacterMovement, CharacterSkill, CharacterStatistics, CreateTacticalCharacterCommand, TacticalCharacter } from '../../../domain/entities/tactical-character.entity';
+import { CharacterDefense, CharacterEndurance, CharacterEquipment, CharacterHP, CharacterInitiative, CharacterItem, CharacterMovement, CharacterPower, CharacterSkill, CharacterStatistics, CreateTacticalCharacterCommand, TacticalCharacter } from '../../../domain/entities/tactical-character.entity';
+import { TacticalGame } from '../../../domain/entities/tactical-game.entity';
 import { Logger } from '../../../domain/ports/logger';
 import { TacticalCharacterRepository } from '../../../domain/ports/tactical-character.repository';
 import { TacticalGameRepository } from '../../../domain/ports/tactical-game.repository';
@@ -18,36 +19,13 @@ export class CreateTacticalCharacterUseCase {
 
     async execute(command: CreateTacticalCharacterCommand): Promise<TacticalCharacter> {
         this.logger.info(`CreateTacticalCharacterUseCase: Creating tactical character: ${command.name} for game: ${command.gameId}`);
-
-
-        this.logger.info(`Command: ${JSON.stringify(command)}`);
+        this.logger.debug(`Command: ${JSON.stringify(command)}`);
 
         const tacticalGame = await this.tacticalGameRepository.findById(command.gameId);
-        if (!tacticalGame) {
-            throw new Error('Tactical game not found');
-        }
-
-        if (!command.faction) {
-            throw new Error('Required faction');
-        }
-        if (!tacticalGame.factions.includes(command.faction)) {
-            throw new Error('Invalid faction');
-        }
-        if (!command.info || !command.info.race) {
-            throw new Error('Required race');
-        }
-        if (!command.endurance || !command.endurance.max) {
-            throw new Error('Required endurance');
-        }
-        if (!command.hp || !command.hp.max) {
-            throw new Error('Required HP');
-        }
-
+        this.validateCommand(command, tacticalGame);
         const raceInfo = await this.readRaceInfo(command.info.race);
         const processedStatistics = this.processStatistics(raceInfo, command.statistics);
         const skills = await this.processSkills(command.skills);
-        this.logger.info(`Processed skills: ${JSON.stringify(skills)}`);
-
         const strideRacialBonus = raceInfo.strideBonus;
         const strideCustomBonus = command.movement && command.movement.strideCustomBonus ? command.movement.strideCustomBonus : 0;
         const movement: CharacterMovement = {
@@ -56,7 +34,7 @@ export class CreateTacticalCharacterUseCase {
             strideQuBonus: 0,
             strideRacialBonus: strideRacialBonus
         };
-        const defense = {
+        const defense: CharacterDefense = {
             armorType: 1,
             defensiveBonus: 0
         };
@@ -70,7 +48,7 @@ export class CreateTacticalCharacterUseCase {
             accumulator: 0,
             fatiguePenalty: 0
         }
-        const power = {
+        const power: CharacterPower = {
             max: 0,
             current: 0
         };
@@ -80,14 +58,14 @@ export class CreateTacticalCharacterUseCase {
             penaltyBonus: 0,
             totalBonus: 0
         };
-        const equipment = {
+        const equipment: CharacterEquipment = {
             mainHand: '',
             offHand: '',
             body: '',
             head: '',
             weight: 0
         };
-        const items = command.items ? command.items.map(item => ({
+        const items: CharacterItem[] = command.items ? command.items.map(item => ({
             id: randomUUID(),
             name: item.name,
             itemTypeId: item.itemTypeId,
@@ -113,18 +91,15 @@ export class CreateTacticalCharacterUseCase {
             createdAt: new Date(),
         };
 
-        // Cast characterData to TacticalCharacterEntity by assigning a temporary id
+        //TODO cast characterData to TacticalCharacterEntity by assigning a temporary id
         const tempCharacter: TacticalCharacter = { id: randomUUID(), ...characterData };
         this.characterProcessorService.process(tempCharacter);
         this.loadDefaultEquipment(tempCharacter);
-
         Object.assign(characterData, tempCharacter);
         delete (characterData as any).id;
 
         const newCharacter = await this.tacticalCharacterRepository.create(characterData);
-        await this.tacticalCharacterRepository.update(newCharacter.id, newCharacter);
-
-        this.logger.info(`Tactical updated created successfully: ${newCharacter.id}`);
+        this.logger.info(`CreateTacticalCharacterUseCase: Tactical Character created successfully: ${newCharacter.id}`);
         return newCharacter;
     }
 
@@ -161,7 +136,6 @@ export class CreateTacticalCharacterUseCase {
                 custom: custom,
                 totalBonus: total
             }
-
         });
         return result;
     }
@@ -219,6 +193,24 @@ export class CreateTacticalCharacterUseCase {
         }
         if (armor && armor.id) {
             character.equipment.body = armor.id;
+        }
+    }
+
+    validateCommand(command: CreateTacticalCharacterCommand, game: TacticalGame): void {
+        if (!command.faction) {
+            throw new Error('Required faction');
+        }
+        if (!game.factions.includes(command.faction)) {
+            throw new Error('Invalid faction');
+        }
+        if (!command.info || !command.info.race) {
+            throw new Error('Required race');
+        }
+        if (!command.endurance || !command.endurance.max) {
+            throw new Error('Required endurance');
+        }
+        if (!command.hp || !command.hp.max) {
+            throw new Error('Required HP');
         }
     }
 }

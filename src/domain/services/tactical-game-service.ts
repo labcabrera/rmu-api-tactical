@@ -1,8 +1,6 @@
 import { UpdateTacticalGameCommand } from '../../application/commands/update-tactical-game-command';
-import { Page } from '../entities/page.entity';
 import {
     TacticalGame,
-    TacticalGameSearchCriteria
 } from '../entities/tactical-game.entity';
 import { Logger } from '../ports/logger';
 import { TacticalGameRepository } from '../ports/tactical-game.repository';
@@ -26,15 +24,6 @@ export class TacticalGameService {
 
         this.logger.info(`Found tactical game: ${game.name}`);
         return game;
-    }
-
-    async find(criteria: TacticalGameSearchCriteria): Promise<Page<TacticalGame>> {
-        this.logger.info(`Finding tactical games with criteria: ${JSON.stringify(criteria)}`);
-
-        const result = await this.repository.find(criteria);
-
-        this.logger.info(`Found ${result.total} tactical games`);
-        return result;
     }
 
     async update(id: string, command: UpdateTacticalGameCommand): Promise<TacticalGame> {

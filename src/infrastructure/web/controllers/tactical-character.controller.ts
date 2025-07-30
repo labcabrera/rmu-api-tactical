@@ -1,5 +1,6 @@
 import express, { Request, Response, Router } from 'express';
 import { TacticalCharacterApplicationService } from '../../../application/tactical-character-application.service';
+import { FindTacticalGamesUseCase } from '../../../application/use-cases/tactical-game/find-tactical-games-use-case';
 import {
     CreateTacticalCharacterCommand,
     TacticalCharacterSearchCriteria,
@@ -19,12 +20,14 @@ interface CharacterQuery {
 export class TacticalCharacterController {
     private router: Router;
     private tacticalCharacterApplicationService: TacticalCharacterApplicationService;
+    private findCharacterUseCase: FindTacticalGamesUseCase;
     private logger: Logger;
 
     constructor() {
         this.router = express.Router();
         const container = DependencyContainer.getInstance();
         this.tacticalCharacterApplicationService = container.tacticalCharacterApplicationService;
+        this.findCharacterUseCase = container.findTacticalGamesUseCase;
         this.logger = container.logger;
         this.initializeRoutes();
     }
@@ -39,26 +42,18 @@ export class TacticalCharacterController {
 
     private async findCharacters(req: Request<{}, {}, {}, CharacterQuery>, res: Response): Promise<void> {
         try {
-            const searchExpression = req.query.search;
-            const tacticalGameId = req.query.tacticalGameId;
+            const searchExpression = req.query.search as string;
+            const tacticalGameId = req.query.tacticalGameId as string;
             const page = req.query.page ? parseInt(req.query.page) : 0;
             const size = req.query.size ? parseInt(req.query.size) : 10;
-
             this.logger.info(`Search tactical characters << search: ${searchExpression || 'none'}, gameId: ${tacticalGameId}, page: ${page}, size: ${size}`);
-
-            const criteria: TacticalCharacterSearchCriteria = {
-                page,
-                size
+            const query: TacticalCharacterSearchCriteria = {
+                searchExpression: searchExpression,
+                tacticalGameId: tacticalGameId,
+                page: page,
+                size: size
             };
-
-            if (searchExpression) {
-                criteria.searchExpression = searchExpression;
-            }
-            if (tacticalGameId) {
-                criteria.tacticalGameId = tacticalGameId;
-            }
-
-            const response = await this.tacticalCharacterApplicationService.find(criteria);
+            const response = await this.findCharacterUseCase.execute(query);
             res.json(response);
         } catch (error) {
             this.logger.error(`TacticalCharacterController: Error finding tactical characters: ${(error as Error).message}`);

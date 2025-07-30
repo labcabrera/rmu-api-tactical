@@ -1,10 +1,10 @@
 import express, { Request, Response, Router } from 'express';
 import { CreateTacticalGameCommand } from '../../../application/commands/create-tactical-game.command';
 import { UpdateTacticalGameCommand } from '../../../application/commands/update-tactical-game-command';
+import { TacticalGameQuery } from '../../../application/queries/tactical-game.query';
 import { TacticalGameApplicationService } from '../../../application/tactical-game-application.service';
-import {
-    TacticalGameSearchCriteria
-} from '../../../domain/entities/tactical-game.entity';
+import { FindTacticalGameByIdUseCase } from '../../../application/use-cases/tactical-game/find-tactical-game-by-id-use-case';
+import { FindTacticalGamesUseCase } from '../../../application/use-cases/tactical-game/find-tactical-games-use-case';
 import { Logger } from '../../../domain/ports/logger';
 import { DependencyContainer } from '../../DependencyContainer';
 import { ErrorHandler } from '../ErrorHandler';
@@ -12,12 +12,18 @@ import { ErrorHandler } from '../ErrorHandler';
 export class TacticalGameController {
     private router: Router;
     private tacticalGameApplicationService: TacticalGameApplicationService;
+
+    private readonly findUseCase: FindTacticalGamesUseCase;
+    private readonly findByIdUseCase: FindTacticalGameByIdUseCase;
+    
     private logger: Logger;
 
     constructor() {
         this.router = express.Router();
         const container = DependencyContainer.getInstance();
         this.tacticalGameApplicationService = container.tacticalGameApplicationService;
+        this.findUseCase = container.findTacticalGamesUseCase;
+        this.findByIdUseCase = container.findTacticalGameByIdUseCase;
         this.logger = container.logger;
         this.initializeRoutes();
     }
@@ -34,21 +40,16 @@ export class TacticalGameController {
 
     private async findTacticalGames(req: Request, res: Response): Promise<void> {
         try {
-            const searchExpression = req.query.search as string;
             const username = req.query.username as string;
+            const searchExpression = req.query.search as string;
             const page = req.query.page ? parseInt(req.query.page as string) : 0;
             const size = req.query.size ? parseInt(req.query.size as string) : 10;
-
-            this.logger.info(`Search tactical << search: ${searchExpression || 'none'}, user: ${username}, page: ${page}, size: ${size}`);
-
-            const criteria: TacticalGameSearchCriteria = {
-                searchExpression,
-                username,
-                page,
-                size
-            };
-
-            const response = await this.tacticalGameApplicationService.find(criteria);
+            const query: TacticalGameQuery = {
+                searchExpression: searchExpression,
+                username: username,
+                page: page,
+                size: size};
+            const response = await this.findUseCase.execute(query);
             res.json(response);
         } catch (error) {
             this.logger.error(`Error finding tactical games: ${(error as Error).message}`);
@@ -60,10 +61,7 @@ export class TacticalGameController {
         try {
             const gameId: string = req.params.gameId!;
             this.logger.info(`Search tactical game << ${gameId}`);
-
-            const game = await this.tacticalGameApplicationService.findById(gameId);
-            this.logger.info(`Found tactical game: ${game.name}`);
-
+            const game = await this.findByIdUseCase.execute(gameId);
             res.json(game);
         } catch (error: any) {
             this.logger.error(`Error finding tactical game ${req.params.gameId}: ${error.message}`);
