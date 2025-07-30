@@ -1,7 +1,7 @@
 import { TacticalCharacterEntity, TacticalCharacterSearchCriteria } from '../../../domain/entities/TacticalCharacter';
 import { TacticalCharacterRepository } from '../../../domain/ports/TacticalCharacterRepository';
-import TacticalCharacterDocument from '../../../models/tactical-character-model';
 import { IPaginatedResponse } from '../../../types';
+import TacticalCharacterDocument from './models/tactical-character-model';
 
 export class MongoTacticalCharacterRepository implements TacticalCharacterRepository {
     async findById(id: string): Promise<TacticalCharacterEntity | null> {

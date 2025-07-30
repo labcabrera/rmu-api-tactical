@@ -1,6 +1,6 @@
 import express, { Request, Response, Router } from 'express';
-import { DependencyContainer } from '../../DependencyContainer';
 import errorService from "../../../services/error-service";
+import { DependencyContainer } from '../../DependencyContainer';
 
 export class InitiativeController {
     private router: Router;
@@ -20,13 +20,13 @@ export class InitiativeController {
         try {
             const characterRoundId: string = req.params.characterRoundId!;
             const initiativeRoll: number = parseInt(req.params.initiativeRoll!);
-            
+
             const updateCharacterInitiativeUseCase = this.container.updateCharacterInitiativeUseCase;
             const command = {
                 tacticalCharacterRoundId: characterRoundId,
                 initiativeRoll: initiativeRoll
             };
-            
+
             const result = await updateCharacterInitiativeUseCase.execute(command);
             res.json(result);
         } catch (error) {

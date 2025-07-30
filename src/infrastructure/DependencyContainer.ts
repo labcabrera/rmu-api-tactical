@@ -1,12 +1,14 @@
 import { Logger } from '../domain/ports/Logger';
+import { TacticalActionRepository } from '../domain/ports/TacticalActionRepository';
 import { TacticalCharacterRepository } from '../domain/ports/TacticalCharacterRepository';
-import { TacticalGameRepository } from '../domain/ports/TacticalGameRepository';
 import { TacticalCharacterRoundRepository } from '../domain/ports/TacticalCharacterRoundRepository';
+import { TacticalGameRepository } from '../domain/ports/TacticalGameRepository';
 import { CharacterProcessorService } from '../domain/services/CharacterProcessorService';
 import { TacticalGameService } from '../domain/services/TacticalGameService';
+import { MongoTacticalActionRepository } from '../infrastructure/adapters/persistence/MongoTacticalActionRepository';
 import { MongoTacticalCharacterRepository } from '../infrastructure/adapters/persistence/MongoTacticalCharacterRepository';
-import { MongoTacticalGameRepository } from '../infrastructure/adapters/persistence/MongoTacticalGameRepository';
 import { MongoTacticalCharacterRoundRepository } from '../infrastructure/adapters/persistence/MongoTacticalCharacterRoundRepository';
+import { MongoTacticalGameRepository } from '../infrastructure/adapters/persistence/MongoTacticalGameRepository';
 import { WinstonLogger } from '../infrastructure/logger/logger';
 
 // Application layer imports
@@ -31,6 +33,7 @@ export class DependencyContainer {
     private static instance: DependencyContainer;
 
     private readonly _logger: Logger;
+    private readonly _tacticalActionRepository: TacticalActionRepository;
     private readonly _tacticalGameRepository: TacticalGameRepository;
     private readonly _tacticalCharacterRepository: TacticalCharacterRepository;
     private readonly _tacticalCharacterRoundRepository: TacticalCharacterRoundRepository;
@@ -60,6 +63,7 @@ export class DependencyContainer {
     private constructor() {
         // Configure basic dependencies
         this._logger = new WinstonLogger();
+        this._tacticalActionRepository = new MongoTacticalActionRepository();
         this._tacticalGameRepository = new MongoTacticalGameRepository();
         this._tacticalCharacterRepository = new MongoTacticalCharacterRepository();
         this._tacticalCharacterRoundRepository = new MongoTacticalCharacterRoundRepository();
@@ -173,6 +177,10 @@ export class DependencyContainer {
 
     get tacticalGameRepository(): TacticalGameRepository {
         return this._tacticalGameRepository;
+    }
+
+    get tacticalActionRepository(): TacticalActionRepository {
+        return this._tacticalActionRepository;
     }
 
     get tacticalCharacterRepository(): TacticalCharacterRepository {

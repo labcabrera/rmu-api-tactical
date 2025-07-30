@@ -1,7 +1,7 @@
 import { TacticalCharacterRoundEntity, TacticalCharacterRoundSearchCriteria } from '../../../domain/entities/TacticalCharacterRound';
 import { TacticalCharacterRoundRepository } from '../../../domain/ports/TacticalCharacterRoundRepository';
+import TacticalCharacterRoundDocument from '../../../models/tactical-character-round-model';
 import { IPaginatedResponse } from '../../../types';
-import TacticalCharacterRoundDocument from './models/tactical-character-round-model';
 
 export class MongoTacticalCharacterRoundRepository implements TacticalCharacterRoundRepository {
     async findById(id: string): Promise<TacticalCharacterRoundEntity | null> {

@@ -1,5 +1,5 @@
 import tacticalCharacterConverter from '../converters/tactical-character-converter';
-import TacticalCharacterDocument from "../models/tactical-character-model";
+import TacticalCharacterDocument from "../infrastructure/adapters/persistence/models/tactical-character-model";
 
 //TODO env
 const APP_CORE_URL = 'http://localhost:3001/v1';

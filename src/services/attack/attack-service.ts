@@ -1,5 +1,5 @@
-import TacticalActionDocument from '../../models/tactical-action-model';
-import TacticalCharacterDocument from '../../models/tactical-character-model';
+import TacticalActionDocument from '../../infrastructure/adapters/persistence/models/tactical-action-model';
+import TacticalCharacterDocument from '../../infrastructure/adapters/persistence/models/tactical-character-model';
 import { IApiError, TacticalActionModel, TacticalCharacterModel } from '../../types';
 
 interface AttackData {

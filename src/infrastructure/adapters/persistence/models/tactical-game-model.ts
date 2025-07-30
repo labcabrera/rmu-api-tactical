@@ -1,5 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
-import { TacticalGameModel } from '../types';
+import { TacticalGameModel } from '../../../../types';
 
 const TacticalGameSchema: Schema<TacticalGameModel> = new Schema({
     name: {

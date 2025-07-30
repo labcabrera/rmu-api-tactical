@@ -1,6 +1,6 @@
-import TacticalActionDocument from '../models/tactical-action-model';
-import TacticalCharacterDocument from '../models/tactical-character-model';
-import TacticalGameModel from '../models/tactical-game-model';
+import TacticalActionDocument from '../infrastructure/adapters/persistence/models/tactical-action-model';
+import TacticalCharacterDocument from '../infrastructure/adapters/persistence/models/tactical-character-model';
+import TacticalGameModel from '../infrastructure/adapters/persistence/models/tactical-game-model';
 import { IApiError, IPaginatedResponse, TacticalActionModel, TacticalCharacterModel } from '../types';
 
 interface ActionData {

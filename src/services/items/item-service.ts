@@ -1,5 +1,5 @@
 import tacticalCharacterConverter from '../../converters/tactical-character-converter';
-import TacticalCharacterDocument from "../../models/tactical-character-model";
+import TacticalCharacterDocument from "../../infrastructure/adapters/persistence/models/tactical-character-model";
 import { TacticalCharacterModel } from '../../types';
 
 interface Item {

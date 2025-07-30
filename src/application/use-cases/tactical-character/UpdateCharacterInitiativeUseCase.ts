@@ -67,7 +67,7 @@ export class UpdateCharacterInitiativeUseCase {
         }
 
         this.logger.info(`Initiative updated successfully for character round: ${command.tacticalCharacterRoundId}. Total: ${total}`);
-        
+
         return this.mapToCharacterRoundInitiative(updatedCharacterRound);
     }
 

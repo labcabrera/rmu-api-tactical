@@ -70,7 +70,7 @@ export class CharacterAddItemUseCase {
 
         // Add item to character's inventory
         const updatedItems = [...(character.items || []), itemToAdd];
-        
+
         // Calculate new weight
         const newWeight = this.calculateTotalWeight(updatedItems);
 
@@ -89,7 +89,7 @@ export class CharacterAddItemUseCase {
         }
 
         this.logger.info(`Successfully added item ${command.item.itemTypeId} to character ${command.characterId}`);
-        
+
         return this.mapToCharacterWithAddedItem(updatedCharacter);
     }
 
@@ -107,7 +107,7 @@ export class CharacterAddItemUseCase {
 
     private prepareItem(item: CharacterAddItemCommand['item']): any {
         const preparedItem = { ...item };
-        
+
         // Set default name if not provided
         if (!preparedItem.name) {
             preparedItem.name = preparedItem.itemTypeId;

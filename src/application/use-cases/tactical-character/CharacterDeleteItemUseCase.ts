@@ -55,17 +55,17 @@ export class CharacterDeleteItemUseCase {
         }
 
         // Check if item exists
-        const itemExists = character.items?.some((item: any) => 
+        const itemExists = character.items?.some((item: any) =>
             (item.id || item._id?.toString()) === command.itemId
         );
-        
+
         if (!itemExists) {
             this.logger.error(`Item not found in character inventory: ${command.itemId}`);
             throw new Error('Item not found in character inventory');
         }
 
         // Remove item from inventory
-        const updatedItems = (character.items || []).filter((item: any) => 
+        const updatedItems = (character.items || []).filter((item: any) =>
             (item.id || item._id?.toString()) !== command.itemId
         );
 
@@ -88,14 +88,14 @@ export class CharacterDeleteItemUseCase {
         }
 
         this.logger.info(`Successfully deleted item ${command.itemId} from character ${command.characterId}`);
-        
+
         return this.mapToCharacterWithDeletedItem(updatedCharacter);
     }
 
     private cleanupEquipment(equipment: any, deletedItemId: string): any {
         const updatedEquipment = { ...equipment };
         const slots = ['mainHand', 'offHand', 'body', 'head', 'arms', 'legs'];
-        
+
         // Remove the deleted item from any equipment slot
         for (const slot of slots) {
             if (updatedEquipment[slot] === deletedItemId) {
@@ -103,7 +103,7 @@ export class CharacterDeleteItemUseCase {
                 this.logger.info(`Removed deleted item from ${slot} slot`);
             }
         }
-        
+
         return updatedEquipment;
     }
 

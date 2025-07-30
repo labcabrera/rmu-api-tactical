@@ -1,5 +1,5 @@
 import tacticalActionConverter from '../converters/tactical-action-converter';
-import TacticalActionDocument from '../models/tactical-action-model';
+import TacticalActionDocument from '../infrastructure/adapters/persistence/models/tactical-action-model';
 import attackService from './attack/attack-service';
 
 const prepare = async (actionId: string, requestBody: any): Promise<any> => {
