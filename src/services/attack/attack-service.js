@@ -1,10 +1,6 @@
 const TacticalCharacter = require('../../models/tactical-character-model');
 const TacticalAction = require('../../models/tactical-action-model');
 
-const attackerBonusProcessor = require('./attacker-bonus-processor');
-const defenderBonusProcessor = require('./defender-bonus-processor');
-const attackBonusProcessor = require('./attack-bonus-processor');
-
 const update = async (action, data) => {
     const character = await TacticalCharacter.findById(action.tacticalCharacterId);
     if (!character) {
@@ -22,6 +18,20 @@ const prepare = async (action, requestBody) => {
     return await update(action, requestBody);
 };
 
+const updateAttackRoll = async (actionId, requestBody) => {
+    console.log('Updating attack roll for action:', { actionId, requestBody });
+    const action = await TacticalAction.findById(actionId);
+    if (!action) {
+        throw { status: 404, message: 'Action not found' };
+    }
+    const attackMode = requestBody.attackMode || 'mainHand';
+    const attackRoll = requestBody.attackRoll;
+    action.attacks[attackMode].foo = 'foo';
+
+    //action.attackInfo = { ...action.attackInfo, ...requestBody };
+    return await TacticalAction.updateOne(action);
+};
+
 const createMainHandAttack = async (action, character) => {
     const attack = {
         status: 'pending',
@@ -31,21 +41,11 @@ const createMainHandAttack = async (action, character) => {
         defenderBonusModifiers: [],
         attackBonusModifiers: [],
     };
-    attackerBonusProcessor.process(action, character, 'mainHand', attack.attackerBonusModifiers);
-    defenderBonusProcessor.process(action, null, attack.defenderBonusModifiers);
-    attackBonusProcessor.process(action, attack.attackBonusModifiers);
-    calculateTotalBonus(attack);
     return attack;
-};
-
-const calculateTotalBonus = (action) => {
-    action.totalAttackerBonus = action.attackerBonusModifiers.reduce((sum, modifier) => { return sum + (modifier.value || 0); }, 0);
-    action.totalDefenderBonus = action.defenderBonusModifiers.reduce((sum, modifier) => { return sum + (modifier.value || 0); }, 0);
-    action.totalAttackBonus = action.attackBonusModifiers.reduce((sum, modifier) => { return sum + (modifier.value || 0); }, 0);
-    action.totalBonus = action.totalAttackerBonus + action.totalDefenderBonus + action.totalAttackBonus;
 };
 
 module.exports = {
     update,
-    prepare
+    prepare,
+    updateAttackRoll
 };
