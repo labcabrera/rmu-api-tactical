@@ -5,6 +5,7 @@ import {
 } from '../entities/TacticalGame';
 
 export interface TacticalGameRepository {
+
     findById(id: string): Promise<TacticalGame | null>;
 
     find(criteria: TacticalGameSearchCriteria): Promise<PaginatedTacticalGames>;

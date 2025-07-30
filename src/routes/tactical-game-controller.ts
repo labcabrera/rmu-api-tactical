@@ -1,17 +1,17 @@
 import express, { Request, Response, Router } from 'express';
+import { TacticalGameApplicationService } from '../application/TacticalGameApplicationService';
 import {
     CreateTacticalGameCommand,
     TacticalGameSearchCriteria,
     UpdateTacticalGameCommand
 } from '../domain/entities/TacticalGame';
 import { Logger } from '../domain/ports/Logger';
-import { TacticalGameService } from '../domain/services/TacticalGameService';
 import { DependencyContainer } from '../infrastructure/DependencyContainer';
 import errorService from "../services/error-service";
 
 const router: Router = express.Router();
 const container = DependencyContainer.getInstance();
-const tacticalGameService: TacticalGameService = container.tacticalGameService;
+const tacticalGameApplicationService: TacticalGameApplicationService = container.tacticalGameApplicationService;
 const logger: Logger = container.logger;
 
 router.get('/', async (req: Request, res: Response) => {
@@ -27,7 +27,7 @@ router.get('/', async (req: Request, res: Response) => {
             page,
             size
         };
-        const response = await tacticalGameService.find(criteria);
+        const response = await tacticalGameApplicationService.find(criteria);
         res.json(response);
     } catch (error) {
         logger.error(`Error finding tactical games: ${(error as Error).message}`);
@@ -38,8 +38,8 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/:gameId', async (req: Request, res: Response) => {
     try {
         const gameId: string = req.params.gameId!;
-        logger.info(`Finding tactical game by ID: ${gameId}`);
-        const game = await tacticalGameService.findById(gameId);
+        logger.info(`Search tactical game << ${gameId}`);
+        const game = await tacticalGameApplicationService.findById(gameId);
         logger.info(`Found tactical game: ${game.name}`);
         res.json(game);
     } catch (error: any) {
@@ -50,7 +50,7 @@ router.get('/:gameId', async (req: Request, res: Response) => {
 
 router.post('/', async (req: Request, res: Response) => {
     try {
-        logger.info(`Tactical game creation - ${req.body.name}`);
+        logger.info(`Tactical game creation << ${req.body.name}`);
         //TODO JWT
         const user: string = "lab.cabrera@gmail.com";
 
@@ -61,7 +61,7 @@ router.post('/', async (req: Request, res: Response) => {
             factions: req.body.factions
         };
 
-        const newGame = await tacticalGameService.create(command);
+        const newGame = await tacticalGameApplicationService.create(command);
         res.status(201).json(newGame);
     } catch (error: any) {
         logger.error(`Error creating tactical game: ${error.message}`);
@@ -79,10 +79,25 @@ router.patch('/:gameId', async (req: Request, res: Response) => {
             description: req.body.description
         };
 
-        const result = await tacticalGameService.update(gameId, command);
+        const result = await tacticalGameApplicationService.update(gameId, command);
         res.json(result);
     } catch (error: any) {
         logger.error(`Error updating tactical game ${req.params.gameId}: ${error.message}`);
+        res.status(error.status ? error.status : 500).json({ message: error.message });
+    }
+});
+
+router.delete('/:gameId', async (req: Request, res: Response) => {
+    try {
+        const gameId: string = req.params.gameId!;
+        logger.info(`Tactical game deletion << ${gameId}`);
+        
+        await tacticalGameApplicationService.delete(gameId);
+        logger.info(`Tactical game deleted successfully: ${gameId}`);
+        
+        res.status(204).send(); // 204 No Content for successful deletion
+    } catch (error: any) {
+        logger.error(`Error deleting tactical game ${req.params.gameId}: ${error.message}`);
         res.status(error.status ? error.status : 500).json({ message: error.message });
     }
 });

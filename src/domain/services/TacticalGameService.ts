@@ -1,5 +1,4 @@
 import {
-    CreateTacticalGameCommand,
     PaginatedTacticalGames,
     TacticalGame,
     TacticalGameSearchCriteria,
@@ -36,30 +35,6 @@ export class TacticalGameService {
 
         this.logger.info(`Found ${result.total} tactical games`);
         return result;
-    }
-
-    async create(command: CreateTacticalGameCommand): Promise<TacticalGame> {
-        this.logger.info(`Creating tactical game: ${command.name} for user: ${command.user}`);
-
-        // Aplicar reglas de negocio
-        let factions = command.factions || [];
-        if (!factions || factions.length === 0) {
-            factions = ['Light', 'Evil', 'Neutral'];
-        }
-
-        const newGame: TacticalGame = {
-            user: command.user,
-            name: command.name,
-            ...(command.description && { description: command.description }),
-            status: 'created',
-            factions,
-            round: 0
-        };
-
-        const savedGame = await this.repository.save(newGame);
-
-        this.logger.info(`Created tactical game with ID: ${savedGame.id}`);
-        return savedGame;
     }
 
     async update(id: string, command: UpdateTacticalGameCommand): Promise<TacticalGame> {

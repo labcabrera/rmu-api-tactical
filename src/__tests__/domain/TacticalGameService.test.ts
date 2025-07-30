@@ -1,5 +1,4 @@
 import {
-    CreateTacticalGameCommand,
     TacticalGame,
     TacticalGameSearchCriteria,
     UpdateTacticalGameCommand
@@ -92,63 +91,6 @@ describe('TacticalGameService', () => {
             expect(mockRepository.find).toHaveBeenCalledWith(criteria);
             expect(mockLogger.info).toHaveBeenCalledWith(`Finding tactical games with criteria: ${JSON.stringify(criteria)}`);
             expect(mockLogger.info).toHaveBeenCalledWith('Found 1 tactical games');
-        });
-    });
-
-    describe('create', () => {
-        it('should create a new game and return it', async () => {
-            const command: CreateTacticalGameCommand = {
-                user: 'test@example.com',
-                name: 'New Game',
-                description: 'Test description'
-            };
-
-            const expectedGame: TacticalGame = {
-                user: 'test@example.com',
-                name: 'New Game',
-                description: 'Test description',
-                status: 'created',
-                factions: ['Light', 'Evil', 'Neutral'],
-                round: 0
-            };
-
-            const savedGame: TacticalGame = {
-                ...expectedGame,
-                id: '1'
-            };
-
-            mockRepository.save.mockResolvedValue(savedGame);
-
-            const result = await service.create(command);
-
-            expect(result).toEqual(savedGame);
-            expect(mockRepository.save).toHaveBeenCalledWith(expectedGame);
-            expect(mockLogger.info).toHaveBeenCalledWith('Creating tactical game: New Game for user: test@example.com');
-            expect(mockLogger.info).toHaveBeenCalledWith('Created tactical game with ID: 1');
-        });
-
-        it('should use default factions when none provided', async () => {
-            const command: CreateTacticalGameCommand = {
-                user: 'test@example.com',
-                name: 'New Game'
-            };
-
-            const savedGame: TacticalGame = {
-                id: '1',
-                user: 'test@example.com',
-                name: 'New Game',
-                status: 'created',
-                factions: ['Light', 'Evil', 'Neutral'],
-                round: 0
-            };
-
-            mockRepository.save.mockResolvedValue(savedGame);
-
-            await service.create(command);
-
-            expect(mockRepository.save).toHaveBeenCalledWith(expect.objectContaining({
-                factions: ['Light', 'Evil', 'Neutral']
-            }));
         });
     });
 
