@@ -1,5 +1,5 @@
-import { Logger } from '../../domain/ports/Logger';
-import { TacticalCharacterRepository } from '../../domain/ports/TacticalCharacterRepository';
+import { Logger } from '../../../domain/ports/Logger';
+import { TacticalCharacterRepository } from '../../../domain/ports/TacticalCharacterRepository';
 
 export class DeleteTacticalCharacterUseCase {
     constructor(

@@ -1,7 +1,7 @@
 import tacticalCharacterConverter from '../converters/tactical-character-converter';
+import { DependencyContainer } from '../infrastructure/DependencyContainer';
 import TacticalCharacterDocument from "../models/tactical-character-model";
 import { TacticalCharacterModel } from '../types';
-import characterProcessor from './character-processor-service';
 
 interface CharacterUpdateData {
     name?: string;
@@ -27,7 +27,9 @@ const update = async (characterId: string, data: CharacterUpdateData): Promise<a
     if (!updatedCharacter) {
         throw { status: 404, message: 'Tactical character not found' };
     }
-    characterProcessor.process(updatedCharacter);
+    const container = DependencyContainer.getInstance();
+    const characterProcessorService = container.characterProcessorService;
+    characterProcessorService.process(updatedCharacter as any);
     await TacticalCharacterDocument.updateOne({ _id: updatedCharacter._id }, updatedCharacter);
     return tacticalCharacterConverter.toJSON(updatedCharacter);
 };

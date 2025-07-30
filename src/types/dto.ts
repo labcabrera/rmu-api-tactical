@@ -31,7 +31,7 @@ export interface TacticalCharacterDTO {
 
 export interface TacticalActionDTO {
     id: string;
-    tacticalGameId: string;
+    gameId: string;
     round: number;
     tacticalCharacterId: string;
     type: string;
@@ -47,7 +47,7 @@ export interface TacticalActionDTO {
 
 export interface TacticalCharacterRoundDTO {
     id: string;
-    tacticalGameId: string;
+    gameId: string;
     round: number;
     tacticalCharacterId: string;
     initiative?: any;

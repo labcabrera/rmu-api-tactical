@@ -44,7 +44,7 @@ export interface TacticalActionModel extends Document {
 }
 
 export interface TacticalCharacterRoundModel extends Document {
-  tacticalGameId: string;
+  gameId: string;
   round: number;
   tacticalCharacterId: string;
   initiative?: any;

@@ -2,7 +2,7 @@ import mongoose, { Schema } from 'mongoose';
 import { TacticalCharacterRoundModel } from '../types';
 
 const tacticalCharacterRoundSchema: Schema<TacticalCharacterRoundModel> = new mongoose.Schema({
-    tacticalGameId: {
+    gameId: {
         type: String,
         required: true
     },

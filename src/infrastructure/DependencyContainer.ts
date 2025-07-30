@@ -1,14 +1,18 @@
 import { Logger } from '../domain/ports/Logger';
 import { TacticalCharacterRepository } from '../domain/ports/TacticalCharacterRepository';
 import { TacticalGameRepository } from '../domain/ports/TacticalGameRepository';
+import { CharacterProcessorService } from '../domain/services/CharacterProcessorService';
 import { TacticalGameService } from '../domain/services/TacticalGameService';
-import { MongoTacticalCharacterRepository } from '../infrastructure/adapters/MongoTacticalCharacterRepository';
+import { MongoTacticalCharacterRepository } from '../infrastructure/adapters/persistence/MongoTacticalCharacterRepository';
+import { MongoTacticalGameRepository } from '../infrastructure/adapters/persistence/MongoTacticalGameRepository';
 import { WinstonLogger } from '../infrastructure/logger/logger';
-import { MongoTacticalGameRepository } from '../infrastructure/repositories/MongoTacticalGameRepository';
 
 // Application layer imports
 import { TacticalCharacterApplicationService } from '../application/TacticalCharacterApplicationService';
 import { TacticalGameApplicationService } from '../application/TacticalGameApplicationService';
+import { CreateTacticalCharacterUseCase } from '../application/use-cases/tactical-character/CreateTacticalCharacterUseCase';
+import { DeleteTacticalCharacterUseCase } from '../application/use-cases/tactical-character/DeleteTacticalCharacterUseCase';
+import { UpdateTacticalCharacterUseCase } from '../application/use-cases/tactical-character/UpdateTacticalCharacterUseCase';
 import { CreateTacticalGameUseCase } from '../application/use-cases/tactical-game/CreateTacticalGameUseCase';
 import { DeleteTacticalGameUseCase } from '../application/use-cases/tactical-game/DeleteTacticalGameUseCase';
 import { FindTacticalGameByIdUseCase } from '../application/use-cases/tactical-game/FindTacticalGameByIdUseCase';
@@ -23,6 +27,7 @@ export class DependencyContainer {
     private readonly _tacticalGameRepository: TacticalGameRepository;
     private readonly _tacticalCharacterRepository: TacticalCharacterRepository;
     private readonly _tacticalGameService: TacticalGameService;
+    private readonly _characterProcessorService: CharacterProcessorService;
 
     // Use Cases
     private readonly _createTacticalGameUseCase!: CreateTacticalGameUseCase;
@@ -30,6 +35,10 @@ export class DependencyContainer {
     private readonly _findTacticalGamesUseCase!: FindTacticalGamesUseCase;
     private readonly _updateTacticalGameUseCase!: UpdateTacticalGameUseCase;
     private readonly _deleteTacticalGameUseCase!: DeleteTacticalGameUseCase;
+
+    private readonly _createTacticalCharacterUseCase!: CreateTacticalCharacterUseCase;
+    private readonly _updateTacticalCharacterUseCase!: UpdateTacticalCharacterUseCase;
+    private readonly _deleteTacticalCharacterUseCase!: DeleteTacticalCharacterUseCase;
 
     // Application Services
     private readonly _tacticalGameApplicationService!: TacticalGameApplicationService;
@@ -44,6 +53,7 @@ export class DependencyContainer {
             this._tacticalGameRepository,
             this._logger
         );
+        this._characterProcessorService = new CharacterProcessorService(this._logger);
 
         // Configure use cases
         this._createTacticalGameUseCase = new CreateTacticalGameUseCase(
@@ -73,6 +83,24 @@ export class DependencyContainer {
             this._findTacticalGameByIdUseCase
         );
 
+        // Configure tactical character use cases
+        this._createTacticalCharacterUseCase = new CreateTacticalCharacterUseCase(
+            this._tacticalCharacterRepository,
+            this._tacticalGameRepository,
+            this._characterProcessorService,
+            this._logger
+        );
+
+        this._updateTacticalCharacterUseCase = new UpdateTacticalCharacterUseCase(
+            this._tacticalCharacterRepository,
+            this._logger
+        );
+
+        this._deleteTacticalCharacterUseCase = new DeleteTacticalCharacterUseCase(
+            this._tacticalCharacterRepository,
+            this._logger
+        );
+
         // Configure application services
         this._tacticalGameApplicationService = new TacticalGameApplicationService(
             this._createTacticalGameUseCase,
@@ -85,6 +113,7 @@ export class DependencyContainer {
         this._tacticalCharacterApplicationService = new TacticalCharacterApplicationService(
             this._tacticalCharacterRepository,
             this._tacticalGameRepository,
+            this._characterProcessorService,
             this._logger
         );
     }
@@ -110,6 +139,10 @@ export class DependencyContainer {
 
     get tacticalGameService(): TacticalGameService {
         return this._tacticalGameService;
+    }
+
+    get characterProcessorService(): CharacterProcessorService {
+        return this._characterProcessorService;
     }
 
     get tacticalGameApplicationService(): TacticalGameApplicationService {
@@ -139,5 +172,18 @@ export class DependencyContainer {
 
     get deleteTacticalGameUseCase(): DeleteTacticalGameUseCase {
         return this._deleteTacticalGameUseCase;
+    }
+
+    // Tactical Character Use Case getters
+    get createTacticalCharacterUseCase(): CreateTacticalCharacterUseCase {
+        return this._createTacticalCharacterUseCase;
+    }
+
+    get updateTacticalCharacterUseCase(): UpdateTacticalCharacterUseCase {
+        return this._updateTacticalCharacterUseCase;
+    }
+
+    get deleteTacticalCharacterUseCase(): DeleteTacticalCharacterUseCase {
+        return this._deleteTacticalCharacterUseCase;
     }
 }

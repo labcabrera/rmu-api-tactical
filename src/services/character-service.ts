@@ -4,7 +4,7 @@ import TacticalGameModel from "../models/tactical-game-model";
 import { IApiError, IPaginatedResponse, TacticalCharacterModel } from '../types';
 
 interface CharacterData {
-    tacticalGameId: string;
+    gameId: string;
     faction?: string;
     name: string;
     info?: {
@@ -31,10 +31,10 @@ const findById = async (characterId: string): Promise<any> => {
     return tacticalCharacterConverter.toJSON(readed);
 };
 
-const find = async (searchExpression?: string, tacticalGameId?: string, page: number = 0, size: number = 10): Promise<IPaginatedResponse<any>> => {
+const find = async (searchExpression?: string, gameId?: string, page: number = 0, size: number = 10): Promise<IPaginatedResponse<any>> => {
     let filter: any = {};
-    if (tacticalGameId) {
-        filter.gameId = tacticalGameId;
+    if (gameId) {
+        filter.gameId = gameId;
     }
     const skip = page * size;
     const list: TacticalCharacterModel[] = await TacticalCharacterDocument.find(filter).skip(skip).limit(size).sort({ updatedAt: -1 });
@@ -52,7 +52,7 @@ const find = async (searchExpression?: string, tacticalGameId?: string, page: nu
 };
 
 const insert = async (user: string, data: CharacterData): Promise<any> => {
-    const tacticalGame: TacticalGameModel | null = await TacticalGameModel.findById(data.tacticalGameId);
+    const tacticalGame: TacticalGameModel | null = await TacticalGameModel.findById(data.gameId);
     if (!tacticalGame) {
         const error: IApiError = new Error("Tactical game not found");
         error.status = 400;
@@ -90,7 +90,7 @@ const insert = async (user: string, data: CharacterData): Promise<any> => {
     }
 
     const newCharacter = new TacticalCharacterDocument({
-        gameId: data.tacticalGameId,
+        gameId: data.gameId,
         name: data.name,
         faction: data.faction,
         maxHitPoints: data.hp.max,

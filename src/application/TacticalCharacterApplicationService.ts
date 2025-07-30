@@ -7,10 +7,11 @@ import {
 import { Logger } from '../domain/ports/Logger';
 import { TacticalCharacterRepository } from '../domain/ports/TacticalCharacterRepository';
 import { TacticalGameRepository } from '../domain/ports/TacticalGameRepository';
+import { CharacterProcessorService } from '../domain/services/CharacterProcessorService';
 import { IPaginatedResponse } from '../types';
-import { CreateTacticalCharacterUseCase } from './use-cases/CreateTacticalCharacterUseCase';
-import { DeleteTacticalCharacterUseCase } from './use-cases/DeleteTacticalCharacterUseCase';
-import { UpdateTacticalCharacterUseCase } from './use-cases/UpdateTacticalCharacterUseCase';
+import { CreateTacticalCharacterUseCase } from './use-cases/tactical-character/CreateTacticalCharacterUseCase';
+import { DeleteTacticalCharacterUseCase } from './use-cases/tactical-character/DeleteTacticalCharacterUseCase';
+import { UpdateTacticalCharacterUseCase } from './use-cases/tactical-character/UpdateTacticalCharacterUseCase';
 
 export class TacticalCharacterApplicationService {
     private createTacticalCharacterUseCase: CreateTacticalCharacterUseCase;
@@ -20,11 +21,13 @@ export class TacticalCharacterApplicationService {
     constructor(
         private tacticalCharacterRepository: TacticalCharacterRepository,
         private tacticalGameRepository: TacticalGameRepository,
+        private characterProcessorService: CharacterProcessorService,
         private logger: Logger
     ) {
         this.createTacticalCharacterUseCase = new CreateTacticalCharacterUseCase(
             tacticalCharacterRepository,
             tacticalGameRepository,
+            characterProcessorService,
             logger
         );
         this.updateTacticalCharacterUseCase = new UpdateTacticalCharacterUseCase(

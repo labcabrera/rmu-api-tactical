@@ -1,7 +1,7 @@
-import { TacticalCharacterEntity, TacticalCharacterSearchCriteria } from '../../domain/entities/TacticalCharacter';
-import { TacticalCharacterRepository } from '../../domain/ports/TacticalCharacterRepository';
-import TacticalCharacterDocument from '../../models/tactical-character-model';
-import { IPaginatedResponse } from '../../types';
+import { TacticalCharacterEntity, TacticalCharacterSearchCriteria } from '../../../domain/entities/TacticalCharacter';
+import { TacticalCharacterRepository } from '../../../domain/ports/TacticalCharacterRepository';
+import TacticalCharacterDocument from '../../../models/tactical-character-model';
+import { IPaginatedResponse } from '../../../types';
 
 export class MongoTacticalCharacterRepository implements TacticalCharacterRepository {
     async findById(id: string): Promise<TacticalCharacterEntity | null> {
@@ -56,12 +56,16 @@ export class MongoTacticalCharacterRepository implements TacticalCharacterReposi
             gameId: character.gameId,
             name: character.name,
             faction: character.faction,
-            hitPoints: character.hitPoints,
-            maxHitPoints: character.maxHitPoints,
+            info: character.info,
+            statistics: character.statistics,
+            movement: character.movement,
+            defense: character.defense,
+            hp: character.hp,
+            endurance: character.endurance,
+            power: character.power,
             initiative: character.initiative,
-            status: character.status,
-            position: character.position,
             skills: character.skills,
+            items: character.items,
             equipment: character.equipment,
             createdAt: character.createdAt,
             updatedAt: character.updatedAt

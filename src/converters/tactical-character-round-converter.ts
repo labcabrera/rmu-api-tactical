@@ -3,7 +3,7 @@ import { TacticalCharacterRoundModel } from '../types';
 const toJSON = (tacticalCharacterRound: TacticalCharacterRoundModel) => {
     return {
         id: tacticalCharacterRound._id,
-        tacticalGameId: tacticalCharacterRound.tacticalGameId,
+        tacticalGameId: tacticalCharacterRound.gameId,
         round: tacticalCharacterRound.round,
         tacticalCharacterId: tacticalCharacterRound.tacticalCharacterId,
         initiative: tacticalCharacterRound.initiative,

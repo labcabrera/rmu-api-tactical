@@ -61,7 +61,7 @@ export class TacticalCharacterController {
             const response = await this.tacticalCharacterApplicationService.find(criteria);
             res.json(response);
         } catch (error) {
-            this.logger.error(`Error finding tactical characters: ${(error as Error).message}`);
+            this.logger.error(`TacticalCharacterController: Error finding tactical characters: ${(error as Error).message}`);
             errorService.sendErrorResponse(res, error as Error);
         }
     }
@@ -83,22 +83,22 @@ export class TacticalCharacterController {
 
     private async createCharacter(req: Request, res: Response): Promise<void> {
         try {
-            this.logger.info(`Tactical character creation << ${req.body.name}`);
+            this.logger.info(`TacticalCharacterController: Tactical character creation << ${req.body.name}`);
             //TODO JWT
             const user: string = "lab.cabrera@gmail.com";
-
             const command: CreateTacticalCharacterCommand = {
                 user,
-                tacticalGameId: req.body.tacticalGameId,
+                gameId: req.body.gameId,
                 faction: req.body.faction,
+                statistics: req.body.statistics,
+                movement: req.body.movement,
                 name: req.body.name,
                 info: req.body.info,
                 endurance: req.body.endurance,
                 hp: req.body.hp,
-                statistics: req.body.statistics,
-                skills: req.body.skills
+                skills: req.body.skills,
+                items: req.body.items
             };
-
             const newCharacter = await this.tacticalCharacterApplicationService.create(command);
             res.status(201).json(newCharacter);
         } catch (error: any) {
@@ -119,9 +119,8 @@ export class TacticalCharacterController {
                 maxHitPoints: req.body.maxHitPoints,
                 initiative: req.body.initiative,
                 status: req.body.status,
-                position: req.body.position,
-                skills: req.body.skills,
-                equipment: req.body.equipment
+                // skills: req.body.skills,
+                // equipment: req.body.equipment
             };
 
             const result = await this.tacticalCharacterApplicationService.update(characterId, command);

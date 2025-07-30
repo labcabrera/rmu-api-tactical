@@ -2,9 +2,9 @@ import {
     PaginatedTacticalGames,
     TacticalGame,
     TacticalGameSearchCriteria
-} from '../../domain/entities/TacticalGame';
-import { TacticalGameRepository } from '../../domain/ports/TacticalGameRepository';
-import TacticalGameModel from '../../models/tactical-game-model';
+} from '../../../domain/entities/TacticalGame';
+import { TacticalGameRepository } from '../../../domain/ports/TacticalGameRepository';
+import TacticalGameModel from '../../../models/tactical-game-model';
 
 export class MongoTacticalGameRepository implements TacticalGameRepository {
 

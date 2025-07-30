@@ -1,7 +1,7 @@
 import tacticalCharacterConverter from '../../converters/tactical-character-converter';
+import { DependencyContainer } from '../../infrastructure/DependencyContainer';
 import TacticalCharacterDocument from "../../models/tactical-character-model";
 import { TacticalCharacterModel } from '../../types';
-import characterProcessorService from '../character-processor-service';
 
 interface EquipData {
     itemId: string;
@@ -46,7 +46,9 @@ const equip = async (characterId: string, data: EquipData): Promise<any> => {
     if ((character as any).equipment.body === null) {
         (character as any).defense.armorType = 1;
     }
-    characterProcessorService.process(character);
+    const container = DependencyContainer.getInstance();
+    const characterProcessorService = container.characterProcessorService;
+    characterProcessorService.process(character as any);
     await character?.save();
     if (!character) {
         throw { status: 404, message: 'Character not found after processing' };

@@ -23,10 +23,10 @@ const findById = async (id: string): Promise<any> => {
     return action.toJSON();
 };
 
-const find = async (tacticalGameId?: string, tacticalCharacterId?: string, round?: string, page: number = 0, size: number = 10): Promise<IPaginatedResponse<any>> => {
+const find = async (gameId?: string, tacticalCharacterId?: string, round?: string, page: number = 0, size: number = 10): Promise<IPaginatedResponse<any>> => {
     let filter: any = {};
-    if (tacticalGameId) {
-        filter.gameId = tacticalGameId;
+    if (gameId) {
+        filter.gameId = gameId;
     }
     if (tacticalCharacterId) {
         filter.characterId = tacticalCharacterId;

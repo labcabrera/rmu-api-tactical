@@ -6,9 +6,9 @@ import TacticalCharacterRoundDocument from '../models/tactical-character-round-m
 import TacticalGameModel from '../models/tactical-game-model';
 import { TacticalCharacterModel, TacticalCharacterRoundModel } from '../types';
 
-const startRound = async (tacticalGameId: string): Promise<any> => {
-    const tacticalGame = await TacticalGameModel.findById(tacticalGameId);
-    const characters = await TacticalCharacterDocument.find({ tacticalGameId: tacticalGameId });
+const startRound = async (gameId: string): Promise<any> => {
+    const tacticalGame = await TacticalGameModel.findById(gameId);
+    const characters = await TacticalCharacterDocument.find({ gameId: gameId });
     if (!tacticalGame) {
         throw { state: 400, message: 'Tactical game not found' };
     }
@@ -22,16 +22,17 @@ const startRound = async (tacticalGameId: string): Promise<any> => {
         round: newRound,
         phase: TacticalGamePhase.INITIATIVE
     };
-    const updatedGame = await TacticalGameModel.findByIdAndUpdate(tacticalGameId, update, { new: true });
+    const updatedGame = await TacticalGameModel.findByIdAndUpdate(gameId, update, { new: true });
     if (!updatedGame) {
         throw { status: 404, message: 'Tactical game not found' };
     }
-    characters.map(c => { createTacticalCharacterRound(c, newRound) });
+    //TODO
+    //characters.map(c => { createTacticalCharacterRound(c, newRound) });
     return tacticalGameConverter.toJSON(updatedGame);
 };
 
-const findTacticalCharacterRounds = async (tacticalGameId: string, round: number): Promise<any[]> => {
-    const list = await TacticalCharacterRoundDocument.find({ tacticalGameId: tacticalGameId, round: round });
+const findTacticalCharacterRounds = async (gameId: string, round: number): Promise<any[]> => {
+    const list = await TacticalCharacterRoundDocument.find({ gameId: gameId, round: round });
     return list.map(tacticalCharacterRoundConverter.toJSON);
 };
 
@@ -41,7 +42,7 @@ const createTacticalCharacterRound = async (character: TacticalCharacterModel, r
         baseInitiative = (character.initiative as any).base;
     }
     const newCharacterRound = new TacticalCharacterRoundDocument({
-        tacticalGameId: (character as any).tacticalGameId,
+        gameId: (character as any).gameId,
         round: round,
         tacticalCharacterId: character.id,
         initiative: {
