@@ -5,11 +5,11 @@ import { TacticalCharacterRoundRepository } from '../domain/ports/TacticalCharac
 import { TacticalGameRepository } from '../domain/ports/TacticalGameRepository';
 import { CharacterProcessorService } from '../domain/services/CharacterProcessorService';
 import { TacticalGameService } from '../domain/services/TacticalGameService';
-import { MongoTacticalActionRepository } from '../infrastructure/adapters/persistence/MongoTacticalActionRepository';
-import { MongoTacticalCharacterRepository } from '../infrastructure/adapters/persistence/MongoTacticalCharacterRepository';
-import { MongoTacticalCharacterRoundRepository } from '../infrastructure/adapters/persistence/MongoTacticalCharacterRoundRepository';
-import { MongoTacticalGameRepository } from '../infrastructure/adapters/persistence/MongoTacticalGameRepository';
 import { WinstonLogger } from '../infrastructure/logger/logger';
+import { MongoTacticalActionRepository } from './adapters/persistence/mongo-tactical-action.repository';
+import { MongoTacticalCharacterRoundRepository } from './adapters/persistence/mongo-tactical-character-round.repository';
+import { MongoTacticalCharacterRepository } from './adapters/persistence/mongo-tactical-character.repository';
+import { MongoTacticalGameRepository } from './adapters/persistence/mongo-tactical-game.repository';
 
 // Application layer imports
 import { TacticalCharacterApplicationService } from '../application/TacticalCharacterApplicationService';
@@ -104,6 +104,7 @@ export class DependencyContainer {
         this._startGameRoundUseCase = new StartGameRoundUseCase(
             this._tacticalGameRepository,
             this._tacticalCharacterRepository,
+            this._tacticalCharacterRoundRepository,
             this._logger
         );
 
