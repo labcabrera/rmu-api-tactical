@@ -1,7 +1,7 @@
 import { TacticalGame } from '../../../domain/entities/tactical-game.entity';
-import { Logger } from '../../../domain/ports/Logger';
-import { TacticalGameRepository } from '../../../domain/ports/TacticalGameRepository';
-import { CreateTacticalGameCommand } from '../../commands/CreateTacticalGameCommand';
+import { Logger } from '../../../domain/ports/logger';
+import { TacticalGameRepository } from '../../../domain/ports/tactical-game.repository';
+import { CreateTacticalGameCommand } from '../../commands/create-tactical-game.command';
 
 export class CreateTacticalGameUseCase {
     constructor(

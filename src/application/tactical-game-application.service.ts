@@ -1,6 +1,7 @@
-import { PaginatedTacticalGames, TacticalGame, TacticalGameSearchCriteria } from '../domain/entities/tactical-game.entity';
-import { CreateTacticalGameCommand } from './commands/CreateTacticalGameCommand';
-import { UpdateTacticalGameCommand } from './commands/UpdateTacticalGameCommand';
+import { Page } from '../domain/entities/page.entity';
+import { TacticalGame, TacticalGameSearchCriteria } from '../domain/entities/tactical-game.entity';
+import { CreateTacticalGameCommand } from './commands/create-tactical-game.command';
+import { UpdateTacticalGameCommand } from './commands/update-tactical-game-command';
 import { CreateTacticalGameUseCase } from './use-cases/tactical-game/CreateTacticalGameUseCase';
 import { DeleteTacticalGameUseCase } from './use-cases/tactical-game/DeleteTacticalGameUseCase';
 import { FindTacticalGameByIdUseCase } from './use-cases/tactical-game/FindTacticalGameByIdUseCase';
@@ -22,7 +23,7 @@ export class TacticalGameApplicationService {
         return this.findByIdUseCase.execute(id);
     }
 
-    async find(criteria: TacticalGameSearchCriteria): Promise<PaginatedTacticalGames> {
+    async find(criteria: TacticalGameSearchCriteria): Promise<Page<TacticalGame>> {
         return this.findUseCase.execute(criteria);
     }
 

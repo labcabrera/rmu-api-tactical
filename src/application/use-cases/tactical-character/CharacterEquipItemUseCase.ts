@@ -1,6 +1,6 @@
-import { Logger } from '../../../domain/ports/Logger';
-import { TacticalCharacterRepository } from '../../../domain/ports/TacticalCharacterRepository';
-import { CharacterProcessorService } from '../../../domain/services/CharacterProcessorService';
+import { Logger } from '../../../domain/ports/logger';
+import { TacticalCharacterRepository } from '../../../domain/ports/tactical-character.repository';
+import { CharacterProcessorService } from '../../../domain/services/character-processor.service';
 
 export interface CharacterEquipItemCommand {
     characterId: string;

@@ -1,11 +1,11 @@
 import express, { Request, Response, Router } from 'express';
-import { TacticalCharacterApplicationService } from '../../../application/TacticalCharacterApplicationService';
+import { TacticalCharacterApplicationService } from '../../../application/tactical-character-application.service';
 import {
     CreateTacticalCharacterCommand,
     TacticalCharacterSearchCriteria,
     UpdateTacticalCharacterCommand
 } from '../../../domain/entities/tactical-character.entity';
-import { Logger } from '../../../domain/ports/Logger';
+import { Logger } from '../../../domain/ports/logger';
 import { DependencyContainer } from '../../DependencyContainer';
 import { ErrorHandler } from '../ErrorHandler';
 

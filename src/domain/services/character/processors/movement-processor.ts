@@ -1,7 +1,7 @@
-import { TacticalCharacterEntity } from '../../../entities/tactical-character.entity';
+import { TacticalCharacter } from '../../../entities/tactical-character.entity';
 
 export class MovementProcessor {
-    static process(character: TacticalCharacterEntity): void {
+    static process(character: TacticalCharacter): void {
         const customStrideBonus = character.movement.strideCustomBonus || 0;
         const racialStrideBonus = character.movement.strideRacialBonus || 0;
         const quBonus = (character.statistics.qu?.totalBonus || 0) / 2;

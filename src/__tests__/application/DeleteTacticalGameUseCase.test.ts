@@ -1,8 +1,8 @@
 import { DeleteTacticalGameUseCase } from '../../application/use-cases/tactical-game/DeleteTacticalGameUseCase';
 import { FindTacticalGameByIdUseCase } from '../../application/use-cases/tactical-game/FindTacticalGameByIdUseCase';
 import { TacticalGame } from '../../domain/entities/tactical-game.entity';
-import { Logger } from '../../domain/ports/Logger';
-import { TacticalGameRepository } from '../../domain/ports/TacticalGameRepository';
+import { Logger } from '../../domain/ports/logger';
+import { TacticalGameRepository } from '../../domain/ports/tactical-game.repository';
 
 // Mocks
 const mockRepository: jest.Mocked<TacticalGameRepository> = {

@@ -1,10 +1,10 @@
-import { Logger } from '../domain/ports/Logger';
-import { TacticalActionRepository } from '../domain/ports/TacticalActionRepository';
-import { TacticalCharacterRepository } from '../domain/ports/TacticalCharacterRepository';
-import { TacticalCharacterRoundRepository } from '../domain/ports/TacticalCharacterRoundRepository';
-import { TacticalGameRepository } from '../domain/ports/TacticalGameRepository';
-import { CharacterProcessorService } from '../domain/services/CharacterProcessorService';
-import { TacticalGameService } from '../domain/services/TacticalGameService';
+import { Logger } from '../domain/ports/logger';
+import { TacticalActionRepository } from '../domain/ports/tactical-action.repository';
+import { TacticalCharacterRoundRepository } from '../domain/ports/tactical-character-round.repository';
+import { TacticalCharacterRepository } from '../domain/ports/tactical-character.repository';
+import { TacticalGameRepository } from '../domain/ports/tactical-game.repository';
+import { CharacterProcessorService } from '../domain/services/character-processor.service';
+import { TacticalGameService } from '../domain/services/tactical-game-service';
 import { WinstonLogger } from '../infrastructure/logger/logger';
 import { MongoTacticalActionRepository } from './adapters/persistence/mongo-tactical-action.repository';
 import { MongoTacticalCharacterRoundRepository } from './adapters/persistence/mongo-tactical-character-round.repository';
@@ -12,8 +12,8 @@ import { MongoTacticalCharacterRepository } from './adapters/persistence/mongo-t
 import { MongoTacticalGameRepository } from './adapters/persistence/mongo-tactical-game.repository';
 
 // Application layer imports
-import { TacticalCharacterApplicationService } from '../application/TacticalCharacterApplicationService';
-import { TacticalGameApplicationService } from '../application/TacticalGameApplicationService';
+import { TacticalCharacterApplicationService } from '../application/tactical-character-application.service';
+import { TacticalGameApplicationService } from '../application/tactical-game-application.service';
 import { CharacterAddItemUseCase } from '../application/use-cases/tactical-character/CharacterAddItemUseCase';
 import { CharacterDeleteItemUseCase } from '../application/use-cases/tactical-character/CharacterDeleteItemUseCase';
 import { CharacterEquipItemUseCase } from '../application/use-cases/tactical-character/CharacterEquipItemUseCase';

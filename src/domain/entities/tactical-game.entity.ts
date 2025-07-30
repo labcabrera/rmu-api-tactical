@@ -16,11 +16,3 @@ export interface TacticalGameSearchCriteria {
     page: number;
     size: number;
 }
-
-export interface PaginatedTacticalGames {
-    content: TacticalGame[];
-    page: number;
-    size: number;
-    total: number;
-    totalPages: number;
-}

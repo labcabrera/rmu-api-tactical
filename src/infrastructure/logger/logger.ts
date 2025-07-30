@@ -1,5 +1,5 @@
 import winston from "winston";
-import { Logger } from "../../domain/ports/Logger";
+import { Logger } from "../../domain/ports/logger";
 
 export class WinstonLogger implements Logger {
     private logger = winston.createLogger({

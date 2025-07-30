@@ -1,9 +1,9 @@
+import { Page } from '../../../domain/entities/page.entity';
 import {
-    PaginatedTacticalGames,
     TacticalGame,
     TacticalGameSearchCriteria
 } from '../../../domain/entities/tactical-game.entity';
-import { TacticalGameRepository } from '../../../domain/ports/TacticalGameRepository';
+import { TacticalGameRepository } from '../../../domain/ports/tactical-game.repository';
 import TacticalGameModel from './models/tactical-game-model';
 
 export class MongoTacticalGameRepository implements TacticalGameRepository {
@@ -13,9 +13,8 @@ export class MongoTacticalGameRepository implements TacticalGameRepository {
         return gameModel ? this.toDomainEntity(gameModel) : null;
     }
 
-    async find(criteria: TacticalGameSearchCriteria): Promise<PaginatedTacticalGames> {
+    async find(criteria: TacticalGameSearchCriteria): Promise<Page<TacticalGame>> {
         const { searchExpression, username, page, size } = criteria;
-
         let filter: any = {};
         if (username) {
             filter.user = username;
@@ -26,9 +25,7 @@ export class MongoTacticalGameRepository implements TacticalGameRepository {
                 { description: { $regex: searchExpression, $options: 'i' } }
             ];
         }
-
         const skip = page * size;
-
         const [gameModels, total] = await Promise.all([
             TacticalGameModel.find(filter)
                 .skip(skip)
@@ -36,9 +33,7 @@ export class MongoTacticalGameRepository implements TacticalGameRepository {
                 .sort({ updatedAt: -1 }),
             TacticalGameModel.countDocuments(filter)
         ]);
-
         const content = gameModels.map(model => this.toDomainEntity(model));
-
         return {
             content,
             page,

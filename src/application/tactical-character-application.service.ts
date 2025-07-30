@@ -1,14 +1,14 @@
 import { Page } from '../domain/entities/page.entity';
 import {
     CreateTacticalCharacterCommand,
-    TacticalCharacterEntity,
+    TacticalCharacter,
     TacticalCharacterSearchCriteria,
     UpdateTacticalCharacterCommand
 } from '../domain/entities/tactical-character.entity';
-import { Logger } from '../domain/ports/Logger';
-import { TacticalCharacterRepository } from '../domain/ports/TacticalCharacterRepository';
-import { TacticalGameRepository } from '../domain/ports/TacticalGameRepository';
-import { CharacterProcessorService } from '../domain/services/CharacterProcessorService';
+import { Logger } from '../domain/ports/logger';
+import { TacticalCharacterRepository } from '../domain/ports/tactical-character.repository';
+import { TacticalGameRepository } from '../domain/ports/tactical-game.repository';
+import { CharacterProcessorService } from '../domain/services/character-processor.service';
 import { CreateTacticalCharacterUseCase } from './use-cases/tactical-character/CreateTacticalCharacterUseCase';
 import { DeleteTacticalCharacterUseCase } from './use-cases/tactical-character/DeleteTacticalCharacterUseCase';
 import { UpdateTacticalCharacterUseCase } from './use-cases/tactical-character/UpdateTacticalCharacterUseCase';
@@ -40,7 +40,7 @@ export class TacticalCharacterApplicationService {
         );
     }
 
-    async findById(id: string): Promise<TacticalCharacterEntity> {
+    async findById(id: string): Promise<TacticalCharacter> {
         this.logger.info(`Finding tactical character by id: ${id}`);
         const character = await this.tacticalCharacterRepository.findById(id);
         if (!character) {
@@ -51,16 +51,16 @@ export class TacticalCharacterApplicationService {
         return character;
     }
 
-    async find(criteria: TacticalCharacterSearchCriteria): Promise<Page<TacticalCharacterEntity>> {
+    async find(criteria: TacticalCharacterSearchCriteria): Promise<Page<TacticalCharacter>> {
         this.logger.info(`Finding tactical characters with criteria: ${JSON.stringify(criteria)}`);
         return await this.tacticalCharacterRepository.find(criteria);
     }
 
-    async create(command: CreateTacticalCharacterCommand): Promise<TacticalCharacterEntity> {
+    async create(command: CreateTacticalCharacterCommand): Promise<TacticalCharacter> {
         return await this.createTacticalCharacterUseCase.execute(command);
     }
 
-    async update(id: string, command: UpdateTacticalCharacterCommand): Promise<TacticalCharacterEntity> {
+    async update(id: string, command: UpdateTacticalCharacterCommand): Promise<TacticalCharacter> {
         return await this.updateTacticalCharacterUseCase.execute(id, command);
     }
 

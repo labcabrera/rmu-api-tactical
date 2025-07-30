@@ -1,11 +1,11 @@
-import { UpdateTacticalGameCommand } from '../../application/commands/UpdateTacticalGameCommand';
+import { UpdateTacticalGameCommand } from '../../application/commands/update-tactical-game-command';
 import {
     TacticalGame,
     TacticalGameSearchCriteria
 } from '../../domain/entities/tactical-game.entity';
-import { Logger } from '../../domain/ports/Logger';
-import { TacticalGameRepository } from '../../domain/ports/TacticalGameRepository';
-import { TacticalGameService } from '../../domain/services/TacticalGameService';
+import { Logger } from '../../domain/ports/logger';
+import { TacticalGameRepository } from '../../domain/ports/tactical-game.repository';
+import { TacticalGameService } from '../../domain/services/tactical-game-service';
 
 // Mocks
 const mockRepository: jest.Mocked<TacticalGameRepository> = {

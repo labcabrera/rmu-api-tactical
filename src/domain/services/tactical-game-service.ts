@@ -1,11 +1,11 @@
-import { UpdateTacticalGameCommand } from '../../application/commands/UpdateTacticalGameCommand';
+import { UpdateTacticalGameCommand } from '../../application/commands/update-tactical-game-command';
+import { Page } from '../entities/page.entity';
 import {
-    PaginatedTacticalGames,
     TacticalGame,
     TacticalGameSearchCriteria
 } from '../entities/tactical-game.entity';
-import { Logger } from '../ports/Logger';
-import { TacticalGameRepository } from '../ports/TacticalGameRepository';
+import { Logger } from '../ports/logger';
+import { TacticalGameRepository } from '../ports/tactical-game.repository';
 
 export class TacticalGameService {
     constructor(
@@ -28,7 +28,7 @@ export class TacticalGameService {
         return game;
     }
 
-    async find(criteria: TacticalGameSearchCriteria): Promise<PaginatedTacticalGames> {
+    async find(criteria: TacticalGameSearchCriteria): Promise<Page<TacticalGame>> {
         this.logger.info(`Finding tactical games with criteria: ${JSON.stringify(criteria)}`);
 
         const result = await this.repository.find(criteria);
@@ -39,10 +39,7 @@ export class TacticalGameService {
 
     async update(id: string, command: UpdateTacticalGameCommand): Promise<TacticalGame> {
         this.logger.info(`Updating tactical game ${id} with data: ${JSON.stringify(command)}`);
-
-        // Verificar que el juego existe
         await this.findById(id);
-
         const updatedGame = await this.repository.update(id, command);
         if (!updatedGame) {
             this.logger.error(`Failed to update tactical game with ID: ${id}`);

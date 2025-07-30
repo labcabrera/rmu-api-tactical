@@ -1,6 +1,6 @@
-import { TacticalCharacterEntity, UpdateTacticalCharacterCommand } from '../../../domain/entities/tactical-character.entity';
-import { Logger } from '../../../domain/ports/Logger';
-import { TacticalCharacterRepository } from '../../../domain/ports/TacticalCharacterRepository';
+import { TacticalCharacter, UpdateTacticalCharacterCommand } from '../../../domain/entities/tactical-character.entity';
+import { Logger } from '../../../domain/ports/logger';
+import { TacticalCharacterRepository } from '../../../domain/ports/tactical-character.repository';
 
 export class UpdateTacticalCharacterUseCase {
     constructor(
@@ -8,7 +8,7 @@ export class UpdateTacticalCharacterUseCase {
         private logger: Logger
     ) { }
 
-    async execute(characterId: string, command: UpdateTacticalCharacterCommand): Promise<TacticalCharacterEntity> {
+    async execute(characterId: string, command: UpdateTacticalCharacterCommand): Promise<TacticalCharacter> {
         this.logger.info(`Updating tactical character: ${characterId}`);
         const existingCharacter = await this.tacticalCharacterRepository.findById(characterId);
         if (!existingCharacter) {

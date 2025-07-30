@@ -1,15 +1,15 @@
 import { Page } from '../../../domain/entities/page.entity';
-import { TacticalCharacterEntity, TacticalCharacterSearchCriteria } from '../../../domain/entities/tactical-character.entity';
-import { TacticalCharacterRepository } from '../../../domain/ports/TacticalCharacterRepository';
+import { TacticalCharacter, TacticalCharacterSearchCriteria } from '../../../domain/entities/tactical-character.entity';
+import { TacticalCharacterRepository } from '../../../domain/ports/tactical-character.repository';
 import TacticalCharacterDocument from './models/tactical-character-model';
 
 export class MongoTacticalCharacterRepository implements TacticalCharacterRepository {
-    async findById(id: string): Promise<TacticalCharacterEntity | null> {
+    async findById(id: string): Promise<TacticalCharacter | null> {
         const character = await TacticalCharacterDocument.findById(id);
         return character ? this.toEntity(character) : null;
     }
 
-    async find(criteria: TacticalCharacterSearchCriteria): Promise<Page<TacticalCharacterEntity>> {
+    async find(criteria: TacticalCharacterSearchCriteria): Promise<Page<TacticalCharacter>> {
         let filter: any = {};
         if (criteria.tacticalGameId) {
             filter.gameId = criteria.tacticalGameId;
@@ -34,13 +34,13 @@ export class MongoTacticalCharacterRepository implements TacticalCharacterReposi
         };
     }
 
-    async create(character: Omit<TacticalCharacterEntity, 'id' | 'createdAt' | 'updatedAt'>): Promise<TacticalCharacterEntity> {
+    async create(character: Omit<TacticalCharacter, 'id' | 'createdAt' | 'updatedAt'>): Promise<TacticalCharacter> {
         const newCharacter = new TacticalCharacterDocument(character);
         const savedCharacter = await newCharacter.save();
         return this.toEntity(savedCharacter);
     }
 
-    async update(id: string, character: Partial<TacticalCharacterEntity>): Promise<TacticalCharacterEntity | null> {
+    async update(id: string, character: Partial<TacticalCharacter>): Promise<TacticalCharacter | null> {
         const updatedCharacter = await TacticalCharacterDocument.findByIdAndUpdate(id, character, { new: true });
         return updatedCharacter ? this.toEntity(updatedCharacter) : null;
     }
@@ -50,7 +50,7 @@ export class MongoTacticalCharacterRepository implements TacticalCharacterReposi
         return result !== null;
     }
 
-    private toEntity(character: any): TacticalCharacterEntity {
+    private toEntity(character: any): TacticalCharacter {
         return {
             id: character._id.toString(),
             gameId: character.gameId,

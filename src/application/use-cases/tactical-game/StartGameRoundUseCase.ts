@@ -1,10 +1,10 @@
 import { TacticalCharacterRoundEntity } from '../../../domain/entities/tactical-character-round.entity';
-import { TacticalCharacterEntity } from '../../../domain/entities/tactical-character.entity';
+import { TacticalCharacter } from '../../../domain/entities/tactical-character.entity';
 import { TacticalGame } from '../../../domain/entities/tactical-game.entity';
-import { TacticalCharacterRoundRepository } from '../../../domain/ports/CharacterRoundRepository';
-import { Logger } from '../../../domain/ports/Logger';
-import { TacticalCharacterRepository } from '../../../domain/ports/TacticalCharacterRepository';
-import { TacticalGameRepository } from '../../../domain/ports/TacticalGameRepository';
+import { TacticalCharacterRoundRepository } from '../../../domain/ports/character-round.repository';
+import { Logger } from '../../../domain/ports/logger';
+import { TacticalCharacterRepository } from '../../../domain/ports/tactical-character.repository';
+import { TacticalGameRepository } from '../../../domain/ports/tactical-game.repository';
 
 export class StartGameRoundUseCase {
     constructor(
@@ -49,13 +49,13 @@ export class StartGameRoundUseCase {
         return updatedGame;
     }
 
-    private async createCharacterRounds(characters: TacticalCharacterEntity[], round: number): Promise<void> {
+    private async createCharacterRounds(characters: TacticalCharacter[], round: number): Promise<void> {
         for (const character of characters) {
             await this.createTacticalCharacterRound(character, round);
         }
     }
 
-    private async createTacticalCharacterRound(character: TacticalCharacterEntity, round: number): Promise<void> {
+    private async createTacticalCharacterRound(character: TacticalCharacter, round: number): Promise<void> {
         const baseInitiative = character.initiative?.baseBonus || 0;
         //TODO check status effects
         const actionPoints: number = 4;

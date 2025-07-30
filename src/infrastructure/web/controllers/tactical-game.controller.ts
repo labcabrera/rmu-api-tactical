@@ -1,11 +1,11 @@
 import express, { Request, Response, Router } from 'express';
-import { CreateTacticalGameCommand } from '../../../application/commands/CreateTacticalGameCommand';
-import { UpdateTacticalGameCommand } from '../../../application/commands/UpdateTacticalGameCommand';
-import { TacticalGameApplicationService } from '../../../application/TacticalGameApplicationService';
+import { CreateTacticalGameCommand } from '../../../application/commands/create-tactical-game.command';
+import { UpdateTacticalGameCommand } from '../../../application/commands/update-tactical-game-command';
+import { TacticalGameApplicationService } from '../../../application/tactical-game-application.service';
 import {
     TacticalGameSearchCriteria
 } from '../../../domain/entities/tactical-game.entity';
-import { Logger } from '../../../domain/ports/Logger';
+import { Logger } from '../../../domain/ports/logger';
 import { DependencyContainer } from '../../DependencyContainer';
 import { ErrorHandler } from '../ErrorHandler';
 

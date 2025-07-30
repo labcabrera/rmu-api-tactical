@@ -1,5 +1,5 @@
-import { Logger } from '../../../domain/ports/Logger';
-import { TacticalGameRepository } from '../../../domain/ports/TacticalGameRepository';
+import { Logger } from '../../../domain/ports/logger';
+import { TacticalGameRepository } from '../../../domain/ports/tactical-game.repository';
 import { FindTacticalGameByIdUseCase } from './FindTacticalGameByIdUseCase';
 
 export class DeleteTacticalGameUseCase {

@@ -1,6 +1,7 @@
-import { PaginatedTacticalGames, TacticalGameSearchCriteria } from '../../../domain/entities/tactical-game.entity';
-import { Logger } from '../../../domain/ports/Logger';
-import { TacticalGameRepository } from '../../../domain/ports/TacticalGameRepository';
+import { Page } from '../../../domain/entities/page.entity';
+import { TacticalGame, TacticalGameSearchCriteria } from '../../../domain/entities/tactical-game.entity';
+import { Logger } from '../../../domain/ports/logger';
+import { TacticalGameRepository } from '../../../domain/ports/tactical-game.repository';
 
 export class FindTacticalGamesUseCase {
     constructor(
@@ -8,7 +9,7 @@ export class FindTacticalGamesUseCase {
         private readonly logger: Logger
     ) { }
 
-    async execute(criteria: TacticalGameSearchCriteria): Promise<PaginatedTacticalGames> {
+    async execute(criteria: TacticalGameSearchCriteria): Promise<Page<TacticalGame>> {
         this.logger.info(`Finding tactical games with criteria: ${JSON.stringify(criteria)}`);
 
         const result = await this.repository.find(criteria);

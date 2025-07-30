@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { AttackController } from '../controllers/AttackController';
-import { InitiativeController } from '../controllers/InitiativeController';
-import { TacticalActionController } from '../controllers/TacticalActionController';
-import { TacticalCharacterController } from '../controllers/TacticalCharacterController';
-import { TacticalGameController } from '../controllers/TacticalGameController';
+import { AttackController } from '../controllers/attack.controller';
+import { InitiativeController } from '../controllers/initiative.controller';
+import { TacticalActionController } from '../controllers/tactical-action.controller';
+import { TacticalCharacterController } from '../controllers/tactical-character.controller';
+import { TacticalGameController } from '../controllers/tactical-game.controller';
 
 export class ApiRoutes {
     private router: Router;

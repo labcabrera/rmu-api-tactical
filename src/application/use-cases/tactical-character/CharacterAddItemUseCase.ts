@@ -1,5 +1,5 @@
-import { Logger } from '../../../domain/ports/Logger';
-import { TacticalCharacterRepository } from '../../../domain/ports/TacticalCharacterRepository';
+import { Logger } from '../../../domain/ports/logger';
+import { TacticalCharacterRepository } from '../../../domain/ports/tactical-character.repository';
 
 export interface CharacterAddItemCommand {
     characterId: string;

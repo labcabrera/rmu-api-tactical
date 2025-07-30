@@ -1,11 +1,11 @@
-import { TacticalCharacterEntity } from '../../../entities/tactical-character.entity';
+import { TacticalCharacter } from '../../../entities/tactical-character.entity';
 
 export class SkillProcessor {
-    static process(character: TacticalCharacterEntity): void {
+    static process(character: TacticalCharacter): void {
         character.skills.forEach((skill: any) => this.updateSkill(character, skill));
     }
 
-    private static updateSkill(character: TacticalCharacterEntity, skill: any): void {
+    private static updateSkill(character: TacticalCharacter, skill: any): void {
         const ranks = skill.ranks;
         const statBonus = this.getStatBonus(character, skill.statistics);
         const racialBonus = skill.racialBonus || 0;
@@ -18,7 +18,7 @@ export class SkillProcessor {
         skill.totalBonus = totalBonus;
     }
 
-    private static getStatBonus(character: TacticalCharacterEntity, statistics: string[]): number {
+    private static getStatBonus(character: TacticalCharacter, statistics: string[]): number {
         let statBonus = 0;
         statistics?.forEach(stat => {
             const statValue = (character.statistics as any)[stat];

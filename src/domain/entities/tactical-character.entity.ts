@@ -1,4 +1,4 @@
-export interface TacticalCharacterEntity {
+export interface TacticalCharacter {
     id: string;
     gameId: string;
     name: string;
@@ -14,14 +14,7 @@ export interface TacticalCharacterEntity {
     skills: CharacterSkill[];
     items: CharacterItem[];
     equipment: CharacterEquipment;
-
-
     status?: string;
-    position?: {
-        x?: number;
-        y?: number;
-        z?: number;
-    };
     createdAt?: Date;
     updatedAt?: Date;
 }

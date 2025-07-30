@@ -1,9 +1,9 @@
 import { randomUUID } from 'crypto';
-import { CharacterEndurance, CharacterHP, CharacterInitiative, CharacterMovement, CharacterSkill, CharacterStatistics, CreateTacticalCharacterCommand, TacticalCharacterEntity } from '../../../domain/entities/tactical-character.entity';
-import { Logger } from '../../../domain/ports/Logger';
-import { TacticalCharacterRepository } from '../../../domain/ports/TacticalCharacterRepository';
-import { TacticalGameRepository } from '../../../domain/ports/TacticalGameRepository';
-import { CharacterProcessorService } from '../../../domain/services/CharacterProcessorService';
+import { CharacterEndurance, CharacterHP, CharacterInitiative, CharacterMovement, CharacterSkill, CharacterStatistics, CreateTacticalCharacterCommand, TacticalCharacter } from '../../../domain/entities/tactical-character.entity';
+import { Logger } from '../../../domain/ports/logger';
+import { TacticalCharacterRepository } from '../../../domain/ports/tactical-character.repository';
+import { TacticalGameRepository } from '../../../domain/ports/tactical-game.repository';
+import { CharacterProcessorService } from '../../../domain/services/character-processor.service';
 
 const API_CORE_URL = 'http://localhost:3001/v1';
 
@@ -16,7 +16,7 @@ export class CreateTacticalCharacterUseCase {
     ) { }
 
 
-    async execute(command: CreateTacticalCharacterCommand): Promise<TacticalCharacterEntity> {
+    async execute(command: CreateTacticalCharacterCommand): Promise<TacticalCharacter> {
         this.logger.info(`CreateTacticalCharacterUseCase: Creating tactical character: ${command.name} for game: ${command.gameId}`);
 
 
@@ -95,7 +95,7 @@ export class CreateTacticalCharacterUseCase {
             attackTable: item.attackTable,
             skillId: item.skillId
         })) : [];
-        const characterData: Omit<TacticalCharacterEntity, 'id'> = {
+        const characterData: Omit<TacticalCharacter, 'id'> = {
             gameId: command.gameId,
             name: command.name,
             faction: command.faction,
@@ -114,7 +114,7 @@ export class CreateTacticalCharacterUseCase {
         };
 
         // Cast characterData to TacticalCharacterEntity by assigning a temporary id
-        const tempCharacter: TacticalCharacterEntity = { id: randomUUID(), ...characterData };
+        const tempCharacter: TacticalCharacter = { id: randomUUID(), ...characterData };
         this.characterProcessorService.process(tempCharacter);
         this.loadDefaultEquipment(tempCharacter);
 
@@ -204,7 +204,7 @@ export class CreateTacticalCharacterUseCase {
         });
     }
 
-    loadDefaultEquipment(character: TacticalCharacterEntity): void {
+    loadDefaultEquipment(character: TacticalCharacter): void {
         const weapon = character.items.find(e => e.category === 'weapon');
         const shield = character.items.find(e => e.category === 'shield');
         const armor = character.items.find(e => e.category === 'armor');

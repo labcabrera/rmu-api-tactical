@@ -1,8 +1,7 @@
-export interface TacticalActionEntity {
+export interface TacticalAction {
     id: string;
-    tacticalGameId: string;
-    tacticalCharacterId: string;
-    characterId?: string; // For backward compatibility
+    gameId: string;
+    characterId: string;
     round: number;
     type: string;
     phaseStart?: string;
@@ -69,24 +68,5 @@ export interface TacticalActionSearchCriteria {
     offset?: number;
 }
 
-export interface CreateTacticalActionCommand {
-    tacticalGameId: string;
-    tacticalCharacterId: string;
-    characterId?: string;
-    round: number;
-    type: string;
-    phaseStart?: string;
-    actionPoints?: number;
-    attackInfo?: TacticalActionAttackInfo;
-    description?: string;
-}
 
-export interface UpdateTacticalActionCommand {
-    type?: string;
-    phaseStart?: string;
-    actionPoints?: number;
-    attackInfo?: TacticalActionAttackInfo;
-    attacks?: TacticalActionAttack[];
-    description?: string;
-    result?: TacticalActionResult;
-}
+
