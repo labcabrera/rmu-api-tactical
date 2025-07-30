@@ -1,0 +1,69 @@
+import {
+    CreateTacticalCharacterCommand,
+    TacticalCharacterEntity,
+    TacticalCharacterSearchCriteria,
+    UpdateTacticalCharacterCommand
+} from '../domain/entities/TacticalCharacter';
+import { Logger } from '../domain/ports/Logger';
+import { TacticalCharacterRepository } from '../domain/ports/TacticalCharacterRepository';
+import { TacticalGameRepository } from '../domain/ports/TacticalGameRepository';
+import { IPaginatedResponse } from '../types';
+import { CreateTacticalCharacterUseCase } from './use-cases/CreateTacticalCharacterUseCase';
+import { DeleteTacticalCharacterUseCase } from './use-cases/DeleteTacticalCharacterUseCase';
+import { UpdateTacticalCharacterUseCase } from './use-cases/UpdateTacticalCharacterUseCase';
+
+export class TacticalCharacterApplicationService {
+    private createTacticalCharacterUseCase: CreateTacticalCharacterUseCase;
+    private updateTacticalCharacterUseCase: UpdateTacticalCharacterUseCase;
+    private deleteTacticalCharacterUseCase: DeleteTacticalCharacterUseCase;
+
+    constructor(
+        private tacticalCharacterRepository: TacticalCharacterRepository,
+        private tacticalGameRepository: TacticalGameRepository,
+        private logger: Logger
+    ) {
+        this.createTacticalCharacterUseCase = new CreateTacticalCharacterUseCase(
+            tacticalCharacterRepository,
+            tacticalGameRepository,
+            logger
+        );
+        this.updateTacticalCharacterUseCase = new UpdateTacticalCharacterUseCase(
+            tacticalCharacterRepository,
+            logger
+        );
+        this.deleteTacticalCharacterUseCase = new DeleteTacticalCharacterUseCase(
+            tacticalCharacterRepository,
+            logger
+        );
+    }
+
+    async findById(id: string): Promise<TacticalCharacterEntity> {
+        this.logger.info(`Finding tactical character by id: ${id}`);
+
+        const character = await this.tacticalCharacterRepository.findById(id);
+        if (!character) {
+            const error = new Error('Tactical character not found');
+            (error as any).status = 404;
+            throw error;
+        }
+
+        return character;
+    }
+
+    async find(criteria: TacticalCharacterSearchCriteria): Promise<IPaginatedResponse<TacticalCharacterEntity>> {
+        this.logger.info(`Finding tactical characters with criteria: ${JSON.stringify(criteria)}`);
+        return await this.tacticalCharacterRepository.find(criteria);
+    }
+
+    async create(command: CreateTacticalCharacterCommand): Promise<TacticalCharacterEntity> {
+        return await this.createTacticalCharacterUseCase.execute(command);
+    }
+
+    async update(id: string, command: UpdateTacticalCharacterCommand): Promise<TacticalCharacterEntity> {
+        return await this.updateTacticalCharacterUseCase.execute(id, command);
+    }
+
+    async delete(id: string): Promise<void> {
+        return await this.deleteTacticalCharacterUseCase.execute(id);
+    }
+}

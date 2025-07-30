@@ -1,4 +1,4 @@
-import { CreateTacticalGameUseCase } from '../../application/use-cases/CreateTacticalGameUseCase';
+import { CreateTacticalGameUseCase } from '../../application/use-cases/tactical-game/CreateTacticalGameUseCase';
 import { CreateTacticalGameCommand, TacticalGame } from '../../domain/entities/TacticalGame';
 import { Logger } from '../../domain/ports/Logger';
 import { TacticalGameRepository } from '../../domain/ports/TacticalGameRepository';

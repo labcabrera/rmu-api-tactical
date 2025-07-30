@@ -1,6 +1,6 @@
-import { PaginatedTacticalGames, TacticalGameSearchCriteria } from '../../domain/entities/TacticalGame';
-import { Logger } from '../../domain/ports/Logger';
-import { TacticalGameRepository } from '../../domain/ports/TacticalGameRepository';
+import { PaginatedTacticalGames, TacticalGameSearchCriteria } from '../../../domain/entities/TacticalGame';
+import { Logger } from '../../../domain/ports/Logger';
+import { TacticalGameRepository } from '../../../domain/ports/TacticalGameRepository';
 
 export class FindTacticalGamesUseCase {
     constructor(

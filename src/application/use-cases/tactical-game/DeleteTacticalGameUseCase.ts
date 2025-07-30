@@ -1,5 +1,5 @@
-import { Logger } from '../../domain/ports/Logger';
-import { TacticalGameRepository } from '../../domain/ports/TacticalGameRepository';
+import { Logger } from '../../../domain/ports/Logger';
+import { TacticalGameRepository } from '../../../domain/ports/TacticalGameRepository';
 import { FindTacticalGameByIdUseCase } from './FindTacticalGameByIdUseCase';
 
 export class DeleteTacticalGameUseCase {
@@ -12,7 +12,7 @@ export class DeleteTacticalGameUseCase {
     async execute(id: string): Promise<void> {
         this.logger.info(`Deleting tactical game with ID: ${id}`);
 
-        // Verificar que el juego existe
+        //TODO not required
         await this.findByIdUseCase.execute(id);
 
         const deleted = await this.repository.delete(id);

@@ -1,9 +1,9 @@
 import { CreateTacticalGameCommand, PaginatedTacticalGames, TacticalGame, TacticalGameSearchCriteria, UpdateTacticalGameCommand } from '../domain/entities/TacticalGame';
-import { CreateTacticalGameUseCase } from './use-cases/CreateTacticalGameUseCase';
-import { DeleteTacticalGameUseCase } from './use-cases/DeleteTacticalGameUseCase';
-import { FindTacticalGameByIdUseCase } from './use-cases/FindTacticalGameByIdUseCase';
-import { FindTacticalGamesUseCase } from './use-cases/FindTacticalGamesUseCase';
-import { UpdateTacticalGameUseCase } from './use-cases/UpdateTacticalGameUseCase';
+import { CreateTacticalGameUseCase } from './use-cases/tactical-game/CreateTacticalGameUseCase';
+import { DeleteTacticalGameUseCase } from './use-cases/tactical-game/DeleteTacticalGameUseCase';
+import { FindTacticalGameByIdUseCase } from './use-cases/tactical-game/FindTacticalGameByIdUseCase';
+import { FindTacticalGamesUseCase } from './use-cases/tactical-game/FindTacticalGamesUseCase';
+import { UpdateTacticalGameUseCase } from './use-cases/tactical-game/UpdateTacticalGameUseCase';
 
 export class TacticalGameApplicationService {
     constructor(

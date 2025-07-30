@@ -1,6 +1,6 @@
-import { CreateTacticalGameCommand, TacticalGame } from '../../domain/entities/TacticalGame';
-import { Logger } from '../../domain/ports/Logger';
-import { TacticalGameRepository } from '../../domain/ports/TacticalGameRepository';
+import { CreateTacticalGameCommand, TacticalGame } from '../../../domain/entities/TacticalGame';
+import { Logger } from '../../../domain/ports/Logger';
+import { TacticalGameRepository } from '../../../domain/ports/TacticalGameRepository';
 
 export class CreateTacticalGameUseCase {
     constructor(

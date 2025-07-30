@@ -1,6 +1,6 @@
-import { TacticalGame, UpdateTacticalGameCommand } from '../../domain/entities/TacticalGame';
-import { Logger } from '../../domain/ports/Logger';
-import { TacticalGameRepository } from '../../domain/ports/TacticalGameRepository';
+import { TacticalGame, UpdateTacticalGameCommand } from '../../../domain/entities/TacticalGame';
+import { Logger } from '../../../domain/ports/Logger';
+import { TacticalGameRepository } from '../../../domain/ports/TacticalGameRepository';
 import { FindTacticalGameByIdUseCase } from './FindTacticalGameByIdUseCase';
 
 export class UpdateTacticalGameUseCase {
