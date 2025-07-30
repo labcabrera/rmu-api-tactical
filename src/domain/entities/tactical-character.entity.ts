@@ -93,6 +93,7 @@ export interface CharacterItem {
     category?: string;
     weapon?: CharacterItemWeapon;
     weaponRange?: CharacterItemWeaponRange;
+    armor?: CharacterItemArmor;
     info?: CharacterItemInfo;
 }
 
@@ -107,6 +108,15 @@ export interface CharacterItemWeapon {
 
 export interface CharacterItemWeaponRange {
     [key: string]: number;
+}
+
+export interface CharacterItemArmor {
+    slot: string;
+    armorType: number;
+    enc: number;
+    maneuver: number;
+    rangedPenalty: number;
+    perception: number;
 }
 
 export interface CharacterItemInfo {

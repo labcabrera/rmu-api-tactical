@@ -15,10 +15,10 @@ import { WinstonLogger } from './logger/logger';
 import { TacticalCharacterApplicationService } from '../application/tactical-character-application.service';
 import { TacticalGameApplicationService } from '../application/tactical-game-application.service';
 import { AddItemUseCase } from '../application/use-cases/tactical-character/add-item-use-case';
-import { CharacterEquipItemUseCase } from '../application/use-cases/tactical-character/CharacterEquipItemUseCase';
 import { CreateTacticalCharacterUseCase } from '../application/use-cases/tactical-character/create-tactical-character-use-case';
 import { DeleteItemUseCase } from '../application/use-cases/tactical-character/delete-item-use-case';
 import { DeleteTacticalCharacterUseCase } from '../application/use-cases/tactical-character/DeleteTacticalCharacterUseCase';
+import { CharacterEquipItemUseCase } from '../application/use-cases/tactical-character/equip-item-use-case';
 import { FindTacticalCharactersUseCase } from '../application/use-cases/tactical-character/find-tactical-character-use-case';
 import { UpdateCharacterInitiativeUseCase } from '../application/use-cases/tactical-character/UpdateCharacterInitiativeUseCase';
 import { UpdateTacticalCharacterUseCase } from '../application/use-cases/tactical-character/UpdateTacticalCharacterUseCase';
@@ -54,11 +54,11 @@ export class DependencyContainer {
     private readonly _updateTacticalCharacterUseCase: UpdateTacticalCharacterUseCase;
     private readonly _deleteTacticalCharacterUseCase: DeleteTacticalCharacterUseCase;
     private readonly _updateCharacterInitiativeUseCase: UpdateCharacterInitiativeUseCase;
-    private readonly _characterEquipItemUseCase: CharacterEquipItemUseCase;
-    private readonly _characterAddItemUseCase: AddItemUseCase;
     private readonly _findTacticalCharacterUseCase!: FindTacticalCharactersUseCase;
-    private readonly _deleteItemUseCase: DeleteItemUseCase;
+
     private readonly _addItemUseCase!: AddItemUseCase;
+    private readonly _deleteItemUseCase: DeleteItemUseCase;
+    private readonly _equipItemUseCase: CharacterEquipItemUseCase;
     
 
     // Application Services
@@ -134,32 +134,31 @@ export class DependencyContainer {
             this._logger
         );
 
-        this._characterEquipItemUseCase = new CharacterEquipItemUseCase(
+        this._equipItemUseCase = new CharacterEquipItemUseCase(
             this._tacticalCharacterRepository,
             this._characterProcessorService,
             this._logger
         );
 
-        this._characterAddItemUseCase = new AddItemUseCase(
-            this._tacticalCharacterRepository,
-            this._logger
-        );
-
-        this._deleteItemUseCase = new DeleteItemUseCase(
-            this._tacticalCharacterRepository,
-            this._logger
-        );
-
+        
         this._findTacticalCharacterUseCase = new FindTacticalCharactersUseCase(
             this._tacticalCharacterRepository,
             this._logger
-        );
-
+        );        
         this._addItemUseCase = new AddItemUseCase(
             this._tacticalCharacterRepository,
             this._logger
         );
-
+        this._deleteItemUseCase = new DeleteItemUseCase(
+            this._tacticalCharacterRepository,
+            this._logger
+        );
+        this._equipItemUseCase = new CharacterEquipItemUseCase(
+            this._tacticalCharacterRepository,
+            this._characterProcessorService,
+            this._logger
+        );
+        
         // Configure application services
         this._tacticalGameApplicationService = new TacticalGameApplicationService(
             this._createTacticalGameUseCase,
@@ -259,14 +258,9 @@ export class DependencyContainer {
     }
 
     get characterEquipItemUseCase(): CharacterEquipItemUseCase {
-        return this._characterEquipItemUseCase;
+        return this._equipItemUseCase;
     }
 
-    get characterAddItemUseCase(): AddItemUseCase {
-        return this._characterAddItemUseCase;
-    }
-
-    
     get findTacticalCharacterUseCase(): FindTacticalCharactersUseCase {
         return this._findTacticalCharacterUseCase;
     }
@@ -277,5 +271,9 @@ export class DependencyContainer {
 
     get deleteItemUseCase(): DeleteItemUseCase {
         return this._deleteItemUseCase;
+    }
+
+    get equipItemUseCase(): CharacterEquipItemUseCase {
+        return this._equipItemUseCase;
     }
 }

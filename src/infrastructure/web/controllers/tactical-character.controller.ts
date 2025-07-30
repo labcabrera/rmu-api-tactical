@@ -1,8 +1,10 @@
 import express, { Request, Response, Router } from 'express';
 import { CharacterAddItemCommand } from '../../../application/commands/add-item.comand';
+import { EquipItemCommand } from '../../../application/commands/equip-item-command';
 import { TacticalCharacterApplicationService } from '../../../application/tactical-character-application.service';
 import { AddItemUseCase } from '../../../application/use-cases/tactical-character/add-item-use-case';
 import { DeleteItemUseCase } from '../../../application/use-cases/tactical-character/delete-item-use-case';
+import { CharacterEquipItemUseCase } from '../../../application/use-cases/tactical-character/equip-item-use-case';
 import { FindTacticalCharactersUseCase } from '../../../application/use-cases/tactical-character/find-tactical-character-use-case';
 import {
     CreateTacticalCharacterCommand
@@ -25,6 +27,7 @@ export class TacticalCharacterController {
     private findCharacterUseCase: FindTacticalCharactersUseCase;
     private addItemUseCase: AddItemUseCase;
     private deleteItemUseCase: DeleteItemUseCase;
+    private equipItemUseCase: CharacterEquipItemUseCase;
     private logger: Logger;
 
     constructor() {
@@ -32,8 +35,9 @@ export class TacticalCharacterController {
         const container = DependencyContainer.getInstance();
         this.tacticalCharacterApplicationService = container.tacticalCharacterApplicationService;
         this.findCharacterUseCase = container.findTacticalCharacterUseCase;
-        this.addItemUseCase = container.characterAddItemUseCase;
+        this.addItemUseCase = container.addItemUseCase;
         this.deleteItemUseCase = container.deleteItemUseCase;
+        this.equipItemUseCase = container.equipItemUseCase;
         this.logger = container.logger;
         this.initializeRoutes();
     }
@@ -46,6 +50,7 @@ export class TacticalCharacterController {
         this.router.delete('/:characterId', this.deleteCharacter.bind(this));
         this.router.post('/:characterId/items', this.addItem.bind(this));
         this.router.delete('/:characterId/items/:itemId', this.deleteItem.bind(this));
+        this.router.post('/:characterId/equipment', this.equipItem.bind(this));
     }
 
     private async findCharacters(req: Request<{}, {}, {}, CharacterQuery>, res: Response): Promise<void> {
@@ -144,10 +149,9 @@ export class TacticalCharacterController {
 
     private async addItem(req: Request, res: Response): Promise<void> {
         try {
-            const characterId: string = req.params.characterId!;
-            this.logger.info(`Adding item to character << ${characterId}`);
+            this.logger.info(`Adding item to character << ${req.params.characterId}`);
             const command: CharacterAddItemCommand = {
-                characterId,
+                characterId: req.params.characterId!,
                 item: req.body
             };
             const character = await this.addItemUseCase.execute(command);
@@ -160,12 +164,29 @@ export class TacticalCharacterController {
 
     private async deleteItem(req: Request, res: Response): Promise<void> {
         try {
+            this.logger.info(`Deleting item from character << ${req.params.characterId}`);
             const characterId: string = req.params.characterId!;
             const itemId: string = req.params.itemId!;
             const character = await this.deleteItemUseCase.execute(characterId, itemId);
             res.json(character);
         } catch (error: any) {
             this.logger.error(`Error adding item to tactical character ${req.params.characterId}: ${error.message}`);
+            res.status(error.status ? error.status : 500).json({ message: error.message });
+        }
+    }
+
+    private async equipItem(req: Request, res: Response): Promise<void> {
+        try {
+            this.logger.info(`Equipping item to character << ${req.params.characterId}`);
+            const command: EquipItemCommand = {
+                characterId: req.params.characterId!,
+                itemId: req.body.itemId!,
+                slot: req.body.slot!
+            };
+            const character = await this.equipItemUseCase.execute(command);
+            res.json(character);
+        } catch (error: any) {
+            this.logger.error(`Error equipping item to tactical character ${req.params.characterId}: ${error.message}`);
             res.status(error.status ? error.status : 500).json({ message: error.message });
         }
     }
