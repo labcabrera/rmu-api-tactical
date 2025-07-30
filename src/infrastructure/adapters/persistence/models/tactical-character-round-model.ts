@@ -1,7 +1,7 @@
 import mongoose, { Schema } from 'mongoose';
-import { TacticalCharacterRoundModel } from '../../../../types';
+import { TacticalCharacterRoundDocument } from '../types';
 
-const tacticalCharacterRoundSchema: Schema<TacticalCharacterRoundModel> = new mongoose.Schema({
+const tacticalCharacterRoundSchema: Schema<TacticalCharacterRoundDocument> = new mongoose.Schema({
     gameId: {
         type: String,
         required: true
@@ -27,6 +27,6 @@ const tacticalCharacterRoundSchema: Schema<TacticalCharacterRoundModel> = new mo
     collection: "tactical-character-rounds"
 });
 
-const TacticalCharacterRoundDocument = mongoose.model<TacticalCharacterRoundModel>('TacticalCharacterRound', tacticalCharacterRoundSchema);
+const TacticalCharacterRoundDocument = mongoose.model<TacticalCharacterRoundDocument>('TacticalCharacterRound', tacticalCharacterRoundSchema);
 
 export default TacticalCharacterRoundDocument;

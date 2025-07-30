@@ -1,4 +1,4 @@
-import { TacticalCharacterEntity } from '../entities/TacticalCharacter';
+import { TacticalCharacterEntity } from '../entities/tactical-character.entity';
 import { Logger } from '../ports/Logger';
 import { AttackProcessor } from './character/processors/AttackProcessor';
 import { InitiativeProcessor } from './character/processors/InitiativeProcessor';
@@ -19,7 +19,7 @@ export class CharacterProcessorService {
      * @param character - The tactical character to process
      */
     process(character: TacticalCharacterEntity): void {
-        this.logger.info(`Processing character: ${character.name} (${character.id})`);
+        this.logger.info(`CharacterProcessorService: Processing character: ${character.name} (${character.id})`);
 
         try {
             // Process character attributes in order
@@ -28,9 +28,9 @@ export class CharacterProcessorService {
             SkillProcessor.process(character);
             AttackProcessor.process(character);
 
-            this.logger.info(`Successfully processed character: ${character.name}`);
+            this.logger.info(`CharacterProcessorService: Successfully processed character: ${character.name}`);
         } catch (error) {
-            this.logger.error(`Error processing character ${character.name}: ${error}`);
+            this.logger.error(`CharacterProcessorService: Error processing character ${character.name}: ${error}`);
             throw error;
         }
     }

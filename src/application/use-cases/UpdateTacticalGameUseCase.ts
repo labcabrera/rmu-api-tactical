@@ -1,8 +1,7 @@
-import { TacticalGame } from '../../../domain/entities/tactical-game.entity';
-import { Logger } from '../../../domain/ports/Logger';
-import { TacticalGameRepository } from '../../../domain/ports/TacticalGameRepository';
-import { UpdateTacticalGameCommand } from '../../commands/UpdateTacticalGameCommand';
-import { FindTacticalGameByIdUseCase } from './FindTacticalGameByIdUseCase';
+import { TacticalGame, UpdateTacticalGameCommand } from '../../domain/entities/tactical-game.entity';
+import { Logger } from '../../domain/ports/Logger';
+import { TacticalGameRepository } from '../../domain/ports/TacticalGameRepository';
+import { FindTacticalGameByIdUseCase } from './tactical-game/FindTacticalGameByIdUseCase';
 
 export class UpdateTacticalGameUseCase {
     constructor(

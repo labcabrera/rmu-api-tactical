@@ -1,9 +1,9 @@
+import { UpdateTacticalGameCommand } from '../../application/commands/UpdateTacticalGameCommand';
 import {
     PaginatedTacticalGames,
     TacticalGame,
-    TacticalGameSearchCriteria,
-    UpdateTacticalGameCommand
-} from '../entities/TacticalGame';
+    TacticalGameSearchCriteria
+} from '../entities/tactical-game.entity';
 import { Logger } from '../ports/Logger';
 import { TacticalGameRepository } from '../ports/TacticalGameRepository';
 

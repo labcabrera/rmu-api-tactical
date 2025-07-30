@@ -1,9 +1,9 @@
-import { IPaginatedResponse } from '../../types';
-import { TacticalActionEntity, TacticalActionSearchCriteria } from '../entities/TacticalAction';
+import { Page } from '../entities/page.entity';
+import { TacticalActionEntity, TacticalActionSearchCriteria } from '../entities/tactical-action.entity';
 
 export interface TacticalActionRepository {
     findById(id: string): Promise<TacticalActionEntity | null>;
-    find(criteria: TacticalActionSearchCriteria): Promise<IPaginatedResponse<TacticalActionEntity>>;
+    find(criteria: TacticalActionSearchCriteria): Promise<Page<TacticalActionEntity>>;
     findByGameId(gameId: string): Promise<TacticalActionEntity[]>;
     findByGameIdAndRound(gameId: string, round: number): Promise<TacticalActionEntity[]>;
     findByCharacterId(characterId: string): Promise<TacticalActionEntity[]>;

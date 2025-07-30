@@ -1,13 +1,13 @@
 import express, { Request, Response, Router } from 'express';
+import { CreateTacticalGameCommand } from '../../../application/commands/CreateTacticalGameCommand';
+import { UpdateTacticalGameCommand } from '../../../application/commands/UpdateTacticalGameCommand';
 import { TacticalGameApplicationService } from '../../../application/TacticalGameApplicationService';
 import {
-    CreateTacticalGameCommand,
-    TacticalGameSearchCriteria,
-    UpdateTacticalGameCommand
-} from '../../../domain/entities/TacticalGame';
+    TacticalGameSearchCriteria
+} from '../../../domain/entities/tactical-game.entity';
 import { Logger } from '../../../domain/ports/Logger';
-import errorService from "../../../services/error-service";
 import { DependencyContainer } from '../../DependencyContainer';
+import { ErrorHandler } from '../ErrorHandler';
 
 export class TacticalGameController {
     private router: Router;
@@ -52,7 +52,7 @@ export class TacticalGameController {
             res.json(response);
         } catch (error) {
             this.logger.error(`Error finding tactical games: ${(error as Error).message}`);
-            errorService.sendErrorResponse(res, error as Error);
+            ErrorHandler.sendErrorResponse(res, error as Error);
         }
     }
 

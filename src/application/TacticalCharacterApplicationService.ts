@@ -1,14 +1,14 @@
+import { Page } from '../domain/entities/page.entity';
 import {
     CreateTacticalCharacterCommand,
     TacticalCharacterEntity,
     TacticalCharacterSearchCriteria,
     UpdateTacticalCharacterCommand
-} from '../domain/entities/TacticalCharacter';
+} from '../domain/entities/tactical-character.entity';
 import { Logger } from '../domain/ports/Logger';
 import { TacticalCharacterRepository } from '../domain/ports/TacticalCharacterRepository';
 import { TacticalGameRepository } from '../domain/ports/TacticalGameRepository';
 import { CharacterProcessorService } from '../domain/services/CharacterProcessorService';
-import { IPaginatedResponse } from '../types';
 import { CreateTacticalCharacterUseCase } from './use-cases/tactical-character/CreateTacticalCharacterUseCase';
 import { DeleteTacticalCharacterUseCase } from './use-cases/tactical-character/DeleteTacticalCharacterUseCase';
 import { UpdateTacticalCharacterUseCase } from './use-cases/tactical-character/UpdateTacticalCharacterUseCase';
@@ -53,7 +53,7 @@ export class TacticalCharacterApplicationService {
         return character;
     }
 
-    async find(criteria: TacticalCharacterSearchCriteria): Promise<IPaginatedResponse<TacticalCharacterEntity>> {
+    async find(criteria: TacticalCharacterSearchCriteria): Promise<Page<TacticalCharacterEntity>> {
         this.logger.info(`Finding tactical characters with criteria: ${JSON.stringify(criteria)}`);
         return await this.tacticalCharacterRepository.find(criteria);
     }

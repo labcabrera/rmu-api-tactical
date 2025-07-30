@@ -1,5 +1,5 @@
 import express, { Request, Response, Router } from 'express';
-import errorService from "../../../services/error-service";
+import { ErrorHandler } from '../ErrorHandler';
 import { DependencyContainer } from '../../DependencyContainer';
 
 export class InitiativeController {
@@ -30,7 +30,7 @@ export class InitiativeController {
             const result = await updateCharacterInitiativeUseCase.execute(command);
             res.json(result);
         } catch (error) {
-            errorService.sendErrorResponse(res, error as Error);
+            ErrorHandler.sendErrorResponse(res, error as Error);
         }
     }
 

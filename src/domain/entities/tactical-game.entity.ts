@@ -10,18 +10,6 @@ export interface TacticalGame {
     updatedAt?: Date;
 }
 
-export interface CreateTacticalGameCommand {
-    user: string;
-    name: string;
-    description?: string;
-    factions?: string[];
-}
-
-export interface UpdateTacticalGameCommand {
-    name?: string;
-    description?: string;
-}
-
 export interface TacticalGameSearchCriteria {
     searchExpression?: string;
     username?: string;

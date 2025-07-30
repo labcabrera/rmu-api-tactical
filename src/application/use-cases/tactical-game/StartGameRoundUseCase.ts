@@ -1,5 +1,5 @@
-import { TacticalCharacterEntity } from '../../../domain/entities/TacticalCharacter';
-import { TacticalGame } from '../../../domain/entities/TacticalGame';
+import { TacticalCharacterEntity } from '../../../domain/entities/tactical-character.entity';
+import { TacticalGame } from '../../../domain/entities/tactical-game.entity';
 import { Logger } from '../../../domain/ports/Logger';
 import { TacticalCharacterRepository } from '../../../domain/ports/TacticalCharacterRepository';
 import { TacticalGameRepository } from '../../../domain/ports/TacticalGameRepository';

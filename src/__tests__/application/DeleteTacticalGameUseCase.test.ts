@@ -1,6 +1,6 @@
 import { DeleteTacticalGameUseCase } from '../../application/use-cases/tactical-game/DeleteTacticalGameUseCase';
 import { FindTacticalGameByIdUseCase } from '../../application/use-cases/tactical-game/FindTacticalGameByIdUseCase';
-import { TacticalGame } from '../../domain/entities/TacticalGame';
+import { TacticalGame } from '../../domain/entities/tactical-game.entity';
 import { Logger } from '../../domain/ports/Logger';
 import { TacticalGameRepository } from '../../domain/ports/TacticalGameRepository';
 

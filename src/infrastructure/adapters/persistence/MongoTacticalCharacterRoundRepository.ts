@@ -1,6 +1,6 @@
-import { TacticalCharacterRoundEntity, TacticalCharacterRoundSearchCriteria } from '../../../domain/entities/TacticalCharacterRound';
+import { Page } from '../../../domain/entities/page.entity';
+import { TacticalCharacterRoundEntity, TacticalCharacterRoundSearchCriteria } from '../../../domain/entities/tactical-character-round.entity';
 import { TacticalCharacterRoundRepository } from '../../../domain/ports/TacticalCharacterRoundRepository';
-import { IPaginatedResponse } from '../../../types';
 import TacticalCharacterRoundDocument from './models/tactical-character-round-model';
 
 export class MongoTacticalCharacterRoundRepository implements TacticalCharacterRoundRepository {
@@ -9,7 +9,7 @@ export class MongoTacticalCharacterRoundRepository implements TacticalCharacterR
         return characterRound ? this.toEntity(characterRound) : null;
     }
 
-    async find(criteria: TacticalCharacterRoundSearchCriteria): Promise<IPaginatedResponse<TacticalCharacterRoundEntity>> {
+    async find(criteria: TacticalCharacterRoundSearchCriteria): Promise<Page<TacticalCharacterRoundEntity>> {
         let filter: any = {};
 
         if (criteria.gameId) {

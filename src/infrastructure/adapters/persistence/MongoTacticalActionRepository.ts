@@ -1,7 +1,7 @@
-import { TacticalActionEntity, TacticalActionSearchCriteria } from '../../../domain/entities/TacticalAction';
+import { Page } from '../../../domain/entities/page.entity';
+import { TacticalActionEntity, TacticalActionSearchCriteria } from '../../../domain/entities/tactical-action.entity';
 import { TacticalActionRepository } from '../../../domain/ports/TacticalActionRepository';
 import TacticalActionDocument from './models/tactical-action-model';
-import { IPaginatedResponse } from '../../../types';
 
 export class MongoTacticalActionRepository implements TacticalActionRepository {
     async findById(id: string): Promise<TacticalActionEntity | null> {
@@ -9,9 +9,9 @@ export class MongoTacticalActionRepository implements TacticalActionRepository {
         return action ? this.toEntity(action) : null;
     }
 
-    async find(criteria: TacticalActionSearchCriteria): Promise<IPaginatedResponse<TacticalActionEntity>> {
+    async find(criteria: TacticalActionSearchCriteria): Promise<Page<TacticalActionEntity>> {
         let filter: any = {};
-        
+
         if (criteria.tacticalGameId) {
             filter.tacticalGameId = criteria.tacticalGameId;
         }
@@ -64,42 +64,42 @@ export class MongoTacticalActionRepository implements TacticalActionRepository {
     }
 
     async findByGameId(gameId: string): Promise<TacticalActionEntity[]> {
-        const actions = await TacticalActionDocument.find({ 
-            tacticalGameId: gameId 
+        const actions = await TacticalActionDocument.find({
+            tacticalGameId: gameId
         }).sort({ round: 1, createdAt: -1 });
-        
+
         return actions.map(action => this.toEntity(action));
     }
 
     async findByGameIdAndRound(gameId: string, round: number): Promise<TacticalActionEntity[]> {
-        const actions = await TacticalActionDocument.find({ 
-            tacticalGameId: gameId, 
-            round: round 
+        const actions = await TacticalActionDocument.find({
+            tacticalGameId: gameId,
+            round: round
         }).sort({ createdAt: -1 });
-        
+
         return actions.map(action => this.toEntity(action));
     }
 
     async findByCharacterId(characterId: string): Promise<TacticalActionEntity[]> {
-        const actions = await TacticalActionDocument.find({ 
+        const actions = await TacticalActionDocument.find({
             $or: [
                 { tacticalCharacterId: characterId },
                 { characterId: characterId }
             ]
         }).sort({ round: 1, createdAt: -1 });
-        
+
         return actions.map(action => this.toEntity(action));
     }
 
     async findByCharacterIdAndRound(characterId: string, round: number): Promise<TacticalActionEntity[]> {
-        const actions = await TacticalActionDocument.find({ 
+        const actions = await TacticalActionDocument.find({
             $or: [
                 { tacticalCharacterId: characterId },
                 { characterId: characterId }
             ],
-            round: round 
+            round: round
         }).sort({ createdAt: -1 });
-        
+
         return actions.map(action => this.toEntity(action));
     }
 
@@ -129,7 +129,7 @@ export class MongoTacticalActionRepository implements TacticalActionRepository {
     }
 
     async deleteByCharacterId(characterId: string): Promise<number> {
-        const result = await TacticalActionDocument.deleteMany({ 
+        const result = await TacticalActionDocument.deleteMany({
             $or: [
                 { tacticalCharacterId: characterId },
                 { characterId: characterId }

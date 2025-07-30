@@ -2,7 +2,7 @@ import {
     PaginatedTacticalGames,
     TacticalGame,
     TacticalGameSearchCriteria
-} from '../../../domain/entities/TacticalGame';
+} from '../../../domain/entities/tactical-game.entity';
 import { TacticalGameRepository } from '../../../domain/ports/TacticalGameRepository';
 import TacticalGameModel from './models/tactical-game-model';
 

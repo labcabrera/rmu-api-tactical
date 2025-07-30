@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { CharacterEndurance, CharacterHP, CharacterInitiative, CharacterMovement, CharacterSkill, CharacterStatistics, CreateTacticalCharacterCommand, TacticalCharacterEntity } from '../../../domain/entities/TacticalCharacter';
+import { CharacterEndurance, CharacterHP, CharacterInitiative, CharacterMovement, CharacterSkill, CharacterStatistics, CreateTacticalCharacterCommand, TacticalCharacterEntity } from '../../../domain/entities/tactical-character.entity';
 import { Logger } from '../../../domain/ports/Logger';
 import { TacticalCharacterRepository } from '../../../domain/ports/TacticalCharacterRepository';
 import { TacticalGameRepository } from '../../../domain/ports/TacticalGameRepository';

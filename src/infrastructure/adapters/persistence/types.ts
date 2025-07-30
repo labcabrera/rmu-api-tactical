@@ -1,6 +1,8 @@
 import { Document } from 'mongoose';
 
-export interface TacticalGameModel extends Document {
+// Mongoose Document Models for Infrastructure Layer
+
+export interface TacticalGameDocument extends Document {
   name: string;
   user: string;
   status?: string;
@@ -12,7 +14,7 @@ export interface TacticalGameModel extends Document {
   updatedAt?: Date;
 }
 
-export interface TacticalCharacterModel extends Document {
+export interface TacticalCharacterDocument extends Document {
   gameId: string;
   name: string;
   faction?: string;
@@ -27,7 +29,7 @@ export interface TacticalCharacterModel extends Document {
   updatedAt?: Date;
 }
 
-export interface TacticalActionModel extends Document {
+export interface TacticalActionDocument extends Document {
   tacticalGameId: string;
   round: number;
   tacticalCharacterId: string;
@@ -43,7 +45,7 @@ export interface TacticalActionModel extends Document {
   updatedAt?: Date;
 }
 
-export interface TacticalCharacterRoundModel extends Document {
+export interface TacticalCharacterRoundDocument extends Document {
   gameId: string;
   round: number;
   tacticalCharacterId: string;
@@ -53,6 +55,7 @@ export interface TacticalCharacterRoundModel extends Document {
   updatedAt?: Date;
 }
 
+// Supporting interfaces for Document models
 export interface IPosition {
   x: number;
   y: number;
@@ -70,35 +73,4 @@ export interface IEquipment {
   type: string;
   equipped: boolean;
   properties?: any;
-}
-
-export interface ICharacterRound extends Document {
-  gameId: string;
-  characterId: string;
-  round: number;
-  initiative?: number;
-  actions?: string[];
-  status?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-
-export interface IApiError extends Error {
-  status?: number;
-  code?: string;
-}
-
-export interface IApiResponse<T = any> {
-  code?: string;
-  message?: string;
-  data?: T;
-  timestamp?: string;
-}
-
-export interface IPaginatedResponse<T = any> {
-  content: T[];
-  page: number;
-  size: number;
-  total: number;
-  totalPages: number;
 }

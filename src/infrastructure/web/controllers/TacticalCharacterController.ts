@@ -4,10 +4,10 @@ import {
     CreateTacticalCharacterCommand,
     TacticalCharacterSearchCriteria,
     UpdateTacticalCharacterCommand
-} from '../../../domain/entities/TacticalCharacter';
+} from '../../../domain/entities/tactical-character.entity';
 import { Logger } from '../../../domain/ports/Logger';
-import errorService from "../../../services/error-service";
 import { DependencyContainer } from '../../DependencyContainer';
+import { ErrorHandler } from '../ErrorHandler';
 
 interface CharacterQuery {
     search?: string;
@@ -62,7 +62,7 @@ export class TacticalCharacterController {
             res.json(response);
         } catch (error) {
             this.logger.error(`TacticalCharacterController: Error finding tactical characters: ${(error as Error).message}`);
-            errorService.sendErrorResponse(res, error as Error);
+            ErrorHandler.sendErrorResponse(res, error as Error);
         }
     }
 

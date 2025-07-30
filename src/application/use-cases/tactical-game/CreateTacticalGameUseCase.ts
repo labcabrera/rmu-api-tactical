@@ -1,6 +1,7 @@
-import { CreateTacticalGameCommand, TacticalGame } from '../../../domain/entities/TacticalGame';
+import { TacticalGame } from '../../../domain/entities/tactical-game.entity';
 import { Logger } from '../../../domain/ports/Logger';
 import { TacticalGameRepository } from '../../../domain/ports/TacticalGameRepository';
+import { CreateTacticalGameCommand } from '../../commands/CreateTacticalGameCommand';
 
 export class CreateTacticalGameUseCase {
     constructor(
@@ -20,10 +21,11 @@ export class CreateTacticalGameUseCase {
         const newGame: TacticalGame = {
             user: command.user,
             name: command.name,
-            ...(command.description && { description: command.description }),
+            description: command.description,
             status: 'created',
             factions,
-            round: 0
+            round: 0,
+            createdAt: new Date(),
         };
 
         const savedGame = await this.repository.save(newGame);

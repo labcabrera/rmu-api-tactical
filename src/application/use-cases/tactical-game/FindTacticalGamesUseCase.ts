@@ -1,4 +1,4 @@
-import { PaginatedTacticalGames, TacticalGameSearchCriteria } from '../../../domain/entities/TacticalGame';
+import { PaginatedTacticalGames, TacticalGameSearchCriteria } from '../../../domain/entities/tactical-game.entity';
 import { Logger } from '../../../domain/ports/Logger';
 import { TacticalGameRepository } from '../../../domain/ports/TacticalGameRepository';
 

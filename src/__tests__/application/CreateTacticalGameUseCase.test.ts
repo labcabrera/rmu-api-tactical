@@ -1,5 +1,6 @@
+import { CreateTacticalGameCommand } from '../../application/commands/CreateTacticalGameCommand';
 import { CreateTacticalGameUseCase } from '../../application/use-cases/tactical-game/CreateTacticalGameUseCase';
-import { CreateTacticalGameCommand, TacticalGame } from '../../domain/entities/TacticalGame';
+import { TacticalGame } from '../../domain/entities/tactical-game.entity';
 import { Logger } from '../../domain/ports/Logger';
 import { TacticalGameRepository } from '../../domain/ports/TacticalGameRepository';
 

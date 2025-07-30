@@ -2,7 +2,7 @@ import {
     PaginatedTacticalGames,
     TacticalGame,
     TacticalGameSearchCriteria
-} from '../entities/TacticalGame';
+} from '../entities/tactical-game.entity';
 
 export interface TacticalGameRepository {
 

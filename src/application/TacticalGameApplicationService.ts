@@ -1,4 +1,6 @@
-import { CreateTacticalGameCommand, PaginatedTacticalGames, TacticalGame, TacticalGameSearchCriteria, UpdateTacticalGameCommand } from '../domain/entities/TacticalGame';
+import { PaginatedTacticalGames, TacticalGame, TacticalGameSearchCriteria } from '../domain/entities/tactical-game.entity';
+import { CreateTacticalGameCommand } from './commands/CreateTacticalGameCommand';
+import { UpdateTacticalGameCommand } from './commands/UpdateTacticalGameCommand';
 import { CreateTacticalGameUseCase } from './use-cases/tactical-game/CreateTacticalGameUseCase';
 import { DeleteTacticalGameUseCase } from './use-cases/tactical-game/DeleteTacticalGameUseCase';
 import { FindTacticalGameByIdUseCase } from './use-cases/tactical-game/FindTacticalGameByIdUseCase';

@@ -1,4 +1,4 @@
-import { TacticalCharacterEntity, UpdateTacticalCharacterCommand } from '../../../domain/entities/TacticalCharacter';
+import { TacticalCharacterEntity, UpdateTacticalCharacterCommand } from '../../../domain/entities/tactical-character.entity';
 import { Logger } from '../../../domain/ports/Logger';
 import { TacticalCharacterRepository } from '../../../domain/ports/TacticalCharacterRepository';
 
