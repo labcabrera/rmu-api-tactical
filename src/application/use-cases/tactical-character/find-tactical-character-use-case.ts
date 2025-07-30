@@ -11,9 +11,8 @@ export class FindTacticalCharactersUseCase {
     ) { }
 
     async execute(criteria: TacticalCharacterQuery): Promise<Page<TacticalCharacter>> {
-        this.logger.info(`FindTacticalGamesUseCase: Finding tactical characters with criteria: ${JSON.stringify(criteria)}`);
-        const result = await this.repository.find(criteria);
-        this.logger.info(`FindTacticalGamesUseCase: Found ${result.total} tactical characters`);
-        return result;
+        this.logger.info(`FindTacticalCharactersUseCase: Finding tactical characters with criteria: ${JSON.stringify(criteria)}`);
+        return await this.repository.find(criteria);
     }
+
 }

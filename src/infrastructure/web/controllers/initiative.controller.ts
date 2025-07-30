@@ -1,5 +1,5 @@
 import express, { Request, Response, Router } from 'express';
-import { DependencyContainer } from '../../DependencyContainer';
+import { DependencyContainer } from '../../dependency-container';
 import { ErrorHandler } from '../ErrorHandler';
 
 export class InitiativeController {

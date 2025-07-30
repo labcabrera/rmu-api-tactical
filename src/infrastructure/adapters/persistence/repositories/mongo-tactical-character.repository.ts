@@ -5,9 +5,13 @@ import { TacticalCharacterQuery } from '../../../../domain/queries/tactical-char
 import TacticalCharacterDocument from './../models/tactical-character-model';
 
 export class MongoTacticalCharacterRepository implements TacticalCharacterRepository {
-    async findById(id: string): Promise<TacticalCharacter | null> {
+
+    async findById(id: string): Promise<TacticalCharacter> {
         const character = await TacticalCharacterDocument.findById(id);
-        return character ? this.toEntity(character) : null;
+        if (!character) {
+            throw new Error(`Tactical character not found: ${id}`);
+        }
+        return this.toEntity(character);
     }
 
     async find(criteria: TacticalCharacterQuery): Promise<Page<TacticalCharacter>> {
@@ -41,9 +45,12 @@ export class MongoTacticalCharacterRepository implements TacticalCharacterReposi
         return this.toEntity(savedCharacter);
     }
 
-    async update(id: string, character: Partial<TacticalCharacter>): Promise<TacticalCharacter | null> {
+    async update(id: string, character: Partial<TacticalCharacter>): Promise<TacticalCharacter> {
         const updatedCharacter = await TacticalCharacterDocument.findByIdAndUpdate(id, character, { new: true });
-        return updatedCharacter ? this.toEntity(updatedCharacter) : null;
+        if(!updatedCharacter) {
+            throw new Error(`Tactical Character with id ${id} not found`);
+        }
+        return this.toEntity(updatedCharacter);
     }
 
     async delete(id: string): Promise<boolean> {

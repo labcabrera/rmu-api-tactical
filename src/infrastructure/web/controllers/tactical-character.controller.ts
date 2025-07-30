@@ -1,13 +1,15 @@
 import express, { Request, Response, Router } from 'express';
+import { CharacterAddItemCommand } from '../../../application/commands/add-item.comand';
 import { TacticalCharacterApplicationService } from '../../../application/tactical-character-application.service';
-import { FindTacticalGamesUseCase } from '../../../application/use-cases/tactical-game/find-tactical-games-use-case';
+import { AddItemUseCase } from '../../../application/use-cases/tactical-character/add-item-use-case';
+import { DeleteItemUseCase } from '../../../application/use-cases/tactical-character/delete-item-use-case';
+import { FindTacticalCharactersUseCase } from '../../../application/use-cases/tactical-character/find-tactical-character-use-case';
 import {
-    CreateTacticalCharacterCommand,
-    UpdateTacticalCharacterCommand
+    CreateTacticalCharacterCommand
 } from '../../../domain/entities/tactical-character.entity';
 import { Logger } from '../../../domain/ports/logger';
 import { TacticalCharacterQuery } from '../../../domain/queries/tactical-character.query';
-import { DependencyContainer } from '../../DependencyContainer';
+import { DependencyContainer } from '../../dependency-container';
 import { ErrorHandler } from '../ErrorHandler';
 
 interface CharacterQuery {
@@ -20,14 +22,18 @@ interface CharacterQuery {
 export class TacticalCharacterController {
     private router: Router;
     private tacticalCharacterApplicationService: TacticalCharacterApplicationService;
-    private findCharacterUseCase: FindTacticalGamesUseCase;
+    private findCharacterUseCase: FindTacticalCharactersUseCase;
+    private addItemUseCase: AddItemUseCase;
+    private deleteItemUseCase: DeleteItemUseCase;
     private logger: Logger;
 
     constructor() {
         this.router = express.Router();
         const container = DependencyContainer.getInstance();
         this.tacticalCharacterApplicationService = container.tacticalCharacterApplicationService;
-        this.findCharacterUseCase = container.findTacticalGamesUseCase;
+        this.findCharacterUseCase = container.findTacticalCharacterUseCase;
+        this.addItemUseCase = container.characterAddItemUseCase;
+        this.deleteItemUseCase = container.deleteItemUseCase;
         this.logger = container.logger;
         this.initializeRoutes();
     }
@@ -38,10 +44,13 @@ export class TacticalCharacterController {
         this.router.post('/', this.createCharacter.bind(this));
         this.router.patch('/:characterId', this.updateCharacter.bind(this));
         this.router.delete('/:characterId', this.deleteCharacter.bind(this));
+        this.router.post('/:characterId/items', this.addItem.bind(this));
+        this.router.delete('/:characterId/items/:itemId', this.deleteItem.bind(this));
     }
 
     private async findCharacters(req: Request<{}, {}, {}, CharacterQuery>, res: Response): Promise<void> {
         try {
+            this.logger.info(`TacticalCharacterController: Finding tactical characters << ${JSON.stringify(req.query)}`);
             const searchExpression = req.query.search as string;
             const tacticalGameId = req.query.tacticalGameId as string;
             const page = req.query.page ? parseInt(req.query.page) : 0;
@@ -104,21 +113,13 @@ export class TacticalCharacterController {
 
     private async updateCharacter(req: Request, res: Response): Promise<void> {
         try {
-            this.logger.info(`Tactical character update - ${req.params.characterId}`);
+            this.logger.info(`Tactical character update << ${req.params.characterId} ${req.body}`);
             const characterId: string = req.params.characterId!;
-
-            const command: UpdateTacticalCharacterCommand = {
-                name: req.body.name,
-                faction: req.body.faction,
-                hitPoints: req.body.hitPoints,
-                maxHitPoints: req.body.maxHitPoints,
-                initiative: req.body.initiative,
-                status: req.body.status,
-                // skills: req.body.skills,
-                // equipment: req.body.equipment
+            const command: CharacterAddItemCommand = {
+                characterId,
+                item: req.body
             };
-
-            const result = await this.tacticalCharacterApplicationService.update(characterId, command);
+            const result = await this.addItemUseCase.execute(command);
             res.json(result);
         } catch (error: any) {
             this.logger.error(`Error updating tactical character ${req.params.characterId}: ${error.message}`);
@@ -137,6 +138,34 @@ export class TacticalCharacterController {
             res.status(204).send(); // 204 No Content for successful deletion
         } catch (error: any) {
             this.logger.error(`Error deleting tactical character ${req.params.characterId}: ${error.message}`);
+            res.status(error.status ? error.status : 500).json({ message: error.message });
+        }
+    }
+
+    private async addItem(req: Request, res: Response): Promise<void> {
+        try {
+            const characterId: string = req.params.characterId!;
+            this.logger.info(`Adding item to character << ${characterId}`);
+            const command: CharacterAddItemCommand = {
+                characterId,
+                item: req.body
+            };
+            const character = await this.addItemUseCase.execute(command);
+            res.json(character);
+        } catch (error: any) {
+            this.logger.error(`Error adding item to tactical character ${req.params.characterId}: ${error.message}`);
+            res.status(error.status ? error.status : 500).json({ message: error.message });
+        }
+    }
+
+    private async deleteItem(req: Request, res: Response): Promise<void> {
+        try {
+            const characterId: string = req.params.characterId!;
+            const itemId: string = req.params.itemId!;
+            const character = await this.deleteItemUseCase.execute(characterId, itemId);
+            res.json(character);
+        } catch (error: any) {
+            this.logger.error(`Error adding item to tactical character ${req.params.characterId}: ${error.message}`);
             res.status(error.status ? error.status : 500).json({ message: error.message });
         }
     }

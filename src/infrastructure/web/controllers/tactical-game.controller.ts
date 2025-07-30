@@ -6,7 +6,7 @@ import { FindTacticalGameByIdUseCase } from '../../../application/use-cases/tact
 import { FindTacticalGamesUseCase } from '../../../application/use-cases/tactical-game/find-tactical-games-use-case';
 import { Logger } from '../../../domain/ports/logger';
 import { TacticalGameQuery } from '../../../domain/queries/tactical-game.query';
-import { DependencyContainer } from '../../DependencyContainer';
+import { DependencyContainer } from '../../dependency-container';
 import { ErrorHandler } from '../ErrorHandler';
 
 export class TacticalGameController {
