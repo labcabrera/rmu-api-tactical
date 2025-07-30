@@ -1,6 +1,7 @@
 import { Page } from '../../../../domain/entities/page.entity';
-import { TacticalCharacter, TacticalCharacterSearchCriteria } from '../../../../domain/entities/tactical-character.entity';
+import { TacticalCharacter } from '../../../../domain/entities/tactical-character.entity';
 import { TacticalCharacterRepository } from '../../../../domain/ports/tactical-character.repository';
+import { TacticalCharacterQuery } from '../../../../domain/queries/tactical-character.query';
 import TacticalCharacterDocument from './../models/tactical-character-model';
 
 export class MongoTacticalCharacterRepository implements TacticalCharacterRepository {
@@ -9,7 +10,7 @@ export class MongoTacticalCharacterRepository implements TacticalCharacterReposi
         return character ? this.toEntity(character) : null;
     }
 
-    async find(criteria: TacticalCharacterSearchCriteria): Promise<Page<TacticalCharacter>> {
+    async find(criteria: TacticalCharacterQuery): Promise<Page<TacticalCharacter>> {
         let filter: any = {};
         if (criteria.tacticalGameId) {
             filter.gameId = criteria.tacticalGameId;

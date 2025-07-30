@@ -124,15 +124,6 @@ export interface CharacterEquipment {
     weight: number;
 }
 
-//TODO refactor this
-
-export interface TacticalCharacterSearchCriteria {
-    searchExpression?: string;
-    tacticalGameId?: string;
-    page: number;
-    size: number;
-}
-
 export interface CreateTacticalCharacterCommand {
     user: string;
     gameId: string;

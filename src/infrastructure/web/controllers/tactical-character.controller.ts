@@ -3,10 +3,10 @@ import { TacticalCharacterApplicationService } from '../../../application/tactic
 import { FindTacticalGamesUseCase } from '../../../application/use-cases/tactical-game/find-tactical-games-use-case';
 import {
     CreateTacticalCharacterCommand,
-    TacticalCharacterSearchCriteria,
     UpdateTacticalCharacterCommand
 } from '../../../domain/entities/tactical-character.entity';
 import { Logger } from '../../../domain/ports/logger';
+import { TacticalCharacterQuery } from '../../../domain/queries/tactical-character.query';
 import { DependencyContainer } from '../../DependencyContainer';
 import { ErrorHandler } from '../ErrorHandler';
 
@@ -47,7 +47,7 @@ export class TacticalCharacterController {
             const page = req.query.page ? parseInt(req.query.page) : 0;
             const size = req.query.size ? parseInt(req.query.size) : 10;
             this.logger.info(`Search tactical characters << search: ${searchExpression || 'none'}, gameId: ${tacticalGameId}, page: ${page}, size: ${size}`);
-            const query: TacticalCharacterSearchCriteria = {
+            const query: TacticalCharacterQuery = {
                 searchExpression: searchExpression,
                 tacticalGameId: tacticalGameId,
                 page: page,

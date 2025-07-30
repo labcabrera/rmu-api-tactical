@@ -1,14 +1,11 @@
 import { Page } from '../entities/page.entity';
-import {
-    TacticalGame,
-} from '../entities/tactical-game.entity';
+import { TacticalGame } from '../entities/tactical-game.entity';
 import { TacticalGameQuery } from '../queries/tactical-game.query';
 
 export interface TacticalGameRepository {
 
     findById(id: string): Promise<TacticalGame>;
 
-    //TODO fix. Defined in application layer
     find(criteria: TacticalGameQuery): Promise<Page<TacticalGame>>;
 
     save(game: TacticalGame): Promise<TacticalGame>;
