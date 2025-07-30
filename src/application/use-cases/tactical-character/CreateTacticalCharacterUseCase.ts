@@ -95,7 +95,7 @@ export class CreateTacticalCharacterUseCase {
             attackTable: item.attackTable,
             skillId: item.skillId
         })) : [];
-        const characterData: Omit<TacticalCharacterEntity, 'id' | 'createdAt' | 'updatedAt'> = {
+        const characterData: Omit<TacticalCharacterEntity, 'id'> = {
             gameId: command.gameId,
             name: command.name,
             faction: command.faction,
@@ -110,12 +110,18 @@ export class CreateTacticalCharacterUseCase {
             skills: skills,
             items: items,
             equipment: equipment,
+            createdAt: new Date(),
         };
 
-        this.logger.info(`Creating character: ${JSON.stringify(characterData)}`);
+        // Cast characterData to TacticalCharacterEntity by assigning a temporary id
+        const tempCharacter: TacticalCharacterEntity = { id: randomUUID(), ...characterData };
+        this.characterProcessorService.process(tempCharacter);
+        this.loadDefaultEquipment(tempCharacter);
+
+        Object.assign(characterData, tempCharacter);
+        delete (characterData as any).id;
 
         const newCharacter = await this.tacticalCharacterRepository.create(characterData);
-        this.characterProcessorService.process(newCharacter);
         await this.tacticalCharacterRepository.update(newCharacter.id, newCharacter);
 
         this.logger.info(`Tactical updated created successfully: ${newCharacter.id}`);
@@ -158,7 +164,7 @@ export class CreateTacticalCharacterUseCase {
 
         });
         return result;
-    };
+    }
 
     async processSkills(skills: any[]): Promise<CharacterSkill[]> {
         this.logger.info(`Processing skills`);
@@ -186,7 +192,7 @@ export class CreateTacticalCharacterUseCase {
                 skillId: readedSkill.id,
                 skillCategoryId: readedSkill.categoryId,
                 attributeBonus: attributeBonus,
-                ranks: 0,
+                ranks: e.ranks ? e.ranks : 0,
                 statBonus: 0,
                 racialBonus: racialBonus,
                 developmentBonus: developmentBonus,
@@ -196,5 +202,23 @@ export class CreateTacticalCharacterUseCase {
                 statistics: e.statistics ? e.statistics : []
             };
         });
+    }
+
+    loadDefaultEquipment(character: TacticalCharacterEntity): void {
+        const weapon = character.items.find(e => e.category === 'weapon');
+        const shield = character.items.find(e => e.category === 'shield');
+        const armor = character.items.find(e => e.category === 'armor');
+        if (weapon && weapon.id) {
+            character.equipment.mainHand = weapon.id;
+        }
+        if (shield && shield.id) {
+            character.equipment.offHand = shield.id;
+        }
+        if (shield && shield.id) {
+            character.equipment.offHand = shield.id;
+        }
+        if (armor && armor.id) {
+            character.equipment.body = armor.id;
+        }
     }
 }
