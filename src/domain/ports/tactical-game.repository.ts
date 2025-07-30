@@ -12,7 +12,7 @@ export interface TacticalGameRepository {
 
     update(id: string, game: Partial<TacticalGame>): Promise<TacticalGame | null>;
 
-    delete(id: string): Promise<boolean>;
+    delete(id: string): Promise<void>;
 
     countBy(filter: any): Promise<number>;
 }

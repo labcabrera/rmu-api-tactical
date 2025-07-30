@@ -4,7 +4,6 @@ import { TacticalCharacterRoundRepository } from '../domain/ports/tactical-chara
 import { TacticalCharacterRepository } from '../domain/ports/tactical-character.repository';
 import { TacticalGameRepository } from '../domain/ports/tactical-game.repository';
 import { CharacterProcessorService } from '../domain/services/character-processor.service';
-import { TacticalGameService } from '../domain/services/tactical-game-service';
 import { MongoTacticalActionRepository } from './adapters/persistence/repositories/mongo-tactical-action.repository';
 import { MongoTacticalCharacterRoundRepository } from './adapters/persistence/repositories/mongo-tactical-character-round.repository';
 import { MongoTacticalCharacterRepository } from './adapters/persistence/repositories/mongo-tactical-character.repository';
@@ -38,7 +37,6 @@ export class DependencyContainer {
     private readonly _tacticalGameRepository: TacticalGameRepository;
     private readonly _tacticalCharacterRepository: TacticalCharacterRepository;
     private readonly _tacticalCharacterRoundRepository: TacticalCharacterRoundRepository;
-    private readonly _tacticalGameService: TacticalGameService;
     private readonly _characterProcessorService: CharacterProcessorService;
 
     // Tactical Game Use Cases
@@ -72,10 +70,6 @@ export class DependencyContainer {
         this._tacticalGameRepository = new MongoTacticalGameRepository();
         this._tacticalCharacterRepository = new MongoTacticalCharacterRepository();
         this._tacticalCharacterRoundRepository = new MongoTacticalCharacterRoundRepository();
-        this._tacticalGameService = new TacticalGameService(
-            this._tacticalGameRepository,
-            this._logger
-        );
         this._characterProcessorService = new CharacterProcessorService(this._logger);
 
         // Configure use cases
@@ -101,6 +95,7 @@ export class DependencyContainer {
 
         this._deleteTacticalGameUseCase = new DeleteTacticalGameUseCase(
             this._tacticalGameRepository,
+            this._tacticalCharacterRepository,
             this._logger,
         );
 
@@ -197,10 +192,6 @@ export class DependencyContainer {
 
     get tacticalCharacterRepository(): TacticalCharacterRepository {
         return this._tacticalCharacterRepository;
-    }
-
-    get tacticalGameService(): TacticalGameService {
-        return this._tacticalGameService;
     }
 
     get characterProcessorService(): CharacterProcessorService {

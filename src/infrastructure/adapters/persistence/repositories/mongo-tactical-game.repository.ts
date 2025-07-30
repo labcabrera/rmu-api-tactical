@@ -71,9 +71,11 @@ export class MongoTacticalGameRepository implements TacticalGameRepository {
         return updatedModel ? this.toDomainEntity(updatedModel) : null;
     }
 
-    async delete(id: string): Promise<boolean> {
+    async delete(id: string): Promise<void> {
         const result = await TacticalGameModel.findByIdAndDelete(id);
-        return result !== null;
+        if(!result) {
+            throw new Error(`Tactical Game with id ${id} not found`);
+        }
     }
 
     async countBy(filter: any): Promise<number> {

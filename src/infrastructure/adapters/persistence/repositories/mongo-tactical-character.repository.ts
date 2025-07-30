@@ -53,9 +53,15 @@ export class MongoTacticalCharacterRepository implements TacticalCharacterReposi
         return this.toEntity(updatedCharacter);
     }
 
-    async delete(id: string): Promise<boolean> {
+    async delete(id: string): Promise<void> {
         const result = await TacticalCharacterDocument.findByIdAndDelete(id);
-        return result !== null;
+        if(!result) {
+            throw new Error(`Tactical Character with id ${id} not found`);
+        }
+    }
+
+    async deleteByGameId(gameId: string): Promise<void> {
+        await TacticalCharacterDocument.deleteMany({ gameId: gameId });
     }
 
     private toEntity(character: any): TacticalCharacter {
