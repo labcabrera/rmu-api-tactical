@@ -1,6 +1,6 @@
 import tacticalCharacterConverter from '../../converters/tactical-character-converter';
-import TacticalCharacter from "../../models/tactical-character-model";
-import { ITacticalCharacter } from '../../types';
+import TacticalCharacterDocument from "../../models/tactical-character-model";
+import { TacticalCharacterModel } from '../../types';
 
 interface Item {
     itemTypeId: string;
@@ -14,14 +14,14 @@ interface Item {
 
 // adds an item to the inventory without equipping it
 const addItem = async (characterId: string, item: Item): Promise<any> => {
-    const current = await TacticalCharacter.findById(characterId);
+    const current = await TacticalCharacterDocument.findById(characterId);
     if (!current) throw { status: 404, message: 'Tactical character not found' };
     if (!item.itemTypeId) throw { status: 400, message: 'Required itemTypeId' };
     if (!item.category) throw { status: 400, message: 'Required category' };
     if (!item.name) {
         item.name = item.itemTypeId;
     }
-    const updatedCharacter = await TacticalCharacter.findByIdAndUpdate(
+    const updatedCharacter = await TacticalCharacterDocument.findByIdAndUpdate(
         characterId,
         { $push: { items: item } },
         { new: true });
@@ -31,7 +31,7 @@ const addItem = async (characterId: string, item: Item): Promise<any> => {
 };
 
 const deleteItem = async (characterId: string, itemId: string): Promise<any> => {
-    const updatedCharacter = await TacticalCharacter.findByIdAndUpdate(
+    const updatedCharacter = await TacticalCharacterDocument.findByIdAndUpdate(
         characterId,
         { $pull: { items: { _id: itemId } } },
         { new: true });
@@ -42,17 +42,17 @@ const deleteItem = async (characterId: string, itemId: string): Promise<any> => 
     return tacticalCharacterConverter.toJSON(updatedWeight);
 };
 
-const getCharacterWeight = (character: ITacticalCharacter): number => {
+const getCharacterWeight = (character: TacticalCharacterModel): number => {
     return (character as any).items.reduce((accumulator: number, item: Item) => accumulator + getItemWeight(item), 0);
 }
 
-const updateWeight = async (character: ITacticalCharacter): Promise<ITacticalCharacter> => {
+const updateWeight = async (character: TacticalCharacterModel): Promise<TacticalCharacterModel> => {
     const total = getCharacterWeight(character);
     const update = {
         equipment: (character as any).equipment
     };
     (update.equipment as any).weight = total;
-    const updated = await TacticalCharacter.findOneAndUpdate({ _id: character._id }, update, {
+    const updated = await TacticalCharacterDocument.findOneAndUpdate({ _id: character._id }, update, {
         new: true,
         upsert: true
     });

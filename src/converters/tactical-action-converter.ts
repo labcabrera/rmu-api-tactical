@@ -1,6 +1,6 @@
-import { ITacticalAction } from '../types';
+import { TacticalActionModel } from '../types';
 
-const toJSON = (tacticalAction: ITacticalAction) => {
+const toJSON = (tacticalAction: TacticalActionModel) => {
     return {
         id: tacticalAction._id,
         tacticalGameId: tacticalAction.tacticalGameId,

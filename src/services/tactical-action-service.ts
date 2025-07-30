@@ -1,7 +1,7 @@
-import TacticalAction from '../models/tactical-action-model';
-import TacticalCharacter from '../models/tactical-character-model';
-import TacticalGame from '../models/tactical-game-model';
-import { IApiError, IPaginatedResponse, ITacticalAction, ITacticalCharacter, ITacticalGame } from '../types';
+import TacticalActionDocument from '../models/tactical-action-model';
+import TacticalCharacterDocument from '../models/tactical-character-model';
+import TacticalGameModel from '../models/tactical-game-model';
+import { IApiError, IPaginatedResponse, TacticalActionModel, TacticalCharacterModel } from '../types';
 
 interface ActionData {
     gameId: string;
@@ -14,7 +14,7 @@ interface ActionData {
 }
 
 const findById = async (id: string): Promise<any> => {
-    const action: ITacticalAction | null = await TacticalAction.findById(id);
+    const action: TacticalActionModel | null = await TacticalActionDocument.findById(id);
     if (!action) {
         const error: IApiError = new Error('Tactical action not found');
         error.status = 404;
@@ -35,8 +35,8 @@ const find = async (tacticalGameId?: string, tacticalCharacterId?: string, round
         filter.round = parseInt(round);
     }
     const skip = page * size;
-    const list: ITacticalAction[] = await TacticalAction.find(filter).skip(skip).limit(size).sort({ updatedAt: -1 });
-    const count = await TacticalAction.countDocuments(filter);
+    const list: TacticalActionModel[] = await TacticalActionDocument.find(filter).skip(skip).limit(size).sort({ updatedAt: -1 });
+    const count = await TacticalActionDocument.countDocuments(filter);
     const content = list.map(action => action.toJSON());
     const totalPages = Math.ceil(count / size);
 
@@ -68,14 +68,14 @@ const insert = async (data: ActionData): Promise<any> => {
         throw error;
     }
 
-    const tacticalGame: ITacticalGame | null = await TacticalGame.findById(data.gameId);
+    const tacticalGame: TacticalGameModel | null = await TacticalGameModel.findById(data.gameId);
     if (!tacticalGame) {
         const error: IApiError = new Error('Tactical game not found');
         error.status = 404;
         throw error;
     }
 
-    const tacticalCharacter: ITacticalCharacter | null = await TacticalCharacter.findById(data.characterId);
+    const tacticalCharacter: TacticalCharacterModel | null = await TacticalCharacterDocument.findById(data.characterId);
     if (!tacticalCharacter) {
         const error: IApiError = new Error('Tactical character not found');
         error.status = 404;
@@ -85,7 +85,7 @@ const insert = async (data: ActionData): Promise<any> => {
     const round = data.round || tacticalGame.round;
     const description = data.description || `${tacticalCharacter.name} > ${data.actionType}`;
 
-    const newAction = new TacticalAction({
+    const newAction = new TacticalActionDocument({
         gameId: data.gameId,
         characterId: data.characterId,
         actionType: data.actionType,
@@ -101,7 +101,7 @@ const insert = async (data: ActionData): Promise<any> => {
 };
 
 const update = async (actionId: string, data: Partial<ActionData>): Promise<any> => {
-    const updatedAction = await TacticalAction.findByIdAndUpdate(actionId, data, { new: true });
+    const updatedAction = await TacticalActionDocument.findByIdAndUpdate(actionId, data, { new: true });
     if (!updatedAction) {
         const error: IApiError = new Error('Tactical action not found');
         error.status = 404;
@@ -111,7 +111,7 @@ const update = async (actionId: string, data: Partial<ActionData>): Promise<any>
 };
 
 const deleteById = async (actionId: string): Promise<void> => {
-    const deletedAction = await TacticalAction.findByIdAndDelete(actionId);
+    const deletedAction = await TacticalActionDocument.findByIdAndDelete(actionId);
     if (!deletedAction) {
         const error: IApiError = new Error('Tactical action not found');
         error.status = 404;

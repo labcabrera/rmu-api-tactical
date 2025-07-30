@@ -6,6 +6,12 @@ import path from 'path';
 import swaggerUi from 'swagger-ui-express';
 import yaml from 'yaml';
 
+import attackRouter from './routes/attack-controller';
+import initiativeRouter from './routes/initiative-controller';
+import tacticalActionRouter from './routes/tactical-action-controller';
+import tacticalCharactersRouter from './routes/tactical-character-controller';
+import tacticalGameRouter from './routes/tactical-game-controller';
+
 const app: Application = express();
 
 const MONGO_URI: string = process.env.RMU_MONGO_TACTICAL_URI || 'mongodb://localhost:27017/rmu-tactical';
@@ -21,11 +27,6 @@ mongoose.connect(MONGO_URI)
   .then(() => console.log('Connected to ' + MONGO_URI))
   .catch((err: Error) => console.log('Error connecting to ' + MONGO_URI, err));
 
-import attackRouter from './routes/attack-controller';
-import initiativeRouter from './routes/initiative-controller';
-import tacticalActionRouter from './routes/tactical-action-controller';
-import tacticalCharactersRouter from './routes/tactical-character-controller';
-import tacticalGameRouter from './routes/tactical-game-controller';
 
 app.use('/v1/tactical-games', tacticalGameRouter);
 app.use('/v1/characters', tacticalCharactersRouter);

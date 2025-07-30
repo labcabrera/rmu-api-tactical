@@ -1,5 +1,5 @@
 import tacticalCharacterConverter from '../converters/tactical-character-converter';
-import TacticalCharacter from "../models/tactical-character-model";
+import TacticalCharacterDocument from "../models/tactical-character-model";
 
 //TODO env
 const APP_CORE_URL = 'http://localhost:3001/v1';
@@ -25,7 +25,7 @@ interface Skill {
 
 const addSkill = async (characterId: string, data: SkillData): Promise<any> => {
     validateAddSkillData(data);
-    const currentCharacter = await TacticalCharacter.findById(characterId);
+    const currentCharacter = await TacticalCharacterDocument.findById(characterId);
     if (!currentCharacter) {
         throw { status: 404, message: 'Tactical character not found' };
     }
@@ -53,7 +53,7 @@ const addSkill = async (characterId: string, data: SkillData): Promise<any> => {
         customBonus: customBonus,
         totalBonus: totalBonus
     };
-    const updatedCharacter = await TacticalCharacter.findByIdAndUpdate(
+    const updatedCharacter = await TacticalCharacterDocument.findByIdAndUpdate(
         characterId,
         { $push: { skills: newSkill } },
         { new: true });
@@ -67,7 +67,7 @@ const updateSkill = async (characterId: string, skillId: string, data: SkillData
     if (!skillId) {
         throw { status: 404, message: 'Required skillId' };
     }
-    const currentCharacter = await TacticalCharacter.findById(characterId);
+    const currentCharacter = await TacticalCharacterDocument.findById(characterId);
     if (!currentCharacter) {
         throw { status: 404, message: 'Tactical character not found' };
     }
@@ -81,7 +81,7 @@ const updateSkill = async (characterId: string, skillId: string, data: SkillData
     const developmentBonus = getRankBonus(ranks);
     const customBonus = data.customBonus ? data.customBonus : (currentSkill as any).customBonus;
     const totalBonus = statBonus + racialBonus + developmentBonus + customBonus;
-    const updatedCharacter = await TacticalCharacter.findOneAndUpdate(
+    const updatedCharacter = await TacticalCharacterDocument.findOneAndUpdate(
         {
             _id: characterId,
             'skills.skillId': skillId
@@ -103,11 +103,11 @@ const updateSkill = async (characterId: string, skillId: string, data: SkillData
 };
 
 const deleteSkill = async (characterId: string, skillId: string): Promise<any> => {
-    const currentCharacter = await TacticalCharacter.findById(characterId);
+    const currentCharacter = await TacticalCharacterDocument.findById(characterId);
     if (!currentCharacter?.skills?.some((e: any) => e.skillId === skillId)) {
         throw { status: 400, message: 'Missing skill' };
     }
-    const updatedCharacter = await TacticalCharacter.findByIdAndUpdate(
+    const updatedCharacter = await TacticalCharacterDocument.findByIdAndUpdate(
         characterId,
         { $pull: { skills: { skillId: skillId } } },
         { new: true });

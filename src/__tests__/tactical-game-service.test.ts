@@ -1,12 +1,11 @@
 import tacticalGameConverter from '../converters/tactical-game-converter';
-import TacticalGame from '../models/tactical-game-model';
+import TacticalGameModel from '../models/tactical-game-model';
 import tacticalGameService from '../services/tactical-game-service';
-import { ITacticalGame } from '../types';
 
 jest.mock('../models/tactical-game-model');
 jest.mock('../converters/tactical-game-converter');
 
-const mockTacticalGame = TacticalGame as jest.Mocked<typeof TacticalGame>;
+const mockTacticalGame = TacticalGameModel as jest.Mocked<typeof TacticalGameModel>;
 const mockConverter = tacticalGameConverter as jest.Mocked<typeof tacticalGameConverter>;
 
 describe('TacticalGameService', () => {
@@ -18,7 +17,7 @@ describe('TacticalGameService', () => {
                 round: 1,
                 factions: ['Light'],
                 user: 'test@example.com'
-            } as unknown as ITacticalGame;
+            } as unknown as TacticalGameModel;
 
             const convertedGame = {
                 id: '1',
@@ -51,7 +50,7 @@ describe('TacticalGameService', () => {
                 round: 1,
                 factions: ['Light'],
                 user: 'test@example.com'
-            } as unknown as ITacticalGame;
+            } as unknown as TacticalGameModel;
 
             const convertedGame = {
                 id: '1',
@@ -102,7 +101,7 @@ describe('TacticalGameService', () => {
                     round: 0,
                     factions: ['Light', 'Evil', 'Neutral']
                 })
-            } as unknown as ITacticalGame;
+            } as unknown as TacticalGameModel;
 
             const convertedGame = {
                 id: '1',

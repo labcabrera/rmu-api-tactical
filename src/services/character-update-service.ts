@@ -1,6 +1,6 @@
 import tacticalCharacterConverter from '../converters/tactical-character-converter';
-import TacticalCharacter from "../models/tactical-character-model";
-import { ITacticalCharacter } from '../types';
+import TacticalCharacterDocument from "../models/tactical-character-model";
+import { TacticalCharacterModel } from '../types';
 import characterProcessor from './character-processor-service';
 
 interface CharacterUpdateData {
@@ -18,21 +18,21 @@ interface CharacterUpdateData {
 }
 
 const update = async (characterId: string, data: CharacterUpdateData): Promise<any> => {
-    const current = await TacticalCharacter.findById(characterId);
+    const current = await TacticalCharacterDocument.findById(characterId);
     if (!current) {
         throw { state: 404, message: 'Tactical character not found' };
     }
     const updateData = buildCharacterUpdate(data, current);
-    const updatedCharacter = await TacticalCharacter.findByIdAndUpdate(characterId, updateData, { new: true });
+    const updatedCharacter = await TacticalCharacterDocument.findByIdAndUpdate(characterId, updateData, { new: true });
     if (!updatedCharacter) {
         throw { status: 404, message: 'Tactical character not found' };
     }
     characterProcessor.process(updatedCharacter);
-    await TacticalCharacter.updateOne({ _id: updatedCharacter._id }, updatedCharacter);
+    await TacticalCharacterDocument.updateOne({ _id: updatedCharacter._id }, updatedCharacter);
     return tacticalCharacterConverter.toJSON(updatedCharacter);
 };
 
-const buildCharacterUpdate = (data: CharacterUpdateData, currentCharacter: ITacticalCharacter): any => {
+const buildCharacterUpdate = (data: CharacterUpdateData, currentCharacter: TacticalCharacterModel): any => {
     const update: any = {};
     if (data.name) {
         update.name = data.name;
@@ -54,7 +54,7 @@ const buildCharacterUpdate = (data: CharacterUpdateData, currentCharacter: ITact
     return update;
 };
 
-const buildCharacterUpdateStatistics = (update: any, data: CharacterUpdateData, currentCharacter: ITacticalCharacter): void => {
+const buildCharacterUpdateStatistics = (update: any, data: CharacterUpdateData, currentCharacter: TacticalCharacterModel): void => {
     if (data.statistics) {
         const values = ['ag', 'co', 'em', 'in', 'me', 'pr', 'qu', 're', 'sd', 'st'];
         const statUpdate: any = {};
@@ -82,7 +82,7 @@ const isDefinedStatisticVale = (data: CharacterUpdateData, statName: string, bon
     return typeof check !== 'undefined'
 };
 
-const buildCharacterUpdateInfo = (update: any, data: CharacterUpdateData, currentCharacter: ITacticalCharacter): void => {
+const buildCharacterUpdateInfo = (update: any, data: CharacterUpdateData, currentCharacter: TacticalCharacterModel): void => {
     if (data.info) {
         update.info = (currentCharacter as any).info;
         if (data.info.level) {
@@ -100,7 +100,7 @@ const buildCharacterUpdateInfo = (update: any, data: CharacterUpdateData, curren
     }
 };
 
-const buildCharacterUpdateDefense = (update: any, data: CharacterUpdateData, currentCharacter: ITacticalCharacter): void => {
+const buildCharacterUpdateDefense = (update: any, data: CharacterUpdateData, currentCharacter: TacticalCharacterModel): void => {
     if (data.defense) {
         update.defense = (currentCharacter as any).defense;
         if (data.defense.armorType) {
@@ -112,7 +112,7 @@ const buildCharacterUpdateDefense = (update: any, data: CharacterUpdateData, cur
     }
 };
 
-const buildCharacterUpdateHp = (update: any, data: CharacterUpdateData, currentCharacter: ITacticalCharacter): void => {
+const buildCharacterUpdateHp = (update: any, data: CharacterUpdateData, currentCharacter: TacticalCharacterModel): void => {
     if (data.hp) {
         update.hp = (currentCharacter as any).hp;
         if (data.hp.max) {
@@ -124,7 +124,7 @@ const buildCharacterUpdateHp = (update: any, data: CharacterUpdateData, currentC
     }
 };
 
-const buildCharacterEnduranceHp = (update: any, data: CharacterUpdateData, currentCharacter: ITacticalCharacter): void => {
+const buildCharacterEnduranceHp = (update: any, data: CharacterUpdateData, currentCharacter: TacticalCharacterModel): void => {
     if (data.endurance) {
         update.endurance = (currentCharacter as any).endurance;
         if (data.endurance.max) {
@@ -142,7 +142,7 @@ const buildCharacterEnduranceHp = (update: any, data: CharacterUpdateData, curre
     }
 };
 
-const buildCharacterUpdatePower = (update: any, data: CharacterUpdateData, currentCharacter: ITacticalCharacter): void => {
+const buildCharacterUpdatePower = (update: any, data: CharacterUpdateData, currentCharacter: TacticalCharacterModel): void => {
     if (data.power) {
         update.power = (currentCharacter as any).power;
         if (data.power.max) {
@@ -154,7 +154,7 @@ const buildCharacterUpdatePower = (update: any, data: CharacterUpdateData, curre
     }
 };
 
-const buildCharacterUpdateInitiative = (update: any, data: CharacterUpdateData, currentCharacter: ITacticalCharacter): void => {
+const buildCharacterUpdateInitiative = (update: any, data: CharacterUpdateData, currentCharacter: TacticalCharacterModel): void => {
     if (data.initiative) {
         update.initiative = (currentCharacter as any).initiative;
         if (data.initiative.base) {
@@ -163,7 +163,7 @@ const buildCharacterUpdateInitiative = (update: any, data: CharacterUpdateData, 
     }
 };
 
-const buildCharacterUpdateMovement = (update: any, data: CharacterUpdateData, currentCharacter: ITacticalCharacter): void => {
+const buildCharacterUpdateMovement = (update: any, data: CharacterUpdateData, currentCharacter: TacticalCharacterModel): void => {
     if (data.movement && typeof data.movement.strideCustomBonus !== 'undefined') {
         update.movement = {
             strideCustomBonus: data.movement.strideCustomBonus,

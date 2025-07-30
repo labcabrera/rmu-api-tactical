@@ -1,4 +1,4 @@
-import { ITacticalCharacter } from '../types';
+import { TacticalCharacterModel } from '../types';
 
 interface CharacterResponse {
     id: string;
@@ -20,7 +20,7 @@ interface CharacterResponse {
     updatedAt?: Date;
 }
 
-const toJSON = (character: ITacticalCharacter): CharacterResponse => {
+const toJSON = (character: TacticalCharacterModel): CharacterResponse => {
     const result: CharacterResponse = {
         id: (character._id as any).toString(),
         gameId: character.gameId,

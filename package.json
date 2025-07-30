@@ -1,30 +1,51 @@
 {
   "name": "rmu-api-tactical",
   "version": "0.1.0",
-  "main": "index.js",
+  "main": "dist/server.js",
+  "description": "API táctica para el sistema de juego RMU (Role Master Unified)",
+  "keywords": [
+    "rmo",
+    "rolemaster unified online",
+    "rolemaster",
+    "rolemaster unified",
+    "rmu",
+    "tactical",
+    "api",
+    "express",
+    "typescript",
+    "mongodb"
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
     "dev": "ts-node src/server.ts",
+    "dev:watch": "nodemon --exec ts-node src/server.ts",
     "debug": "ts-node --inspect=0.0.0.0:9229 src/server.ts",
+    "debug:watch": "nodemon --exec ts-node --inspect=0.0.0.0:9229 src/server.ts",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "test_": "jest --detectOpenHandles",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit"
   },
-  "keywords": [],
   "author": {
     "name": "Luis Cabrera",
     "email": "lab.cabrera@gmail.com"
   },
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "mongodb": "^6.18.0",
     "mongoose": "^8.16.5",
     "swagger-ui-express": "^5.0.1",
+    "winston": "^3.17.0",
     "yaml": "^2.8.0"
   },
   "devDependencies": {
@@ -34,7 +55,9 @@
     "@types/node": "^24.1.0",
     "@types/supertest": "^6.0.3",
     "@types/swagger-ui-express": "^4.1.8",
+    "@types/winston": "^2.4.4",
     "jest": "^30.0.5",
+    "nodemon": "^3.1.10",
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2",

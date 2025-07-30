@@ -1,6 +1,6 @@
 import tacticalCharacterConverter from '../../converters/tactical-character-converter';
-import TacticalCharacter from "../../models/tactical-character-model";
-import { ITacticalCharacter } from '../../types';
+import TacticalCharacterDocument from "../../models/tactical-character-model";
+import { TacticalCharacterModel } from '../../types';
 import characterProcessorService from '../character-processor-service';
 
 interface EquipData {
@@ -11,7 +11,7 @@ interface EquipData {
 const equip = async (characterId: string, data: EquipData): Promise<any> => {
     if (!data.itemId) throw { status: 400, message: 'Required itemId' };
 
-    const character = await TacticalCharacter.findById(characterId);
+    const character = await TacticalCharacterDocument.findById(characterId);
     validateEquipData(character, data);
 
     const itemId = data.itemId;
@@ -54,7 +54,7 @@ const equip = async (characterId: string, data: EquipData): Promise<any> => {
     return tacticalCharacterConverter.toJSON(character);
 };
 
-const validateEquipData = (currentCharacter: ITacticalCharacter | null, data: EquipData): void => {
+const validateEquipData = (currentCharacter: TacticalCharacterModel | null, data: EquipData): void => {
     if (!currentCharacter) throw { status: 404, message: 'Tactical character not found' };
     const itemId = data.itemId;
     const slot = data.slot;

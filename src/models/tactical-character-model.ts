@@ -1,7 +1,7 @@
 import mongoose, { Schema } from 'mongoose';
-import { ITacticalCharacter } from '../types';
+import { TacticalCharacterModel } from '../types';
 
-const tacticalCharacterSchema: Schema<ITacticalCharacter> = new mongoose.Schema({
+const tacticalCharacterSchema: Schema<TacticalCharacterModel> = new mongoose.Schema({
     gameId: {
         type: String,
         required: true
@@ -51,6 +51,6 @@ const tacticalCharacterSchema: Schema<ITacticalCharacter> = new mongoose.Schema(
     collection: "tactical-characters"
 });
 
-const TacticalCharacter = mongoose.model<ITacticalCharacter>('TacticalCharacter', tacticalCharacterSchema);
+const TacticalCharacterDocument = mongoose.model<TacticalCharacterModel>('TacticalCharacter', tacticalCharacterSchema);
 
-export default TacticalCharacter;
+export default TacticalCharacterDocument;

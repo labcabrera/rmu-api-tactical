@@ -1,6 +1,7 @@
 import tacticalGameConverter from '../converters/tactical-game-converter';
-import TacticalGame from '../models/tactical-game-model';
-import { IApiError, IPaginatedResponse, ITacticalGame } from '../types';
+import TacticalGameModel from '../models/tactical-game-model';
+import { IApiError, IPaginatedResponse } from '../types';
+import { TacticalGameDTO } from '../types/dto';
 
 interface GameData {
     name: string;
@@ -12,8 +13,8 @@ interface GameFilter {
     username?: string;
 }
 
-const findById = async (id: string): Promise<any> => {
-    const readedGame: ITacticalGame | null = await TacticalGame.findById(id);
+const findById = async (id: string): Promise<TacticalGameDTO> => {
+    const readedGame: TacticalGameModel | null = await TacticalGameModel.findById(id);
     if (!readedGame) {
         const error: IApiError = new Error('Tactical game not found');
         error.status = 404;
@@ -28,8 +29,8 @@ const find = async (searchExpression?: string, username?: string, page: number =
         filter.username = username;
     }
     const skip: number = page * size;
-    const list: ITacticalGame[] = await TacticalGame.find(filter).skip(skip).limit(size).sort({ updatedAt: -1 });
-    const count: number = await TacticalGame.countDocuments(filter);
+    const list: TacticalGameModel[] = await TacticalGameModel.find(filter).skip(skip).limit(size).sort({ updatedAt: -1 });
+    const count: number = await TacticalGameModel.countDocuments(filter);
     const content = list.map(tacticalGameConverter.toJSON);
 
     return {
@@ -47,7 +48,7 @@ const insert = async (user: string, data: GameData): Promise<any> => {
         factions = ['Light', 'Evil', 'Neutral'];
     }
 
-    const newGame = new TacticalGame({
+    const newGame = new TacticalGameModel({
         user: user,
         name: data.name,
         description: data.description,
@@ -62,7 +63,7 @@ const insert = async (user: string, data: GameData): Promise<any> => {
 
 const update = async (gameId: string, data: Partial<GameData>): Promise<any> => {
     const { name, description } = data;
-    const updatedGame: ITacticalGame | null = await TacticalGame.findByIdAndUpdate(
+    const updatedGame: TacticalGameModel | null = await TacticalGameModel.findByIdAndUpdate(
         gameId,
         { name, description },
         { new: true }

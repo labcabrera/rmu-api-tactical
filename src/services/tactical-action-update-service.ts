@@ -1,9 +1,9 @@
 import tacticalActionConverter from '../converters/tactical-action-converter';
-import TacticalAction from '../models/tactical-action-model';
+import TacticalActionDocument from '../models/tactical-action-model';
 import attackService from './attack/attack-service';
 
 const prepare = async (actionId: string, requestBody: any): Promise<any> => {
-    const action = await TacticalAction.findById(actionId);
+    const action = await TacticalActionDocument.findById(actionId);
     if (!action) {
         throw { status: 404, message: 'Tactical action not found' };
     }

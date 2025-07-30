@@ -1,20 +1,9 @@
-import { ITacticalGame } from '../types';
+import { TacticalGameModel } from '../types';
+import { TacticalGameDTO } from '../types/dto';
 
-interface TacticalGameResponse {
-    id: string;
-    name: string;
-    status?: string;
-    round: number;
-    phase?: string;
-    factions: string[];
-    description?: string;
-    user: string;
-    createdAt?: Date;
-    updatedAt?: Date;
-}
 
-const toJSON = (tacticalGame: ITacticalGame): TacticalGameResponse => {
-    const result: TacticalGameResponse = {
+const toJSON = (tacticalGame: TacticalGameModel): TacticalGameDTO => {
+    const result: TacticalGameDTO = {
         id: (tacticalGame._id as any).toString(),
         name: tacticalGame.name,
         round: tacticalGame.round,

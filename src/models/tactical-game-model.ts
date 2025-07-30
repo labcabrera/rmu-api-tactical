@@ -1,7 +1,7 @@
 import mongoose, { Schema } from 'mongoose';
-import { ITacticalGame } from '../types';
+import { TacticalGameModel } from '../types';
 
-const tacticalGameSchema: Schema<ITacticalGame> = new mongoose.Schema({
+const TacticalGameSchema: Schema<TacticalGameModel> = new Schema({
     name: {
         type: String,
         required: true
@@ -32,6 +32,6 @@ const tacticalGameSchema: Schema<ITacticalGame> = new mongoose.Schema({
     collection: "tactical-games"
 });
 
-const TacticalGame = mongoose.model<ITacticalGame>('TacticalGame', tacticalGameSchema);
+const TacticalGameModel = mongoose.model<TacticalGameModel>('TacticalGame', TacticalGameSchema);
 
-export default TacticalGame;
+export default TacticalGameModel;

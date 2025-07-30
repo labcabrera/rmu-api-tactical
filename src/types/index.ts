@@ -1,6 +1,6 @@
 import { Document } from 'mongoose';
 
-export interface ITacticalGame extends Document {
+export interface TacticalGameModel extends Document {
   name: string;
   user: string;
   status?: string;
@@ -12,7 +12,7 @@ export interface ITacticalGame extends Document {
   updatedAt?: Date;
 }
 
-export interface ITacticalCharacter extends Document {
+export interface TacticalCharacterModel extends Document {
   gameId: string;
   name: string;
   faction?: string;
@@ -27,7 +27,7 @@ export interface ITacticalCharacter extends Document {
   updatedAt?: Date;
 }
 
-export interface ITacticalAction extends Document {
+export interface TacticalActionModel extends Document {
   tacticalGameId: string;
   round: number;
   tacticalCharacterId: string;
@@ -43,7 +43,7 @@ export interface ITacticalAction extends Document {
   updatedAt?: Date;
 }
 
-export interface ITacticalCharacterRound extends Document {
+export interface TacticalCharacterRoundModel extends Document {
   tacticalGameId: string;
   round: number;
   tacticalCharacterId: string;
