@@ -1,7 +1,7 @@
-import { Page } from '../../../domain/entities/page.entity';
-import { TacticalAction, TacticalActionSearchCriteria } from '../../../domain/entities/tactical-action.entity';
-import { TacticalActionRepository } from '../../../domain/ports/tactical-action.repository';
-import TacticalActionDocument from './models/tactical-action-model';
+import { Page } from '../../../../domain/entities/page.entity';
+import { TacticalAction, TacticalActionSearchCriteria } from '../../../../domain/entities/tactical-action.entity';
+import { TacticalActionRepository } from '../../../../domain/ports/tactical-action.repository';
+import TacticalActionDocument from './../models/tactical-action-model';
 
 export class MongoTacticalActionRepository implements TacticalActionRepository {
     async findById(id: string): Promise<TacticalAction | null> {

@@ -6,10 +6,10 @@ import { TacticalGameRepository } from '../domain/ports/tactical-game.repository
 import { CharacterProcessorService } from '../domain/services/character-processor.service';
 import { TacticalGameService } from '../domain/services/tactical-game-service';
 import { WinstonLogger } from '../infrastructure/logger/logger';
-import { MongoTacticalActionRepository } from './adapters/persistence/mongo-tactical-action.repository';
-import { MongoTacticalCharacterRoundRepository } from './adapters/persistence/mongo-tactical-character-round.repository';
-import { MongoTacticalCharacterRepository } from './adapters/persistence/mongo-tactical-character.repository';
-import { MongoTacticalGameRepository } from './adapters/persistence/mongo-tactical-game.repository';
+import { MongoTacticalActionRepository } from './adapters/persistence/repositories/mongo-tactical-action.repository';
+import { MongoTacticalCharacterRoundRepository } from './adapters/persistence/repositories/mongo-tactical-character-round.repository';
+import { MongoTacticalCharacterRepository } from './adapters/persistence/repositories/mongo-tactical-character.repository';
+import { MongoTacticalGameRepository } from './adapters/persistence/repositories/mongo-tactical-game.repository';
 
 // Application layer imports
 import { TacticalCharacterApplicationService } from '../application/tactical-character-application.service';

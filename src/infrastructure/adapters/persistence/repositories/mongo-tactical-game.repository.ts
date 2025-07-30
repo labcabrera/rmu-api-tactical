@@ -1,10 +1,10 @@
-import { Page } from '../../../domain/entities/page.entity';
+import { Page } from '../../../../domain/entities/page.entity';
 import {
     TacticalGame,
     TacticalGameSearchCriteria
-} from '../../../domain/entities/tactical-game.entity';
-import { TacticalGameRepository } from '../../../domain/ports/tactical-game.repository';
-import TacticalGameModel from './models/tactical-game-model';
+} from '../../../../domain/entities/tactical-game.entity';
+import { TacticalGameRepository } from '../../../../domain/ports/tactical-game.repository';
+import TacticalGameModel from './../models/tactical-game-model';
 
 export class MongoTacticalGameRepository implements TacticalGameRepository {
 
