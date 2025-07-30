@@ -61,6 +61,7 @@ export class StartGameRoundUseCase {
     private async createTacticalCharacterRound(character: TacticalCharacterEntity, round: number): Promise<void> {
         const baseInitiative = character.initiative?.baseBonus || 0;
 
+
         // TODO: Implement character round creation through a dedicated repository
         // For now, this is a placeholder that should be implemented when
         // TacticalCharacterRoundRepository is created

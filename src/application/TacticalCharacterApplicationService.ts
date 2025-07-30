@@ -42,14 +42,12 @@ export class TacticalCharacterApplicationService {
 
     async findById(id: string): Promise<TacticalCharacterEntity> {
         this.logger.info(`Finding tactical character by id: ${id}`);
-
         const character = await this.tacticalCharacterRepository.findById(id);
         if (!character) {
             const error = new Error('Tactical character not found');
             (error as any).status = 404;
             throw error;
         }
-
         return character;
     }
 
