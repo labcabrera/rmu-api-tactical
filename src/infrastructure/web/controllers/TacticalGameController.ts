@@ -7,7 +7,6 @@ import {
 } from '../../../domain/entities/TacticalGame';
 import { Logger } from '../../../domain/ports/Logger';
 import errorService from "../../../services/error-service";
-import tacticalGameRoundService from "../../../services/tactical-game-round-service";
 import { DependencyContainer } from '../../DependencyContainer';
 
 export class TacticalGameController {
@@ -128,11 +127,10 @@ export class TacticalGameController {
 
     private async startRound(req: Request, res: Response): Promise<void> {
         try {
-            const tacticalGameId: string = req.params.tacticalGameId!;
-            this.logger.info(`Starting round for tactical game << ${tacticalGameId}`);
-
-            const result = await tacticalGameRoundService.startRound(tacticalGameId);
-            this.logger.info(`Round started successfully for game: ${tacticalGameId}`);
+            const gameId: string = req.params.tacticalGameId!;
+            this.logger.info(`Starting round for game << ${gameId}`);
+            const result = await this.tacticalGameApplicationService.startRound(gameId);
+            this.logger.info(`Round started successfully for game: ${gameId}`);
 
             res.status(200).json(result);
         } catch (error: any) {
@@ -146,8 +144,7 @@ export class TacticalGameController {
             const tacticalGameId: string = req.params.tacticalGameId!;
             const round: number = parseInt(req.params.round!);
             this.logger.info(`Finding character rounds << tacticalGameId: ${tacticalGameId}, round: ${round}`);
-
-            const result = await tacticalGameRoundService.findTacticalCharacterRounds(tacticalGameId, round);
+            const result = await this.tacticalGameApplicationService.findTacticalCharacterRounds(tacticalGameId, round);
             this.logger.info(`Found ${result.length} character rounds for game: ${tacticalGameId}, round: ${round}`);
 
             res.status(200).json(result);

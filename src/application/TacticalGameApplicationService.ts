@@ -3,6 +3,7 @@ import { CreateTacticalGameUseCase } from './use-cases/tactical-game/CreateTacti
 import { DeleteTacticalGameUseCase } from './use-cases/tactical-game/DeleteTacticalGameUseCase';
 import { FindTacticalGameByIdUseCase } from './use-cases/tactical-game/FindTacticalGameByIdUseCase';
 import { FindTacticalGamesUseCase } from './use-cases/tactical-game/FindTacticalGamesUseCase';
+import { StartGameRoundUseCase } from './use-cases/tactical-game/StartGameRoundUseCase';
 import { UpdateTacticalGameUseCase } from './use-cases/tactical-game/UpdateTacticalGameUseCase';
 
 export class TacticalGameApplicationService {
@@ -11,7 +12,8 @@ export class TacticalGameApplicationService {
         private readonly findByIdUseCase: FindTacticalGameByIdUseCase,
         private readonly findUseCase: FindTacticalGamesUseCase,
         private readonly updateUseCase: UpdateTacticalGameUseCase,
-        private readonly deleteUseCase: DeleteTacticalGameUseCase
+        private readonly deleteUseCase: DeleteTacticalGameUseCase,
+        private readonly startRoundUseCase: StartGameRoundUseCase
     ) { }
 
     async findById(id: string): Promise<TacticalGame> {
@@ -32,5 +34,21 @@ export class TacticalGameApplicationService {
 
     async delete(id: string): Promise<void> {
         return this.deleteUseCase.execute(id);
+    }
+
+    async startRound(gameId: string): Promise<TacticalGame> {
+        return this.startRoundUseCase.execute(gameId);
+    }
+
+    async findTacticalCharacterRounds(gameId: string, round: number): Promise<any[]> {
+        // TODO: Implement FindTacticalCharacterRoundsUseCase
+        // For now, this is a placeholder that should be replaced with a proper use case
+        // when TacticalCharacterRoundRepository is implemented
+
+        // The implementation should be:
+        // return this.findTacticalCharacterRoundsUseCase.execute(gameId, round);
+
+        // Temporary implementation - returns empty array
+        return [];
     }
 }

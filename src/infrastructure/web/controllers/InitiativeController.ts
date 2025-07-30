@@ -1,12 +1,14 @@
 import express, { Request, Response, Router } from 'express';
+import { DependencyContainer } from '../../DependencyContainer';
 import errorService from "../../../services/error-service";
-import initiativeService from "../../../services/initiative-service";
 
 export class InitiativeController {
     private router: Router;
+    private readonly container: DependencyContainer;
 
     constructor() {
         this.router = express.Router();
+        this.container = DependencyContainer.getInstance();
         this.initializeRoutes();
     }
 
@@ -18,7 +20,14 @@ export class InitiativeController {
         try {
             const characterRoundId: string = req.params.characterRoundId!;
             const initiativeRoll: number = parseInt(req.params.initiativeRoll!);
-            const result = await initiativeService.updateInitiative(characterRoundId, initiativeRoll);
+            
+            const updateCharacterInitiativeUseCase = this.container.updateCharacterInitiativeUseCase;
+            const command = {
+                tacticalCharacterRoundId: characterRoundId,
+                initiativeRoll: initiativeRoll
+            };
+            
+            const result = await updateCharacterInitiativeUseCase.execute(command);
             res.json(result);
         } catch (error) {
             errorService.sendErrorResponse(res, error as Error);
