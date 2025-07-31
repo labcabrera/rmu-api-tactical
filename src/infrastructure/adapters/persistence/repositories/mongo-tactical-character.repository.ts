@@ -16,8 +16,8 @@ export class MongoTacticalCharacterRepository implements TacticalCharacterReposi
 
     async find(query: TacticalCharacterQuery): Promise<Page<TacticalCharacter>> {
         let filter: any = {};
-        if (query.tacticalGameId) {
-            filter.gameId = query.tacticalGameId;
+        if (query.gameId) {
+            filter.gameId = query.gameId;
         }
         const skip = query.page * query.size;
         const list = await TacticalCharacterDocument.find(filter)

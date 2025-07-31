@@ -23,6 +23,7 @@ import { FindTacticalGamesUseCase } from '../application/use-cases/tactical-game
 import { StartRoundUseCase } from '../application/use-cases/tactical-game/start-round-use-case';
 import { UpdateTacticalGameUseCase } from '../application/use-cases/tactical-game/update-tactical-game-use-case';
 
+import { FindTacticalCharacterRoundsUseCase } from '../application/use-cases/tactical-character-round/find-tactical-character-rounds-use-case';
 import { AddSkillUseCase } from '../application/use-cases/tactical-character/add-skill-use-case';
 import { DeleteSkillUseCase } from '../application/use-cases/tactical-character/delete-skill-use-case';
 import { UpdateSkillUseCase } from '../application/use-cases/tactical-character/update-skill-use-case';
@@ -64,7 +65,6 @@ export class DependencyContainer {
     private readonly _createTacticalCharacterUseCase: CreateTacticalCharacterUseCase;
     private readonly _updateTacticalCharacterUseCase: UpdateTacticalCharacterUseCase;
     private readonly _deleteTacticalCharacterUseCase: DeleteTacticalCharacterUseCase;
-    private readonly _updateCharacterInitiativeUseCase: UpdateCharacterInitiativeUseCase;
     private readonly _addItemUseCase!: AddItemUseCase;
     private readonly _deleteItemUseCase: DeleteItemUseCase;
     private readonly _equipItemUseCase: EquipItemUseCase;
@@ -72,6 +72,10 @@ export class DependencyContainer {
     private readonly _updateSkillUseCase!: UpdateSkillUseCase;
     private readonly _deleteSkillUseCase!: DeleteSkillUseCase;
     
+    // Tactical Character Round Use Cases
+    private readonly _updateCharacterInitiativeUseCase: UpdateCharacterInitiativeUseCase;
+    private readonly _findTacticalCharacterRoundsUseCase!: FindTacticalCharacterRoundsUseCase;
+
     private constructor() {
         // Configure basic dependencies
         this._logger = new WinstonLogger();
@@ -85,7 +89,7 @@ export class DependencyContainer {
         this._skillClient = new SkillAPICoreClient(this._logger);
         this._skillCategoryClient = new SkillCategoryAPICoreClient(this._logger);
 
-        // Configure use cases
+        // Configure tactical game use cases
         this._createTacticalGameUseCase = new CreateTacticalGameUseCase(
             this._tacticalGameRepository,
             this._logger
@@ -178,6 +182,12 @@ export class DependencyContainer {
         this._deleteSkillUseCase = new DeleteSkillUseCase(
             this._characterProcessorService,
             this._tacticalCharacterRepository,
+            this._logger
+        );
+
+        // Configure tactical character round use cases
+        this._findTacticalCharacterRoundsUseCase = new FindTacticalCharacterRoundsUseCase(
+            this._tacticalCharacterRoundRepository,
             this._logger
         );
     }
@@ -285,5 +295,10 @@ export class DependencyContainer {
 
     get deleteSkillUseCase(): DeleteSkillUseCase {
         return this._deleteSkillUseCase;
+    }
+
+    // Tactical Character Round Use Case getters
+    get findTacticalCharacterRoundsUseCase(): FindTacticalCharacterRoundsUseCase {
+        return this._findTacticalCharacterRoundsUseCase;
     }
 }

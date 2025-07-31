@@ -77,7 +77,7 @@ export class TacticalCharacterController {
             this.logger.info(`TacticalCharacterController: Finding tactical characters`);
             const query: TacticalCharacterQuery = {
                 searchExpression: req.params.search as string,
-                tacticalGameId: req.params.tacticalGameId as string,
+                gameId: req.params.tacticalGameId as string,
                 page: req.params.page ? parseInt(req.params.page) : 0,
                 size: req.params.size ? parseInt(req.params.size) : 10
             };

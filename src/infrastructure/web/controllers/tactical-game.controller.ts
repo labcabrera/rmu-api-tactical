@@ -126,13 +126,12 @@ export class TacticalGameController {
 
     private async startRound(req: Request, res: Response): Promise<void> {
         try {
-            this.logger.info(`Starting round for game << ${req.params.tacticalGameId}`);
+            this.logger.info(`TacticalGameController: Starting round for game << ${req.params.tacticalGameId}`);
             const gameId: string = req.params.tacticalGameId!;
             const result = await this.startRoundUseCase.execute(gameId);
-            this.logger.info(`Round started successfully for game: ${gameId}`);
             res.json(result);
         } catch (error: any) {
-            this.logger.error(`Error starting round for tactical game ${req.params.tacticalGameId}: ${error.message}`);
+            this.logger.error(`TacticalGameController: Error starting round for tactical game ${req.params.tacticalGameId}: ${error.message}`);
             res.status(error.status ? error.status : 500).json({ message: error.message });
         }
     }

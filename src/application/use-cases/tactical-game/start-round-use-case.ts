@@ -1,3 +1,4 @@
+import { Page } from '@domain/entities/page.entity';
 import { TacticalCharacterRound } from '@domain/entities/tactical-character-round.entity';
 import { TacticalCharacter } from '@domain/entities/tactical-character.entity';
 import { TacticalGame } from '@domain/entities/tactical-game.entity';
@@ -15,11 +16,14 @@ export class StartRoundUseCase {
     ) { }
 
     async execute(gameId: string): Promise<TacticalGame> {
-        this.logger.info(`Starting new round for tactical game: ${gameId}`);
+        this.logger.info(`StartRoundUseCase: Starting new round for tactical game: ${gameId}`);
 
-        const tacticalGame = await this.tacticalGameRepository.findById(gameId);
-        const charactersResult = await this.tacticalCharacterRepository.find({ tacticalGameId: gameId, page: 0, size: 100 });
-        const characters = charactersResult.content;
+        const tacticalGame: TacticalGame = await this.tacticalGameRepository.findById(gameId);
+        const charactersPage: Page<TacticalCharacter> = await this.tacticalCharacterRepository.find({ gameId: gameId, page: 0, size: 100 });
+        const characters: TacticalCharacter[] = charactersPage.content;
+
+        this.logger.info(`Characters: ${JSON.stringify(characters)}`);
+
         if (characters.length < 1) {
             throw new Error('No characters associated with the tactical game have been defined');
         }
@@ -30,16 +34,7 @@ export class StartRoundUseCase {
             status: 'in-progress',
             round: newRound
         });
-
-        if (!updatedGame) {
-            this.logger.error(`Failed to update tactical game: ${gameId}`);
-            throw new Error('Failed to update tactical game');
-        }
-
-        // Create character rounds for all characters
         await this.createCharacterRounds(characters, newRound);
-
-        this.logger.info(`Successfully started round ${newRound} for game ${gameId}`);
         return updatedGame;
     }
 
