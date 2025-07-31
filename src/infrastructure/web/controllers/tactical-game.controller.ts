@@ -1,6 +1,6 @@
 import express, { Request, Response, Router } from 'express';
 import { CreateTacticalGameCommand } from '../../../application/commands/create-tactical-game.command';
-import { UpdateTacticalGameCommand } from '../../../application/commands/update-tactical-game-command';
+import { UpdateTacticalGameCommand } from '../../../application/commands/update-tactical-game.command';
 import { CreateTacticalGameUseCase } from '../../../application/use-cases/tactical-game/create-tactical-game-use-case';
 import { DeleteTacticalGameUseCase } from '../../../application/use-cases/tactical-game/delete-tactical-game-use-case';
 import { FindTacticalGameByIdUseCase } from '../../../application/use-cases/tactical-game/find-tactical-game-by-id-use-case';

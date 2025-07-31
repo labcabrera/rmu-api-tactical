@@ -25,7 +25,7 @@ export class ApiRoutes {
 
         this.router.use('/tactical-games', tacticalGameController.getRouter());
         this.router.use('/characters', tacticalCharacterController.getRouter());
-        this.router.use('/tactical-actions', tacticalActionController.getRouter());
+        this.router.use('/actions', tacticalActionController.getRouter());
         this.router.use('/initiatives', initiativeController.getRouter());
         this.router.use('/attacks', attackController.getRouter());
         this.router.use('/tactical-character-rounds', tacticalCharacterRoundController.getRouter());

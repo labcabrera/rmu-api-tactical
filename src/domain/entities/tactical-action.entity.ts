@@ -4,7 +4,7 @@ export interface TacticalAction {
     characterId: string;
     round: number;
     type: string;
-    phaseStart?: string;
+    phaseStart?: number;
     actionPoints?: number;
     attackInfo?: TacticalActionAttackInfo;
     attacks?: TacticalActionAttack[];

@@ -1,21 +1,23 @@
 import express, { Request, Response, Router } from 'express';
-import { ErrorHandler } from '../error-handler';
-// TODO: Implement TacticalAction use cases
-// import tacticalActionService from "../../../services/tactical-action-service";
 
-interface ActionQuery {
-    tacticalGameId?: string;
-    tacticalCharacterId?: string;
-    round?: string;
-    page?: string;
-    size?: string;
-}
+import { CreateActionCommand } from '../../../application/commands/create-action.command';
+import { CreateActionUseCase } from '../../../application/use-cases/tactical-actions/create-action-use-case';
+import { Logger } from '../../../domain/ports/logger';
+import { DependencyContainer } from '../../dependency-container';
+import { ErrorHandler } from '../error-handler';
 
 export class TacticalActionController {
+
     private router: Router;
+    private createActionUseCase: CreateActionUseCase;
+    private logger: Logger;
+
 
     constructor() {
         this.router = express.Router();
+        const container = DependencyContainer.getInstance();
+        this.createActionUseCase = container.createActionUseCase;
+        this.logger = container.logger;
         this.initializeRoutes();
     }
 
@@ -28,11 +30,7 @@ export class TacticalActionController {
 
     async getAllActions(req: Request, res: Response) {
         try {
-            // TODO: Implement TacticalAction use cases
             res.status(501).json({ message: 'Not implemented - awaiting TacticalAction use cases' });
-            // const { tacticalGameId, tacticalCharacterId, round, page = '0', size = '10' } = req.query as ActionQuery;
-            // const response = await tacticalActionService.find(tacticalGameId, tacticalCharacterId, round, page, size);
-            // res.json(response);
         } catch (error) {
             ErrorHandler.sendErrorResponse(res, error as Error);
         }
@@ -40,11 +38,7 @@ export class TacticalActionController {
 
     private async findActionById(req: Request, res: Response): Promise<void> {
         try {
-            // TODO: Implement TacticalAction use cases
             res.status(501).json({ message: 'Not implemented - awaiting TacticalAction use cases' });
-            // const actionId: string = req.params.actionId!;
-            // const readedAction = await tacticalActionService.findById(actionId);
-            // res.json(readedAction);
         } catch (error) {
             ErrorHandler.sendErrorResponse(res, error as Error);
         }
@@ -52,11 +46,16 @@ export class TacticalActionController {
 
     private async createAction(req: Request, res: Response): Promise<void> {
         try {
-            // TODO: Implement TacticalAction use cases
-            res.status(501).json({ message: 'Not implemented - awaiting TacticalAction use cases' });
-            // const user: string = "lab.cabrera@gmail.com"; //TODO JWT
-            // const newAction = await tacticalActionService.insert(req.body);
-            // res.status(201).json(newAction);
+            const command: CreateActionCommand = {
+                gameId: req.body.gameId,
+                round: req.body.round,
+                characterId: req.body.characterId,
+                actionType: req.body.actionType,
+                phaseStart: req.body.phaseStart,
+                actionPoints: req.body.actionPoints,
+            };
+            const response = await this.createActionUseCase.execute(command);
+            res.status(201).json(response);
         } catch (error) {
             ErrorHandler.sendErrorResponse(res, error as Error);
         }
