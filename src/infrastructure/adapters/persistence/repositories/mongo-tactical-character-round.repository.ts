@@ -1,64 +1,45 @@
 import { Page } from '@domain/entities/page.entity';
-import { TacticalCharacterRoundEntity, TacticalCharacterRoundSearchCriteria } from '@domain/entities/tactical-character-round.entity';
+import { TacticalCharacterRoundEntity } from '@domain/entities/tactical-character-round.entity';
 import { TacticalCharacterRoundRepository } from '@domain/ports/tactical-character-round.repository';
-import TacticalCharacterRoundDocument from '../models/tactical-character-round.model';
+import { TacticalCharacterRoundQuery } from '@domain/queries/tactical-character-round.query';
+
+import TacticalCharacterRoundDocument from '@infrastructure/adapters/persistence/models/tactical-character-round.model';
 
 export class MongoTacticalCharacterRoundRepository implements TacticalCharacterRoundRepository {
 
     async findById(id: string): Promise<TacticalCharacterRoundEntity> {
         const characterRound = await TacticalCharacterRoundDocument.findById(id);
-        if (!characterRound) {
-            throw new Error(`TacticalCharacterRound not found: ${id}`);
+        if(!characterRound) {
+            throw new Error(`Character round with id ${id} not found`);
         }
         return this.toEntity(characterRound);
     }
 
-    async find(criteria: TacticalCharacterRoundSearchCriteria): Promise<Page<TacticalCharacterRoundEntity>> {
-        let filter: any = {};
-
-        if (criteria.gameId) {
-            filter.gameId = criteria.gameId;
+    async find(query: TacticalCharacterRoundQuery): Promise<Page<TacticalCharacterRoundEntity>> {
+        const filter: any = {};
+        if (query.gameId) {
+            filter.gameId = query.gameId;
         }
-        if (criteria.tacticalCharacterId) {
-            filter.tacticalCharacterId = criteria.tacticalCharacterId;
+        if (query.characterId) {
+            filter.characterId = query.characterId;
         }
-        if (criteria.round !== undefined) {
-            filter.round = criteria.round;
+        if (query.round !== undefined) {
+            filter.round = query.round;
         }
-        if (criteria.hasInitiative !== undefined) {
-            filter.initiative = criteria.hasInitiative ? { $exists: true, $ne: null } : { $exists: false };
-        }
-        if (criteria.actionPointsMin !== undefined) {
-            filter.actionPoints = { ...filter.actionPoints, $gte: criteria.actionPointsMin };
-        }
-        if (criteria.actionPointsMax !== undefined) {
-            filter.actionPoints = { ...filter.actionPoints, $lte: criteria.actionPointsMax };
-        }
-        if (criteria.createdAfter) {
-            filter.createdAt = { ...filter.createdAt, $gte: criteria.createdAfter };
-        }
-        if (criteria.createdBefore) {
-            filter.createdAt = { ...filter.createdAt, $lte: criteria.createdBefore };
-        }
-
-        const skip = (criteria.offset || 0);
-        const limit = criteria.limit || 20;
-
+        const skip = query.page * query.size;
         const list = await TacticalCharacterRoundDocument.find(filter)
             .skip(skip)
-            .limit(limit)
+            .limit(query.size)
             .sort({ round: 1, createdAt: -1 });
-
         const count = await TacticalCharacterRoundDocument.countDocuments(filter);
         const content = list.map(characterRound => this.toEntity(characterRound));
-
         return {
             content,
             pagination: {
-                page: Math.floor(skip / limit),
-                size: limit,
+                page: query.page,
+                size: query.size,
                 totalElements: count,
-                totalPages: Math.ceil(count / limit)
+                totalPages: Math.ceil(count / query.size)
             }
         };
     }
@@ -81,29 +62,30 @@ export class MongoTacticalCharacterRoundRepository implements TacticalCharacterR
         return characterRound ? this.toEntity(characterRound) : null;
     }
 
-    async create(characterRound: Omit<TacticalCharacterRoundEntity, 'id' | 'createdAt' | 'updatedAt'>): Promise<TacticalCharacterRoundEntity> {
+    async create(characterRound: Omit<TacticalCharacterRoundEntity, 'id'>): Promise<TacticalCharacterRoundEntity> {
         const newCharacterRound = new TacticalCharacterRoundDocument(characterRound);
         const saved = await newCharacterRound.save();
         return this.toEntity(saved);
     }
 
-    async update(id: string, characterRound: Partial<TacticalCharacterRoundEntity>): Promise<TacticalCharacterRoundEntity | null> {
+    async update(id: string, characterRound: Partial<TacticalCharacterRoundEntity>): Promise<TacticalCharacterRoundEntity> {
         const updated = await TacticalCharacterRoundDocument.findByIdAndUpdate(
             id,
             characterRound,
             { new: true }
         );
-        return updated ? this.toEntity(updated) : null;
+        if(!updated) {
+            throw new Error(`Character round with id ${id} not found`);
+        }
+        return this.toEntity(updated);
     }
 
-    async delete(id: string): Promise<boolean> {
-        const result = await TacticalCharacterRoundDocument.findByIdAndDelete(id);
-        return result !== null;
+    async delete(id: string): Promise<void> {
+        await TacticalCharacterRoundDocument.findByIdAndDelete(id);
     }
 
-    async deleteByGameId(gameId: string): Promise<number> {
-        const result = await TacticalCharacterRoundDocument.deleteMany({ gameId: gameId });
-        return result.deletedCount || 0;
+    async deleteByGameId(gameId: string): Promise<void> {
+        await TacticalCharacterRoundDocument.deleteMany({ gameId: gameId });
     }
 
     private toEntity(document: any): TacticalCharacterRoundEntity {

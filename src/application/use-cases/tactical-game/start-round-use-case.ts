@@ -1,10 +1,10 @@
-import { TacticalCharacterRoundEntity } from '../../../domain/entities/tactical-character-round.entity';
-import { TacticalCharacter } from '../../../domain/entities/tactical-character.entity';
-import { TacticalGame } from '../../../domain/entities/tactical-game.entity';
-import { TacticalCharacterRoundRepository } from '../../../domain/ports/character-round.repository';
-import { Logger } from '../../../domain/ports/logger';
-import { TacticalCharacterRepository } from '../../../domain/ports/tactical-character.repository';
-import { TacticalGameRepository } from '../../../domain/ports/tactical-game.repository';
+import { TacticalCharacterRoundEntity } from '@domain/entities/tactical-character-round.entity';
+import { TacticalCharacter } from '@domain/entities/tactical-character.entity';
+import { TacticalGame } from '@domain/entities/tactical-game.entity';
+import { Logger } from '@domain/ports/logger';
+import { TacticalCharacterRoundRepository } from '@domain/ports/tactical-character-round.repository';
+import { TacticalCharacterRepository } from '@domain/ports/tactical-character.repository';
+import { TacticalGameRepository } from '@domain/ports/tactical-game.repository';
 
 export class StartRoundUseCase {
     constructor(
@@ -17,13 +17,7 @@ export class StartRoundUseCase {
     async execute(gameId: string): Promise<TacticalGame> {
         this.logger.info(`Starting new round for tactical game: ${gameId}`);
 
-        // Find the tactical game
         const tacticalGame = await this.tacticalGameRepository.findById(gameId);
-        if (!tacticalGame) {
-            throw new Error('Tactical game not found');
-        }
-
-        // Find characters in the game
         const charactersResult = await this.tacticalCharacterRepository.find({ tacticalGameId: gameId, page: 0, size: 100 });
         const characters = charactersResult.content;
         if (characters.length < 1) {

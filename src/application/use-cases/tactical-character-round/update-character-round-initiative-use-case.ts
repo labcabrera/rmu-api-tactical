@@ -1,5 +1,5 @@
-import { Logger } from '../../../domain/ports/logger';
-import { TacticalCharacterRoundRepository } from '../../../domain/ports/tactical-character-round.repository';
+import { Logger } from '@domain/ports/logger';
+import { TacticalCharacterRoundRepository } from '@domain/ports/tactical-character-round.repository';
 
 export interface UpdateCharacterInitiativeCommand {
     tacticalCharacterRoundId: string;
