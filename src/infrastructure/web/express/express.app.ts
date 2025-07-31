@@ -34,13 +34,8 @@ export class ExpressApp {
     }
 
     private initializeRoutes(): void {
-        // API Routes
         this.app.use('/v1', this.apiRoutes.getRouter());
-
-        // Swagger documentation
         this.initializeSwagger();
-
-        // Root redirect
         this.app.get('/', (req: Request, res: Response) => {
             res.redirect('/api-docs');
         });

@@ -1,33 +1,33 @@
 export interface CharacterAddItemCommand {
-    characterId: string;
-    item: {
-        name?: string;
-        itemTypeId: string;
-        category: string;
-        weapon?: {
-            type: string;
-            attackTable: string;
-            skillId: string;
-            fumble: number;
-            sizeAdjustment?: number;
+    readonly characterId: string;
+    readonly item: {
+        readonly name?: string;
+        readonly itemTypeId: string;
+        readonly category: string;
+        readonly weapon?: {
+            readonly type: string;
+            readonly attackTable: string;
+            readonly skillId: string;
+            readonly fumble: number;
+            readonly sizeAdjustment?: number;
 
         },
-        weaponRange?: AddItemRangeEntry[],
-        info?: {
-            cost: {
-                value: number;
-                currency: string;
+        readonly weaponRange?: AddItemRangeEntry[],
+        readonly info?: {
+            readonly cost: {
+                readonly value: number;
+                readonly currency: string;
             },
-            strength?: number;
-            length?: number;
-            weight?: number;
-            productionTime?: number;
+            readonly strength?: number;
+            readonly length?: number;
+            readonly weight?: number;
+            readonly productionTime?: number;
         }
     };
 }
 
 export interface AddItemRangeEntry {
-    from: number;
-    to: number;
-    bonus: number;
+    readonly from: number;
+    readonly to: number;
+    readonly bonus: number;
 }

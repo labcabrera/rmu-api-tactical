@@ -1,22 +1,27 @@
 import express, { Request, Response, Router } from 'express';
+
+import {
+    CreateTacticalCharacterCommand
+} from '@domain/entities/tactical-character.entity';
+import { Logger } from '@domain/ports/logger';
+import { TacticalCharacterQuery } from '@domain/queries/tactical-character.query';
+
 import { CharacterAddItemCommand } from '../../../application/commands/add-item.comand';
+import { AddSkillCommand } from '../../../application/commands/add-skill.command';
 import { EquipItemCommand } from '../../../application/commands/equip-item-command';
 import { AddItemUseCase } from '../../../application/use-cases/tactical-character/add-item-use-case';
+import { AddSkillUseCase } from '../../../application/use-cases/tactical-character/add-skill-use-case';
 import { CreateTacticalCharacterUseCase } from '../../../application/use-cases/tactical-character/create-tactical-character-use-case';
 import { DeleteItemUseCase } from '../../../application/use-cases/tactical-character/delete-item-use-case';
 import { DeleteTacticalCharacterUseCase } from '../../../application/use-cases/tactical-character/delete-tactical-character-use-case';
 import { EquipItemUseCase } from '../../../application/use-cases/tactical-character/equip-item-use-case';
 import { FindTacticalCharacterByIdUseCase } from '../../../application/use-cases/tactical-character/find-tactical-character-by-id-use-case';
 import { FindTacticalCharactersUseCase } from '../../../application/use-cases/tactical-character/find-tactical-character-use-case';
-import {
-    CreateTacticalCharacterCommand
-} from '../../../domain/entities/tactical-character.entity';
-import { Logger } from '../../../domain/ports/logger';
-import { TacticalCharacterQuery } from '../../../domain/queries/tactical-character.query';
 import { DependencyContainer } from '../../dependency-container';
 import { ErrorHandler } from '../error-handler';
 
 export class TacticalCharacterController {
+
     private router: Router;
     private findCharacterUseCase: FindTacticalCharactersUseCase;
     private findCharacterByIdUseCase: FindTacticalCharacterByIdUseCase;
@@ -25,6 +30,7 @@ export class TacticalCharacterController {
     private addItemUseCase: AddItemUseCase;
     private deleteItemUseCase: DeleteItemUseCase;
     private equipItemUseCase: EquipItemUseCase;
+    private addSkillUseCase: AddSkillUseCase
     private logger: Logger;
 
     constructor() {
@@ -37,6 +43,7 @@ export class TacticalCharacterController {
         this.addItemUseCase = container.addItemUseCase;
         this.deleteItemUseCase = container.deleteItemUseCase;
         this.equipItemUseCase = container.equipItemUseCase;
+        this.addSkillUseCase = container.addSkillUseCase;
         this.logger = container.logger;
         this.initializeRoutes();
     }
@@ -50,6 +57,7 @@ export class TacticalCharacterController {
         this.router.post('/:characterId/items', this.addItem.bind(this));
         this.router.delete('/:characterId/items/:itemId', this.deleteItem.bind(this));
         this.router.post('/:characterId/equipment', this.equipItem.bind(this));
+        this.router.post('/:characterId/skills', this.addSkill.bind(this));
     }
 
     private async findCharacters(req: Request, res: Response): Promise<void> {
@@ -71,7 +79,7 @@ export class TacticalCharacterController {
 
     private async findCharacterById(req: Request, res: Response): Promise<void> {
         try {
-            this.logger.info(`Search tactical character << ${req.params.characterId}`);
+            this.logger.info(`TacticalCharacterController: Search tactical character << ${req.params.characterId}`);
             const characterId: string = req.params.characterId!;
             const character = await this.findCharacterByIdUseCase.execute(characterId);
             res.json(character);
@@ -102,14 +110,14 @@ export class TacticalCharacterController {
             const createdCharacter = await this.createCharacterUseCase.execute(command);
             res.status(201).json(createdCharacter);
         } catch (error: any) {
-            this.logger.error(`Error creating tactical character: ${error.message}`);
+            this.logger.error(`TacticalCharacterController: Error creating tactical character: ${error.message}`);
             res.status(400).json({ message: error.message });
         }
     }
 
     private async updateCharacter(req: Request, res: Response): Promise<void> {
         try {
-            this.logger.info(`Tactical character update << ${req.params.characterId} ${req.body}`);
+            this.logger.info(`TacticalCharacterController: Tactical character update << ${req.params.characterId} ${req.body}`);
             const characterId: string = req.params.characterId!;
             const command: CharacterAddItemCommand = {
                 characterId,
@@ -118,26 +126,26 @@ export class TacticalCharacterController {
             const result = await this.addItemUseCase.execute(command);
             res.json(result);
         } catch (error: any) {
-            this.logger.error(`Error updating tactical character ${req.params.characterId}: ${error.message}`);
+            this.logger.error(`TacticalCharacterController: Error updating tactical character ${req.params.characterId}: ${error.message}`);
             res.status(error.status ? error.status : 500).json({ message: error.message });
         }
     }
 
     private async deleteCharacter(req: Request, res: Response): Promise<void> {
         try {
-            this.logger.info(`Tactical character deletion << ${req.params.characterId}`);
+            this.logger.info(`TacticalCharacterController: Tactical character deletion << ${req.params.characterId}`);
             const characterId: string = req.params.characterId!;
             await this.deleteCharacterUseCase.execute(characterId);
             res.status(204).send();
         } catch (error: any) {
-            this.logger.error(`Error deleting tactical character ${req.params.characterId}: ${error.message}`);
+            this.logger.error(`TacticalCharacterController: Error deleting tactical character ${req.params.characterId}: ${error.message}`);
             res.status(error.status ? error.status : 500).json({ message: error.message });
         }
     }
 
     private async addItem(req: Request, res: Response): Promise<void> {
         try {
-            this.logger.info(`Adding item to character << ${req.params.characterId}`);
+            this.logger.info(`TacticalCharacterController: Adding item to character << ${req.params.characterId}`);
             const command: CharacterAddItemCommand = {
                 characterId: req.params.characterId!,
                 item: req.body
@@ -145,27 +153,27 @@ export class TacticalCharacterController {
             const character = await this.addItemUseCase.execute(command);
             res.json(character);
         } catch (error: any) {
-            this.logger.error(`Error adding item to tactical character ${req.params.characterId}: ${error.message}`);
+            this.logger.error(`TacticalCharacterController: Error adding item to tactical character ${req.params.characterId}: ${error.message}`);
             res.status(error.status ? error.status : 500).json({ message: error.message });
         }
     }
 
     private async deleteItem(req: Request, res: Response): Promise<void> {
         try {
-            this.logger.info(`Deleting item from character << ${req.params.characterId}`);
+            this.logger.info(`TacticalCharacterController: Deleting item from character << ${req.params.characterId}`);
             const characterId: string = req.params.characterId!;
             const itemId: string = req.params.itemId!;
             const character = await this.deleteItemUseCase.execute(characterId, itemId);
             res.json(character);
         } catch (error: any) {
-            this.logger.error(`Error adding item to tactical character ${req.params.characterId}: ${error.message}`);
+            this.logger.error(`TacticalCharacterController: Error adding item to tactical character ${req.params.characterId}: ${error.message}`);
             res.status(error.status ? error.status : 500).json({ message: error.message });
         }
     }
 
     private async equipItem(req: Request, res: Response): Promise<void> {
         try {
-            this.logger.info(`Equipping item to character << ${req.params.characterId}`);
+            this.logger.info(`TacticalCharacterController: Equipping item to character << ${req.params.characterId}`);
             const command: EquipItemCommand = {
                 characterId: req.params.characterId!,
                 itemId: req.body.itemId!,
@@ -174,7 +182,25 @@ export class TacticalCharacterController {
             const character = await this.equipItemUseCase.execute(command);
             res.json(character);
         } catch (error: any) {
-            this.logger.error(`Error equipping item to tactical character ${req.params.characterId}: ${error.message}`);
+            this.logger.error(`TacticalCharacterController: Error equipping item to tactical character ${req.params.characterId}: ${error.message}`);
+            res.status(error.status ? error.status : 500).json({ message: error.message });
+        }
+    }
+
+    private async addSkill(req: Request, res: Response): Promise<void> {
+        try {
+            this.logger.info(`TacticalCharacterController: Adding skill to character << ${req.params.characterId}`);
+            const command: AddSkillCommand = {
+                characterId: req.params.characterId!,
+                skillId: req.body.skillId!,
+                specialization: req.body.specialization,
+                ranks: req.body.ranks!,
+                customBonus: req.body.customBonus
+            }
+            const character = await this.addSkillUseCase.execute(command);
+            res.json(character);
+        }catch (error: any) {
+            this.logger.error(`Error adding skill to tactical character ${req.params.characterId}: ${error.message}`);
             res.status(error.status ? error.status : 500).json({ message: error.message });
         }
     }
