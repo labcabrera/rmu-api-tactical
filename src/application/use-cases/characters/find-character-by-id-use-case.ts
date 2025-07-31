@@ -1,14 +1,14 @@
-import { TacticalCharacter } from '../../../domain/entities/tactical-character.entity';
-import { Logger } from '../../../domain/ports/logger';
-import { TacticalCharacterRepository } from '../../../domain/ports/tactical-character.repository';
+import { Character } from "../../../domain/entities/character.entity";
+import { CharacterRepository } from "../../../domain/ports/character.repository";
+import { Logger } from "../../../domain/ports/logger";
 
 export class FindTCharacterByIdUseCase {
-    constructor(
-        private readonly repository: TacticalCharacterRepository,
-        private readonly logger: Logger
-    ) { }
+  constructor(
+    private readonly repository: CharacterRepository,
+    private readonly logger: Logger,
+  ) {}
 
-    async execute(id: string): Promise<TacticalCharacter> {
-        return await this.repository.findById(id);
-    }
+  async execute(id: string): Promise<Character> {
+    return await this.repository.findById(id);
+  }
 }

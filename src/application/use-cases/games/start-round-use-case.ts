@@ -1,65 +1,81 @@
-import { Page } from '@domain/entities/page.entity';
-import { TacticalCharacterRound } from '@domain/entities/tactical-character-round.entity';
-import { TacticalCharacter } from '@domain/entities/tactical-character.entity';
-import { TacticalGame } from '@domain/entities/tactical-game.entity';
-import { Logger } from '@domain/ports/logger';
-import { TacticalCharacterRoundRepository } from '@domain/ports/tactical-character-round.repository';
-import { TacticalCharacterRepository } from '@domain/ports/tactical-character.repository';
-import { TacticalGameRepository } from '@domain/ports/tactical-game.repository';
+import { CharacterRound } from "@/domain/entities/character-round.entity";
+import { Character } from "@/domain/entities/character.entity";
+import { Game } from "@/domain/entities/game.entity";
+import { CharacterRoundRepository } from "@/domain/ports/character-round.repository";
+import { CharacterRepository } from "@/domain/ports/character.repository";
+import { GameRepository } from "@/domain/ports/game.repository";
+import { Page } from "@domain/entities/page.entity";
+import { Logger } from "@domain/ports/logger";
 
 export class StartRoundUseCase {
-    constructor(
-        private readonly tacticalGameRepository: TacticalGameRepository,
-        private readonly tacticalCharacterRepository: TacticalCharacterRepository,
-        private readonly tacticalCharacterRoundRepository: TacticalCharacterRoundRepository,
-        private readonly logger: Logger
-    ) { }
+  constructor(
+    private readonly gameRepository: GameRepository,
+    private readonly characterRepository: CharacterRepository,
+    private readonly characterRoundRepository: CharacterRoundRepository,
+    private readonly logger: Logger,
+  ) {}
 
-    async execute(gameId: string): Promise<TacticalGame> {
-        this.logger.info(`StartRoundUseCase: Starting new round for tactical game: ${gameId}`);
+  async execute(gameId: string): Promise<Game> {
+    this.logger.info(
+      `StartRoundUseCase: Starting new round for tactical game: ${gameId}`,
+    );
 
-        const tacticalGame: TacticalGame = await this.tacticalGameRepository.findById(gameId);
-        const charactersPage: Page<TacticalCharacter> = await this.tacticalCharacterRepository.find({ gameId: gameId, page: 0, size: 100 });
-        const characters: TacticalCharacter[] = charactersPage.content;
+    const tacticalGame: Game = await this.gameRepository.findById(gameId);
+    const charactersPage: Page<Character> = await this.characterRepository.find(
+      {
+        gameId: gameId,
+        page: 0,
+        size: 100,
+      },
+    );
+    const characters: Character[] = charactersPage.content;
 
-        this.logger.info(`Characters: ${JSON.stringify(characters)}`);
+    this.logger.info(`Characters: ${JSON.stringify(characters)}`);
 
-        if (characters.length < 1) {
-            throw new Error('No characters associated with the tactical game have been defined');
-        }
-
-        const newRound = tacticalGame.round + 1;
-        const updatedGame = await this.tacticalGameRepository.update(gameId, {
-            ...tacticalGame,
-            status: 'in-progress',
-            round: newRound
-        });
-        await this.createCharacterRounds(characters, newRound);
-        return updatedGame;
+    if (characters.length < 1) {
+      throw new Error(
+        "No characters associated with the tactical game have been defined",
+      );
     }
 
-    private async createCharacterRounds(characters: TacticalCharacter[], round: number): Promise<void> {
-        for (const character of characters) {
-            await this.createTacticalCharacterRound(character, round);
-        }
-    }
+    const newRound = tacticalGame.round + 1;
+    const updatedGame = await this.gameRepository.update(gameId, {
+      ...tacticalGame,
+      status: "in-progress",
+      round: newRound,
+    });
+    await this.createCharacterRounds(characters, newRound);
+    return updatedGame;
+  }
 
-    private async createTacticalCharacterRound(character: TacticalCharacter, round: number): Promise<void> {
-        const baseInitiative = character.initiative?.baseBonus || 0;
-        //TODO check status effects
-        const actionPoints: number = 4;
-        const entity: Omit<TacticalCharacterRound, 'id'> = {
-            gameId: character.gameId,
-            round: round,
-            tacticalCharacterId: character.id,
-            initiative: {
-                base: baseInitiative,
-                penalty: 0,
-                roll: 0,
-                total: baseInitiative
-            },
-            actionPoints: 4
-        };
-        await this.tacticalCharacterRoundRepository.create(entity);
+  private async createCharacterRounds(
+    characters: Character[],
+    round: number,
+  ): Promise<void> {
+    for (const character of characters) {
+      await this.createTacticalCharacterRound(character, round);
     }
+  }
+
+  private async createTacticalCharacterRound(
+    character: Character,
+    round: number,
+  ): Promise<void> {
+    const baseInitiative = character.initiative?.baseBonus || 0;
+    //TODO check status effects
+    const actionPoints: number = 4;
+    const entity: Omit<CharacterRound, "id"> = {
+      gameId: character.gameId,
+      round: round,
+      characterId: character.id,
+      initiative: {
+        base: baseInitiative,
+        penalty: 0,
+        roll: 0,
+        total: baseInitiative,
+      },
+      actionPoints: 4,
+    };
+    await this.characterRoundRepository.create(entity);
+  }
 }

@@ -1,65 +1,65 @@
-import { Document } from 'mongoose';
+import { Document } from "mongoose";
 
 export interface TacticalGameDocument extends Document {
-    name: string;
-    user: string;
-    status?: string;
-    round: number;
-    phase?: string;
-    factions: string[];
-    description?: string;
-    createdAt?: Date;
-    updatedAt?: Date;
+  name: string;
+  user: string;
+  status?: string;
+  round: number;
+  phase?: string;
+  factions: string[];
+  description?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface TacticalCharacterDocument extends Document {
-    gameId: string;
-    name: string;
-    faction?: string;
-    hitPoints?: number;
-    maxHitPoints?: number;
-    initiative?: number;
-    status?: string;
-    skills?: ISkill[];
-    equipment?: IEquipment[];
-    createdAt?: Date;
-    updatedAt?: Date;
+  gameId: string;
+  name: string;
+  faction?: string;
+  hitPoints?: number;
+  maxHitPoints?: number;
+  initiative?: number;
+  status?: string;
+  skills?: ISkill[];
+  equipment?: IEquipment[];
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface TacticalActionDocument extends Document {
-    gameId: string;
-    characterId: string;
-    round: number;
-    type: string;
-    phaseStart?: string;
-    actionPoints?: number;
-    attackInfo?: any;
-    attacks?: any[];
-    description?: string;
-    result?: any;
-    createdAt?: Date;
-    updatedAt?: Date;
+  gameId: string;
+  characterId: string;
+  round: number;
+  type: string;
+  phaseStart?: string;
+  actionPoints?: number;
+  attackInfo?: any;
+  attacks?: any[];
+  description?: string;
+  result?: any;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface TacticalCharacterRoundDocument extends Document {
-    gameId: string;
-    round: number;
-    tacticalCharacterId: string;
-    initiative?: any;
-    actionPoints?: number;
-    createdAt?: Date;
-    updatedAt?: Date;
+  gameId: string;
+  round: number;
+  characterId: string;
+  initiative?: any;
+  actionPoints?: number;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface ISkill {
-    name: string;
-    value: number;
-    modifier?: number;
+  name: string;
+  value: number;
+  modifier?: number;
 }
 
 export interface IEquipment {
-    name: string;
-    type: string;
-    equipped: boolean;
-    properties?: any;
+  name: string;
+  type: string;
+  equipped: boolean;
+  properties?: any;
 }

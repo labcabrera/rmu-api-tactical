@@ -1,14 +1,16 @@
-import { Logger } from '../../../domain/ports/logger';
-import { TacticalCharacterRepository } from '../../../domain/ports/tactical-character.repository';
+import { CharacterRepository } from "../../../domain/ports/character.repository";
+import { Logger } from "../../../domain/ports/logger";
 
 export class DeleteCharacterUseCase {
-    constructor(
-        private tacticalCharacterRepository: TacticalCharacterRepository,
-        private logger: Logger
-    ) { }
+  constructor(
+    private tacticalCharacterRepository: CharacterRepository,
+    private logger: Logger,
+  ) {}
 
-    async execute(characterId: string): Promise<void> {
-        this.logger.info(`DeleteTacticalCharacterUseCase: Deleting tactical character: ${characterId}`);
-        await this.tacticalCharacterRepository.delete(characterId);
-    }
+  async execute(characterId: string): Promise<void> {
+    this.logger.info(
+      `DeleteTacticalCharacterUseCase: Deleting tactical character: ${characterId}`,
+    );
+    await this.tacticalCharacterRepository.delete(characterId);
+  }
 }

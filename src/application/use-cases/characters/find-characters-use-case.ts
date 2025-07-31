@@ -1,18 +1,19 @@
-import { Page } from '../../../domain/entities/page.entity';
-import { TacticalCharacter } from '../../../domain/entities/tactical-character.entity';
-import { Logger } from '../../../domain/ports/logger';
-import { TacticalCharacterRepository } from '../../../domain/ports/tactical-character.repository';
-import { TacticalCharacterQuery } from '../../../domain/queries/tactical-character.query';
+import { Character } from "../../../domain/entities/character.entity";
+import { Page } from "../../../domain/entities/page.entity";
+import { CharacterRepository } from "../../../domain/ports/character.repository";
+import { Logger } from "../../../domain/ports/logger";
+import { CharacterQuery } from "../../../domain/queries/character.query";
 
 export class FindCharactersUseCase {
-    constructor(
-        private readonly repository: TacticalCharacterRepository,
-        private readonly logger: Logger
-    ) { }
+  constructor(
+    private readonly repository: CharacterRepository,
+    private readonly logger: Logger,
+  ) {}
 
-    async execute(criteria: TacticalCharacterQuery): Promise<Page<TacticalCharacter>> {
-        this.logger.info(`FindTacticalCharactersUseCase: Finding tactical characters with criteria: ${JSON.stringify(criteria)}`);
-        return await this.repository.find(criteria);
-    }
-
+  async execute(criteria: CharacterQuery): Promise<Page<Character>> {
+    this.logger.info(
+      `FindTacticalCharactersUseCase: Finding tactical characters with criteria: ${JSON.stringify(criteria)}`,
+    );
+    return await this.repository.find(criteria);
+  }
 }

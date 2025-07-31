@@ -1,14 +1,14 @@
-import { TacticalGame } from '../../../domain/entities/tactical-game.entity';
-import { Logger } from '../../../domain/ports/logger';
-import { TacticalGameRepository } from '../../../domain/ports/tactical-game.repository';
+import { Game } from "../../../domain/entities/game.entity";
+import { GameRepository } from "../../../domain/ports/game.repository";
+import { Logger } from "../../../domain/ports/logger";
 
 export class FindGameByIdUseCase {
-    constructor(
-        private readonly repository: TacticalGameRepository,
-        private readonly logger: Logger
-    ) { }
+  constructor(
+    private readonly repository: GameRepository,
+    private readonly logger: Logger,
+  ) {}
 
-    async execute(id: string): Promise<TacticalGame> {
-        return await this.repository.findById(id);
-    }
+  async execute(id: string): Promise<Game> {
+    return await this.repository.findById(id);
+  }
 }

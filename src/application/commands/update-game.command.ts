@@ -1,5 +1,5 @@
 export interface UpdateGameCommand {
-    readonly gameId: string;
-    readonly name?: string;
-    readonly description?: string;
+  readonly gameId: string;
+  readonly name?: string;
+  readonly description?: string;
 }

@@ -1,7 +1,5 @@
 export interface SkillClient {
+  getAllSkills(): Promise<any>;
 
-    getAllSkills(): Promise<any>;
-
-    getSkillById(skillId: string): Promise<any>;
-
+  getSkillById(skillId: string): Promise<any>;
 }

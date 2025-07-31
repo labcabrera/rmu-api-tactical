@@ -1,19 +1,18 @@
-import { Logger } from '@domain/ports/logger';
+import { Logger } from "@domain/ports/logger";
 
-import { Page } from '../../../domain/entities/page.entity';
-import { TacticalAction } from '../../../domain/entities/tactical-action.entity';
-import { TacticalActionRepository } from '../../../domain/ports/tactical-action.repository';
-import { TacticalActionQuery } from '../../../domain/queries/tactical-action.query';
+import { Action } from "../../../domain/entities/action.entity";
+import { Page } from "../../../domain/entities/page.entity";
+import { ActionRepository } from "../../../domain/ports/action.repository";
+import { ActionQuery } from "../../../domain/queries/action.query";
 
 export class FindActionsUseCase {
+  constructor(
+    private readonly actionRepository: ActionRepository,
+    private readonly logger: Logger,
+  ) {}
 
-    constructor(
-        private readonly tacticalActionRepository: TacticalActionRepository,
-        private readonly logger: Logger
-    ) { }
-
-    async execute(query: TacticalActionQuery): Promise<Page<TacticalAction>> {
-        this.logger.info(`FindActionByIdUseCase: Finding actions`);
-        return this.tacticalActionRepository.find(query);
-    }
+  async execute(query: ActionQuery): Promise<Page<Action>> {
+    this.logger.info(`FindActionByIdUseCase: Finding actions`);
+    return this.actionRepository.find(query);
+  }
 }

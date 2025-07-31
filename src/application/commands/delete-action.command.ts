@@ -1,3 +1,3 @@
 export interface DeleteActionCommand {
-    actionId: string;
+  actionId: string;
 }

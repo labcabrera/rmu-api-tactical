@@ -1,5 +1,3 @@
 export interface SkillCategoryClient {
-
-    getSkillCategoryById(categoryId: string): Promise<any>;
-
+  getSkillCategoryById(categoryId: string): Promise<any>;
 }

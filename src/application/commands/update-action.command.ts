@@ -1,15 +1,15 @@
 import {
-    TacticalActionAttack,
-    TacticalActionAttackInfo,
-    TacticalActionResult
-} from '@domain/entities/tactical-action.entity';
+  ActionAttack,
+  ActionAttackInfo,
+  TacticalActionResult,
+} from "@/domain/entities/action.entity";
 
 export interface UpdateActionCommand {
-    readonly type?: string;
-    readonly phaseStart?: string;
-    readonly actionPoints?: number;
-    readonly attackInfo?: TacticalActionAttackInfo;
-    readonly attacks?: TacticalActionAttack[];
-    readonly description?: string;
-    readonly result?: TacticalActionResult;
+  readonly type?: string;
+  readonly phaseStart?: string;
+  readonly actionPoints?: number;
+  readonly attackInfo?: ActionAttackInfo;
+  readonly attacks?: ActionAttack[];
+  readonly description?: string;
+  readonly result?: TacticalActionResult;
 }

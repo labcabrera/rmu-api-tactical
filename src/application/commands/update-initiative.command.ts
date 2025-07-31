@@ -1,4 +1,4 @@
 export interface UpdateInitiativeCommand {
-    characterRoundId: string;
-    initiativeRoll: number;
+  characterRoundId: string;
+  initiativeRoll: number;
 }

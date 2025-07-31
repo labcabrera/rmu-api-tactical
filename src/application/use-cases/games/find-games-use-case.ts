@@ -1,16 +1,16 @@
-import { Page } from '../../../domain/entities/page.entity';
-import { TacticalGame } from '../../../domain/entities/tactical-game.entity';
-import { Logger } from '../../../domain/ports/logger';
-import { TacticalGameRepository } from '../../../domain/ports/tactical-game.repository';
-import { TacticalGameQuery } from '../../../domain/queries/tactical-game.query';
+import { Game } from "../../../domain/entities/game.entity";
+import { Page } from "../../../domain/entities/page.entity";
+import { GameRepository } from "../../../domain/ports/game.repository";
+import { Logger } from "../../../domain/ports/logger";
+import { GameQuery } from "../../../domain/queries/game.query";
 
 export class FindGamesUseCase {
-    constructor(
-        private readonly repository: TacticalGameRepository,
-        private readonly logger: Logger
-    ) { }
+  constructor(
+    private readonly repository: GameRepository,
+    private readonly logger: Logger,
+  ) {}
 
-    async execute(criteria: TacticalGameQuery): Promise<Page<TacticalGame>> {
-        return await this.repository.find(criteria);
-    }
+  async execute(criteria: GameQuery): Promise<Page<Game>> {
+    return await this.repository.find(criteria);
+  }
 }

@@ -1,52 +1,60 @@
-import mongoose, { Schema } from 'mongoose';
-import { TacticalActionDocument } from '../mongo-types';
+import mongoose, { Schema } from "mongoose";
+import { TacticalActionDocument } from "../mongo-types";
 
-const tacticalActionSchema: Schema<TacticalActionDocument> = new Schema({
+const tacticalActionSchema: Schema<TacticalActionDocument> = new Schema(
+  {
     gameId: {
-        type: String,
-        required: true
+      type: String,
+      required: true,
     },
     characterId: {
-        type: String,
-        required: true
+      type: String,
+      required: true,
     },
     round: {
-        type: Number,
-        required: true
+      type: Number,
+      required: true,
     },
     type: {
-        type: String,
-        required: true
+      type: String,
+      required: true,
     },
     phaseStart: {
-        type: String,
-        required: true
+      type: String,
+      required: true,
     },
     actionPoints: {
-        type: Number,
-        required: true
+      type: Number,
+      required: true,
     },
     attackInfo: {
-        type: Schema.Types.Mixed,
-        required: false
+      type: Schema.Types.Mixed,
+      required: false,
     },
-    attacks: [{
+    attacks: [
+      {
         type: Schema.Types.Mixed,
-        required: false
-    }],
+        required: false,
+      },
+    ],
     description: {
-        type: String,
-        required: false
+      type: String,
+      required: false,
     },
     result: {
-        type: Schema.Types.Mixed,
-        required: false
-    }
-}, {
+      type: Schema.Types.Mixed,
+      required: false,
+    },
+  },
+  {
     timestamps: true,
-    collection: "tactical-actions"
-});
+    collection: "tactical-actions",
+  },
+);
 
-const TacticalActionDocument = mongoose.model<TacticalActionDocument>('TacticalAction', tacticalActionSchema);
+const TacticalActionDocument = mongoose.model<TacticalActionDocument>(
+  "TacticalAction",
+  tacticalActionSchema,
+);
 
 export default TacticalActionDocument;
