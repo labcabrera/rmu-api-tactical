@@ -8,12 +8,14 @@ import { TacticalCharacterQuery } from '@domain/queries/tactical-character.query
 
 import { CharacterAddItemCommand } from '../../../application/commands/add-item.comand';
 import { AddSkillCommand } from '../../../application/commands/add-skill.command';
+import { DeleteSkillCommand } from '../../../application/commands/delete-skill-command';
 import { EquipItemCommand } from '../../../application/commands/equip-item-command';
 import { UpdateSkillCommand } from '../../../application/commands/update-skill.command';
 import { AddItemUseCase } from '../../../application/use-cases/tactical-character/add-item-use-case';
 import { AddSkillUseCase } from '../../../application/use-cases/tactical-character/add-skill-use-case';
 import { CreateTacticalCharacterUseCase } from '../../../application/use-cases/tactical-character/create-tactical-character-use-case';
 import { DeleteItemUseCase } from '../../../application/use-cases/tactical-character/delete-item-use-case';
+import { DeleteSkillUseCase } from '../../../application/use-cases/tactical-character/delete-skill-use-case';
 import { DeleteTacticalCharacterUseCase } from '../../../application/use-cases/tactical-character/delete-tactical-character-use-case';
 import { EquipItemUseCase } from '../../../application/use-cases/tactical-character/equip-item-use-case';
 import { FindTacticalCharacterByIdUseCase } from '../../../application/use-cases/tactical-character/find-tactical-character-by-id-use-case';
@@ -34,6 +36,7 @@ export class TacticalCharacterController {
     private equipItemUseCase: EquipItemUseCase;
     private addSkillUseCase: AddSkillUseCase
     private updateSkillUseCase: UpdateSkillUseCase;
+    private deleteSkillUseCase: DeleteSkillUseCase;
     private logger: Logger;
 
     constructor() {
@@ -48,6 +51,7 @@ export class TacticalCharacterController {
         this.equipItemUseCase = container.equipItemUseCase;
         this.addSkillUseCase = container.addSkillUseCase;
         this.updateSkillUseCase = container.updateSkillUseCase;
+        this.deleteSkillUseCase = container.deleteSkillUseCase;
         this.logger = container.logger;
         this.initializeRoutes();
     }
@@ -62,7 +66,7 @@ export class TacticalCharacterController {
         this.router.delete('/:characterId/items/:itemId', this.deleteItem.bind(this));
         this.router.post('/:characterId/equipment', this.equipItem.bind(this));
         this.router.post('/:characterId/skills', this.addSkill.bind(this));
-        this.router.patch('/:characterId/skills/:skillId', this.updateSkill.bind(this));
+        this.router.delete('/:characterId/skills/:skillId', this.deleteSkill.bind(this));
     }
 
     private async findCharacters(req: Request, res: Response): Promise<void> {
@@ -210,7 +214,7 @@ export class TacticalCharacterController {
         }
     }
 
-      private async updateSkill(req: Request, res: Response): Promise<void> {
+    private async updateSkill(req: Request, res: Response): Promise<void> {
         try {
             this.logger.info(`TacticalCharacterController: Updating skill for character << ${req.params.characterId}`);
             const command: UpdateSkillCommand = {
@@ -223,6 +227,21 @@ export class TacticalCharacterController {
             res.json(character);
         } catch (error: any) {
             this.logger.error(`Error updating skill for tactical character ${req.params.characterId}: ${error.message}`);
+            res.status(error.status ? error.status : 500).json({ message: error.message });
+        }
+    }
+
+    private async deleteSkill(req: Request, res: Response): Promise<void> {
+        try {
+            this.logger.info(`TacticalCharacterController: Deleting skill for character << ${req.params.characterId}`);
+            const command: DeleteSkillCommand = {
+                characterId: req.params.characterId!,
+                skillId: req.params.skillId!
+            }
+            const character = await this.deleteSkillUseCase.execute(command);
+            res.json(character);
+        } catch (error: any) {
+            this.logger.error(`Error deleting skill for tactical character ${req.params.characterId}: ${error.message}`);
             res.status(error.status ? error.status : 500).json({ message: error.message });
         }
     }
