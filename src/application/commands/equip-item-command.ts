@@ -1,5 +1,5 @@
 export interface EquipItemCommand {
-    characterId: string;
-    itemId: string;
-    slot: string;
+    readonly characterId: string;
+    readonly itemId: string;
+    readonly slot: string;
 }

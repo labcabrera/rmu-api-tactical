@@ -1,13 +1,13 @@
 import { TacticalActionAttackInfo } from '@domain/entities/tactical-action.entity';
 
 export interface CreateTacticalActionCommand {
-    tacticalGameId: string;
-    tacticalCharacterId: string;
-    characterId?: string;
-    round: number;
-    type: string;
-    phaseStart?: string;
-    actionPoints?: number;
-    attackInfo?: TacticalActionAttackInfo;
-    description?: string;
+    readonly tacticalGameId: string;
+    readonly tacticalCharacterId: string;
+    readonly characterId?: string;
+    readonly round: number;
+    readonly type: string;
+    readonly phaseStart?: string;
+    readonly actionPoints?: number;
+    readonly attackInfo?: TacticalActionAttackInfo;
+    readonly description?: string;
 }

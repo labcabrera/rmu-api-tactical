@@ -24,6 +24,7 @@ import { StartRoundUseCase } from '../application/use-cases/tactical-game/start-
 import { UpdateTacticalGameUseCase } from '../application/use-cases/tactical-game/update-tactical-game-use-case';
 
 import { AddSkillUseCase } from '../application/use-cases/tactical-character/add-skill-use-case';
+import { UpdateSkillUseCase } from '../application/use-cases/tactical-character/update-skill-use-case';
 import { SkillCategoryClient } from '../domain/ports/skill-category-client';
 import { RaceAPICoreClient } from './adapters/external/race-api-core-client';
 import { SkillAPICoreClient } from './adapters/external/skill-api-core-client';
@@ -67,6 +68,7 @@ export class DependencyContainer {
     private readonly _deleteItemUseCase: DeleteItemUseCase;
     private readonly _equipItemUseCase: EquipItemUseCase;
     private readonly _addSkillUseCase!: AddSkillUseCase;
+    private readonly _updateSkillUseCase!: UpdateSkillUseCase;
     
     private constructor() {
         // Configure basic dependencies
@@ -162,6 +164,11 @@ export class DependencyContainer {
             this._tacticalCharacterRepository,
             this._skillClient,
             this._skillCategoryClient,
+            this._logger
+        );
+        this._updateSkillUseCase = new UpdateSkillUseCase(
+            this._characterProcessorService,
+            this._tacticalCharacterRepository,
             this._logger
         );
 
@@ -262,5 +269,9 @@ export class DependencyContainer {
 
     get addSkillUseCase(): AddSkillUseCase {
         return this._addSkillUseCase;
+    }
+
+    get updateSkillUseCase(): UpdateSkillUseCase {
+        return this._updateSkillUseCase;
     }
 }

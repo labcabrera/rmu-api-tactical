@@ -1,6 +1,6 @@
 export interface CreateTacticalGameCommand {
-    user: string;
-    name: string;
-    description?: string;
-    factions?: string[];
+    readonly user: string;
+    readonly name: string;
+    readonly description?: string;
+    readonly factions?: string[];
 }

@@ -9,6 +9,7 @@ import { TacticalCharacterQuery } from '@domain/queries/tactical-character.query
 import { CharacterAddItemCommand } from '../../../application/commands/add-item.comand';
 import { AddSkillCommand } from '../../../application/commands/add-skill.command';
 import { EquipItemCommand } from '../../../application/commands/equip-item-command';
+import { UpdateSkillCommand } from '../../../application/commands/update-skill.command';
 import { AddItemUseCase } from '../../../application/use-cases/tactical-character/add-item-use-case';
 import { AddSkillUseCase } from '../../../application/use-cases/tactical-character/add-skill-use-case';
 import { CreateTacticalCharacterUseCase } from '../../../application/use-cases/tactical-character/create-tactical-character-use-case';
@@ -17,6 +18,7 @@ import { DeleteTacticalCharacterUseCase } from '../../../application/use-cases/t
 import { EquipItemUseCase } from '../../../application/use-cases/tactical-character/equip-item-use-case';
 import { FindTacticalCharacterByIdUseCase } from '../../../application/use-cases/tactical-character/find-tactical-character-by-id-use-case';
 import { FindTacticalCharactersUseCase } from '../../../application/use-cases/tactical-character/find-tactical-character-use-case';
+import { UpdateSkillUseCase } from '../../../application/use-cases/tactical-character/update-skill-use-case';
 import { DependencyContainer } from '../../dependency-container';
 import { ErrorHandler } from '../error-handler';
 
@@ -31,6 +33,7 @@ export class TacticalCharacterController {
     private deleteItemUseCase: DeleteItemUseCase;
     private equipItemUseCase: EquipItemUseCase;
     private addSkillUseCase: AddSkillUseCase
+    private updateSkillUseCase: UpdateSkillUseCase;
     private logger: Logger;
 
     constructor() {
@@ -44,6 +47,7 @@ export class TacticalCharacterController {
         this.deleteItemUseCase = container.deleteItemUseCase;
         this.equipItemUseCase = container.equipItemUseCase;
         this.addSkillUseCase = container.addSkillUseCase;
+        this.updateSkillUseCase = container.updateSkillUseCase;
         this.logger = container.logger;
         this.initializeRoutes();
     }
@@ -58,6 +62,7 @@ export class TacticalCharacterController {
         this.router.delete('/:characterId/items/:itemId', this.deleteItem.bind(this));
         this.router.post('/:characterId/equipment', this.equipItem.bind(this));
         this.router.post('/:characterId/skills', this.addSkill.bind(this));
+        this.router.patch('/:characterId/skills/:skillId', this.updateSkill.bind(this));
     }
 
     private async findCharacters(req: Request, res: Response): Promise<void> {
@@ -201,6 +206,23 @@ export class TacticalCharacterController {
             res.json(character);
         }catch (error: any) {
             this.logger.error(`Error adding skill to tactical character ${req.params.characterId}: ${error.message}`);
+            res.status(error.status ? error.status : 500).json({ message: error.message });
+        }
+    }
+
+      private async updateSkill(req: Request, res: Response): Promise<void> {
+        try {
+            this.logger.info(`TacticalCharacterController: Updating skill for character << ${req.params.characterId}`);
+            const command: UpdateSkillCommand = {
+                characterId: req.params.characterId!,
+                skillId: req.params.skillId!,
+                ranks: req.body.ranks,
+                customBonus: req.body.customBonus
+            }
+            const character = await this.updateSkillUseCase.execute(command);
+            res.json(character);
+        } catch (error: any) {
+            this.logger.error(`Error updating skill for tactical character ${req.params.characterId}: ${error.message}`);
             res.status(error.status ? error.status : 500).json({ message: error.message });
         }
     }

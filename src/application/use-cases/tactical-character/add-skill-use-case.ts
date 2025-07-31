@@ -1,4 +1,3 @@
-
 import { CharacterSkill, TacticalCharacter } from '@domain/entities/tactical-character.entity';
 import { Logger } from '@domain/ports/logger';
 import { SkillCategoryClient } from '@domain/ports/skill-category-client';
@@ -6,7 +5,7 @@ import { SkillClient } from '@domain/ports/skill-client';
 import { TacticalCharacterRepository } from '@domain/ports/tactical-character.repository';
 
 import { AddSkillCommand } from '@application/commands/add-skill.command';
-import { CharacterProcessorService } from '../../../domain/services/character-processor.service';
+import { CharacterProcessorService } from '@domain/services/character-processor.service';
 
 export class AddSkillUseCase {
 
