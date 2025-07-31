@@ -4,11 +4,11 @@ import { Logger } from "../../../domain/ports/logger";
 
 export class FindTCharacterByIdUseCase {
   constructor(
-    private readonly repository: CharacterRepository,
+    private readonly characterRepository: CharacterRepository,
     private readonly logger: Logger,
   ) {}
 
   async execute(id: string): Promise<Character> {
-    return await this.repository.findById(id);
+    return await this.characterRepository.findById(id);
   }
 }

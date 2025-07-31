@@ -5,7 +5,7 @@ import { CreateGameCommand } from "../../commands/create-game.command";
 
 export class CreateGameUseCase {
   constructor(
-    private readonly repository: GameRepository,
+    private readonly gameRepository: GameRepository,
     private readonly logger: Logger,
   ) {}
 
@@ -30,7 +30,7 @@ export class CreateGameUseCase {
       createdAt: new Date(),
     };
 
-    const savedGame = await this.repository.save(newGame);
+    const savedGame = await this.gameRepository.save(newGame);
 
     this.logger.info(`Created tactical game with ID: ${savedGame.id}`);
     return savedGame;

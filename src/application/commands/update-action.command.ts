@@ -1,7 +1,7 @@
 import {
   ActionAttack,
   ActionAttackInfo,
-  TacticalActionResult,
+  ActionResult,
 } from "@/domain/entities/action.entity";
 
 export interface UpdateActionCommand {
@@ -11,5 +11,5 @@ export interface UpdateActionCommand {
   readonly attackInfo?: ActionAttackInfo;
   readonly attacks?: ActionAttack[];
   readonly description?: string;
-  readonly result?: TacticalActionResult;
+  readonly result?: ActionResult;
 }

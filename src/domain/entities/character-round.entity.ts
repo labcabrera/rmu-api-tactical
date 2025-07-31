@@ -3,17 +3,15 @@ export interface CharacterRound {
   gameId: string;
   characterId: string;
   round: number;
-  initiative?: TacticalCharacterRoundInitiative;
+  initiative?: CharacterRoundInitiative;
   actionPoints?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-export interface TacticalCharacterRoundInitiative {
+export interface CharacterRoundInitiative {
   base: number;
   penalty: number;
   roll: number;
   total: number;
 }
-
-

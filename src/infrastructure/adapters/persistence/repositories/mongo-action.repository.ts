@@ -3,11 +3,11 @@ import { ActionRepository } from "@/domain/ports/action.repository";
 import { ActionQuery } from "@/domain/queries/action.query";
 import { Page } from "@domain/entities/page.entity";
 
-import TacticalActionDocument from "../models/tactical-action.model";
+import ActionDocument from "../models/action.model";
 
 export class MongoActionRepository implements ActionRepository {
   async findById(id: string): Promise<Action> {
-    const action = await TacticalActionDocument.findById(id);
+    const action = await ActionDocument.findById(id);
     if (!action) {
       throw new Error(`Tactical action with ID ${id} not found`);
     }
@@ -29,11 +29,11 @@ export class MongoActionRepository implements ActionRepository {
       filter.type = criteria.actionType;
     }
     const skip = criteria.page * criteria.size;
-    const list = await TacticalActionDocument.find(filter)
+    const list = await ActionDocument.find(filter)
       .skip(skip)
       .limit(criteria.size)
       .sort({ round: 1, createdAt: -1 });
-    const count = await TacticalActionDocument.countDocuments(filter);
+    const count = await ActionDocument.countDocuments(filter);
     const content = list.map((action) => this.toEntity(action));
     return {
       content,
@@ -47,7 +47,7 @@ export class MongoActionRepository implements ActionRepository {
   }
 
   async findByGameId(gameId: string): Promise<Action[]> {
-    const actions = await TacticalActionDocument.find({ gameId: gameId }).sort({
+    const actions = await ActionDocument.find({ gameId: gameId }).sort({
       round: 1,
       createdAt: -1,
     });
@@ -56,7 +56,7 @@ export class MongoActionRepository implements ActionRepository {
   }
 
   async findByGameIdAndRound(gameId: string, round: number): Promise<Action[]> {
-    const actions = await TacticalActionDocument.find({
+    const actions = await ActionDocument.find({
       gameId: gameId,
       round: round,
     }).sort({ createdAt: -1 });
@@ -65,7 +65,7 @@ export class MongoActionRepository implements ActionRepository {
   }
 
   async findByCharacterId(characterId: string): Promise<Action[]> {
-    const actions = await TacticalActionDocument.find({
+    const actions = await ActionDocument.find({
       characterId: characterId,
     }).sort({ round: 1, createdAt: -1 });
     return actions.map((action) => this.toEntity(action));
@@ -75,7 +75,7 @@ export class MongoActionRepository implements ActionRepository {
     characterId: string,
     round: number,
   ): Promise<Action[]> {
-    const actions = await TacticalActionDocument.find({
+    const actions = await ActionDocument.find({
       characterId: characterId,
       round: round,
     }).sort({ createdAt: -1 });
@@ -83,28 +83,28 @@ export class MongoActionRepository implements ActionRepository {
   }
 
   async create(action: Omit<Action, "id">): Promise<Action> {
-    const newAction = new TacticalActionDocument(action);
+    const newAction = new ActionDocument(action);
     const saved = await newAction.save();
     return this.toEntity(saved);
   }
 
   async update(id: string, action: Partial<Action>): Promise<Action | null> {
-    const updated = await TacticalActionDocument.findByIdAndUpdate(id, action, {
+    const updated = await ActionDocument.findByIdAndUpdate(id, action, {
       new: true,
     });
     return updated ? this.toEntity(updated) : null;
   }
 
   async delete(actionId: string): Promise<void> {
-    await TacticalActionDocument.findByIdAndDelete(actionId);
+    await ActionDocument.findByIdAndDelete(actionId);
   }
 
   async deleteByGameId(gameId: string): Promise<void> {
-    await TacticalActionDocument.deleteMany({ gameId: gameId });
+    await ActionDocument.deleteMany({ gameId: gameId });
   }
 
   async deleteByCharacterId(characterId: string): Promise<void> {
-    await TacticalActionDocument.deleteMany({ characterId: characterId });
+    await ActionDocument.deleteMany({ characterId: characterId });
   }
 
   private toEntity(document: any): Action {

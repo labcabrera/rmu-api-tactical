@@ -3,13 +3,13 @@ import { CharacterRoundRepository } from "@/domain/ports/character-round.reposit
 import { CharacterRoundQuery } from "@/domain/queries/character-round.query";
 import { Page } from "@domain/entities/page.entity";
 
-import TacticalCharacterRoundDocument from "../models/tactical-character-round.model";
+import CharacterRoundDocument from "../models/character-round.model";
 
 export class MongoTacticalCharacterRoundRepository
   implements CharacterRoundRepository
 {
   async findById(id: string): Promise<CharacterRound> {
-    const characterRound = await TacticalCharacterRoundDocument.findById(id);
+    const characterRound = await CharacterRoundDocument.findById(id);
     if (!characterRound) {
       throw new Error(`Character round with id ${id} not found`);
     }
@@ -28,11 +28,11 @@ export class MongoTacticalCharacterRoundRepository
       filter.round = query.round;
     }
     const skip = query.page * query.size;
-    const list = await TacticalCharacterRoundDocument.find(filter)
+    const list = await CharacterRoundDocument.find(filter)
       .skip(skip)
       .limit(query.size)
       .sort({ round: 1, createdAt: -1 });
-    const count = await TacticalCharacterRoundDocument.countDocuments(filter);
+    const count = await CharacterRoundDocument.countDocuments(filter);
     const content = list.map((characterRound) => this.toEntity(characterRound));
     return {
       content,
@@ -49,7 +49,7 @@ export class MongoTacticalCharacterRoundRepository
     gameId: string,
     round: number,
   ): Promise<CharacterRound[]> {
-    const characterRounds = await TacticalCharacterRoundDocument.find({
+    const characterRounds = await CharacterRoundDocument.find({
       gameId: gameId,
       round: round,
     }).sort({ createdAt: -1 });
@@ -63,7 +63,7 @@ export class MongoTacticalCharacterRoundRepository
     characterId: string,
     round: number,
   ): Promise<CharacterRound | null> {
-    const characterRound = await TacticalCharacterRoundDocument.findOne({
+    const characterRound = await CharacterRoundDocument.findOne({
       characterId: characterId,
       round: round,
     });
@@ -74,9 +74,7 @@ export class MongoTacticalCharacterRoundRepository
   async create(
     characterRound: Omit<CharacterRound, "id">,
   ): Promise<CharacterRound> {
-    const newCharacterRound = new TacticalCharacterRoundDocument(
-      characterRound,
-    );
+    const newCharacterRound = new CharacterRoundDocument(characterRound);
     const saved = await newCharacterRound.save();
     return this.toEntity(saved);
   }
@@ -85,7 +83,7 @@ export class MongoTacticalCharacterRoundRepository
     id: string,
     characterRound: Partial<CharacterRound>,
   ): Promise<CharacterRound> {
-    const updated = await TacticalCharacterRoundDocument.findByIdAndUpdate(
+    const updated = await CharacterRoundDocument.findByIdAndUpdate(
       id,
       characterRound,
       { new: true },
@@ -97,11 +95,11 @@ export class MongoTacticalCharacterRoundRepository
   }
 
   async delete(id: string): Promise<void> {
-    await TacticalCharacterRoundDocument.findByIdAndDelete(id);
+    await CharacterRoundDocument.findByIdAndDelete(id);
   }
 
   async deleteByGameId(gameId: string): Promise<void> {
-    await TacticalCharacterRoundDocument.deleteMany({ gameId: gameId });
+    await CharacterRoundDocument.deleteMany({ gameId: gameId });
   }
 
   private toEntity(document: any): CharacterRound {

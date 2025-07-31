@@ -4,13 +4,13 @@ import { Logger } from "@domain/ports/logger";
 
 export class DeleteItemUseCase {
   constructor(
-    private readonly tacticalCharacterRepository: CharacterRepository,
+    private readonly characterRepository: CharacterRepository,
     private readonly logger: Logger,
   ) {}
 
   async execute(characterId: string, itemId: string): Promise<Character> {
     const character: Character =
-      await this.tacticalCharacterRepository.findById(characterId);
+      await this.characterRepository.findById(characterId);
 
     const item = character.items.find((item) => item.id === itemId);
     if (!item) {
@@ -21,7 +21,7 @@ export class DeleteItemUseCase {
     character.items = character.items.filter((item) => item.id !== itemId);
     this.cleanupEquipedItem(character.equipment, itemId);
     character.equipment.weight = this.calculateTotalWeight(character.items);
-    const updated = await this.tacticalCharacterRepository.update(
+    const updated = await this.characterRepository.update(
       characterId,
       character,
     );

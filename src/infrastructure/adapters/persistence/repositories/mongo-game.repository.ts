@@ -2,7 +2,7 @@ import { Game } from "@/domain/entities/game.entity";
 import { GameRepository } from "@/domain/ports/game.repository";
 import { GameQuery } from "@/domain/queries/game.query";
 import { Page } from "@domain/entities/page.entity";
-import TacticalGameModel from "../models/tactical-game.model";
+import TacticalGameModel from "../models/game.model";
 
 export class MongoTacticalGameRepository implements GameRepository {
   async findById(id: string): Promise<Game> {

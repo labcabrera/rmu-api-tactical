@@ -6,7 +6,7 @@ import { EquipItemCommand } from "../../commands/equip-item-command";
 
 export class EquipItemUseCase {
   constructor(
-    private readonly tacticalCharacterRepository: CharacterRepository,
+    private readonly characterRepository: CharacterRepository,
     private readonly characterProcessorService: CharacterProcessorService,
     private readonly logger: Logger,
   ) {}
@@ -18,13 +18,13 @@ export class EquipItemUseCase {
 
     const characterId = command.characterId;
     const character: Character =
-      await this.tacticalCharacterRepository.findById(characterId);
+      await this.characterRepository.findById(characterId);
 
     this.validateEquipmentData(character, command);
     this.applyEquipmentLogic(character, command);
 
     this.characterProcessorService.process(character);
-    return await this.tacticalCharacterRepository.update(
+    return await this.characterRepository.update(
       command.characterId,
       character,
     );

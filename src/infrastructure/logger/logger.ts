@@ -1,5 +1,6 @@
 import winston from "winston";
-import { Logger } from "../../domain/ports/logger";
+
+import { Logger } from "@domain/ports/logger";
 
 export class WinstonLogger implements Logger {
   private logger = winston.createLogger({
@@ -24,4 +25,5 @@ export class WinstonLogger implements Logger {
   debug(msg: string) {
     this.logger.debug(msg);
   }
+
 }

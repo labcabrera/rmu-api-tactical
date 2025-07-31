@@ -6,7 +6,7 @@ import { CharacterQuery } from "../../../domain/queries/character.query";
 
 export class FindCharactersUseCase {
   constructor(
-    private readonly repository: CharacterRepository,
+    private readonly characterRepository: CharacterRepository,
     private readonly logger: Logger,
   ) {}
 
@@ -14,6 +14,6 @@ export class FindCharactersUseCase {
     this.logger.info(
       `FindTacticalCharactersUseCase: Finding tactical characters with criteria: ${JSON.stringify(criteria)}`,
     );
-    return await this.repository.find(criteria);
+    return await this.characterRepository.find(criteria);
   }
 }

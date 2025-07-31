@@ -9,7 +9,7 @@ export interface Action {
   attackInfo?: ActionAttackInfo;
   attacks?: ActionAttack[];
   description?: string;
-  result?: TacticalActionResult;
+  result?: ActionResult;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -27,25 +27,25 @@ export interface ActionAttack {
   bonus: number;
   total: number;
   result?: string;
-  damage?: TacticalActionDamage;
+  damage?: ActionDamage;
   [key: string]: any;
 }
 
-export interface TacticalActionDamage {
+export interface ActionDamage {
   points: number;
   type?: string;
   location?: string;
   [key: string]: any;
 }
 
-export interface TacticalActionResult {
+export interface ActionResult {
   success: boolean;
   description?: string;
-  effects?: TacticalActionEffect[];
+  effects?: ActionEffect[];
   [key: string]: any;
 }
 
-export interface TacticalActionEffect {
+export interface ActionEffect {
   type: string;
   duration?: number;
   value?: number;

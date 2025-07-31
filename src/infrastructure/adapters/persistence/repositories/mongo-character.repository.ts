@@ -2,7 +2,7 @@ import { Character } from "@/domain/entities/character.entity";
 import { CharacterRepository } from "@/domain/ports/character.repository";
 import { CharacterQuery } from "@/domain/queries/character.query";
 import { Page } from "@domain/entities/page.entity";
-import TacticalCharacterDocument from "../models/tactical-character.model";
+import TacticalCharacterDocument from "../models/character.model";
 
 export class MongoTacticalCharacterRepository implements CharacterRepository {
   async findById(id: string): Promise<Character> {

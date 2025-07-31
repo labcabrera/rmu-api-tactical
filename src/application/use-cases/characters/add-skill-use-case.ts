@@ -10,7 +10,7 @@ import { CharacterProcessorService } from "@domain/services/character-processor.
 export class AddSkillUseCase {
   constructor(
     private readonly characterProcessorService: CharacterProcessorService,
-    private readonly tacticalCharacterRepository: CharacterRepository,
+    private readonly characterRepository: CharacterRepository,
     private readonly skillClient: SkillClient,
     private readonly skillCategoryClient: SkillCategoryClient,
     private readonly logger: Logger,
@@ -24,7 +24,7 @@ export class AddSkillUseCase {
       const characterId = command.characterId;
       const skillId = command.skillId;
       const character: Character =
-        await this.tacticalCharacterRepository.findById(characterId);
+        await this.characterRepository.findById(characterId);
       if (this.hasSkillId(character, skillId)) {
         throw new Error(
           `Skill ${skillId} already exists for character ${characterId}`,
@@ -51,7 +51,7 @@ export class AddSkillUseCase {
       };
       character.skills.push(skill);
       this.characterProcessorService.process(character);
-      const updated: Character = await this.tacticalCharacterRepository.update(
+      const updated: Character = await this.characterRepository.update(
         characterId,
         character,
       );

@@ -8,8 +8,8 @@ import { UpdateCharacterCommand } from "@/application/commands/update-character.
 export class UpdateCharacterUseCase {
   constructor(
     private readonly characterProcessorService: CharacterProcessorService,
-    private tacticalCharacterRepository: CharacterRepository,
-    private logger: Logger,
+    private readonly characterRepository: CharacterRepository,
+    private readonly logger: Logger,
   ) {}
 
   async execute(command: UpdateCharacterCommand): Promise<Character> {
@@ -19,7 +19,7 @@ export class UpdateCharacterUseCase {
       );
       const characterId = command.characterId;
       const character: Character =
-        await this.tacticalCharacterRepository.findById(characterId);
+        await this.characterRepository.findById(characterId);
 
       this.bindBasicFields(character, command);
       this.bindInfoFielsds(character, command);
@@ -28,10 +28,7 @@ export class UpdateCharacterUseCase {
       //TODO
 
       this.characterProcessorService.process(character);
-      return await this.tacticalCharacterRepository.update(
-        characterId,
-        character,
-      );
+      return await this.characterRepository.update(characterId, character);
     } catch (error) {
       this.logger.error(`Error updating tactical character: ${error}`);
       throw Error(`Failed to update tactical character: ${error}`);

@@ -25,12 +25,12 @@ import { CreateCharacterCommand } from "@application/commands/create-character.c
 
 export class CreateCharacterUseCase {
   constructor(
-    private raceClient: RaceClient,
-    private skillClient: SkillClient,
-    private tacticalCharacterRepository: CharacterRepository,
-    private tacticalGameRepository: GameRepository,
-    private characterProcessorService: CharacterProcessorService,
-    private logger: Logger,
+    private readonly raceClient: RaceClient,
+    private readonly skillClient: SkillClient,
+    private readonly characterRepository: CharacterRepository,
+    private readonly gameRepository: GameRepository,
+    private readonly characterProcessorService: CharacterProcessorService,
+    private readonly logger: Logger,
   ) {}
 
   async execute(command: CreateCharacterCommand): Promise<Character> {
@@ -39,9 +39,7 @@ export class CreateCharacterUseCase {
     );
     this.logger.debug(`Command: ${JSON.stringify(command)}`);
 
-    const tacticalGame = await this.tacticalGameRepository.findById(
-      command.gameId,
-    );
+    const tacticalGame = await this.gameRepository.findById(command.gameId);
     this.validateCommand(command, tacticalGame);
     const raceInfo = await this.raceClient.getRaceById(command.info.race);
     const processedStatistics = this.processStatistics(
@@ -127,8 +125,7 @@ export class CreateCharacterUseCase {
     Object.assign(characterData, tempCharacter);
     delete (characterData as any).id;
 
-    const newCharacter =
-      await this.tacticalCharacterRepository.create(characterData);
+    const newCharacter = await this.characterRepository.create(characterData);
     this.logger.info(
       `CreateTacticalCharacterUseCase: Tactical Character created successfully: ${newCharacter.id}`,
     );

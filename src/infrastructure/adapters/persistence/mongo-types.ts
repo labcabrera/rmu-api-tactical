@@ -12,7 +12,7 @@ export interface TacticalGameDocument extends Document {
   updatedAt?: Date;
 }
 
-export interface TacticalCharacterDocument extends Document {
+export interface CharacterDocument extends Document {
   gameId: string;
   name: string;
   faction?: string;
@@ -26,7 +26,7 @@ export interface TacticalCharacterDocument extends Document {
   updatedAt?: Date;
 }
 
-export interface TacticalActionDocument extends Document {
+export interface ActionDocument extends Document {
   gameId: string;
   characterId: string;
   round: number;
@@ -41,7 +41,7 @@ export interface TacticalActionDocument extends Document {
   updatedAt?: Date;
 }
 
-export interface TacticalCharacterRoundDocument extends Document {
+export interface CharacterRoundDocument extends Document {
   gameId: string;
   round: number;
   characterId: string;

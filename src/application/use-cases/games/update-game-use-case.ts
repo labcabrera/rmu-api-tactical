@@ -5,7 +5,7 @@ import { UpdateGameCommand } from "../../commands/update-game.command";
 
 export class UpdateGameUseCase {
   constructor(
-    private readonly repository: GameRepository,
+    private readonly gameRepository: GameRepository,
     private readonly logger: Logger,
   ) {}
 
@@ -13,6 +13,6 @@ export class UpdateGameUseCase {
     this.logger.info(
       `UpdateTacticalGameUseCase: Updating tactical game << ${command.gameId}`,
     );
-    return await this.repository.update(command.gameId, command);
+    return await this.gameRepository.update(command.gameId, command);
   }
 }

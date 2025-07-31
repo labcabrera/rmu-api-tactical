@@ -8,7 +8,7 @@ import { UpdateSkillCommand } from "@application/commands/update-skill.command";
 export class UpdateSkillUseCase {
   constructor(
     private readonly characterProcessorService: CharacterProcessorService,
-    private readonly tacticalCharacterRepository: CharacterRepository,
+    private readonly characterRepository: CharacterRepository,
     private readonly logger: Logger,
   ) {}
 
@@ -20,7 +20,7 @@ export class UpdateSkillUseCase {
       const characterId = command.characterId;
       const skillId = command.skillId;
       const character: Character =
-        await this.tacticalCharacterRepository.findById(characterId);
+        await this.characterRepository.findById(characterId);
       const skill =
         character.skills.find((skill) => skill.skillId === skillId) || null;
       if (!skill) {
@@ -31,7 +31,7 @@ export class UpdateSkillUseCase {
       skill.ranks = command.ranks || skill.ranks;
       skill.customBonus = command.customBonus || skill.customBonus;
       this.characterProcessorService.process(character);
-      const updated: Character = await this.tacticalCharacterRepository.update(
+      const updated: Character = await this.characterRepository.update(
         characterId,
         character,
       );

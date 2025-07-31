@@ -8,7 +8,7 @@ import { DeleteSkillCommand } from "@application/commands/delete-skill-command";
 export class DeleteSkillUseCase {
   constructor(
     private readonly characterProcessorService: CharacterProcessorService,
-    private readonly tacticalCharacterRepository: CharacterRepository,
+    private readonly characterRepository: CharacterRepository,
     private readonly logger: Logger,
   ) {}
 
@@ -20,7 +20,7 @@ export class DeleteSkillUseCase {
       const characterId = command.characterId;
       const skillId = command.skillId;
       const character: Character =
-        await this.tacticalCharacterRepository.findById(characterId);
+        await this.characterRepository.findById(characterId);
       const skill =
         character.skills.find((skill) => skill.skillId === skillId) || null;
       if (!skill) {
@@ -32,7 +32,7 @@ export class DeleteSkillUseCase {
         (skill) => skill.skillId !== skillId,
       );
       this.characterProcessorService.process(character);
-      const updated: Character = await this.tacticalCharacterRepository.update(
+      const updated: Character = await this.characterRepository.update(
         characterId,
         character,
       );

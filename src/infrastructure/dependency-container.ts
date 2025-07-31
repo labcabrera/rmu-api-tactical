@@ -110,12 +110,10 @@ export class DependencyContainer {
 
     this._findTacticalGameByIdUseCase = new FindGameByIdUseCase(
       this._tacticalGameRepository,
-      this._logger,
     );
 
     this._findTacticalGamesUseCase = new FindGamesUseCase(
       this._tacticalGameRepository,
-      this._logger,
     );
 
     this._updateTacticalGameUseCase = new UpdateGameUseCase(
