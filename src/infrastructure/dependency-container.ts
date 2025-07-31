@@ -137,6 +137,7 @@ export class DependencyContainer {
             this._logger
         );
         this._updateTacticalCharacterUseCase = new UpdateTacticalCharacterUseCase(
+            this._characterProcessorService,
             this._tacticalCharacterRepository,
             this._logger
         );

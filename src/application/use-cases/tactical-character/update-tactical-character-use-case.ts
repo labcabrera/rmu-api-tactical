@@ -1,29 +1,74 @@
-import { TacticalCharacter, UpdateTacticalCharacterCommand } from '../../../domain/entities/tactical-character.entity';
-import { Logger } from '../../../domain/ports/logger';
-import { TacticalCharacterRepository } from '../../../domain/ports/tactical-character.repository';
+import { TacticalCharacter } from '@domain/entities/tactical-character.entity';
+import { Logger } from '@domain/ports/logger';
+import { TacticalCharacterRepository } from '@domain/ports/tactical-character.repository';
+import { CharacterProcessorService } from '@domain/services/character-processor.service';
+
+import { UpdateTacticalCharacterCommand } from '@application/commands/update-tactical-character.command';
 
 export class UpdateTacticalCharacterUseCase {
+
     constructor(
+        private readonly characterProcessorService: CharacterProcessorService,
         private tacticalCharacterRepository: TacticalCharacterRepository,
         private logger: Logger
     ) { }
 
-    async execute(characterId: string, command: UpdateTacticalCharacterCommand): Promise<TacticalCharacter> {
-        this.logger.info(`Updating tactical character: ${characterId}`);
-        const existingCharacter = await this.tacticalCharacterRepository.findById(characterId);
-        if (!existingCharacter) {
-            const error = new Error('Tactical character not found');
-            (error as any).status = 404;
-            throw error;
-        }
-        const updatedCharacter = null; //await this.tacticalCharacterRepository.update(characterId, cmd);
-        if (!updatedCharacter) {
-            const error = new Error('Failed to update tactical character');
-            (error as any).status = 500;
-            throw error;
-        }
+    async execute(command: UpdateTacticalCharacterCommand): Promise<TacticalCharacter> {
+        try {
+            this.logger.info(`UpdateTacticalCharacterUseCase: Updating tactical character: ${command.characterId}`);
+            const characterId = command.characterId;
+            const character: TacticalCharacter = await this.tacticalCharacterRepository.findById(characterId);
 
-        this.logger.info(`Tactical character updated successfully: ${characterId}`);
-        return updatedCharacter;
+            this.bindBasicFields(character, command);
+            this.bindInfoFielsds(character, command);
+            this.bindMovementFielsds(character, command);
+            this.bindHPFielsds(character, command);
+            //TODO
+
+            this.characterProcessorService.process(character);
+            return await this.tacticalCharacterRepository.update(characterId, character);
+        } catch (error) {
+            this.logger.error(`Error updating tactical character: ${error}`);
+            throw Error(`Failed to update tactical character: ${error}`);
+        }
+    }
+
+    private bindBasicFields(character: TacticalCharacter, command: UpdateTacticalCharacterCommand): void {
+        if (command.name) {
+            character.name = command.name;
+        }
+        if (command.faction) {
+            character.faction = command.faction;
+        }
+    }
+
+    private bindInfoFielsds(character: TacticalCharacter, command: UpdateTacticalCharacterCommand): void {
+        if(!command.info) {
+            return;
+        }
+        if (command.info.level) {
+            character.info.level = command.info.level;
+        }
+        if(command.info.height) {
+            character.info.height = command.info.height;
+        }
+        if(command.info.weight) {
+            character.info.weight = command.info.weight;
+        }
+    }
+
+    private bindMovementFielsds(character: TacticalCharacter, command: UpdateTacticalCharacterCommand): void {
+    }
+
+    private bindHPFielsds(character: TacticalCharacter, command: UpdateTacticalCharacterCommand): void {
+        if(!command.hp) {
+            return;
+        }
+        if (command.hp.current) {
+            character.hp.current = command.hp.current;
+        }
+        if(command.hp.max) {
+            character.hp.max = command.hp.max;
+        }
     }
 }

@@ -21,6 +21,7 @@ import { EquipItemUseCase } from '../../../application/use-cases/tactical-charac
 import { FindTacticalCharacterByIdUseCase } from '../../../application/use-cases/tactical-character/find-tactical-character-by-id-use-case';
 import { FindTacticalCharactersUseCase } from '../../../application/use-cases/tactical-character/find-tactical-character-use-case';
 import { UpdateSkillUseCase } from '../../../application/use-cases/tactical-character/update-skill-use-case';
+import { UpdateTacticalCharacterUseCase } from '../../../application/use-cases/tactical-character/update-tactical-character-use-case';
 import { DependencyContainer } from '../../dependency-container';
 import { ErrorHandler } from '../error-handler';
 
@@ -30,6 +31,7 @@ export class TacticalCharacterController {
     private findCharacterUseCase: FindTacticalCharactersUseCase;
     private findCharacterByIdUseCase: FindTacticalCharacterByIdUseCase;
     private createCharacterUseCase: CreateTacticalCharacterUseCase;
+    private updateCharacterUseCase: UpdateTacticalCharacterUseCase;
     private deleteCharacterUseCase: DeleteTacticalCharacterUseCase;
     private addItemUseCase: AddItemUseCase;
     private deleteItemUseCase: DeleteItemUseCase;
@@ -45,6 +47,7 @@ export class TacticalCharacterController {
         this.findCharacterUseCase = container.findTacticalCharacterUseCase;
         this.findCharacterByIdUseCase = container.findTacticalCharacterByIdUseCase;
         this.createCharacterUseCase = container.createTacticalCharacterUseCase;
+        this.updateCharacterUseCase = container.updateTacticalCharacterUseCase;
         this.deleteCharacterUseCase = container.deleteTacticalCharacterUseCase;
         this.addItemUseCase = container.addItemUseCase;
         this.deleteItemUseCase = container.deleteItemUseCase;
@@ -126,13 +129,13 @@ export class TacticalCharacterController {
 
     private async updateCharacter(req: Request, res: Response): Promise<void> {
         try {
-            this.logger.info(`TacticalCharacterController: Tactical character update << ${req.params.characterId} ${req.body}`);
+            this.logger.info(`TacticalCharacterController: Tactical character update << ${req.params.characterId}`);
             const characterId: string = req.params.characterId!;
-            const command: CharacterAddItemCommand = {
+            const command = {
                 characterId,
-                item: req.body
-            };
-            const result = await this.addItemUseCase.execute(command);
+                ...req.body
+            }
+            const result = await this.updateCharacterUseCase.execute(command);
             res.json(result);
         } catch (error: any) {
             this.logger.error(`TacticalCharacterController: Error updating tactical character ${req.params.characterId}: ${error.message}`);

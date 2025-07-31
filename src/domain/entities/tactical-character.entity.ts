@@ -164,31 +164,3 @@ export interface CreateTacticalCharacterItem {
     skillId: string;
     info: CharacterItemInfo;
 }
-
-export interface UpdateTacticalCharacterCommand {
-    name?: string;
-    faction?: string;
-    hitPoints?: number;
-    maxHitPoints?: number;
-    initiative?: number;
-    status?: string;
-    // position?: {
-    //     x?: number;
-    //     y?: number;
-    //     z?: number;
-    // };
-    // skills?: Array<{
-    //     name: string;
-    //     value: number;
-    //     modifier?: number;
-    // }>;
-    // equipment?: Array<{
-    //     name: string;
-    //     type: string;
-    //     equipped: boolean;
-    //     properties?: any;
-    // }>;
-}
-
-
-
