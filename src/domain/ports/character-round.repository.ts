@@ -1,9 +1,9 @@
-import { Page } from '../entities/page.entity';
-import { TacticalCharacterRoundEntity, TacticalCharacterRoundSearchCriteria } from '../entities/tactical-character-round.entity';
+import { Page } from '@domain/entities/page.entity';
+import { TacticalCharacterRoundEntity, TacticalCharacterRoundSearchCriteria } from '@domain/entities/tactical-character-round.entity';
 
 export interface TacticalCharacterRoundRepository {
 
-    findById(id: string): Promise<TacticalCharacterRoundEntity | null>;
+    findById(id: string): Promise<TacticalCharacterRoundEntity>;
 
     find(criteria: TacticalCharacterRoundSearchCriteria): Promise<Page<TacticalCharacterRoundEntity>>;
 

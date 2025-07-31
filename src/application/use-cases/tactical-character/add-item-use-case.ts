@@ -1,10 +1,13 @@
 import { randomUUID } from 'crypto';
-import { CharacterItem, TacticalCharacter } from '../../../domain/entities/tactical-character.entity';
-import { Logger } from '../../../domain/ports/logger';
-import { TacticalCharacterRepository } from '../../../domain/ports/tactical-character.repository';
-import { CharacterAddItemCommand } from '../../commands/add-item.comand';
+
+import { CharacterItem, TacticalCharacter } from '@domain/entities/tactical-character.entity';
+import { Logger } from '@domain/ports/logger';
+import { TacticalCharacterRepository } from '@domain/ports/tactical-character.repository';
+
+import { CharacterAddItemCommand } from '@application/commands/add-item.comand';
 
 export class AddItemUseCase {
+
     constructor(
         private readonly tacticalCharacterRepository: TacticalCharacterRepository,
         private readonly logger: Logger

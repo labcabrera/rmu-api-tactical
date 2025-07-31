@@ -1,4 +1,4 @@
-import { TacticalActionAttack, TacticalActionAttackInfo, TacticalActionResult } from '../../domain/entities/tactical-action.entity';
+import { TacticalActionAttack, TacticalActionAttackInfo, TacticalActionResult } from '@domain/entities/tactical-action.entity';
 
 export interface UpdateTacticalActionCommand {
     type?: string;

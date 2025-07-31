@@ -1,5 +1,5 @@
-import { Page } from '../entities/page.entity';
-import { TacticalAction, TacticalActionSearchCriteria } from '../entities/tactical-action.entity';
+import { Page } from '@domain/entities/page.entity';
+import { TacticalAction, TacticalActionSearchCriteria } from '@domain/entities/tactical-action.entity';
 
 export interface TacticalActionRepository {
 

@@ -4,6 +4,7 @@ import { TacticalGameRepository } from '../../../domain/ports/tactical-game.repo
 import { CreateTacticalGameCommand } from '../../commands/create-tactical-game.command';
 
 export class CreateTacticalGameUseCase {
+
     constructor(
         private readonly repository: TacticalGameRepository,
         private readonly logger: Logger

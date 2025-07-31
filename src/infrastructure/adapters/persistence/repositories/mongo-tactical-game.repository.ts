@@ -1,9 +1,7 @@
-import { Page } from '../../../../domain/entities/page.entity';
-import {
-    TacticalGame,
-} from '../../../../domain/entities/tactical-game.entity';
-import { TacticalGameRepository } from '../../../../domain/ports/tactical-game.repository';
-import { TacticalGameQuery } from '../../../../domain/queries/tactical-game.query';
+import { Page } from '@domain/entities/page.entity';
+import { TacticalGame } from '@domain/entities/tactical-game.entity';
+import { TacticalGameRepository } from '@domain/ports/tactical-game.repository';
+import { TacticalGameQuery } from '@domain/queries/tactical-game.query';
 import TacticalGameModel from '../models/tactical-game.model';
 
 export class MongoTacticalGameRepository implements TacticalGameRepository {
@@ -17,8 +15,8 @@ export class MongoTacticalGameRepository implements TacticalGameRepository {
         return this.toDomainEntity(gameModel);
     }
 
-    async find(criteria: TacticalGameQuery): Promise<Page<TacticalGame>> {
-        const { searchExpression, username, page, size } = criteria;
+    async find(query: TacticalGameQuery): Promise<Page<TacticalGame>> {
+        const { searchExpression, username, page, size } = query;
         let filter: any = {};
         if (username) {
             filter.user = username;
@@ -30,20 +28,20 @@ export class MongoTacticalGameRepository implements TacticalGameRepository {
             ];
         }
         const skip = page * size;
-        const [gameModels, total] = await Promise.all([
-            TacticalGameModel.find(filter)
+        const gameModels = await TacticalGameModel.find(filter)
                 .skip(skip)
                 .limit(size)
-                .sort({ updatedAt: -1 }),
-            TacticalGameModel.countDocuments(filter)
-        ]);
+                .sort({ updatedAt: -1 });
         const content = gameModels.map(model => this.toDomainEntity(model));
+        const count = await TacticalGameModel.countDocuments(filter);
         return {
             content,
-            page,
-            size,
-            total,
-            totalPages: Math.ceil(total / size)
+            pagination: {
+                page: query.page,
+                size: query.size,
+                totalElements: count,
+                totalPages: Math.ceil(count / query.size)
+            }
         };
     }
 

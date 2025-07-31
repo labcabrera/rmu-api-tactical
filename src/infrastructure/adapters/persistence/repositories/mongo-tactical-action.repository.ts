@@ -56,10 +56,12 @@ export class MongoTacticalActionRepository implements TacticalActionRepository {
 
         return {
             content,
-            page: Math.floor(skip / limit),
-            size: limit,
-            total: count,
-            totalPages: Math.ceil(count / limit)
+            pagination: {
+                page: Math.floor(skip / limit),
+                size: limit,
+                totalElements: count,
+                totalPages: Math.ceil(count / limit)
+            }
         };
     }
 

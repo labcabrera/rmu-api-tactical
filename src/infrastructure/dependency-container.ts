@@ -1,16 +1,12 @@
 import { Logger } from '../domain/ports/logger';
+import { RaceClient } from '../domain/ports/race-client';
+import { SkillClient } from '../domain/ports/skill-client';
 import { TacticalActionRepository } from '../domain/ports/tactical-action.repository';
 import { TacticalCharacterRoundRepository } from '../domain/ports/tactical-character-round.repository';
 import { TacticalCharacterRepository } from '../domain/ports/tactical-character.repository';
 import { TacticalGameRepository } from '../domain/ports/tactical-game.repository';
 import { CharacterProcessorService } from '../domain/services/character-processor.service';
-import { MongoTacticalActionRepository } from './adapters/persistence/repositories/mongo-tactical-action.repository';
-import { MongoTacticalCharacterRoundRepository } from './adapters/persistence/repositories/mongo-tactical-character-round.repository';
-import { MongoTacticalCharacterRepository } from './adapters/persistence/repositories/mongo-tactical-character.repository';
-import { MongoTacticalGameRepository } from './adapters/persistence/repositories/mongo-tactical-game.repository';
-import { WinstonLogger } from './logger/logger';
 
-// Application layer imports
 import { UpdateCharacterInitiativeUseCase } from '../application/use-cases/tactical-character-round/update-character-round-initiative-use-case';
 import { AddItemUseCase } from '../application/use-cases/tactical-character/add-item-use-case';
 import { CreateTacticalCharacterUseCase } from '../application/use-cases/tactical-character/create-tactical-character-use-case';
@@ -27,7 +23,14 @@ import { FindTacticalGamesUseCase } from '../application/use-cases/tactical-game
 import { StartRoundUseCase } from '../application/use-cases/tactical-game/start-round-use-case';
 import { UpdateTacticalGameUseCase } from '../application/use-cases/tactical-game/update-tactical-game-use-case';
 
-// Configuración de dependencias
+import { RaceAPICoreClient } from './adapters/external/race-api-core-client';
+import { SkillAPICoreClient } from './adapters/external/skill-api-core-client';
+import { MongoTacticalActionRepository } from './adapters/persistence/repositories/mongo-tactical-action.repository';
+import { MongoTacticalCharacterRoundRepository } from './adapters/persistence/repositories/mongo-tactical-character-round.repository';
+import { MongoTacticalCharacterRepository } from './adapters/persistence/repositories/mongo-tactical-character.repository';
+import { MongoTacticalGameRepository } from './adapters/persistence/repositories/mongo-tactical-game.repository';
+import { WinstonLogger } from './logger/logger';
+
 export class DependencyContainer {
     private static instance: DependencyContainer;
 
@@ -37,6 +40,9 @@ export class DependencyContainer {
     private readonly _tacticalCharacterRepository: TacticalCharacterRepository;
     private readonly _tacticalCharacterRoundRepository: TacticalCharacterRoundRepository;
     private readonly _characterProcessorService: CharacterProcessorService;
+
+    private readonly _raceClient: RaceClient;
+    private readonly _skillClient: SkillClient;
 
     // Tactical Game Use Cases
     private readonly _createTacticalGameUseCase!: CreateTacticalGameUseCase;
@@ -67,6 +73,9 @@ export class DependencyContainer {
         this._tacticalCharacterRepository = new MongoTacticalCharacterRepository();
         this._tacticalCharacterRoundRepository = new MongoTacticalCharacterRoundRepository();
         this._characterProcessorService = new CharacterProcessorService(this._logger);
+
+        this._raceClient = new RaceAPICoreClient(this._logger);
+        this._skillClient = new SkillAPICoreClient(this._logger);
 
         // Configure use cases
         this._createTacticalGameUseCase = new CreateTacticalGameUseCase(
@@ -112,6 +121,8 @@ export class DependencyContainer {
             this._logger
         );   
         this._createTacticalCharacterUseCase = new CreateTacticalCharacterUseCase(
+            this._raceClient,
+            this._skillClient,
             this._tacticalCharacterRepository,
             this._tacticalGameRepository,
             this._characterProcessorService,

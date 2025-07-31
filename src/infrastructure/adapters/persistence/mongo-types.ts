@@ -1,7 +1,5 @@
 import { Document } from 'mongoose';
 
-// Mongoose Document Models for Infrastructure Layer
-
 export interface TacticalGameDocument extends Document {
     name: string;
     user: string;

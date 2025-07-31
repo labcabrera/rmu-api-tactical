@@ -1,15 +1,34 @@
 import { randomUUID } from 'crypto';
-import { CharacterDefense, CharacterEndurance, CharacterEquipment, CharacterHP, CharacterInitiative, CharacterItem, CharacterMovement, CharacterPower, CharacterSkill, CharacterStatistics, CreateTacticalCharacterCommand, TacticalCharacter } from '../../../domain/entities/tactical-character.entity';
-import { TacticalGame } from '../../../domain/entities/tactical-game.entity';
-import { Logger } from '../../../domain/ports/logger';
-import { TacticalCharacterRepository } from '../../../domain/ports/tactical-character.repository';
-import { TacticalGameRepository } from '../../../domain/ports/tactical-game.repository';
-import { CharacterProcessorService } from '../../../domain/services/character-processor.service';
+
+import {
+    CharacterDefense,
+    CharacterEndurance,
+    CharacterEquipment,
+    CharacterHP,
+    CharacterInitiative,
+    CharacterItem,
+    CharacterMovement,
+    CharacterPower,
+    CharacterSkill,
+    CharacterStatistics,
+    CreateTacticalCharacterCommand,
+    TacticalCharacter
+} from '@domain/entities/tactical-character.entity';
+import { TacticalGame } from '@domain/entities/tactical-game.entity';
+import { Logger } from '@domain/ports/logger';
+import { RaceClient } from '@domain/ports/race-client';
+import { SkillClient } from '@domain/ports/skill-client';
+import { TacticalCharacterRepository } from '@domain/ports/tactical-character.repository';
+import { TacticalGameRepository } from '@domain/ports/tactical-game.repository';
+import { CharacterProcessorService } from '@domain/services/character-processor.service';
 
 const API_CORE_URL = 'http://localhost:3001/v1';
 
 export class CreateTacticalCharacterUseCase {
+
     constructor(
+        private raceClient: RaceClient,
+        private skillClient: SkillClient,
         private tacticalCharacterRepository: TacticalCharacterRepository,
         private tacticalGameRepository: TacticalGameRepository,
         private characterProcessorService: CharacterProcessorService,
@@ -23,7 +42,7 @@ export class CreateTacticalCharacterUseCase {
 
         const tacticalGame = await this.tacticalGameRepository.findById(command.gameId);
         this.validateCommand(command, tacticalGame);
-        const raceInfo = await this.readRaceInfo(command.info.race);
+        const raceInfo = await this.raceClient.getRaceById(command.info.race);
         const processedStatistics = this.processStatistics(raceInfo, command.statistics);
         const skills = await this.processSkills(command.skills);
         const strideRacialBonus = raceInfo.strideBonus;
@@ -103,79 +122,71 @@ export class CreateTacticalCharacterUseCase {
         return newCharacter;
     }
 
-    async readRaceInfo(raceId: string): Promise<any> {
-        try {
-            const response = await fetch(`${API_CORE_URL}/races/${raceId}`);
-            if (response.status != 200) {
-                throw { status: 500, message: `Invalid race identifier ${raceId}` };
-            }
-            const responseBody = await response.json();
-            return responseBody;
-        } catch (error) {
-            throw new Error(`Error reading race info. ${error}`);
-        }
-    }
-
     processStatistics(raceInfo: any, statistics: CharacterStatistics): CharacterStatistics {
-        const values = ['ag', 'co', 'em', 'in', 'me', 'pr', 'qu', 're', 'sd', 'st'];
-        const result: CharacterStatistics = {};
-        values.forEach(e => {
-            var racial = 0;
-            if (raceInfo && raceInfo.defaultStatBonus && raceInfo.defaultStatBonus[e]) {
-                racial = raceInfo.defaultStatBonus[e];
-            }
-            const bonus = 0;
-            var custom = 0;
-            if (statistics && statistics[e] && statistics[e].custom) {
-                custom = statistics[e].custom;
-            }
-            const total = bonus + racial + custom;
-            result[e] = {
-                bonus: bonus,
-                racial: racial,
-                custom: custom,
-                totalBonus: total
-            }
-        });
-        return result;
+        try {
+            const values = ['ag', 'co', 'em', 'in', 'me', 'pr', 'qu', 're', 'sd', 'st'];
+            const result: CharacterStatistics = {};
+            values.forEach(e => {
+                var racial = 0;
+                if (raceInfo && raceInfo.defaultStatBonus && raceInfo.defaultStatBonus[e]) {
+                    racial = raceInfo.defaultStatBonus[e];
+                }
+                const bonus = 0;
+                var custom = 0;
+                if (statistics && statistics[e] && statistics[e].custom) {
+                    custom = statistics[e].custom;
+                }
+                const total = bonus + racial + custom;
+                result[e] = {
+                    bonus: bonus,
+                    racial: racial,
+                    custom: custom,
+                    totalBonus: total
+                }
+            });
+            return result;
+        } catch (error) {
+            this.logger.error(`Error processing statistics: ${error}`);
+            throw new Error('Error processing statistics');
+        }
     }
 
     async processSkills(skills: any[]): Promise<CharacterSkill[]> {
-        this.logger.info(`Processing skills`);
-        if (!skills || skills.length == 0) {
-            return [];
-        }
-        const response = await fetch(`${API_CORE_URL}/skills`);
-        if (response.status != 200) {
-            throw { status: 500, message: 'Error reading skills' };
-        }
-        const responseBody = await response.json() as { content: any[] };
-        const readedSkills = responseBody.content;
-        return skills.map(e => {
-            const readedSkill = readedSkills.find(s => s.id == e.skillId);
-            if (!readedSkill) {
-                throw { status: 500, message: `Invalid skill identifier '${e.skillId}'` };
+        try {
+            this.logger.info(`Processing skills`);
+            if (!skills || skills.length == 0) {
+                return [];
             }
-            //TODO
-            const attributeBonus = 0;
-            const racialBonus = 0;
-            const developmentBonus = 0;
-            const customBonus = e.customBonus ? e.customBonus : 0;
-            const totalBonus = attributeBonus + racialBonus + developmentBonus + customBonus;
-            return {
-                skillId: readedSkill.id,
-                skillCategoryId: readedSkill.categoryId,
-                attributeBonus: attributeBonus,
-                ranks: e.ranks ? e.ranks : 0,
-                statBonus: 0,
-                racialBonus: racialBonus,
-                developmentBonus: developmentBonus,
-                customBonus: customBonus,
-                totalBonus: totalBonus,
-                specialization: e.specialization ? e.specialization : '',
-                statistics: e.statistics ? e.statistics : []
-            };
-        });
+            const readedSkills: any[] = await this.skillClient.getAll();
+            return skills.map(e => {
+                const readedSkill = readedSkills.find(s => s.id == e.skillId);
+                if (!readedSkill) {
+                    throw { status: 500, message: `Invalid skill identifier '${e.skillId}'` };
+                }
+                //TODO
+                const attributeBonus = 0;
+                const racialBonus = 0;
+                const developmentBonus = 0;
+                const customBonus = e.customBonus ? e.customBonus : 0;
+                const totalBonus = attributeBonus + racialBonus + developmentBonus + customBonus;
+                return {
+                    skillId: readedSkill.id,
+                    skillCategoryId: readedSkill.categoryId,
+                    attributeBonus: attributeBonus,
+                    ranks: e.ranks ? e.ranks : 0,
+                    statBonus: 0,
+                    racialBonus: racialBonus,
+                    developmentBonus: developmentBonus,
+                    customBonus: customBonus,
+                    totalBonus: totalBonus,
+                    specialization: e.specialization ? e.specialization : '',
+                    statistics: e.statistics ? e.statistics : []
+                };
+            });
+        } catch (error) {
+            this.logger.error(`Error processing skills: ${error}`);
+            throw new Error('Error processing skills');
+        }
     }
 
     loadDefaultEquipment(character: TacticalCharacter): void {

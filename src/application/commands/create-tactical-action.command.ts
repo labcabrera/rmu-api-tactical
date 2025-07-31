@@ -1,4 +1,4 @@
-import { TacticalActionAttackInfo } from '../../domain/entities/tactical-action.entity';
+import { TacticalActionAttackInfo } from '@domain/entities/tactical-action.entity';
 
 export interface CreateTacticalActionCommand {
     tacticalGameId: string;

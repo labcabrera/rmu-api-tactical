@@ -1,6 +1,6 @@
 export interface TacticalGameQuery {
-    searchExpression?: string;
-    username?: string;
-    page: number;
-    size: number;
+    readonly searchExpression?: string;
+    readonly username?: string;
+    readonly page: number;
+    readonly size: number;
 }

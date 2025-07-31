@@ -1,6 +1,6 @@
-import { TacticalCharacter } from '../../../domain/entities/tactical-character.entity';
-import { Logger } from '../../../domain/ports/logger';
-import { TacticalCharacterRepository } from '../../../domain/ports/tactical-character.repository';
+import { TacticalCharacter } from '@domain/entities/tactical-character.entity';
+import { Logger } from '@domain/ports/logger';
+import { TacticalCharacterRepository } from '@domain/ports/tactical-character.repository';
 
 export class DeleteItemUseCase {
     constructor(

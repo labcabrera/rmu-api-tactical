@@ -1,12 +1,16 @@
-import { Page } from '../../../../domain/entities/page.entity';
-import { TacticalCharacterRoundEntity, TacticalCharacterRoundSearchCriteria } from '../../../../domain/entities/tactical-character-round.entity';
-import { TacticalCharacterRoundRepository } from '../../../../domain/ports/tactical-character-round.repository';
+import { Page } from '@domain/entities/page.entity';
+import { TacticalCharacterRoundEntity, TacticalCharacterRoundSearchCriteria } from '@domain/entities/tactical-character-round.entity';
+import { TacticalCharacterRoundRepository } from '@domain/ports/tactical-character-round.repository';
 import TacticalCharacterRoundDocument from '../models/tactical-character-round.model';
 
 export class MongoTacticalCharacterRoundRepository implements TacticalCharacterRoundRepository {
-    async findById(id: string): Promise<TacticalCharacterRoundEntity | null> {
+
+    async findById(id: string): Promise<TacticalCharacterRoundEntity> {
         const characterRound = await TacticalCharacterRoundDocument.findById(id);
-        return characterRound ? this.toEntity(characterRound) : null;
+        if (!characterRound) {
+            throw new Error(`TacticalCharacterRound not found: ${id}`);
+        }
+        return this.toEntity(characterRound);
     }
 
     async find(criteria: TacticalCharacterRoundSearchCriteria): Promise<Page<TacticalCharacterRoundEntity>> {
@@ -50,10 +54,12 @@ export class MongoTacticalCharacterRoundRepository implements TacticalCharacterR
 
         return {
             content,
-            page: Math.floor(skip / limit),
-            size: limit,
-            total: count,
-            totalPages: Math.ceil(count / limit)
+            pagination: {
+                page: Math.floor(skip / limit),
+                size: limit,
+                totalElements: count,
+                totalPages: Math.ceil(count / limit)
+            }
         };
     }
 

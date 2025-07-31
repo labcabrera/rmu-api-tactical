@@ -6,6 +6,7 @@ import { MovementProcessor } from './character/processors/movement-processor';
 import { SkillProcessor } from './character/processors/skill-processor';
 
 export class CharacterProcessorService {
+    
     constructor(private readonly logger: Logger) { }
 
     process(character: TacticalCharacter): void {
@@ -16,6 +17,8 @@ export class CharacterProcessorService {
             InitiativeProcessor.process(character);
             SkillProcessor.process(character);
             AttackProcessor.process(character);
+            //TODO add weight processor
+            //TODO add items processor
 
             this.logger.info(`CharacterProcessorService: Successfully processed character: ${character.name}`);
         } catch (error) {
