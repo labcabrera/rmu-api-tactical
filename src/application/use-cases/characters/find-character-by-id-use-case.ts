@@ -2,7 +2,7 @@ import { TacticalCharacter } from '../../../domain/entities/tactical-character.e
 import { Logger } from '../../../domain/ports/logger';
 import { TacticalCharacterRepository } from '../../../domain/ports/tactical-character.repository';
 
-export class FindTacticalCharacterByIdUseCase {
+export class FindTCharacterByIdUseCase {
     constructor(
         private readonly repository: TacticalCharacterRepository,
         private readonly logger: Logger

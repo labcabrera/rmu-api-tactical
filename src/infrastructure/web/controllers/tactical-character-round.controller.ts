@@ -3,14 +3,14 @@ import express, { Request, Response, Router } from 'express';
 import { Logger } from '@domain/ports/logger';
 import { TacticalCharacterRoundQuery } from '@domain/queries/tactical-character-round.query';
 
-import { FindTacticalCharacterRoundsUseCase } from '@application/use-cases/tactical-character-round/find-tactical-character-rounds-use-case';
+import { FindCharacterRoundsUseCase } from '@/application/use-cases/character-rounds/find-character-rounds-use-case';
 
 import { DependencyContainer } from '../../dependency-container';
 
 export class TacticalCharacterRoundController {
 
     private router: Router;
-    private findTacticalCharacterRoundsUseCase: FindTacticalCharacterRoundsUseCase;
+    private findTacticalCharacterRoundsUseCase: FindCharacterRoundsUseCase;
     private logger: Logger;
 
     constructor() {

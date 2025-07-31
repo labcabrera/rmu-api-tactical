@@ -1,6 +1,6 @@
 import { CharacterHP, CharacterInfo } from '../../domain/entities/tactical-character.entity';
 
-export interface UpdateTacticalCharacterCommand {
+export interface UpdateCharacterCommand {
     characterId: string;
     name?: string;
     faction?: string;

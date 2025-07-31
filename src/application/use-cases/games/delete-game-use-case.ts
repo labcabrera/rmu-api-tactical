@@ -2,7 +2,7 @@ import { Logger } from '../../../domain/ports/logger';
 import { TacticalCharacterRepository } from '../../../domain/ports/tactical-character.repository';
 import { TacticalGameRepository } from '../../../domain/ports/tactical-game.repository';
 
-export class DeleteTacticalGameUseCase {
+export class DeleteGameUseCase {
     constructor(
         private readonly tacticalGameRepository: TacticalGameRepository,
         private readonly tacticalCharacterRepository: TacticalCharacterRepository,

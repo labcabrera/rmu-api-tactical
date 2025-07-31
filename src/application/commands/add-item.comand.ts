@@ -5,7 +5,7 @@ import {
     CharacterItemWeaponRange
 } from '@domain/entities/tactical-character.entity';
 
-export interface CharacterAddItemCommand {
+export interface AddItemCommand {
     readonly characterId: string;
     readonly item: {
         readonly name?: string;

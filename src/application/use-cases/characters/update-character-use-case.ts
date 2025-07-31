@@ -3,9 +3,9 @@ import { Logger } from '@domain/ports/logger';
 import { TacticalCharacterRepository } from '@domain/ports/tactical-character.repository';
 import { CharacterProcessorService } from '@domain/services/character-processor.service';
 
-import { UpdateTacticalCharacterCommand } from '@application/commands/update-tactical-character.command';
+import { UpdateCharacterCommand } from '@/application/commands/update-character.command';
 
-export class UpdateTacticalCharacterUseCase {
+export class UpdateCharacterUseCase {
 
     constructor(
         private readonly characterProcessorService: CharacterProcessorService,
@@ -13,7 +13,7 @@ export class UpdateTacticalCharacterUseCase {
         private logger: Logger
     ) { }
 
-    async execute(command: UpdateTacticalCharacterCommand): Promise<TacticalCharacter> {
+    async execute(command: UpdateCharacterCommand): Promise<TacticalCharacter> {
         try {
             this.logger.info(`UpdateTacticalCharacterUseCase: Updating tactical character: ${command.characterId}`);
             const characterId = command.characterId;
@@ -33,7 +33,7 @@ export class UpdateTacticalCharacterUseCase {
         }
     }
 
-    private bindBasicFields(character: TacticalCharacter, command: UpdateTacticalCharacterCommand): void {
+    private bindBasicFields(character: TacticalCharacter, command: UpdateCharacterCommand): void {
         if (command.name) {
             character.name = command.name;
         }
@@ -42,7 +42,7 @@ export class UpdateTacticalCharacterUseCase {
         }
     }
 
-    private bindInfoFielsds(character: TacticalCharacter, command: UpdateTacticalCharacterCommand): void {
+    private bindInfoFielsds(character: TacticalCharacter, command: UpdateCharacterCommand): void {
         if(!command.info) {
             return;
         }
@@ -57,10 +57,10 @@ export class UpdateTacticalCharacterUseCase {
         }
     }
 
-    private bindMovementFielsds(character: TacticalCharacter, command: UpdateTacticalCharacterCommand): void {
+    private bindMovementFielsds(character: TacticalCharacter, command: UpdateCharacterCommand): void {
     }
 
-    private bindHPFielsds(character: TacticalCharacter, command: UpdateTacticalCharacterCommand): void {
+    private bindHPFielsds(character: TacticalCharacter, command: UpdateCharacterCommand): void {
         if(!command.hp) {
             return;
         }

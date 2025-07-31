@@ -4,7 +4,7 @@ import { Logger } from '../../../domain/ports/logger';
 import { TacticalGameRepository } from '../../../domain/ports/tactical-game.repository';
 import { TacticalGameQuery } from '../../../domain/queries/tactical-game.query';
 
-export class FindTacticalGamesUseCase {
+export class FindGamesUseCase {
     constructor(
         private readonly repository: TacticalGameRepository,
         private readonly logger: Logger

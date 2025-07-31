@@ -1,4 +1,4 @@
-export interface CreateTacticalGameCommand {
+export interface CreateGameCommand {
     readonly user: string;
     readonly name: string;
     readonly description?: string;

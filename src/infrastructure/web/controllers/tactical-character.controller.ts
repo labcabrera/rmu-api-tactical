@@ -1,38 +1,36 @@
 import express, { Request, Response, Router } from 'express';
 
-import {
-    CreateTacticalCharacterCommand
-} from '@domain/entities/tactical-character.entity';
 import { Logger } from '@domain/ports/logger';
 import { TacticalCharacterQuery } from '@domain/queries/tactical-character.query';
 
-import { CharacterAddItemCommand } from '../../../application/commands/add-item.comand';
+import { AddItemCommand } from '../../../application/commands/add-item.comand';
 import { AddSkillCommand } from '../../../application/commands/add-skill.command';
+import { CreateCharacterCommand } from '../../../application/commands/create-character.command';
 import { DeleteSkillCommand } from '../../../application/commands/delete-skill-command';
 import { EquipItemCommand } from '../../../application/commands/equip-item-command';
 import { UpdateSkillCommand } from '../../../application/commands/update-skill.command';
-import { AddItemUseCase } from '../../../application/use-cases/tactical-character/add-item-use-case';
-import { AddSkillUseCase } from '../../../application/use-cases/tactical-character/add-skill-use-case';
-import { CreateTacticalCharacterUseCase } from '../../../application/use-cases/tactical-character/create-tactical-character-use-case';
-import { DeleteItemUseCase } from '../../../application/use-cases/tactical-character/delete-item-use-case';
-import { DeleteSkillUseCase } from '../../../application/use-cases/tactical-character/delete-skill-use-case';
-import { DeleteTacticalCharacterUseCase } from '../../../application/use-cases/tactical-character/delete-tactical-character-use-case';
-import { EquipItemUseCase } from '../../../application/use-cases/tactical-character/equip-item-use-case';
-import { FindTacticalCharacterByIdUseCase } from '../../../application/use-cases/tactical-character/find-tactical-character-by-id-use-case';
-import { FindTacticalCharactersUseCase } from '../../../application/use-cases/tactical-character/find-tactical-character-use-case';
-import { UpdateSkillUseCase } from '../../../application/use-cases/tactical-character/update-skill-use-case';
-import { UpdateTacticalCharacterUseCase } from '../../../application/use-cases/tactical-character/update-tactical-character-use-case';
+import { AddItemUseCase } from '../../../application/use-cases/characters/add-item-use-case';
+import { AddSkillUseCase } from '../../../application/use-cases/characters/add-skill-use-case';
+import { CreateCharacterUseCase } from '../../../application/use-cases/characters/create-character-use-case';
+import { DeleteCharacterUseCase } from '../../../application/use-cases/characters/delete-character-use-case';
+import { DeleteItemUseCase } from '../../../application/use-cases/characters/delete-item-use-case';
+import { DeleteSkillUseCase } from '../../../application/use-cases/characters/delete-skill-use-case';
+import { EquipItemUseCase } from '../../../application/use-cases/characters/equip-item-use-case';
+import { FindTCharacterByIdUseCase } from '../../../application/use-cases/characters/find-character-by-id-use-case';
+import { FindCharactersUseCase } from '../../../application/use-cases/characters/find-characters-use-case';
+import { UpdateCharacterUseCase } from '../../../application/use-cases/characters/update-character-use-case';
+import { UpdateSkillUseCase } from '../../../application/use-cases/characters/update-skill-use-case';
 import { DependencyContainer } from '../../dependency-container';
 import { ErrorHandler } from '../error-handler';
 
 export class TacticalCharacterController {
 
     private router: Router;
-    private findCharacterUseCase: FindTacticalCharactersUseCase;
-    private findCharacterByIdUseCase: FindTacticalCharacterByIdUseCase;
-    private createCharacterUseCase: CreateTacticalCharacterUseCase;
-    private updateCharacterUseCase: UpdateTacticalCharacterUseCase;
-    private deleteCharacterUseCase: DeleteTacticalCharacterUseCase;
+    private findCharacterUseCase: FindCharactersUseCase;
+    private findCharacterByIdUseCase: FindTCharacterByIdUseCase;
+    private createCharacterUseCase: CreateCharacterUseCase;
+    private updateCharacterUseCase: UpdateCharacterUseCase;
+    private deleteCharacterUseCase: DeleteCharacterUseCase;
     private addItemUseCase: AddItemUseCase;
     private deleteItemUseCase: DeleteItemUseCase;
     private equipItemUseCase: EquipItemUseCase;
@@ -106,7 +104,7 @@ export class TacticalCharacterController {
             this.logger.info(`TacticalCharacterController: Tactical character creation << ${req.body.name}`);
             //TODO JWT
             const user: string = "lab.cabrera@gmail.com";
-            const command: CreateTacticalCharacterCommand = {
+            const command: CreateCharacterCommand = {
                 user,
                 gameId: req.body.gameId,
                 faction: req.body.faction,
@@ -158,7 +156,7 @@ export class TacticalCharacterController {
     private async addItem(req: Request, res: Response): Promise<void> {
         try {
             this.logger.info(`TacticalCharacterController: Adding item to character << ${req.params.characterId}`);
-            const command: CharacterAddItemCommand = {
+            const command: AddItemCommand = {
                 characterId: req.params.characterId!,
                 item: req.body
             };

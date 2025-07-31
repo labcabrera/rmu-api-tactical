@@ -4,7 +4,7 @@ import {
     TacticalActionResult
 } from '@domain/entities/tactical-action.entity';
 
-export interface UpdateTacticalActionCommand {
+export interface UpdateActionCommand {
     readonly type?: string;
     readonly phaseStart?: string;
     readonly actionPoints?: number;

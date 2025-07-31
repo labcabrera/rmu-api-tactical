@@ -3,6 +3,7 @@ import { Logger } from '@domain/ports/logger';
 import { TacticalCharacterRepository } from '@domain/ports/tactical-character.repository';
 
 export class DeleteItemUseCase {
+
     constructor(
         private readonly tacticalCharacterRepository: TacticalCharacterRepository,
         private readonly logger: Logger

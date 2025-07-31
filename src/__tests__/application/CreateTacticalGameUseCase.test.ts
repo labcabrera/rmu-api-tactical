@@ -1,5 +1,5 @@
-import { CreateTacticalGameCommand } from '../../application/commands/create-tactical-game.command';
-import { CreateTacticalGameUseCase } from '../../application/use-cases/tactical-game/create-tactical-game-use-case';
+import { CreateGameCommand } from '../../application/commands/create-game.command';
+import { CreateGameUseCase } from '../../application/use-cases/games/create-game-use-case';
 import { TacticalGame } from '../../domain/entities/tactical-game.entity';
 import { Logger } from '../../domain/ports/logger';
 import { TacticalGameRepository } from '../../domain/ports/tactical-game.repository';
@@ -21,16 +21,16 @@ const mockLogger: jest.Mocked<Logger> = {
 };
 
 describe('CreateTacticalGameUseCase', () => {
-    let useCase: CreateTacticalGameUseCase;
+    let useCase: CreateGameUseCase;
 
     beforeEach(() => {
-        useCase = new CreateTacticalGameUseCase(mockRepository, mockLogger);
+        useCase = new CreateGameUseCase(mockRepository, mockLogger);
         jest.clearAllMocks();
     });
 
     describe('execute', () => {
         it('should create a new game and return it', async () => {
-            const command: CreateTacticalGameCommand = {
+            const command: CreateGameCommand = {
                 user: 'test@example.com',
                 name: 'New Game',
                 description: 'Test description'
@@ -64,7 +64,7 @@ describe('CreateTacticalGameUseCase', () => {
         });
 
         it('should use default factions when none provided', async () => {
-            const command: CreateTacticalGameCommand = {
+            const command: CreateGameCommand = {
                 user: 'test@example.com',
                 name: 'New Game'
             };
@@ -88,7 +88,7 @@ describe('CreateTacticalGameUseCase', () => {
         });
 
         it('should use provided factions when given', async () => {
-            const command: CreateTacticalGameCommand = {
+            const command: CreateGameCommand = {
                 user: 'test@example.com',
                 name: 'New Game',
                 factions: ['Custom', 'Faction']
@@ -113,7 +113,7 @@ describe('CreateTacticalGameUseCase', () => {
         });
 
         it('should not include description when not provided', async () => {
-            const command: CreateTacticalGameCommand = {
+            const command: CreateGameCommand = {
                 user: 'test@example.com',
                 name: 'New Game'
             };

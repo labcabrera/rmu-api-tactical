@@ -11,7 +11,6 @@ import {
     CharacterPower,
     CharacterSkill,
     CharacterStatistics,
-    CreateTacticalCharacterCommand,
     TacticalCharacter
 } from '@domain/entities/tactical-character.entity';
 import { TacticalGame } from '@domain/entities/tactical-game.entity';
@@ -22,9 +21,9 @@ import { TacticalCharacterRepository } from '@domain/ports/tactical-character.re
 import { TacticalGameRepository } from '@domain/ports/tactical-game.repository';
 import { CharacterProcessorService } from '@domain/services/character-processor.service';
 
-const API_CORE_URL = 'http://localhost:3001/v1';
+import { CreateCharacterCommand } from '@application/commands/create-character.command';
 
-export class CreateTacticalCharacterUseCase {
+export class CreateCharacterUseCase {
 
     constructor(
         private raceClient: RaceClient,
@@ -36,7 +35,7 @@ export class CreateTacticalCharacterUseCase {
     ) { }
 
 
-    async execute(command: CreateTacticalCharacterCommand): Promise<TacticalCharacter> {
+    async execute(command: CreateCharacterCommand): Promise<TacticalCharacter> {
         this.logger.info(`CreateTacticalCharacterUseCase: Creating tactical character: ${command.name} for game: ${command.gameId}`);
         this.logger.debug(`Command: ${JSON.stringify(command)}`);
 
@@ -208,7 +207,7 @@ export class CreateTacticalCharacterUseCase {
         }
     }
 
-    validateCommand(command: CreateTacticalCharacterCommand, game: TacticalGame): void {
+    validateCommand(command: CreateCharacterCommand, game: TacticalGame): void {
         if (!command.faction) {
             throw new Error('Required faction');
         }

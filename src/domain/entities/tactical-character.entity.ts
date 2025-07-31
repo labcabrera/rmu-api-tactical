@@ -135,27 +135,6 @@ export interface CharacterEquipment {
     weight: number;
 }
 
-export interface CreateTacticalCharacterCommand {
-    user: string;
-    gameId: string;
-    faction: string;
-    name: string;
-    info: CharacterInfo
-    statistics: CharacterStatistics;
-    movement: {
-        strideCustomBonus?: number;
-        strideRacialBonus?: number;
-    };
-    endurance: {
-        max: number;
-    };
-    hp: {
-        max: number;
-    };
-    skills?: any;
-    items?: CreateTacticalCharacterItem[];
-}
-
 export interface CreateTacticalCharacterItem {
     name: string;
     itemTypeId: string;

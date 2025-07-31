@@ -1,12 +1,12 @@
 import express, { Request, Response, Router } from 'express';
-import { CreateTacticalGameCommand } from '../../../application/commands/create-tactical-game.command';
-import { UpdateTacticalGameCommand } from '../../../application/commands/update-tactical-game.command';
-import { CreateTacticalGameUseCase } from '../../../application/use-cases/tactical-game/create-tactical-game-use-case';
-import { DeleteTacticalGameUseCase } from '../../../application/use-cases/tactical-game/delete-tactical-game-use-case';
-import { FindTacticalGameByIdUseCase } from '../../../application/use-cases/tactical-game/find-tactical-game-by-id-use-case';
-import { FindTacticalGamesUseCase } from '../../../application/use-cases/tactical-game/find-tactical-games-use-case';
-import { StartRoundUseCase } from '../../../application/use-cases/tactical-game/start-round-use-case';
-import { UpdateTacticalGameUseCase } from '../../../application/use-cases/tactical-game/update-tactical-game-use-case';
+import { CreateGameCommand } from '../../../application/commands/create-game.command';
+import { UpdateGameCommand } from '../../../application/commands/update-game.command';
+import { CreateGameUseCase } from '../../../application/use-cases/games/create-game-use-case';
+import { DeleteGameUseCase } from '../../../application/use-cases/games/delete-game-use-case';
+import { FindGameByIdUseCase } from '../../../application/use-cases/games/find-game-by-id-use-case';
+import { FindGamesUseCase } from '../../../application/use-cases/games/find-games-use-case';
+import { StartRoundUseCase } from '../../../application/use-cases/games/start-round-use-case';
+import { UpdateGameUseCase } from '../../../application/use-cases/games/update-game-use-case';
 import { Logger } from '../../../domain/ports/logger';
 import { TacticalGameQuery } from '../../../domain/queries/tactical-game.query';
 import { DependencyContainer } from '../../dependency-container';
@@ -15,11 +15,11 @@ import { ErrorHandler } from '../error-handler';
 export class TacticalGameController {
 
     private router: Router;
-    private readonly findUseCase: FindTacticalGamesUseCase;
-    private readonly findByIdUseCase: FindTacticalGameByIdUseCase;
-    private readonly createUseCase: CreateTacticalGameUseCase;
-    private readonly updateUseCase: UpdateTacticalGameUseCase;
-    private readonly deleteUseCase: DeleteTacticalGameUseCase;
+    private readonly findUseCase: FindGamesUseCase;
+    private readonly findByIdUseCase: FindGameByIdUseCase;
+    private readonly createUseCase: CreateGameUseCase;
+    private readonly updateUseCase: UpdateGameUseCase;
+    private readonly deleteUseCase: DeleteGameUseCase;
     private readonly startRoundUseCase: StartRoundUseCase;
     
     private logger: Logger;
@@ -82,7 +82,7 @@ export class TacticalGameController {
             this.logger.info(`Tactical game creation << ${req.body.name}`);
             //TODO JWT
             const user: string = "lab.cabrera@gmail.com";
-            const command: CreateTacticalGameCommand = {
+            const command: CreateGameCommand = {
                 user,
                 name: req.body.name,
                 description: req.body.description,
@@ -99,7 +99,7 @@ export class TacticalGameController {
     private async updateTacticalGame(req: Request, res: Response): Promise<void> {
         try {
             this.logger.info(`Tactical game update - ${req.params.gameId}`);
-            const command: UpdateTacticalGameCommand = {
+            const command: UpdateGameCommand = {
                 gameId: req.params.gameId!,
                 name: req.body.name,
                 description: req.body.description

@@ -1,5 +1,5 @@
-import { DeleteTacticalGameUseCase } from '../../application/use-cases/tactical-game/delete-tactical-game-use-case';
-import { FindTacticalGameByIdUseCase } from '../../application/use-cases/tactical-game/FindTacticalGameByIdUseCase';
+import { DeleteGameUseCase } from '../../application/use-cases/games/delete-game-use-case';
+import { FindTacticalGameByIdUseCase } from '../../application/use-cases/games/FindTacticalGameByIdUseCase';
 import { TacticalGame } from '../../domain/entities/tactical-game.entity';
 import { Logger } from '../../domain/ports/logger';
 import { TacticalGameRepository } from '../../domain/ports/tactical-game.repository';
@@ -25,10 +25,10 @@ const mockFindByIdUseCase: jest.Mocked<FindTacticalGameByIdUseCase> = {
 } as any;
 
 describe('DeleteTacticalGameUseCase', () => {
-    let useCase: DeleteTacticalGameUseCase;
+    let useCase: DeleteGameUseCase;
 
     beforeEach(() => {
-        useCase = new DeleteTacticalGameUseCase(mockRepository, mockLogger, mockFindByIdUseCase);
+        useCase = new DeleteGameUseCase(mockRepository, mockLogger, mockFindByIdUseCase);
         jest.clearAllMocks();
     });
 

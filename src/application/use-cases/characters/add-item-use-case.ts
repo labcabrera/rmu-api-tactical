@@ -4,7 +4,7 @@ import { CharacterItem, TacticalCharacter } from '@domain/entities/tactical-char
 import { Logger } from '@domain/ports/logger';
 import { TacticalCharacterRepository } from '@domain/ports/tactical-character.repository';
 
-import { CharacterAddItemCommand } from '@application/commands/add-item.comand';
+import { AddItemCommand } from '@application/commands/add-item.comand';
 import { CharacterProcessorService } from '../../../domain/services/character-processor.service';
 
 export class AddItemUseCase {
@@ -15,7 +15,7 @@ export class AddItemUseCase {
         private readonly logger: Logger
     ) { }
 
-    async execute(command: CharacterAddItemCommand): Promise<TacticalCharacter> {
+    async execute(command: AddItemCommand): Promise<TacticalCharacter> {
         this.logger.info(`AddItemUseCase: Adding item ${command.item.itemTypeId} to character ${command.characterId}`);
         this.validateCommand(command);
         const characterId = command.characterId;
@@ -35,7 +35,7 @@ export class AddItemUseCase {
         return await this.tacticalCharacterRepository.update(characterId, character);
     }
 
-    private validateCommand(command: CharacterAddItemCommand): void {
+    private validateCommand(command: AddItemCommand): void {
         if( !command.characterId) {
             throw new Error('Required characterId');
         }

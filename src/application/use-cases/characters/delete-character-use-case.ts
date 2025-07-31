@@ -1,7 +1,7 @@
 import { Logger } from '../../../domain/ports/logger';
 import { TacticalCharacterRepository } from '../../../domain/ports/tactical-character.repository';
 
-export class DeleteTacticalCharacterUseCase {
+export class DeleteCharacterUseCase {
     constructor(
         private tacticalCharacterRepository: TacticalCharacterRepository,
         private logger: Logger

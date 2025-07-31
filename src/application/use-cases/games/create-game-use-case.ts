@@ -1,16 +1,16 @@
 import { TacticalGame } from '../../../domain/entities/tactical-game.entity';
 import { Logger } from '../../../domain/ports/logger';
 import { TacticalGameRepository } from '../../../domain/ports/tactical-game.repository';
-import { CreateTacticalGameCommand } from '../../commands/create-tactical-game.command';
+import { CreateGameCommand } from '../../commands/create-game.command';
 
-export class CreateTacticalGameUseCase {
+export class CreateGameUseCase {
 
     constructor(
         private readonly repository: TacticalGameRepository,
         private readonly logger: Logger
     ) { }
 
-    async execute(command: CreateTacticalGameCommand): Promise<TacticalGame> {
+    async execute(command: CreateGameCommand): Promise<TacticalGame> {
         this.logger.info(`Creating tactical game: ${command.name} for user: ${command.user}`);
 
         // Aplicar reglas de negocio
