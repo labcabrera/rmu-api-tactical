@@ -24,8 +24,10 @@ import { StartRoundUseCase } from '../application/use-cases/tactical-game/start-
 import { UpdateTacticalGameUseCase } from '../application/use-cases/tactical-game/update-tactical-game-use-case';
 
 import { AddSkillUseCase } from '../application/use-cases/tactical-character/add-skill-use-case';
+import { SkillCategoryClient } from '../domain/ports/skill-category-client';
 import { RaceAPICoreClient } from './adapters/external/race-api-core-client';
 import { SkillAPICoreClient } from './adapters/external/skill-api-core-client';
+import { SkillCategoryAPICoreClient } from './adapters/external/skill-category-api-core-client';
 import { MongoTacticalActionRepository } from './adapters/persistence/repositories/mongo-tactical-action.repository';
 import { MongoTacticalCharacterRoundRepository } from './adapters/persistence/repositories/mongo-tactical-character-round.repository';
 import { MongoTacticalCharacterRepository } from './adapters/persistence/repositories/mongo-tactical-character.repository';
@@ -44,6 +46,7 @@ export class DependencyContainer {
 
     private readonly _raceClient: RaceClient;
     private readonly _skillClient: SkillClient;
+    private readonly _skillCategoryClient: SkillCategoryClient;
 
     // Tactical Game Use Cases
     private readonly _createTacticalGameUseCase!: CreateTacticalGameUseCase;
@@ -56,16 +59,13 @@ export class DependencyContainer {
     // Tactical Character Use Cases
     private readonly _findTacticalCharacterUseCase!: FindTacticalCharactersUseCase;
     private readonly _findTacticalCharacterByIdUseCase!: FindTacticalCharacterByIdUseCase;
-
     private readonly _createTacticalCharacterUseCase: CreateTacticalCharacterUseCase;
     private readonly _updateTacticalCharacterUseCase: UpdateTacticalCharacterUseCase;
     private readonly _deleteTacticalCharacterUseCase: DeleteTacticalCharacterUseCase;
     private readonly _updateCharacterInitiativeUseCase: UpdateCharacterInitiativeUseCase;
-
     private readonly _addItemUseCase!: AddItemUseCase;
     private readonly _deleteItemUseCase: DeleteItemUseCase;
     private readonly _equipItemUseCase: EquipItemUseCase;
-
     private readonly _addSkillUseCase!: AddSkillUseCase;
     
     private constructor() {
@@ -79,6 +79,7 @@ export class DependencyContainer {
 
         this._raceClient = new RaceAPICoreClient(this._logger);
         this._skillClient = new SkillAPICoreClient(this._logger);
+        this._skillCategoryClient = new SkillCategoryAPICoreClient(this._logger);
 
         // Configure use cases
         this._createTacticalGameUseCase = new CreateTacticalGameUseCase(
@@ -157,7 +158,10 @@ export class DependencyContainer {
             this._logger
         );
         this._addSkillUseCase = new AddSkillUseCase(
+            this._characterProcessorService,
             this._tacticalCharacterRepository,
+            this._skillClient,
+            this._skillCategoryClient,
             this._logger
         );
 

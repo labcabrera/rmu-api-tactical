@@ -157,7 +157,7 @@ export class CreateTacticalCharacterUseCase {
             if (!skills || skills.length == 0) {
                 return [];
             }
-            const readedSkills: any[] = await this.skillClient.getAll();
+            const readedSkills: any[] = await this.skillClient.getAllSkills();
             return skills.map(e => {
                 const readedSkill = readedSkills.find(s => s.id == e.skillId);
                 if (!readedSkill) {
