@@ -1,3 +1,4 @@
+import { DependencyContainer } from "../../dependency-container";
 import { ExpressApp } from "./express.app";
 
 export class WebServer {
@@ -5,7 +6,8 @@ export class WebServer {
   private expressApp: ExpressApp;
 
   constructor() {
-    this.port = parseInt(process.env.PORT || "3003", 10);
+    const container = DependencyContainer.getInstance();
+    this.port = container.configuration.getPort();
     this.expressApp = new ExpressApp();
   }
 

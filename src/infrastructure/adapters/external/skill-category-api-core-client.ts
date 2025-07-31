@@ -1,14 +1,15 @@
+import { Configuration } from "../../../domain/ports/configuration";
 import { Logger } from "@domain/ports/logger";
 import { SkillCategoryClient } from "@domain/ports/skill-category-client";
 
-//TODO move to settings
-const API_CORE_URL = "http://localhost:3001/v1";
-
 export class SkillCategoryAPICoreClient implements SkillCategoryClient {
-  constructor(private readonly logger: Logger) {}
+  constructor(
+    private readonly logger: Logger,
+    private readonly configuration: Configuration,
+  ) {}
 
   async getSkillCategoryById(categoryId: string): Promise<any> {
-    const url = `${API_CORE_URL}/skill-categories/${categoryId}`;
+    const url = `${this.configuration.getApiCoreUrl()}/skill-categories/${categoryId}`;
     this.logger.info(`Fetching skill category from ${url}`);
     try {
       const response = await fetch(url);

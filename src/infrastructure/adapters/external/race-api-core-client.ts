@@ -1,14 +1,15 @@
 import { RaceClient } from "@domain/ports/race-client";
+import { Configuration } from "../../../domain/ports/configuration";
 import { Logger } from "../../../domain/ports/logger";
 
-//TODO move to settings
-const API_CORE_URL = "http://localhost:3001/v1";
-
 export class RaceAPICoreClient implements RaceClient {
-  constructor(private readonly logger: Logger) {}
+  constructor(
+    private readonly logger: Logger,
+    private readonly configuration: Configuration,
+  ) {}
 
   async getRaceById(raceId: string): Promise<any> {
-    const url = `${API_CORE_URL}/races/${raceId}`;
+    const url = `${this.configuration.getApiCoreUrl()}/races/${raceId}`;
     this.logger.info(`Fetching race info from ${url}`);
     try {
       const response = await fetch(url);

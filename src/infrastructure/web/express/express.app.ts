@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import path from "path";
 import swaggerUi from "swagger-ui-express";
 import yaml from "yaml";
+import { DependencyContainer } from "../../dependency-container";
 import { ApiRoutes } from "../routes";
 
 export class ExpressApp {
@@ -17,6 +18,7 @@ export class ExpressApp {
     this.initializeMiddleware();
     this.initializeDatabase();
     this.initializeRoutes();
+    this.initializeSwagger();
     this.initializeErrorHandling();
   }
 
@@ -26,21 +28,19 @@ export class ExpressApp {
   }
 
   private initializeDatabase(): void {
-    const MONGO_URI: string =
-      process.env.RMU_MONGO_TACTICAL_URI ||
-      "mongodb://localhost:27017/rmu-tactical";
+    const container = DependencyContainer.getInstance();
+    const mongoUri = container.configuration.getMongoUri();
 
     mongoose
-      .connect(MONGO_URI)
-      .then(() => console.log("Connected to " + MONGO_URI))
+      .connect(mongoUri)
+      .then(() => console.log("Connected to " + mongoUri))
       .catch((err: Error) =>
-        console.log("Error connecting to " + MONGO_URI, err),
+        console.log("Error connecting to " + mongoUri, err),
       );
   }
 
   private initializeRoutes(): void {
     this.app.use("/v1", this.apiRoutes.getRouter());
-    this.initializeSwagger();
     this.app.get("/", (req: Request, res: Response) => {
       res.redirect("/api-docs");
     });
