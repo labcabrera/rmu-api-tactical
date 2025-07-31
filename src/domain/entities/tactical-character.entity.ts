@@ -1,3 +1,4 @@
+
 export interface TacticalCharacter {
     id: string;
     gameId: string;
@@ -87,14 +88,14 @@ export interface CharacterSkill {
 }
 
 export interface CharacterItem {
-    id?: string;
-    name?: string;
-    itemTypeId?: string;
-    category?: string;
-    weapon?: CharacterItemWeapon;
-    weaponRange?: CharacterItemWeaponRange;
-    armor?: CharacterItemArmor;
-    info?: CharacterItemInfo;
+    id: string;
+    name: string;
+    itemTypeId: string;
+    category: string;
+    weapon?: CharacterItemWeapon | undefined;
+    weaponRange?: CharacterItemWeaponRange[] | undefined;
+    armor?: CharacterItemArmor | undefined;
+    info: CharacterItemInfo;
 }
 
 export interface CharacterItemWeapon {
@@ -161,6 +162,7 @@ export interface CreateTacticalCharacterItem {
     category: string;
     attackTable: string;
     skillId: string;
+    info: CharacterItemInfo;
 }
 
 export interface UpdateTacticalCharacterCommand {

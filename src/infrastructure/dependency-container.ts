@@ -149,6 +149,7 @@ export class DependencyContainer {
             this._logger
         );
         this._addItemUseCase = new AddItemUseCase(
+            this._characterProcessorService,
             this._tacticalCharacterRepository,
             this._logger
         );

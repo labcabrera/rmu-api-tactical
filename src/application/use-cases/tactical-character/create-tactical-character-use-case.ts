@@ -90,7 +90,8 @@ export class CreateTacticalCharacterUseCase {
             itemTypeId: item.itemTypeId,
             category: item.category,
             attackTable: item.attackTable,
-            skillId: item.skillId
+            skillId: item.skillId,
+            info: item.info
         })) : [];
         const characterData: Omit<TacticalCharacter, 'id'> = {
             gameId: command.gameId,

@@ -10,7 +10,7 @@ export class CharacterProcessorService {
     constructor(private readonly logger: Logger) { }
 
     process(character: TacticalCharacter): void {
-        this.logger.info(`CharacterProcessorService: Processing character: ${character.name} (${character.id})`);
+        this.logger.info(`CharacterProcessorService: Processing character << ${character.name} (${character.id})`);
 
         try {
             MovementProcessor.process(character);
@@ -20,7 +20,6 @@ export class CharacterProcessorService {
             //TODO add weight processor
             //TODO add items processor
 
-            this.logger.info(`CharacterProcessorService: Successfully processed character: ${character.name}`);
         } catch (error) {
             this.logger.error(`CharacterProcessorService: Error processing character ${character.name}: ${error}`);
             throw error;
