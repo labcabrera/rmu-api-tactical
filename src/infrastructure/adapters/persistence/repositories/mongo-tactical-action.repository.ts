@@ -27,8 +27,8 @@ export class MongoTacticalActionRepository implements TacticalActionRepository {
         if (criteria.round) {
             filter.round = criteria.round;
         }
-        if (criteria.type) {
-            filter.type = criteria.type;
+        if (criteria.actionType) {
+            filter.type = criteria.actionType;
         }
         const skip = criteria.page * criteria.size
         const list = await TacticalActionDocument.find(filter)

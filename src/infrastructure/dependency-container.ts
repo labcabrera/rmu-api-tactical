@@ -24,6 +24,9 @@ import { StartRoundUseCase } from '../application/use-cases/tactical-game/start-
 import { UpdateTacticalGameUseCase } from '../application/use-cases/tactical-game/update-tactical-game-use-case';
 
 import { CreateActionUseCase } from '../application/use-cases/tactical-actions/create-action-use-case';
+import { DeleteActionUseCase } from '../application/use-cases/tactical-actions/delete-action-use-case';
+import { FindActionByIdUseCase } from '../application/use-cases/tactical-actions/find-action-by-id-use-case copy';
+import { FindActionsUseCase } from '../application/use-cases/tactical-actions/find-actions-use-case';
 import { FindTacticalCharacterRoundsUseCase } from '../application/use-cases/tactical-character-round/find-tactical-character-rounds-use-case';
 import { AddSkillUseCase } from '../application/use-cases/tactical-character/add-skill-use-case';
 import { DeleteSkillUseCase } from '../application/use-cases/tactical-character/delete-skill-use-case';
@@ -74,11 +77,14 @@ export class DependencyContainer {
     private readonly _deleteSkillUseCase!: DeleteSkillUseCase;
     
     // Tactical character round use cases
-    private readonly _updateCharacterInitiativeUseCase: UpdateCharacterInitiativeUseCase;
     private readonly _findTacticalCharacterRoundsUseCase!: FindTacticalCharacterRoundsUseCase;
+    private readonly _updateCharacterInitiativeUseCase: UpdateCharacterInitiativeUseCase;
 
     // Action use cases
+    private readonly _findActionByIdUseCase!: FindActionByIdUseCase;
+    private readonly _findActionsUseCase!: FindActionsUseCase;
     private readonly _createActionUseCase!: CreateActionUseCase;
+    private readonly _deleteActionUseCase!: DeleteActionUseCase;
 
     private constructor() {
         // Configure basic dependencies
@@ -194,10 +200,22 @@ export class DependencyContainer {
             this._logger
         );
         // Configure action use cases
+        this._findActionByIdUseCase = new FindActionByIdUseCase(
+            this._tacticalActionRepository,
+            this._logger
+        );
+        this._findActionsUseCase = new FindActionsUseCase(
+            this._tacticalActionRepository,
+            this._logger
+        );
         this._createActionUseCase = new CreateActionUseCase(
             this._tacticalGameRepository,
             this._tacticalCharacterRepository,
             this._tacticalCharacterRoundRepository,
+            this._tacticalActionRepository,
+            this._logger
+        );
+        this._deleteActionUseCase = new DeleteActionUseCase(
             this._tacticalActionRepository,
             this._logger
         );
@@ -314,8 +332,19 @@ export class DependencyContainer {
     }
 
     // Action use case getters
+    get findActionByIdUseCase(): FindActionByIdUseCase {
+        return this._findActionByIdUseCase;
+    }
+
+    get findActionsUseCase(): FindActionsUseCase {
+        return this._findActionsUseCase;
+    }
+
     get createActionUseCase(): CreateActionUseCase {
         return this._createActionUseCase;
+    }
+    get deleteActionUseCase(): DeleteActionUseCase {
+        return this._deleteActionUseCase;
     }
 
 }
