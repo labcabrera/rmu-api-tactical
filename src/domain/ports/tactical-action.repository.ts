@@ -1,11 +1,12 @@
 import { Page } from '@domain/entities/page.entity';
-import { TacticalAction, TacticalActionSearchCriteria } from '@domain/entities/tactical-action.entity';
+import { TacticalAction } from '@domain/entities/tactical-action.entity';
+import { TacticalActionQuery } from '../queries/tactical-action.query';
 
 export interface TacticalActionRepository {
 
-    findById(id: string): Promise<TacticalAction | null>;
+    findById(id: string): Promise<TacticalAction>;
 
-    find(criteria: TacticalActionSearchCriteria): Promise<Page<TacticalAction>>;
+    find(criteria: TacticalActionQuery): Promise<Page<TacticalAction>>;
 
     findByGameId(gameId: string): Promise<TacticalAction[]>;
 
@@ -19,10 +20,10 @@ export interface TacticalActionRepository {
 
     update(id: string, action: Partial<TacticalAction>): Promise<TacticalAction | null>;
 
-    delete(id: string): Promise<boolean>;
+    delete(id: string): Promise<void>;
 
-    deleteByGameId(gameId: string): Promise<number>;
+    deleteByGameId(gameId: string): Promise<void>;
 
-    deleteByCharacterId(characterId: string): Promise<number>;
+    deleteByCharacterId(characterId: string): Promise<void>;
 
 }

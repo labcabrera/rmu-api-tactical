@@ -1,20 +1,20 @@
 import { Page } from '@domain/entities/page.entity';
-import { TacticalCharacterRoundEntity } from '@domain/entities/tactical-character-round.entity';
+import { TacticalCharacterRound } from '@domain/entities/tactical-character-round.entity';
 import { TacticalCharacterRoundQuery } from '../queries/tactical-character-round.query';
 
 export interface TacticalCharacterRoundRepository {
 
-    findById(id: string): Promise<TacticalCharacterRoundEntity>;
+    findById(id: string): Promise<TacticalCharacterRound>;
 
-    find(criteria: TacticalCharacterRoundQuery): Promise<Page<TacticalCharacterRoundEntity>>;
+    find(criteria: TacticalCharacterRoundQuery): Promise<Page<TacticalCharacterRound>>;
 
-    findByGameIdAndRound(gameId: string, round: number): Promise<TacticalCharacterRoundEntity[]>;
+    findByGameIdAndRound(gameId: string, round: number): Promise<TacticalCharacterRound[]>;
 
-    findByCharacterIdAndRound(characterId: string, round: number): Promise<TacticalCharacterRoundEntity | null>;
+    findByCharacterIdAndRound(characterId: string, round: number): Promise<TacticalCharacterRound | null>;
 
-    create(characterRound: Omit<TacticalCharacterRoundEntity, 'id'>): Promise<TacticalCharacterRoundEntity>;
+    create(characterRound: Omit<TacticalCharacterRound, 'id'>): Promise<TacticalCharacterRound>;
 
-    update(id: string, characterRound: Partial<TacticalCharacterRoundEntity>): Promise<TacticalCharacterRoundEntity>;
+    update(id: string, characterRound: Partial<TacticalCharacterRound>): Promise<TacticalCharacterRound>;
 
     delete(id: string): Promise<void>;
 

@@ -1,18 +1,14 @@
 import mongoose, { Schema } from 'mongoose';
 import { TacticalActionDocument } from '../mongo-types';
 
-const tacticalActionSchema: Schema<TacticalActionDocument> = new mongoose.Schema({
-    tacticalGameId: {
+const tacticalActionSchema: Schema<TacticalActionDocument> = new Schema({
+    gameId: {
         type: String,
-        required: false
-    },
-    tacticalCharacterId: {
-        type: String,
-        required: false
+        required: true
     },
     characterId: {
         type: String,
-        required: false
+        required: true
     },
     round: {
         type: Number,
@@ -20,15 +16,15 @@ const tacticalActionSchema: Schema<TacticalActionDocument> = new mongoose.Schema
     },
     type: {
         type: String,
-        required: false
+        required: true
     },
     phaseStart: {
         type: String,
-        required: false
+        required: true
     },
     actionPoints: {
         type: Number,
-        required: false
+        required: true
     },
     attackInfo: {
         type: Schema.Types.Mixed,

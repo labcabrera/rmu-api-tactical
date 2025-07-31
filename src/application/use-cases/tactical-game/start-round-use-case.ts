@@ -1,4 +1,4 @@
-import { TacticalCharacterRoundEntity } from '@domain/entities/tactical-character-round.entity';
+import { TacticalCharacterRound } from '@domain/entities/tactical-character-round.entity';
 import { TacticalCharacter } from '@domain/entities/tactical-character.entity';
 import { TacticalGame } from '@domain/entities/tactical-game.entity';
 import { Logger } from '@domain/ports/logger';
@@ -53,7 +53,7 @@ export class StartRoundUseCase {
         const baseInitiative = character.initiative?.baseBonus || 0;
         //TODO check status effects
         const actionPoints: number = 4;
-        const entity: Omit<TacticalCharacterRoundEntity, 'id'> = {
+        const entity: Omit<TacticalCharacterRound, 'id'> = {
             gameId: character.gameId,
             round: round,
             tacticalCharacterId: character.id,

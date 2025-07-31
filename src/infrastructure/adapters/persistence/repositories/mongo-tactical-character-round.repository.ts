@@ -1,13 +1,13 @@
 import { Page } from '@domain/entities/page.entity';
-import { TacticalCharacterRoundEntity } from '@domain/entities/tactical-character-round.entity';
+import { TacticalCharacterRound } from '@domain/entities/tactical-character-round.entity';
 import { TacticalCharacterRoundRepository } from '@domain/ports/tactical-character-round.repository';
 import { TacticalCharacterRoundQuery } from '@domain/queries/tactical-character-round.query';
 
-import TacticalCharacterRoundDocument from '@infrastructure/adapters/persistence/models/tactical-character-round.model';
+import TacticalCharacterRoundDocument from '../models/tactical-character-round.model';
 
 export class MongoTacticalCharacterRoundRepository implements TacticalCharacterRoundRepository {
 
-    async findById(id: string): Promise<TacticalCharacterRoundEntity> {
+    async findById(id: string): Promise<TacticalCharacterRound> {
         const characterRound = await TacticalCharacterRoundDocument.findById(id);
         if(!characterRound) {
             throw new Error(`Character round with id ${id} not found`);
@@ -15,7 +15,7 @@ export class MongoTacticalCharacterRoundRepository implements TacticalCharacterR
         return this.toEntity(characterRound);
     }
 
-    async find(query: TacticalCharacterRoundQuery): Promise<Page<TacticalCharacterRoundEntity>> {
+    async find(query: TacticalCharacterRoundQuery): Promise<Page<TacticalCharacterRound>> {
         const filter: any = {};
         if (query.gameId) {
             filter.gameId = query.gameId;
@@ -44,7 +44,7 @@ export class MongoTacticalCharacterRoundRepository implements TacticalCharacterR
         };
     }
 
-    async findByGameIdAndRound(gameId: string, round: number): Promise<TacticalCharacterRoundEntity[]> {
+    async findByGameIdAndRound(gameId: string, round: number): Promise<TacticalCharacterRound[]> {
         const characterRounds = await TacticalCharacterRoundDocument.find({
             gameId: gameId,
             round: round
@@ -53,7 +53,7 @@ export class MongoTacticalCharacterRoundRepository implements TacticalCharacterR
         return characterRounds.map(characterRound => this.toEntity(characterRound));
     }
 
-    async findByCharacterIdAndRound(tacticalCharacterId: string, round: number): Promise<TacticalCharacterRoundEntity | null> {
+    async findByCharacterIdAndRound(tacticalCharacterId: string, round: number): Promise<TacticalCharacterRound | null> {
         const characterRound = await TacticalCharacterRoundDocument.findOne({
             tacticalCharacterId: tacticalCharacterId,
             round: round
@@ -62,13 +62,13 @@ export class MongoTacticalCharacterRoundRepository implements TacticalCharacterR
         return characterRound ? this.toEntity(characterRound) : null;
     }
 
-    async create(characterRound: Omit<TacticalCharacterRoundEntity, 'id'>): Promise<TacticalCharacterRoundEntity> {
+    async create(characterRound: Omit<TacticalCharacterRound, 'id'>): Promise<TacticalCharacterRound> {
         const newCharacterRound = new TacticalCharacterRoundDocument(characterRound);
         const saved = await newCharacterRound.save();
         return this.toEntity(saved);
     }
 
-    async update(id: string, characterRound: Partial<TacticalCharacterRoundEntity>): Promise<TacticalCharacterRoundEntity> {
+    async update(id: string, characterRound: Partial<TacticalCharacterRound>): Promise<TacticalCharacterRound> {
         const updated = await TacticalCharacterRoundDocument.findByIdAndUpdate(
             id,
             characterRound,
@@ -88,8 +88,8 @@ export class MongoTacticalCharacterRoundRepository implements TacticalCharacterR
         await TacticalCharacterRoundDocument.deleteMany({ gameId: gameId });
     }
 
-    private toEntity(document: any): TacticalCharacterRoundEntity {
-        const entity: TacticalCharacterRoundEntity = {
+    private toEntity(document: any): TacticalCharacterRound {
+        const entity: TacticalCharacterRound = {
             id: document._id?.toString() || document.id,
             gameId: document.gameId,
             tacticalCharacterId: document.tacticalCharacterId,

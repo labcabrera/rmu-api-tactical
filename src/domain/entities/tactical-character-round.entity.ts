@@ -1,4 +1,4 @@
-export interface TacticalCharacterRoundEntity {
+export interface TacticalCharacterRound {
     id: string;
     gameId: string;
     tacticalCharacterId: string;

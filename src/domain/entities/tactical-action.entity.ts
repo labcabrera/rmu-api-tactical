@@ -52,21 +52,3 @@ export interface TacticalActionEffect {
     target?: string;
     [key: string]: any;
 }
-
-export interface TacticalActionSearchCriteria {
-    tacticalGameId?: string;
-    tacticalCharacterId?: string;
-    characterId?: string;
-    round?: number;
-    type?: string;
-    phaseStart?: string;
-    hasAttacks?: boolean;
-    hasResult?: boolean;
-    createdBefore?: Date;
-    createdAfter?: Date;
-    limit?: number;
-    offset?: number;
-}
-
-
-

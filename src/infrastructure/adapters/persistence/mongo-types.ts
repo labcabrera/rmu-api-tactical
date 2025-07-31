@@ -27,10 +27,9 @@ export interface TacticalCharacterDocument extends Document {
 }
 
 export interface TacticalActionDocument extends Document {
-    tacticalGameId: string;
+    gameId: string;
+    characterId: string;
     round: number;
-    tacticalCharacterId: string;
-    characterId?: string; // Para compatibilidad con código existente
     type: string;
     phaseStart?: string;
     actionPoints?: number;

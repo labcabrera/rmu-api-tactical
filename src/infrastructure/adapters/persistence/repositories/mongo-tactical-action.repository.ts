@@ -1,66 +1,49 @@
-import { Page } from '../../../../domain/entities/page.entity';
-import { TacticalAction, TacticalActionSearchCriteria } from '../../../../domain/entities/tactical-action.entity';
-import { TacticalActionRepository } from '../../../../domain/ports/tactical-action.repository';
+import { Page } from '@domain/entities/page.entity';
+import { TacticalAction } from '@domain/entities/tactical-action.entity';
+import { TacticalActionRepository } from '@domain/ports/tactical-action.repository';
+
+import { TacticalActionQuery } from '../../../../domain/queries/tactical-action.query';
 import TacticalActionDocument from '../models/tactical-action.model';
 
 export class MongoTacticalActionRepository implements TacticalActionRepository {
-    async findById(id: string): Promise<TacticalAction | null> {
+
+    async findById(id: string): Promise<TacticalAction> {
         const action = await TacticalActionDocument.findById(id);
-        return action ? this.toEntity(action) : null;
+        if(!action) {
+            throw new Error(`Tactical action with ID ${id} not found`);
+        }
+        return this.toEntity(action);
     }
 
-    async find(criteria: TacticalActionSearchCriteria): Promise<Page<TacticalAction>> {
+    async find(criteria: TacticalActionQuery): Promise<Page<TacticalAction>> {
         let filter: any = {};
 
-        if (criteria.tacticalGameId) {
-            filter.tacticalGameId = criteria.tacticalGameId;
-        }
-        if (criteria.tacticalCharacterId) {
-            filter.tacticalCharacterId = criteria.tacticalCharacterId;
+        if (criteria.gameId) {
+            filter.gameId = criteria.gameId;
         }
         if (criteria.characterId) {
             filter.characterId = criteria.characterId;
         }
-        if (criteria.round !== undefined) {
+        if (criteria.round) {
             filter.round = criteria.round;
         }
         if (criteria.type) {
             filter.type = criteria.type;
         }
-        if (criteria.phaseStart) {
-            filter.phaseStart = criteria.phaseStart;
-        }
-        if (criteria.hasAttacks !== undefined) {
-            filter.attacks = criteria.hasAttacks ? { $exists: true, $ne: [] } : { $exists: false };
-        }
-        if (criteria.hasResult !== undefined) {
-            filter.result = criteria.hasResult ? { $exists: true, $ne: null } : { $exists: false };
-        }
-        if (criteria.createdAfter) {
-            filter.createdAt = { ...filter.createdAt, $gte: criteria.createdAfter };
-        }
-        if (criteria.createdBefore) {
-            filter.createdAt = { ...filter.createdAt, $lte: criteria.createdBefore };
-        }
-
-        const skip = (criteria.offset || 0);
-        const limit = criteria.limit || 20;
-
+        const skip = criteria.page * criteria.size
         const list = await TacticalActionDocument.find(filter)
             .skip(skip)
-            .limit(limit)
+            .limit(criteria.size)
             .sort({ round: 1, createdAt: -1 });
-
         const count = await TacticalActionDocument.countDocuments(filter);
         const content = list.map(action => this.toEntity(action));
-
         return {
             content,
             pagination: {
-                page: Math.floor(skip / limit),
-                size: limit,
+                page: criteria.page,
+                size: criteria.size,
                 totalElements: count,
-                totalPages: Math.ceil(count / limit)
+                totalPages: Math.ceil(count / criteria.size)
             }
         };
     }
@@ -120,24 +103,16 @@ export class MongoTacticalActionRepository implements TacticalActionRepository {
         return updated ? this.toEntity(updated) : null;
     }
 
-    async delete(id: string): Promise<boolean> {
-        const result = await TacticalActionDocument.findByIdAndDelete(id);
-        return result !== null;
+    async delete(actionId: string): Promise<void> {
+        await TacticalActionDocument.findByIdAndDelete(actionId);
     }
 
-    async deleteByGameId(gameId: string): Promise<number> {
-        const result = await TacticalActionDocument.deleteMany({ tacticalGameId: gameId });
-        return result.deletedCount || 0;
+    async deleteByGameId(gameId: string): Promise<void> {
+        await TacticalActionDocument.deleteMany({ tacticalGameId: gameId });
     }
 
-    async deleteByCharacterId(characterId: string): Promise<number> {
-        const result = await TacticalActionDocument.deleteMany({
-            $or: [
-                { tacticalCharacterId: characterId },
-                { characterId: characterId }
-            ]
-        });
-        return result.deletedCount || 0;
+    async deleteByCharacterId(characterId: string): Promise<void> {
+        await TacticalActionDocument.deleteMany({ characterId: characterId });
     }
 
     private toEntity(document: any): TacticalAction {
@@ -147,32 +122,14 @@ export class MongoTacticalActionRepository implements TacticalActionRepository {
             characterId: document.characterId,
             round: document.round,
             type: document.type,
+            actionPoints: document.actionPoints,
+            attackInfo: document.attackInfo,
+            phaseStart: document.phaseStart,
+            result: document.result,
+            description: document.description,
             createdAt: document.createdAt,
             updatedAt: document.updatedAt,
         };
-
-        if (document.characterId) {
-            entity.characterId = document.characterId;
-        }
-        if (document.phaseStart) {
-            entity.phaseStart = document.phaseStart;
-        }
-        if (document.actionPoints !== undefined) {
-            entity.actionPoints = document.actionPoints;
-        }
-        if (document.attackInfo) {
-            entity.attackInfo = document.attackInfo;
-        }
-        if (document.attacks && Array.isArray(document.attacks)) {
-            entity.attacks = document.attacks;
-        }
-        if (document.description) {
-            entity.description = document.description;
-        }
-        if (document.result) {
-            entity.result = document.result;
-        }
-
         return entity;
     }
 }
