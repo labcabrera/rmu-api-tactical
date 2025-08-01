@@ -113,7 +113,7 @@ export class MongoActionRepository implements ActionRepository {
       gameId: document.gameId,
       characterId: document.characterId,
       round: document.round,
-      type: document.type,
+      actionType: document.actionType,
       actionPoints: document.actionPoints,
       attackInfo: document.attackInfo,
       phaseStart: document.phaseStart,

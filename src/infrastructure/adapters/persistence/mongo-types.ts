@@ -30,7 +30,7 @@ export interface ActionDocument extends Document {
   gameId: string;
   characterId: string;
   round: number;
-  type: string;
+  actionType: string;
   phaseStart?: string;
   actionPoints?: number;
   attackInfo?: any;

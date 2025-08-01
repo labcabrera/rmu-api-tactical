@@ -27,7 +27,7 @@ export class CreateActionUseCase {
       gameId: command.gameId,
       round: command.round,
       characterId: command.characterId,
-      type: command.actionType,
+      actionType: command.actionType,
       phaseStart: command.phaseStart,
       actionPoints: command.actionPoints,
       createdAt: new Date(),

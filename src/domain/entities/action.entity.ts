@@ -3,7 +3,7 @@ export interface Action {
   gameId: string;
   characterId: string;
   round: number;
-  type: string;
+  actionType: string;
   phaseStart?: number;
   actionPoints?: number;
   attackInfo?: ActionAttackInfo;

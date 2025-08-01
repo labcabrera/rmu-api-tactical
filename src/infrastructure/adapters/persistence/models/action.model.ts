@@ -15,12 +15,12 @@ const ActionSchema: Schema<ActionDocument> = new Schema(
       type: Number,
       required: true,
     },
-    type: {
+    actionType: {
       type: String,
       required: true,
     },
     phaseStart: {
-      type: String,
+      type: Number,
       required: true,
     },
     actionPoints: {

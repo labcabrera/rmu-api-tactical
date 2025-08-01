@@ -25,5 +25,4 @@ export class WinstonLogger implements Logger {
   debug(msg: string) {
     this.logger.debug(msg);
   }
-
 }

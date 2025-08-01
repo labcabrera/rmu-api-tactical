@@ -33,10 +33,10 @@ import { AddSkillUseCase } from "../application/use-cases/characters/add-skill-u
 import { DeleteSkillUseCase } from "../application/use-cases/characters/delete-skill-use-case";
 import { UpdateSkillUseCase } from "../application/use-cases/characters/update-skill-use-case";
 import { SkillCategoryClient } from "../domain/ports/skill-category-client";
+import { EnvironmentConfiguration } from "./adapters/config/environment-configuration";
 import { RaceAPICoreClient } from "./adapters/external/race-api-core-client";
 import { SkillAPICoreClient } from "./adapters/external/skill-api-core-client";
 import { SkillCategoryAPICoreClient } from "./adapters/external/skill-category-api-core-client";
-import { EnvironmentConfiguration } from "./adapters/config/environment-configuration";
 import { MongoActionRepository } from "./adapters/persistence/repositories/mongo-action.repository";
 import { MongoTacticalCharacterRoundRepository } from "./adapters/persistence/repositories/mongo-character-round.repository";
 import { MongoTacticalCharacterRepository } from "./adapters/persistence/repositories/mongo-character.repository";
@@ -103,8 +103,14 @@ export class DependencyContainer {
     );
 
     this._raceClient = new RaceAPICoreClient(this._logger, this._configuration);
-    this._skillClient = new SkillAPICoreClient(this._logger, this._configuration);
-    this._skillCategoryClient = new SkillCategoryAPICoreClient(this._logger, this._configuration);
+    this._skillClient = new SkillAPICoreClient(
+      this._logger,
+      this._configuration,
+    );
+    this._skillCategoryClient = new SkillCategoryAPICoreClient(
+      this._logger,
+      this._configuration,
+    );
 
     // Configure tactical game use cases
     this._createTacticalGameUseCase = new CreateGameUseCase(

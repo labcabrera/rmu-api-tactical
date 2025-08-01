@@ -1,6 +1,6 @@
-import { Configuration } from "../../../domain/ports/configuration";
 import { Logger } from "@domain/ports/logger";
 import { SkillCategoryClient } from "@domain/ports/skill-category-client";
+import { Configuration } from "../../../domain/ports/configuration";
 
 export class SkillCategoryAPICoreClient implements SkillCategoryClient {
   constructor(
