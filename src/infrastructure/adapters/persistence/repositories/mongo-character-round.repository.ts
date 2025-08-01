@@ -5,8 +5,7 @@ import { Page } from "@domain/entities/page.entity";
 
 import CharacterRoundDocument from "../models/character-round.model";
 
-export class MongoTacticalCharacterRoundRepository
-  implements CharacterRoundRepository
+export class MongoCharacterRoundRepository implements CharacterRoundRepository
 {
   async findById(id: string): Promise<CharacterRound> {
     const characterRound = await CharacterRoundDocument.findById(id);

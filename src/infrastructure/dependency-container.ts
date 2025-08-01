@@ -38,7 +38,7 @@ import { RaceAPICoreClient } from "./adapters/external/race-api-core-client";
 import { SkillAPICoreClient } from "./adapters/external/skill-api-core-client";
 import { SkillCategoryAPICoreClient } from "./adapters/external/skill-category-api-core-client";
 import { MongoActionRepository } from "./adapters/persistence/repositories/mongo-action.repository";
-import { MongoTacticalCharacterRoundRepository } from "./adapters/persistence/repositories/mongo-character-round.repository";
+import { MongoCharacterRoundRepository } from "./adapters/persistence/repositories/mongo-character-round.repository";
 import { MongoTacticalCharacterRepository } from "./adapters/persistence/repositories/mongo-character.repository";
 import { MongoTacticalGameRepository } from "./adapters/persistence/repositories/mongo-game.repository";
 import { WinstonLogger } from "./logger/logger";
@@ -97,7 +97,7 @@ export class DependencyContainer {
     this._tacticalGameRepository = new MongoTacticalGameRepository();
     this._tacticalCharacterRepository = new MongoTacticalCharacterRepository();
     this._tacticalCharacterRoundRepository =
-      new MongoTacticalCharacterRoundRepository();
+      new MongoCharacterRoundRepository();
     this._characterProcessorService = new CharacterProcessorService(
       this._logger,
     );
