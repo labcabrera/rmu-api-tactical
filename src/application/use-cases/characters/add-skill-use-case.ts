@@ -19,7 +19,7 @@ export class AddSkillUseCase {
   async execute(command: AddSkillCommand): Promise<Character> {
     try {
       this.logger.info(
-        `AddSkillUseCase: Adding skill ${command.skillId} to character ${command.characterId}`,
+        `AddSkillUseCase: Adding skill ${command.skillId} to character ${command.characterId} with ${command.ranks} ranks and ${command.customBonus} custom bonus`,
       );
       const characterId = command.characterId;
       const skillId = command.skillId;

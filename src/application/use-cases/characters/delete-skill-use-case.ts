@@ -15,7 +15,7 @@ export class DeleteSkillUseCase {
   async execute(command: DeleteSkillCommand): Promise<Character> {
     try {
       this.logger.info(
-        `DeleteSkillUseCase: Deleting skill ${command.skillId} for character ${command.characterId}`,
+        `DeleteSkillUseCase: Deleting skill << ${command.skillId} for character ${command.characterId}`,
       );
       const characterId = command.characterId;
       const skillId = command.skillId;
