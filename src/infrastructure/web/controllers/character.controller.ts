@@ -64,11 +64,20 @@ export class CharacterController {
     this.router.patch("/:characterId", this.updateCharacter.bind(this));
     this.router.delete("/:characterId", this.deleteCharacter.bind(this));
     this.router.post("/:characterId/items", this.addItem.bind(this));
-    this.router.delete("/:characterId/items/:itemId",this.deleteItem.bind(this),);
+    this.router.delete(
+      "/:characterId/items/:itemId",
+      this.deleteItem.bind(this),
+    );
     this.router.post("/:characterId/equipment", this.equipItem.bind(this));
     this.router.post("/:characterId/skills", this.addSkill.bind(this));
-    this.router.patch("/:characterId/skills/:skillId", this.updateSkill.bind(this));
-    this.router.delete("/:characterId/skills/:skillId", this.deleteSkill.bind(this));
+    this.router.patch(
+      "/:characterId/skills/:skillId",
+      this.updateSkill.bind(this),
+    );
+    this.router.delete(
+      "/:characterId/skills/:skillId",
+      this.deleteSkill.bind(this),
+    );
   }
 
   private async findCharacters(req: Request, res: Response): Promise<void> {

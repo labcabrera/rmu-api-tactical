@@ -127,11 +127,11 @@ export interface CharacterItemInfo {
 }
 
 export interface CharacterEquipment {
-  mainHand?: string;
-  offHand?: string;
-  body?: string;
-  head?: string;
-  weight: number;
+  mainHand?: string | null;
+  offHand?: string | null;
+  body?: string | null;
+  head?: string | null;
+  weight: number | null;
 }
 
 export interface CreateTacticalCharacterItem {
