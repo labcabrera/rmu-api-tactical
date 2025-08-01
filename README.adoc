@@ -1,28 +1,11 @@
 = Rolemaster Unified Tactical API
 
-Mock version for frontend developing: https://github.com/labcabrera/rmu-fe/
+REST API for combat management. Each combat (tacticalGame) is associated to a campaign (strategicGame) of the Strategic API module.
 
-----
-npm install
+This API allows to import characters from the strategic API or to create NPC characters. Once the characters are defined, it allow
+the declaration of actions such as maneuvers or attacks.
 
-node src/app.js
+This project is part of RMU Online: https://github.com/labcabrera/rmu-platform
 
-curl http://localhost:3001/v1/tactical-games
-----
-
-----
-docker network create rmu-network
-----
-
-----
-curl -H 'Content-Type: application/json' \
-    -d '{ "name":"Batalla de Mordor 1","user":"lab.cabrera@gmail.com","description":"Sample description"}' \
-    -X POST \
-    http://localhost:3001/v1/tactical-games
-----
-
-Obtener todos los juegos
-
-----
-curl http://localhost:3001/v1/tactical-games
-----
+WARNING: *This application is an independent project developed by fans of Rolemaster Unified. It is not affiliated with, endorsed by, or licensed by Iron Crown Enterprises (ICE), the owners of the Rolemaster intellectual property.*
+*All Rolemaster trademarks, game systems, and materials are the property of Iron Crown Enterprises. This software is provided for personal, non-commercial use only. If you enjoy Rolemaster, please support the official publications and content from ICE.*
