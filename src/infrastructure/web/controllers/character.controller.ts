@@ -70,6 +70,10 @@ export class CharacterController {
     );
     this.router.post("/:characterId/equipment", this.equipItem.bind(this));
     this.router.post("/:characterId/skills", this.addSkill.bind(this));
+    this.router.patch(
+      "/:characterId/skills/:skillId",
+      this.updateSkill.bind(this),
+    );
     this.router.delete(
       "/:characterId/skills/:skillId",
       this.deleteSkill.bind(this),

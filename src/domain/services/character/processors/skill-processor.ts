@@ -1,13 +1,19 @@
-import { Character } from "../../../entities/character.entity";
+import { Character, CharacterSkill } from "../../../entities/character.entity";
 
 export class SkillProcessor {
   static process(character: Character): void {
     character.skills.forEach((skill: any) =>
       this.updateSkill(character, skill),
     );
+    character.skills.sort((a: CharacterSkill, b: CharacterSkill) =>
+      a.skillId.localeCompare(b.skillId),
+    );
   }
 
-  private static updateSkill(character: Character, skill: any): void {
+  private static updateSkill(
+    character: Character,
+    skill: CharacterSkill,
+  ): void {
     const ranks = skill.ranks;
     const statBonus = this.getStatBonus(character, skill.statistics);
     const racialBonus = skill.racialBonus || 0;
