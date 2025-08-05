@@ -20,7 +20,7 @@ export class DeleteGameUseCase {
     this.logger.info(`Executing delete game use case << ${gameId}`);
     const game = await this.gameRepository.findById(gameId);
     if (!game) {
-      throw new NotFoundError("Game", gameId);
+      throw new NotFoundError('Game', gameId);
     }
     await this.characterRepository.deleteByGameId(gameId);
     await this.gameRepository.deleteById(gameId);

@@ -48,11 +48,9 @@ export class GameController {
     }
   }
 
-
-
   async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      this.logger.info(`Tactical game creation << ${req.body.name}`);
+      this.logger.info(`Handling game creation << ${req.body.name}`);
       //TODO JWT
       const user: string = 'lab.cabrera@gmail.com';
       const command: CreateGameCommand = {
@@ -70,11 +68,11 @@ export class GameController {
 
   async update(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      this.logger.info(`Tactical game update - ${req.params.gameId}`);
+      const { id } = req.params;
+      this.logger.info(`Handling game update << ${id}`);
       const command: UpdateGameCommand = {
-        gameId: req.params.gameId!,
-        name: req.body.name,
-        description: req.body.description,
+        ...req.body,
+        gameId: id,
       };
       const result = await this.updateUseCase.execute(command);
       res.json(result);
@@ -86,7 +84,7 @@ export class GameController {
   async deleteById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      this.logger.info(`Handle delete game request << ${id}`);
+      this.logger.info(`Handling delete game request << ${id}`);
       await this.deleteUseCase.execute(id);
       res.status(204).send();
     } catch (error) {
@@ -96,9 +94,9 @@ export class GameController {
 
   async startRound(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      this.logger.info(`GameController: Starting round for game << ${req.params.gameId}`);
-      const gameId: string = req.params.gameId!;
-      const result = await this.startRoundUseCase.execute(gameId);
+      const { id } = req.params;
+      this.logger.info(`Handling start round request << ${id}`);
+      const result = await this.startRoundUseCase.execute(id);
       res.json(result);
     } catch (error) {
       next(error);

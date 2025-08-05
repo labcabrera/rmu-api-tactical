@@ -11,6 +11,7 @@ import { config } from '@infrastructure/config/config';
 import { container } from '@shared/container';
 
 import { errorHandler } from '../error-handler';
+import { characterRouter } from '../routes/character.routes';
 import { gameRouter } from '../routes/game.routes';
 
 export class ExpressApp {
@@ -43,6 +44,7 @@ export class ExpressApp {
 
   private initializeRoutes(): void {
     this.app.use('/v1/tactical-games', gameRouter);
+    this.app.use('/v1/characters', characterRouter);
   }
 
   private initializeSwagger(): void {

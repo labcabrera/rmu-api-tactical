@@ -36,12 +36,30 @@ router.post(
   })
 );
 
+router.patch(
+  '/:id',
+  authMiddleware,
+  requireRoles(['tactical-user']),
+  asyncHandler(async (req, res, next) => {
+    await gameController.update(req, res, next);
+  })
+);
+
 router.delete(
   '/:id',
   authMiddleware,
   requireRoles(['tactical-user']),
   asyncHandler(async (req, res, next) => {
     await gameController.deleteById(req, res, next);
+  })
+);
+
+router.post(
+  '/:id/rounds/start',
+  authMiddleware,
+  requireRoles(['tactical-user']),
+  asyncHandler(async (req, res, next) => {
+    await gameController.startRound(req, res, next);
   })
 );
 
