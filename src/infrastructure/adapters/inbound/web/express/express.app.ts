@@ -7,10 +7,10 @@ import swaggerUi from 'swagger-ui-express';
 import yaml from 'yaml';
 
 import { Logger } from '@domain/ports/logger';
-// import { ApiRoutes } from "@infrastructure/adapters/inbound/web/routes";
 import { config } from '@infrastructure/config/config';
 import { container } from '@shared/container';
 
+import { errorHandler } from '../error-handler';
 import { gameRouter } from '../routes/game.routes';
 
 export class ExpressApp {
@@ -26,7 +26,7 @@ export class ExpressApp {
     this.initializeRoutes();
     //TODO update spec and fix
     // this.initializeSwagger();
-    this.initializeErrorHandling();
+    this.app.use(errorHandler);
   }
 
   private initializeMiddleware(): void {

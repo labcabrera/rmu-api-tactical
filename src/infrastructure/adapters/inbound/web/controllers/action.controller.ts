@@ -15,14 +15,10 @@ import { TYPES } from '@shared/types';
 
 export class ActionController {
   constructor(
-    @inject(TYPES.FindActionByIdUseCase)
-    private readonly findActionByIdUseCase: FindActionByIdUseCase,
-    @inject(TYPES.FindActionsUseCase)
-    private readonly findActionsUseCase: FindActionsUseCase,
-    @inject(TYPES.CreateActionUseCase)
-    private readonly createActionUseCase: CreateActionUseCase,
-    @inject(TYPES.DeleteActionUseCase)
-    private readonly deleteActionUseCase: DeleteActionUseCase,
+    @inject(TYPES.FindActionByIdUseCase) private readonly findActionByIdUseCase: FindActionByIdUseCase,
+    @inject(TYPES.FindActionsUseCase) private readonly findActionsUseCase: FindActionsUseCase,
+    @inject(TYPES.CreateActionUseCase) private readonly createActionUseCase: CreateActionUseCase,
+    @inject(TYPES.DeleteActionUseCase) private readonly deleteActionUseCase: DeleteActionUseCase,
     @inject(TYPES.Logger) private readonly logger: Logger
   ) {}
 

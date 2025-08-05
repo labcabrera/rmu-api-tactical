@@ -27,7 +27,7 @@ export class GameController {
 
   async findById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const id: string = req.params.gameId!;
+      const { id } = req.params;
       this.logger.info(`Search tactical game << ${id}`);
       const game = await this.findByIdUseCase.execute(id);
       res.json(game);
@@ -85,9 +85,9 @@ export class GameController {
 
   async deleteById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      this.logger.info(`Tactical game deletion << ${req.params.gameId}`);
-      const gameId: string = req.params.gameId!;
-      await this.deleteUseCase.execute(gameId);
+      const { id } = req.params;
+      this.logger.info(`Handle delete game request << ${id}`);
+      await this.deleteUseCase.execute(id);
       res.status(204).send();
     } catch (error) {
       next(error);

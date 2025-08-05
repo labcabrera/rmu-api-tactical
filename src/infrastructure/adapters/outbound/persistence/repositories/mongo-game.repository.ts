@@ -11,8 +11,8 @@ import { toMongoQuery } from '../rsql-adapter';
 @injectable()
 export class MongoGameRepository implements GameRepository {
   async findById(id: string): Promise<Game | null> {
-    const gameModel = await TacticalGameModel.findById(id);
-    return this.toDomainEntity(gameModel);
+    const game = await TacticalGameModel.findById(id);
+    return game ? this.toDomainEntity(game) : null;
   }
 
   async findByRsql(rsql: string, page: number, size: number): Promise<Page<Game>> {
