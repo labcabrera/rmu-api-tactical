@@ -34,15 +34,15 @@ import { AddSkillUseCase } from "../application/use-cases/characters/add-skill.u
 import { DeleteSkillUseCase } from "../application/use-cases/characters/delete-skill.usecase";
 import { UpdateSkillUseCase } from "../application/use-cases/characters/update-skill.usecase";
 import { SkillCategoryClient } from "../domain/ports/outbound/skill-category-client";
-import { OAuth2TokenService } from "./adapters/auth/oauth2-token-service";
 import { EnvironmentConfiguration } from "./adapters/config/environment-configuration";
-import { RaceAPICoreClient } from "./adapters/external/race-api-core-client";
-import { SkillAPICoreClient } from "./adapters/external/skill-api-core-client";
-import { SkillCategoryAPICoreClient } from "./adapters/external/skill-category-api-core-client";
-import { MongoActionRepository } from "./adapters/persistence/repositories/mongo-action.repository";
-import { MongoCharacterRoundRepository } from "./adapters/persistence/repositories/mongo-character-round.repository";
-import { MongoTacticalCharacterRepository } from "./adapters/persistence/repositories/mongo-character.repository";
-import { MongoTacticalGameRepository } from "./adapters/persistence/repositories/mongo-game.repository";
+import { OAuth2TokenService } from "./adapters/outbound/auth/oauth2-token-service";
+import { RaceAPICoreClient } from "./adapters/outbound/external/race-api-core-client";
+import { SkillAPICoreClient } from "./adapters/outbound/external/skill-api-core-client";
+import { SkillCategoryAPICoreClient } from "./adapters/outbound/external/skill-category-api-core-client";
+import { MongoActionRepository } from "./adapters/outbound/persistence/repositories/mongo-action.repository";
+import { MongoCharacterRoundRepository } from "./adapters/outbound/persistence/repositories/mongo-character-round.repository";
+import { MongoTacticalCharacterRepository } from "./adapters/outbound/persistence/repositories/mongo-character.repository";
+import { MongoTacticalGameRepository } from "./adapters/outbound/persistence/repositories/mongo-game.repository";
 import { WinstonLogger } from "./logger/logger";
 
 export class DependencyContainer {

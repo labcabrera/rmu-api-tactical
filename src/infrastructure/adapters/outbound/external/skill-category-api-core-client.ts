@@ -1,7 +1,7 @@
 import { Logger } from "@domain/ports/logger";
 import { SkillCategoryClient } from "@domain/ports/outbound/skill-category-client";
-import { Configuration } from "../../../domain/ports/configuration";
-import { AuthTokenService } from "../../../domain/ports/outbound/auth-token-service";
+import { Configuration } from "../../../../domain/ports/configuration";
+import { AuthTokenService } from "../../../../domain/ports/outbound/auth-token-service";
 import { AuthenticatedApiClient } from "./authenticated-api-client";
 
 export class SkillCategoryAPICoreClient

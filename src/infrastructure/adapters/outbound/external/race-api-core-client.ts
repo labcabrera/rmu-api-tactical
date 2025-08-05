@@ -1,7 +1,7 @@
 import { RaceClient } from "@domain/ports/outbound/race-client";
-import { Configuration } from "../../../domain/ports/configuration";
-import { Logger } from "../../../domain/ports/logger";
-import { AuthTokenService } from "../../../domain/ports/outbound/auth-token-service";
+import { Configuration } from "../../../../domain/ports/configuration";
+import { Logger } from "../../../../domain/ports/logger";
+import { AuthTokenService } from "../../../../domain/ports/outbound/auth-token-service";
 import { AuthenticatedApiClient } from "./authenticated-api-client";
 
 export class RaceAPICoreClient
