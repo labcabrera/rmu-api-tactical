@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const characterStatSchema = new mongoose.Schema(
   {
@@ -19,7 +19,7 @@ const characterStatSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { _id: false },
+  { _id: false }
 );
 
 const characterStatisticsSchema = new mongoose.Schema(
@@ -35,7 +35,7 @@ const characterStatisticsSchema = new mongoose.Schema(
     sd: characterStatSchema,
     st: characterStatSchema,
   },
-  { _id: false },
+  { _id: false }
 );
 
 const characterInfoSchema = new mongoose.Schema(
@@ -61,7 +61,7 @@ const characterInfoSchema = new mongoose.Schema(
       required: false,
     },
   },
-  { _id: false },
+  { _id: false }
 );
 
 const characterDefenseSchema = new mongoose.Schema(
@@ -91,7 +91,7 @@ const characterDefenseSchema = new mongoose.Schema(
       required: false,
     },
   },
-  { _id: false },
+  { _id: false }
 );
 
 const characterInitiativeSchema = new mongoose.Schema(
@@ -113,7 +113,7 @@ const characterInitiativeSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { _id: false },
+  { _id: false }
 );
 
 const characterSkillSchema = new mongoose.Schema(
@@ -152,7 +152,7 @@ const characterSkillSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { _id: false },
+  { _id: false }
 );
 
 const characterItemWeaponSchema = new mongoose.Schema(
@@ -182,7 +182,7 @@ const characterItemWeaponSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { _id: false },
+  { _id: false }
 );
 
 const characterItemRangeSchema = new mongoose.Schema(
@@ -191,7 +191,7 @@ const characterItemRangeSchema = new mongoose.Schema(
     to: Number,
     bonus: Number,
   },
-  { _id: false },
+  { _id: false }
 );
 
 const characterItemInfoSchema = new mongoose.Schema(
@@ -201,7 +201,7 @@ const characterItemInfoSchema = new mongoose.Schema(
     weight: Number,
     productionTime: Number,
   },
-  { _id: false },
+  { _id: false }
 );
 
 const characterItemArmorSchema = new mongoose.Schema(
@@ -231,7 +231,7 @@ const characterItemArmorSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { _id: false },
+  { _id: false }
 );
 
 const enduranceSchema = new mongoose.Schema(
@@ -253,7 +253,7 @@ const enduranceSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { _id: false },
+  { _id: false }
 );
 
 const powerInfoSchema = new mongoose.Schema(
@@ -261,7 +261,7 @@ const powerInfoSchema = new mongoose.Schema(
     max: Number,
     current: Number,
   },
-  { _id: false },
+  { _id: false }
 );
 
 const characterItemSchema = new mongoose.Schema(
@@ -287,7 +287,7 @@ const characterItemSchema = new mongoose.Schema(
     armor: characterItemArmorSchema,
     info: characterItemInfoSchema,
   },
-  { _id: false },
+  { _id: false }
 );
 
 const characterMovementSchema = new mongoose.Schema(
@@ -309,7 +309,7 @@ const characterMovementSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { _id: false },
+  { _id: false }
 );
 
 const characterEquipment = new mongoose.Schema(
@@ -320,7 +320,7 @@ const characterEquipment = new mongoose.Schema(
     head: String,
     weight: Number,
   },
-  { _id: false },
+  { _id: false }
 );
 
 const characterEffectSchema = new mongoose.Schema({
@@ -340,7 +340,7 @@ const tacticalCharacterAttackSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { _id: false },
+  { _id: false }
 );
 
 const tacticalCharacterAttacksSchema = new mongoose.Schema(
@@ -348,7 +348,7 @@ const tacticalCharacterAttacksSchema = new mongoose.Schema(
     mainHand: tacticalCharacterAttackSchema,
     offHand: tacticalCharacterAttackSchema,
   },
-  { _id: false },
+  { _id: false }
 );
 
 const tacticalCharacterSchema = new mongoose.Schema(
@@ -394,13 +394,10 @@ const tacticalCharacterSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    collection: "tactical-characters",
-  },
+    collection: 'tactical-characters',
+  }
 );
 
-const TacticalCharacterModel = mongoose.model(
-  "TacticalCharacter",
-  tacticalCharacterSchema,
-);
+const TacticalCharacterModel = mongoose.model('TacticalCharacter', tacticalCharacterSchema);
 
 export default TacticalCharacterModel;

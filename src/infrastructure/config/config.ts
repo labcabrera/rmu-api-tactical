@@ -1,4 +1,4 @@
-import { env } from "./env";
+import { env } from './env';
 
 export const config = {
   port: env.PORT,
@@ -17,5 +17,5 @@ export const config = {
     realm: env.RMU_KEYCLOAK_REALM,
     tokenUrl: `${env.RMU_KEYCLOAK_BASE_URL}/realms/${env.RMU_KEYCLOAK_REALM}/protocol/openid-connect/token`,
     scope: env.OAUTH2_SCOPE,
-  }
+  },
 };

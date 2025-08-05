@@ -1,66 +1,62 @@
-import { Character } from "@domain/entities/character.entity";
-import { Page } from "@domain/entities/page.entity";
-import { CharacterRepository } from "@domain/ports/outbound/character.repository";
-import { CharacterQuery } from "@domain/queries/character.query";
-import TacticalCharacterDocument from "../models/character.model";
+import { injectable } from 'inversify';
 
-export class MongoTacticalCharacterRepository implements CharacterRepository {
-  async findById(id: string): Promise<Character> {
+import { Character } from '@domain/entities/character.entity';
+import { Page } from '@domain/entities/page.entity';
+import { CharacterRepository } from '@domain/ports/outbound/character.repository';
+
+import TacticalCharacterDocument from '../models/character.model';
+import { toMongoQuery } from '../rsql-adapter';
+
+@injectable()
+export class MongoCharacterRepository implements CharacterRepository {
+  async findById(id: string): Promise<Character | null> {
     const character = await TacticalCharacterDocument.findById(id);
-    if (!character) {
-      throw new Error(`Tactical character not found: ${id}`);
-    }
-    return this.toEntity(character);
+    return character ? this.toEntity(character) : null;
   }
 
-  async find(query: CharacterQuery): Promise<Page<Character>> {
-    let filter: any = {};
-    if (query.gameId) {
-      filter.gameId = query.gameId;
-    }
-    const skip = query.page * query.size;
-    const list = await TacticalCharacterDocument.find(filter)
-      .skip(skip)
-      .limit(query.size)
-      .sort({ updatedAt: -1 });
-    const count = await TacticalCharacterDocument.countDocuments(filter);
-    const content = list.map((character) => this.toEntity(character));
+  async findByRsql(rsql: string, page: number, size: number): Promise<Page<Character>> {
+    const skip = page * size;
+    const mongoQuery = toMongoQuery(rsql);
+    const [characterDocs, totalElements] = await Promise.all([
+      TacticalCharacterDocument.find(mongoQuery).skip(skip).limit(size).sort({ name: 1 }),
+      TacticalCharacterDocument.countDocuments(mongoQuery),
+    ]);
+    const content = characterDocs.map(doc => this.toEntity(doc));
     return {
       content,
       pagination: {
-        page: query.page,
-        size: query.size,
-        totalElements: count,
-        totalPages: Math.ceil(count / query.size),
+        page: page,
+        size: size,
+        totalElements,
+        totalPages: Math.ceil(totalElements / size),
       },
     };
   }
 
-  async create(
-    character: Omit<Character, "id" | "createdAt" | "updatedAt">,
-  ): Promise<Character> {
-    const newCharacter = new TacticalCharacterDocument(character);
-    const savedCharacter = await newCharacter.save();
-    return this.toEntity(savedCharacter);
+  async save(character: Partial<Character>): Promise<Character> {
+    const document = new TacticalCharacterDocument(character);
+    const saved = await document.save();
+    return this.toEntity(saved);
   }
 
   async update(id: string, character: Partial<Character>): Promise<Character> {
-    const updatedCharacter = await TacticalCharacterDocument.findByIdAndUpdate(
-      id,
-      character,
-      { new: true },
-    );
+    const updatedCharacter = await TacticalCharacterDocument.findByIdAndUpdate(id, character, { new: true });
     if (!updatedCharacter) {
       throw new Error(`Tactical Character with id ${id} not found`);
     }
     return this.toEntity(updatedCharacter);
   }
 
-  async delete(id: string): Promise<void> {
+  async deleteById(id: string): Promise<void> {
     const result = await TacticalCharacterDocument.findByIdAndDelete(id);
     if (!result) {
       throw new Error(`Tactical Character with id ${id} not found`);
     }
+  }
+
+  async findByGameId(gameId: string): Promise<Character[]> {
+    const characters = await TacticalCharacterDocument.find({ gameId: gameId });
+    return characters.map(doc => this.toEntity(doc));
   }
 
   async deleteByGameId(gameId: string): Promise<void> {

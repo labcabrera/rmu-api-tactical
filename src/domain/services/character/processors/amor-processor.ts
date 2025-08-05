@@ -1,7 +1,10 @@
-import { Character } from "../../../entities/character.entity";
+import { Character } from '../../../entities/character.entity';
 
 export class ArmorProcessor {
-  static process(character: Character): void {
+  static process(character: Partial<Character>): void {
+    if (!character.equipment || !character.equipment.body || !character.items || !character.defense) {
+      return;
+    }
     if (character.equipment.body) {
       const itemId = character.equipment.body;
       const item = character.items.find((e: any) => e.id == itemId);

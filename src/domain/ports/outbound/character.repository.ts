@@ -1,17 +1,9 @@
-import { Character } from "../../entities/character.entity";
-import { Page } from "../../entities/page.entity";
-import { CharacterQuery } from "../../queries/character.query";
+import { Character } from '@domain/entities/character.entity';
+import { Repository } from './repository';
 
-export interface CharacterRepository {
-  findById(id: string): Promise<Character>;
+export interface CharacterRepository extends Repository<Character> {
 
-  find(criteria: CharacterQuery): Promise<Page<Character>>;
-
-  create(character: Omit<Character, "id">): Promise<Character>;
-
-  update(id: string, character: Partial<Character>): Promise<Character>;
-
-  delete(id: string): Promise<void>;
+  findByGameId(gameId: string): Promise<Character[]>;
 
   deleteByGameId(gameId: string): Promise<void>;
 }

@@ -1,17 +1,4 @@
-import { Game } from "@domain/entities/game.entity";
-import { GameQuery } from "@domain/queries/game.query";
-import { Page } from "@domain/entities/page.entity";
+import { Game } from '@domain/entities/game.entity';
+import { Repository } from './repository';
 
-export interface GameRepository {
-  findById(id: string): Promise<Game>;
-
-  find(criteria: GameQuery): Promise<Page<Game>>;
-
-  save(game: Game): Promise<Game>;
-
-  update(id: string, game: Partial<Game>): Promise<Game>;
-
-  delete(id: string): Promise<void>;
-
-  countBy(filter: any): Promise<number>;
-}
+export interface GameRepository extends Repository<Game> {}

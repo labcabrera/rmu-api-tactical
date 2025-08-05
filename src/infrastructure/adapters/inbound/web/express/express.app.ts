@@ -1,30 +1,33 @@
-import cors from "cors";
-import express, { Application, NextFunction, Request, Response } from "express";
-import fs from "fs";
-import mongoose from "mongoose";
-import path from "path";
-import swaggerUi from "swagger-ui-express";
-import yaml from "yaml";
+import cors from 'cors';
+import express, { Application, NextFunction, Request, Response } from 'express';
+import fs from 'fs';
+import mongoose from 'mongoose';
+import path from 'path';
+import swaggerUi from 'swagger-ui-express';
+import yaml from 'yaml';
 
 import { Logger } from '@domain/ports/logger';
-import { ApiRoutes } from "@infrastructure/adapters/inbound/web/routes";
 import { config } from '@infrastructure/config/config';
 import { container } from '@shared/container';
 
+import { errorHandler } from '../error-handler';
+import { characterRouter } from '../routes/character.routes';
+import { gameRouter } from '../routes/game.routes';
+
 export class ExpressApp {
   private app: Application;
-  private apiRoutes: ApiRoutes;
+  // private apiRoutes: ApiRoutes;
   private logger: Logger = container.get('Logger');
 
   constructor() {
     this.app = express();
-    this.apiRoutes = new ApiRoutes();
+    // this.apiRoutes = new ApiRoutes();
     this.initializeMiddleware();
     this.initializeDatabase();
     this.initializeRoutes();
     //TODO update spec and fix
     // this.initializeSwagger();
-    this.initializeErrorHandling();
+    this.app.use(errorHandler);
   }
 
   private initializeMiddleware(): void {
@@ -35,44 +38,33 @@ export class ExpressApp {
   private initializeDatabase(): void {
     mongoose
       .connect(config.mongoUri)
-      .then(() => this.logger.info("Connected to " + config.mongoUri))
-      .catch((err: Error) =>
-        this.logger.error("Error connecting to " + config.mongoUri, err),
-      );
+      .then(() => this.logger.info('Connected to ' + config.mongoUri))
+      .catch((err: Error) => this.logger.error('Error connecting to ' + config.mongoUri, err));
   }
 
   private initializeRoutes(): void {
-    this.app.use("/v1", this.apiRoutes.getRouter());
-    this.app.get("/", (req: Request, res: Response) => {
-      res.redirect("/api-docs");
-    });
+    this.app.use('/v1/tactical-games', gameRouter);
+    this.app.use('/v1/characters', characterRouter);
   }
 
   private initializeSwagger(): void {
     try {
-      const openapiFilePath: string = path.join(
-        __dirname,
-        "../../../../../openapi.yaml",
-      );
-      console.log("Loading OpenAPI documentation...");
-      const openapiFile: string = fs.readFileSync(openapiFilePath, "utf8");
+      const openapiFilePath: string = path.join(__dirname, '../../../../../openapi.yaml');
+      console.log('Loading OpenAPI documentation...');
+      const openapiFile: string = fs.readFileSync(openapiFilePath, 'utf8');
       const swaggerDocument = yaml.parse(openapiFile);
 
-      this.app.use(
-        "/api-docs",
-        swaggerUi.serve,
-        swaggerUi.setup(swaggerDocument),
-      );
+      this.app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
     } catch (error) {
-      console.warn("Could not load OpenAPI documentation:", error);
+      console.warn('Could not load OpenAPI documentation:', error);
     }
   }
 
   private initializeErrorHandling(): void {
     this.app.use((req: Request, res: Response, next: NextFunction) => {
       res.status(404).json({
-        code: "404",
-        message: "Invalid path",
+        code: '404',
+        message: 'Invalid path',
         timestamp: new Date().toISOString(),
       });
     });
