@@ -75,3 +75,5 @@ coverage/
 
 # DynamoDB Local files
 .dynamodb/
+
+out/

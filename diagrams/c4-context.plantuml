@@ -1,0 +1,49 @@
+@startuml C4 Context Tactical API
+title C4 Context Tactical API
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_LEFT_RIGHT()
+
+UpdateElementStyle(person, $bgColor="#2b4a74ff")
+UpdateElementStyle(system, $bgColor="#4373b1ff")
+UpdateElementStyle(external_system, $bgColor="#96b6beff")
+UpdateElementStyle(boundary, $bgColor="#d1dcdfff")
+
+Person(user, "User")
+
+Boundary(frontend, "RMO Frontend") {
+    System_Ext(rmu_fe_host, "RMO Frontend Host", "Node.js / JS")
+    System_Ext(rmu_fe_tactical, "Tactical microfrontend", "Node / TS")
+}
+
+Boundary(apis, "RMO APIs") {
+    System_Ext(rmu_api_core, "Core API", "Node.js")
+    System(rmu_api_tactical, "Tactical API", "Node.js")
+}
+
+Boundary(infrastructure, "Infrastructure") {
+    System_Ext(mongodb, "MongoDB", "")
+    System_Ext(keycloak, "Keycloak", "26.3")
+    System_Ext(kafka, "Kafka", "")
+}
+
+Rel(user, rmu_fe_host, "Navigate", "HTTP")
+Rel(user, keycloak, "Login", "HTTP")
+
+Rel(rmu_fe_host, rmu_fe_tactical, "Load tactical microfrontend", "Module federation")
+Rel(rmu_fe_host, keycloak, "Authenticate user", "OIDC")
+
+Rel(rmu_fe_tactical, rmu_api_tactical, "Fetch data", "HTTP / JWT")
+
+Rel(rmu_api_tactical, rmu_api_core, "Fetch data", "HTTP / Client credentials")
+
+Rel(rmu_api_tactical, keycloak, "Request token", "Client credentials")
+
+Rel(rmu_api_tactical, mongodb, "Read / Write data", "mongoose")
+
+BiRel(rmu_api_tactical, kafka, "Publish / Consume events", "")
+
+SHOW_LEGEND()
+
+@enduml

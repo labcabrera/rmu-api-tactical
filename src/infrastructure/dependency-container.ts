@@ -1,4 +1,5 @@
 import { ActionRepository } from "../domain/ports/action.repository";
+import { AuthTokenService } from "../domain/ports/auth-token-service";
 import { CharacterRoundRepository } from "../domain/ports/character-round.repository";
 import { CharacterRepository } from "../domain/ports/character.repository";
 import { Configuration } from "../domain/ports/configuration";
@@ -33,6 +34,7 @@ import { AddSkillUseCase } from "../application/use-cases/characters/add-skill-u
 import { DeleteSkillUseCase } from "../application/use-cases/characters/delete-skill-use-case";
 import { UpdateSkillUseCase } from "../application/use-cases/characters/update-skill-use-case";
 import { SkillCategoryClient } from "../domain/ports/skill-category-client";
+import { OAuth2TokenService } from "./adapters/auth/oauth2-token-service";
 import { EnvironmentConfiguration } from "./adapters/config/environment-configuration";
 import { RaceAPICoreClient } from "./adapters/external/race-api-core-client";
 import { SkillAPICoreClient } from "./adapters/external/skill-api-core-client";
@@ -48,6 +50,7 @@ export class DependencyContainer {
 
   private readonly _configuration: Configuration;
   private readonly _logger: Logger;
+  private readonly _authTokenService: AuthTokenService;
   private readonly _tacticalActionRepository: ActionRepository;
   private readonly _tacticalGameRepository: GameRepository;
   private readonly _tacticalCharacterRepository: CharacterRepository;
@@ -93,6 +96,10 @@ export class DependencyContainer {
     // Configure basic dependencies
     this._configuration = new EnvironmentConfiguration();
     this._logger = new WinstonLogger();
+    this._authTokenService = new OAuth2TokenService(
+      this._configuration,
+      this._logger,
+    );
     this._tacticalActionRepository = new MongoActionRepository();
     this._tacticalGameRepository = new MongoTacticalGameRepository();
     this._tacticalCharacterRepository = new MongoTacticalCharacterRepository();
@@ -102,14 +109,20 @@ export class DependencyContainer {
       this._logger,
     );
 
-    this._raceClient = new RaceAPICoreClient(this._logger, this._configuration);
+    this._raceClient = new RaceAPICoreClient(
+      this._logger,
+      this._configuration,
+      this._authTokenService,
+    );
     this._skillClient = new SkillAPICoreClient(
       this._logger,
       this._configuration,
+      this._authTokenService,
     );
     this._skillCategoryClient = new SkillCategoryAPICoreClient(
       this._logger,
       this._configuration,
+      this._authTokenService,
     );
 
     // Configure tactical game use cases
@@ -242,6 +255,10 @@ export class DependencyContainer {
 
   get configuration(): Configuration {
     return this._configuration;
+  }
+
+  get authTokenService(): AuthTokenService {
+    return this._authTokenService;
   }
 
   get logger(): Logger {

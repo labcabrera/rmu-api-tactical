@@ -6,4 +6,8 @@ export interface Configuration {
   getEnvironment(): string;
   getCorsCorsOrigin(): string;
   getNodeEnv(): string;
+  getOAuth2ClientId(): string;
+  getOAuth2ClientSecret(): string;
+  getOAuth2TokenUrl(): string;
+  getOAuth2Scope(): string | undefined;
 }

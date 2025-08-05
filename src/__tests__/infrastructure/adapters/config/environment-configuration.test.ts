@@ -15,6 +15,10 @@ describe("EnvironmentConfiguration", () => {
     delete process.env.LOG_LEVEL;
     delete process.env.NODE_ENV;
     delete process.env.CORS_ORIGIN;
+    delete process.env.OAUTH2_CLIENT_ID;
+    delete process.env.OAUTH2_CLIENT_SECRET;
+    delete process.env.OAUTH2_TOKEN_URL;
+    delete process.env.OAUTH2_SCOPE;
   });
 
   describe("getPort", () => {
@@ -105,6 +109,60 @@ describe("EnvironmentConfiguration", () => {
       process.env.NODE_ENV = "test";
       const env = configuration.getNodeEnv();
       expect(env).toBe("test");
+    });
+  });
+
+  describe("OAuth2 Configuration", () => {
+    describe("getOAuth2ClientId", () => {
+      it("should return empty string when OAUTH2_CLIENT_ID is not set", () => {
+        const clientId = configuration.getOAuth2ClientId();
+        expect(clientId).toBe("");
+      });
+
+      it("should return custom client ID when OAUTH2_CLIENT_ID is set", () => {
+        process.env.OAUTH2_CLIENT_ID = "test-client-id";
+        const clientId = configuration.getOAuth2ClientId();
+        expect(clientId).toBe("test-client-id");
+      });
+    });
+
+    describe("getOAuth2ClientSecret", () => {
+      it("should return empty string when OAUTH2_CLIENT_SECRET is not set", () => {
+        const clientSecret = configuration.getOAuth2ClientSecret();
+        expect(clientSecret).toBe("");
+      });
+
+      it("should return custom client secret when OAUTH2_CLIENT_SECRET is set", () => {
+        process.env.OAUTH2_CLIENT_SECRET = "test-client-secret";
+        const clientSecret = configuration.getOAuth2ClientSecret();
+        expect(clientSecret).toBe("test-client-secret");
+      });
+    });
+
+    describe("getOAuth2TokenUrl", () => {
+      it("should return empty string when OAUTH2_TOKEN_URL is not set", () => {
+        const tokenUrl = configuration.getOAuth2TokenUrl();
+        expect(tokenUrl).toBe("");
+      });
+
+      it("should return custom token URL when OAUTH2_TOKEN_URL is set", () => {
+        process.env.OAUTH2_TOKEN_URL = "https://auth.example.com/token";
+        const tokenUrl = configuration.getOAuth2TokenUrl();
+        expect(tokenUrl).toBe("https://auth.example.com/token");
+      });
+    });
+
+    describe("getOAuth2Scope", () => {
+      it("should return undefined when OAUTH2_SCOPE is not set", () => {
+        const scope = configuration.getOAuth2Scope();
+        expect(scope).toBeUndefined();
+      });
+
+      it("should return custom scope when OAUTH2_SCOPE is set", () => {
+        process.env.OAUTH2_SCOPE = "api:read api:write";
+        const scope = configuration.getOAuth2Scope();
+        expect(scope).toBe("api:read api:write");
+      });
     });
   });
 });
