@@ -1,6 +1,6 @@
 {
   "name": "rmu-api-tactical",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "main": "dist/server.js",
   "description": "API táctica para el sistema de juego RMU (Role Master Unified)",
   "keywords": [
