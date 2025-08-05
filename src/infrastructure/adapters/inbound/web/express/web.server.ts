@@ -1,4 +1,4 @@
-import { DependencyContainer } from "../../dependency-container";
+import { DependencyContainer } from '@infrastructure/dependency-container';
 import { ExpressApp } from "./express.app";
 
 export class WebServer {

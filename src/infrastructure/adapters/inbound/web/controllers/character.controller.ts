@@ -1,8 +1,14 @@
 import express, { Request, Response, Router } from "express";
 
-import { CharacterQuery } from "@domain/queries/character.query";
 import { Logger } from "@domain/ports/logger";
+import { CharacterQuery } from "@domain/queries/character.query";
 
+import { AddItemCommand } from "@application/commands/add-item.comand";
+import { AddSkillCommand } from "@application/commands/add-skill.command";
+import { CreateCharacterCommand } from "@application/commands/create-character.command";
+import { DeleteSkillCommand } from "@application/commands/delete-skill-command";
+import { EquipItemCommand } from "@application/commands/equip-item-command";
+import { UpdateSkillCommand } from "@application/commands/update-skill.command";
 import { AddItemUseCase } from "@application/use-cases/characters/add-item.usecase";
 import { AddSkillUseCase } from "@application/use-cases/characters/add-skill.usecase";
 import { CreateCharacterUseCase } from "@application/use-cases/characters/create-character.usecase";
@@ -14,14 +20,8 @@ import { FindTCharacterByIdUseCase } from "@application/use-cases/characters/fin
 import { FindCharactersUseCase } from "@application/use-cases/characters/find-characters.usecase";
 import { UpdateCharacterUseCase } from "@application/use-cases/characters/update-character.usecase";
 import { UpdateSkillUseCase } from "@application/use-cases/characters/update-skill.usecase";
-import { AddItemCommand } from "@application/commands/add-item.comand";
-import { AddSkillCommand } from "@application/commands/add-skill.command";
-import { CreateCharacterCommand } from "@application/commands/create-character.command";
-import { DeleteSkillCommand } from "@application/commands/delete-skill-command";
-import { EquipItemCommand } from "@application/commands/equip-item-command";
-import { UpdateSkillCommand } from "@application/commands/update-skill.command";
 
-import { DependencyContainer } from "../../dependency-container";
+import { DependencyContainer } from '@infrastructure/dependency-container';
 import { ErrorHandler } from "../error-handler";
 
 export class CharacterController {

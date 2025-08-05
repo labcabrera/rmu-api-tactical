@@ -1,7 +1,7 @@
 import express, { Request, Response, Router } from "express";
 
-import { GameQuery } from "@domain/queries/game.query";
 import { Logger } from "@domain/ports/logger";
+import { GameQuery } from "@domain/queries/game.query";
 
 import { CreateGameCommand } from "@application/commands/create-game.command";
 import { UpdateGameCommand } from "@application/commands/update-game.command";
@@ -12,7 +12,7 @@ import { FindGamesUseCase } from "@application/use-cases/games/find-games-use-ca
 import { StartRoundUseCase } from "@application/use-cases/games/start-round-use-case";
 import { UpdateGameUseCase } from "@application/use-cases/games/update-game-use-case";
 
-import { DependencyContainer } from "../../dependency-container";
+import { DependencyContainer } from '@infrastructure/dependency-container';
 import { ErrorHandler } from "../error-handler";
 
 export class GameController {

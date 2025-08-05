@@ -3,14 +3,14 @@ import express, { Request, Response, Router } from "express";
 import { Logger } from "@domain/ports/logger";
 import { ActionQuery } from "@domain/queries/action.query";
 
+import { CreateActionCommand } from "@application/commands/create-action.command";
 import { CreateActionUseCase } from "@application/use-cases/actions/create-action.usecase";
 import { DeleteActionUseCase } from "@application/use-cases/actions/delete-action.usecase";
 import { FindActionByIdUseCase } from "@application/use-cases/actions/find-action-by-id.usecase";
 import { FindActionsUseCase } from "@application/use-cases/actions/find-actions.usecase";
-import { CreateActionCommand } from "@application/commands/create-action.command";
 
 import { DeleteActionCommand } from "@application/commands/delete-action.command";
-import { DependencyContainer } from "../../dependency-container";
+import { DependencyContainer } from '@infrastructure/dependency-container';
 import { ErrorHandler } from "../error-handler";
 
 export class ActionController {

@@ -5,7 +5,8 @@ import mongoose from "mongoose";
 import path from "path";
 import swaggerUi from "swagger-ui-express";
 import yaml from "yaml";
-import { DependencyContainer } from "../../dependency-container";
+
+import { DependencyContainer } from '@infrastructure/dependency-container';
 import { ApiRoutes } from "../routes";
 
 export class ExpressApp {
@@ -18,7 +19,8 @@ export class ExpressApp {
     this.initializeMiddleware();
     this.initializeDatabase();
     this.initializeRoutes();
-    this.initializeSwagger();
+    //TODO update spec and fix
+    // this.initializeSwagger();
     this.initializeErrorHandling();
   }
 
@@ -50,8 +52,9 @@ export class ExpressApp {
     try {
       const openapiFilePath: string = path.join(
         __dirname,
-        "../../../../openapi.yaml",
+        "../../../../../openapi.yaml",
       );
+      console.log("Loading OpenAPI documentation...");
       const openapiFile: string = fs.readFileSync(openapiFilePath, "utf8");
       const swaggerDocument = yaml.parse(openapiFile);
 
