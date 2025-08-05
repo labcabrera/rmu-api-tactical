@@ -2,7 +2,7 @@ import { Logger } from "@domain/ports/logger";
 
 import { Action } from "../../../domain/entities/action.entity";
 import { Page } from "../../../domain/entities/page.entity";
-import { ActionRepository } from "../../../domain/ports/action.repository";
+import { ActionRepository } from "../../../domain/ports/outbound/action.repository";
 import { ActionQuery } from "../../../domain/queries/action.query";
 
 export class FindActionsUseCase {

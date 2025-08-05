@@ -1,7 +1,7 @@
 import { CharacterRound } from "@domain/entities/character-round.entity";
 import { Page } from "@domain/entities/page.entity";
-import { CharacterRoundRepository } from "@domain/ports/character-round.repository";
 import { Logger } from "@domain/ports/logger";
+import { CharacterRoundRepository } from "@domain/ports/outbound/character-round.repository";
 import { CharacterRoundQuery } from "@domain/queries/character-round.query";
 
 export class FindCharacterRoundsUseCase {

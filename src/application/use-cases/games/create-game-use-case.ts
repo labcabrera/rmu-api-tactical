@@ -1,6 +1,6 @@
 import { Game } from "../../../domain/entities/game.entity";
-import { GameRepository } from "../../../domain/ports/game.repository";
 import { Logger } from "../../../domain/ports/logger";
+import { GameRepository } from "../../../domain/ports/outbound/game.repository";
 import { CreateGameCommand } from "../../commands/create-game.command";
 
 export class CreateGameUseCase {

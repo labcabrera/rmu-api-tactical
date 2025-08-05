@@ -41,7 +41,10 @@ export class EnvironmentConfiguration implements Configuration {
   }
 
   getOAuth2TokenUrl(): string {
-    return `${process.env.RMU_KEYCLOAK_BASE_URL}/realms/${process.env.RMU_KEYCLOAK_REALM}/protocol/openid-connect/token` || "";
+    return (
+      `${process.env.RMU_KEYCLOAK_BASE_URL}/realms/${process.env.RMU_KEYCLOAK_REALM}/protocol/openid-connect/token` ||
+      ""
+    );
   }
 
   getOAuth2Scope(): string | undefined {

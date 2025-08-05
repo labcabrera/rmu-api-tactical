@@ -1,6 +1,6 @@
-import { CharacterRepository } from "../../../domain/ports/character.repository";
-import { GameRepository } from "../../../domain/ports/game.repository";
 import { Logger } from "../../../domain/ports/logger";
+import { CharacterRepository } from "../../../domain/ports/outbound/character.repository";
+import { GameRepository } from "../../../domain/ports/outbound/game.repository";
 
 export class DeleteGameUseCase {
   constructor(

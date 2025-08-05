@@ -1,8 +1,8 @@
 import { Character, CharacterSkill } from "@domain/entities/character.entity";
-import { CharacterRepository } from "@domain/ports/character.repository";
 import { Logger } from "@domain/ports/logger";
-import { SkillCategoryClient } from "@domain/ports/skill-category-client";
-import { SkillClient } from "@domain/ports/skill-client";
+import { CharacterRepository } from "@domain/ports/outbound/character.repository";
+import { SkillCategoryClient } from "@domain/ports/outbound/skill-category-client";
+import { SkillClient } from "@domain/ports/outbound/skill-client";
 
 import { AddSkillCommand } from "@application/commands/add-skill.command";
 import { CharacterProcessorService } from "@domain/services/character-processor.service";

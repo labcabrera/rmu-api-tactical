@@ -1,12 +1,12 @@
-import { ActionRepository } from "../domain/ports/action.repository";
-import { AuthTokenService } from "../domain/ports/auth-token-service";
-import { CharacterRoundRepository } from "../domain/ports/character-round.repository";
-import { CharacterRepository } from "../domain/ports/character.repository";
 import { Configuration } from "../domain/ports/configuration";
-import { GameRepository } from "../domain/ports/game.repository";
 import { Logger } from "../domain/ports/logger";
-import { RaceClient } from "../domain/ports/race-client";
-import { SkillClient } from "../domain/ports/skill-client";
+import { ActionRepository } from "../domain/ports/outbound/action.repository";
+import { AuthTokenService } from "../domain/ports/outbound/auth-token-service";
+import { CharacterRoundRepository } from "../domain/ports/outbound/character-round.repository";
+import { CharacterRepository } from "../domain/ports/outbound/character.repository";
+import { GameRepository } from "../domain/ports/outbound/game.repository";
+import { RaceClient } from "../domain/ports/outbound/race-client";
+import { SkillClient } from "../domain/ports/outbound/skill-client";
 import { CharacterProcessorService } from "../domain/services/character-processor.service";
 
 import { UpdateCharacterInitiativeUseCase } from "../application/use-cases/character-rounds/update-initiative.usecase";
@@ -33,7 +33,7 @@ import { FindCharacterRoundsUseCase } from "../application/use-cases/character-r
 import { AddSkillUseCase } from "../application/use-cases/characters/add-skill.usecase";
 import { DeleteSkillUseCase } from "../application/use-cases/characters/delete-skill.usecase";
 import { UpdateSkillUseCase } from "../application/use-cases/characters/update-skill.usecase";
-import { SkillCategoryClient } from "../domain/ports/skill-category-client";
+import { SkillCategoryClient } from "../domain/ports/outbound/skill-category-client";
 import { OAuth2TokenService } from "./adapters/auth/oauth2-token-service";
 import { EnvironmentConfiguration } from "./adapters/config/environment-configuration";
 import { RaceAPICoreClient } from "./adapters/external/race-api-core-client";

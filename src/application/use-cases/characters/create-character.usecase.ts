@@ -14,11 +14,11 @@ import {
   CharacterStatistics,
 } from "@domain/entities/character.entity";
 import { Game } from "@domain/entities/game.entity";
-import { CharacterRepository } from "@domain/ports/character.repository";
-import { GameRepository } from "@domain/ports/game.repository";
 import { Logger } from "@domain/ports/logger";
-import { RaceClient } from "@domain/ports/race-client";
-import { SkillClient } from "@domain/ports/skill-client";
+import { CharacterRepository } from "@domain/ports/outbound/character.repository";
+import { GameRepository } from "@domain/ports/outbound/game.repository";
+import { RaceClient } from "@domain/ports/outbound/race-client";
+import { SkillClient } from "@domain/ports/outbound/skill-client";
 import { CharacterProcessorService } from "@domain/services/character-processor.service";
 
 import { CreateCharacterCommand } from "@application/commands/create-character.command";

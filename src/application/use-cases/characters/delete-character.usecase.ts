@@ -1,5 +1,5 @@
-import { CharacterRepository } from "../../../domain/ports/character.repository";
 import { Logger } from "../../../domain/ports/logger";
+import { CharacterRepository } from "../../../domain/ports/outbound/character.repository";
 
 export class DeleteCharacterUseCase {
   constructor(

@@ -1,7 +1,7 @@
 import { Logger } from "@domain/ports/logger";
 
 import { Action } from "../../../domain/entities/action.entity";
-import { ActionRepository } from "../../../domain/ports/action.repository";
+import { ActionRepository } from "../../../domain/ports/outbound/action.repository";
 
 export class FindActionByIdUseCase {
   constructor(

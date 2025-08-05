@@ -1,6 +1,6 @@
-import { Character } from "../entities/character.entity";
-import { Page } from "../entities/page.entity";
-import { CharacterQuery } from "../queries/character.query";
+import { Character } from "../../entities/character.entity";
+import { Page } from "../../entities/page.entity";
+import { CharacterQuery } from "../../queries/character.query";
 
 export interface CharacterRepository {
   findById(id: string): Promise<Character>;

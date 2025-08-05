@@ -1,7 +1,7 @@
 import { Action } from "@domain/entities/action.entity";
-import { ActionRepository } from "@domain/ports/action.repository";
-import { ActionQuery } from "@domain/queries/action.query";
 import { Page } from "@domain/entities/page.entity";
+import { ActionRepository } from "@domain/ports/outbound/action.repository";
+import { ActionQuery } from "@domain/queries/action.query";
 
 import ActionDocument from "../models/action.model";
 

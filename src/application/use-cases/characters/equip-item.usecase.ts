@@ -3,8 +3,8 @@ import {
   CharacterEquipment,
   CharacterItem,
 } from "../../../domain/entities/character.entity";
-import { CharacterRepository } from "../../../domain/ports/character.repository";
 import { Logger } from "../../../domain/ports/logger";
+import { CharacterRepository } from "../../../domain/ports/outbound/character.repository";
 import { CharacterProcessorService } from "../../../domain/services/character-processor.service";
 import { EquipItemCommand } from "../../commands/equip-item-command";
 

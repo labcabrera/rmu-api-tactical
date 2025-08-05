@@ -1,7 +1,7 @@
 import { Character } from "@domain/entities/character.entity";
-import { CharacterRepository } from "@domain/ports/character.repository";
-import { CharacterQuery } from "@domain/queries/character.query";
 import { Page } from "@domain/entities/page.entity";
+import { CharacterRepository } from "@domain/ports/outbound/character.repository";
+import { CharacterQuery } from "@domain/queries/character.query";
 import TacticalCharacterDocument from "../models/character.model";
 
 export class MongoTacticalCharacterRepository implements CharacterRepository {

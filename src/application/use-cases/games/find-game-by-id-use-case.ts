@@ -1,5 +1,5 @@
 import { Game } from "../../../domain/entities/game.entity";
-import { GameRepository } from "../../../domain/ports/game.repository";
+import { GameRepository } from "../../../domain/ports/outbound/game.repository";
 
 export class FindGameByIdUseCase {
   constructor(private readonly gameRrepository: GameRepository) {}

@@ -1,6 +1,6 @@
 import { Character } from "@domain/entities/character.entity";
-import { CharacterRepository } from "@domain/ports/character.repository";
 import { Logger } from "@domain/ports/logger";
+import { CharacterRepository } from "@domain/ports/outbound/character.repository";
 
 export class DeleteItemUseCase {
   constructor(

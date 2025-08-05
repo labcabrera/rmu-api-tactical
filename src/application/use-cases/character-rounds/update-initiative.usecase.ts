@@ -1,6 +1,6 @@
-import { CharacterRoundRepository } from "@domain/ports/character-round.repository";
 import { CharacterRound } from "@domain/entities/character-round.entity";
 import { Logger } from "@domain/ports/logger";
+import { CharacterRoundRepository } from "@domain/ports/outbound/character-round.repository";
 
 import { UpdateInitiativeCommand } from "../../commands/update-initiative.command";
 

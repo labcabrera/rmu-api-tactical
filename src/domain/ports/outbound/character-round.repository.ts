@@ -1,6 +1,6 @@
 import { CharacterRound } from "@domain/entities/character-round.entity";
 import { Page } from "@domain/entities/page.entity";
-import { CharacterRoundQuery } from "../queries/character-round.query";
+import { CharacterRoundQuery } from "../../queries/character-round.query";
 
 export interface CharacterRoundRepository {
   findById(id: string): Promise<CharacterRound>;

@@ -1,10 +1,10 @@
+import { Configuration } from "@domain/ports/configuration";
+import { Logger } from "@domain/ports/logger";
 import {
   AuthToken,
   AuthTokenService,
-  OAuth2ClientCredentials
-} from "../../../domain/ports/auth-token-service";
-import { Configuration } from "../../../domain/ports/configuration";
-import { Logger } from "../../../domain/ports/logger";
+  OAuth2ClientCredentials,
+} from "@domain/ports/outbound/auth-token-service";
 
 export class OAuth2TokenService implements AuthTokenService {
   private cachedToken: AuthToken | null = null;
@@ -52,7 +52,7 @@ export class OAuth2TokenService implements AuthTokenService {
 
   private async requestNewToken(): Promise<AuthToken> {
     const credentials = this.getOAuth2Credentials();
-    
+
     const body = new URLSearchParams({
       grant_type: "client_credentials",
       client_id: credentials.clientId,
@@ -70,7 +70,7 @@ export class OAuth2TokenService implements AuthTokenService {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
-          "Accept": "application/json",
+          Accept: "application/json",
         },
         body: body.toString(),
       });
@@ -78,14 +78,14 @@ export class OAuth2TokenService implements AuthTokenService {
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(
-          `Token request failed with status ${response.status}: ${errorText}`
+          `Token request failed with status ${response.status}: ${errorText}`,
         );
       }
 
       const tokenResponse: any = await response.json();
 
       const expiresIn = tokenResponse.expires_in || 3600;
-      const expiresAt = new Date(Date.now() + (expiresIn * 1000));
+      const expiresAt = new Date(Date.now() + expiresIn * 1000);
 
       const token: AuthToken = {
         accessToken: tokenResponse.access_token,
@@ -94,8 +94,10 @@ export class OAuth2TokenService implements AuthTokenService {
         expiresAt,
       };
 
-      this.logger.info(`Successfully obtained access token, expires at ${expiresAt.toISOString()}`);
-      
+      this.logger.info(
+        `Successfully obtained access token, expires at ${expiresAt.toISOString()}`,
+      );
+
       return token;
     } catch (error) {
       this.logger.error(`Failed to obtain access token: ${error}`);
@@ -108,7 +110,7 @@ export class OAuth2TokenService implements AuthTokenService {
     const bufferMs = 5 * 60 * 1000; // 5 minutes
     const now = new Date();
     const expiresWithBuffer = new Date(token.expiresAt.getTime() - bufferMs);
-    
+
     return now < expiresWithBuffer;
   }
 
@@ -119,15 +121,14 @@ export class OAuth2TokenService implements AuthTokenService {
     const scope: string = this.configuration.getOAuth2Scope() || "";
     if (!clientId || !clientSecret || !tokenUrl) {
       throw new Error(
-        "OAuth2 credentials not configured. Please set OAUTH2_CLIENT_ID, OAUTH2_CLIENT_SECRET, and OAUTH2_TOKEN_URL environment variables."
+        "OAuth2 credentials not configured. Please set OAUTH2_CLIENT_ID, OAUTH2_CLIENT_SECRET, and OAUTH2_TOKEN_URL environment variables.",
       );
     }
     return {
       clientId,
       clientSecret,
       tokenUrl,
-      scope
+      scope,
     };
   }
 }
-

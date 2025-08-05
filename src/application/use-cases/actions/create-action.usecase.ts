@@ -1,9 +1,9 @@
-import { CharacterRepository } from "@domain/ports/character.repository";
 import { Action } from "@domain/entities/action.entity";
-import { ActionRepository } from "@domain/ports/action.repository";
-import { CharacterRoundRepository } from "@domain/ports/character-round.repository";
-import { GameRepository } from "@domain/ports/game.repository";
 import { Logger } from "@domain/ports/logger";
+import { ActionRepository } from "@domain/ports/outbound/action.repository";
+import { CharacterRoundRepository } from "@domain/ports/outbound/character-round.repository";
+import { CharacterRepository } from "@domain/ports/outbound/character.repository";
+import { GameRepository } from "@domain/ports/outbound/game.repository";
 
 import { CreateActionCommand } from "@application/commands/create-action.command";
 
