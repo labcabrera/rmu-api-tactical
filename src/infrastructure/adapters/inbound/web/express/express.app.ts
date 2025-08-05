@@ -7,21 +7,22 @@ import swaggerUi from 'swagger-ui-express';
 import yaml from 'yaml';
 
 import { Logger } from '@domain/ports/logger';
-import { config } from '@infrastructure/config/config';
-import { container } from '@shared/container';
 
-import { errorHandler } from '../error-handler';
-import { characterRouter } from '../routes/character.routes';
-import { gameRouter } from '../routes/game.routes';
+import { errorHandler } from '@infrastructure/adapters/inbound/web/error-handler';
+import { actionRouter as actionRoutes } from '@infrastructure/adapters/inbound/web/routes/action.routes';
+import { characterRoundRoutes } from '@infrastructure/adapters/inbound/web/routes/character-round.routes';
+import { characterRouter as characterRoutes } from '@infrastructure/adapters/inbound/web/routes/character.routes';
+import { gameRouter as gameRoutes } from '@infrastructure/adapters/inbound/web/routes/game.routes';
+import { config } from '@infrastructure/config/config';
+
+import { container } from '@shared/container';
 
 export class ExpressApp {
   private app: Application;
-  // private apiRoutes: ApiRoutes;
   private logger: Logger = container.get('Logger');
 
   constructor() {
     this.app = express();
-    // this.apiRoutes = new ApiRoutes();
     this.initializeMiddleware();
     this.initializeDatabase();
     this.initializeRoutes();
@@ -43,8 +44,10 @@ export class ExpressApp {
   }
 
   private initializeRoutes(): void {
-    this.app.use('/v1/tactical-games', gameRouter);
-    this.app.use('/v1/characters', characterRouter);
+    this.app.use('/v1/tactical-games', gameRoutes);
+    this.app.use('/v1/characters', characterRoutes);
+    this.app.use('/v1/characters-rounds', characterRoundRoutes);
+    this.app.use('/v1/tactical-actions', actionRoutes);
   }
 
   private initializeSwagger(): void {
