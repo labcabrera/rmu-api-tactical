@@ -19,7 +19,7 @@ export class DeleteActionUseCase {
     this.logger.info(`DeleteActionUseCase: Deleting action ${command.actionId}`);
     const action = await this.actionRepository.findById(command.actionId);
     if (!action) {
-      throw new NotFoundError("Action", command.actionId);
+      throw new NotFoundError('Action', command.actionId);
     }
     await this.actionRepository.deleteById(command.actionId);
   }

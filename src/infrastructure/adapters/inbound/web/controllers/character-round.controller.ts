@@ -7,7 +7,6 @@ import { FindCharacterRoundsUseCase } from '@application/use-cases/character-rou
 import { TYPES } from '@shared/types';
 
 export class CharacterRoundController {
-
   constructor(
     @inject(TYPES.FindCharacterRoundsUseCase) private readonly findCharacterRoundsUseCase: FindCharacterRoundsUseCase,
     @inject(TYPES.Logger) private readonly logger: Logger
@@ -24,5 +23,4 @@ export class CharacterRoundController {
       next(error);
     }
   }
-
 }

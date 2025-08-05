@@ -20,12 +20,12 @@ export class StartRoundUseCase {
 
   async execute(gameId: string): Promise<Game> {
     this.logger.info(`Executing start round use case for game ${gameId}`);
-    
+
     const tacticalGame = await this.gameRepository.findById(gameId);
     if (!tacticalGame) {
-      throw new NotFoundError("Game",gameId);
+      throw new NotFoundError('Game', gameId);
     }
-    
+
     const characters = await this.characterRepository.findByGameId(gameId);
     if (characters.length < 1) {
       throw new ValidationError('No characters associated with the game have been found');

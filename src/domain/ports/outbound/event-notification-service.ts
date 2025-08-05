@@ -1,6 +1,6 @@
 import { DomainEvent } from '@domain/events/domain-event';
 
-export interface EventNotificationService<T extends DomainEvent> {
+export interface EventNotificationService<T extends DomainEvent<I>, I> {
   notify(event: T): Promise<void>;
 
   getTopicConfiguration(): TopicConfiguration;

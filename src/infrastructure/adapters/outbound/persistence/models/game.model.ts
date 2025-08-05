@@ -46,7 +46,7 @@ const TacticalGameSchema: Schema<TacticalGameDocument> = new Schema(
     updatedAt: {
       type: Date,
       required: false,
-    }
+    },
   },
   {
     collection: 'tactical-games',

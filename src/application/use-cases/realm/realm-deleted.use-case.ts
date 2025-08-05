@@ -5,14 +5,10 @@ import { TYPES } from '../../../shared/types';
 
 @injectable()
 export class RealmDeletedUseCase {
-
-  constructor(
-    @inject(TYPES.Logger) private readonly logger: Logger
-  ) {}
+  constructor(@inject(TYPES.Logger) private readonly logger: Logger) {}
 
   async execute(event: RealmDeletedEvent): Promise<void> {
-    this.logger.info(`Processing realm deleted event for realm: ${event.realmId}`);
-    
+    this.logger.info(`Processing realm deleted event for realm: ${event.data.id}`);
     try {
       // TODO: Implement business logic for realm deletion
       // This could include:
@@ -20,11 +16,8 @@ export class RealmDeletedUseCase {
       // - Cleaning up related tactical data
       // - Updating character references
       // - Notifying other bounded contexts
-      
-      this.logger.info(`Realm ${event.realmId} (${event.realmName}) deletion processed successfully`);
-      
     } catch (error) {
-      this.logger.error(`Error processing realm deleted event for realm ${event.realmId}:`, error);
+      this.logger.error(`Error processing realm deleted event for realm ${event.data.id}:`, error);
       throw error;
     }
   }

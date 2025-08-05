@@ -50,11 +50,12 @@ import { SkillAPICoreClient } from '../infrastructure/adapters/outbound/external
 import { SkillCategoryAPICoreClient } from '../infrastructure/adapters/outbound/external/skill-category-api-core-client';
 
 import { EventListenerBootstrap } from '../application/services/event-listener-bootstrap';
+import { DomainEvent } from '../domain/events/domain-event';
 import { EventAdapter } from '../domain/ports/inbound/event-adapter';
 import { CharacterRepository } from '../domain/ports/outbound/character.repository';
 import { EventNotificationPort } from '../domain/ports/outbound/event-notification.port';
 import { GameRepository } from '../domain/ports/outbound/game.repository';
-import { MockKafkaEventAdapter } from '../infrastructure/adapters/inbound/events/mock-kafka-event-adapter';
+import { KafkaEventAdapter } from '../infrastructure/adapters/inbound/events/kafka-event-adapter';
 import { RealmDeletedEventListener } from '../infrastructure/adapters/inbound/events/realm-deleted-event-listener';
 import { EventNotificationRegistry } from '../infrastructure/adapters/outbound/notifications/event-notification-registry';
 import { GameCreatedEventNotificationService } from '../infrastructure/adapters/outbound/notifications/game-created-event-notification.service';
@@ -140,29 +141,36 @@ container
 container.bind<CharacterController>(TYPES.CharacterController).to(CharacterController).inSingletonScope();
 container.bind<GameController>(TYPES.GameController).to(GameController).inSingletonScope();
 
-container.bind<GameCreatedEventNotificationService>(TYPES.GameCreatedEventNotificationService).to(GameCreatedEventNotificationService).inSingletonScope();  
-
-// Event listeners
-container.bind<RealmDeletedEventListener>(TYPES.RealmDeletedEventListener).to(RealmDeletedEventListener).inSingletonScope();
-
-// Event adapters
-container.bind<EventAdapter>(TYPES.KafkaEventAdapter).to(MockKafkaEventAdapter).inSingletonScope();
-
-// Bootstrap services
-container.bind<EventListenerBootstrap>(TYPES.EventListenerBootstrap).to(EventListenerBootstrap).inSingletonScope();  
+container
+  .bind<GameCreatedEventNotificationService>(TYPES.GameCreatedEventNotificationService)
+  .to(GameCreatedEventNotificationService)
+  .inSingletonScope();
 
 // Notifications
 container
   .bind<EventNotificationRegistry>(TYPES.EventNotificationRegistry)
   .toDynamicValue(() => {
     const registry = new EventNotificationRegistry(container.get<Logger>(TYPES.Logger));
-    registry.registerService('GameCreatedEvent',container.get<GameCreatedEventNotificationService>(TYPES.GameCreatedEventNotificationService));
+    registry.registerService(
+      'GameCreatedEvent',
+      container.get<GameCreatedEventNotificationService>(TYPES.GameCreatedEventNotificationService)
+    );
     return registry;
-  }).inSingletonScope();
+  })
+  .inSingletonScope();
 
 container
-  .bind<EventNotificationPort>(TYPES.EventNotificationPort)
+  .bind<EventNotificationPort<DomainEvent<any>>>(TYPES.EventNotificationPort)
   .to(RegistryEventNotificationAdapter)
+  .inSingletonScope();
+
+// Event listeners
+container.bind<EventAdapter>(TYPES.KafkaEventAdapter).to(KafkaEventAdapter).inSingletonScope();
+container.bind<EventListenerBootstrap>(TYPES.EventListenerBootstrap).to(EventListenerBootstrap).inSingletonScope();
+
+container
+  .bind<RealmDeletedEventListener>(TYPES.RealmDeletedEventListener)
+  .to(RealmDeletedEventListener)
   .inSingletonScope();
 
 export { container };

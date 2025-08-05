@@ -14,7 +14,6 @@ import { characterRoundRoutes } from '@infrastructure/adapters/inbound/web/route
 import { characterRouter as characterRoutes } from '@infrastructure/adapters/inbound/web/routes/character.routes';
 import { gameRouter as gameRoutes } from '@infrastructure/adapters/inbound/web/routes/game.routes';
 
-
 import { container } from '@shared/container';
 import { config } from '../../../../config/config';
 

@@ -18,8 +18,8 @@ export class FindActionByIdUseCase {
   async execute(actionId: string): Promise<Action> {
     this.logger.info(`FindActionByIdUseCase: Finding action << ${actionId}`);
     const action = await this.actionRepository.findById(actionId);
-    if(!action) {
-      throw new NotFoundError("Action", actionId);
+    if (!action) {
+      throw new NotFoundError('Action', actionId);
     }
     return action;
   }

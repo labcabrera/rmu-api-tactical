@@ -13,7 +13,7 @@ import { GameCreatedEvent } from '../../../domain/events/game-created.event';
 export class CreateGameUseCase {
   constructor(
     @inject(TYPES.GameRepository) private readonly gameRepository: GameRepository,
-    @inject(TYPES.EventNotificationPort) private readonly eventNotificationPort: EventNotificationPort,
+    @inject(TYPES.EventNotificationPort) private readonly eventNotificationPort: EventNotificationPort<Game>,
     @inject(TYPES.Logger) private readonly logger: Logger
   ) {}
 
@@ -39,5 +39,4 @@ export class CreateGameUseCase {
   private defaultFactions(): string[] {
     return ['Light', 'Evil', 'Neutral'];
   }
-
 }

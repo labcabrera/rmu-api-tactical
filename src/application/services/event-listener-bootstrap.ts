@@ -6,7 +6,6 @@ import { TYPES } from '../../shared/types';
 
 @injectable()
 export class EventListenerBootstrap {
-
   constructor(
     @inject(TYPES.KafkaEventAdapter) private readonly eventAdapter: EventAdapter,
     @inject(TYPES.RealmDeletedEventListener) private readonly realmDeletedEventListener: RealmDeletedEventListener,

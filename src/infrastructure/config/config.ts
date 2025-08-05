@@ -24,5 +24,8 @@ export const config = {
     replicationFactor: env.RMU_KAFKA_REPLICATION_FACTOR,
     retentionMs: env.RMU_KAFKA_RETENTION_MS,
     compressionType: env.RMU_KAFKA_COMPRESSION_TYPE,
-  }
+
+    clientId: env.RMU_KAFKA_CLIENT_ID,
+    consumerGroupId: env.RMU_KAFKA_CONSUMER_GROUP_ID,
+  },
 };

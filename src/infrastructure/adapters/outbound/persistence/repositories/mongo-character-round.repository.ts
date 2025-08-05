@@ -9,13 +9,12 @@ import { toMongoQuery } from '../rsql-adapter';
 
 @injectable()
 export class MongoCharacterRoundRepository implements CharacterRoundRepository {
-
   async findById(id: string): Promise<CharacterRound | null> {
     const characterRound = await CharacterRoundDocument.findById(id);
     return characterRound ? this.toEntity(characterRound) : null;
   }
 
-    async findByRsql(rsql: string, page: number, size: number): Promise<Page<CharacterRound>> {
+  async findByRsql(rsql: string, page: number, size: number): Promise<Page<CharacterRound>> {
     const skip = page * size;
     const mongoQuery = toMongoQuery(rsql);
     const [characterRoundDocs, totalElements] = await Promise.all([
@@ -33,7 +32,7 @@ export class MongoCharacterRoundRepository implements CharacterRoundRepository {
       },
     };
   }
- 
+
   async findByGameIdAndRound(gameId: string, round: number): Promise<CharacterRound[]> {
     const characterRounds = await CharacterRoundDocument.find({
       gameId: gameId,

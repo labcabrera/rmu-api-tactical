@@ -1,18 +1,16 @@
 import { inject, injectable } from 'inversify';
+
 import { DomainEvent } from '@domain/events/domain-event';
-import { EventNotificationService } from '@domain/ports/outbound/event-notification-service';
 import { Logger } from '@domain/ports/logger';
+import { EventNotificationService } from '@domain/ports/outbound/event-notification-service';
 
 @injectable()
 export class EventNotificationRegistry {
-  private services: Map<string, EventNotificationService<any>> = new Map();
+  private services: Map<string, EventNotificationService<any, any>> = new Map();
 
   constructor(@inject('Logger') private readonly logger: Logger) {}
 
-  registerService<T extends DomainEvent>(
-    eventType: string,
-    service: EventNotificationService<T>
-  ): void {
+  registerService<T extends DomainEvent<I>, I>(eventType: string, service: EventNotificationService<T, I>): void {
     if (this.services.has(eventType)) {
       this.logger.warn(`Overriding existing service for event type: ${eventType}`);
     }
@@ -20,7 +18,7 @@ export class EventNotificationRegistry {
     this.logger.info(`Registered notification service for event type: ${eventType}`);
   }
 
-  async notify(event: DomainEvent): Promise<void> {
+  async notify<I>(event: DomainEvent<I>): Promise<void> {
     const service = this.services.get(event.eventType);
 
     if (!service) {
@@ -36,7 +34,7 @@ export class EventNotificationRegistry {
     }
   }
 
-  getRegisteredServices(): Map<string, EventNotificationService<any>> {
+  getRegisteredServices(): Map<string, EventNotificationService<any, any>> {
     return new Map(this.services);
   }
 }

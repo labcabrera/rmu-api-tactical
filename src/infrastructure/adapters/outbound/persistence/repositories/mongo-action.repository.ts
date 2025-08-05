@@ -9,7 +9,6 @@ import { toMongoQuery } from '../rsql-adapter';
 
 @injectable()
 export class MongoActionRepository implements ActionRepository {
-
   async findById(id: string): Promise<Action | null> {
     const action = await ActionDocument.findById(id);
     return action ? this.toEntity(action) : null;

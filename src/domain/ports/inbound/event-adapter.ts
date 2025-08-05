@@ -6,7 +6,7 @@ export interface EventAdapter {
    * Registers an event listener for a specific topic
    * @param listener The event listener to register
    */
-  registerEventListener<T extends DomainEvent>(listener: EventListener<T>): void;
+  registerEventListener<T extends DomainEvent<I>, I>(listener: EventListener<T, I>): void;
 
   /**
    * Starts listening to Kafka topics

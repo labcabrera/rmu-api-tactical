@@ -17,6 +17,8 @@ const envSchema = z.object({
   RMU_KAFKA_REPLICATION_FACTOR: z.coerce.number().default(1),
   RMU_KAFKA_RETENTION_MS: z.coerce.number().default(604800000), // 7 days
   RMU_KAFKA_COMPRESSION_TYPE: z.enum(['gzip', 'snappy', 'lz4', 'zstd']).default('snappy'),
+  RMU_KAFKA_CLIENT_ID: z.string().default('rmu-api-tactical'),
+  RMU_KAFKA_CONSUMER_GROUP_ID: z.string().default('rmu-api-tactical-group'),
   OAUTH2_SCOPE: z.string().optional(),
 });
 

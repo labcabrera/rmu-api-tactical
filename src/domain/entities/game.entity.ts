@@ -1,7 +1,7 @@
 import { AccessControlledEntity } from './access-controlled-entity';
 import { HasEntityMetadata } from './has-entity-metadata';
 
-export interface Game extends AccessControlledEntity, HasEntityMetadata{
+export interface Game extends AccessControlledEntity, HasEntityMetadata {
   id: string;
   name: string;
   description?: string | undefined;

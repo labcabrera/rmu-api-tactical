@@ -1,3 +1,3 @@
 export interface AccessControlledEntity {
-    owner: string;
+  owner: string;
 }

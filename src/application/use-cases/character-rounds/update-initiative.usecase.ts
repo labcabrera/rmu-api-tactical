@@ -21,8 +21,8 @@ export class UpdateInitiativeUseCase {
       `Updating initiative for character round: ${command.characterRoundId} with roll: ${command.initiativeRoll}`
     );
     const characterRound = await this.characterRoundRepository.findById(command.characterRoundId);
-    if(!characterRound) {
-      throw new NotFoundError("Character round", command.characterRoundId);
+    if (!characterRound) {
+      throw new NotFoundError('Character round', command.characterRoundId);
     }
     const baseInitiative = characterRound.initiative?.base || 0;
     const penalty = characterRound.initiative?.penalty || 0;
