@@ -1,23 +1,22 @@
-import { ActionRepository } from "../domain/ports/action.repository";
-import { AuthTokenService } from "../domain/ports/auth-token-service";
-import { CharacterRoundRepository } from "../domain/ports/character-round.repository";
-import { CharacterRepository } from "../domain/ports/character.repository";
-import { Configuration } from "../domain/ports/configuration";
-import { GameRepository } from "../domain/ports/game.repository";
 import { Logger } from "../domain/ports/logger";
-import { RaceClient } from "../domain/ports/race-client";
-import { SkillClient } from "../domain/ports/skill-client";
+import { ActionRepository } from "../domain/ports/outbound/action.repository";
+import { AuthTokenService } from "../domain/ports/outbound/auth-token-service";
+import { CharacterRoundRepository } from "../domain/ports/outbound/character-round.repository";
+import { CharacterRepository } from "../domain/ports/outbound/character.repository";
+import { GameRepository } from "../domain/ports/outbound/game.repository";
+import { RaceClient } from "../domain/ports/outbound/race-client";
+import { SkillClient } from "../domain/ports/outbound/skill-client";
 import { CharacterProcessorService } from "../domain/services/character-processor.service";
 
-import { UpdateCharacterInitiativeUseCase } from "../application/use-cases/character-rounds/update-initiative-use-case";
-import { AddItemUseCase } from "../application/use-cases/characters/add-item-use-case";
-import { CreateCharacterUseCase } from "../application/use-cases/characters/create-character-use-case";
-import { DeleteCharacterUseCase } from "../application/use-cases/characters/delete-character-use-case";
-import { DeleteItemUseCase } from "../application/use-cases/characters/delete-item-use-case";
-import { EquipItemUseCase } from "../application/use-cases/characters/equip-item-use-case";
-import { FindTCharacterByIdUseCase } from "../application/use-cases/characters/find-character-by-id-use-case";
-import { FindCharactersUseCase } from "../application/use-cases/characters/find-characters-use-case";
-import { UpdateCharacterUseCase } from "../application/use-cases/characters/update-character-use-case";
+import { UpdateCharacterInitiativeUseCase } from "../application/use-cases/character-rounds/update-initiative.usecase";
+import { AddItemUseCase } from "../application/use-cases/characters/add-item.usecase";
+import { CreateCharacterUseCase } from "../application/use-cases/characters/create-character.usecase";
+import { DeleteCharacterUseCase } from "../application/use-cases/characters/delete-character.usecase";
+import { DeleteItemUseCase } from "../application/use-cases/characters/delete-item.usecase";
+import { EquipItemUseCase } from "../application/use-cases/characters/equip-item.usecase";
+import { FindTCharacterByIdUseCase } from "../application/use-cases/characters/find-character-by-id.usecase";
+import { FindCharactersUseCase } from "../application/use-cases/characters/find-characters.usecase";
+import { UpdateCharacterUseCase } from "../application/use-cases/characters/update-character.usecase";
 import { CreateGameUseCase } from "../application/use-cases/games/create-game-use-case";
 import { DeleteGameUseCase } from "../application/use-cases/games/delete-game-use-case";
 import { FindGameByIdUseCase } from "../application/use-cases/games/find-game-by-id-use-case";
@@ -25,30 +24,28 @@ import { FindGamesUseCase } from "../application/use-cases/games/find-games-use-
 import { StartRoundUseCase } from "../application/use-cases/games/start-round-use-case";
 import { UpdateGameUseCase } from "../application/use-cases/games/update-game-use-case";
 
-import { CreateActionUseCase } from "../application/use-cases/actions/create-action-use-case";
-import { DeleteActionUseCase } from "../application/use-cases/actions/delete-action-use-case";
-import { FindActionByIdUseCase } from "../application/use-cases/actions/find-action-by-id-use-case copy";
-import { FindActionsUseCase } from "../application/use-cases/actions/find-actions-use-case";
-import { FindCharacterRoundsUseCase } from "../application/use-cases/character-rounds/find-character-rounds-use-case";
-import { AddSkillUseCase } from "../application/use-cases/characters/add-skill-use-case";
-import { DeleteSkillUseCase } from "../application/use-cases/characters/delete-skill-use-case";
-import { UpdateSkillUseCase } from "../application/use-cases/characters/update-skill-use-case";
-import { SkillCategoryClient } from "../domain/ports/skill-category-client";
-import { OAuth2TokenService } from "./adapters/auth/oauth2-token-service";
-import { EnvironmentConfiguration } from "./adapters/config/environment-configuration";
-import { RaceAPICoreClient } from "./adapters/external/race-api-core-client";
-import { SkillAPICoreClient } from "./adapters/external/skill-api-core-client";
-import { SkillCategoryAPICoreClient } from "./adapters/external/skill-category-api-core-client";
-import { MongoActionRepository } from "./adapters/persistence/repositories/mongo-action.repository";
-import { MongoCharacterRoundRepository } from "./adapters/persistence/repositories/mongo-character-round.repository";
-import { MongoTacticalCharacterRepository } from "./adapters/persistence/repositories/mongo-character.repository";
-import { MongoTacticalGameRepository } from "./adapters/persistence/repositories/mongo-game.repository";
+import { CreateActionUseCase } from "../application/use-cases/actions/create-action.usecase";
+import { DeleteActionUseCase } from "../application/use-cases/actions/delete-action.usecase";
+import { FindActionByIdUseCase } from "../application/use-cases/actions/find-action-by-id.usecase";
+import { FindActionsUseCase } from "../application/use-cases/actions/find-actions.usecase";
+import { FindCharacterRoundsUseCase } from "../application/use-cases/character-rounds/find-character-rounds.usecase";
+import { AddSkillUseCase } from "../application/use-cases/characters/add-skill.usecase";
+import { DeleteSkillUseCase } from "../application/use-cases/characters/delete-skill.usecase";
+import { UpdateSkillUseCase } from "../application/use-cases/characters/update-skill.usecase";
+import { SkillCategoryClient } from "../domain/ports/outbound/skill-category-client";
+import { OAuth2TokenService } from "./adapters/outbound/auth/oauth2-token-service";
+import { RaceAPICoreClient } from "./adapters/outbound/external/race-api-core-client";
+import { SkillAPICoreClient } from "./adapters/outbound/external/skill-api-core-client";
+import { SkillCategoryAPICoreClient } from "./adapters/outbound/external/skill-category-api-core-client";
+import { MongoActionRepository } from "./adapters/outbound/persistence/repositories/mongo-action.repository";
+import { MongoCharacterRoundRepository } from "./adapters/outbound/persistence/repositories/mongo-character-round.repository";
+import { MongoTacticalCharacterRepository } from "./adapters/outbound/persistence/repositories/mongo-character.repository";
+import { MongoTacticalGameRepository } from "./adapters/outbound/persistence/repositories/mongo-game.repository";
 import { WinstonLogger } from "./logger/logger";
 
 export class DependencyContainer {
   private static instance: DependencyContainer;
 
-  private readonly _configuration: Configuration;
   private readonly _logger: Logger;
   private readonly _authTokenService: AuthTokenService;
   private readonly _tacticalActionRepository: ActionRepository;
@@ -94,10 +91,8 @@ export class DependencyContainer {
 
   private constructor() {
     // Configure basic dependencies
-    this._configuration = new EnvironmentConfiguration();
     this._logger = new WinstonLogger();
     this._authTokenService = new OAuth2TokenService(
-      this._configuration,
       this._logger,
     );
     this._tacticalActionRepository = new MongoActionRepository();
@@ -111,17 +106,14 @@ export class DependencyContainer {
 
     this._raceClient = new RaceAPICoreClient(
       this._logger,
-      this._configuration,
       this._authTokenService,
     );
     this._skillClient = new SkillAPICoreClient(
       this._logger,
-      this._configuration,
       this._authTokenService,
     );
     this._skillCategoryClient = new SkillCategoryAPICoreClient(
       this._logger,
-      this._configuration,
       this._authTokenService,
     );
 
@@ -251,10 +243,6 @@ export class DependencyContainer {
       DependencyContainer.instance = new DependencyContainer();
     }
     return DependencyContainer.instance;
-  }
-
-  get configuration(): Configuration {
-    return this._configuration;
   }
 
   get authTokenService(): AuthTokenService {

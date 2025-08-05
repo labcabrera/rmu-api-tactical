@@ -2,7 +2,7 @@ import {
   ActionAttack,
   ActionAttackInfo,
   ActionResult,
-} from "@/domain/entities/action.entity";
+} from "@domain/entities/action.entity";
 
 export interface UpdateActionCommand {
   readonly type?: string;
