@@ -2,7 +2,6 @@ import { NextFunction, Request, Response } from 'express';
 import { inject } from 'inversify';
 
 import { Logger } from '@domain/ports/logger';
-import { ActionQuery } from '@domain/queries/action.query';
 
 import { CreateActionCommand } from '@application/commands/create-action.command';
 import { CreateActionUseCase } from '@application/use-cases/actions/create-action.usecase';
@@ -24,19 +23,10 @@ export class ActionController {
 
   async find(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const query: ActionQuery = {
-        ...(req.query.gameId && { gameId: req.query.gameId as string }),
-        ...(req.query.round && { round: parseInt(req.query.round as string) }),
-        ...(req.query.characterId && {
-          characterId: req.query.characterId as string,
-        }),
-        ...(req.query.actionType && {
-          actionType: req.query.actionType as string,
-        }),
-        page: req.query.page ? parseInt(req.query.page as string) : 0,
-        size: req.query.size ? parseInt(req.query.size as string) : 10,
-      };
-      const response = await this.findActionsUseCase.execute(query);
+      const page = req.query.page ? parseInt(req.query.page as string) : 0;
+      const size = req.query.size ? parseInt(req.query.size as string) : 10;
+      const rsql = req.query.q as string;
+      const response = await this.findActionsUseCase.execute(rsql, page, size);
       res.json(response);
     } catch (error) {
       next(error);

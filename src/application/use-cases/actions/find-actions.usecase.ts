@@ -4,7 +4,6 @@ import { Action } from '@domain/entities/action.entity';
 import { Page } from '@domain/entities/page.entity';
 import { Logger } from '@domain/ports/logger';
 import { ActionRepository } from '@domain/ports/outbound/action.repository';
-import { ActionQuery } from '@domain/queries/action.query';
 
 import { TYPES } from '@shared/types';
 
@@ -16,8 +15,8 @@ export class FindActionsUseCase {
     @inject(TYPES.Logger) private readonly logger: Logger
   ) {}
 
-  async execute(query: ActionQuery): Promise<Page<Action>> {
+  async execute(rsql: string, page: number, size: number): Promise<Page<Action>> {
     this.logger.info(`FindActionByIdUseCase: Finding actions`);
-    return this.actionRepository.find(query);
+    return this.actionRepository.findByRsql(rsql, page, size);
   }
 }

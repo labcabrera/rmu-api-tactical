@@ -3,45 +3,33 @@ import { injectable } from 'inversify';
 import { Action } from '@domain/entities/action.entity';
 import { Page } from '@domain/entities/page.entity';
 import { ActionRepository } from '@domain/ports/outbound/action.repository';
-import { ActionQuery } from '@domain/queries/action.query';
 
 import ActionDocument from '../models/action.model';
+import { toMongoQuery } from '../rsql-adapter';
 
 @injectable()
 export class MongoActionRepository implements ActionRepository {
-  async findById(id: string): Promise<Action> {
+
+  async findById(id: string): Promise<Action | null> {
     const action = await ActionDocument.findById(id);
-    if (!action) {
-      throw new Error(`Tactical action with ID ${id} not found`);
-    }
-    return this.toEntity(action);
+    return action ? this.toEntity(action) : null;
   }
 
-  async find(criteria: ActionQuery): Promise<Page<Action>> {
-    let filter: any = {};
-    if (criteria.gameId) {
-      filter.gameId = criteria.gameId;
-    }
-    if (criteria.characterId) {
-      filter.characterId = criteria.characterId;
-    }
-    if (criteria.round) {
-      filter.round = criteria.round;
-    }
-    if (criteria.actionType) {
-      filter.type = criteria.actionType;
-    }
-    const skip = criteria.page * criteria.size;
-    const list = await ActionDocument.find(filter).skip(skip).limit(criteria.size).sort({ round: 1, createdAt: -1 });
-    const count = await ActionDocument.countDocuments(filter);
-    const content = list.map(action => this.toEntity(action));
+  async findByRsql(rsql: string, page: number, size: number): Promise<Page<Action>> {
+    const skip = page * size;
+    const mongoQuery = toMongoQuery(rsql);
+    const [actionDocs, totalElements] = await Promise.all([
+      ActionDocument.find(mongoQuery).skip(skip).limit(size).sort({ name: 1 }),
+      ActionDocument.countDocuments(mongoQuery),
+    ]);
+    const content = actionDocs.map(doc => this.toEntity(doc));
     return {
       content,
       pagination: {
-        page: criteria.page,
-        size: criteria.size,
-        totalElements: count,
-        totalPages: Math.ceil(count / criteria.size),
+        page: page,
+        size: size,
+        totalElements,
+        totalPages: Math.ceil(totalElements / size),
       },
     };
   }
@@ -79,20 +67,23 @@ export class MongoActionRepository implements ActionRepository {
     return actions.map(action => this.toEntity(action));
   }
 
-  async create(action: Omit<Action, 'id'>): Promise<Action> {
+  async save(action: Partial<Action>): Promise<Action> {
     const newAction = new ActionDocument(action);
     const saved = await newAction.save();
     return this.toEntity(saved);
   }
 
-  async update(id: string, action: Partial<Action>): Promise<Action | null> {
+  async update(id: string, action: Partial<Action>): Promise<Action> {
     const updated = await ActionDocument.findByIdAndUpdate(id, action, {
       new: true,
     });
-    return updated ? this.toEntity(updated) : null;
+    if (!updated) {
+      throw new Error(`Action with id ${id} not found`);
+    }
+    return this.toEntity(updated);
   }
 
-  async delete(actionId: string): Promise<void> {
+  async deleteById(actionId: string): Promise<void> {
     await ActionDocument.findByIdAndDelete(actionId);
   }
 

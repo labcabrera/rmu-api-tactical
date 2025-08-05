@@ -3,7 +3,6 @@ import { injectable } from 'inversify';
 import { Game } from '@domain/entities/game.entity';
 import { Page } from '@domain/entities/page.entity';
 import { GameRepository } from '@domain/ports/outbound/game.repository';
-import { GameQuery } from '@domain/queries/game.query';
 
 import TacticalGameModel from '../models/game.model';
 import { toMongoQuery } from '../rsql-adapter';
@@ -30,33 +29,6 @@ export class MongoGameRepository implements GameRepository {
         size: size,
         totalElements,
         totalPages: Math.ceil(totalElements / size),
-      },
-    };
-  }
-
-  async find(query: GameQuery): Promise<Page<Game>> {
-    const { searchExpression, username, page, size } = query;
-    let filter: any = {};
-    if (username) {
-      filter.user = username;
-    }
-    if (searchExpression) {
-      filter.$or = [
-        { name: { $regex: searchExpression, $options: 'i' } },
-        { description: { $regex: searchExpression, $options: 'i' } },
-      ];
-    }
-    const skip = page * size;
-    const gameModels = await TacticalGameModel.find(filter).skip(skip).limit(size).sort({ updatedAt: -1 });
-    const content = gameModels.map(model => this.toDomainEntity(model));
-    const count = await TacticalGameModel.countDocuments(filter);
-    return {
-      content,
-      pagination: {
-        page: query.page,
-        size: query.size,
-        totalElements: count,
-        totalPages: Math.ceil(count / query.size),
       },
     };
   }

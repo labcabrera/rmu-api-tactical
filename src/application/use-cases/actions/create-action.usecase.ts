@@ -13,14 +13,10 @@ import { TYPES } from '@shared/types';
 @injectable()
 export class CreateActionUseCase {
   constructor(
-    @inject(TYPES.GameRepository)
-    private readonly gameRepository: GameRepository,
-    @inject(TYPES.CharacterRepository)
-    private readonly characterRepository: CharacterRepository,
-    @inject(TYPES.CharacterRoundRepository)
-    private readonly characterRoundRepository: CharacterRoundRepository,
-    @inject(TYPES.ActionRepository)
-    private readonly actionRepository: ActionRepository,
+    @inject(TYPES.GameRepository) private readonly gameRepository: GameRepository,
+    @inject(TYPES.CharacterRepository) private readonly characterRepository: CharacterRepository,
+    @inject(TYPES.CharacterRoundRepository) private readonly characterRoundRepository: CharacterRoundRepository,
+    @inject(TYPES.ActionRepository) private readonly actionRepository: ActionRepository,
     @inject(TYPES.Logger) private readonly logger: Logger
   ) {}
 
@@ -28,7 +24,6 @@ export class CreateActionUseCase {
     this.logger.info(`CreateActionUseCase: Creating action ${command.actionType} for character ${command.characterId}`);
 
     //TODO VALIDATION
-
     const action: Omit<Action, 'id'> = {
       gameId: command.gameId,
       round: command.round,
@@ -38,6 +33,6 @@ export class CreateActionUseCase {
       actionPoints: command.actionPoints,
       createdAt: new Date(),
     };
-    return this.actionRepository.create(action);
+    return this.actionRepository.save(action);
   }
 }

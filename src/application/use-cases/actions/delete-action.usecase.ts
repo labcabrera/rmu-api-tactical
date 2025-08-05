@@ -5,6 +5,7 @@ import { ActionRepository } from '@domain/ports/outbound/action.repository';
 
 import { DeleteActionCommand } from '@application/commands/delete-action.command';
 import { TYPES } from '@shared/types';
+import { NotFoundError } from '../../../domain/errors/errors';
 
 @injectable()
 export class DeleteActionUseCase {
@@ -16,6 +17,10 @@ export class DeleteActionUseCase {
 
   async execute(command: DeleteActionCommand): Promise<void> {
     this.logger.info(`DeleteActionUseCase: Deleting action ${command.actionId}`);
-    await this.actionRepository.delete(command.actionId);
+    const action = await this.actionRepository.findById(command.actionId);
+    if (!action) {
+      throw new NotFoundError("Action", command.actionId);
+    }
+    await this.actionRepository.deleteById(command.actionId);
   }
 }

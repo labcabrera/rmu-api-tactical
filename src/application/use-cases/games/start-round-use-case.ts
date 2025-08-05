@@ -62,6 +62,6 @@ export class StartRoundUseCase {
       },
       actionPoints: 4,
     };
-    await this.characterRoundRepository.create(entity);
+    await this.characterRoundRepository.save(entity);
   }
 }

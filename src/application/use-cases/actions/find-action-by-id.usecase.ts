@@ -5,6 +5,7 @@ import { Logger } from '@domain/ports/logger';
 import { ActionRepository } from '@domain/ports/outbound/action.repository';
 
 import { TYPES } from '@shared/types';
+import { NotFoundError } from '../../../domain/errors/errors';
 
 @injectable()
 export class FindActionByIdUseCase {
@@ -16,6 +17,10 @@ export class FindActionByIdUseCase {
 
   async execute(actionId: string): Promise<Action> {
     this.logger.info(`FindActionByIdUseCase: Finding action << ${actionId}`);
-    return this.actionRepository.findById(actionId);
+    const action = await this.actionRepository.findById(actionId);
+    if(!action) {
+      throw new NotFoundError("Action", actionId);
+    }
+    return action;
   }
 }
