@@ -1,7 +1,9 @@
 import { inject, injectable } from 'inversify';
-import { RealmDeletedEvent } from '../../../domain/events/realm-deleted.event';
-import { Logger } from '../../../domain/ports/logger';
-import { TYPES } from '../../../shared/types';
+
+import { RealmDeletedEvent } from '@domain/events/realm-deleted.event';
+
+import { Logger } from '@application/ports/logger';
+import { TYPES } from '@shared/types';
 
 @injectable()
 export class RealmDeletedUseCase {

@@ -2,7 +2,7 @@ import { injectable } from 'inversify';
 
 import { Game } from '@domain/entities/game.entity';
 import { Page } from '@domain/entities/page.entity';
-import { GameRepository } from '@domain/ports/outbound/game.repository';
+import { GameRepository } from '@application/ports/outbound/game.repository';
 
 import TacticalGameModel from '../models/game.model';
 import { toMongoQuery } from '../rsql-adapter';

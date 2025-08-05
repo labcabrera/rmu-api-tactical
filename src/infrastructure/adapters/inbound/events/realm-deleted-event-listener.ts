@@ -1,9 +1,11 @@
 import { inject, injectable } from 'inversify';
-import { RealmDeletedUseCase } from '../../../../application/use-cases/realm/realm-deleted.use-case';
-import { Realm, RealmDeletedEvent } from '../../../../domain/events/realm-deleted.event';
-import { EventListener } from '../../../../domain/ports/inbound/event-listener';
-import { Logger } from '../../../../domain/ports/logger';
-import { TYPES } from '../../../../shared/types';
+
+import { Realm, RealmDeletedEvent } from '@domain/events/realm-deleted.event';
+
+import { EventListener } from '@application/ports/inbound/event-listener';
+import { Logger } from '@application/ports/logger';
+import { RealmDeletedUseCase } from '@application/use-cases/realm/realm-deleted.use-case';
+import { TYPES } from '@shared/types';
 
 @injectable()
 export class RealmDeletedEventListener implements EventListener<RealmDeletedEvent, Realm> {

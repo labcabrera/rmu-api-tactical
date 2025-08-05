@@ -2,7 +2,7 @@ import { injectable } from 'inversify';
 
 import { CharacterRound } from '@domain/entities/character-round.entity';
 import { Page } from '@domain/entities/page.entity';
-import { CharacterRoundRepository } from '@domain/ports/outbound/character-round.repository';
+import { CharacterRoundRepository } from '@application/ports/outbound/character-round.repository';
 
 import CharacterRoundDocument from '../models/character-round.model';
 import { toMongoQuery } from '../rsql-adapter';

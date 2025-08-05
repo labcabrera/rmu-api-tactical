@@ -1,4 +1,4 @@
-import { DomainEvent } from '../../events/domain-event';
+import { DomainEvent } from '@domain/events/domain-event';
 import { EventListener } from './event-listener';
 
 export interface EventAdapter {

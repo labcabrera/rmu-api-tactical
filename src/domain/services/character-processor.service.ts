@@ -1,8 +1,8 @@
 import { inject, injectable } from 'inversify';
 
 import { Character } from '@domain/entities/character.entity';
-import { Logger } from '@domain/ports/logger';
 
+import { Logger } from '@application/ports/logger';
 import { TYPES } from '@shared/types';
 import { ArmorProcessor } from './character/processors/amor-processor';
 import { AttackProcessor } from './character/processors/attack-processor';

@@ -1,5 +1,5 @@
 import { DomainError } from '@domain/errors/errors';
-import { Logger } from '@domain/ports/logger';
+import { Logger } from '@application/ports/logger';
 import { container } from '@shared/container';
 import { NextFunction, Request, Response } from 'express';
 

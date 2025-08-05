@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify';
 
-import { Logger } from '@domain/ports/logger';
-import { AuthToken, AuthTokenService, OAuth2ClientCredentials } from '@domain/ports/outbound/auth-token-service';
+import { Logger } from '@application/ports/logger';
+import { AuthToken, AuthTokenService, OAuth2ClientCredentials } from '@application/ports/outbound/auth-token-service';
 
 import { config } from '@infrastructure/config/config';
 import { TYPES } from '@shared/types';

@@ -2,12 +2,12 @@ import { inject, injectable } from 'inversify';
 import { Consumer, EachMessagePayload, Kafka } from 'kafkajs';
 
 import { DomainEvent } from '@domain/events/domain-event';
-import { EventAdapter } from '@domain/ports/inbound/event-adapter';
-import { EventListener } from '@domain/ports/inbound/event-listener';
-import { Logger } from '@domain/ports/logger';
-import { TYPES } from '@shared/types';
 
-import { config } from '../../../config/config';
+import { EventAdapter } from '@application/ports/inbound/event-adapter';
+import { EventListener } from '@application/ports/inbound/event-listener';
+import { Logger } from '@application/ports/logger';
+import { config } from '@infrastructure/config/config';
+import { TYPES } from '@shared/types';
 
 @injectable()
 export class KafkaEventAdapter implements EventAdapter {

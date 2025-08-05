@@ -1,13 +1,15 @@
+import { inject, injectable } from 'inversify';
+
 import { CharacterRound } from '@domain/entities/character-round.entity';
 import { Character } from '@domain/entities/character.entity';
 import { Game } from '@domain/entities/game.entity';
-import { Logger } from '@domain/ports/logger';
-import { CharacterRoundRepository } from '@domain/ports/outbound/character-round.repository';
-import { CharacterRepository } from '@domain/ports/outbound/character.repository';
-import { GameRepository } from '@domain/ports/outbound/game.repository';
-import { inject, injectable } from '@inversifyjs/core';
-import { NotFoundError, ValidationError } from '../../../domain/errors/errors';
-import { TYPES } from '../../../shared/types';
+import { NotFoundError, ValidationError } from '@domain/errors/errors';
+
+import { Logger } from '@application/ports/logger';
+import { CharacterRoundRepository } from '@application/ports/outbound/character-round.repository';
+import { CharacterRepository } from '@application/ports/outbound/character.repository';
+import { GameRepository } from '@application/ports/outbound/game.repository';
+import { TYPES } from '@shared/types';
 
 @injectable()
 export class StartRoundUseCase {

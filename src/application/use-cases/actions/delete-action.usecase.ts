@@ -1,11 +1,11 @@
 import { inject, injectable } from 'inversify';
 
-import { Logger } from '@domain/ports/logger';
-import { ActionRepository } from '@domain/ports/outbound/action.repository';
+import { NotFoundError } from '@domain/errors/errors';
 
 import { DeleteActionCommand } from '@application/commands/delete-action.command';
+import { Logger } from '@application/ports/logger';
+import { ActionRepository } from '@application/ports/outbound/action.repository';
 import { TYPES } from '@shared/types';
-import { NotFoundError } from '../../../domain/errors/errors';
 
 @injectable()
 export class DeleteActionUseCase {

@@ -2,7 +2,7 @@ import { injectable } from 'inversify';
 
 import { Character } from '@domain/entities/character.entity';
 import { Page } from '@domain/entities/page.entity';
-import { CharacterRepository } from '@domain/ports/outbound/character.repository';
+import { CharacterRepository } from '@application/ports/outbound/character.repository';
 
 import TacticalCharacterDocument from '../models/character.model';
 import { toMongoQuery } from '../rsql-adapter';

@@ -1,8 +1,8 @@
 import { inject, injectable } from 'inversify';
 
 import { Game } from '@domain/entities/game.entity';
-import { Logger } from '@domain/ports/logger';
-import { GameRepository } from '@domain/ports/outbound/game.repository';
+import { Logger } from '@application/ports/logger';
+import { GameRepository } from '@application/ports/outbound/game.repository';
 
 import { UpdateGameCommand } from '@application/commands/update-game.command';
 import { TYPES } from '@shared/types';

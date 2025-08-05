@@ -1,13 +1,13 @@
 import { inject, injectable } from 'inversify';
 
 import { Game } from '@domain/entities/game.entity';
-import { Logger } from '@domain/ports/logger';
-import { EventNotificationPort } from '@domain/ports/outbound/event-notification.port';
-import { GameRepository } from '@domain/ports/outbound/game.repository';
+import { GameCreatedEvent } from '@domain/events/game-created.event';
 
 import { CreateGameCommand } from '@application/commands/create-game.command';
+import { Logger } from '@application/ports/logger';
+import { EventNotificationPort } from '@application/ports/outbound/event-notification.port';
+import { GameRepository } from '@application/ports/outbound/game.repository';
 import { TYPES } from '@shared/types';
-import { GameCreatedEvent } from '../../../domain/events/game-created.event';
 
 @injectable()
 export class CreateGameUseCase {

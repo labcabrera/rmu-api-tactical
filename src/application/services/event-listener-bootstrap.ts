@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify';
-import { EventAdapter } from '../../domain/ports/inbound/event-adapter';
-import { Logger } from '../../domain/ports/logger';
+import { EventAdapter } from '@application/ports/inbound/event-adapter';
+import { Logger } from '@application/ports/logger';
 import { RealmDeletedEventListener } from '../../infrastructure/adapters/inbound/events/realm-deleted-event-listener';
 import { TYPES } from '../../shared/types';
 

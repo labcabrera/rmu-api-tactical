@@ -1,8 +1,8 @@
 import { inject, injectable } from 'inversify';
 
-import { Logger } from '@domain/ports/logger';
-import { AuthTokenService } from '@domain/ports/outbound/auth-token-service';
-import { SkillCategoryClient } from '@domain/ports/outbound/skill-category-client';
+import { Logger } from '@application/ports/logger';
+import { AuthTokenService } from '@application/ports/outbound/auth-token-service';
+import { SkillCategoryClient } from '@application/ports/outbound/skill-category-client';
 
 import { config } from '@infrastructure/config/config';
 import { TYPES } from '@shared/types';

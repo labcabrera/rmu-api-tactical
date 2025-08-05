@@ -1,5 +1,5 @@
-import { Logger } from '../../../../domain/ports/logger';
-import { AuthTokenService } from '../../../../domain/ports/outbound/auth-token-service';
+import { Logger } from '@application/ports/logger';
+import { AuthTokenService } from '@application/ports/outbound/auth-token-service';
 
 export abstract class AuthenticatedApiClient {
   constructor(

@@ -1,6 +1,6 @@
 import { DomainEvent } from '@domain/events/domain-event';
-import { Logger } from '@domain/ports/logger';
-import { EventNotificationService, TopicConfiguration } from '@domain/ports/outbound/event-notification-service';
+import { Logger } from '@application/ports/logger';
+import { EventNotificationService, TopicConfiguration } from '@application/ports/outbound/event-notification-service';
 import { config } from '@infrastructure/config/config';
 import { container } from '@shared/container';
 import { injectable } from 'inversify';

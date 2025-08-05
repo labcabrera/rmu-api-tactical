@@ -2,7 +2,7 @@ import { injectable } from 'inversify';
 
 import { Action } from '@domain/entities/action.entity';
 import { Page } from '@domain/entities/page.entity';
-import { ActionRepository } from '@domain/ports/outbound/action.repository';
+import { ActionRepository } from '@application/ports/outbound/action.repository';
 
 import ActionDocument from '../models/action.model';
 import { toMongoQuery } from '../rsql-adapter';

@@ -2,9 +2,9 @@ import { inject, injectable } from 'inversify';
 
 import { Action } from '@domain/entities/action.entity';
 import { Page } from '@domain/entities/page.entity';
-import { Logger } from '@domain/ports/logger';
-import { ActionRepository } from '@domain/ports/outbound/action.repository';
 
+import { Logger } from '@application/ports/logger';
+import { ActionRepository } from '@application/ports/outbound/action.repository';
 import { TYPES } from '@shared/types';
 
 @injectable()

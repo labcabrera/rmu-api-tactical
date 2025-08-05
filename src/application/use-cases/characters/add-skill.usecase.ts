@@ -1,14 +1,15 @@
+import { inject, injectable } from 'inversify';
+
 import { Character, CharacterSkill } from '@domain/entities/character.entity';
-import { Logger } from '@domain/ports/logger';
-import { CharacterRepository } from '@domain/ports/outbound/character.repository';
-import { SkillCategoryClient } from '@domain/ports/outbound/skill-category-client';
-import { SkillClient } from '@domain/ports/outbound/skill-client';
+import { NotFoundError } from '@domain/errors/errors';
+import { CharacterProcessorService } from '@domain/services/character-processor.service';
 
 import { AddSkillCommand } from '@application/commands/add-skill.command';
-import { CharacterProcessorService } from '@domain/services/character-processor.service';
-import { inject, injectable } from 'inversify';
-import { NotFoundError } from '../../../domain/errors/errors';
-import { TYPES } from '../../../shared/types';
+import { Logger } from '@application/ports/logger';
+import { CharacterRepository } from '@application/ports/outbound/character.repository';
+import { SkillCategoryClient } from '@application/ports/outbound/skill-category-client';
+import { SkillClient } from '@application/ports/outbound/skill-client';
+import { TYPES } from '@shared/types';
 
 @injectable()
 export class AddSkillUseCase {

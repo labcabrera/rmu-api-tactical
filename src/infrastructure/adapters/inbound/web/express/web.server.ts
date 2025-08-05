@@ -1,4 +1,4 @@
-import { Logger } from '@domain/ports/logger';
+import { Logger } from '@application/ports/logger';
 
 import { config } from '@infrastructure/config/config';
 import { container } from '@shared/container';

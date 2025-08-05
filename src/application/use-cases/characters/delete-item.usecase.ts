@@ -1,11 +1,11 @@
 import { inject, injectable } from 'inversify';
 
 import { Character } from '@domain/entities/character.entity';
-import { Logger } from '@domain/ports/logger';
-import { CharacterRepository } from '@domain/ports/outbound/character.repository';
+import { NotFoundError } from '@domain/errors/errors';
 
+import { Logger } from '@application/ports/logger';
+import { CharacterRepository } from '@application/ports/outbound/character.repository';
 import { TYPES } from '@shared/types';
-import { NotFoundError } from '../../../domain/errors/errors';
 
 @injectable()
 export class DeleteItemUseCase {
