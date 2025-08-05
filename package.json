@@ -20,9 +20,9 @@
     "npm": ">=8.0.0"
   },
   "scripts": {
-    "build": "tsc",
-    "start": "ts-node -r tsconfig-paths/register dist/app.js",
-    "dev": "ts-node -r tsconfig-paths/register src/app.ts",
+    "build": "npm run clean && tsc",
+    "start": "node dist/app.js",
+    "dev": "ts-node-dev --respawn -r tsconfig-paths/register src/app.ts",
     "dev:watch": "nodemon --exec ts-node src/app.ts",
     "debug": "ts-node --inspect=0.0.0.0:9229 src/app.ts",
     "debug:watch": "nodemon --exec ts-node --inspect=0.0.0.0:9229 src/app.ts",
@@ -47,6 +47,7 @@
     "inversify": "^7.7.0",
     "jsonwebtoken": "^9.0.2",
     "jwks-rsa": "^3.2.0",
+    "module-alias": "^2.2.3",
     "mongoose": "^8.17.0",
     "pino": "^9.7.0",
     "swagger-ui-express": "^5.0.1",
@@ -66,5 +67,12 @@
     "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
+  },
+  "_moduleAliases": {
+    "@domain": "dist/domain",
+    "@infrastructure": "dist/infrastructure",
+    "@application": "dist/application",
+    "@adapters": "dist/adapters",
+    "@shared": "dist/shared"
   }
 }

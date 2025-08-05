@@ -13,9 +13,10 @@ import { actionRouter as actionRoutes } from '@infrastructure/adapters/inbound/w
 import { characterRoundRoutes } from '@infrastructure/adapters/inbound/web/routes/character-round.routes';
 import { characterRouter as characterRoutes } from '@infrastructure/adapters/inbound/web/routes/character.routes';
 import { gameRouter as gameRoutes } from '@infrastructure/adapters/inbound/web/routes/game.routes';
-import { config } from '@infrastructure/config/config';
+
 
 import { container } from '@shared/container';
+import { config } from '../../../../config/config';
 
 export class ExpressApp {
   private app: Application;
