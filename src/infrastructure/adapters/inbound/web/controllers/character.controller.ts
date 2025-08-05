@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { inject } from 'inversify';
 
-import { Logger } from '@domain/ports/logger';
+import { Logger } from '@application/ports/logger';
 
 import { AddItemCommand } from '@application/commands/add-item.comand';
 import { AddSkillCommand } from '@application/commands/add-skill.command';

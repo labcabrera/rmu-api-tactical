@@ -1,13 +1,13 @@
 import { inject, injectable } from 'inversify';
 
 import { Action } from '@domain/entities/action.entity';
-import { Logger } from '@domain/ports/logger';
-import { ActionRepository } from '@domain/ports/outbound/action.repository';
-import { CharacterRoundRepository } from '@domain/ports/outbound/character-round.repository';
-import { CharacterRepository } from '@domain/ports/outbound/character.repository';
-import { GameRepository } from '@domain/ports/outbound/game.repository';
 
 import { CreateActionCommand } from '@application/commands/create-action.command';
+import { Logger } from '@application/ports/logger';
+import { ActionRepository } from '@application/ports/outbound/action.repository';
+import { CharacterRoundRepository } from '@application/ports/outbound/character-round.repository';
+import { CharacterRepository } from '@application/ports/outbound/character.repository';
+import { GameRepository } from '@application/ports/outbound/game.repository';
 import { TYPES } from '@shared/types';
 
 @injectable()

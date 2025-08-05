@@ -3,7 +3,7 @@ import { inject, injectable } from 'inversify';
 import jwt from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
 
-import { Logger } from '@domain/ports/logger';
+import { Logger } from '@application/ports/logger';
 import { config } from '@infrastructure/config/config';
 import { JWTPayload, User } from '../../../../../domain/entities/auth';
 

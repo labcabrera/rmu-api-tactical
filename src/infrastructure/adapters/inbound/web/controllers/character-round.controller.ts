@@ -1,13 +1,12 @@
 import { NextFunction, Request, Response } from 'express';
 import { inject } from 'inversify';
 
-import { Logger } from '@domain/ports/logger';
+import { Logger } from '@application/ports/logger';
 
 import { FindCharacterRoundsUseCase } from '@application/use-cases/character-rounds/find-character-rounds.usecase';
 import { TYPES } from '@shared/types';
 
 export class CharacterRoundController {
-
   constructor(
     @inject(TYPES.FindCharacterRoundsUseCase) private readonly findCharacterRoundsUseCase: FindCharacterRoundsUseCase,
     @inject(TYPES.Logger) private readonly logger: Logger
@@ -24,5 +23,4 @@ export class CharacterRoundController {
       next(error);
     }
   }
-
 }

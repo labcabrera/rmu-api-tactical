@@ -1,6 +1,6 @@
 import { Character } from '@domain/entities/character.entity';
-import { Logger } from '@domain/ports/logger';
-import { CharacterRepository } from '@domain/ports/outbound/character.repository';
+import { Logger } from '@application/ports/logger';
+import { CharacterRepository } from '@application/ports/outbound/character.repository';
 import { CharacterProcessorService } from '@domain/services/character-processor.service';
 
 import { DeleteSkillCommand } from '@application/commands/delete-skill-command';

@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { inject } from 'inversify';
 
-import { Logger } from '@domain/ports/logger';
+import { Logger } from '@application/ports/logger';
 
 import { CreateActionCommand } from '@application/commands/create-action.command';
 import { CreateActionUseCase } from '@application/use-cases/actions/create-action.usecase';

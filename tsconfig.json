@@ -27,7 +27,7 @@
   },
   "include": [
     "src/**/*"
-  ],
+, "tests/__tests__", "tests/realm-deleted-event.test.ts"  ],
   "exclude": [
     "node_modules",
     "dist",

@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { inject } from 'inversify';
 
-import { Logger } from '@domain/ports/logger';
+import { Logger } from '@application/ports/logger';
 
 import { CreateGameCommand } from '@application/commands/create-game.command';
 import { UpdateGameCommand } from '@application/commands/update-game.command';

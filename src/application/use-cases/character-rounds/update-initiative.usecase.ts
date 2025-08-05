@@ -1,12 +1,12 @@
 import { inject, injectable } from 'inversify';
 
 import { CharacterRound } from '@domain/entities/character-round.entity';
-import { Logger } from '@domain/ports/logger';
-import { CharacterRoundRepository } from '@domain/ports/outbound/character-round.repository';
+import { NotFoundError } from '@domain/errors/errors';
 
 import { UpdateInitiativeCommand } from '@application/commands/update-initiative.command';
+import { Logger } from '@application/ports/logger';
+import { CharacterRoundRepository } from '@application/ports/outbound/character-round.repository';
 import { TYPES } from '@shared/types';
-import { NotFoundError } from '../../../domain/errors/errors';
 
 @injectable()
 export class UpdateInitiativeUseCase {
@@ -21,8 +21,8 @@ export class UpdateInitiativeUseCase {
       `Updating initiative for character round: ${command.characterRoundId} with roll: ${command.initiativeRoll}`
     );
     const characterRound = await this.characterRoundRepository.findById(command.characterRoundId);
-    if(!characterRound) {
-      throw new NotFoundError("Character round", command.characterRoundId);
+    if (!characterRound) {
+      throw new NotFoundError('Character round', command.characterRoundId);
     }
     const baseInitiative = characterRound.initiative?.base || 0;
     const penalty = characterRound.initiative?.penalty || 0;

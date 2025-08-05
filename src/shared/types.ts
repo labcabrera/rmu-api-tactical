@@ -50,10 +50,27 @@ export const TYPES = {
   StartRoundUseCase: 'StartRoundUseCase',
   UpdateGameUseCase: 'UpdateGameUseCase',
 
+  // Event use cases
+  RealmDeletedUseCase: 'RealmDeletedUseCase',
+
   // Controllers
   ActionController: 'ActionController',
   AttackController: 'AttackController',
   CharacterRoundController: 'CharacterRoundController',
   CharacterController: 'CharacterController',
   GameController: 'GameController',
+
+  // Event Notification Services
+  EventNotificationPort: 'EventNotificationPort',
+  EventNotificationRegistry: 'EventNotificationRegistry',
+  GameCreatedEventNotificationService: 'GameCreatedEventNotificationService',
+
+  // Event Listeners
+  RealmDeletedEventListener: 'RealmDeletedEventListener',
+
+  // Event Adapters
+  KafkaEventAdapter: 'KafkaEventAdapter',
+
+  // Bootstrap Services
+  EventListenerBootstrap: 'EventListenerBootstrap',
 };

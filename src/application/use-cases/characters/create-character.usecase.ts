@@ -15,16 +15,16 @@ import {
   CharacterStatistics,
 } from '@domain/entities/character.entity';
 import { Game } from '@domain/entities/game.entity';
-import { Logger } from '@domain/ports/logger';
-import { CharacterRepository } from '@domain/ports/outbound/character.repository';
-import { GameRepository } from '@domain/ports/outbound/game.repository';
-import { RaceClient } from '@domain/ports/outbound/race-client';
-import { SkillClient } from '@domain/ports/outbound/skill-client';
+import { ValidationError } from '@domain/errors/errors';
 import { CharacterProcessorService } from '@domain/services/character-processor.service';
 
 import { CreateCharacterCommand } from '@application/commands/create-character.command';
+import { Logger } from '@application/ports/logger';
+import { CharacterRepository } from '@application/ports/outbound/character.repository';
+import { GameRepository } from '@application/ports/outbound/game.repository';
+import { RaceClient } from '@application/ports/outbound/race-client';
+import { SkillClient } from '@application/ports/outbound/skill-client';
 import { TYPES } from '@shared/types';
-import { ValidationError } from '../../../domain/errors/errors';
 
 @injectable()
 export class CreateCharacterUseCase {

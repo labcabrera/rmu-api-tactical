@@ -1,4 +1,4 @@
 export interface HasEntityMetadata {
-    createdAt: Date;
-    updatedAt?: Date;
+  createdAt: Date;
+  updatedAt?: Date;
 }

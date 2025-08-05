@@ -2,9 +2,10 @@ import { inject, injectable } from 'inversify';
 
 import { CharacterRound } from '@domain/entities/character-round.entity';
 import { Page } from '@domain/entities/page.entity';
-import { Logger } from '@domain/ports/logger';
-import { CharacterRoundRepository } from '@domain/ports/outbound/character-round.repository';
-import { TYPES } from '../../../shared/types';
+
+import { Logger } from '@application/ports/logger';
+import { CharacterRoundRepository } from '@application/ports/outbound/character-round.repository';
+import { TYPES } from '@shared/types';
 
 @injectable()
 export class FindCharacterRoundsUseCase {

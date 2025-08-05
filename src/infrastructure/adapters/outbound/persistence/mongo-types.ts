@@ -1,7 +1,5 @@
 import { Document } from 'mongoose';
 
-
-
 export interface CharacterDocument extends Document {
   gameId: string;
   name: string;

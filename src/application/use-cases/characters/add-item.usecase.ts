@@ -2,13 +2,13 @@ import { randomUUID } from 'crypto';
 import { inject, injectable } from 'inversify';
 
 import { Character, CharacterItem } from '@domain/entities/character.entity';
-import { Logger } from '@domain/ports/logger';
-import { CharacterRepository } from '@domain/ports/outbound/character.repository';
+import { NotFoundError } from '@domain/errors/errors';
 import { CharacterProcessorService } from '@domain/services/character-processor.service';
 
 import { AddItemCommand } from '@application/commands/add-item.comand';
-import { NotFoundError } from '../../../domain/errors/errors';
-import { TYPES } from '../../../shared/types';
+import { Logger } from '@application/ports/logger';
+import { CharacterRepository } from '@application/ports/outbound/character.repository';
+import { TYPES } from '@shared/types';
 
 @injectable()
 export class AddItemUseCase {

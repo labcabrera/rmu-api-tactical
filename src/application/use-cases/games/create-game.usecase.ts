@@ -1,37 +1,42 @@
 import { inject, injectable } from 'inversify';
 
 import { Game } from '@domain/entities/game.entity';
-import { Logger } from '@domain/ports/logger';
-import { GameRepository } from '@domain/ports/outbound/game.repository';
+import { GameCreatedEvent } from '@domain/events/game-created.event';
 
 import { CreateGameCommand } from '@application/commands/create-game.command';
+import { Logger } from '@application/ports/logger';
+import { EventNotificationPort } from '@application/ports/outbound/event-notification.port';
+import { GameRepository } from '@application/ports/outbound/game.repository';
 import { TYPES } from '@shared/types';
 
 @injectable()
 export class CreateGameUseCase {
   constructor(
     @inject(TYPES.GameRepository) private readonly gameRepository: GameRepository,
+    @inject(TYPES.EventNotificationPort) private readonly eventNotificationPort: EventNotificationPort<Game>,
     @inject(TYPES.Logger) private readonly logger: Logger
   ) {}
 
   async execute(command: CreateGameCommand): Promise<Game> {
     this.logger.info(`Executing create game use case << ${command.name}`);
     let factions = command.factions || [];
-    if (!factions || factions.length === 0) {
-      factions = ['Light', 'Evil', 'Neutral'];
-    }
-    const newGame: Game = {
+    const newGame: Partial<Game> = {
       name: command.name,
       description: command.description,
       status: 'created',
       phase: 'not_started',
-      factions,
+      factions: factions.length > 0 ? factions : this.defaultFactions(),
       round: 0,
       owner: command.username,
       createdAt: new Date(),
     };
     const savedGame = await this.gameRepository.save(newGame);
     this.logger.info(`Created tactical game with ID: ${savedGame.id}`);
+    await this.eventNotificationPort.notify(new GameCreatedEvent(savedGame));
     return savedGame;
+  }
+
+  private defaultFactions(): string[] {
+    return ['Light', 'Evil', 'Neutral'];
   }
 }

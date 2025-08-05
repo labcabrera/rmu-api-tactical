@@ -2,8 +2,8 @@ import { inject, injectable } from 'inversify';
 
 import { Character } from '@domain/entities/character.entity';
 import { Page } from '@domain/entities/page.entity';
-import { Logger } from '@domain/ports/logger';
-import { CharacterRepository } from '@domain/ports/outbound/character.repository';
+import { Logger } from '@application/ports/logger';
+import { CharacterRepository } from '@application/ports/outbound/character.repository';
 
 import { TYPES } from '@shared/types';
 
