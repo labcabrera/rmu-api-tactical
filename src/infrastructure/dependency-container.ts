@@ -41,7 +41,7 @@ import { MongoActionRepository } from "./adapters/outbound/persistence/repositor
 import { MongoCharacterRoundRepository } from "./adapters/outbound/persistence/repositories/mongo-character-round.repository";
 import { MongoTacticalCharacterRepository } from "./adapters/outbound/persistence/repositories/mongo-character.repository";
 import { MongoTacticalGameRepository } from "./adapters/outbound/persistence/repositories/mongo-game.repository";
-import { PinoLogger } from './logger/logger';
+import { PinoLogger } from './logger/pino-logger';
 
 export class DependencyContainer {
   private static instance: DependencyContainer;

@@ -6,12 +6,15 @@ import path from "path";
 import swaggerUi from "swagger-ui-express";
 import yaml from "yaml";
 
+import { Logger } from '@domain/ports/logger';
+import { ApiRoutes } from "@infrastructure/adapters/inbound/web/routes";
 import { config } from '@infrastructure/config/config';
-import { ApiRoutes } from "../routes";
+import { container } from '@shared/container';
 
 export class ExpressApp {
   private app: Application;
   private apiRoutes: ApiRoutes;
+  private logger: Logger = container.get('Logger');
 
   constructor() {
     this.app = express();
@@ -30,13 +33,11 @@ export class ExpressApp {
   }
 
   private initializeDatabase(): void {
-    const mongoUri = config.mongoUri;
-
     mongoose
-      .connect(mongoUri)
-      .then(() => console.log("Connected to " + mongoUri))
+      .connect(config.mongoUri)
+      .then(() => this.logger.info("Connected to " + config.mongoUri))
       .catch((err: Error) =>
-        console.log("Error connecting to " + mongoUri, err),
+        this.logger.error("Error connecting to " + config.mongoUri, err),
       );
   }
 
