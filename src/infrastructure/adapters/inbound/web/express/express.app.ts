@@ -11,6 +11,8 @@ import { Logger } from '@domain/ports/logger';
 import { config } from '@infrastructure/config/config';
 import { container } from '@shared/container';
 
+import { gameRouter } from '../routes/game.routes';
+
 export class ExpressApp {
   private app: Application;
   // private apiRoutes: ApiRoutes;
@@ -21,7 +23,7 @@ export class ExpressApp {
     // this.apiRoutes = new ApiRoutes();
     this.initializeMiddleware();
     this.initializeDatabase();
-    // this.initializeRoutes();
+    this.initializeRoutes();
     //TODO update spec and fix
     // this.initializeSwagger();
     this.initializeErrorHandling();
@@ -41,12 +43,10 @@ export class ExpressApp {
       );
   }
 
-  // private initializeRoutes(): void {
-  //   this.app.use("/v1", this.apiRoutes.getRouter());
-  //   this.app.get("/", (req: Request, res: Response) => {
-  //     res.redirect("/api-docs");
-  //   });
-  // }
+  private initializeRoutes(): void {
+    this.app.use("/v1/tactical-games",  gameRouter); 
+  
+  }
 
   private initializeSwagger(): void {
     try {

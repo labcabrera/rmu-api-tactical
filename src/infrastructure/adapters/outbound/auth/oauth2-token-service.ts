@@ -1,17 +1,22 @@
+import { inject, injectable } from 'inversify';
+
 import { Logger } from "@domain/ports/logger";
 import {
   AuthToken,
   AuthTokenService,
   OAuth2ClientCredentials,
 } from "@domain/ports/outbound/auth-token-service";
-import { config } from '@infrastructure/config/config';
 
+import { config } from '@infrastructure/config/config';
+import { TYPES } from '@shared/types';
+
+@injectable()
 export class OAuth2TokenService implements AuthTokenService {
   private cachedToken: AuthToken | null = null;
   private tokenRequestInProgress: Promise<AuthToken> | null = null;
 
   constructor(
-    private readonly logger: Logger,
+    @inject(TYPES.Logger) private readonly logger: Logger,
   ) {}
 
   async getAccessToken(): Promise<string> {

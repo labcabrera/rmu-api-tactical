@@ -8,7 +8,7 @@ import { CharacterQuery } from "@domain/queries/character.query";
 import TacticalCharacterDocument from "../models/character.model";
 
 @injectable()
-export class MongoTacticalCharacterRepository implements CharacterRepository {
+export class MongoCharacterRepository implements CharacterRepository {
   async findById(id: string): Promise<Character> {
     const character = await TacticalCharacterDocument.findById(id);
     if (!character) {

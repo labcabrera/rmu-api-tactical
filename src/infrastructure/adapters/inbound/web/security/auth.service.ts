@@ -3,9 +3,9 @@ import { inject, injectable } from 'inversify';
 import jwt from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
 
-import { JWTPayload, User } from '@domain/entities/auth';
 import { Logger } from '@domain/ports/logger';
 import { config } from '@infrastructure/config/config';
+import { JWTPayload, User } from '../../../../../domain/entities/auth';
 
 @injectable()
 export class AuthService {

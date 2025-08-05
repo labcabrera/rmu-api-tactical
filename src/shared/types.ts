@@ -1,3 +1,4 @@
+
 export const TYPES ={
     Logger: 'Logger',
 
@@ -9,6 +10,7 @@ export const TYPES ={
 
     // Security
     AuthTokenService: 'AuthTokenService',
+    AuthService: 'AuthService',
 
     // Clients
     RaceClient: 'RaceClient',

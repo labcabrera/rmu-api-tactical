@@ -14,11 +14,8 @@ export class CreateGameUseCase {
   ) {}
 
   async execute(command: CreateGameCommand): Promise<Game> {
-    this.logger.info(
-      `Creating tactical game: ${command.name} for user: ${command.user}`,
-    );
+    this.logger.info(`Creating tactical game: ${command.name} for user: ${command.user}`);
 
-    // Aplicar reglas de negocio
     let factions = command.factions || [];
     if (!factions || factions.length === 0) {
       factions = ["Light", "Evil", "Neutral"];
@@ -33,9 +30,7 @@ export class CreateGameUseCase {
       round: 0,
       createdAt: new Date(),
     };
-
     const savedGame = await this.gameRepository.save(newGame);
-
     this.logger.info(`Created tactical game with ID: ${savedGame.id}`);
     return savedGame;
   }

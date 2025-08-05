@@ -6,8 +6,8 @@ import { GameQuery } from "@domain/queries/game.query";
 
 import { CreateGameCommand } from "@application/commands/create-game.command";
 import { UpdateGameCommand } from "@application/commands/update-game.command";
-import { CreateGameUseCase } from "@application/use-cases/games/create-game-use-case";
-import { DeleteGameUseCase } from "@application/use-cases/games/delete-game-use-case";
+import { CreateGameUseCase } from "@application/use-cases/games/create-game.usecase";
+import { DeleteGameUseCase } from "@application/use-cases/games/delete-game.usecase";
 import { FindGameByIdUseCase } from "@application/use-cases/games/find-game-by-id-use-case";
 import { FindGamesUseCase } from "@application/use-cases/games/find-games-use-case";
 import { StartRoundUseCase } from "@application/use-cases/games/start-round-use-case";
@@ -29,19 +29,19 @@ export class GameController {
 
   ) {
     this.router = express.Router();
-    this.initializeRoutes();
+    // this.initializeRoutes();
   }
 
-  private initializeRoutes(): void {
-    this.router.get("/", this.findGames.bind(this));
-    this.router.get("/:gameId", this.findGameById.bind(this));
-    this.router.post("/", this.createGame.bind(this));
-    this.router.patch("/:gameId", this.updateGame.bind(this));
-    this.router.delete("/:gameId", this.deleteGame.bind(this));
-    this.router.post("/:gameId/rounds/start", this.startRound.bind(this));
-  }
+  // private initializeRoutes(): void {
+  //   this.router.get("/", this.findGames.bind(this));
+  //   this.router.get("/:gameId", this.findGameById.bind(this));
+  //   this.router.post("/", this.createGame.bind(this));
+  //   this.router.patch("/:gameId", this.updateGame.bind(this));
+  //   this.router.delete("/:gameId", this.deleteGame.bind(this));
+  //   this.router.post("/:gameId/rounds/start", this.startRound.bind(this));
+  // }
 
-  private async findGames(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async find(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const username = req.query.username as string;
       const searchExpression = req.query.search as string;
@@ -60,7 +60,7 @@ export class GameController {
     }
   }
 
-  private async findGameById(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async findById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const gameId: string = req.params.gameId!;
       this.logger.info(`Search tactical game << ${gameId}`);
@@ -71,7 +71,7 @@ export class GameController {
     }
   }
 
-  private async createGame(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       this.logger.info(`Tactical game creation << ${req.body.name}`);
       //TODO JWT
@@ -89,7 +89,7 @@ export class GameController {
     }
   }
 
-  private async updateGame(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async update(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       this.logger.info(`Tactical game update - ${req.params.gameId}`);
       const command: UpdateGameCommand = {
@@ -104,7 +104,7 @@ export class GameController {
     }
   }
 
-  private async deleteGame(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async deleteById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       this.logger.info(`Tactical game deletion << ${req.params.gameId}`);
       const gameId: string = req.params.gameId!;
@@ -115,7 +115,7 @@ export class GameController {
     }
   }
 
-  private async startRound(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async startRound(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       this.logger.info(
         `GameController: Starting round for game << ${req.params.gameId}`,

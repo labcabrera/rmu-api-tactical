@@ -8,7 +8,7 @@ import { GameQuery } from "@domain/queries/game.query";
 import TacticalGameModel from "../models/game.model";
 
 @injectable()
-export class MongoTacticalGameRepository implements GameRepository {
+export class MongoGameRepository implements GameRepository {
   async findById(id: string): Promise<Game> {
     const gameModel = await TacticalGameModel.findById(id);
     if (!gameModel) {

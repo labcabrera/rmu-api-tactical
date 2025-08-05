@@ -4,6 +4,7 @@ import 'reflect-metadata';
 import { Logger } from '@domain/ports/logger';
 import { ActionRepository } from '@domain/ports/outbound/action.repository';
 import { CharacterRoundRepository } from '@domain/ports/outbound/character-round.repository';
+import { AuthTokenService } from '../domain/ports/outbound/auth-token-service';
 import { RaceClient } from '../domain/ports/outbound/race-client';
 import { SkillCategoryClient } from '../domain/ports/outbound/skill-category-client';
 import { SkillClient } from '../domain/ports/outbound/skill-client';
@@ -26,8 +27,8 @@ import { FindTCharacterByIdUseCase } from '../application/use-cases/characters/f
 import { FindCharactersUseCase } from '../application/use-cases/characters/find-characters.usecase';
 import { UpdateCharacterUseCase } from '../application/use-cases/characters/update-character.usecase';
 import { UpdateSkillUseCase } from '../application/use-cases/characters/update-skill.usecase';
-import { CreateGameUseCase } from '../application/use-cases/games/create-game-use-case';
-import { DeleteGameUseCase } from '../application/use-cases/games/delete-game-use-case';
+import { CreateGameUseCase } from '../application/use-cases/games/create-game.usecase';
+import { DeleteGameUseCase } from '../application/use-cases/games/delete-game.usecase';
 import { FindGameByIdUseCase } from '../application/use-cases/games/find-game-by-id-use-case';
 import { FindGamesUseCase } from '../application/use-cases/games/find-games-use-case';
 import { StartRoundUseCase } from '../application/use-cases/games/start-round-use-case';
@@ -41,21 +42,31 @@ import { AttackController } from '../infrastructure/adapters/inbound/web/control
 import { CharacterRoundController } from '../infrastructure/adapters/inbound/web/controllers/character-round.controller';
 import { CharacterController } from '../infrastructure/adapters/inbound/web/controllers/character.controller';
 import { GameController } from '../infrastructure/adapters/inbound/web/controllers/game.controller';
+import { AuthService } from '../infrastructure/adapters/inbound/web/security/auth.service';
+import { OAuth2TokenService } from '../infrastructure/adapters/outbound/auth/oauth2-token-service';
 import { RaceAPICoreClient } from '../infrastructure/adapters/outbound/external/race-api-core-client';
 import { SkillAPICoreClient } from '../infrastructure/adapters/outbound/external/skill-api-core-client';
 import { SkillCategoryAPICoreClient } from '../infrastructure/adapters/outbound/external/skill-category-api-core-client';
 
+import { CharacterRepository } from '../domain/ports/outbound/character.repository';
+import { GameRepository } from '../domain/ports/outbound/game.repository';
+import { MongoCharacterRepository } from '../infrastructure/adapters/outbound/persistence/repositories/mongo-character.repository';
+import { MongoGameRepository } from '../infrastructure/adapters/outbound/persistence/repositories/mongo-game.repository';
 import { TYPES } from './types';
 
 const container = new Container();
 
 container.bind<Logger>(TYPES.Logger).to(PinoLogger).inSingletonScope();
 
+// Security
+container.bind<AuthTokenService>(TYPES.AuthTokenService).to(OAuth2TokenService).inSingletonScope();
+container.bind<AuthService>(TYPES.AuthService).to(AuthService).inSingletonScope();
+
 // Repositories
 container.bind<ActionRepository>(TYPES.ActionRepository).to(MongoActionRepository).inSingletonScope();
 container.bind<CharacterRoundRepository>(TYPES.CharacterRoundRepository).to(MongoCharacterRoundRepository).inSingletonScope();
-container.bind<CharacterRoundRepository>(TYPES.CharacterRepository).to(MongoCharacterRoundRepository).inSingletonScope();
-container.bind<CharacterRoundRepository>(TYPES.GameRepository).to(MongoCharacterRoundRepository).inSingletonScope();
+container.bind<CharacterRepository>(TYPES.CharacterRepository).to(MongoCharacterRepository).inSingletonScope();
+container.bind<GameRepository>(TYPES.GameRepository).to(MongoGameRepository).inSingletonScope();
 
 container.bind<RaceClient>(TYPES.RaceClient).to(RaceAPICoreClient).inSingletonScope();
 container.bind<SkillClient>(TYPES.SkillClient).to(SkillAPICoreClient).inSingletonScope();

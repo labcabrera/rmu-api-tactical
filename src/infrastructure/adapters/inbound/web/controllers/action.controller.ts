@@ -23,7 +23,7 @@ export class ActionController {
     @inject(TYPES.Logger) private readonly logger: Logger,
   ) {}
 
-  async findActions(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async find(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const query: ActionQuery = {
         ...(req.query.gameId && { gameId: req.query.gameId as string }),
