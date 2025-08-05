@@ -7,21 +7,21 @@ import swaggerUi from "swagger-ui-express";
 import yaml from "yaml";
 
 import { Logger } from '@domain/ports/logger';
-import { ApiRoutes } from "@infrastructure/adapters/inbound/web/routes";
+// import { ApiRoutes } from "@infrastructure/adapters/inbound/web/routes";
 import { config } from '@infrastructure/config/config';
 import { container } from '@shared/container';
 
 export class ExpressApp {
   private app: Application;
-  private apiRoutes: ApiRoutes;
+  // private apiRoutes: ApiRoutes;
   private logger: Logger = container.get('Logger');
 
   constructor() {
     this.app = express();
-    this.apiRoutes = new ApiRoutes();
+    // this.apiRoutes = new ApiRoutes();
     this.initializeMiddleware();
     this.initializeDatabase();
-    this.initializeRoutes();
+    // this.initializeRoutes();
     //TODO update spec and fix
     // this.initializeSwagger();
     this.initializeErrorHandling();
@@ -41,12 +41,12 @@ export class ExpressApp {
       );
   }
 
-  private initializeRoutes(): void {
-    this.app.use("/v1", this.apiRoutes.getRouter());
-    this.app.get("/", (req: Request, res: Response) => {
-      res.redirect("/api-docs");
-    });
-  }
+  // private initializeRoutes(): void {
+  //   this.app.use("/v1", this.apiRoutes.getRouter());
+  //   this.app.get("/", (req: Request, res: Response) => {
+  //     res.redirect("/api-docs");
+  //   });
+  // }
 
   private initializeSwagger(): void {
     try {

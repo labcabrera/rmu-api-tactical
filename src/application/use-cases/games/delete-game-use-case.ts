@@ -1,12 +1,15 @@
+import { inject, injectable } from 'inversify';
 import { Logger } from "../../../domain/ports/logger";
 import { CharacterRepository } from "../../../domain/ports/outbound/character.repository";
 import { GameRepository } from "../../../domain/ports/outbound/game.repository";
+import { TYPES } from '../../../shared/types';
 
+@injectable()
 export class DeleteGameUseCase {
   constructor(
-    private readonly gameRepository: GameRepository,
-    private readonly characterRepository: CharacterRepository,
-    private readonly logger: Logger,
+    @inject(TYPES.GameRepository) private readonly gameRepository: GameRepository,
+    @inject(TYPES.CharacterRepository) private readonly characterRepository: CharacterRepository,
+    @inject(TYPES.Logger) private readonly logger: Logger,
   ) {}
 
   //TODO delete actions and character rounds

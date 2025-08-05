@@ -6,14 +6,17 @@ import { SkillClient } from "@domain/ports/outbound/skill-client";
 
 import { AddSkillCommand } from "@application/commands/add-skill.command";
 import { CharacterProcessorService } from "@domain/services/character-processor.service";
+import { inject, injectable } from 'inversify';
+import { TYPES } from '../../../shared/types';
 
+@injectable()
 export class AddSkillUseCase {
   constructor(
-    private readonly characterProcessorService: CharacterProcessorService,
-    private readonly characterRepository: CharacterRepository,
-    private readonly skillClient: SkillClient,
-    private readonly skillCategoryClient: SkillCategoryClient,
-    private readonly logger: Logger,
+    @inject(TYPES.CharacterProcessorService) private readonly characterProcessorService: CharacterProcessorService,
+    @inject(TYPES.CharacterRepository) private readonly characterRepository: CharacterRepository,
+    @inject(TYPES.SkillClient) private readonly skillClient: SkillClient,
+    @inject(TYPES.SkillCategoryClient) private readonly skillCategoryClient: SkillCategoryClient,
+    @inject(TYPES.Logger) private readonly logger: Logger,
   ) {}
 
   async execute(command: AddSkillCommand): Promise<Character> {

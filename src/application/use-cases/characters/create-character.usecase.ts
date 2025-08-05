@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import { inject, injectable } from 'inversify';
 
 import {
   Character,
@@ -22,15 +23,17 @@ import { SkillClient } from "@domain/ports/outbound/skill-client";
 import { CharacterProcessorService } from "@domain/services/character-processor.service";
 
 import { CreateCharacterCommand } from "@application/commands/create-character.command";
+import { TYPES } from '@shared/types';
 
+@injectable()
 export class CreateCharacterUseCase {
   constructor(
-    private readonly raceClient: RaceClient,
-    private readonly skillClient: SkillClient,
-    private readonly characterRepository: CharacterRepository,
-    private readonly gameRepository: GameRepository,
-    private readonly characterProcessorService: CharacterProcessorService,
-    private readonly logger: Logger,
+    @inject(TYPES.RaceClient) private readonly raceClient: RaceClient,
+    @inject(TYPES.SkillClient) private readonly skillClient: SkillClient,
+    @inject(TYPES.CharacterRepository) private readonly characterRepository: CharacterRepository,
+    @inject(TYPES.GameRepository) private readonly gameRepository: GameRepository,
+    @inject(TYPES.CharacterProcessorService) private readonly characterProcessorService: CharacterProcessorService,
+    @inject(TYPES.Logger) private readonly logger: Logger,
   ) {}
 
   async execute(command: CreateCharacterCommand): Promise<Character> {

@@ -1,15 +1,19 @@
+import { inject, injectable } from 'inversify';
+
 import { Character } from "@domain/entities/character.entity";
 import { Logger } from "@domain/ports/logger";
 import { CharacterRepository } from "@domain/ports/outbound/character.repository";
 import { CharacterProcessorService } from "@domain/services/character-processor.service";
 
 import { UpdateSkillCommand } from "@application/commands/update-skill.command";
+import { TYPES } from '../../../shared/types';
 
+@injectable()
 export class UpdateSkillUseCase {
   constructor(
-    private readonly characterProcessorService: CharacterProcessorService,
-    private readonly characterRepository: CharacterRepository,
-    private readonly logger: Logger,
+    @inject(TYPES.CharacterProcessorService) private readonly characterProcessorService: CharacterProcessorService,
+    @inject(TYPES.CharacterRepository) private readonly characterRepository: CharacterRepository,
+    @inject(TYPES.Logger) private readonly logger: Logger,
   ) {}
 
   async execute(command: UpdateSkillCommand): Promise<Character> {

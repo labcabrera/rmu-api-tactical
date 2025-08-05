@@ -1,9 +1,13 @@
+import { injectable } from 'inversify';
+
 import { Game } from "@domain/entities/game.entity";
 import { Page } from "@domain/entities/page.entity";
 import { GameRepository } from "@domain/ports/outbound/game.repository";
 import { GameQuery } from "@domain/queries/game.query";
+
 import TacticalGameModel from "../models/game.model";
 
+@injectable()
 export class MongoTacticalGameRepository implements GameRepository {
   async findById(id: string): Promise<Game> {
     const gameModel = await TacticalGameModel.findById(id);

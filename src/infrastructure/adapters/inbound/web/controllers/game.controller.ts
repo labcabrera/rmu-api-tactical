@@ -1,4 +1,5 @@
-import express, { Request, Response, Router } from "express";
+import express, { NextFunction, Request, Response, Router } from "express";
+import { inject } from 'inversify';
 
 import { Logger } from "@domain/ports/logger";
 import { GameQuery } from "@domain/queries/game.query";
@@ -12,30 +13,22 @@ import { FindGamesUseCase } from "@application/use-cases/games/find-games-use-ca
 import { StartRoundUseCase } from "@application/use-cases/games/start-round-use-case";
 import { UpdateGameUseCase } from "@application/use-cases/games/update-game-use-case";
 
-import { DependencyContainer } from "@infrastructure/dependency-container";
-import { ErrorHandler } from "../error-handler";
+import { TYPES } from '@shared/types';
+
 
 export class GameController {
   private router: Router;
-  private readonly findUseCase: FindGamesUseCase;
-  private readonly findByIdUseCase: FindGameByIdUseCase;
-  private readonly createUseCase: CreateGameUseCase;
-  private readonly updateUseCase: UpdateGameUseCase;
-  private readonly deleteUseCase: DeleteGameUseCase;
-  private readonly startRoundUseCase: StartRoundUseCase;
+  constructor(
+    @inject(TYPES.FindGamesUseCase) private readonly findUseCase: FindGamesUseCase,
+    @inject(TYPES.FindGameByIdUseCase) private readonly findByIdUseCase: FindGameByIdUseCase,
+    @inject(TYPES.CreateGameUseCase) private readonly createUseCase: CreateGameUseCase,
+    @inject(TYPES.UpdateGameUseCase) private readonly updateUseCase: UpdateGameUseCase,
+    @inject(TYPES.DeleteGameUseCase) private readonly deleteUseCase: DeleteGameUseCase,
+    @inject(TYPES.StartRoundUseCase) private readonly startRoundUseCase: StartRoundUseCase,
+    @inject(TYPES.Logger) private readonly logger: Logger
 
-  private logger: Logger;
-
-  constructor() {
+  ) {
     this.router = express.Router();
-    const container = DependencyContainer.getInstance();
-    this.findUseCase = container.findTacticalGamesUseCase;
-    this.findByIdUseCase = container.findTacticalGameByIdUseCase;
-    this.createUseCase = container.createTacticalGameUseCase;
-    this.updateUseCase = container.updateTacticalGameUseCase;
-    this.deleteUseCase = container.deleteTacticalGameUseCase;
-    this.startRoundUseCase = container.startRoundUseCase;
-    this.logger = container.logger;
     this.initializeRoutes();
   }
 
@@ -48,7 +41,7 @@ export class GameController {
     this.router.post("/:gameId/rounds/start", this.startRound.bind(this));
   }
 
-  private async findGames(req: Request, res: Response): Promise<void> {
+  private async findGames(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const username = req.query.username as string;
       const searchExpression = req.query.search as string;
@@ -63,30 +56,22 @@ export class GameController {
       const response = await this.findUseCase.execute(query);
       res.json(response);
     } catch (error) {
-      this.logger.error(
-        `Error finding tactical games: ${(error as Error).message}`,
-      );
-      ErrorHandler.sendErrorResponse(res, error as Error);
+      next(error);
     }
   }
 
-  private async findGameById(req: Request, res: Response): Promise<void> {
+  private async findGameById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const gameId: string = req.params.gameId!;
       this.logger.info(`Search tactical game << ${gameId}`);
       const game = await this.findByIdUseCase.execute(gameId);
       res.json(game);
-    } catch (error: any) {
-      this.logger.error(
-        `Error finding tactical game ${req.params.gameId}: ${error.message}`,
-      );
-      res
-        .status(error.status ? error.status : 500)
-        .json({ message: error.message });
+    } catch (error) {
+      next(error);
     }
   }
 
-  private async createGame(req: Request, res: Response): Promise<void> {
+  private async createGame(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       this.logger.info(`Tactical game creation << ${req.body.name}`);
       //TODO JWT
@@ -99,13 +84,12 @@ export class GameController {
       };
       const newGame = await this.createUseCase.execute(command);
       res.status(201).json(newGame);
-    } catch (error: any) {
-      this.logger.error(`Error creating tactical game: ${error.message}`);
-      res.status(400).json({ message: error.message });
+    } catch (error) {
+      next(error);
     }
   }
 
-  private async updateGame(req: Request, res: Response): Promise<void> {
+  private async updateGame(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       this.logger.info(`Tactical game update - ${req.params.gameId}`);
       const command: UpdateGameCommand = {
@@ -115,33 +99,23 @@ export class GameController {
       };
       const result = await this.updateUseCase.execute(command);
       res.json(result);
-    } catch (error: any) {
-      this.logger.error(
-        `Error updating tactical game ${req.params.gameId}: ${error.message}`,
-      );
-      res
-        .status(error.status ? error.status : 500)
-        .json({ message: error.message });
+    } catch (error) {
+      next(error);
     }
   }
 
-  private async deleteGame(req: Request, res: Response): Promise<void> {
+  private async deleteGame(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       this.logger.info(`Tactical game deletion << ${req.params.gameId}`);
       const gameId: string = req.params.gameId!;
       await this.deleteUseCase.execute(gameId);
       res.status(204).send();
-    } catch (error: any) {
-      this.logger.error(
-        `Error deleting tactical game ${req.params.gameId}: ${error.message}`,
-      );
-      res
-        .status(error.status ? error.status : 500)
-        .json({ message: error.message });
+    } catch (error) {
+      next(error);
     }
   }
 
-  private async startRound(req: Request, res: Response): Promise<void> {
+  private async startRound(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       this.logger.info(
         `GameController: Starting round for game << ${req.params.gameId}`,
@@ -149,13 +123,8 @@ export class GameController {
       const gameId: string = req.params.gameId!;
       const result = await this.startRoundUseCase.execute(gameId);
       res.json(result);
-    } catch (error: any) {
-      this.logger.error(
-        `GameController: Error starting round for game ${req.params.gameId}: ${error.message}`,
-      );
-      res
-        .status(error.status ? error.status : 500)
-        .json({ message: error.message });
+    } catch (error) {
+      next(error);
     }
   }
 

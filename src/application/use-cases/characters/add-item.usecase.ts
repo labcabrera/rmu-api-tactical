@@ -1,17 +1,20 @@
 import { randomUUID } from "crypto";
+import { inject, injectable } from 'inversify';
 
 import { Character, CharacterItem } from "@domain/entities/character.entity";
 import { Logger } from "@domain/ports/logger";
 import { CharacterRepository } from "@domain/ports/outbound/character.repository";
+import { CharacterProcessorService } from "@domain/services/character-processor.service";
 
 import { AddItemCommand } from "@application/commands/add-item.comand";
-import { CharacterProcessorService } from "../../../domain/services/character-processor.service";
+import { TYPES } from '../../../shared/types';
 
+@injectable()
 export class AddItemUseCase {
   constructor(
-    private readonly characterProcessorService: CharacterProcessorService,
-    private readonly tacticalCharacterRepository: CharacterRepository,
-    private readonly logger: Logger,
+    @inject(TYPES.CharacterProcessorService) private readonly characterProcessorService: CharacterProcessorService,
+    @inject(TYPES.CharacterRepository) private readonly tacticalCharacterRepository: CharacterRepository,
+    @inject(TYPES.Logger) private readonly logger: Logger,
   ) {}
 
   async execute(command: AddItemCommand): Promise<Character> {

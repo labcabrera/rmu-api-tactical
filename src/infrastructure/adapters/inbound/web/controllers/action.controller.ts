@@ -1,4 +1,5 @@
-import express, { Request, Response, Router } from "express";
+import { NextFunction, Request, Response } from "express";
+import { inject } from 'inversify';
 
 import { Logger } from "@domain/ports/logger";
 import { ActionQuery } from "@domain/queries/action.query";
@@ -10,36 +11,19 @@ import { FindActionByIdUseCase } from "@application/use-cases/actions/find-actio
 import { FindActionsUseCase } from "@application/use-cases/actions/find-actions.usecase";
 
 import { DeleteActionCommand } from "@application/commands/delete-action.command";
-import { DependencyContainer } from "@infrastructure/dependency-container";
-import { ErrorHandler } from "../error-handler";
+import { TYPES } from '@shared/types';
 
 export class ActionController {
-  private router: Router;
-  private findActionByIdUseCase: FindActionByIdUseCase;
-  private findActionsUseCase: FindActionsUseCase;
-  private createActionUseCase: CreateActionUseCase;
-  private deleteActionUseCase: DeleteActionUseCase;
-  private logger: Logger;
 
-  constructor() {
-    this.router = express.Router();
-    const container = DependencyContainer.getInstance();
-    this.findActionByIdUseCase = container.findActionByIdUseCase;
-    this.findActionsUseCase = container.findActionsUseCase;
-    this.createActionUseCase = container.createActionUseCase;
-    this.deleteActionUseCase = container.deleteActionUseCase;
-    this.logger = container.logger;
-    this.initializeRoutes();
-  }
+  constructor(
+    @inject(TYPES.FindActionByIdUseCase) private readonly findActionByIdUseCase: FindActionByIdUseCase,
+    @inject(TYPES.FindActionsUseCase) private readonly findActionsUseCase: FindActionsUseCase,
+    @inject(TYPES.CreateActionUseCase) private readonly createActionUseCase: CreateActionUseCase,
+    @inject(TYPES.DeleteActionUseCase) private readonly deleteActionUseCase: DeleteActionUseCase,
+    @inject(TYPES.Logger) private readonly logger: Logger,
+  ) {}
 
-  private initializeRoutes(): void {
-    this.router.get("/", this.findActions.bind(this));
-    this.router.get("/:actionId", this.findActionById.bind(this));
-    this.router.post("/", this.createAction.bind(this));
-    this.router.delete("/:actionId", this.deleteAction.bind(this));
-  }
-
-  async findActions(req: Request, res: Response) {
+  async findActions(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const query: ActionQuery = {
         ...(req.query.gameId && { gameId: req.query.gameId as string }),
@@ -56,23 +40,21 @@ export class ActionController {
       const response = await this.findActionsUseCase.execute(query);
       res.json(response);
     } catch (error) {
-      this.logger.error(`Error finding actions: ${(error as Error).message}`);
-      ErrorHandler.sendErrorResponse(res, error as Error);
+      next(error);
     }
   }
 
-  private async findActionById(req: Request, res: Response): Promise<void> {
+  async findById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const response = await this.findActionByIdUseCase.execute(
         req.params.actionId!,
       );
       res.json(response);
     } catch (error) {
-      ErrorHandler.sendErrorResponse(res, error as Error);
+      next(error);
     }
   }
-
-  private async createAction(req: Request, res: Response): Promise<void> {
+  async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const command: CreateActionCommand = {
         gameId: req.body.gameId,
@@ -85,11 +67,11 @@ export class ActionController {
       const response = await this.createActionUseCase.execute(command);
       res.status(201).json(response);
     } catch (error) {
-      ErrorHandler.sendErrorResponse(res, error as Error);
+      next(error);
     }
   }
 
-  private async deleteAction(req: Request, res: Response): Promise<void> {
+  async deleteById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const command: DeleteActionCommand = {
         actionId: req.params.actionId!,
@@ -97,11 +79,7 @@ export class ActionController {
       await this.deleteActionUseCase.execute(command);
       res.status(204).send();
     } catch (error) {
-      ErrorHandler.sendErrorResponse(res, error as Error);
+      next(error);
     }
-  }
-
-  public getRouter(): Router {
-    return this.router;
   }
 }

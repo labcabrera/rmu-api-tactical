@@ -1,16 +1,19 @@
+import { inject, injectable } from 'inversify';
+
 import { Logger } from "@domain/ports/logger";
+import { AuthTokenService } from "@domain/ports/outbound/auth-token-service";
 import { SkillClient } from "@domain/ports/outbound/skill-client";
+
 import { config } from '@infrastructure/config/config';
-import { AuthTokenService } from "../../../../domain/ports/outbound/auth-token-service";
+import { TYPES } from '@shared/types';
 import { AuthenticatedApiClient } from "./authenticated-api-client";
 
-export class SkillAPICoreClient
-  extends AuthenticatedApiClient
-  implements SkillClient
+@injectable()
+export class SkillAPICoreClient extends AuthenticatedApiClient implements SkillClient
 {
   constructor(
-    logger: Logger,
-    authTokenService: AuthTokenService,
+    @inject(TYPES.Logger) logger: Logger,
+    @inject(TYPES.AuthTokenService) authTokenService: AuthTokenService,
   ) {
     super(logger, authTokenService);
   }

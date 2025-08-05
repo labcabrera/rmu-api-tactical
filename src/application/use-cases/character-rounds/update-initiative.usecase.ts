@@ -1,13 +1,17 @@
+import { inject, injectable } from 'inversify';
+
 import { CharacterRound } from "@domain/entities/character-round.entity";
 import { Logger } from "@domain/ports/logger";
 import { CharacterRoundRepository } from "@domain/ports/outbound/character-round.repository";
 
-import { UpdateInitiativeCommand } from "../../commands/update-initiative.command";
+import { UpdateInitiativeCommand } from "@application/commands/update-initiative.command";
+import { TYPES } from '@shared/types';
 
-export class UpdateCharacterInitiativeUseCase {
+@injectable()
+export class UpdateInitiativeUseCase {
   constructor(
-    private readonly characterRoundRepository: CharacterRoundRepository,
-    private readonly logger: Logger,
+    @inject(TYPES.CharacterRoundRepository) private readonly characterRoundRepository: CharacterRoundRepository,
+    @inject(TYPES.Logger) private readonly logger: Logger,
   ) {}
 
   async execute(command: UpdateInitiativeCommand): Promise<CharacterRound> {

@@ -1,11 +1,16 @@
+import { inject, injectable } from 'inversify';
+
 import { Character } from "@domain/entities/character.entity";
 import { Logger } from "@domain/ports/logger";
 import { CharacterRepository } from "@domain/ports/outbound/character.repository";
 
+import { TYPES } from '@shared/types';
+
+@injectable()
 export class DeleteItemUseCase {
   constructor(
-    private readonly characterRepository: CharacterRepository,
-    private readonly logger: Logger,
+    @inject(TYPES.CharacterRepository) private readonly characterRepository: CharacterRepository,
+    @inject(TYPES.Logger) private readonly logger: Logger,
   ) {}
 
   async execute(characterId: string, itemId: string): Promise<Character> {

@@ -4,12 +4,15 @@ import { CharacterRepository } from "@domain/ports/outbound/character.repository
 import { CharacterProcessorService } from "@domain/services/character-processor.service";
 
 import { DeleteSkillCommand } from "@application/commands/delete-skill-command";
+import { inject, injectable } from 'inversify';
+import { TYPES } from '../../../shared/types';
 
+@injectable()
 export class DeleteSkillUseCase {
   constructor(
-    private readonly characterProcessorService: CharacterProcessorService,
-    private readonly characterRepository: CharacterRepository,
-    private readonly logger: Logger,
+    @inject(TYPES.CharacterProcessorService) private readonly characterProcessorService: CharacterProcessorService,
+    @inject(TYPES.CharacterRepository) private readonly characterRepository: CharacterRepository,
+    @inject(TYPES.Logger) private readonly logger: Logger,
   ) {}
 
   async execute(command: DeleteSkillCommand): Promise<Character> {

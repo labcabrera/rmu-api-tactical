@@ -6,13 +6,16 @@ import { Logger } from "@domain/ports/logger";
 import { CharacterRoundRepository } from "@domain/ports/outbound/character-round.repository";
 import { CharacterRepository } from "@domain/ports/outbound/character.repository";
 import { GameRepository } from "@domain/ports/outbound/game.repository";
+import { inject, injectable } from '@inversifyjs/core';
+import { TYPES } from '../../../shared/types';
 
+@injectable()
 export class StartRoundUseCase {
   constructor(
-    private readonly gameRepository: GameRepository,
-    private readonly characterRepository: CharacterRepository,
-    private readonly characterRoundRepository: CharacterRoundRepository,
-    private readonly logger: Logger,
+    @inject(TYPES.GameRepository) private readonly gameRepository: GameRepository,
+    @inject(TYPES.CharacterRepository) private readonly characterRepository: CharacterRepository,
+    @inject(TYPES.CharacterRoundRepository) private readonly characterRoundRepository: CharacterRoundRepository,
+    @inject(TYPES.Logger) private readonly logger: Logger,
   ) {}
 
   async execute(gameId: string): Promise<Game> {

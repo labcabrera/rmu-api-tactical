@@ -1,3 +1,5 @@
+import { inject, injectable } from 'inversify';
+
 import { Action } from "@domain/entities/action.entity";
 import { Logger } from "@domain/ports/logger";
 import { ActionRepository } from "@domain/ports/outbound/action.repository";
@@ -6,14 +8,16 @@ import { CharacterRepository } from "@domain/ports/outbound/character.repository
 import { GameRepository } from "@domain/ports/outbound/game.repository";
 
 import { CreateActionCommand } from "@application/commands/create-action.command";
+import { TYPES } from '@shared/types';
 
+@injectable()
 export class CreateActionUseCase {
   constructor(
-    private readonly gameRepository: GameRepository,
-    private readonly characterRepository: CharacterRepository,
-    private readonly characterRoundRepository: CharacterRoundRepository,
-    private readonly actionRepository: ActionRepository,
-    private readonly logger: Logger,
+    @inject(TYPES.GameRepository) private readonly gameRepository: GameRepository,
+    @inject(TYPES.CharacterRepository) private readonly characterRepository: CharacterRepository,
+    @inject(TYPES.CharacterRoundRepository) private readonly characterRoundRepository: CharacterRoundRepository,
+    @inject(TYPES.ActionRepository) private readonly actionRepository: ActionRepository,
+    @inject(TYPES.Logger) private readonly logger: Logger,
   ) {}
 
   async execute(command: CreateActionCommand): Promise<Action> {

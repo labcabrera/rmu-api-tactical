@@ -1,9 +1,13 @@
+import { injectable } from 'inversify';
+
 import { Character } from "@domain/entities/character.entity";
 import { Page } from "@domain/entities/page.entity";
 import { CharacterRepository } from "@domain/ports/outbound/character.repository";
 import { CharacterQuery } from "@domain/queries/character.query";
+
 import TacticalCharacterDocument from "../models/character.model";
 
+@injectable()
 export class MongoTacticalCharacterRepository implements CharacterRepository {
   async findById(id: string): Promise<Character> {
     const character = await TacticalCharacterDocument.findById(id);

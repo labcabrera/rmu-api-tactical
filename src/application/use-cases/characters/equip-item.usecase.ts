@@ -1,18 +1,23 @@
+import { inject, injectable } from 'inversify';
+
+import { EquipItemCommand } from "@application/commands/equip-item-command";
 import {
   Character,
   CharacterEquipment,
   CharacterItem,
-} from "../../../domain/entities/character.entity";
-import { Logger } from "../../../domain/ports/logger";
-import { CharacterRepository } from "../../../domain/ports/outbound/character.repository";
-import { CharacterProcessorService } from "../../../domain/services/character-processor.service";
-import { EquipItemCommand } from "../../commands/equip-item-command";
+} from "@domain/entities/character.entity";
+import { Logger } from "@domain/ports/logger";
+import { CharacterRepository } from "@domain/ports/outbound/character.repository";
+import { CharacterProcessorService } from "@domain/services/character-processor.service";
 
+import { TYPES } from '@shared/types';
+
+@injectable()
 export class EquipItemUseCase {
   constructor(
-    private readonly characterRepository: CharacterRepository,
-    private readonly characterProcessorService: CharacterProcessorService,
-    private readonly logger: Logger,
+    @inject(TYPES.CharacterRepository) private readonly characterRepository: CharacterRepository,
+    @inject(TYPES.CharacterProcessorService) private readonly characterProcessorService: CharacterProcessorService,
+    @inject(TYPES.Logger) private readonly logger: Logger,
   ) {}
 
   async execute(command: EquipItemCommand): Promise<Character> {

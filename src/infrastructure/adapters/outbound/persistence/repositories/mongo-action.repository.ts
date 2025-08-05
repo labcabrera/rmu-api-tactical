@@ -1,3 +1,5 @@
+import { injectable } from 'inversify';
+
 import { Action } from "@domain/entities/action.entity";
 import { Page } from "@domain/entities/page.entity";
 import { ActionRepository } from "@domain/ports/outbound/action.repository";
@@ -5,6 +7,7 @@ import { ActionQuery } from "@domain/queries/action.query";
 
 import ActionDocument from "../models/action.model";
 
+@injectable()
 export class MongoActionRepository implements ActionRepository {
   async findById(id: string): Promise<Action> {
     const action = await ActionDocument.findById(id);
