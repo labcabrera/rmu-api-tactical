@@ -6,12 +6,11 @@ export class GameCreatedEvent implements DomainEvent {
   public readonly eventType = 'GameCreatedEvent';
   public readonly eventVersion = 1;
   public readonly occurredOn: Date;
+  public readonly aggregateId: string;
 
-  constructor(
-    public readonly aggregateId: string,
-    public readonly game: Game,
-    public readonly createdBy: string
-  ) {
+  constructor(public readonly game: Game) {
+    this.aggregateId = game.id;
+    this.game = game;
     this.occurredOn = new Date();
   }
 

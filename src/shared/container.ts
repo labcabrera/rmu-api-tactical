@@ -49,7 +49,11 @@ import { SkillAPICoreClient } from '../infrastructure/adapters/outbound/external
 import { SkillCategoryAPICoreClient } from '../infrastructure/adapters/outbound/external/skill-category-api-core-client';
 
 import { CharacterRepository } from '../domain/ports/outbound/character.repository';
+import { EventNotificationPort } from '../domain/ports/outbound/event-notification.port';
 import { GameRepository } from '../domain/ports/outbound/game.repository';
+import { EventNotificationRegistry } from '../infrastructure/adapters/outbound/notifications/event-notification-registry';
+import { GameCreatedEventNotificationService } from '../infrastructure/adapters/outbound/notifications/game-created-event-notification.service';
+import { RegistryEventNotificationAdapter } from '../infrastructure/adapters/outbound/notifications/registry-event-notification.adapter';
 import { MongoCharacterRepository } from '../infrastructure/adapters/outbound/persistence/repositories/mongo-character.repository';
 import { MongoGameRepository } from '../infrastructure/adapters/outbound/persistence/repositories/mongo-game.repository';
 import { TYPES } from './types';
@@ -127,5 +131,21 @@ container
   .inSingletonScope();
 container.bind<CharacterController>(TYPES.CharacterController).to(CharacterController).inSingletonScope();
 container.bind<GameController>(TYPES.GameController).to(GameController).inSingletonScope();
+
+container.bind<GameCreatedEventNotificationService>(TYPES.GameCreatedEventNotificationService).to(GameCreatedEventNotificationService).inSingletonScope();  
+
+// Notifications
+container
+  .bind<EventNotificationRegistry>(TYPES.EventNotificationRegistry)
+  .toDynamicValue(() => {
+    const registry = new EventNotificationRegistry(container.get<Logger>(TYPES.Logger));
+    registry.registerService('GameCreatedEvent',container.get<GameCreatedEventNotificationService>(TYPES.GameCreatedEventNotificationService));
+    return registry;
+  }).inSingletonScope();
+
+container
+  .bind<EventNotificationPort>(TYPES.EventNotificationPort)
+  .to(RegistryEventNotificationAdapter)
+  .inSingletonScope();
 
 export { container };

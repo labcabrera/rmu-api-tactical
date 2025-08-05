@@ -56,4 +56,9 @@ export const TYPES = {
   CharacterRoundController: 'CharacterRoundController',
   CharacterController: 'CharacterController',
   GameController: 'GameController',
+
+  // Event Notification Services
+  EventNotificationPort: 'EventNotificationPort',
+  EventNotificationRegistry: 'EventNotificationRegistry',
+  GameCreatedEventNotificationService: 'GameCreatedEventNotificationService',
 };

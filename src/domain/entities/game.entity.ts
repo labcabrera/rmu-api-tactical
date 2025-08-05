@@ -2,7 +2,7 @@ import { AccessControlledEntity } from './access-controlled-entity';
 import { HasEntityMetadata } from './has-entity-metadata';
 
 export interface Game extends AccessControlledEntity, HasEntityMetadata{
-  id?: string;
+  id: string;
   name: string;
   description?: string | undefined;
   status: 'created' | 'in_progress' | 'finished';
