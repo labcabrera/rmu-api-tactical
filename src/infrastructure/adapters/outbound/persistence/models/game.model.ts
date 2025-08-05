@@ -1,13 +1,20 @@
 import mongoose, { Schema } from 'mongoose';
-import { TacticalGameDocument } from '../mongo-types';
+
+export interface TacticalGameDocument extends Document {
+  name: string;
+  status: string;
+  round: number;
+  phase: string;
+  factions: string[];
+  description?: string;
+  owner: string;
+  createdAt: Date;
+  updatedAt?: Date;
+}
 
 const TacticalGameSchema: Schema<TacticalGameDocument> = new Schema(
   {
     name: {
-      type: String,
-      required: true,
-    },
-    user: {
       type: String,
       required: true,
     },
@@ -28,9 +35,20 @@ const TacticalGameSchema: Schema<TacticalGameDocument> = new Schema(
       type: String,
       required: false,
     },
+    owner: {
+      type: String,
+      required: true,
+    },
+    createdAt: {
+      type: Date,
+      required: true,
+    },
+    updatedAt: {
+      type: Date,
+      required: false,
+    }
   },
   {
-    timestamps: true,
     collection: 'tactical-games',
   }
 );

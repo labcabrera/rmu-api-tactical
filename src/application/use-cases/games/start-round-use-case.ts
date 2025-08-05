@@ -19,21 +19,22 @@ export class StartRoundUseCase {
   ) {}
 
   async execute(gameId: string): Promise<Game> {
-    this.logger.info(`StartRoundUseCase: Starting new round for tactical game: ${gameId}`);
+    this.logger.info(`Executing start round use case for game ${gameId}`);
+    
     const tacticalGame = await this.gameRepository.findById(gameId);
     if (!tacticalGame) {
       throw new NotFoundError("Game",gameId);
     }
+    
     const characters = await this.characterRepository.findByGameId(gameId);
-    this.logger.info(`Characters: ${JSON.stringify(characters)}`);
     if (characters.length < 1) {
-      throw new ValidationError('No characters associated with the tactical game have been defined');
+      throw new ValidationError('No characters associated with the game have been found');
     }
 
     const newRound = tacticalGame.round + 1;
     const updatedGame = await this.gameRepository.update(gameId, {
       ...tacticalGame,
-      status: 'in-progress',
+      status: 'in_progress',
       round: newRound,
     });
     await this.createCharacterRounds(characters, newRound);

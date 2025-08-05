@@ -33,16 +33,8 @@ export class MongoGameRepository implements GameRepository {
     };
   }
 
-  async save(game: Game): Promise<Game> {
-    const gameModel = new TacticalGameModel({
-      user: game.user,
-      name: game.name,
-      description: game.description,
-      status: game.status,
-      factions: game.factions,
-      round: game.round,
-    });
-
+  async save(game: Partial<Game>): Promise<Game> {
+    const gameModel = new TacticalGameModel(game);
     const savedModel = await gameModel.save();
     return this.toDomainEntity(savedModel);
   }
@@ -69,12 +61,13 @@ export class MongoGameRepository implements GameRepository {
   private toDomainEntity(model: any): Game {
     return {
       id: model._id.toString(),
-      user: model.user,
       name: model.name,
       description: model.description,
-      status: model.status,
       factions: model.factions,
+      status: model.status,
+      phase: model.phase,
       round: model.round,
+      owner: model.owner,
       createdAt: model.createdAt,
       updatedAt: model.updatedAt,
     };

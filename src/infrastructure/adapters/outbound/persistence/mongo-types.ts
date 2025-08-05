@@ -1,16 +1,6 @@
 import { Document } from 'mongoose';
 
-export interface TacticalGameDocument extends Document {
-  name: string;
-  user: string;
-  status?: string;
-  round: number;
-  phase?: string;
-  factions: string[];
-  description?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
+
 
 export interface CharacterDocument extends Document {
   gameId: string;

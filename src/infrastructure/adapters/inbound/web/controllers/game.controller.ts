@@ -51,13 +51,11 @@ export class GameController {
   async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       this.logger.info(`Handling game creation << ${req.body.name}`);
-      //TODO JWT
-      const user: string = 'lab.cabrera@gmail.com';
       const command: CreateGameCommand = {
-        user,
         name: req.body.name,
         description: req.body.description,
         factions: req.body.factions,
+        username: req.user!.username!,
       };
       const newGame = await this.createUseCase.execute(command);
       res.status(201).json(newGame);
