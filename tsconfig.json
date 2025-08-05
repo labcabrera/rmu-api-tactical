@@ -16,20 +16,13 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "typeRoots": ["./node_modules/@types", "./src/types"],
-    "baseUrl": ".",
+    "baseUrl": "./src",
     "paths": {
-      "@/*": [
-        "src/*"
-      ],
-      "@domain/*": [
-        "src/domain/*"
-      ],
-      "@application/*": [
-        "src/application/*"
-      ],
-      "@infrastructure/*": [
-        "src/infrastructure/*"
-      ],
+      "@domain/*": ["domain/*"],
+      "@infrastructure/*": ["infrastructure/*"],
+      "@application/*": ["application/*"],
+      "@adapters/*": ["adapters/*"],
+      "@shared/*": ["shared/*"]
     }
   },
   "include": [

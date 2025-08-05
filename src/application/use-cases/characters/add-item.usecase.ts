@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 
-import { Character, CharacterItem } from "@/domain/entities/character.entity";
-import { CharacterRepository } from "@/domain/ports/character.repository";
+import { Character, CharacterItem } from "@domain/entities/character.entity";
+import { CharacterRepository } from "@domain/ports/character.repository";
 import { Logger } from "@domain/ports/logger";
 
 import { AddItemCommand } from "@application/commands/add-item.comand";

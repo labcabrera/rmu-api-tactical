@@ -1,4 +1,4 @@
-import { CharacterRepository } from "@/domain/ports/character.repository";
+import { CharacterRepository } from "@domain/ports/character.repository";
 import { Action } from "@domain/entities/action.entity";
 import { ActionRepository } from "@domain/ports/action.repository";
 import { CharacterRoundRepository } from "@domain/ports/character-round.repository";

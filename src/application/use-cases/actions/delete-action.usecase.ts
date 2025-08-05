@@ -1,4 +1,4 @@
-import { ActionRepository } from "@/domain/ports/action.repository";
+import { ActionRepository } from "@domain/ports/action.repository";
 import { Logger } from "@domain/ports/logger";
 
 import { DeleteActionCommand } from "@application/commands/delete-action.command";

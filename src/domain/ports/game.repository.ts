@@ -1,5 +1,5 @@
-import { Game } from "@/domain/entities/game.entity";
-import { GameQuery } from "@/domain/queries/game.query";
+import { Game } from "@domain/entities/game.entity";
+import { GameQuery } from "@domain/queries/game.query";
 import { Page } from "@domain/entities/page.entity";
 
 export interface GameRepository {

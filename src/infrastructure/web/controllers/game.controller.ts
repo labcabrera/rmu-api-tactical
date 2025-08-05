@@ -1,6 +1,6 @@
 import express, { Request, Response, Router } from "express";
 
-import { GameQuery } from "@/domain/queries/game.query";
+import { GameQuery } from "@domain/queries/game.query";
 import { Logger } from "@domain/ports/logger";
 
 import { CreateGameCommand } from "@application/commands/create-game.command";

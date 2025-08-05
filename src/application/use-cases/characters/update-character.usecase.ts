@@ -1,9 +1,9 @@
-import { Character } from "@/domain/entities/character.entity";
-import { CharacterRepository } from "@/domain/ports/character.repository";
+import { Character } from "@domain/entities/character.entity";
+import { CharacterRepository } from "@domain/ports/character.repository";
 import { Logger } from "@domain/ports/logger";
 import { CharacterProcessorService } from "@domain/services/character-processor.service";
 
-import { UpdateCharacterCommand } from "@/application/commands/update-character.command";
+import { UpdateCharacterCommand } from "@application/commands/update-character.command";
 
 export class UpdateCharacterUseCase {
   constructor(

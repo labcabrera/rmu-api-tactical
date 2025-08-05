@@ -1,9 +1,9 @@
 import express, { Request, Response, Router } from "express";
 
-import { CharacterRoundQuery } from "@/domain/queries/character-round.query";
+import { CharacterRoundQuery } from "@domain/queries/character-round.query";
 import { Logger } from "@domain/ports/logger";
 
-import { FindCharacterRoundsUseCase } from "@/application/use-cases/character-rounds/find-character-rounds.usecase";
+import { FindCharacterRoundsUseCase } from "@application/use-cases/character-rounds/find-character-rounds.usecase";
 
 import { DependencyContainer } from "../../dependency-container";
 

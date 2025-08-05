@@ -1,5 +1,5 @@
-import { Character } from "@/domain/entities/character.entity";
-import { CharacterRepository } from "@/domain/ports/character.repository";
+import { Character } from "@domain/entities/character.entity";
+import { CharacterRepository } from "@domain/ports/character.repository";
 import { Logger } from "@domain/ports/logger";
 import { CharacterProcessorService } from "@domain/services/character-processor.service";
 

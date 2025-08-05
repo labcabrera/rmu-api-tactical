@@ -1,19 +1,19 @@
 import express, { Request, Response, Router } from "express";
 
-import { CharacterQuery } from "@/domain/queries/character.query";
+import { CharacterQuery } from "@domain/queries/character.query";
 import { Logger } from "@domain/ports/logger";
 
-import { AddItemUseCase } from "@/application/use-cases/characters/add-item.usecase";
-import { AddSkillUseCase } from "@/application/use-cases/characters/add-skill.usecase";
-import { CreateCharacterUseCase } from "@/application/use-cases/characters/create-character.usecase";
-import { DeleteCharacterUseCase } from "@/application/use-cases/characters/delete-character.usecase";
-import { DeleteItemUseCase } from "@/application/use-cases/characters/delete-item.usecase";
-import { DeleteSkillUseCase } from "@/application/use-cases/characters/delete-skill.usecase";
-import { EquipItemUseCase } from "@/application/use-cases/characters/equip-item.usecase";
-import { FindTCharacterByIdUseCase } from "@/application/use-cases/characters/find-character-by-id.usecase";
-import { FindCharactersUseCase } from "@/application/use-cases/characters/find-characters.usecase";
-import { UpdateCharacterUseCase } from "@/application/use-cases/characters/update-character.usecase";
-import { UpdateSkillUseCase } from "@/application/use-cases/characters/update-skill.usecase";
+import { AddItemUseCase } from "@application/use-cases/characters/add-item.usecase";
+import { AddSkillUseCase } from "@application/use-cases/characters/add-skill.usecase";
+import { CreateCharacterUseCase } from "@application/use-cases/characters/create-character.usecase";
+import { DeleteCharacterUseCase } from "@application/use-cases/characters/delete-character.usecase";
+import { DeleteItemUseCase } from "@application/use-cases/characters/delete-item.usecase";
+import { DeleteSkillUseCase } from "@application/use-cases/characters/delete-skill.usecase";
+import { EquipItemUseCase } from "@application/use-cases/characters/equip-item.usecase";
+import { FindTCharacterByIdUseCase } from "@application/use-cases/characters/find-character-by-id.usecase";
+import { FindCharactersUseCase } from "@application/use-cases/characters/find-characters.usecase";
+import { UpdateCharacterUseCase } from "@application/use-cases/characters/update-character.usecase";
+import { UpdateSkillUseCase } from "@application/use-cases/characters/update-skill.usecase";
 import { AddItemCommand } from "@application/commands/add-item.comand";
 import { AddSkillCommand } from "@application/commands/add-skill.command";
 import { CreateCharacterCommand } from "@application/commands/create-character.command";

@@ -12,10 +12,10 @@ import {
   CharacterPower,
   CharacterSkill,
   CharacterStatistics,
-} from "@/domain/entities/character.entity";
-import { Game } from "@/domain/entities/game.entity";
-import { CharacterRepository } from "@/domain/ports/character.repository";
-import { GameRepository } from "@/domain/ports/game.repository";
+} from "@domain/entities/character.entity";
+import { Game } from "@domain/entities/game.entity";
+import { CharacterRepository } from "@domain/ports/character.repository";
+import { GameRepository } from "@domain/ports/game.repository";
 import { Logger } from "@domain/ports/logger";
 import { RaceClient } from "@domain/ports/race-client";
 import { SkillClient } from "@domain/ports/skill-client";

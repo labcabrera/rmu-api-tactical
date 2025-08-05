@@ -1,6 +1,6 @@
-import { CharacterRound } from "@/domain/entities/character-round.entity";
-import { CharacterRoundRepository } from "@/domain/ports/character-round.repository";
-import { CharacterRoundQuery } from "@/domain/queries/character-round.query";
+import { CharacterRound } from "@domain/entities/character-round.entity";
+import { CharacterRoundRepository } from "@domain/ports/character-round.repository";
+import { CharacterRoundQuery } from "@domain/queries/character-round.query";
 import { Page } from "@domain/entities/page.entity";
 
 import CharacterRoundDocument from "../models/character-round.model";

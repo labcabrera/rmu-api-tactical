@@ -1,4 +1,4 @@
-import { Action } from "@/domain/entities/action.entity";
+import { Action } from "@domain/entities/action.entity";
 import { Page } from "@domain/entities/page.entity";
 import { ActionQuery } from "../queries/action.query";
 

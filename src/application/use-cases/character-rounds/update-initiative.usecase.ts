@@ -1,4 +1,4 @@
-import { CharacterRoundRepository } from "@/domain/ports/character-round.repository";
+import { CharacterRoundRepository } from "@domain/ports/character-round.repository";
 import { CharacterRound } from "@domain/entities/character-round.entity";
 import { Logger } from "@domain/ports/logger";
 

@@ -1,5 +1,5 @@
-import { Character, CharacterSkill } from "@/domain/entities/character.entity";
-import { CharacterRepository } from "@/domain/ports/character.repository";
+import { Character, CharacterSkill } from "@domain/entities/character.entity";
+import { CharacterRepository } from "@domain/ports/character.repository";
 import { Logger } from "@domain/ports/logger";
 import { SkillCategoryClient } from "@domain/ports/skill-category-client";
 import { SkillClient } from "@domain/ports/skill-client";

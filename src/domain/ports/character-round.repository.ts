@@ -1,4 +1,4 @@
-import { CharacterRound } from "@/domain/entities/character-round.entity";
+import { CharacterRound } from "@domain/entities/character-round.entity";
 import { Page } from "@domain/entities/page.entity";
 import { CharacterRoundQuery } from "../queries/character-round.query";
 

@@ -1,9 +1,9 @@
-import { CharacterRound } from "@/domain/entities/character-round.entity";
-import { Character } from "@/domain/entities/character.entity";
-import { Game } from "@/domain/entities/game.entity";
-import { CharacterRoundRepository } from "@/domain/ports/character-round.repository";
-import { CharacterRepository } from "@/domain/ports/character.repository";
-import { GameRepository } from "@/domain/ports/game.repository";
+import { CharacterRound } from "@domain/entities/character-round.entity";
+import { Character } from "@domain/entities/character.entity";
+import { Game } from "@domain/entities/game.entity";
+import { CharacterRoundRepository } from "@domain/ports/character-round.repository";
+import { CharacterRepository } from "@domain/ports/character.repository";
+import { GameRepository } from "@domain/ports/game.repository";
 import { Page } from "@domain/entities/page.entity";
 import { Logger } from "@domain/ports/logger";
 
