@@ -1,11 +1,11 @@
 import { injectable } from 'inversify';
 
-import { Action } from "@domain/entities/action.entity";
-import { Page } from "@domain/entities/page.entity";
-import { ActionRepository } from "@domain/ports/outbound/action.repository";
-import { ActionQuery } from "@domain/queries/action.query";
+import { Action } from '@domain/entities/action.entity';
+import { Page } from '@domain/entities/page.entity';
+import { ActionRepository } from '@domain/ports/outbound/action.repository';
+import { ActionQuery } from '@domain/queries/action.query';
 
-import ActionDocument from "../models/action.model";
+import ActionDocument from '../models/action.model';
 
 @injectable()
 export class MongoActionRepository implements ActionRepository {
@@ -32,12 +32,9 @@ export class MongoActionRepository implements ActionRepository {
       filter.type = criteria.actionType;
     }
     const skip = criteria.page * criteria.size;
-    const list = await ActionDocument.find(filter)
-      .skip(skip)
-      .limit(criteria.size)
-      .sort({ round: 1, createdAt: -1 });
+    const list = await ActionDocument.find(filter).skip(skip).limit(criteria.size).sort({ round: 1, createdAt: -1 });
     const count = await ActionDocument.countDocuments(filter);
-    const content = list.map((action) => this.toEntity(action));
+    const content = list.map(action => this.toEntity(action));
     return {
       content,
       pagination: {
@@ -55,7 +52,7 @@ export class MongoActionRepository implements ActionRepository {
       createdAt: -1,
     });
 
-    return actions.map((action) => this.toEntity(action));
+    return actions.map(action => this.toEntity(action));
   }
 
   async findByGameIdAndRound(gameId: string, round: number): Promise<Action[]> {
@@ -64,28 +61,25 @@ export class MongoActionRepository implements ActionRepository {
       round: round,
     }).sort({ createdAt: -1 });
 
-    return actions.map((action) => this.toEntity(action));
+    return actions.map(action => this.toEntity(action));
   }
 
   async findByCharacterId(characterId: string): Promise<Action[]> {
     const actions = await ActionDocument.find({
       characterId: characterId,
     }).sort({ round: 1, createdAt: -1 });
-    return actions.map((action) => this.toEntity(action));
+    return actions.map(action => this.toEntity(action));
   }
 
-  async findByCharacterIdAndRound(
-    characterId: string,
-    round: number,
-  ): Promise<Action[]> {
+  async findByCharacterIdAndRound(characterId: string, round: number): Promise<Action[]> {
     const actions = await ActionDocument.find({
       characterId: characterId,
       round: round,
     }).sort({ createdAt: -1 });
-    return actions.map((action) => this.toEntity(action));
+    return actions.map(action => this.toEntity(action));
   }
 
-  async create(action: Omit<Action, "id">): Promise<Action> {
+  async create(action: Omit<Action, 'id'>): Promise<Action> {
     const newAction = new ActionDocument(action);
     const saved = await newAction.save();
     return this.toEntity(saved);

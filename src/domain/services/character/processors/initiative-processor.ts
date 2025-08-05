@@ -1,4 +1,4 @@
-import { Character } from "../../../entities/character.entity";
+import { Character } from '../../../entities/character.entity';
 
 export class InitiativeProcessor {
   static process(character: Character): void {

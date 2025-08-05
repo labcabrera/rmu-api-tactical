@@ -1,4 +1,4 @@
-import { Character } from "../../../entities/character.entity";
+import { Character } from '../../../entities/character.entity';
 
 export class MovementProcessor {
   static process(character: Character): void {
@@ -6,8 +6,7 @@ export class MovementProcessor {
     const racialStrideBonus = character.movement.strideRacialBonus || 0;
     const quBonus = (character.statistics.qu?.totalBonus || 0) / 2;
 
-    const baseMovementRate =
-      20 + racialStrideBonus + customStrideBonus + quBonus;
+    const baseMovementRate = 20 + racialStrideBonus + customStrideBonus + quBonus;
     character.movement = {
       ...character.movement,
       strideQuBonus: quBonus,

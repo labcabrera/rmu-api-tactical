@@ -1,18 +1,19 @@
 import { inject, injectable } from 'inversify';
 
-import { Action } from "@domain/entities/action.entity";
-import { Page } from "@domain/entities/page.entity";
-import { Logger } from "@domain/ports/logger";
-import { ActionRepository } from "@domain/ports/outbound/action.repository";
-import { ActionQuery } from "@domain/queries/action.query";
+import { Action } from '@domain/entities/action.entity';
+import { Page } from '@domain/entities/page.entity';
+import { Logger } from '@domain/ports/logger';
+import { ActionRepository } from '@domain/ports/outbound/action.repository';
+import { ActionQuery } from '@domain/queries/action.query';
 
 import { TYPES } from '@shared/types';
 
 @injectable()
 export class FindActionsUseCase {
   constructor(
-    @inject(TYPES.ActionRepository) private readonly actionRepository: ActionRepository,
-    @inject(TYPES.Logger) private readonly logger: Logger,
+    @inject(TYPES.ActionRepository)
+    private readonly actionRepository: ActionRepository,
+    @inject(TYPES.Logger) private readonly logger: Logger
   ) {}
 
   async execute(query: ActionQuery): Promise<Page<Action>> {

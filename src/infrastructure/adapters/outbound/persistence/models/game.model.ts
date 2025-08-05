@@ -1,5 +1,5 @@
-import mongoose, { Schema } from "mongoose";
-import { TacticalGameDocument } from "../mongo-types";
+import mongoose, { Schema } from 'mongoose';
+import { TacticalGameDocument } from '../mongo-types';
 
 const TacticalGameSchema: Schema<TacticalGameDocument> = new Schema(
   {
@@ -31,13 +31,10 @@ const TacticalGameSchema: Schema<TacticalGameDocument> = new Schema(
   },
   {
     timestamps: true,
-    collection: "tactical-games",
-  },
+    collection: 'tactical-games',
+  }
 );
 
-const TacticalGameModel = mongoose.model<TacticalGameDocument>(
-  "TacticalGame",
-  TacticalGameSchema,
-);
+const TacticalGameModel = mongoose.model<TacticalGameDocument>('TacticalGame', TacticalGameSchema);
 
 export default TacticalGameModel;

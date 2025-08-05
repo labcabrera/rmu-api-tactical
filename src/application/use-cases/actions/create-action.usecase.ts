@@ -1,33 +1,35 @@
 import { inject, injectable } from 'inversify';
 
-import { Action } from "@domain/entities/action.entity";
-import { Logger } from "@domain/ports/logger";
-import { ActionRepository } from "@domain/ports/outbound/action.repository";
-import { CharacterRoundRepository } from "@domain/ports/outbound/character-round.repository";
-import { CharacterRepository } from "@domain/ports/outbound/character.repository";
-import { GameRepository } from "@domain/ports/outbound/game.repository";
+import { Action } from '@domain/entities/action.entity';
+import { Logger } from '@domain/ports/logger';
+import { ActionRepository } from '@domain/ports/outbound/action.repository';
+import { CharacterRoundRepository } from '@domain/ports/outbound/character-round.repository';
+import { CharacterRepository } from '@domain/ports/outbound/character.repository';
+import { GameRepository } from '@domain/ports/outbound/game.repository';
 
-import { CreateActionCommand } from "@application/commands/create-action.command";
+import { CreateActionCommand } from '@application/commands/create-action.command';
 import { TYPES } from '@shared/types';
 
 @injectable()
 export class CreateActionUseCase {
   constructor(
-    @inject(TYPES.GameRepository) private readonly gameRepository: GameRepository,
-    @inject(TYPES.CharacterRepository) private readonly characterRepository: CharacterRepository,
-    @inject(TYPES.CharacterRoundRepository) private readonly characterRoundRepository: CharacterRoundRepository,
-    @inject(TYPES.ActionRepository) private readonly actionRepository: ActionRepository,
-    @inject(TYPES.Logger) private readonly logger: Logger,
+    @inject(TYPES.GameRepository)
+    private readonly gameRepository: GameRepository,
+    @inject(TYPES.CharacterRepository)
+    private readonly characterRepository: CharacterRepository,
+    @inject(TYPES.CharacterRoundRepository)
+    private readonly characterRoundRepository: CharacterRoundRepository,
+    @inject(TYPES.ActionRepository)
+    private readonly actionRepository: ActionRepository,
+    @inject(TYPES.Logger) private readonly logger: Logger
   ) {}
 
   async execute(command: CreateActionCommand): Promise<Action> {
-    this.logger.info(
-      `CreateActionUseCase: Creating action ${command.actionType} for character ${command.characterId}`,
-    );
+    this.logger.info(`CreateActionUseCase: Creating action ${command.actionType} for character ${command.characterId}`);
 
     //TODO VALIDATION
 
-    const action: Omit<Action, "id"> = {
+    const action: Omit<Action, 'id'> = {
       gameId: command.gameId,
       round: command.round,
       characterId: command.characterId,

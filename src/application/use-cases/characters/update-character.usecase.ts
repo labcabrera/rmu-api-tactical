@@ -1,29 +1,28 @@
 import { inject, injectable } from 'inversify';
 
-import { Character } from "@domain/entities/character.entity";
-import { Logger } from "@domain/ports/logger";
-import { CharacterRepository } from "@domain/ports/outbound/character.repository";
-import { CharacterProcessorService } from "@domain/services/character-processor.service";
+import { Character } from '@domain/entities/character.entity';
+import { Logger } from '@domain/ports/logger';
+import { CharacterRepository } from '@domain/ports/outbound/character.repository';
+import { CharacterProcessorService } from '@domain/services/character-processor.service';
 
-import { UpdateCharacterCommand } from "@application/commands/update-character.command";
+import { UpdateCharacterCommand } from '@application/commands/update-character.command';
 import { TYPES } from '@shared/types';
 
 @injectable()
 export class UpdateCharacterUseCase {
   constructor(
-    @inject(TYPES.CharacterProcessorService) private readonly characterProcessorService: CharacterProcessorService,
-    @inject(TYPES.CharacterRepository) private readonly characterRepository: CharacterRepository,
-    @inject(TYPES.Logger) private readonly logger: Logger,
+    @inject(TYPES.CharacterProcessorService)
+    private readonly characterProcessorService: CharacterProcessorService,
+    @inject(TYPES.CharacterRepository)
+    private readonly characterRepository: CharacterRepository,
+    @inject(TYPES.Logger) private readonly logger: Logger
   ) {}
 
   async execute(command: UpdateCharacterCommand): Promise<Character> {
     try {
-      this.logger.info(
-        `UpdateTacticalCharacterUseCase: Updating tactical character: ${command.characterId}`,
-      );
+      this.logger.info(`UpdateTacticalCharacterUseCase: Updating tactical character: ${command.characterId}`);
       const characterId = command.characterId;
-      const character: Character =
-        await this.characterRepository.findById(characterId);
+      const character: Character = await this.characterRepository.findById(characterId);
 
       this.bindBasicFields(character, command);
       this.bindInfoFielsds(character, command);
@@ -39,10 +38,7 @@ export class UpdateCharacterUseCase {
     }
   }
 
-  private bindBasicFields(
-    character: Character,
-    command: UpdateCharacterCommand,
-  ): void {
+  private bindBasicFields(character: Character, command: UpdateCharacterCommand): void {
     if (command.name) {
       character.name = command.name;
     }
@@ -51,10 +47,7 @@ export class UpdateCharacterUseCase {
     }
   }
 
-  private bindInfoFielsds(
-    character: Character,
-    command: UpdateCharacterCommand,
-  ): void {
+  private bindInfoFielsds(character: Character, command: UpdateCharacterCommand): void {
     if (!command.info) {
       return;
     }
@@ -69,15 +62,9 @@ export class UpdateCharacterUseCase {
     }
   }
 
-  private bindMovementFielsds(
-    character: Character,
-    command: UpdateCharacterCommand,
-  ): void {}
+  private bindMovementFielsds(character: Character, command: UpdateCharacterCommand): void {}
 
-  private bindHPFielsds(
-    character: Character,
-    command: UpdateCharacterCommand,
-  ): void {
+  private bindHPFielsds(character: Character, command: UpdateCharacterCommand): void {
     if (!command.hp) {
       return;
     }

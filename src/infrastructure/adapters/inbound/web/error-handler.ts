@@ -3,12 +3,7 @@ import { Logger } from '@domain/ports/logger';
 import { container } from '@shared/container';
 import { NextFunction, Request, Response } from 'express';
 
-export const errorHandler = (
-  error: Error,
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
+export const errorHandler = (error: Error, req: Request, res: Response, next: NextFunction): void => {
   const logger: Logger = container.get('Logger');
 
   logger.error('Error handler caught:', {

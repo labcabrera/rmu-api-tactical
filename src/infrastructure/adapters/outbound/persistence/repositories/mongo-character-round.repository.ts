@@ -1,11 +1,11 @@
 import { injectable } from 'inversify';
 
-import { CharacterRound } from "@domain/entities/character-round.entity";
-import { Page } from "@domain/entities/page.entity";
-import { CharacterRoundRepository } from "@domain/ports/outbound/character-round.repository";
-import { CharacterRoundQuery } from "@domain/queries/character-round.query";
+import { CharacterRound } from '@domain/entities/character-round.entity';
+import { Page } from '@domain/entities/page.entity';
+import { CharacterRoundRepository } from '@domain/ports/outbound/character-round.repository';
+import { CharacterRoundQuery } from '@domain/queries/character-round.query';
 
-import CharacterRoundDocument from "../models/character-round.model";
+import CharacterRoundDocument from '../models/character-round.model';
 
 @injectable()
 export class MongoCharacterRoundRepository implements CharacterRoundRepository {
@@ -34,7 +34,7 @@ export class MongoCharacterRoundRepository implements CharacterRoundRepository {
       .limit(query.size)
       .sort({ round: 1, createdAt: -1 });
     const count = await CharacterRoundDocument.countDocuments(filter);
-    const content = list.map((characterRound) => this.toEntity(characterRound));
+    const content = list.map(characterRound => this.toEntity(characterRound));
     return {
       content,
       pagination: {
@@ -46,24 +46,16 @@ export class MongoCharacterRoundRepository implements CharacterRoundRepository {
     };
   }
 
-  async findByGameIdAndRound(
-    gameId: string,
-    round: number,
-  ): Promise<CharacterRound[]> {
+  async findByGameIdAndRound(gameId: string, round: number): Promise<CharacterRound[]> {
     const characterRounds = await CharacterRoundDocument.find({
       gameId: gameId,
       round: round,
     }).sort({ createdAt: -1 });
 
-    return characterRounds.map((characterRound) =>
-      this.toEntity(characterRound),
-    );
+    return characterRounds.map(characterRound => this.toEntity(characterRound));
   }
 
-  async findByCharacterIdAndRound(
-    characterId: string,
-    round: number,
-  ): Promise<CharacterRound | null> {
+  async findByCharacterIdAndRound(characterId: string, round: number): Promise<CharacterRound | null> {
     const characterRound = await CharacterRoundDocument.findOne({
       characterId: characterId,
       round: round,
@@ -72,23 +64,14 @@ export class MongoCharacterRoundRepository implements CharacterRoundRepository {
     return characterRound ? this.toEntity(characterRound) : null;
   }
 
-  async create(
-    characterRound: Omit<CharacterRound, "id">,
-  ): Promise<CharacterRound> {
+  async create(characterRound: Omit<CharacterRound, 'id'>): Promise<CharacterRound> {
     const newCharacterRound = new CharacterRoundDocument(characterRound);
     const saved = await newCharacterRound.save();
     return this.toEntity(saved);
   }
 
-  async update(
-    id: string,
-    characterRound: Partial<CharacterRound>,
-  ): Promise<CharacterRound> {
-    const updated = await CharacterRoundDocument.findByIdAndUpdate(
-      id,
-      characterRound,
-      { new: true },
-    );
+  async update(id: string, characterRound: Partial<CharacterRound>): Promise<CharacterRound> {
+    const updated = await CharacterRoundDocument.findByIdAndUpdate(id, characterRound, { new: true });
     if (!updated) {
       throw new Error(`Character round with id ${id} not found`);
     }

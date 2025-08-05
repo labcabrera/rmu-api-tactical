@@ -1,11 +1,7 @@
 import { inject, injectable } from 'inversify';
 
-import { Logger } from "@domain/ports/logger";
-import {
-  AuthToken,
-  AuthTokenService,
-  OAuth2ClientCredentials,
-} from "@domain/ports/outbound/auth-token-service";
+import { Logger } from '@domain/ports/logger';
+import { AuthToken, AuthTokenService, OAuth2ClientCredentials } from '@domain/ports/outbound/auth-token-service';
 
 import { config } from '@infrastructure/config/config';
 import { TYPES } from '@shared/types';
@@ -15,26 +11,24 @@ export class OAuth2TokenService implements AuthTokenService {
   private cachedToken: AuthToken | null = null;
   private tokenRequestInProgress: Promise<AuthToken> | null = null;
 
-  constructor(
-    @inject(TYPES.Logger) private readonly logger: Logger,
-  ) {}
+  constructor(@inject(TYPES.Logger) private readonly logger: Logger) {}
 
   async getAccessToken(): Promise<string> {
     // Check if we have a valid cached token
     if (this.cachedToken && this.isTokenValid(this.cachedToken)) {
-      this.logger.info("Using cached access token");
+      this.logger.info('Using cached access token');
       return this.cachedToken.accessToken;
     }
 
     // If a token request is already in progress, wait for it
     if (this.tokenRequestInProgress) {
-      this.logger.info("Token request already in progress, waiting...");
+      this.logger.info('Token request already in progress, waiting...');
       const token = await this.tokenRequestInProgress;
       return token.accessToken;
     }
 
     // Start a new token request
-    this.logger.info("Requesting new access token");
+    this.logger.info('Requesting new access token');
     this.tokenRequestInProgress = this.requestNewToken();
 
     try {
@@ -47,7 +41,7 @@ export class OAuth2TokenService implements AuthTokenService {
   }
 
   clearCache(): void {
-    this.logger.info("Clearing token cache");
+    this.logger.info('Clearing token cache');
     this.cachedToken = null;
     this.tokenRequestInProgress = null;
   }
@@ -56,32 +50,30 @@ export class OAuth2TokenService implements AuthTokenService {
     const credentials = this.getOAuth2Credentials();
 
     const body = new URLSearchParams({
-      grant_type: "client_credentials",
+      grant_type: 'client_credentials',
       client_id: credentials.clientId,
       client_secret: credentials.clientSecret,
     });
 
     if (credentials.scope) {
-      body.append("scope", credentials.scope);
+      body.append('scope', credentials.scope);
     }
 
     this.logger.debug(`Requesting token from ${credentials.tokenUrl}`);
 
     try {
       const response = await fetch(credentials.tokenUrl, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Accept: "application/json",
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Accept: 'application/json',
         },
         body: body.toString(),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(
-          `Token request failed with status ${response.status}: ${errorText}`,
-        );
+        throw new Error(`Token request failed with status ${response.status}: ${errorText}`);
       }
 
       const tokenResponse: any = await response.json();
@@ -91,14 +83,12 @@ export class OAuth2TokenService implements AuthTokenService {
 
       const token: AuthToken = {
         accessToken: tokenResponse.access_token,
-        tokenType: tokenResponse.token_type || "Bearer",
+        tokenType: tokenResponse.token_type || 'Bearer',
         expiresIn,
         expiresAt,
       };
 
-      this.logger.info(
-        `Successfully obtained access token, expires at ${expiresAt.toISOString()}`,
-      );
+      this.logger.info(`Successfully obtained access token, expires at ${expiresAt.toISOString()}`);
 
       return token;
     } catch (error) {
@@ -120,10 +110,10 @@ export class OAuth2TokenService implements AuthTokenService {
     const clientId: string = config.keycloak.clientId;
     const clientSecret: string = config.keycloak.clientSecret;
     const tokenUrl: string = config.keycloak.tokenUrl;
-    const scope: string = config.keycloak.scope || "";
+    const scope: string = config.keycloak.scope || '';
     if (!clientId || !clientSecret || !tokenUrl) {
       throw new Error(
-        "OAuth2 credentials not configured. Please set OAUTH2_CLIENT_ID, OAUTH2_CLIENT_SECRET, and OAUTH2_TOKEN_URL environment variables.",
+        'OAuth2 credentials not configured. Please set OAUTH2_CLIENT_ID, OAUTH2_CLIENT_SECRET, and OAUTH2_TOKEN_URL environment variables.'
       );
     }
     return {

@@ -1,7 +1,7 @@
 import { Logger } from '@domain/ports/logger';
 import { config } from '@infrastructure/config/config';
 import { container } from '@shared/container';
-import { ExpressApp } from "./express.app";
+import { ExpressApp } from './express.app';
 
 export class WebServer {
   private port: number;

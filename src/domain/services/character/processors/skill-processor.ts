@@ -1,19 +1,12 @@
-import { Character, CharacterSkill } from "../../../entities/character.entity";
+import { Character, CharacterSkill } from '../../../entities/character.entity';
 
 export class SkillProcessor {
   static process(character: Character): void {
-    character.skills.forEach((skill: any) =>
-      this.updateSkill(character, skill),
-    );
-    character.skills.sort((a: CharacterSkill, b: CharacterSkill) =>
-      a.skillId.localeCompare(b.skillId),
-    );
+    character.skills.forEach((skill: any) => this.updateSkill(character, skill));
+    character.skills.sort((a: CharacterSkill, b: CharacterSkill) => a.skillId.localeCompare(b.skillId));
   }
 
-  private static updateSkill(
-    character: Character,
-    skill: CharacterSkill,
-  ): void {
+  private static updateSkill(character: Character, skill: CharacterSkill): void {
     const ranks = skill.ranks;
     const statBonus = this.getStatBonus(character, skill.statistics);
     const racialBonus = skill.racialBonus || 0;
@@ -26,12 +19,9 @@ export class SkillProcessor {
     skill.totalBonus = totalBonus;
   }
 
-  private static getStatBonus(
-    character: Character,
-    statistics: string[],
-  ): number {
+  private static getStatBonus(character: Character, statistics: string[]): number {
     let statBonus = 0;
-    statistics?.forEach((stat) => {
+    statistics?.forEach(stat => {
       const statValue = (character.statistics as any)[stat];
       if (statValue?.totalBonus) {
         statBonus += statValue.totalBonus;

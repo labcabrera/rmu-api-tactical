@@ -1,11 +1,11 @@
 import { injectable } from 'inversify';
 
-import { Character } from "@domain/entities/character.entity";
-import { Page } from "@domain/entities/page.entity";
-import { CharacterRepository } from "@domain/ports/outbound/character.repository";
-import { CharacterQuery } from "@domain/queries/character.query";
+import { Character } from '@domain/entities/character.entity';
+import { Page } from '@domain/entities/page.entity';
+import { CharacterRepository } from '@domain/ports/outbound/character.repository';
+import { CharacterQuery } from '@domain/queries/character.query';
 
-import TacticalCharacterDocument from "../models/character.model";
+import TacticalCharacterDocument from '../models/character.model';
 
 @injectable()
 export class MongoCharacterRepository implements CharacterRepository {
@@ -23,12 +23,9 @@ export class MongoCharacterRepository implements CharacterRepository {
       filter.gameId = query.gameId;
     }
     const skip = query.page * query.size;
-    const list = await TacticalCharacterDocument.find(filter)
-      .skip(skip)
-      .limit(query.size)
-      .sort({ updatedAt: -1 });
+    const list = await TacticalCharacterDocument.find(filter).skip(skip).limit(query.size).sort({ updatedAt: -1 });
     const count = await TacticalCharacterDocument.countDocuments(filter);
-    const content = list.map((character) => this.toEntity(character));
+    const content = list.map(character => this.toEntity(character));
     return {
       content,
       pagination: {
@@ -40,20 +37,14 @@ export class MongoCharacterRepository implements CharacterRepository {
     };
   }
 
-  async create(
-    character: Omit<Character, "id" | "createdAt" | "updatedAt">,
-  ): Promise<Character> {
+  async create(character: Omit<Character, 'id' | 'createdAt' | 'updatedAt'>): Promise<Character> {
     const newCharacter = new TacticalCharacterDocument(character);
     const savedCharacter = await newCharacter.save();
     return this.toEntity(savedCharacter);
   }
 
   async update(id: string, character: Partial<Character>): Promise<Character> {
-    const updatedCharacter = await TacticalCharacterDocument.findByIdAndUpdate(
-      id,
-      character,
-      { new: true },
-    );
+    const updatedCharacter = await TacticalCharacterDocument.findByIdAndUpdate(id, character, { new: true });
     if (!updatedCharacter) {
       throw new Error(`Tactical Character with id ${id} not found`);
     }

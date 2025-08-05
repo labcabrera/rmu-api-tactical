@@ -1,19 +1,18 @@
 import { inject, injectable } from 'inversify';
 
-import { Logger } from "@domain/ports/logger";
-import { AuthTokenService } from "@domain/ports/outbound/auth-token-service";
-import { SkillClient } from "@domain/ports/outbound/skill-client";
+import { Logger } from '@domain/ports/logger';
+import { AuthTokenService } from '@domain/ports/outbound/auth-token-service';
+import { SkillClient } from '@domain/ports/outbound/skill-client';
 
 import { config } from '@infrastructure/config/config';
 import { TYPES } from '@shared/types';
-import { AuthenticatedApiClient } from "./authenticated-api-client";
+import { AuthenticatedApiClient } from './authenticated-api-client';
 
 @injectable()
-export class SkillAPICoreClient extends AuthenticatedApiClient implements SkillClient
-{
+export class SkillAPICoreClient extends AuthenticatedApiClient implements SkillClient {
   constructor(
     @inject(TYPES.Logger) logger: Logger,
-    @inject(TYPES.AuthTokenService) authTokenService: AuthTokenService,
+    @inject(TYPES.AuthTokenService) authTokenService: AuthTokenService
   ) {
     super(logger, authTokenService);
   }
@@ -24,10 +23,7 @@ export class SkillAPICoreClient extends AuthenticatedApiClient implements SkillC
 
     try {
       const response = await this.makeAuthenticatedRequest(url);
-      const responseBody = await this.handleApiResponse<{ content: any[] }>(
-        response,
-        url,
-      );
+      const responseBody = await this.handleApiResponse<{ content: any[] }>(response, url);
       return responseBody.content;
     } catch (error) {
       throw new Error(`Error reading skill info from ${url}: ${error}`);

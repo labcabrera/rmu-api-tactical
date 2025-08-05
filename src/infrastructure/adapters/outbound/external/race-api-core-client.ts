@@ -1,19 +1,18 @@
 import { inject, injectable } from 'inversify';
 
-import { Logger } from "@domain/ports/logger";
-import { AuthTokenService } from "@domain/ports/outbound/auth-token-service";
-import { RaceClient } from "@domain/ports/outbound/race-client";
+import { Logger } from '@domain/ports/logger';
+import { AuthTokenService } from '@domain/ports/outbound/auth-token-service';
+import { RaceClient } from '@domain/ports/outbound/race-client';
 
 import { config } from '@infrastructure/config/config';
 import { TYPES } from '@shared/types';
-import { AuthenticatedApiClient } from "./authenticated-api-client";
+import { AuthenticatedApiClient } from './authenticated-api-client';
 
 @injectable()
-export class RaceAPICoreClient extends AuthenticatedApiClient implements RaceClient
-{
+export class RaceAPICoreClient extends AuthenticatedApiClient implements RaceClient {
   constructor(
     @inject(TYPES.Logger) logger: Logger,
-    @inject(TYPES.AuthTokenService) authTokenService: AuthTokenService,
+    @inject(TYPES.AuthTokenService) authTokenService: AuthTokenService
   ) {
     super(logger, authTokenService);
   }

@@ -3,7 +3,7 @@ export interface Game {
   user: string;
   name: string;
   description?: string | undefined;
-  status: "created" | "in-progress" | "finished";
+  status: 'created' | 'in-progress' | 'finished';
   factions: string[];
   round: number;
   createdAt?: Date;

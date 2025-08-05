@@ -1,26 +1,29 @@
-import { NextFunction, Request, Response } from "express";
+import { NextFunction, Request, Response } from 'express';
 import { inject } from 'inversify';
 
-import { Logger } from "@domain/ports/logger";
-import { ActionQuery } from "@domain/queries/action.query";
+import { Logger } from '@domain/ports/logger';
+import { ActionQuery } from '@domain/queries/action.query';
 
-import { CreateActionCommand } from "@application/commands/create-action.command";
-import { CreateActionUseCase } from "@application/use-cases/actions/create-action.usecase";
-import { DeleteActionUseCase } from "@application/use-cases/actions/delete-action.usecase";
-import { FindActionByIdUseCase } from "@application/use-cases/actions/find-action-by-id.usecase";
-import { FindActionsUseCase } from "@application/use-cases/actions/find-actions.usecase";
+import { CreateActionCommand } from '@application/commands/create-action.command';
+import { CreateActionUseCase } from '@application/use-cases/actions/create-action.usecase';
+import { DeleteActionUseCase } from '@application/use-cases/actions/delete-action.usecase';
+import { FindActionByIdUseCase } from '@application/use-cases/actions/find-action-by-id.usecase';
+import { FindActionsUseCase } from '@application/use-cases/actions/find-actions.usecase';
 
-import { DeleteActionCommand } from "@application/commands/delete-action.command";
+import { DeleteActionCommand } from '@application/commands/delete-action.command';
 import { TYPES } from '@shared/types';
 
 export class ActionController {
-
   constructor(
-    @inject(TYPES.FindActionByIdUseCase) private readonly findActionByIdUseCase: FindActionByIdUseCase,
-    @inject(TYPES.FindActionsUseCase) private readonly findActionsUseCase: FindActionsUseCase,
-    @inject(TYPES.CreateActionUseCase) private readonly createActionUseCase: CreateActionUseCase,
-    @inject(TYPES.DeleteActionUseCase) private readonly deleteActionUseCase: DeleteActionUseCase,
-    @inject(TYPES.Logger) private readonly logger: Logger,
+    @inject(TYPES.FindActionByIdUseCase)
+    private readonly findActionByIdUseCase: FindActionByIdUseCase,
+    @inject(TYPES.FindActionsUseCase)
+    private readonly findActionsUseCase: FindActionsUseCase,
+    @inject(TYPES.CreateActionUseCase)
+    private readonly createActionUseCase: CreateActionUseCase,
+    @inject(TYPES.DeleteActionUseCase)
+    private readonly deleteActionUseCase: DeleteActionUseCase,
+    @inject(TYPES.Logger) private readonly logger: Logger
   ) {}
 
   async find(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -46,9 +49,7 @@ export class ActionController {
 
   async findById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const response = await this.findActionByIdUseCase.execute(
-        req.params.actionId!,
-      );
+      const response = await this.findActionByIdUseCase.execute(req.params.actionId!);
       res.json(response);
     } catch (error) {
       next(error);

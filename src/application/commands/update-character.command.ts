@@ -1,4 +1,4 @@
-import { CharacterHP, CharacterInfo } from "@domain/entities/character.entity";
+import { CharacterHP, CharacterInfo } from '@domain/entities/character.entity';
 
 export interface UpdateCharacterCommand {
   characterId: string;

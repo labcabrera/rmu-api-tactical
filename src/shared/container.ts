@@ -64,7 +64,10 @@ container.bind<AuthService>(TYPES.AuthService).to(AuthService).inSingletonScope(
 
 // Repositories
 container.bind<ActionRepository>(TYPES.ActionRepository).to(MongoActionRepository).inSingletonScope();
-container.bind<CharacterRoundRepository>(TYPES.CharacterRoundRepository).to(MongoCharacterRoundRepository).inSingletonScope();
+container
+  .bind<CharacterRoundRepository>(TYPES.CharacterRoundRepository)
+  .to(MongoCharacterRoundRepository)
+  .inSingletonScope();
 container.bind<CharacterRepository>(TYPES.CharacterRepository).to(MongoCharacterRepository).inSingletonScope();
 container.bind<GameRepository>(TYPES.GameRepository).to(MongoGameRepository).inSingletonScope();
 
@@ -73,7 +76,10 @@ container.bind<SkillClient>(TYPES.SkillClient).to(SkillAPICoreClient).inSingleto
 container.bind<SkillCategoryClient>(TYPES.SkillCategoryClient).to(SkillCategoryAPICoreClient).inSingletonScope();
 
 // Domain services
-container.bind<CharacterProcessorService>(TYPES.CharacterProcessorService).to(CharacterProcessorService).inSingletonScope();
+container
+  .bind<CharacterProcessorService>(TYPES.CharacterProcessorService)
+  .to(CharacterProcessorService)
+  .inSingletonScope();
 
 // Action use cases
 container.bind<CreateActionUseCase>(TYPES.CreateActionUseCase).to(CreateActionUseCase).inSingletonScope();
@@ -82,7 +88,10 @@ container.bind<FindActionByIdUseCase>(TYPES.FindActionByIdUseCase).to(FindAction
 container.bind<FindActionsUseCase>(TYPES.FindActionsUseCase).to(FindActionsUseCase).inSingletonScope();
 
 // Character round use cases
-container.bind<FindCharacterRoundsUseCase>(TYPES.FindCharacterRoundsUseCase).to(FindCharacterRoundsUseCase).inSingletonScope();
+container
+  .bind<FindCharacterRoundsUseCase>(TYPES.FindCharacterRoundsUseCase)
+  .to(FindCharacterRoundsUseCase)
+  .inSingletonScope();
 container.bind<UpdateInitiativeUseCase>(TYPES.UpdateInitiativeUseCase).to(UpdateInitiativeUseCase).inSingletonScope();
 
 // Character use cases
@@ -93,7 +102,10 @@ container.bind<DeleteCharacterUseCase>(TYPES.DeleteCharacterUseCase).to(DeleteCh
 container.bind<DeleteItemUseCase>(TYPES.DeleteItemUseCase).to(DeleteItemUseCase).inSingletonScope();
 container.bind<DeleteSkillUseCase>(TYPES.DeleteSkillUseCase).to(DeleteSkillUseCase).inSingletonScope();
 container.bind<EquipItemUseCase>(TYPES.EquipItemUseCase).to(EquipItemUseCase).inSingletonScope();
-container.bind<FindTCharacterByIdUseCase>(TYPES.FindTCharacterByIdUseCase).to(FindTCharacterByIdUseCase).inSingletonScope();
+container
+  .bind<FindTCharacterByIdUseCase>(TYPES.FindTCharacterByIdUseCase)
+  .to(FindTCharacterByIdUseCase)
+  .inSingletonScope();
 container.bind<FindCharactersUseCase>(TYPES.FindCharactersUseCase).to(FindCharactersUseCase).inSingletonScope();
 container.bind<UpdateCharacterUseCase>(TYPES.UpdateCharacterUseCase).to(UpdateCharacterUseCase).inSingletonScope();
 container.bind<UpdateSkillUseCase>(TYPES.UpdateSkillUseCase).to(UpdateSkillUseCase).inSingletonScope();
@@ -109,9 +121,11 @@ container.bind<UpdateGameUseCase>(TYPES.UpdateGameUseCase).to(UpdateGameUseCase)
 // Controllers
 container.bind<ActionController>(TYPES.ActionController).to(ActionController).inSingletonScope();
 container.bind<AttackController>(TYPES.AttackController).to(AttackController).inSingletonScope();
-container.bind<CharacterRoundController>(TYPES.CharacterRoundController).to(CharacterRoundController).inSingletonScope();
+container
+  .bind<CharacterRoundController>(TYPES.CharacterRoundController)
+  .to(CharacterRoundController)
+  .inSingletonScope();
 container.bind<CharacterController>(TYPES.CharacterController).to(CharacterController).inSingletonScope();
 container.bind<GameController>(TYPES.GameController).to(GameController).inSingletonScope();
-
 
 export { container };

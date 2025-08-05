@@ -1,9 +1,6 @@
 import { Router } from 'express';
 
-import {
-  createAuthMiddleware,
-  requireRoles,
-} from '@infrastructure/adapters/inbound/web/security/auth.middleware';
+import { createAuthMiddleware, requireRoles } from '@infrastructure/adapters/inbound/web/security/auth.middleware';
 import { container } from '@shared/container';
 import { TYPES } from '@shared/types';
 import { asyncHandler } from '../async-handler';

@@ -39,9 +39,7 @@ export class AuthService {
 
   private extractUserFromPayload(payload: JWTPayload): User {
     const realmRoles = payload.realm_access?.roles || [];
-    const clientRoles = Object.values(payload.resource_access || {}).flatMap(
-      client => client.roles
-    );
+    const clientRoles = Object.values(payload.resource_access || {}).flatMap(client => client.roles);
 
     return {
       id: payload.sub,
