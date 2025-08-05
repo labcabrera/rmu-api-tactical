@@ -31,12 +31,9 @@ export class CreateCharacterUseCase {
   constructor(
     @inject(TYPES.RaceClient) private readonly raceClient: RaceClient,
     @inject(TYPES.SkillClient) private readonly skillClient: SkillClient,
-    @inject(TYPES.CharacterRepository)
-    private readonly characterRepository: CharacterRepository,
-    @inject(TYPES.GameRepository)
-    private readonly gameRepository: GameRepository,
-    @inject(TYPES.CharacterProcessorService)
-    private readonly characterProcessorService: CharacterProcessorService,
+    @inject(TYPES.CharacterRepository) private readonly characterRepository: CharacterRepository,
+    @inject(TYPES.GameRepository) private readonly gameRepository: GameRepository,
+    @inject(TYPES.CharacterProcessorService) private readonly characterProcessorService: CharacterProcessorService,
     @inject(TYPES.Logger) private readonly logger: Logger
   ) {}
 
@@ -106,7 +103,7 @@ export class CreateCharacterUseCase {
           info: item.info,
         }))
       : [];
-    const characterData: Omit<Character, 'id'> = {
+    const characterData: Partial<Character> = {
       gameId: command.gameId,
       name: command.name,
       faction: command.faction,
@@ -123,15 +120,9 @@ export class CreateCharacterUseCase {
       equipment: equipment,
       createdAt: new Date(),
     };
-
-    //TODO cast characterData to TacticalCharacterEntity by assigning a temporary id
-    const tempCharacter: Character = { id: randomUUID(), ...characterData };
-    this.characterProcessorService.process(tempCharacter);
-    this.loadDefaultEquipment(tempCharacter);
-    Object.assign(characterData, tempCharacter);
-    delete (characterData as any).id;
-
-    const newCharacter = await this.characterRepository.create(characterData);
+    this.characterProcessorService.process(characterData);
+    this.loadDefaultEquipment(characterData);
+    const newCharacter = await this.characterRepository.save(characterData);
     this.logger.info(`CreateTacticalCharacterUseCase: Tactical Character created successfully: ${newCharacter.id}`);
     return newCharacter;
   }
@@ -206,7 +197,10 @@ export class CreateCharacterUseCase {
     }
   }
 
-  loadDefaultEquipment(character: Character): void {
+  loadDefaultEquipment(character: Partial<Character>): void {
+    if (!character.items || !character.equipment) {
+      return;
+    }
     const weapon = character.items.find(e => e.category === 'weapon');
     const shield = character.items.find(e => e.category === 'shield');
     const armor = character.items.find(e => e.category === 'armor');

@@ -1,45 +1,33 @@
 import { CharacterRound } from '@domain/entities/character-round.entity';
 import { Character } from '@domain/entities/character.entity';
 import { Game } from '@domain/entities/game.entity';
-import { Page } from '@domain/entities/page.entity';
 import { Logger } from '@domain/ports/logger';
 import { CharacterRoundRepository } from '@domain/ports/outbound/character-round.repository';
 import { CharacterRepository } from '@domain/ports/outbound/character.repository';
 import { GameRepository } from '@domain/ports/outbound/game.repository';
 import { inject, injectable } from '@inversifyjs/core';
+import { NotFoundError, ValidationError } from '../../../domain/errors/errors';
 import { TYPES } from '../../../shared/types';
 
 @injectable()
 export class StartRoundUseCase {
   constructor(
-    @inject(TYPES.GameRepository)
-    private readonly gameRepository: GameRepository,
-    @inject(TYPES.CharacterRepository)
-    private readonly characterRepository: CharacterRepository,
-    @inject(TYPES.CharacterRoundRepository)
-    private readonly characterRoundRepository: CharacterRoundRepository,
+    @inject(TYPES.GameRepository) private readonly gameRepository: GameRepository,
+    @inject(TYPES.CharacterRepository) private readonly characterRepository: CharacterRepository,
+    @inject(TYPES.CharacterRoundRepository) private readonly characterRoundRepository: CharacterRoundRepository,
     @inject(TYPES.Logger) private readonly logger: Logger
   ) {}
 
   async execute(gameId: string): Promise<Game> {
     this.logger.info(`StartRoundUseCase: Starting new round for tactical game: ${gameId}`);
-
     const tacticalGame = await this.gameRepository.findById(gameId);
     if (!tacticalGame) {
-      throw new Error(`Game with id ${gameId} not found`);
+      throw new NotFoundError("Game",gameId);
     }
-
-    const charactersPage: Page<Character> = await this.characterRepository.find({
-      gameId: gameId,
-      page: 0,
-      size: 100,
-    });
-    const characters: Character[] = charactersPage.content;
-
+    const characters = await this.characterRepository.findByGameId(gameId);
     this.logger.info(`Characters: ${JSON.stringify(characters)}`);
-
     if (characters.length < 1) {
-      throw new Error('No characters associated with the tactical game have been defined');
+      throw new ValidationError('No characters associated with the tactical game have been defined');
     }
 
     const newRound = tacticalGame.round + 1;

@@ -5,6 +5,7 @@ import { Logger } from '@domain/ports/logger';
 import { CharacterRepository } from '@domain/ports/outbound/character.repository';
 
 import { TYPES } from '@shared/types';
+import { NotFoundError } from '../../../domain/errors/errors';
 
 @injectable()
 export class DeleteItemUseCase {
@@ -14,12 +15,15 @@ export class DeleteItemUseCase {
     @inject(TYPES.Logger) private readonly logger: Logger
   ) {}
 
+  //TODO refactor to use a command object
   async execute(characterId: string, itemId: string): Promise<Character> {
-    const character: Character = await this.characterRepository.findById(characterId);
-
+    const character = await this.characterRepository.findById(characterId);
+    if (!character) {
+      throw new NotFoundError('Character', characterId);
+    }
     const item = character.items.find(item => item.id === itemId);
     if (!item) {
-      throw new Error(`Item with id ${itemId} not found in character ${characterId}`);
+      throw new NotFoundError('Character Item', itemId);
     }
     character.items = character.items.filter(item => item.id !== itemId);
     this.cleanupEquipedItem(character.equipment, itemId);

@@ -7,6 +7,7 @@ import { CharacterProcessorService } from '@domain/services/character-processor.
 
 import { UpdateCharacterCommand } from '@application/commands/update-character.command';
 import { TYPES } from '@shared/types';
+import { NotFoundError } from '../../../domain/errors/errors';
 
 @injectable()
 export class UpdateCharacterUseCase {
@@ -22,7 +23,10 @@ export class UpdateCharacterUseCase {
     try {
       this.logger.info(`UpdateTacticalCharacterUseCase: Updating tactical character: ${command.characterId}`);
       const characterId = command.characterId;
-      const character: Character = await this.characterRepository.findById(characterId);
+      const character = await this.characterRepository.findById(command.characterId);
+      if (!character) {
+        throw new NotFoundError('Character', characterId);
+      }
 
       this.bindBasicFields(character, command);
       this.bindInfoFielsds(character, command);

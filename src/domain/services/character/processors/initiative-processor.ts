@@ -1,7 +1,10 @@
 import { Character } from '../../../entities/character.entity';
 
 export class InitiativeProcessor {
-  static process(character: Character): void {
+  static process(character: Partial<Character>): void {
+    if (!character.initiative || !character.statistics || !character.statistics.qu) {
+      return;
+    }
     const baseBonus = character.statistics.qu?.totalBonus || 0;
     const customBonus = character.initiative.customBonus || 0;
     // TODO calculate

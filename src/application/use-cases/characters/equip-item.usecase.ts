@@ -7,6 +7,7 @@ import { CharacterRepository } from '@domain/ports/outbound/character.repository
 import { CharacterProcessorService } from '@domain/services/character-processor.service';
 
 import { TYPES } from '@shared/types';
+import { NotFoundError } from '../../../domain/errors/errors';
 
 @injectable()
 export class EquipItemUseCase {
@@ -24,7 +25,10 @@ export class EquipItemUseCase {
     );
 
     const characterId = command.characterId;
-    const character: Character = await this.characterRepository.findById(characterId);
+    const character = await this.characterRepository.findById(command.characterId);
+    if (!character) {
+      throw new NotFoundError('Character', characterId);
+    }
 
     const item: CharacterItem = character.items.find((e: any) => e.id === command.itemId) as CharacterItem;
     if (!item) {

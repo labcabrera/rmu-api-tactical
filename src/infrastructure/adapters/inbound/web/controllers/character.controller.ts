@@ -2,7 +2,6 @@ import { NextFunction, Request, Response } from 'express';
 import { inject } from 'inversify';
 
 import { Logger } from '@domain/ports/logger';
-import { CharacterQuery } from '@domain/queries/character.query';
 
 import { AddItemCommand } from '@application/commands/add-item.comand';
 import { AddSkillCommand } from '@application/commands/add-skill.command';
@@ -52,13 +51,10 @@ export class CharacterController {
 
   async find(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const query: CharacterQuery = {
-        searchExpression: req.params.search as string,
-        gameId: req.params.gameId as string,
-        page: req.params.page ? parseInt(req.params.page) : 0,
-        size: req.params.size ? parseInt(req.params.size) : 10,
-      };
-      const response = await this.findCharacterUseCase.execute(query);
+      const page = req.query.page ? parseInt(req.query.page as string) : 0;
+      const size = req.query.size ? parseInt(req.query.size as string) : 10;
+      const rsql = req.query.q as string;
+      const response = await this.findCharacterUseCase.execute(rsql, page, size);
       res.json(response);
     } catch (error) {
       next(error);

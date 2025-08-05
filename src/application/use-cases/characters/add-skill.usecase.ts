@@ -7,18 +7,16 @@ import { SkillClient } from '@domain/ports/outbound/skill-client';
 import { AddSkillCommand } from '@application/commands/add-skill.command';
 import { CharacterProcessorService } from '@domain/services/character-processor.service';
 import { inject, injectable } from 'inversify';
+import { NotFoundError } from '../../../domain/errors/errors';
 import { TYPES } from '../../../shared/types';
 
 @injectable()
 export class AddSkillUseCase {
   constructor(
-    @inject(TYPES.CharacterProcessorService)
-    private readonly characterProcessorService: CharacterProcessorService,
-    @inject(TYPES.CharacterRepository)
-    private readonly characterRepository: CharacterRepository,
+    @inject(TYPES.CharacterProcessorService) private readonly characterProcessorService: CharacterProcessorService,
+    @inject(TYPES.CharacterRepository) private readonly characterRepository: CharacterRepository,
     @inject(TYPES.SkillClient) private readonly skillClient: SkillClient,
-    @inject(TYPES.SkillCategoryClient)
-    private readonly skillCategoryClient: SkillCategoryClient,
+    @inject(TYPES.SkillCategoryClient) private readonly skillCategoryClient: SkillCategoryClient,
     @inject(TYPES.Logger) private readonly logger: Logger
   ) {}
 
@@ -29,7 +27,10 @@ export class AddSkillUseCase {
       );
       const characterId = command.characterId;
       const skillId = command.skillId;
-      const character: Character = await this.characterRepository.findById(characterId);
+      const character = await this.characterRepository.findById(command.characterId);
+      if (!character) {
+        throw new NotFoundError('Character', characterId);
+      }
       if (this.hasSkillId(character, skillId)) {
         throw new Error(`Skill ${skillId} already exists for character ${characterId}`);
       }

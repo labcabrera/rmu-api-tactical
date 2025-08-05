@@ -14,7 +14,7 @@ import { SkillProcessor } from './character/processors/skill-processor';
 export class CharacterProcessorService {
   constructor(@inject(TYPES.Logger) private readonly logger: Logger) {}
 
-  process(character: Character): void {
+  process(character: Partial<Character>): void {
     this.logger.info(`CharacterProcessorService: Processing character << ${character.name} (${character.id})`);
 
     try {

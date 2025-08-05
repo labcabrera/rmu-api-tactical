@@ -1,14 +1,18 @@
 import { Character } from '../../../entities/character.entity';
 
 export class AttackProcessor {
-  static process(character: Character): void {
+  static process(character: Partial<Character>): void {
     const attacks: any = {};
     this.calculateAttackBonusSlot(character, attacks, 'mainHand');
     this.calculateAttackBonusSlot(character, attacks, 'offHand');
+    //TODO model refactor required
     (character as any).attacks = attacks;
   }
 
-  private static calculateAttackBonusSlot(character: Character, attacks: any, slot: string): void {
+  private static calculateAttackBonusSlot(character: Partial<Character>, attacks: any, slot: string): void {
+    if (!character.items || !character.skills) {
+      return;
+    }
     const equipment = (character as any).equipment;
     if (equipment[slot]) {
       const item = character.items.find((e: any) => e.id == equipment[slot]);

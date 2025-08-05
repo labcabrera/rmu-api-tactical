@@ -5,6 +5,7 @@ import { CharacterProcessorService } from '@domain/services/character-processor.
 
 import { DeleteSkillCommand } from '@application/commands/delete-skill-command';
 import { inject, injectable } from 'inversify';
+import { NotFoundError } from '../../../domain/errors/errors';
 import { TYPES } from '../../../shared/types';
 
 @injectable()
@@ -22,7 +23,10 @@ export class DeleteSkillUseCase {
       this.logger.info(`DeleteSkillUseCase: Deleting skill << ${command.skillId} for character ${command.characterId}`);
       const characterId = command.characterId;
       const skillId = command.skillId;
-      const character: Character = await this.characterRepository.findById(characterId);
+      const character = await this.characterRepository.findById(command.characterId);
+      if (!character) {
+        throw new NotFoundError('Character', characterId);
+      }
       const skill = character.skills.find(skill => skill.skillId === skillId) || null;
       if (!skill) {
         throw new Error(`Skill ${skillId} not found for character ${characterId}`);

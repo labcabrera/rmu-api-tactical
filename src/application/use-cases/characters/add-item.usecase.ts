@@ -7,15 +7,14 @@ import { CharacterRepository } from '@domain/ports/outbound/character.repository
 import { CharacterProcessorService } from '@domain/services/character-processor.service';
 
 import { AddItemCommand } from '@application/commands/add-item.comand';
+import { NotFoundError } from '../../../domain/errors/errors';
 import { TYPES } from '../../../shared/types';
 
 @injectable()
 export class AddItemUseCase {
   constructor(
-    @inject(TYPES.CharacterProcessorService)
-    private readonly characterProcessorService: CharacterProcessorService,
-    @inject(TYPES.CharacterRepository)
-    private readonly tacticalCharacterRepository: CharacterRepository,
+    @inject(TYPES.CharacterProcessorService) private readonly characterProcessorService: CharacterProcessorService,
+    @inject(TYPES.CharacterRepository) private readonly characterRepository: CharacterRepository,
     @inject(TYPES.Logger) private readonly logger: Logger
   ) {}
 
@@ -23,7 +22,10 @@ export class AddItemUseCase {
     this.logger.info(`AddItemUseCase: Adding item ${command.item.itemTypeId} to character ${command.characterId}`);
     this.validateCommand(command);
     const characterId = command.characterId;
-    const character: Character = await this.tacticalCharacterRepository.findById(command.characterId);
+    const character = await this.characterRepository.findById(command.characterId);
+    if (!character) {
+      throw new NotFoundError('Character', characterId);
+    }
     const item: CharacterItem = {
       id: randomUUID(),
       name: command.item.name ? command.item.name : command.item.itemTypeId,
@@ -36,7 +38,7 @@ export class AddItemUseCase {
     };
     character.items.push(item);
     this.characterProcessorService.process(character);
-    return await this.tacticalCharacterRepository.update(characterId, character);
+    return await this.characterRepository.update(characterId, character);
   }
 
   private validateCommand(command: AddItemCommand): void {
