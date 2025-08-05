@@ -41,7 +41,7 @@ import { MongoActionRepository } from "./adapters/outbound/persistence/repositor
 import { MongoCharacterRoundRepository } from "./adapters/outbound/persistence/repositories/mongo-character-round.repository";
 import { MongoTacticalCharacterRepository } from "./adapters/outbound/persistence/repositories/mongo-character.repository";
 import { MongoTacticalGameRepository } from "./adapters/outbound/persistence/repositories/mongo-game.repository";
-import { WinstonLogger } from "./logger/logger";
+import { PinoLogger } from './logger/logger';
 
 export class DependencyContainer {
   private static instance: DependencyContainer;
@@ -91,7 +91,7 @@ export class DependencyContainer {
 
   private constructor() {
     // Configure basic dependencies
-    this._logger = new WinstonLogger();
+    this._logger = new PinoLogger();
     this._authTokenService = new OAuth2TokenService(
       this._logger,
     );

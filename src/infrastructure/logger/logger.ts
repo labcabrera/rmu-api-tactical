@@ -1,28 +1,39 @@
-import winston from "winston";
+import { Logger } from '@domain/ports/logger';
+import { config } from '@infrastructure/config/config';
+import { injectable } from 'inversify';
+import pino from 'pino';
 
-import { Logger } from "@domain/ports/logger";
+@injectable()
+export class PinoLogger implements Logger {
+  private readonly logger: pino.Logger;
 
-export class WinstonLogger implements Logger {
-  private logger = winston.createLogger({
-    level: "info",
-    format: winston.format.combine(
-      winston.format.timestamp(),
-      winston.format.printf(({ timestamp, level, message }) => {
-        return `[${timestamp}] ${level.toUpperCase()}: ${message}`;
-      }),
-    ),
-    transports: [new winston.transports.Console()],
-  });
-
-  info(msg: string) {
-    this.logger.info(msg);
+  constructor() {
+    this.logger = pino({
+      level: config.logger.level,
+      transport:
+        config.logger.mode === 'development'
+          ? {
+              target: 'pino-pretty',
+              options: {
+                colorize: true,
+                translateTime: 'SYS:standard',
+                ignore: 'pid,hostname',
+              },
+            }
+          : undefined,
+    });
   }
 
-  error(msg: string) {
-    this.logger.error(msg);
+  info(message: string, meta?: any) {
+    this.logger.info(meta || {}, message);
   }
-
-  debug(msg: string) {
-    this.logger.debug(msg);
+  warn(message: string, meta?: any) {
+    this.logger.warn(meta || {}, message);
+  }
+  error(message: string, meta?: any) {
+    this.logger.error(meta || {}, message);
+  }
+  debug(message: string, meta?: any) {
+    this.logger.debug(meta || {}, message);
   }
 }

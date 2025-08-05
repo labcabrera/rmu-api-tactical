@@ -6,6 +6,7 @@ const envSchema = z.object({
   RMU_MONGO_TACTICAL_URI: z.string().min(1, "Required RMU_MONGO_TACTICAL_URI"),
   RMU_API_CORE_URL: z.string().min(1, "RMU_API_CORE_URL is required"),
   LOG_LEVEL: z.string().default("info"),
+  LOG_MODE: z.enum(['development', 'production']).default('development'),
   CORS_ORIGIN: z.string().default("*"),
   RMU_KEYCLOAK_CLIENT_ID: z
     .string()

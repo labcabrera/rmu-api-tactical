@@ -1,7 +1,6 @@
 export interface Logger {
-  info(msg: string): void;
-
-  error(msg: string): void;
-
-  debug(msg: string): void;
+  debug(message: string, meta?: any): void;
+  info(message: string, meta?: any): void;
+  warn(message: string, meta?: any): void;
+  error(message: string, meta?: any): void;
 }

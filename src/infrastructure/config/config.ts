@@ -6,6 +6,10 @@ export const config = {
   apiCoreUrl: env.RMU_API_CORE_URL,
   logLevel: env.LOG_LEVEL,
   corsOrigin: env.CORS_ORIGIN,
+  logger: {
+    level: env.LOG_LEVEL,
+    mode: env.LOG_MODE,
+  },
   keycloak: {
     clientId: env.RMU_KEYCLOAK_CLIENT_ID,
     clientSecret: env.RMU_KEYCLOAK_CLIENT_SECRET,
