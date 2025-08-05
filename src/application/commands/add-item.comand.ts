@@ -3,7 +3,7 @@ import {
   CharacterItemInfo,
   CharacterItemWeapon,
   CharacterItemWeaponRange,
-} from "@domain/entities/character.entity";
+} from '@domain/entities/character.entity';
 
 export interface AddItemCommand {
   readonly characterId: string;

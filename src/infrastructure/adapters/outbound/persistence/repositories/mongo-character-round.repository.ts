@@ -1,66 +1,48 @@
-import { CharacterRound } from "@domain/entities/character-round.entity";
-import { Page } from "@domain/entities/page.entity";
-import { CharacterRoundRepository } from "@domain/ports/outbound/character-round.repository";
-import { CharacterRoundQuery } from "@domain/queries/character-round.query";
+import { injectable } from 'inversify';
 
-import CharacterRoundDocument from "../models/character-round.model";
+import { CharacterRound } from '@domain/entities/character-round.entity';
+import { Page } from '@domain/entities/page.entity';
+import { CharacterRoundRepository } from '@application/ports/outbound/character-round.repository';
 
+import CharacterRoundDocument from '../models/character-round.model';
+import { toMongoQuery } from '../rsql-adapter';
+
+@injectable()
 export class MongoCharacterRoundRepository implements CharacterRoundRepository {
-  async findById(id: string): Promise<CharacterRound> {
+  async findById(id: string): Promise<CharacterRound | null> {
     const characterRound = await CharacterRoundDocument.findById(id);
-    if (!characterRound) {
-      throw new Error(`Character round with id ${id} not found`);
-    }
-    return this.toEntity(characterRound);
+    return characterRound ? this.toEntity(characterRound) : null;
   }
 
-  async find(query: CharacterRoundQuery): Promise<Page<CharacterRound>> {
-    const filter: any = {};
-    if (query.gameId) {
-      filter.gameId = query.gameId;
-    }
-    if (query.characterId) {
-      filter.characterId = query.characterId;
-    }
-    if (query.round !== undefined) {
-      filter.round = query.round;
-    }
-    const skip = query.page * query.size;
-    const list = await CharacterRoundDocument.find(filter)
-      .skip(skip)
-      .limit(query.size)
-      .sort({ round: 1, createdAt: -1 });
-    const count = await CharacterRoundDocument.countDocuments(filter);
-    const content = list.map((characterRound) => this.toEntity(characterRound));
+  async findByRsql(rsql: string, page: number, size: number): Promise<Page<CharacterRound>> {
+    const skip = page * size;
+    const mongoQuery = toMongoQuery(rsql);
+    const [characterRoundDocs, totalElements] = await Promise.all([
+      CharacterRoundDocument.find(mongoQuery).skip(skip).limit(size).sort({ round: 1, createdAt: -1 }),
+      CharacterRoundDocument.countDocuments(mongoQuery),
+    ]);
+    const content = characterRoundDocs.map(doc => this.toEntity(doc));
     return {
       content,
       pagination: {
-        page: query.page,
-        size: query.size,
-        totalElements: count,
-        totalPages: Math.ceil(count / query.size),
+        page: page,
+        size: size,
+        totalElements,
+        totalPages: Math.ceil(totalElements / size),
       },
     };
   }
 
-  async findByGameIdAndRound(
-    gameId: string,
-    round: number,
-  ): Promise<CharacterRound[]> {
+  async findByGameIdAndRound(gameId: string, round: number): Promise<CharacterRound[]> {
     const characterRounds = await CharacterRoundDocument.find({
       gameId: gameId,
       round: round,
     }).sort({ createdAt: -1 });
 
-    return characterRounds.map((characterRound) =>
-      this.toEntity(characterRound),
-    );
+    return characterRounds.map(characterRound => this.toEntity(characterRound));
   }
 
-  async findByCharacterIdAndRound(
-    characterId: string,
-    round: number,
-  ): Promise<CharacterRound | null> {
+  async findByCharacterIdAndRound(characterId: string, round: number): Promise<CharacterRound | null> {
     const characterRound = await CharacterRoundDocument.findOne({
       characterId: characterId,
       round: round,
@@ -69,30 +51,21 @@ export class MongoCharacterRoundRepository implements CharacterRoundRepository {
     return characterRound ? this.toEntity(characterRound) : null;
   }
 
-  async create(
-    characterRound: Omit<CharacterRound, "id">,
-  ): Promise<CharacterRound> {
+  async save(characterRound: Omit<CharacterRound, 'id'>): Promise<CharacterRound> {
     const newCharacterRound = new CharacterRoundDocument(characterRound);
     const saved = await newCharacterRound.save();
     return this.toEntity(saved);
   }
 
-  async update(
-    id: string,
-    characterRound: Partial<CharacterRound>,
-  ): Promise<CharacterRound> {
-    const updated = await CharacterRoundDocument.findByIdAndUpdate(
-      id,
-      characterRound,
-      { new: true },
-    );
+  async update(id: string, characterRound: Partial<CharacterRound>): Promise<CharacterRound> {
+    const updated = await CharacterRoundDocument.findByIdAndUpdate(id, characterRound, { new: true });
     if (!updated) {
       throw new Error(`Character round with id ${id} not found`);
     }
     return this.toEntity(updated);
   }
 
-  async delete(id: string): Promise<void> {
+  async deleteById(id: string): Promise<void> {
     await CharacterRoundDocument.findByIdAndDelete(id);
   }
 

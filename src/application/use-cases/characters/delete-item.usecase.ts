@@ -1,35 +1,39 @@
-import { Character } from "@domain/entities/character.entity";
-import { Logger } from "@domain/ports/logger";
-import { CharacterRepository } from "@domain/ports/outbound/character.repository";
+import { inject, injectable } from 'inversify';
 
+import { Character } from '@domain/entities/character.entity';
+import { NotFoundError } from '@domain/errors/errors';
+
+import { Logger } from '@application/ports/logger';
+import { CharacterRepository } from '@application/ports/outbound/character.repository';
+import { TYPES } from '@shared/types';
+
+@injectable()
 export class DeleteItemUseCase {
   constructor(
+    @inject(TYPES.CharacterRepository)
     private readonly characterRepository: CharacterRepository,
-    private readonly logger: Logger,
+    @inject(TYPES.Logger) private readonly logger: Logger
   ) {}
 
+  //TODO refactor to use a command object
   async execute(characterId: string, itemId: string): Promise<Character> {
-    const character: Character =
-      await this.characterRepository.findById(characterId);
-
-    const item = character.items.find((item) => item.id === itemId);
-    if (!item) {
-      throw new Error(
-        `Item with id ${itemId} not found in character ${characterId}`,
-      );
+    const character = await this.characterRepository.findById(characterId);
+    if (!character) {
+      throw new NotFoundError('Character', characterId);
     }
-    character.items = character.items.filter((item) => item.id !== itemId);
+    const item = character.items.find(item => item.id === itemId);
+    if (!item) {
+      throw new NotFoundError('Character Item', itemId);
+    }
+    character.items = character.items.filter(item => item.id !== itemId);
     this.cleanupEquipedItem(character.equipment, itemId);
     character.equipment.weight = this.calculateTotalWeight(character.items);
-    const updated = await this.characterRepository.update(
-      characterId,
-      character,
-    );
+    const updated = await this.characterRepository.update(characterId, character);
     return updated;
   }
 
   private cleanupEquipedItem(equipment: any, deletedItemId: string): void {
-    const slots = ["mainHand", "offHand", "body", "head", "arms", "legs"];
+    const slots = ['mainHand', 'offHand', 'body', 'head', 'arms', 'legs'];
     for (const slot of slots) {
       if (equipment[slot] === deletedItemId) {
         equipment[slot] = null;

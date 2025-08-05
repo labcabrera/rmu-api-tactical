@@ -1,8 +1,4 @@
-import {
-  CharacterInfo,
-  CharacterStatistics,
-  CreateTacticalCharacterItem,
-} from "@domain/entities/character.entity";
+import { CharacterInfo, CharacterStatistics, CreateTacticalCharacterItem } from '@domain/entities/character.entity';
 
 export interface CreateCharacterCommand {
   user: string;

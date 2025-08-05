@@ -1,5 +1,6 @@
-export interface CreateGameCommand {
-  readonly user: string;
+import { AuthenticatedCommand } from '@application/commands/authenticated-command';
+
+export interface CreateGameCommand extends AuthenticatedCommand {
   readonly name: string;
   readonly description?: string;
   readonly factions?: string[];

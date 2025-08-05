@@ -1,5 +1,5 @@
-import mongoose, { Schema } from "mongoose";
-import { ActionDocument } from "../mongo-types";
+import mongoose, { Schema } from 'mongoose';
+import { ActionDocument } from '../mongo-types';
 
 const ActionSchema: Schema<ActionDocument> = new Schema(
   {
@@ -48,10 +48,10 @@ const ActionSchema: Schema<ActionDocument> = new Schema(
   },
   {
     timestamps: true,
-    collection: "tactical-actions",
-  },
+    collection: 'tactical-actions',
+  }
 );
 
-const ActionDocument = mongoose.model<ActionDocument>("Action", ActionSchema);
+const ActionDocument = mongoose.model<ActionDocument>('Action', ActionSchema);
 
 export default ActionDocument;
