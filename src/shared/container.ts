@@ -33,6 +33,7 @@ import { FindGameByIdUseCase } from '../application/use-cases/games/find-game-by
 import { FindGamesUseCase } from '../application/use-cases/games/find-games-use-case';
 import { StartRoundUseCase } from '../application/use-cases/games/start-round-use-case';
 import { UpdateGameUseCase } from '../application/use-cases/games/update-game-use-case';
+import { RealmDeletedUseCase } from '../application/use-cases/realm/realm-deleted.use-case';
 
 import { MongoActionRepository } from '@infrastructure/adapters/outbound/persistence/repositories/mongo-action.repository';
 import { MongoCharacterRoundRepository } from '@infrastructure/adapters/outbound/persistence/repositories/mongo-character-round.repository';
@@ -48,9 +49,13 @@ import { RaceAPICoreClient } from '../infrastructure/adapters/outbound/external/
 import { SkillAPICoreClient } from '../infrastructure/adapters/outbound/external/skill-api-core-client';
 import { SkillCategoryAPICoreClient } from '../infrastructure/adapters/outbound/external/skill-category-api-core-client';
 
+import { EventListenerBootstrap } from '../application/services/event-listener-bootstrap';
+import { EventAdapter } from '../domain/ports/inbound/event-adapter';
 import { CharacterRepository } from '../domain/ports/outbound/character.repository';
 import { EventNotificationPort } from '../domain/ports/outbound/event-notification.port';
 import { GameRepository } from '../domain/ports/outbound/game.repository';
+import { MockKafkaEventAdapter } from '../infrastructure/adapters/inbound/events/mock-kafka-event-adapter';
+import { RealmDeletedEventListener } from '../infrastructure/adapters/inbound/events/realm-deleted-event-listener';
 import { EventNotificationRegistry } from '../infrastructure/adapters/outbound/notifications/event-notification-registry';
 import { GameCreatedEventNotificationService } from '../infrastructure/adapters/outbound/notifications/game-created-event-notification.service';
 import { RegistryEventNotificationAdapter } from '../infrastructure/adapters/outbound/notifications/registry-event-notification.adapter';
@@ -122,6 +127,9 @@ container.bind<FindGamesUseCase>(TYPES.FindGamesUseCase).to(FindGamesUseCase).in
 container.bind<StartRoundUseCase>(TYPES.StartRoundUseCase).to(StartRoundUseCase).inSingletonScope();
 container.bind<UpdateGameUseCase>(TYPES.UpdateGameUseCase).to(UpdateGameUseCase).inSingletonScope();
 
+// Event use cases
+container.bind<RealmDeletedUseCase>(TYPES.RealmDeletedUseCase).to(RealmDeletedUseCase).inSingletonScope();
+
 // Controllers
 container.bind<ActionController>(TYPES.ActionController).to(ActionController).inSingletonScope();
 container.bind<AttackController>(TYPES.AttackController).to(AttackController).inSingletonScope();
@@ -133,6 +141,15 @@ container.bind<CharacterController>(TYPES.CharacterController).to(CharacterContr
 container.bind<GameController>(TYPES.GameController).to(GameController).inSingletonScope();
 
 container.bind<GameCreatedEventNotificationService>(TYPES.GameCreatedEventNotificationService).to(GameCreatedEventNotificationService).inSingletonScope();  
+
+// Event listeners
+container.bind<RealmDeletedEventListener>(TYPES.RealmDeletedEventListener).to(RealmDeletedEventListener).inSingletonScope();
+
+// Event adapters
+container.bind<EventAdapter>(TYPES.KafkaEventAdapter).to(MockKafkaEventAdapter).inSingletonScope();
+
+// Bootstrap services
+container.bind<EventListenerBootstrap>(TYPES.EventListenerBootstrap).to(EventListenerBootstrap).inSingletonScope();  
 
 // Notifications
 container

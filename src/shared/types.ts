@@ -50,6 +50,9 @@ export const TYPES = {
   StartRoundUseCase: 'StartRoundUseCase',
   UpdateGameUseCase: 'UpdateGameUseCase',
 
+  // Event use cases
+  RealmDeletedUseCase: 'RealmDeletedUseCase',
+
   // Controllers
   ActionController: 'ActionController',
   AttackController: 'AttackController',
@@ -61,4 +64,13 @@ export const TYPES = {
   EventNotificationPort: 'EventNotificationPort',
   EventNotificationRegistry: 'EventNotificationRegistry',
   GameCreatedEventNotificationService: 'GameCreatedEventNotificationService',
+
+  // Event Listeners
+  RealmDeletedEventListener: 'RealmDeletedEventListener',
+
+  // Event Adapters
+  KafkaEventAdapter: 'KafkaEventAdapter',
+
+  // Bootstrap Services
+  EventListenerBootstrap: 'EventListenerBootstrap',
 };
