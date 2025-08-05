@@ -31,4 +31,20 @@ export class EnvironmentConfiguration implements Configuration {
   getNodeEnv(): string {
     return process.env.NODE_ENV || "development";
   }
+
+  getOAuth2ClientId(): string {
+    return process.env.RMU_KEYCLOAK_CLIENT_ID || "";
+  }
+
+  getOAuth2ClientSecret(): string {
+    return process.env.RMU_KEYCLOAK_CLIENT_SECRET || "";
+  }
+
+  getOAuth2TokenUrl(): string {
+    return `${process.env.RMU_KEYCLOAK_BASE_URL}/realms/${process.env.RMU_KEYCLOAK_REALM}/protocol/openid-connect/token` || "";
+  }
+
+  getOAuth2Scope(): string | undefined {
+    return process.env.OAUTH2_SCOPE;
+  }
 }

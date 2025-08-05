@@ -1,23 +1,25 @@
 import { RaceClient } from "@domain/ports/race-client";
+import { AuthTokenService } from "../../../domain/ports/auth-token-service";
 import { Configuration } from "../../../domain/ports/configuration";
 import { Logger } from "../../../domain/ports/logger";
+import { AuthenticatedApiClient } from "./authenticated-api-client";
 
-export class RaceAPICoreClient implements RaceClient {
+export class RaceAPICoreClient extends AuthenticatedApiClient implements RaceClient {
   constructor(
-    private readonly logger: Logger,
-    private readonly configuration: Configuration,
-  ) {}
+    logger: Logger,
+    configuration: Configuration,
+    authTokenService: AuthTokenService,
+  ) {
+    super(logger, configuration, authTokenService);
+  }
 
   async getRaceById(raceId: string): Promise<any> {
     const url = `${this.configuration.getApiCoreUrl()}/races/${raceId}`;
     this.logger.info(`Fetching race info from ${url}`);
+    
     try {
-      const response = await fetch(url);
-      if (response.status != 200) {
-        throw { status: 500, message: `Invalid race identifier ${raceId}` };
-      }
-      const responseBody = await response.json();
-      return responseBody;
+      const response = await this.makeAuthenticatedRequest(url);
+      return await this.handleApiResponse(response, url);
     } catch (error) {
       throw new Error(`Error reading race info from ${url}: ${error}`);
     }
