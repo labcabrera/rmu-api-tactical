@@ -1,4 +1,3 @@
-import { Configuration } from "../domain/ports/configuration";
 import { Logger } from "../domain/ports/logger";
 import { ActionRepository } from "../domain/ports/outbound/action.repository";
 import { AuthTokenService } from "../domain/ports/outbound/auth-token-service";
@@ -34,7 +33,6 @@ import { AddSkillUseCase } from "../application/use-cases/characters/add-skill.u
 import { DeleteSkillUseCase } from "../application/use-cases/characters/delete-skill.usecase";
 import { UpdateSkillUseCase } from "../application/use-cases/characters/update-skill.usecase";
 import { SkillCategoryClient } from "../domain/ports/outbound/skill-category-client";
-import { EnvironmentConfiguration } from "./adapters/config/environment-configuration";
 import { OAuth2TokenService } from "./adapters/outbound/auth/oauth2-token-service";
 import { RaceAPICoreClient } from "./adapters/outbound/external/race-api-core-client";
 import { SkillAPICoreClient } from "./adapters/outbound/external/skill-api-core-client";
@@ -48,7 +46,6 @@ import { WinstonLogger } from "./logger/logger";
 export class DependencyContainer {
   private static instance: DependencyContainer;
 
-  private readonly _configuration: Configuration;
   private readonly _logger: Logger;
   private readonly _authTokenService: AuthTokenService;
   private readonly _tacticalActionRepository: ActionRepository;
@@ -94,10 +91,8 @@ export class DependencyContainer {
 
   private constructor() {
     // Configure basic dependencies
-    this._configuration = new EnvironmentConfiguration();
     this._logger = new WinstonLogger();
     this._authTokenService = new OAuth2TokenService(
-      this._configuration,
       this._logger,
     );
     this._tacticalActionRepository = new MongoActionRepository();
@@ -111,17 +106,14 @@ export class DependencyContainer {
 
     this._raceClient = new RaceAPICoreClient(
       this._logger,
-      this._configuration,
       this._authTokenService,
     );
     this._skillClient = new SkillAPICoreClient(
       this._logger,
-      this._configuration,
       this._authTokenService,
     );
     this._skillCategoryClient = new SkillCategoryAPICoreClient(
       this._logger,
-      this._configuration,
       this._authTokenService,
     );
 
@@ -251,10 +243,6 @@ export class DependencyContainer {
       DependencyContainer.instance = new DependencyContainer();
     }
     return DependencyContainer.instance;
-  }
-
-  get configuration(): Configuration {
-    return this._configuration;
   }
 
   get authTokenService(): AuthTokenService {

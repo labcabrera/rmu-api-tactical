@@ -6,7 +6,7 @@ import path from "path";
 import swaggerUi from "swagger-ui-express";
 import yaml from "yaml";
 
-import { DependencyContainer } from '@infrastructure/dependency-container';
+import { config } from '@infrastructure/config/config';
 import { ApiRoutes } from "../routes";
 
 export class ExpressApp {
@@ -30,8 +30,7 @@ export class ExpressApp {
   }
 
   private initializeDatabase(): void {
-    const container = DependencyContainer.getInstance();
-    const mongoUri = container.configuration.getMongoUri();
+    const mongoUri = config.mongoUri;
 
     mongoose
       .connect(mongoUri)

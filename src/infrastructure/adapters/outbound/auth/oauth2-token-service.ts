@@ -1,23 +1,20 @@
-import { Configuration } from "@domain/ports/configuration";
 import { Logger } from "@domain/ports/logger";
 import {
   AuthToken,
   AuthTokenService,
   OAuth2ClientCredentials,
 } from "@domain/ports/outbound/auth-token-service";
+import { config } from '@infrastructure/config/config';
 
 export class OAuth2TokenService implements AuthTokenService {
   private cachedToken: AuthToken | null = null;
   private tokenRequestInProgress: Promise<AuthToken> | null = null;
 
   constructor(
-    private readonly configuration: Configuration,
     private readonly logger: Logger,
   ) {}
 
   async getAccessToken(): Promise<string> {
-    console.log("Getting access token");
-
     // Check if we have a valid cached token
     if (this.cachedToken && this.isTokenValid(this.cachedToken)) {
       this.logger.info("Using cached access token");
@@ -115,10 +112,10 @@ export class OAuth2TokenService implements AuthTokenService {
   }
 
   private getOAuth2Credentials(): OAuth2ClientCredentials {
-    const clientId: string = this.configuration.getOAuth2ClientId();
-    const clientSecret: string = this.configuration.getOAuth2ClientSecret();
-    const tokenUrl: string = this.configuration.getOAuth2TokenUrl();
-    const scope: string = this.configuration.getOAuth2Scope() || "";
+    const clientId: string = config.keycloak.clientId;
+    const clientSecret: string = config.keycloak.clientSecret;
+    const tokenUrl: string = config.keycloak.tokenUrl;
+    const scope: string = config.keycloak.scope || "";
     if (!clientId || !clientSecret || !tokenUrl) {
       throw new Error(
         "OAuth2 credentials not configured. Please set OAUTH2_CLIENT_ID, OAUTH2_CLIENT_SECRET, and OAUTH2_TOKEN_URL environment variables.",

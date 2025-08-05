@@ -5,7 +5,7 @@ import { CharacterRoundQuery } from "@domain/queries/character-round.query";
 
 import { FindCharacterRoundsUseCase } from "@application/use-cases/character-rounds/find-character-rounds.usecase";
 
-import { DependencyContainer } from '@infrastructure/dependency-container';
+import { DependencyContainer } from "@infrastructure/dependency-container";
 
 export class CharacterRoundController {
   private router: Router;

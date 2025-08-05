@@ -1,7 +1,7 @@
 import { Logger } from "@domain/ports/logger";
+import { AuthTokenService } from "@domain/ports/outbound/auth-token-service";
 import { SkillCategoryClient } from "@domain/ports/outbound/skill-category-client";
-import { Configuration } from "../../../../domain/ports/configuration";
-import { AuthTokenService } from "../../../../domain/ports/outbound/auth-token-service";
+import { config } from '@infrastructure/config/config';
 import { AuthenticatedApiClient } from "./authenticated-api-client";
 
 export class SkillCategoryAPICoreClient
@@ -10,14 +10,13 @@ export class SkillCategoryAPICoreClient
 {
   constructor(
     logger: Logger,
-    configuration: Configuration,
     authTokenService: AuthTokenService,
   ) {
-    super(logger, configuration, authTokenService);
+    super(logger, authTokenService);
   }
 
   async getSkillCategoryById(categoryId: string): Promise<any> {
-    const url = `${this.configuration.getApiCoreUrl()}/skill-categories/${categoryId}`;
+    const url = `${config.apiCoreUrl}/skill-categories/${categoryId}`;
     this.logger.info(`Fetching skill category from ${url}`);
 
     try {

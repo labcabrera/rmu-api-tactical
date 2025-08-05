@@ -21,7 +21,7 @@ import { FindCharactersUseCase } from "@application/use-cases/characters/find-ch
 import { UpdateCharacterUseCase } from "@application/use-cases/characters/update-character.usecase";
 import { UpdateSkillUseCase } from "@application/use-cases/characters/update-skill.usecase";
 
-import { DependencyContainer } from '@infrastructure/dependency-container';
+import { DependencyContainer } from "@infrastructure/dependency-container";
 import { ErrorHandler } from "../error-handler";
 
 export class CharacterController {

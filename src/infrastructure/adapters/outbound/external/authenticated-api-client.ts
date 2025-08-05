@@ -1,11 +1,9 @@
-import { Configuration } from "../../../../domain/ports/configuration";
 import { Logger } from "../../../../domain/ports/logger";
 import { AuthTokenService } from "../../../../domain/ports/outbound/auth-token-service";
 
 export abstract class AuthenticatedApiClient {
   constructor(
     protected readonly logger: Logger,
-    protected readonly configuration: Configuration,
     protected readonly authTokenService: AuthTokenService,
   ) {}
 

@@ -12,7 +12,7 @@ import { FindGamesUseCase } from "@application/use-cases/games/find-games-use-ca
 import { StartRoundUseCase } from "@application/use-cases/games/start-round-use-case";
 import { UpdateGameUseCase } from "@application/use-cases/games/update-game-use-case";
 
-import { DependencyContainer } from '@infrastructure/dependency-container';
+import { DependencyContainer } from "@infrastructure/dependency-container";
 import { ErrorHandler } from "../error-handler";
 
 export class GameController {

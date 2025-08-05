@@ -1,7 +1,7 @@
+import { Logger } from "@domain/ports/logger";
+import { AuthTokenService } from "@domain/ports/outbound/auth-token-service";
 import { RaceClient } from "@domain/ports/outbound/race-client";
-import { Configuration } from "../../../../domain/ports/configuration";
-import { Logger } from "../../../../domain/ports/logger";
-import { AuthTokenService } from "../../../../domain/ports/outbound/auth-token-service";
+import { config } from '@infrastructure/config/config';
 import { AuthenticatedApiClient } from "./authenticated-api-client";
 
 export class RaceAPICoreClient
@@ -10,14 +10,13 @@ export class RaceAPICoreClient
 {
   constructor(
     logger: Logger,
-    configuration: Configuration,
     authTokenService: AuthTokenService,
   ) {
-    super(logger, configuration, authTokenService);
+    super(logger, authTokenService);
   }
 
   async getRaceById(raceId: string): Promise<any> {
-    const url = `${this.configuration.getApiCoreUrl()}/races/${raceId}`;
+    const url = `${config.apiCoreUrl}/races/${raceId}`;
     this.logger.info(`Fetching race info from ${url}`);
 
     try {

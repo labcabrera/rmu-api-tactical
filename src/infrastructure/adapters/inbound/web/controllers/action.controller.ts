@@ -10,7 +10,7 @@ import { FindActionByIdUseCase } from "@application/use-cases/actions/find-actio
 import { FindActionsUseCase } from "@application/use-cases/actions/find-actions.usecase";
 
 import { DeleteActionCommand } from "@application/commands/delete-action.command";
-import { DependencyContainer } from '@infrastructure/dependency-container';
+import { DependencyContainer } from "@infrastructure/dependency-container";
 import { ErrorHandler } from "../error-handler";
 
 export class ActionController {
