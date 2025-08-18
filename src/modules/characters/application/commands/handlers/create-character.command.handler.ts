@@ -21,6 +21,7 @@ import {
 import { CharacterProcessorService } from '../../../domain/services/character-processor.service';
 import * as characterRepository from '../../ports/out/character.repository';
 import * as raceClient from '../../ports/out/race-client';
+import * as skillCategoryClient from '../../ports/out/skill-category-client';
 import * as skillClient from '../../ports/out/skill-client';
 import { CreateCharacterCommand } from '../create-character.command';
 
@@ -31,6 +32,7 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
   constructor(
     @Inject('RaceClient') private readonly raceClient: raceClient.RaceClient,
     @Inject('SkillClient') private readonly skillClient: skillClient.SkillClient,
+    @Inject('SkillCategoryClient') private readonly skillCategoryClient: skillCategoryClient.SkillCategoryClient,
     @Inject('CharacterRepository') private readonly characterRepository: characterRepository.CharacterRepository,
     @Inject('GameRepository') private readonly gameRepository: gameRepository.GameRepository,
     @Inject() private readonly characterProcessorService: CharacterProcessorService,
@@ -147,33 +149,30 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
     return result;
   }
 
-  async processSkills(skills: any[]): Promise<CharacterSkill[]> {
+  async processSkills(skills: CharacterSkill[]): Promise<CharacterSkill[]> {
     if (!skills || skills.length == 0) {
       return [];
     }
-    const readedSkills: any[] = await this.fetchSkills();
+    const readedSkills = await this.fetchSkills();
+    const readedSkillCategories = await this.fetchSkillCategories();
     return skills.map((e) => {
       const readedSkill = readedSkills.find((s) => s.id == e.skillId);
       if (!readedSkill) {
         throw new ValidationError(`Invalid skill identifier '${e.skillId}'`);
       }
-      //TODO
-      const statistics = readedSkill.bonus as string[];
-      const attributeBonus = 0;
-      const racialBonus = 0;
-      const developmentBonus = 0;
+      const readedCategory = readedSkillCategories.find((c) => c.id == readedSkill.categoryId);
+      const statistics = readedSkill.bonus.concat(readedCategory ? readedCategory.bonus : []);
       const customBonus = e.customBonus ? e.customBonus : 0;
-      const totalBonus = attributeBonus + racialBonus + developmentBonus + customBonus;
       return {
         skillId: readedSkill.id,
         skillCategoryId: readedSkill.categoryId,
-        attributeBonus: attributeBonus,
-        ranks: e.ranks ? e.ranks : 0,
+        attributeBonus: 0,
+        ranks: e.ranks,
         statBonus: 0,
-        racialBonus: racialBonus,
-        developmentBonus: developmentBonus,
+        racialBonus: 0,
+        developmentBonus: 0,
         customBonus: customBonus,
-        totalBonus: totalBonus,
+        totalBonus: 0,
         specialization: e.specialization,
         statistics: statistics,
       };
@@ -210,12 +209,21 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
     }
   }
 
-  async fetchSkills(): Promise<any[]> {
+  async fetchSkills(): Promise<skillClient.SkillResponse[]> {
     try {
       return await this.skillClient.getAllSkills();
     } catch (e) {
       this.logger.error(e);
       throw new ValidationError(`Error fetching skills: ${e.message}`);
+    }
+  }
+
+  async fetchSkillCategories(): Promise<skillCategoryClient.SkillCategoryResponse[]> {
+    try {
+      return await this.skillCategoryClient.getAllSkillCategories();
+    } catch (e) {
+      this.logger.error(e);
+      throw new ValidationError(`Error fetching skill categories: ${e.message}`);
     }
   }
 

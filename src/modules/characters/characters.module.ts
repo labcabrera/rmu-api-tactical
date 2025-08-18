@@ -15,6 +15,7 @@ import { GetCharactersQueryHandler } from './application/queries/handlers/get-ch
 import { CharacterProcessorService } from './domain/services/character-processor.service';
 import { RaceApiClient } from './infrastructure/client/race-api-client';
 import { SkillApiClient } from './infrastructure/client/skill-api-client';
+import { SkillCategoryApiClient } from './infrastructure/client/skill-category-api-client';
 import { CharacterController } from './infrastructure/controllers/characters.controller';
 import { CharacterModel, CharacterSchema } from './infrastructure/persistence/models/character.model';
 import { MongoCharacterRepository } from './infrastructure/persistence/repositories/mongo-character.repository';
@@ -48,6 +49,10 @@ import { MongoCharacterRepository } from './infrastructure/persistence/repositor
     {
       provide: 'SkillClient',
       useClass: SkillApiClient,
+    },
+    {
+      provide: 'SkillCategoryClient',
+      useClass: SkillCategoryApiClient,
     },
   ],
 })

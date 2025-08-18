@@ -1,5 +1,12 @@
-export interface SkillClient {
-  getAllSkills(): Promise<any>;
+export interface SkillResponse {
+  id: string;
+  categoryId: string;
+  bonus: string[];
+  specializations: string[];
+}
 
-  getSkillById(skillId: string): Promise<any>;
+export interface SkillClient {
+  getAllSkills(): Promise<SkillResponse[]>;
+
+  getSkillById(skillId: string): Promise<SkillResponse>;
 }

@@ -3,36 +3,36 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 
 import { TokenService } from '../../../auth/token.service';
-import { SkillClient, SkillResponse } from '../../application/ports/out/skill-client';
+import { SkillCategoryClient, SkillCategoryResponse } from '../../application/ports/out/skill-category-client';
 
 @Injectable()
-export class SkillApiClient implements SkillClient {
+export class SkillCategoryApiClient implements SkillCategoryClient {
   constructor(
     private readonly tokenService: TokenService,
     private readonly configService: ConfigService,
   ) {}
 
-  async getAllSkills(): Promise<SkillResponse[]> {
+  async getSkillCategoryById(categoryId: any): Promise<SkillCategoryResponse> {
     const token = await this.tokenService.getToken();
     const apiCoreUri = this.configService.get('RMU_API_CORE_URI') as string;
-    const uri = `${apiCoreUri}/v1/skills`;
+    const uri = `${apiCoreUri}/v1/skill-categories/${categoryId}`;
     const response = await axios.get(uri, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
-    return response.data as SkillResponse[];
+    return response.data as SkillCategoryResponse;
   }
 
-  async getSkillById(skillId: string): Promise<SkillResponse> {
+  async getAllSkillCategories(): Promise<SkillCategoryResponse[]> {
     const token = await this.tokenService.getToken();
     const apiCoreUri = this.configService.get('RMU_API_CORE_URI') as string;
-    const uri = `${apiCoreUri}/v1/skills/${skillId}`;
+    const uri = `${apiCoreUri}/v1/skill-categories`;
     const response = await axios.get(uri, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
-    return response.data as SkillResponse;
+    return response.data as SkillCategoryResponse[];
   }
 }
