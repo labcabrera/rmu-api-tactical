@@ -8,6 +8,7 @@ import { CharacterEnduranceDto } from './character-endurance.dto';
 import { CharacterHPDto } from './character-hp.dto';
 import { CharacterInitiativeDto } from './character-initiative.dto';
 import { CharacterMovementDto } from './character-movement-dto';
+import { CharacterSkillDto } from './character-skill.dto';
 import { CharacterStatisticsDto } from './character-statistics.dto';
 
 export class CharacterDto {
@@ -33,6 +34,8 @@ export class CharacterDto {
 
   inititiative: CharacterInitiativeDto;
 
+  skills: CharacterSkillDto[];
+
   static fromEntity(entity: characterEntity.Character) {
     const dto = new CharacterDto();
     dto.id = entity.id;
@@ -44,6 +47,7 @@ export class CharacterDto {
     dto.endurance = CharacterEnduranceDto.fromEntity(entity.endurance);
     dto.hp = CharacterHPDto.fromEntity(entity.hp);
     dto.inititiative = CharacterInitiativeDto.fromEntity(entity.initiative);
+    dto.skills = entity.skills.map((skill) => CharacterSkillDto.fromEntity(skill));
     return dto;
   }
 }

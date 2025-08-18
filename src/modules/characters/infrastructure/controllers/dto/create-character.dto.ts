@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsNotEmpty, IsObject, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsNotEmpty, IsObject, IsString, ValidateNested } from 'class-validator';
 
 import { CreateCharacterCommand } from '../../../application/commands/create-character.command';
 import { CharacterStatistics } from '../../../domain/entities/character.entity';
@@ -9,6 +9,7 @@ import { CharacterHPCreationDto } from './character-hp.dto';
 import { CharacterInfoDto } from './character-info.dto';
 import { CharacterInitiativeCreationDto } from './character-initiative.dto';
 import { CharacterMovementCreationDto } from './character-movement-dto';
+import { CharacterSkillCreationDto } from './character-skill.dto';
 
 export class CreateCharacterDto {
   @ApiProperty({ description: 'Character name', example: 'Foo' })
@@ -58,7 +59,11 @@ export class CreateCharacterDto {
   @IsObject()
   initiative: CharacterInitiativeCreationDto;
 
-  skills?: any;
+  @ApiProperty({ description: 'Character skills', type: [CharacterSkillCreationDto] })
+  @ValidateNested({ each: true })
+  @Type(() => CharacterSkillCreationDto)
+  @IsArray()
+  skills?: CharacterSkillCreationDto[];
 
   items?: any;
 

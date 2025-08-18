@@ -143,7 +143,7 @@ export class CharacterSkill {
   @Prop({ type: String, required: false })
   specialization: string | undefined;
 
-  @Prop({ required: true })
+  @Prop({ type: [String], required: true })
   statistics: string[];
 
   @Prop({ required: true })

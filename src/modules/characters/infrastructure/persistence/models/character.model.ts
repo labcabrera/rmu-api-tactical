@@ -51,6 +51,7 @@ export class CharacterModel {
   @Prop({ type: CharacterInitiative, required: true })
   initiative: CharacterInitiative;
 
+  @Prop({ type: [CharacterSkill], required: true })
   skills: CharacterSkill[];
 
   items: CharacterItem[];

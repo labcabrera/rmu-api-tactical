@@ -151,13 +151,14 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
     if (!skills || skills.length == 0) {
       return [];
     }
-    const readedSkills: any[] = await this.skillClient.getAllSkills();
+    const readedSkills: any[] = await this.fetchSkills();
     return skills.map((e) => {
       const readedSkill = readedSkills.find((s) => s.id == e.skillId);
       if (!readedSkill) {
         throw new ValidationError(`Invalid skill identifier '${e.skillId}'`);
       }
       //TODO
+      const statistics = readedSkill.bonus as string[];
       const attributeBonus = 0;
       const racialBonus = 0;
       const developmentBonus = 0;
@@ -173,8 +174,8 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
         developmentBonus: developmentBonus,
         customBonus: customBonus,
         totalBonus: totalBonus,
-        specialization: e.specialization ? e.specialization : '',
-        statistics: e.statistics ? e.statistics : [],
+        specialization: e.specialization,
+        statistics: statistics,
       };
     });
   }
@@ -202,12 +203,19 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
 
   async fetchRace(raceId: string): Promise<any> {
     try {
-      const raceInfo = await this.raceClient.getRaceById(raceId);
-      this.logger.debug(`Race info for character creation: ${JSON.stringify(raceInfo)}`);
-      return raceInfo;
+      return await this.raceClient.getRaceById(raceId);
     } catch (e) {
-      //TODO
+      this.logger.error(e);
       throw new ValidationError(`Race with id ${raceId} not found. ${e.message}`);
+    }
+  }
+
+  async fetchSkills(): Promise<any[]> {
+    try {
+      return await this.skillClient.getAllSkills();
+    } catch (e) {
+      this.logger.error(e);
+      throw new ValidationError(`Error fetching skills: ${e.message}`);
     }
   }
 
