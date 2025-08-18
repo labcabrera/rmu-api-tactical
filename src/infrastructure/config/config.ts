@@ -3,19 +3,20 @@ import { env } from './env';
 export const config = {
   port: env.PORT,
   mongoUri: env.RMU_MONGO_TACTICAL_URI,
-  apiCoreUrl: env.RMU_API_CORE_URL,
+  apiCoreUrl: env.RMU_API_CORE_URI,
   logLevel: env.LOG_LEVEL,
   corsOrigin: env.CORS_ORIGIN,
   logger: {
     level: env.LOG_LEVEL,
     mode: env.LOG_MODE,
   },
-  keycloak: {
-    clientId: env.RMU_KEYCLOAK_CLIENT_ID,
-    clientSecret: env.RMU_KEYCLOAK_CLIENT_SECRET,
-    baseUrl: env.RMU_KEYCLOAK_BASE_URL,
-    realm: env.RMU_KEYCLOAK_REALM,
-    tokenUrl: `${env.RMU_KEYCLOAK_BASE_URL}/realms/${env.RMU_KEYCLOAK_REALM}/protocol/openid-connect/token`,
+  iam: {
+    clientId: env.RMU_IAM_CLIENT_ID,
+    clientSecret: env.RMU_IAM_CLIENT_SECRET,
+    baseUri: env.RMU_IAM_BASE_URI,
+    realm: env.RMU_IAM_REALM,
+    tokenUri: env.RMU_IAM_TOKEN_URI,
+    jwkUri: env.RMU_IAM_JWK_URI,
     scope: env.OAUTH2_SCOPE,
   },
   kafka: {

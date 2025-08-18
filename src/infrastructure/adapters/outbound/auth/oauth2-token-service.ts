@@ -107,10 +107,10 @@ export class OAuth2TokenService implements AuthTokenService {
   }
 
   private getOAuth2Credentials(): OAuth2ClientCredentials {
-    const clientId: string = config.keycloak.clientId;
-    const clientSecret: string = config.keycloak.clientSecret;
-    const tokenUrl: string = config.keycloak.tokenUrl;
-    const scope: string = config.keycloak.scope || '';
+    const clientId: string = config.iam.clientId;
+    const clientSecret: string = config.iam.clientSecret;
+    const tokenUrl: string = config.iam.tokenUri;
+    const scope: string = config.iam.scope || '';
     if (!clientId || !clientSecret || !tokenUrl) {
       throw new Error(
         'OAuth2 credentials not configured. Please set OAUTH2_CLIENT_ID, OAUTH2_CLIENT_SECRET, and OAUTH2_TOKEN_URL environment variables.'

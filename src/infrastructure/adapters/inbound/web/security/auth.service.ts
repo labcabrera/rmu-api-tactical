@@ -13,7 +13,7 @@ export class AuthService {
 
   constructor(@inject('Logger') private logger: Logger) {
     this.jwksClient = jwksClient({
-      jwksUri: `${config.keycloak.baseUrl}/realms/${config.keycloak.realm}/protocol/openid-connect/certs`,
+      jwksUri: config.iam.jwkUri,
       requestHeaders: {},
       timeout: 30000,
       cache: true,
