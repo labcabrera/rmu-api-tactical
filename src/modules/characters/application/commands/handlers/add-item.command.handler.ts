@@ -9,7 +9,7 @@ import * as characterRepository from '../../ports/out/character.repository';
 import { AddItemCommand } from '../add-item.comand';
 
 @CommandHandler(AddItemCommand)
-export class AddItemUseCase implements ICommandHandler<AddItemCommand, Character> {
+export class AddItemCommandHandler implements ICommandHandler<AddItemCommand, Character> {
   constructor(
     @Inject('CharacterProcessorService') private readonly characterProcessorService: CharacterProcessorService,
     @Inject('CharacterRepository') private readonly characterRepository: characterRepository.CharacterRepository,

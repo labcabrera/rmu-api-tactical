@@ -8,9 +8,9 @@ import * as characterRepository from '../../ports/out/character.repository';
 import { DeleteSkillCommand } from '../delete-skill-command';
 
 @CommandHandler(DeleteSkillCommand)
-export class DeleteSkillUseCase implements ICommandHandler<DeleteSkillCommand, Character> {
+export class DeleteSkillCommandHandler implements ICommandHandler<DeleteSkillCommand, Character> {
   constructor(
-    @Inject('CharacterProcessorService') private readonly characterProcessorService: CharacterProcessorService,
+    @Inject() private readonly characterProcessorService: CharacterProcessorService,
     @Inject('CharacterRepository') private readonly characterRepository: characterRepository.CharacterRepository,
   ) {}
 

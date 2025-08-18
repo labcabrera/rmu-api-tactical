@@ -10,6 +10,7 @@ import { SharedModule } from '../shared/shared.module';
 import { AddSkillCommandHandler } from './application/commands/handlers/add-skill.command.handler';
 import { CreateCharacterCommandHandler } from './application/commands/handlers/create-character.command.handler';
 import { DeleteCharacterCommandHandler } from './application/commands/handlers/delete-character.command.handler';
+import { DeleteSkillCommandHandler } from './application/commands/handlers/delete-skill.command.handler';
 import { UpdateCharacterCommandHandler } from './application/commands/handlers/update-character.command.handler';
 import { GetCharacterQueryHandler } from './application/queries/handlers/get-character.query.handler';
 import { GetCharactersQueryHandler } from './application/queries/handlers/get-characters.query.handler';
@@ -43,6 +44,7 @@ import { MongoCharacterRepository } from './infrastructure/persistence/repositor
     UpdateCharacterCommandHandler,
     DeleteCharacterCommandHandler,
     AddSkillCommandHandler,
+    DeleteSkillCommandHandler,
     {
       provide: 'CharacterRepository',
       useClass: MongoCharacterRepository,

@@ -11,6 +11,7 @@ import { ErrorDto, PagedQueryDto } from '../../../shared/infrastructure/controll
 import { AddSkillCommand } from '../../application/commands/add-skill.command';
 import { CreateCharacterCommand } from '../../application/commands/create-character.command';
 import { DeleteCharacterCommand } from '../../application/commands/delete-character.command';
+import { DeleteSkillCommand } from '../../application/commands/delete-skill-command';
 import { UpdateCharacterCommand } from '../../application/commands/update-character.command';
 import { GetCharacterQuery } from '../../application/queries/get-character.query';
 import { GetCharactersQuery } from '../../application/queries/get-characters.query';
@@ -102,6 +103,19 @@ export class CharacterController {
     const user = req.user!;
     const command = AddSkillDto.toCommand(id, dto, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<AddSkillCommand, Character>(command);
+    return CharacterDto.fromEntity(entity);
+  }
+
+  @Delete(':id/skills/:skillId')
+  @ApiOperation({ operationId: 'deleteSkill', summary: 'Delete a skill from a character' })
+  @ApiOkResponse({ type: CharacterDto, description: 'Success' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
+  async deleteSkill(@Param('id') id: string, @Param('skillId') skillId: string, @Request() req) {
+    this.logger.debug(`Deleting character ${id} skill ${skillId} for user ${req.user}`);
+    const user = req.user!;
+    const command = new DeleteSkillCommand(id, skillId, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<DeleteSkillCommand, Character>(command);
     return CharacterDto.fromEntity(entity);
   }
 }
