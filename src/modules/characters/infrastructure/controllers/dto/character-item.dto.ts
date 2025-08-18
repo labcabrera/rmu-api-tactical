@@ -1,13 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { CharacterItem, CharacterItemInfo, CharacterItemWeapon } from '../../../domain/entities/character.entity';
+import { CharacterItem, CharacterItemInfo, CharacterItemWeapon, CharacterItemWeaponRange } from '../../../domain/entities/character.entity';
 
 export class CharacterItemDto {
   id: string;
   name: string;
   itemTypeId: string;
   category: string;
-  weapon?: CharacterItemWeaponDto | undefined;
+  weapon: CharacterItemWeaponDto | undefined;
+  weaponRange: CharacterItemWeaponRangeDto[] | undefined;
   info: CharacterItemInfoDto;
 
   static fromEntity(item: CharacterItem): CharacterItemDto {
@@ -17,6 +18,7 @@ export class CharacterItemDto {
     dto.itemTypeId = item.itemTypeId;
     dto.category = item.category;
     dto.weapon = item.weapon ? CharacterItemWeaponDto.fromEntity(item.weapon) : undefined;
+    dto.weaponRange = item.weaponRange ? item.weaponRange.map((e) => CharacterItemWeaponRangeDto.fromEntity(e)) : undefined;
     dto.info = CharacterItemInfoDto.fromEntity(item.info);
     return dto;
   }
@@ -27,6 +29,7 @@ export class CharacterItemInfoDto {
   strength: number;
   weight: number;
   productionTime: number;
+
   static fromEntity(info: CharacterItemInfo): CharacterItemInfoDto {
     const dto = new CharacterItemInfoDto();
     dto.length = info.length;
@@ -45,15 +48,29 @@ export class CharacterItemWeaponDto {
   requiredHands: number;
   throwable: boolean;
 
-  static fromEntity(weapon: CharacterItemWeapon): CharacterItemWeaponDto | undefined {
-    if (!weapon) return undefined;
+  static fromEntity(entity: CharacterItemWeapon): CharacterItemWeaponDto | undefined {
+    if (!entity) return undefined;
     const dto = new CharacterItemWeaponDto();
-    dto.attackTable = weapon.attackTable;
-    dto.skillId = weapon.skillId;
-    dto.fumble = weapon.fumble;
-    dto.sizeAdjustment = weapon.sizeAdjustment;
-    dto.requiredHands = weapon.requiredHands;
-    dto.throwable = weapon.throwable;
+    dto.attackTable = entity.attackTable;
+    dto.skillId = entity.skillId;
+    dto.fumble = entity.fumble;
+    dto.sizeAdjustment = entity.sizeAdjustment;
+    dto.requiredHands = entity.requiredHands;
+    dto.throwable = entity.throwable;
+    return dto;
+  }
+}
+
+export class CharacterItemWeaponRangeDto {
+  from: number;
+  to: number;
+  bonus: number;
+
+  static fromEntity(entity: CharacterItemWeaponRange): CharacterItemWeaponRangeDto {
+    const dto = new CharacterItemWeaponRangeDto();
+    dto.from = entity.from;
+    dto.to = entity.to;
+    dto.bonus = entity.bonus;
     return dto;
   }
 }

@@ -2,6 +2,7 @@ export interface ItemResponse {
   id: string;
   category: string;
   weapon: ItemWeaponResponse | undefined;
+  weaponRange: ItemWeaponRangeResponse[] | undefined;
   armor: ItemArmorResponse | undefined;
   info: ItemInfoResponse;
 }
@@ -33,6 +34,12 @@ export interface ItemArmorResponse {
   maneuver: number;
   rangedPenalty: number;
   perception: number;
+}
+
+export interface ItemWeaponRangeResponse {
+  from: number;
+  to: number;
+  bonus: number;
 }
 
 export interface ItemClient {

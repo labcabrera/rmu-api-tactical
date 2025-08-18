@@ -208,6 +208,18 @@ export class CharacterItemWeapon {
 }
 
 @Schema({ _id: false })
+export class CharacterItemWeaponRange {
+  @Prop({ required: true })
+  from: number;
+
+  @Prop({ required: true })
+  to: number;
+
+  @Prop({ required: true })
+  bonus: number;
+}
+
+@Schema({ _id: false })
 export class CharacterItem {
   @Prop({ required: true })
   id: string;
@@ -224,7 +236,7 @@ export class CharacterItem {
   @Prop({ type: CharacterItemWeapon, required: false })
   weapon: CharacterItemWeapon | undefined;
 
-  // @Prop({ required: false })
+  @Prop({ type: [CharacterItemWeaponRange], required: false })
   weaponRange: CharacterItemWeaponRange[] | undefined;
 
   // @Prop({ required: false })
@@ -232,11 +244,6 @@ export class CharacterItem {
 
   @Prop({ required: true })
   info: CharacterItemInfo;
-}
-
-@Schema({ _id: false })
-export class CharacterItemWeaponRange {
-  [key: string]: number;
 }
 
 @Schema({ _id: false })

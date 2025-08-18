@@ -121,7 +121,9 @@ export interface CharacterItemWeapon {
 }
 
 export interface CharacterItemWeaponRange {
-  [key: string]: number;
+  from: number;
+  to: number;
+  bonus: number;
 }
 
 export interface CharacterItemArmor {

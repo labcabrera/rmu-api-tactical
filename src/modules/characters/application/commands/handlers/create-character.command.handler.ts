@@ -15,6 +15,7 @@ import {
   CharacterItem,
   CharacterItemArmor,
   CharacterItemWeapon,
+  CharacterItemWeaponRange,
   CharacterMovement,
   CharacterPower,
   CharacterSkill,
@@ -183,7 +184,7 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
         const readedItem: itemClient.ItemResponse = await this.itemClient.getItemById(e.itemTypeId);
         const readedWeapon: CharacterItemWeapon | undefined = readedItem.weapon ? readedItem.weapon : undefined;
         const readedArmor: CharacterItemArmor | undefined = readedItem.armor ? readedItem.armor : undefined;
-        const weaponRange = undefined; //readedItem.weaponRange ? readedItem.weaponRange : undefined;
+        const weaponRange: CharacterItemWeaponRange[] | undefined = readedItem.weaponRange ? readedItem.weaponRange : undefined;
         const name = e.name || readedItem.id.charAt(0).toUpperCase() + readedItem.id.slice(1);
         return {
           id: randomUUID(),
