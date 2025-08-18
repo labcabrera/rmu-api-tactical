@@ -12,6 +12,7 @@ import { AddItemCommand } from '../../application/commands/add-item.comand';
 import { AddSkillCommand } from '../../application/commands/add-skill.command';
 import { CreateCharacterCommand } from '../../application/commands/create-character.command';
 import { DeleteCharacterCommand } from '../../application/commands/delete-character.command';
+import { DeleteItemCommand } from '../../application/commands/delete-item.command';
 import { DeleteSkillCommand } from '../../application/commands/delete-skill-command';
 import { UpdateCharacterCommand } from '../../application/commands/update-character.command';
 import { GetCharacterQuery } from '../../application/queries/get-character.query';
@@ -132,6 +133,19 @@ export class CharacterController {
     const user = req.user!;
     const command = AddItemDto.toCommand(id, dto, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<AddItemCommand, Character>(command);
+    return CharacterDto.fromEntity(entity);
+  }
+
+  @Delete(':id/items/:itemId')
+  @ApiOperation({ operationId: 'deleteItem', summary: 'Delete an item from a character' })
+  @ApiOkResponse({ type: CharacterDto, description: 'Success' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
+  async deleteItem(@Param('id') id: string, @Param('itemId') itemId: string, @Request() req) {
+    this.logger.debug(`Deleting character ${id} item ${itemId} for user ${req.user}`);
+    const user = req.user!;
+    const command = new DeleteItemCommand(id, itemId, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<DeleteItemCommand, Character>(command);
     return CharacterDto.fromEntity(entity);
   }
 }

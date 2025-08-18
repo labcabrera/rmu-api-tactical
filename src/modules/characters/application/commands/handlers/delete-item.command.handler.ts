@@ -3,12 +3,16 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
 import { NotFoundError } from '../../../../shared/domain/errors';
 import { Character } from '../../../domain/entities/character.entity';
+import { CharacterProcessorService } from '../../../domain/services/character-processor.service';
 import * as characterRepository from '../../ports/out/character.repository';
 import { DeleteItemCommand } from '../delete-item.command';
 
 @CommandHandler(DeleteItemCommand)
 export class DeleteItemCommandHandler implements ICommandHandler<DeleteItemCommand, Character> {
-  constructor(@Inject('CharacterRepository') private readonly characterRepository: characterRepository.CharacterRepository) {}
+  constructor(
+    @Inject() private readonly characterProcessorService: CharacterProcessorService,
+    @Inject('CharacterRepository') private readonly characterRepository: characterRepository.CharacterRepository,
+  ) {}
 
   async execute(command: DeleteItemCommand): Promise<Character> {
     const { characterId, itemId } = command;
@@ -22,7 +26,7 @@ export class DeleteItemCommandHandler implements ICommandHandler<DeleteItemComma
     }
     character.items = character.items.filter((item) => item.id !== itemId);
     this.cleanupEquipedItem(character.equipment, itemId);
-    character.equipment.weight = this.calculateTotalWeight(character.items);
+    this.characterProcessorService.process(character);
     const updated = await this.characterRepository.update(characterId, character);
     return updated;
   }
@@ -34,18 +38,5 @@ export class DeleteItemCommandHandler implements ICommandHandler<DeleteItemComma
         equipment[slot] = null;
       }
     }
-  }
-
-  private calculateTotalWeight(items: any[]): number {
-    return items.reduce((accumulator: number, item: any) => {
-      return accumulator + this.getItemWeight(item);
-    }, 0);
-  }
-
-  private getItemWeight(item: any): number {
-    if (!item.info || !item.info.weight) {
-      return 0;
-    }
-    return item.info.weight;
   }
 }
