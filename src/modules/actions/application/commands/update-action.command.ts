@@ -1,4 +1,4 @@
-import { ActionAttack, ActionAttackInfo, ActionResult } from '@domain/entities/action.entity';
+import { ActionAttack, ActionAttackInfo, ActionResult } from '../../domain/entities/action.entity';
 
 export interface UpdateActionCommand {
   readonly type?: string;

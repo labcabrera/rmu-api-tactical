@@ -1,19 +1,19 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
-import * as skillCategoryClient from '../../../../../../src_exclude/application/ports/outbound/skill-category-client';
-import * as skillClient from '../../../../../../src_exclude/application/ports/outbound/skill-client';
-import { CharacterProcessorService } from '../../../../../../src_exclude/domain/services/character-processor.service';
 import { NotFoundError } from '../../../../shared/errors';
 import { Character, CharacterSkill } from '../../../domain/entities/character.entity';
-import * as characterRepository_1 from '../../ports/out/character.repository';
+import { CharacterProcessorService } from '../../../domain/services/character-processor.service';
+import * as characterRepository from '../../ports/out/character.repository';
+import * as skillCategoryClient from '../../ports/out/skill-category-client';
+import * as skillClient from '../../ports/out/skill-client';
 import { AddSkillCommand } from '../add-skill.command';
 
 @CommandHandler(AddSkillCommand)
 export class AddSkillUseCase implements ICommandHandler<AddSkillCommand, Character> {
   constructor(
     @Inject('CharacterProcessorService') private readonly characterProcessorService: CharacterProcessorService,
-    @Inject('CharacterRepository') private readonly characterRepository: characterRepository_1.CharacterRepository,
+    @Inject('CharacterRepository') private readonly characterRepository: characterRepository.CharacterRepository,
     @Inject('SkillClient') private readonly skillClient: skillClient.SkillClient,
     @Inject('SkillCategoryClient') private readonly skillCategoryClient: skillCategoryClient.SkillCategoryClient,
   ) {}

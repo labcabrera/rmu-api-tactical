@@ -2,9 +2,6 @@ import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
 
-import * as raceClient from '../../../../../../src_exclude/application/ports/outbound/race-client';
-import * as skillClient from '../../../../../../src_exclude/application/ports/outbound/skill-client';
-import { CharacterProcessorService } from '../../../../../../src_exclude/domain/services/character-processor.service';
 import * as gameRepository from '../../../../games/application/ports/out/game.repository';
 import { Game } from '../../../../games/domain/entities/game.entity';
 import { ValidationError } from '../../../../shared/errors';
@@ -21,7 +18,10 @@ import {
   CharacterSkill,
   CharacterStatistics,
 } from '../../../domain/entities/character.entity';
+import { CharacterProcessorService } from '../../../domain/services/character-processor.service';
 import * as characterRepository from '../../ports/out/character.repository';
+import * as raceClient from '../../ports/out/race-client';
+import * as skillClient from '../../ports/out/skill-client';
 import { CreateCharacterCommand } from '../create-character.command';
 
 @CommandHandler(CreateCharacterCommand)

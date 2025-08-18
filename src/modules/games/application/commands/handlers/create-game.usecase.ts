@@ -1,4 +1,4 @@
-import { Inject } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
 import { Game } from '../../../domain/entities/game.entity';
@@ -8,12 +8,15 @@ import { CreateGameCommand } from '../create-game.command';
 
 @CommandHandler(CreateGameCommand)
 export class CreateGameUseCase implements ICommandHandler<CreateGameCommand, Game> {
+  private readonly logger = new Logger(CreateGameUseCase.name);
+
   constructor(
     @Inject('GameRepository') private readonly gameRepository: gameRepository.GameRepository,
-    @Inject() private readonly eventNotificationPort: gameEventProducer.GameEventProducer,
+    @Inject('GameEventProducer') private readonly gameEventProducer: gameEventProducer.GameEventProducer,
   ) {}
 
   async execute(command: CreateGameCommand): Promise<Game> {
+    this.logger.debug(`Creating game: ${command.name} for user ${command.userId}`);
     const factions = command.factions || this.defaultFactions();
     const newGame: Partial<Game> = {
       name: command.name,
@@ -26,7 +29,7 @@ export class CreateGameUseCase implements ICommandHandler<CreateGameCommand, Gam
       createdAt: new Date(),
     };
     const savedGame = await this.gameRepository.save(newGame);
-    await this.eventNotificationPort.created(savedGame);
+    await this.gameEventProducer.created(savedGame);
     return savedGame;
   }
 

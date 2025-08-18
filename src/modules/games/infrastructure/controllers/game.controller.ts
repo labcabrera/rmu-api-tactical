@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Logger, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 
@@ -12,15 +12,17 @@ import { PagedQueryDto } from '../../../core/infrastructure/controllers/dto/page
 import { CreateGameCommand } from '../../application/commands/create-game.command';
 import { DeleteGameCommand } from '../../application/commands/delete-game.command';
 import { UpdateGameCommand } from '../../application/commands/update-game.command';
-import { GetGameQuery } from '../../application/queries/handlers/get-game.query';
-import { GetGamesQuery } from '../../application/queries/handlers/get-games.query';
+import { GetGameQuery } from '../../application/queries/get-game.query';
+import { GetGamesQuery } from '../../application/queries/get-games.query';
 import { Game } from '../../domain/entities/game.entity';
 import { CreateGameDto, GameDto, UpdateGameDto } from './game.dto';
 
 @UseGuards(JwtAuthGuard)
-@Controller('v1/realms')
-@ApiTags('Realms')
-export class RealmController {
+@Controller('v1/tactical-games')
+@ApiTags('Games')
+export class GameController {
+  private readonly logger = new Logger(GameController.name);
+
   constructor(
     private commandBus: CommandBus,
     private queryBus: QueryBus,
@@ -40,6 +42,7 @@ export class RealmController {
   async findById(@Param('id') id: string, @Request() req) {
     const query = new GetGameQuery(id, req.user!.id as string);
     const entity = await this.queryBus.execute<GetGameQuery, Game>(query);
+    this.logger.debug(`Game found: ${JSON.stringify(entity)}`);
     return GameDto.fromEntity(entity);
   }
 
@@ -49,18 +52,18 @@ export class RealmController {
     description: 'Invalid or missing authentication token',
     type: ErrorDto,
   })
-  @ApiOperation({ operationId: 'findRealms', summary: 'Find realms by RSQL' })
+  @ApiOperation({ operationId: 'findGames', summary: 'Find games by RSQL' })
   async find(@Query() dto: PagedQueryDto, @Request() req) {
     const userId: string = req.user!.id as string;
     const query = new GetGamesQuery(dto.q, dto.page, dto.size, userId);
     const page = await this.queryBus.execute<GetGamesQuery, Page<Game>>(query);
-    const mapped = page.content.map((realm) => GameDto.fromEntity(realm));
+    const mapped = page.content.map((game) => GameDto.fromEntity(game));
     return new Page<GameDto>(mapped, page.pagination.page, page.pagination.size, page.pagination.totalElements);
   }
 
   @Post('')
   @ApiBody({ type: CreateGameDto })
-  @ApiOperation({ operationId: 'createGame', summary: 'Create a new game' })
+  @ApiOperation({ operationId: 'createGame', summary: 'Create a new tactical game' })
   @ApiOkResponse({ type: GameDto, description: 'Success' })
   @ApiUnauthorizedResponse({
     description: 'Invalid or missing authentication token',
@@ -71,12 +74,8 @@ export class RealmController {
     description: 'Bad request, invalid data',
     type: ErrorDto,
   })
-  @ApiResponse({
-    status: 409,
-    description: 'Conflict, realm already exists',
-    type: ErrorDto,
-  })
   async create(@Body() dto: CreateGameDto, @Request() req) {
+    this.logger.debug(`Creating game: ${JSON.stringify(dto)} for user ${req.user}`);
     const user = req.user!;
     const command = CreateGameDto.toCommand(dto, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<CreateGameCommand, Game>(command);

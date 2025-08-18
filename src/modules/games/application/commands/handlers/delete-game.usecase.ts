@@ -1,7 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
-import * as characterRepository from '../../../../characters/application/ports/out/character.repository';
 import { NotFoundError } from '../../../../shared/errors';
 import * as gameRepository from '../../ports/out/game.repository';
 import { DeleteGameCommand } from '../delete-game.command';
@@ -10,7 +9,7 @@ import { DeleteGameCommand } from '../delete-game.command';
 export class DeleteGameUseCase implements ICommandHandler<DeleteGameCommand> {
   constructor(
     @Inject('GameRepository') private readonly gameRepository: gameRepository.GameRepository,
-    @Inject('CharacterRepository') private readonly characterRepository: characterRepository.CharacterRepository,
+    // @Inject('CharacterRepository') private readonly characterRepository: characterRepository.CharacterRepository,
   ) {}
 
   //TODO delete actions and character rounds
@@ -19,7 +18,7 @@ export class DeleteGameUseCase implements ICommandHandler<DeleteGameCommand> {
     if (!game) {
       throw new NotFoundError('Game', command.gameId);
     }
-    await this.characterRepository.deleteByGameId(command.gameId);
+    // await this.characterRepository.deleteByGameId(command.gameId);
     await this.gameRepository.deleteById(command.gameId);
   }
 }

@@ -1,14 +1,11 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { MongooseModule } from '@nestjs/mongoose';
 import * as Joi from 'joi';
 
-import { CoreModule } from './modules/core/core.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { CoreModule } from './modules/core/core.module';
+import { GamesModule } from './modules/games/games.module';
 
 @Module({
   imports: [
@@ -17,7 +14,7 @@ import { AuthModule } from './modules/auth/auth.module';
       envFilePath: '.env',
       validationSchema: Joi.object({
         PORT: Joi.number().positive().default(3001),
-        RMU_MONGO_CORE_URI: Joi.string().required(),
+        RMU_MONGO_TACTICAL_URI: Joi.string().required(),
         RMU_IAM_JWK_URI: Joi.string().uri().required(),
         RMU_IAM_TOKEN_URI: Joi.string().uri().required(),
         RMU_IAM_CLIENT_ID: Joi.string().required(),
@@ -30,12 +27,13 @@ import { AuthModule } from './modules/auth/auth.module';
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        uri: configService.get<string>('RMU_MONGO_CORE_URI'),
+        uri: configService.get<string>('RMU_MONGO_TACTICAL_URI'),
       }),
       inject: [ConfigService],
     }),
     CoreModule,
     AuthModule,
+    GamesModule,
   ],
 })
 export class AppModule {}

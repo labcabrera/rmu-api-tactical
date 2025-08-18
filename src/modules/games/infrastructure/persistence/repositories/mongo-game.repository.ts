@@ -1,0 +1,88 @@
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose/dist/common/mongoose.decorators';
+import { Model } from 'mongoose';
+
+import { Page } from 'src/modules/core/domain/entities/page';
+import { NotFoundError, NotModifiedError } from 'src/modules/core/domain/errors/errors';
+import { RsqlParser } from '../../../../core/infrastructure/persistence/repositories/rsql-parser';
+import { GameRepository } from '../../../application/ports/out/game.repository';
+import { Game } from '../../../domain/entities/game.entity';
+import { GameDocument, GameModel } from '../models/game.model';
+
+@Injectable()
+export class MongoGameRepository implements GameRepository {
+  constructor(
+    @InjectModel(GameModel.name) private gameModel: Model<GameDocument>,
+    private rsqlParser: RsqlParser,
+  ) {}
+
+  async findById(id: string): Promise<Game | null> {
+    const readed = await this.gameModel.findById(id);
+    return readed ? this.mapToEntity(readed) : null;
+  }
+
+  async findByRsql(rsql: string, page: number, size: number): Promise<Page<Game>> {
+    const skip = page * size;
+    const mongoQuery = this.rsqlParser.parse(rsql);
+    const [gamesDocs, totalElements] = await Promise.all([
+      this.gameModel.find(mongoQuery).skip(skip).limit(size).sort({ name: 1 }),
+      this.gameModel.countDocuments(mongoQuery),
+    ]);
+    const content = gamesDocs.map((doc) => this.mapToEntity(doc));
+    return new Page<Game>(content, page, size, totalElements);
+  }
+
+  async save(request: Partial<Game>): Promise<Game> {
+    const model = new this.gameModel({ ...request, _id: request.id });
+    await model.save();
+    return this.mapToEntity(model);
+  }
+
+  async update(id: string, request: Partial<Game>): Promise<Game> {
+    const current = await this.gameModel.findById(id);
+    if (!current) {
+      throw new NotFoundError('Game', id);
+    }
+    const update = {};
+    if (request.name && request.name !== current.name) {
+      update['name'] = request.name;
+    }
+    if (request.description && request.description !== current.description) {
+      update['description'] = request.description;
+    }
+    if (Object.keys(update).length === 0) {
+      throw new NotModifiedError('No fields to update');
+    }
+    update['updatedAt'] = new Date();
+    const updatedGame = await this.gameModel.findByIdAndUpdate(id, { $set: update }, { new: true });
+    if (!updatedGame) {
+      throw new NotFoundError('Game', id);
+    }
+    return this.mapToEntity(updatedGame);
+  }
+
+  async deleteById(id: string): Promise<Game | null> {
+    const result = await this.gameModel.findByIdAndDelete(id);
+    return result ? this.mapToEntity(result) : null;
+  }
+
+  async existsById(id: string): Promise<boolean> {
+    const exists = await this.gameModel.exists({ _id: id });
+    return exists !== null;
+  }
+
+  private mapToEntity(doc: GameDocument): Game {
+    return {
+      id: doc.id as string,
+      name: doc.name,
+      description: doc.description,
+      factions: doc.factions,
+      round: doc.round,
+      status: doc.status,
+      phase: doc.phase,
+      owner: doc.owner,
+      createdAt: doc.createdAt,
+      updatedAt: doc.updatedAt,
+    };
+  }
+}

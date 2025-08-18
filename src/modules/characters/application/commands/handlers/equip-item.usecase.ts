@@ -1,9 +1,9 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
-import { CharacterProcessorService } from '../../../../../../src_exclude/domain/services/character-processor.service';
 import { NotFoundError } from '../../../../shared/errors';
 import { Character, CharacterEquipment, CharacterItem } from '../../../domain/entities/character.entity';
+import { CharacterProcessorService } from '../../../domain/services/character-processor.service';
 import * as characterRepository from '../../ports/out/character.repository';
 import { EquipItemCommand } from '../equip-item-command';
 
