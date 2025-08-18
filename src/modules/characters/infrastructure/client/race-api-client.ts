@@ -17,7 +17,7 @@ export class RaceApiClient implements RaceClient {
   async getRaceById(raceId: string): Promise<any> {
     const token = await this.tokenService.getToken();
     const apiCoreUri = this.configService.get('RMU_API_CORE_URI') as string;
-    const uri = `${apiCoreUri}/v1/races/${raceId}`;
+    const uri = `${apiCoreUri}/races/${raceId}`;
     const response = await axios.get(uri, {
       headers: {
         Authorization: `Bearer ${token}`,

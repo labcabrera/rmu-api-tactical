@@ -15,7 +15,7 @@ export class SkillCategoryApiClient implements SkillCategoryClient {
   async getSkillCategoryById(categoryId: any): Promise<SkillCategoryResponse> {
     const token = await this.tokenService.getToken();
     const apiCoreUri = this.configService.get('RMU_API_CORE_URI') as string;
-    const uri = `${apiCoreUri}/v1/skill-categories/${categoryId}`;
+    const uri = `${apiCoreUri}/skill-categories/${categoryId}`;
     const response = await axios.get(uri, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -27,7 +27,7 @@ export class SkillCategoryApiClient implements SkillCategoryClient {
   async getAllSkillCategories(): Promise<SkillCategoryResponse[]> {
     const token = await this.tokenService.getToken();
     const apiCoreUri = this.configService.get('RMU_API_CORE_URI') as string;
-    const uri = `${apiCoreUri}/v1/skill-categories`;
+    const uri = `${apiCoreUri}/skill-categories`;
     const response = await axios.get(uri, {
       headers: {
         Authorization: `Bearer ${token}`,

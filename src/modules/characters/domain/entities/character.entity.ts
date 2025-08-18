@@ -62,6 +62,7 @@ export interface CharacterDefense {
 
 export interface CharacterHP {
   customBonus: number;
+  racialBonus: number;
   max: number;
   current: number;
 }
@@ -144,13 +145,4 @@ export interface CharacterEquipment {
   body?: string | null;
   head?: string | null;
   weight: number | null;
-}
-
-export interface CreateTacticalCharacterItem {
-  name: string;
-  itemTypeId: string;
-  category: string;
-  attackTable: string;
-  skillId: string;
-  info: CharacterItemInfo;
 }

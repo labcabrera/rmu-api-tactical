@@ -13,6 +13,7 @@ import { UpdateCharacterCommandHandler } from './application/commands/handlers/u
 import { GetCharacterQueryHandler } from './application/queries/handlers/get-character.query.handler';
 import { GetCharactersQueryHandler } from './application/queries/handlers/get-characters.query.handler';
 import { CharacterProcessorService } from './domain/services/character-processor.service';
+import { ItemApiClient } from './infrastructure/client/item-api-client';
 import { RaceApiClient } from './infrastructure/client/race-api-client';
 import { SkillApiClient } from './infrastructure/client/skill-api-client';
 import { SkillCategoryApiClient } from './infrastructure/client/skill-category-api-client';
@@ -53,6 +54,10 @@ import { MongoCharacterRepository } from './infrastructure/persistence/repositor
     {
       provide: 'SkillCategoryClient',
       useClass: SkillCategoryApiClient,
+    },
+    {
+      provide: 'ItemClient',
+      useClass: ItemApiClient,
     },
   ],
 })

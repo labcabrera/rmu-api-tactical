@@ -1,7 +1,7 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { randomUUID } from 'crypto';
 
+import { randomUUID } from 'crypto';
 import * as gameRepository from '../../../../games/application/ports/out/game.repository';
 import { Game } from '../../../../games/domain/entities/game.entity';
 import { ValidationError } from '../../../../shared/domain/errors';
@@ -20,7 +20,9 @@ import {
 } from '../../../domain/entities/character.entity';
 import { CharacterProcessorService } from '../../../domain/services/character-processor.service';
 import * as characterRepository from '../../ports/out/character.repository';
+import * as itemClient from '../../ports/out/item-client';
 import * as raceClient from '../../ports/out/race-client';
+import { RaceResponse } from '../../ports/out/race-client';
 import * as skillCategoryClient from '../../ports/out/skill-category-client';
 import * as skillClient from '../../ports/out/skill-client';
 import { CreateCharacterCommand } from '../create-character.command';
@@ -33,6 +35,7 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
     @Inject('RaceClient') private readonly raceClient: raceClient.RaceClient,
     @Inject('SkillClient') private readonly skillClient: skillClient.SkillClient,
     @Inject('SkillCategoryClient') private readonly skillCategoryClient: skillCategoryClient.SkillCategoryClient,
+    @Inject('ItemClient') private readonly itemClient: itemClient.ItemClient,
     @Inject('CharacterRepository') private readonly characterRepository: characterRepository.CharacterRepository,
     @Inject('GameRepository') private readonly gameRepository: gameRepository.GameRepository,
     @Inject() private readonly characterProcessorService: CharacterProcessorService,
@@ -46,16 +49,15 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
 
     this.validateCommand(command, tacticalGame);
     const raceInfo = await this.fetchRace(command.info.race);
-
     const processedStatistics = this.processStatistics(raceInfo, command.statistics);
-    const skills = await this.processSkills(command.skills);
-    const strideRacialBonus = raceInfo.strideBonus;
-    const strideCustomBonus = command.strideCustomBonus || 0;
+    const skills = await this.processSkills(command);
+    const items = await this.processItems(command);
+
     const movement: CharacterMovement = {
       baseMovementRate: 0,
-      strideCustomBonus: strideCustomBonus,
+      strideCustomBonus: command.strideCustomBonus || 0,
       strideQuBonus: 0,
-      strideRacialBonus: strideRacialBonus,
+      strideRacialBonus: raceInfo.strideBonus || 0,
     };
     const defense: CharacterDefense = {
       armorType: 1,
@@ -63,6 +65,7 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
     };
     const hp: CharacterHP = {
       customBonus: command.hpCustomBonus || 0,
+      racialBonus: raceInfo.baseHits || 0,
       max: 0,
       current: 0,
     };
@@ -90,17 +93,6 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
       head: '',
       weight: 0,
     };
-    const items: CharacterItem[] = command.items
-      ? command.items.map((item) => ({
-          id: randomUUID(),
-          name: item.name,
-          itemTypeId: item.itemTypeId,
-          category: item.category,
-          attackTable: item.attackTable,
-          skillId: item.skillId,
-          info: item.info,
-        }))
-      : [];
     const characterData: Partial<Character> = {
       gameId: command.gameId,
       name: command.name,
@@ -149,13 +141,13 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
     return result;
   }
 
-  async processSkills(skills: CharacterSkill[]): Promise<CharacterSkill[]> {
-    if (!skills || skills.length == 0) {
+  async processSkills(command: CreateCharacterCommand): Promise<CharacterSkill[]> {
+    if (!command.skills || command.skills.length == 0) {
       return [];
     }
     const readedSkills = await this.fetchSkills();
     const readedSkillCategories = await this.fetchSkillCategories();
-    return skills.map((e) => {
+    return command.skills.map((e) => {
       const readedSkill = readedSkills.find((s) => s.id == e.skillId);
       if (!readedSkill) {
         throw new ValidationError(`Invalid skill identifier '${e.skillId}'`);
@@ -179,6 +171,25 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
     });
   }
 
+  async processItems(command: CreateCharacterCommand): Promise<CharacterItem[]> {
+    if (!command.items || command.items.length == 0) {
+      return [];
+    }
+    return Promise.all(
+      command.items.map(async (e) => {
+        const readedItem = await this.itemClient.getItemById(e.itemTypeId);
+        const name = e.name || readedItem.id.charAt(0).toUpperCase() + readedItem.id.slice(1);
+        return {
+          id: randomUUID(),
+          name: name,
+          itemTypeId: e.itemTypeId,
+          category: readedItem.category,
+          info: readedItem.info,
+        };
+      }),
+    );
+  }
+
   loadDefaultEquipment(character: Partial<Character>): void {
     if (!character.items || !character.equipment) {
       return;
@@ -200,7 +211,7 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
     }
   }
 
-  async fetchRace(raceId: string): Promise<any> {
+  async fetchRace(raceId: string): Promise<RaceResponse> {
     try {
       return await this.raceClient.getRaceById(raceId);
     } catch (e) {
@@ -224,6 +235,15 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
     } catch (e) {
       this.logger.error(e);
       throw new ValidationError(`Error fetching skill categories: ${e.message}`);
+    }
+  }
+
+  async fetchItem(itemId: string): Promise<any> {
+    try {
+      return await this.itemClient.getItemById(itemId);
+    } catch (e) {
+      this.logger.error(e);
+      throw new ValidationError(`Item with id ${itemId} not found. ${e.message}`);
     }
   }
 

@@ -166,25 +166,59 @@ export class CharacterSkill {
 }
 
 @Schema({ _id: false })
-export class CharacterItem {
-  id: string;
-  name: string;
-  itemTypeId: string;
-  category: string;
-  weapon?: CharacterItemWeapon | undefined;
-  weaponRange?: CharacterItemWeaponRange[] | undefined;
-  armor?: CharacterItemArmor | undefined;
-  info: CharacterItemInfo;
+export class CharacterItemInfo {
+  length: number;
+  strength: number;
+  weight: number;
+  productionTime: number;
 }
 
 @Schema({ _id: false })
 export class CharacterItemWeapon {
+  @Prop({ required: true })
   attackTable: string;
+
+  @Prop({ required: true })
   skillId: string;
+
+  @Prop({ required: true })
   fumble: number;
+
+  @Prop({ required: true })
   sizeAdjustment: number;
+
+  @Prop({ required: true })
   requiredHands: number;
+
+  @Prop({ required: true })
   throwable: boolean;
+}
+
+@Schema({ _id: false })
+export class CharacterItem {
+  @Prop({ required: true })
+  id: string;
+
+  @Prop({ required: true })
+  name: string;
+
+  @Prop({ required: true })
+  itemTypeId: string;
+
+  @Prop({ required: true })
+  category: string;
+
+  @Prop({ type: CharacterItemWeapon, required: false })
+  weapon: CharacterItemWeapon | undefined;
+
+  // @Prop({ required: false })
+  weaponRange: CharacterItemWeaponRange[] | undefined;
+
+  // @Prop({ required: false })
+  armor: CharacterItemArmor | undefined;
+
+  @Prop({ required: true })
+  info: CharacterItemInfo;
 }
 
 @Schema({ _id: false })
@@ -200,14 +234,6 @@ export class CharacterItemArmor {
   maneuver: number;
   rangedPenalty: number;
   perception: number;
-}
-
-@Schema({ _id: false })
-export class CharacterItemInfo {
-  length: number;
-  strength: number;
-  weight: number;
-  productionTime: number;
 }
 
 @Schema({ _id: false })

@@ -1,4 +1,4 @@
-import { CharacterInfo, CharacterStatistics, CreateTacticalCharacterItem } from '../../domain/entities/character.entity';
+import { CharacterInfo, CharacterStatistics } from '../../domain/entities/character.entity';
 
 export class CreateCharacterCommand {
   constructor(
@@ -13,8 +13,13 @@ export class CreateCharacterCommand {
     public readonly initiativeCustomBonus: number | undefined,
     //TODO MAP
     public readonly skills: any,
-    public readonly items: CreateTacticalCharacterItem[] | undefined,
+    public readonly items: CreateCharacterItem[],
     public readonly userId: string,
     public readonly roles: string[],
   ) {}
+}
+
+export interface CreateCharacterItem {
+  name: string | undefined;
+  itemTypeId: string;
 }

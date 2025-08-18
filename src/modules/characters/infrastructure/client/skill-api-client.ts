@@ -15,7 +15,7 @@ export class SkillApiClient implements SkillClient {
   async getAllSkills(): Promise<SkillResponse[]> {
     const token = await this.tokenService.getToken();
     const apiCoreUri = this.configService.get('RMU_API_CORE_URI') as string;
-    const uri = `${apiCoreUri}/v1/skills`;
+    const uri = `${apiCoreUri}/skills`;
     const response = await axios.get(uri, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -27,7 +27,7 @@ export class SkillApiClient implements SkillClient {
   async getSkillById(skillId: string): Promise<SkillResponse> {
     const token = await this.tokenService.getToken();
     const apiCoreUri = this.configService.get('RMU_API_CORE_URI') as string;
-    const uri = `${apiCoreUri}/v1/skills/${skillId}`;
+    const uri = `${apiCoreUri}/skills/${skillId}`;
     const response = await axios.get(uri, {
       headers: {
         Authorization: `Bearer ${token}`,

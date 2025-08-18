@@ -2,12 +2,13 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsArray, IsNotEmpty, IsObject, IsString, ValidateNested } from 'class-validator';
 
-import { CreateCharacterCommand } from '../../../application/commands/create-character.command';
+import { CreateCharacterCommand, CreateCharacterItem } from '../../../application/commands/create-character.command';
 import { CharacterStatistics } from '../../../domain/entities/character.entity';
 import { CharacterEnduranceCreationDto } from './character-endurance.dto';
 import { CharacterHPCreationDto } from './character-hp.dto';
 import { CharacterInfoDto } from './character-info.dto';
 import { CharacterInitiativeCreationDto } from './character-initiative.dto';
+import { CharacterItemCreationDto } from './character-item.dto';
 import { CharacterMovementCreationDto } from './character-movement-dto';
 import { CharacterSkillCreationDto } from './character-skill.dto';
 
@@ -63,11 +64,19 @@ export class CreateCharacterDto {
   @ValidateNested({ each: true })
   @Type(() => CharacterSkillCreationDto)
   @IsArray()
-  skills?: CharacterSkillCreationDto[];
+  skills: CharacterSkillCreationDto[] | undefined;
 
-  items?: any;
+  @ApiProperty({ description: 'Character items', type: [CharacterItemCreationDto] })
+  @ValidateNested({ each: true })
+  @Type(() => CharacterItemCreationDto)
+  @IsArray()
+  items: CharacterItemCreationDto[] | undefined;
 
   static toCommand(dto: CreateCharacterDto, userId: string, roles: string[]): CreateCharacterCommand {
+    const items: CreateCharacterItem[] = dto.items!.map((item) => ({
+      name: item.name,
+      itemTypeId: item.itemTypeId,
+    }));
     return new CreateCharacterCommand(
       dto.gameId,
       dto.faction,
@@ -79,7 +88,7 @@ export class CreateCharacterDto {
       dto.hp.customBonus,
       dto.initiative.customBonus,
       dto.skills,
-      dto.items,
+      items,
       userId,
       roles,
     );
