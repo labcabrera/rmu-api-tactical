@@ -8,12 +8,14 @@ import { ApiBody, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiResponse,
 import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
 import { Page } from '../../../shared/domain/entities/page.entity';
 import { ErrorDto, PagedQueryDto } from '../../../shared/infrastructure/controller/dto';
+import { AddSkillCommand } from '../../application/commands/add-skill.command';
 import { CreateCharacterCommand } from '../../application/commands/create-character.command';
 import { DeleteCharacterCommand } from '../../application/commands/delete-character.command';
 import { UpdateCharacterCommand } from '../../application/commands/update-character.command';
 import { GetCharacterQuery } from '../../application/queries/get-character.query';
 import { GetCharactersQuery } from '../../application/queries/get-characters.query';
 import { Character } from '../../domain/entities/character.entity';
+import { AddSkillDto } from './dto/add-skill.dto';
 import { CharacterDto, CharacterPageDto, UpdateCharacterDto } from './dto/character.dto';
 import { CreateCharacterDto } from './dto/create-character.dto';
 
@@ -31,14 +33,8 @@ export class CharacterController {
   @Get(':id')
   @ApiOkResponse({ type: CharacterDto, description: 'Success' })
   @ApiOperation({ operationId: 'findGameById', summary: 'Find game by id' })
-  @ApiUnauthorizedResponse({
-    description: 'Invalid or missing authentication token',
-    type: ErrorDto,
-  })
-  @ApiNotFoundResponse({
-    description: 'Realm not found',
-    type: ErrorDto,
-  })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiNotFoundResponse({ description: 'Realm not found', type: ErrorDto })
   async findById(@Param('id') id: string, @Request() req) {
     const user = req.user!;
     const query = new GetCharacterQuery(id, user.id as string, user.roles as string[]);
@@ -49,10 +45,7 @@ export class CharacterController {
 
   @Get('')
   @ApiOkResponse({ type: CharacterPageDto, description: 'Success' })
-  @ApiUnauthorizedResponse({
-    description: 'Invalid or missing authentication token',
-    type: ErrorDto,
-  })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiOperation({ operationId: 'findCharacters', summary: 'Find characters by RSQL' })
   async find(@Query() dto: PagedQueryDto, @Request() req) {
     this.logger.debug(`Finding characters with query: ${JSON.stringify(dto)}`);
@@ -67,15 +60,8 @@ export class CharacterController {
   @ApiBody({ type: CreateCharacterDto })
   @ApiOperation({ operationId: 'createCharacter', summary: 'Create a new character' })
   @ApiOkResponse({ type: CharacterDto, description: 'Success' })
-  @ApiUnauthorizedResponse({
-    description: 'Invalid or missing authentication token',
-    type: ErrorDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request, invalid data',
-    type: ErrorDto,
-  })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
   async create(@Body() dto: CreateCharacterDto, @Request() req) {
     this.logger.debug(`Creating character: ${JSON.stringify(dto, null, 2)} for user ${req.user}`);
     const user = req.user!;
@@ -87,10 +73,7 @@ export class CharacterController {
   @Patch(':id')
   @ApiOperation({ operationId: 'updateGame', summary: 'Update game' })
   @ApiOkResponse({ type: CharacterDto, description: 'Success' })
-  @ApiUnauthorizedResponse({
-    description: 'Invalid or missing authentication token',
-    type: ErrorDto,
-  })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   async updateSettings(@Param('id') id: string, @Body() dto: UpdateCharacterDto, @Request() req) {
     const user = req.user!;
     const command = UpdateCharacterDto.toCommand(id, dto, user.id as string, user.roles as string[]);
@@ -100,14 +83,25 @@ export class CharacterController {
 
   @Delete(':id')
   @HttpCode(204)
-  @ApiUnauthorizedResponse({
-    description: 'Invalid or missing authentication token',
-    type: ErrorDto,
-  })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiOperation({ operationId: 'deleteRealm', summary: 'Delete realm by id' })
   async delete(@Param('id') id: string, @Request() req) {
     const user = req.user!;
     const command = new DeleteCharacterCommand(id, user.id as string, user.roles as string[]);
     await this.commandBus.execute(command);
+  }
+
+  @Post(':id/skills')
+  @ApiBody({ type: AddSkillDto })
+  @ApiOperation({ operationId: 'addSkill', summary: 'Add a new skill to a character' })
+  @ApiOkResponse({ type: CharacterDto, description: 'Success' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
+  async addSkill(@Param('id') id: string, @Body() dto: AddSkillDto, @Request() req) {
+    this.logger.debug(`Adding skill: ${JSON.stringify(dto, null, 2)} for user ${req.user}`);
+    const user = req.user!;
+    const command = AddSkillDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<AddSkillCommand, Character>(command);
+    return CharacterDto.fromEntity(entity);
   }
 }

@@ -47,12 +47,11 @@ export class MongoCharacterRepository implements CharacterRepository {
     return this.mapToEntity(model);
   }
 
-  async update(id: string, request: Partial<Character>): Promise<Character> {
+  async update(id: string, update: Partial<Character>): Promise<Character> {
     const current = await this.characterModel.findById(id);
     if (!current) {
       throw new NotFoundError('Character', id);
     }
-    const update = {};
     const updatedCharacter = await this.characterModel.findByIdAndUpdate(id, { $set: update }, { new: true });
     if (!updatedCharacter) {
       throw new NotFoundError('Character', id);

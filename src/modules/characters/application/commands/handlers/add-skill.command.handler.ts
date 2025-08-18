@@ -1,7 +1,7 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
-import { NotFoundError } from '../../../../shared/domain/errors';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import { Character, CharacterSkill } from '../../../domain/entities/character.entity';
 import { CharacterProcessorService } from '../../../domain/services/character-processor.service';
 import * as characterRepository from '../../ports/out/character.repository';
@@ -10,9 +10,9 @@ import * as skillClient from '../../ports/out/skill-client';
 import { AddSkillCommand } from '../add-skill.command';
 
 @CommandHandler(AddSkillCommand)
-export class AddSkillUseCase implements ICommandHandler<AddSkillCommand, Character> {
+export class AddSkillCommandHandler implements ICommandHandler<AddSkillCommand, Character> {
   constructor(
-    @Inject('CharacterProcessorService') private readonly characterProcessorService: CharacterProcessorService,
+    @Inject() private readonly characterProcessorService: CharacterProcessorService,
     @Inject('CharacterRepository') private readonly characterRepository: characterRepository.CharacterRepository,
     @Inject('SkillClient') private readonly skillClient: skillClient.SkillClient,
     @Inject('SkillCategoryClient') private readonly skillCategoryClient: skillCategoryClient.SkillCategoryClient,
@@ -26,10 +26,10 @@ export class AddSkillUseCase implements ICommandHandler<AddSkillCommand, Charact
       throw new NotFoundError('Character', characterId);
     }
     if (this.hasSkillId(character, skillId)) {
-      throw new Error(`Skill ${skillId} already exists for character ${characterId}`);
+      throw new ValidationError(`Skill ${skillId} already exists for character ${characterId}`);
     }
-    const skillInfo: any = await this.skillClient.getSkillById(skillId);
-    const skillCategoryInfo: any = await this.skillCategoryClient.getSkillCategoryById(skillInfo.categoryId);
+    const skillInfo = await this.skillClient.getSkillById(skillId);
+    const skillCategoryInfo = await this.skillCategoryClient.getSkillCategoryById(skillInfo.categoryId);
     const statistics = [...skillCategoryInfo.bonus, ...skillInfo.bonus];
     //TODO read from api
     const racialBonus: number = 0;

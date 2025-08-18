@@ -7,6 +7,7 @@ import { TerminusModule } from '@nestjs/terminus';
 import { AuthModule } from 'src/modules/auth/auth.module';
 import { GamesModule } from '../games/games.module';
 import { SharedModule } from '../shared/shared.module';
+import { AddSkillCommandHandler } from './application/commands/handlers/add-skill.command.handler';
 import { CreateCharacterCommandHandler } from './application/commands/handlers/create-character.command.handler';
 import { DeleteCharacterCommandHandler } from './application/commands/handlers/delete-character.command.handler';
 import { UpdateCharacterCommandHandler } from './application/commands/handlers/update-character.command.handler';
@@ -41,6 +42,7 @@ import { MongoCharacterRepository } from './infrastructure/persistence/repositor
     CreateCharacterCommandHandler,
     UpdateCharacterCommandHandler,
     DeleteCharacterCommandHandler,
+    AddSkillCommandHandler,
     {
       provide: 'CharacterRepository',
       useClass: MongoCharacterRepository,
