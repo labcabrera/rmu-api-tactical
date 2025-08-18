@@ -167,9 +167,16 @@ export class CharacterSkill {
 
 @Schema({ _id: false })
 export class CharacterItemInfo {
+  @Prop({ required: false })
   length: number;
+
+  @Prop({ required: false })
   strength: number;
+
+  @Prop({ required: false })
   weight: number;
+
+  @Prop({ required: false })
   productionTime: number;
 }
 

@@ -2,6 +2,7 @@ export interface ItemResponse {
   id: string;
   category: string;
   weapon: ItemWeaponResponse | undefined;
+  armor: ItemArmorResponse | undefined;
   info: ItemInfoResponse;
 }
 
@@ -11,6 +12,7 @@ export interface ItemWeaponResponse {
   fumble: number;
   sizeAdjustment: number;
   requiredHands: number;
+  throwable: boolean;
 }
 
 export interface ItemInfoResponse {
@@ -22,6 +24,15 @@ export interface ItemInfoResponse {
   strength: number;
   weight: number;
   productionTime: number;
+}
+
+export interface ItemArmorResponse {
+  slot: string;
+  armorType: number;
+  enc: number;
+  maneuver: number;
+  rangedPenalty: number;
+  perception: number;
 }
 
 export interface ItemClient {

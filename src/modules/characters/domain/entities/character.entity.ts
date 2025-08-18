@@ -104,9 +104,9 @@ export interface CharacterItem {
   name: string;
   itemTypeId: string;
   category: string;
-  weapon?: CharacterItemWeapon | undefined;
-  weaponRange?: CharacterItemWeaponRange[] | undefined;
-  armor?: CharacterItemArmor | undefined;
+  weapon: CharacterItemWeapon | undefined;
+  weaponRange: CharacterItemWeaponRange[] | undefined;
+  armor: CharacterItemArmor | undefined;
   info: CharacterItemInfo;
 }
 
