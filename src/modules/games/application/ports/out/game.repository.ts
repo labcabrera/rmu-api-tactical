@@ -1,4 +1,4 @@
-import { Page } from '../../../../shared/page.entity';
+import { Page } from '../../../../shared/domain/entities/page.entity';
 import { Game } from '../../../domain/entities/game.entity';
 
 export interface GameRepository {

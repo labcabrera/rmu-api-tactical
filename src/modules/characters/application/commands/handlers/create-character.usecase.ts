@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto';
 
 import * as gameRepository from '../../../../games/application/ports/out/game.repository';
 import { Game } from '../../../../games/domain/entities/game.entity';
-import { ValidationError } from '../../../../shared/errors';
+import { ValidationError } from '../../../../shared/domain/errors';
 import {
   Character,
   CharacterDefense,

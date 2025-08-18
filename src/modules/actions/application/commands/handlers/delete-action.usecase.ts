@@ -1,7 +1,7 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
-import { NotFoundError } from '../../../../shared/errors';
+import { NotFoundError } from '../../../../shared/domain/errors';
 import * as actionRepository from '../../ports/out/action.repository';
 import { DeleteActionCommand } from '../delete-action.command';
 

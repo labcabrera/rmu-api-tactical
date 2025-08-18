@@ -5,7 +5,7 @@ import * as characterRoundRepository from '../../../../character-rounds/applicat
 import { CharacterRound } from '../../../../character-rounds/domain/entities/character-round.entity';
 import * as characterRepository from '../../../../characters/application/ports/out/character.repository';
 import { Character } from '../../../../characters/domain/entities/character.entity';
-import { NotFoundError, ValidationError } from '../../../../shared/errors';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import { Game } from '../../../domain/entities/game.entity';
 import * as gameEventProducer from '../../ports/out/game-event-producer';
 import * as gameRepository from '../../ports/out/game.repository';

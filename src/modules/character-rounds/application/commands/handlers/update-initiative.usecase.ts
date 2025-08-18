@@ -1,7 +1,7 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
 import { Inject } from '@nestjs/common';
-import { NotFoundError } from '../../../../shared/errors';
+import { NotFoundError } from '../../../../shared/domain/errors';
 import { CharacterRound } from '../../../domain/entities/character-round.entity';
 import * as characterRoundRepository from '../../ports/out/character-round.repository';
 import { UpdateInitiativeCommand } from '../update-initiative.command';

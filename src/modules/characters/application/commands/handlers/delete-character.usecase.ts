@@ -1,7 +1,7 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
-import { NotFoundError } from '../../../../shared/errors';
+import { NotFoundError } from '../../../../shared/domain/errors';
 import * as characterRepository from '../../ports/out/character.repository';
 import { DeleteCharacterCommand } from '../delete-character.command';
 

@@ -1,7 +1,7 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
-import { NotFoundError } from '../../../../shared/errors';
+import { NotFoundError } from '../../../../shared/domain/errors';
 import * as gameEventProducer from '../../ports/out/game-event-producer';
 import * as gameRepository from '../../ports/out/game.repository';
 import { DeleteGameCommand } from '../delete-game.command';

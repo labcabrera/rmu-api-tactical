@@ -1,7 +1,11 @@
-import { Repository } from '../../../../shared/repository';
+import { Page } from '../../../../shared/domain/entities/page.entity';
 import { Action } from '../../../domain/entities/action.entity';
 
-export interface ActionRepository extends Repository<Action> {
+export interface ActionRepository {
+  findById(id: string): Promise<Action | null>;
+
+  findByRsql(rsql: string | undefined, page: number, size: number): Promise<Page<Action>>;
+
   findByGameId(gameId: string): Promise<Action[]>;
 
   findByGameIdAndRound(gameId: string, round: number): Promise<Action[]>;
@@ -9,6 +13,12 @@ export interface ActionRepository extends Repository<Action> {
   findByCharacterId(characterId: string): Promise<Action[]>;
 
   findByCharacterIdAndRound(characterId: string, round: number): Promise<Action[]>;
+
+  save(entity: Partial<Action>): Promise<Action>;
+
+  update(id: string, entity: Partial<Action>): Promise<Action>;
+
+  deleteById(id: string): Promise<Action | null>;
 
   deleteByGameId(gameId: string): Promise<void>;
 

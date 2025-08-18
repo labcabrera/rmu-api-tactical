@@ -6,9 +6,8 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
-import { Page } from '../../../core/domain/entities/page';
-import { ErrorDto } from '../../../core/infrastructure/controllers/dto/error-dto';
-import { PagedQueryDto } from '../../../core/infrastructure/controllers/dto/paged-rsql-query';
+import { Page } from '../../../shared/domain/entities/page.entity';
+import { ErrorDto, PagedQueryDto } from '../../../shared/infrastructure/controller/dto';
 import { CreateGameCommand } from '../../application/commands/create-game.command';
 import { DeleteGameCommand } from '../../application/commands/delete-game.command';
 import { UpdateGameCommand } from '../../application/commands/update-game.command';
@@ -54,8 +53,9 @@ export class GameController {
   })
   @ApiOperation({ operationId: 'findGames', summary: 'Find games by RSQL' })
   async find(@Query() dto: PagedQueryDto, @Request() req) {
-    const userId: string = req.user!.id as string;
-    const query = new GetGamesQuery(dto.q, dto.page, dto.size, userId);
+    this.logger.debug(`Finding games with query: ${JSON.stringify(dto)}`);
+    const user = req.user!;
+    const query = new GetGamesQuery(dto.q, dto.page, dto.size, user.id as string, user.roles as string[]);
     const page = await this.queryBus.execute<GetGamesQuery, Page<Game>>(query);
     const mapped = page.content.map((game) => GameDto.fromEntity(game));
     return new Page<GameDto>(mapped, page.pagination.page, page.pagination.size, page.pagination.totalElements);

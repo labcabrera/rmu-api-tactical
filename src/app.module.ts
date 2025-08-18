@@ -4,8 +4,8 @@ import { MongooseModule } from '@nestjs/mongoose';
 import * as Joi from 'joi';
 
 import { AuthModule } from './modules/auth/auth.module';
-import { CoreModule } from './modules/core/core.module';
 import { GamesModule } from './modules/games/games.module';
+import { SharedModule } from './modules/shared/shared.module';
 
 @Module({
   imports: [
@@ -31,7 +31,7 @@ import { GamesModule } from './modules/games/games.module';
       }),
       inject: [ConfigService],
     }),
-    CoreModule,
+    SharedModule,
     AuthModule,
     GamesModule,
   ],

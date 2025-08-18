@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 import { IsNotEmpty, IsString } from 'class-validator';
-import { PaginationDto } from '../../../core/infrastructure/controllers/dto/page.dto';
+import { PaginationDto } from '../../../shared/infrastructure/controller/dto';
 import { CreateGameCommand } from '../../application/commands/create-game.command';
 import { UpdateGameCommand } from '../../application/commands/update-game.command';
 import { Game } from '../../domain/entities/game.entity';
@@ -88,9 +88,6 @@ export class GamePageDto {
     isArray: true,
   })
   content: GameDto[];
-  @ApiProperty({
-    type: PaginationDto,
-    description: 'Pagination information',
-  })
+  @ApiProperty({ type: PaginationDto, description: 'Pagination information' })
   pagination: PaginationDto;
 }

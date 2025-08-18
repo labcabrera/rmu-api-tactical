@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose/dist/common/mongoose.decorators';
 import { Model } from 'mongoose';
 
-import { Page } from 'src/modules/core/domain/entities/page';
-import { NotFoundError, NotModifiedError } from 'src/modules/core/domain/errors/errors';
-import { RsqlParser } from '../../../../core/infrastructure/persistence/repositories/rsql-parser';
+import { Page } from '../../../../shared/domain/entities/page.entity';
+import { NotFoundError, NotModifiedError } from '../../../../shared/domain/errors';
+import { RsqlParser } from '../../../../shared/infrastructure/messaging/rsql-parser';
 import { GameRepository } from '../../../application/ports/out/game.repository';
 import { Game } from '../../../domain/entities/game.entity';
 import { GameDocument, GameModel } from '../models/game.model';

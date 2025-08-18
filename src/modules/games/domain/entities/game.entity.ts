@@ -1,5 +1,5 @@
-import { AccessControlledEntity } from '../../../shared/access-controlled-entity';
-import { HasEntityMetadata } from '../../../shared/has-entity-metadata';
+import { AccessControlledEntity } from '../../../shared/domain/entities/access-controlled-entity';
+import { HasEntityMetadata } from '../../../shared/domain/has-entity-metadata';
 
 export interface Game extends AccessControlledEntity, HasEntityMetadata {
   id: string;
