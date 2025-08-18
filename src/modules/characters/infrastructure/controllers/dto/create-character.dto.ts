@@ -5,7 +5,9 @@ import { IsNotEmpty, IsObject, IsString, ValidateNested } from 'class-validator'
 import { CreateCharacterCommand } from '../../../application/commands/create-character.command';
 import { CharacterStatistics } from '../../../domain/entities/character.entity';
 import { CharacterEnduranceCreationDto } from './character-endurance.dto';
+import { CharacterHPCreationDto } from './character-hp.dto';
 import { CharacterInfoDto } from './character-info.dto';
+import { CharacterInitiativeCreationDto } from './character-initiative.dto';
 import { CharacterMovementCreationDto } from './character-movement-dto';
 
 export class CreateCharacterDto {
@@ -44,9 +46,17 @@ export class CreateCharacterDto {
   @IsObject()
   endurance: CharacterEnduranceCreationDto;
 
-  maxEndurance: number;
+  @ApiProperty({ description: 'Character HP', type: CharacterHPCreationDto })
+  @ValidateNested()
+  @Type(() => CharacterHPCreationDto)
+  @IsObject()
+  hp: CharacterHPCreationDto;
 
-  maxHP: number;
+  @ApiProperty({ description: 'Character initiative', type: CharacterInitiativeCreationDto })
+  @ValidateNested()
+  @Type(() => CharacterInitiativeCreationDto)
+  @IsObject()
+  initiative: CharacterInitiativeCreationDto;
 
   skills?: any;
 
@@ -61,7 +71,8 @@ export class CreateCharacterDto {
       dto.statistics,
       dto.movement.strideCustomBonus,
       dto.endurance.customBonus,
-      dto.maxHP,
+      dto.hp.customBonus,
+      dto.initiative.customBonus,
       dto.skills,
       dto.items,
       userId,

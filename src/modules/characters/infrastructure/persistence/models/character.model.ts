@@ -40,12 +40,15 @@ export class CharacterModel {
   @Prop({ type: CharacterDefense, required: true })
   defense: CharacterDefense;
 
-  hp: CharacterHP;
-
+  @Prop({ type: CharacterEndurance, required: true })
   endurance: CharacterEndurance;
+
+  @Prop({ type: CharacterHP, required: true })
+  hp: CharacterHP;
 
   power: CharacterPower | undefined;
 
+  @Prop({ type: CharacterInitiative, required: true })
   initiative: CharacterInitiative;
 
   skills: CharacterSkill[];

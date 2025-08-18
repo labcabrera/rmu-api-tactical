@@ -10,6 +10,7 @@ export class CreateCharacterCommand {
     public readonly strideCustomBonus: number | undefined,
     public readonly enduranceCustomBonus: number | undefined,
     public readonly hpCustomBonus: number | undefined,
+    public readonly initiativeCustomBonus: number | undefined,
     //TODO MAP
     public readonly skills: any,
     public readonly items: CreateTacticalCharacterItem[] | undefined,

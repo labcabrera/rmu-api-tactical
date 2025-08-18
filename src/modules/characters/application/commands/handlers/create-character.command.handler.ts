@@ -76,8 +76,8 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
       current: 0,
     };
     const initiative: CharacterInitiative = {
+      customBonus: command.initiativeCustomBonus || 0,
       baseBonus: 0,
-      customBonus: 0,
       penaltyBonus: 0,
       totalBonus: 0,
     };

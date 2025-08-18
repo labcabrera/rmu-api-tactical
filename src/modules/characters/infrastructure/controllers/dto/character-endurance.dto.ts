@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNumber } from 'class-validator';
+import { CharacterEndurance } from '../../../domain/entities/character.entity';
 
 export class CharacterEnduranceDto {
   @ApiProperty({ description: 'Custom bonus', example: 5, default: 0 })
@@ -17,6 +18,16 @@ export class CharacterEnduranceDto {
 
   @ApiProperty({ description: 'Fatigue penalty', example: 5 })
   fatiguePenalty: number;
+
+  static fromEntity(endurance: CharacterEndurance): CharacterEnduranceDto {
+    const dto = new CharacterEnduranceDto();
+    dto.customBonus = endurance.customBonus;
+    dto.max = endurance.max;
+    dto.current = endurance.current;
+    dto.accumulator = endurance.accumulator;
+    dto.fatiguePenalty = endurance.fatiguePenalty;
+    return dto;
+  }
 }
 
 export class CharacterEnduranceCreationDto {

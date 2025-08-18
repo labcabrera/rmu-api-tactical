@@ -5,6 +5,8 @@ import { UpdateCharacterCommand } from '../../../application/commands/update-cha
 import * as characterEntity from '../../../domain/entities/character.entity';
 import { CharacterHP } from '../../persistence/models/character.model-childs';
 import { CharacterEnduranceDto } from './character-endurance.dto';
+import { CharacterHPDto } from './character-hp.dto';
+import { CharacterInitiativeDto } from './character-initiative.dto';
 import { CharacterMovementDto } from './character-movement-dto';
 import { CharacterStatisticsDto } from './character-statistics.dto';
 
@@ -27,6 +29,10 @@ export class CharacterDto {
 
   endurance: CharacterEnduranceDto;
 
+  hp: CharacterHPDto;
+
+  inititiative: CharacterInitiativeDto;
+
   static fromEntity(entity: characterEntity.Character) {
     const dto = new CharacterDto();
     dto.id = entity.id;
@@ -35,6 +41,9 @@ export class CharacterDto {
     dto.info = entity.info;
     dto.statistics = CharacterStatisticsDto.fromEntity(entity.statistics);
     dto.movement = CharacterMovementDto.fromEntity(entity.movement);
+    dto.endurance = CharacterEnduranceDto.fromEntity(entity.endurance);
+    dto.hp = CharacterHPDto.fromEntity(entity.hp);
+    dto.inititiative = CharacterInitiativeDto.fromEntity(entity.initiative);
     return dto;
   }
 }
