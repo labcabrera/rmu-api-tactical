@@ -71,26 +71,27 @@ export class MongoCharacterRepository implements CharacterRepository {
   }
 
   private mapToEntity(doc: CharacterDocument): Character {
+    const plain = doc.toObject();
     return {
-      id: doc.id as string,
-      gameId: doc.gameId,
-      name: doc.name,
-      faction: doc.faction,
-      info: doc.info,
-      statistics: doc.statistics,
-      movement: doc.movement,
-      defense: doc.defense,
-      hp: doc.hp,
-      endurance: doc.endurance,
-      power: doc.power,
-      initiative: doc.initiative,
-      skills: doc.skills,
-      items: doc.items,
-      equipment: doc.equipment,
-      status: doc.status,
-      owner: doc.owner,
-      createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt,
+      id: plain._id as string,
+      gameId: plain.gameId,
+      name: plain.name,
+      faction: plain.faction,
+      info: plain.info,
+      statistics: plain.statistics,
+      movement: plain.movement,
+      defense: plain.defense,
+      hp: plain.hp,
+      endurance: plain.endurance,
+      power: plain.power,
+      initiative: plain.initiative,
+      skills: plain.skills,
+      items: plain.items,
+      equipment: plain.equipment,
+      status: plain.status,
+      owner: plain.owner,
+      createdAt: plain.createdAt,
+      updatedAt: plain.updatedAt,
     };
   }
 }

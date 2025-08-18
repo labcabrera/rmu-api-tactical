@@ -35,7 +35,7 @@ export interface Stat {
   totalBonus: number;
 }
 
-export interface CharacterStatistics {
+export class CharacterStatistics {
   ag: Stat;
   co: Stat;
   em: Stat;

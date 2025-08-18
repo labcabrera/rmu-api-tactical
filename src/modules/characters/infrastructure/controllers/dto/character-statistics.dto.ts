@@ -7,7 +7,6 @@ export class StatDto {
   totalBonus: number;
 
   static fromEntity(stat: Stat): StatDto {
-    console.log('StatDto.fromEntity', stat);
     const dto = new StatDto();
     dto.bonus = stat.bonus || 0;
     dto.racial = stat.racial;
@@ -30,8 +29,6 @@ export class CharacterStatisticsDto {
   st: StatDto;
 
   static fromEntity(statistics: CharacterStatistics): CharacterStatisticsDto {
-    console.log('CharacterStatisticsDto.fromEntity', statistics);
-
     const dto = new CharacterStatisticsDto();
     dto.ag = StatDto.fromEntity(statistics.ag);
     dto.co = StatDto.fromEntity(statistics.co);

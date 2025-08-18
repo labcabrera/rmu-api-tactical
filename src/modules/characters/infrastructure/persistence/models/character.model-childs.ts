@@ -35,15 +35,25 @@ export class Stat {
 
 @Schema({ _id: false })
 export class CharacterStatistics {
+  @Prop({ required: true })
   ag: Stat;
+  @Prop({ required: true })
   co: Stat;
+  @Prop({ required: true })
   em: Stat;
+  @Prop({ required: true })
   in: Stat;
+  @Prop({ required: true })
   me: Stat;
+  @Prop({ required: true })
   pr: Stat;
+  @Prop({ required: true })
   qu: Stat;
+  @Prop({ required: true })
   re: Stat;
+  @Prop({ required: true })
   sd: Stat;
+  @Prop({ required: true })
   st: Stat;
 }
 

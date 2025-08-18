@@ -28,8 +28,6 @@ export class CharacterDto {
   endurance: CharacterEnduranceDto;
 
   static fromEntity(entity: characterEntity.Character) {
-    console.log(JSON.stringify(entity, null, 2));
-
     const dto = new CharacterDto();
     dto.id = entity.id;
     dto.name = entity.name;
@@ -37,7 +35,6 @@ export class CharacterDto {
     dto.info = entity.info;
     dto.statistics = CharacterStatisticsDto.fromEntity(entity.statistics);
     dto.movement = CharacterMovementDto.fromEntity(entity.movement);
-    // Map other properties as needed
     return dto;
   }
 }
