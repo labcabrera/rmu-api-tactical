@@ -220,6 +220,27 @@ export class CharacterItemWeaponRange {
 }
 
 @Schema({ _id: false })
+export class CharacterItemArmor {
+  @Prop({ required: true })
+  slot: string;
+
+  @Prop({ required: true })
+  armorType: number;
+
+  @Prop({ required: true })
+  enc: number;
+
+  @Prop({ required: true })
+  maneuver: number;
+
+  @Prop({ required: true })
+  rangedPenalty: number;
+
+  @Prop({ required: true })
+  perception: number;
+}
+
+@Schema({ _id: false })
 export class CharacterItem {
   @Prop({ required: true })
   id: string;
@@ -239,21 +260,11 @@ export class CharacterItem {
   @Prop({ type: [CharacterItemWeaponRange], required: false })
   weaponRange: CharacterItemWeaponRange[] | undefined;
 
-  // @Prop({ required: false })
+  @Prop({ type: CharacterItemArmor, required: false })
   armor: CharacterItemArmor | undefined;
 
   @Prop({ required: true })
   info: CharacterItemInfo;
-}
-
-@Schema({ _id: false })
-export class CharacterItemArmor {
-  slot: string;
-  armorType: number;
-  enc: number;
-  maneuver: number;
-  rangedPenalty: number;
-  perception: number;
 }
 
 @Schema({ _id: false })

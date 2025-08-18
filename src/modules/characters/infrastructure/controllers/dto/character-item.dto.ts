@@ -1,6 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { CharacterItem, CharacterItemInfo, CharacterItemWeapon, CharacterItemWeaponRange } from '../../../domain/entities/character.entity';
+import {
+  CharacterItem,
+  CharacterItemArmor,
+  CharacterItemInfo,
+  CharacterItemWeapon,
+  CharacterItemWeaponRange,
+} from '../../../domain/entities/character.entity';
 
 export class CharacterItemDto {
   id: string;
@@ -9,6 +15,7 @@ export class CharacterItemDto {
   category: string;
   weapon: CharacterItemWeaponDto | undefined;
   weaponRange: CharacterItemWeaponRangeDto[] | undefined;
+  armor: CharacterItemArmorDto | undefined;
   info: CharacterItemInfoDto;
 
   static fromEntity(item: CharacterItem): CharacterItemDto {
@@ -19,6 +26,7 @@ export class CharacterItemDto {
     dto.category = item.category;
     dto.weapon = item.weapon ? CharacterItemWeaponDto.fromEntity(item.weapon) : undefined;
     dto.weaponRange = item.weaponRange ? item.weaponRange.map((e) => CharacterItemWeaponRangeDto.fromEntity(e)) : undefined;
+    dto.armor = item.armor ? CharacterItemArmorDto.fromEntity(item.armor) : undefined;
     dto.info = CharacterItemInfoDto.fromEntity(item.info);
     return dto;
   }
@@ -71,6 +79,26 @@ export class CharacterItemWeaponRangeDto {
     dto.from = entity.from;
     dto.to = entity.to;
     dto.bonus = entity.bonus;
+    return dto;
+  }
+}
+
+export class CharacterItemArmorDto {
+  slot: string;
+  armorType: number;
+  enc: number;
+  maneuver: number;
+  rangedPenalty: number;
+  perception: number;
+
+  static fromEntity(entity: CharacterItemArmor): CharacterItemArmorDto {
+    const dto = new CharacterItemArmorDto();
+    dto.slot = entity.slot;
+    dto.armorType = entity.armorType;
+    dto.enc = entity.enc;
+    dto.maneuver = entity.maneuver;
+    dto.rangedPenalty = entity.rangedPenalty;
+    dto.perception = entity.perception;
     return dto;
   }
 }

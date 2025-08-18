@@ -13,9 +13,6 @@ import {
   CharacterHP,
   CharacterInitiative,
   CharacterItem,
-  CharacterItemArmor,
-  CharacterItemWeapon,
-  CharacterItemWeaponRange,
   CharacterMovement,
   CharacterPower,
   CharacterSkill,
@@ -181,10 +178,10 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
     }
     return Promise.all(
       command.items.map(async (e) => {
-        const readedItem: itemClient.ItemResponse = await this.itemClient.getItemById(e.itemTypeId);
-        const readedWeapon: CharacterItemWeapon | undefined = readedItem.weapon ? readedItem.weapon : undefined;
-        const readedArmor: CharacterItemArmor | undefined = readedItem.armor ? readedItem.armor : undefined;
-        const weaponRange: CharacterItemWeaponRange[] | undefined = readedItem.weaponRange ? readedItem.weaponRange : undefined;
+        const readedItem = await this.itemClient.getItemById(e.itemTypeId);
+        const readedWeapon = readedItem.weapon ? readedItem.weapon : undefined;
+        const readedArmor = readedItem.armor ? readedItem.armor : undefined;
+        const readedWeaponRange = readedItem.weaponRange ? readedItem.weaponRange : undefined;
         const name = e.name || readedItem.id.charAt(0).toUpperCase() + readedItem.id.slice(1);
         return {
           id: randomUUID(),
@@ -192,7 +189,7 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
           itemTypeId: e.itemTypeId,
           category: readedItem.category,
           weapon: readedWeapon,
-          weaponRange: weaponRange,
+          weaponRange: readedWeaponRange,
           armor: readedArmor,
           info: readedItem.info,
         };
