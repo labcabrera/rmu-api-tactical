@@ -7,15 +7,17 @@ import * as characterRepository from '../../../../characters/application/ports/o
 import { Character } from '../../../../characters/domain/entities/character.entity';
 import { NotFoundError, ValidationError } from '../../../../shared/errors';
 import { Game } from '../../../domain/entities/game.entity';
+import * as gameEventProducer from '../../ports/out/game-event-producer';
 import * as gameRepository from '../../ports/out/game.repository';
 import { StartRoundCommand } from '../start-round.command';
 
 @CommandHandler(StartRoundCommand)
-export class StartRoundUseCase implements ICommandHandler<StartRoundCommand, Game> {
+export class StartRoundCommandHandler implements ICommandHandler<StartRoundCommand, Game> {
   constructor(
     @Inject('GameRepository') private readonly gameRepository: gameRepository.GameRepository,
     @Inject('CharacterRepository') private readonly characterRepository: characterRepository.CharacterRepository,
     @Inject('CharacterRoundRepository') private readonly characterRoundRepository: characterRoundRepository.CharacterRoundRepository,
+    @Inject('GameEventProducer') private readonly gameEventProducer: gameEventProducer.GameEventProducer,
   ) {}
 
   async execute(command: StartRoundCommand): Promise<Game> {
@@ -37,6 +39,7 @@ export class StartRoundUseCase implements ICommandHandler<StartRoundCommand, Gam
       round: newRound,
     });
     await this.createCharacterRounds(characters, newRound);
+    await this.gameEventProducer.updated(updatedGame);
     return updatedGame;
   }
 

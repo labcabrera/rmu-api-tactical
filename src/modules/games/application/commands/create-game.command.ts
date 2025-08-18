@@ -4,6 +4,6 @@ export class CreateGameCommand {
     public readonly description: string | undefined,
     public readonly factions: string[] | undefined,
     public readonly userId: string,
-    public readonly roles: string[] | undefined,
+    public readonly roles: string[],
   ) {}
 }

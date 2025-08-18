@@ -7,8 +7,8 @@ import * as gameRepository from '../../ports/out/game.repository';
 import { CreateGameCommand } from '../create-game.command';
 
 @CommandHandler(CreateGameCommand)
-export class CreateGameUseCase implements ICommandHandler<CreateGameCommand, Game> {
-  private readonly logger = new Logger(CreateGameUseCase.name);
+export class CreateGameCommandHandler implements ICommandHandler<CreateGameCommand, Game> {
+  private readonly logger = new Logger(CreateGameCommandHandler.name);
 
   constructor(
     @Inject('GameRepository') private readonly gameRepository: gameRepository.GameRepository,

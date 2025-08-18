@@ -6,9 +6,9 @@ import { TerminusModule } from '@nestjs/terminus';
 
 import { AuthModule } from 'src/modules/auth/auth.module';
 import { CoreModule } from '../core/core.module';
-import { CreateGameUseCase } from './application/commands/handlers/create-game.usecase';
-import { DeleteGameUseCase } from './application/commands/handlers/delete-game.usecase';
-import { UpdateGameUseCase } from './application/commands/handlers/update-game-use-case';
+import { CreateGameCommandHandler } from './application/commands/handlers/create-game.command.handler';
+import { DeleteGameCommandHandler } from './application/commands/handlers/delete-game.command.handler';
+import { UpdateGameCommandHandler } from './application/commands/handlers/update-game.command.handler';
 import { GetGameQueryHandler } from './application/queries/handlers/get-game.query.handler';
 import { GetGamesQueryHandler } from './application/queries/handlers/get-games.query.handler';
 import { GameController } from './infrastructure/controllers/game.controller';
@@ -30,9 +30,9 @@ import { MongoGameRepository } from './infrastructure/persistence/repositories/m
     KafkaGameProducerService,
     GetGamesQueryHandler,
     GetGameQueryHandler,
-    CreateGameUseCase,
-    UpdateGameUseCase,
-    DeleteGameUseCase,
+    CreateGameCommandHandler,
+    UpdateGameCommandHandler,
+    DeleteGameCommandHandler,
     {
       provide: 'GameRepository',
       useClass: MongoGameRepository,

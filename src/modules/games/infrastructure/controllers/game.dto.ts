@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 import { IsNotEmpty, IsString } from 'class-validator';
+import { PaginationDto } from '../../../core/infrastructure/controllers/dto/page.dto';
 import { CreateGameCommand } from '../../application/commands/create-game.command';
 import { UpdateGameCommand } from '../../application/commands/update-game.command';
 import { Game } from '../../domain/entities/game.entity';
@@ -58,6 +59,7 @@ export class CreateGameDto {
   description: string | undefined;
 
   @ApiProperty({ description: 'Factions involved in the game', type: [String], example: ['Gondor', 'Mordor'] })
+  @IsString({ each: true })
   factions: string[] | undefined;
 
   static toCommand(dto: CreateGameDto, userId: string, roles: string[]) {
@@ -66,10 +68,29 @@ export class CreateGameDto {
 }
 
 export class UpdateGameDto {
-  name: string;
+  @ApiProperty({ description: 'Name of the game', example: 'Mordor Game 1' })
+  @IsString()
+  name: string | undefined;
+
+  @ApiProperty({ description: 'Description of the game', example: 'Mordor Game 1 description' })
+  @IsString()
   description: string | undefined;
 
   static toCommand(id: string, dto: UpdateGameDto, userId: string, roles: string[]) {
     return new UpdateGameCommand(id, dto.name, dto.description, userId, roles);
   }
+}
+
+export class GamePageDto {
+  @ApiProperty({
+    type: [GameDto],
+    description: 'Games',
+    isArray: true,
+  })
+  content: GameDto[];
+  @ApiProperty({
+    type: PaginationDto,
+    description: 'Pagination information',
+  })
+  pagination: PaginationDto;
 }

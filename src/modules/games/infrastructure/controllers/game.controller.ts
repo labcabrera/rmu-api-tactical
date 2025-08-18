@@ -15,7 +15,7 @@ import { UpdateGameCommand } from '../../application/commands/update-game.comman
 import { GetGameQuery } from '../../application/queries/get-game.query';
 import { GetGamesQuery } from '../../application/queries/get-games.query';
 import { Game } from '../../domain/entities/game.entity';
-import { CreateGameDto, GameDto, UpdateGameDto } from './game.dto';
+import { CreateGameDto, GameDto, GamePageDto, UpdateGameDto } from './game.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('v1/tactical-games')
@@ -47,7 +47,7 @@ export class GameController {
   }
 
   @Get('')
-  //   @ApiOkResponse({ type: GamePageDto, description: 'Success' })
+  @ApiOkResponse({ type: GamePageDto, description: 'Success' })
   @ApiUnauthorizedResponse({
     description: 'Invalid or missing authentication token',
     type: ErrorDto,
