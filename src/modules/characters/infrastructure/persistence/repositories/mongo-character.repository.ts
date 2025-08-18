@@ -77,7 +77,7 @@ export class MongoCharacterRepository implements CharacterRepository {
       name: doc.name,
       faction: doc.faction,
       info: doc.info,
-      statistics: {},
+      statistics: doc.statistics,
       movement: doc.movement,
       defense: doc.defense,
       hp: doc.hp,

@@ -1,4 +1,4 @@
-import { Inject } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
 
@@ -26,6 +26,8 @@ import { CreateCharacterCommand } from '../create-character.command';
 
 @CommandHandler(CreateCharacterCommand)
 export class CreateCharacterCommandHandler implements ICommandHandler<CreateCharacterCommand, Character> {
+  private readonly logger = new Logger(CreateCharacterCommandHandler.name);
+
   constructor(
     @Inject('RaceClient') private readonly raceClient: raceClient.RaceClient,
     @Inject('SkillClient') private readonly skillClient: skillClient.SkillClient,
@@ -41,7 +43,8 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
     }
 
     this.validateCommand(command, tacticalGame);
-    const raceInfo = await this.raceClient.getRaceById(command.info.race);
+    const raceInfo = await this.fetchRace(command.info.race);
+
     const processedStatistics = this.processStatistics(raceInfo, command.statistics);
     const skills = await this.processSkills(command.skills);
     const strideRacialBonus = raceInfo.strideBonus;
@@ -122,7 +125,7 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
 
   processStatistics(raceInfo: any, statistics: CharacterStatistics): CharacterStatistics {
     const values = ['ag', 'co', 'em', 'in', 'me', 'pr', 'qu', 're', 'sd', 'st'];
-    const result: CharacterStatistics = {};
+    const result: any = {};
     values.forEach((e) => {
       let racial = 0;
       if (raceInfo && raceInfo.defaultStatBonus && raceInfo.defaultStatBonus[e]) {
@@ -194,6 +197,17 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
     }
     if (armor && armor.id) {
       character.equipment.body = armor.id;
+    }
+  }
+
+  async fetchRace(raceId: string): Promise<any> {
+    try {
+      const raceInfo = await this.raceClient.getRaceById(raceId);
+      this.logger.debug(`Race info for character creation: ${JSON.stringify(raceInfo)}`);
+      return raceInfo;
+    } catch (e) {
+      //TODO
+      throw new ValidationError(`Race with id ${raceId} not found. ${e.message}`);
     }
   }
 

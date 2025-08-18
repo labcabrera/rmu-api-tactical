@@ -34,6 +34,20 @@ export class Stat {
 }
 
 @Schema({ _id: false })
+export class CharacterStatistics {
+  ag: Stat;
+  co: Stat;
+  em: Stat;
+  in: Stat;
+  me: Stat;
+  pr: Stat;
+  qu: Stat;
+  re: Stat;
+  sd: Stat;
+  st: Stat;
+}
+
+@Schema({ _id: false })
 export class CharacterMovement {
   @Prop({ required: true })
   baseMovementRate: number;

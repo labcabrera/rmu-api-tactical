@@ -4,7 +4,9 @@ import { PaginationDto } from '../../../../shared/infrastructure/controller/dto'
 import { UpdateCharacterCommand } from '../../../application/commands/update-character.command';
 import * as characterEntity from '../../../domain/entities/character.entity';
 import { CharacterHP } from '../../persistence/models/character.model-childs';
+import { CharacterEnduranceDto } from './character-endurance.dto';
 import { CharacterMovementDto } from './character-movement-dto';
+import { CharacterStatisticsDto } from './character-statistics.dto';
 
 export class CharacterDto {
   @ApiProperty({ description: 'Game identifier', example: 'lotr' })
@@ -19,14 +21,21 @@ export class CharacterDto {
   @ApiProperty({ description: 'Information about the character', type: Object })
   info: characterEntity.CharacterInfo;
 
+  statistics: CharacterStatisticsDto;
+
   movement: CharacterMovementDto;
 
+  endurance: CharacterEnduranceDto;
+
   static fromEntity(entity: characterEntity.Character) {
+    console.log(JSON.stringify(entity, null, 2));
+
     const dto = new CharacterDto();
     dto.id = entity.id;
     dto.name = entity.name;
     dto.faction = entity.faction;
     dto.info = entity.info;
+    dto.statistics = CharacterStatisticsDto.fromEntity(entity.statistics);
     dto.movement = CharacterMovementDto.fromEntity(entity.movement);
     // Map other properties as needed
     return dto;

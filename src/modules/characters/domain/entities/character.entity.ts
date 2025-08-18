@@ -36,7 +36,16 @@ export interface Stat {
 }
 
 export interface CharacterStatistics {
-  [key: string]: Stat;
+  ag: Stat;
+  co: Stat;
+  em: Stat;
+  in: Stat;
+  me: Stat;
+  pr: Stat;
+  qu: Stat;
+  re: Stat;
+  sd: Stat;
+  st: Stat;
 }
 
 export interface CharacterMovement {

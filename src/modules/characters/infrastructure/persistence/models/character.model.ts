@@ -12,7 +12,7 @@ import {
   CharacterMovement,
   CharacterPower,
   CharacterSkill,
-  Stat,
+  CharacterStatistics,
 } from './character.model-childs';
 
 export type CharacterDocument = CharacterModel & Document;
@@ -31,8 +31,8 @@ export class CharacterModel {
   @Prop({ type: CharacterInfo, required: true })
   info: CharacterInfo;
 
-  @Prop({ type: Map, of: Object })
-  statistics: Map<string, Stat>;
+  @Prop({ type: CharacterStatistics, required: true })
+  statistics: CharacterStatistics;
 
   @Prop({ type: CharacterMovement, required: true })
   movement: CharacterMovement;
