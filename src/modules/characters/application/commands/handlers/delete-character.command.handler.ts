@@ -6,7 +6,7 @@ import * as characterRepository from '../../ports/out/character.repository';
 import { DeleteCharacterCommand } from '../delete-character.command';
 
 @CommandHandler(DeleteCharacterCommand)
-export class DeleteCharacterUseCase implements ICommandHandler<DeleteCharacterCommand> {
+export class DeleteCharacterCommandHandler implements ICommandHandler<DeleteCharacterCommand> {
   constructor(@Inject('CharacterRepository') private readonly characterRepository: characterRepository.CharacterRepository) {}
 
   async execute(command: DeleteCharacterCommand): Promise<void> {

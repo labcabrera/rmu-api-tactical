@@ -15,6 +15,7 @@ export interface Character {
   items: CharacterItem[];
   equipment: CharacterEquipment;
   status?: string;
+  owner: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -51,11 +52,13 @@ export interface CharacterDefense {
 }
 
 export interface CharacterHP {
+  customBonus: number;
   max: number;
   current: number;
 }
 
 export interface CharacterEndurance {
+  customBonus: number;
   max: number;
   current: number;
   accumulator: number;
@@ -76,7 +79,7 @@ export interface CharacterInitiative {
 
 export interface CharacterSkill {
   skillId: string;
-  specialization: string | null;
+  specialization: string | undefined;
   statistics: string[];
   ranks: number;
   statBonus: number;

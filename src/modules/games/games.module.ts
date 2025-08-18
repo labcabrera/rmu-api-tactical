@@ -42,5 +42,6 @@ import { MongoGameRepository } from './infrastructure/persistence/repositories/m
       useClass: KafkaGameProducerService,
     },
   ],
+  exports: ['GameRepository'],
 })
 export class GamesModule {}

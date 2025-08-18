@@ -8,9 +8,9 @@ import * as characterRepository from '../../ports/out/character.repository';
 import { UpdateCharacterCommand } from '../update-character.command';
 
 @CommandHandler(UpdateCharacterCommand)
-export class UpdateCharacterUseCase implements ICommandHandler<UpdateCharacterCommand, Character> {
+export class UpdateCharacterCommandHandler implements ICommandHandler<UpdateCharacterCommand, Character> {
   constructor(
-    @Inject('CharacterProcessorService') private readonly characterProcessorService: CharacterProcessorService,
+    @Inject() private readonly characterProcessorService: CharacterProcessorService,
     @Inject('CharacterRepository') private readonly characterRepository: characterRepository.CharacterRepository,
   ) {}
 

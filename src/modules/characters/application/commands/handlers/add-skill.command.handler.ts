@@ -35,7 +35,7 @@ export class AddSkillUseCase implements ICommandHandler<AddSkillCommand, Charact
     const racialBonus: number = 0;
     const skill: CharacterSkill = {
       skillId: command.skillId,
-      specialization: command.specialization || null,
+      specialization: command.specialization,
       statistics: statistics,
       ranks: command.ranks,
       statBonus: 0,

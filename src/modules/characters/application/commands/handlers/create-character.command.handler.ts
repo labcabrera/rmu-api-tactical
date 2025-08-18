@@ -25,7 +25,7 @@ import * as skillClient from '../../ports/out/skill-client';
 import { CreateCharacterCommand } from '../create-character.command';
 
 @CommandHandler(CreateCharacterCommand)
-export class CreateCharacterUseCase implements ICommandHandler<CreateCharacterCommand, Character> {
+export class CreateCharacterCommandHandler implements ICommandHandler<CreateCharacterCommand, Character> {
   constructor(
     @Inject('RaceClient') private readonly raceClient: raceClient.RaceClient,
     @Inject('SkillClient') private readonly skillClient: skillClient.SkillClient,
@@ -57,12 +57,14 @@ export class CreateCharacterUseCase implements ICommandHandler<CreateCharacterCo
       defensiveBonus: 0,
     };
     const hp: CharacterHP = {
-      max: command.maxHP,
-      current: command.maxHP,
+      customBonus: command.hpCustomBonus || 0,
+      max: 0,
+      current: 0,
     };
     const endurance: CharacterEndurance = {
-      max: command.maxEndurance,
-      current: command.maxEndurance,
+      customBonus: command.enduranceCustomBonus || 0,
+      max: 0,
+      current: 0,
       accumulator: 0,
       fatiguePenalty: 0,
     };
@@ -109,6 +111,7 @@ export class CreateCharacterUseCase implements ICommandHandler<CreateCharacterCo
       skills: skills,
       items: items,
       equipment: equipment,
+      owner: command.userId,
       createdAt: new Date(),
     };
     this.characterProcessorService.process(characterData);
@@ -203,12 +206,6 @@ export class CreateCharacterUseCase implements ICommandHandler<CreateCharacterCo
     }
     if (!command.info || !command.info.race) {
       throw new Error('Required race');
-    }
-    if (!command.maxEndurance || command.maxEndurance < 1) {
-      throw new Error('Required endurance');
-    }
-    if (!command.maxHP || command.maxHP < 1) {
-      throw new Error('Required HP');
     }
   }
 }

@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import * as Joi from 'joi';
 
 import { AuthModule } from './modules/auth/auth.module';
+import { CharactersModule } from './modules/characters/characters.module';
 import { GamesModule } from './modules/games/games.module';
 import { SharedModule } from './modules/shared/shared.module';
 
@@ -34,6 +35,7 @@ import { SharedModule } from './modules/shared/shared.module';
     SharedModule,
     AuthModule,
     GamesModule,
+    CharactersModule,
   ],
 })
 export class AppModule {}

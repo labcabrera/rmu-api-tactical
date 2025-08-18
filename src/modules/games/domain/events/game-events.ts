@@ -1,4 +1,4 @@
-import { DomainEvent } from '../../../core/domain/events/domain-event';
+import { DomainEvent } from '../../../shared/domain/events/domain-event';
 import { Game } from '../entities/game.entity';
 
 export class GameCreatedEvent extends DomainEvent<Game> {
