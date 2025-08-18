@@ -4,8 +4,13 @@ import { CharacterHP } from '../../../domain/entities/character.entity';
 
 export class CharacterHPDto {
   @ApiProperty({ description: 'Custom bonus', example: 5, default: 0 })
-  @IsNumber()
   customBonus: number;
+
+  @ApiProperty({ description: 'Racial bonus', example: 10, default: 0 })
+  racialBonus: number;
+
+  @ApiProperty({ description: 'Skill bonus', example: 5, default: 0 })
+  skillBonus: number;
 
   @ApiProperty({ description: 'Maximum HP', example: 100 })
   max: number;
@@ -16,6 +21,8 @@ export class CharacterHPDto {
   static fromEntity(hp: CharacterHP): CharacterHPDto {
     const dto = new CharacterHPDto();
     dto.customBonus = hp.customBonus;
+    dto.racialBonus = hp.racialBonus;
+    dto.skillBonus = hp.skillBonus;
     dto.max = hp.max;
     dto.current = hp.current;
     return dto;

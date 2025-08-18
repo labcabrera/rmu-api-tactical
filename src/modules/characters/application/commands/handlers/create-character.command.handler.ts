@@ -68,6 +68,7 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
     const hp: CharacterHP = {
       customBonus: command.hpCustomBonus || 0,
       racialBonus: raceInfo.baseHits || 0,
+      skillBonus: 0,
       max: 0,
       current: 0,
     };

@@ -87,6 +87,12 @@ export class CharacterHP {
   customBonus: number;
 
   @Prop({ required: true })
+  racialBonus: number;
+
+  @Prop({ required: true })
+  skillBonus: number;
+
+  @Prop({ required: true })
   max: number;
 
   @Prop({ required: true })

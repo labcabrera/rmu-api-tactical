@@ -63,6 +63,7 @@ export interface CharacterDefense {
 export interface CharacterHP {
   customBonus: number;
   racialBonus: number;
+  skillBonus: number;
   max: number;
   current: number;
 }
