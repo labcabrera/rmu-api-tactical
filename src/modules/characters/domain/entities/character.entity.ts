@@ -140,9 +140,9 @@ export interface CharacterItemInfo {
 }
 
 export interface CharacterEquipment {
-  mainHand?: string | null;
-  offHand?: string | null;
-  body?: string | null;
-  head?: string | null;
-  weight: number | null;
+  mainHand: string | undefined;
+  offHand: string | undefined;
+  body: string | undefined;
+  head: string | undefined;
+  weight: number | undefined;
 }

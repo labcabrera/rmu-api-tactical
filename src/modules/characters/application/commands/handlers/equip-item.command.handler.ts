@@ -63,18 +63,16 @@ export class EquipItemUseCase implements ICommandHandler<EquipItemCommand, Chara
     const slots: (keyof CharacterEquipment)[] = ['mainHand', 'offHand', 'body', 'head'];
     slots.forEach((s) => {
       if (equipment[s] === command.itemId) {
-        equipment[s] = null;
+        equipment[s] = undefined;
       }
     });
     if (command.slot === 'offHand' && item.weapon && item.weapon.requiredHands > 1) {
-      equipment.offHand = null;
+      equipment.offHand = undefined;
     }
-
     // Set armor type if equipping body armor
     if (slot === 'body' && item.armor && item.armor.armorType) {
       character.defense.armorType = item.armor.armorType;
     }
-
     // Equip item to specified slot
     if (slot === 'mainHand') {
       equipment.mainHand = command.itemId;
@@ -88,9 +86,8 @@ export class EquipItemUseCase implements ICommandHandler<EquipItemCommand, Chara
 
     // Handle two-handed weapon in main hand
     if (slot === 'mainHand' && item.weapon && item.weapon.requiredHands > 1) {
-      equipment.offHand = null;
+      equipment.offHand = undefined;
     }
-
     // Set default armor type when no body armor is equipped
     // if (!equipment.body) {
     //   //TODO check racial armor type

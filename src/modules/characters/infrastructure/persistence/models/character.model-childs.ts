@@ -245,11 +245,20 @@ export class CharacterItemArmor {
 
 @Schema({ _id: false })
 export class CharacterEquipment {
-  mainHand?: string | null;
-  offHand?: string | null;
-  body?: string | null;
-  head?: string | null;
-  weight: number | null;
+  @Prop({ type: String, required: false })
+  mainHand: string | undefined;
+
+  @Prop({ type: String, required: false })
+  offHand: string | undefined;
+
+  @Prop({ type: String, required: false })
+  body: string | undefined;
+
+  @Prop({ type: String, required: false })
+  head: string | undefined;
+
+  @Prop({ type: Number, required: false })
+  weight: number | undefined;
 }
 
 export const CharacterInfoSchema = SchemaFactory.createForClass(CharacterInfo);

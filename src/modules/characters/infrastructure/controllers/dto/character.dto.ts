@@ -5,6 +5,7 @@ import { UpdateCharacterCommand } from '../../../application/commands/update-cha
 import * as characterEntity from '../../../domain/entities/character.entity';
 import { CharacterHP } from '../../persistence/models/character.model-childs';
 import { CharacterEnduranceDto } from './character-endurance.dto';
+import { CharacterEquipmentDto } from './character-equipment.dto';
 import { CharacterHPDto } from './character-hp.dto';
 import { CharacterInitiativeDto } from './character-initiative.dto';
 import { CharacterItemDto } from './character-item.dto';
@@ -39,6 +40,8 @@ export class CharacterDto {
 
   items: CharacterItemDto[];
 
+  equipment: CharacterEquipmentDto;
+
   static fromEntity(entity: characterEntity.Character) {
     const dto = new CharacterDto();
     dto.id = entity.id;
@@ -52,6 +55,7 @@ export class CharacterDto {
     dto.inititiative = CharacterInitiativeDto.fromEntity(entity.initiative);
     dto.skills = entity.skills.map((skill) => CharacterSkillDto.fromEntity(skill));
     dto.items = entity.items.map((item) => CharacterItemDto.fromEntity(item));
+    dto.equipment = CharacterEquipmentDto.fromEntity(entity.equipment);
     return dto;
   }
 }

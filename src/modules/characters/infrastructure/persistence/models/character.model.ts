@@ -57,6 +57,7 @@ export class CharacterModel {
   @Prop({ type: [CharacterItem], required: true })
   items: CharacterItem[];
 
+  @Prop({ type: CharacterEquipment, required: true })
   equipment: CharacterEquipment;
 
   status: string | undefined;
