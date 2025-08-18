@@ -8,6 +8,7 @@ import { ApiBody, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiResponse,
 import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
 import { Page } from '../../../shared/domain/entities/page.entity';
 import { ErrorDto, PagedQueryDto } from '../../../shared/infrastructure/controller/dto';
+import { AddItemCommand } from '../../application/commands/add-item.comand';
 import { AddSkillCommand } from '../../application/commands/add-skill.command';
 import { CreateCharacterCommand } from '../../application/commands/create-character.command';
 import { DeleteCharacterCommand } from '../../application/commands/delete-character.command';
@@ -16,6 +17,7 @@ import { UpdateCharacterCommand } from '../../application/commands/update-charac
 import { GetCharacterQuery } from '../../application/queries/get-character.query';
 import { GetCharactersQuery } from '../../application/queries/get-characters.query';
 import { Character } from '../../domain/entities/character.entity';
+import { AddItemDto } from './dto/add-item.dto';
 import { AddSkillDto } from './dto/add-skill.dto';
 import { CharacterDto, CharacterPageDto, UpdateCharacterDto } from './dto/character.dto';
 import { CreateCharacterDto } from './dto/create-character.dto';
@@ -116,6 +118,20 @@ export class CharacterController {
     const user = req.user!;
     const command = new DeleteSkillCommand(id, skillId, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<DeleteSkillCommand, Character>(command);
+    return CharacterDto.fromEntity(entity);
+  }
+
+  @Post(':id/items')
+  @ApiBody({ type: AddItemDto })
+  @ApiOperation({ operationId: 'addItem', summary: 'Add a new item to a character' })
+  @ApiOkResponse({ type: CharacterDto, description: 'Success' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
+  async addItem(@Param('id') id: string, @Body() dto: AddItemDto, @Request() req) {
+    this.logger.debug(`Adding item: ${JSON.stringify(dto, null, 2)} for user ${req.user}`);
+    const user = req.user!;
+    const command = AddItemDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<AddItemCommand, Character>(command);
     return CharacterDto.fromEntity(entity);
   }
 }

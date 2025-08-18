@@ -6,52 +6,36 @@ import { NotFoundError } from '../../../../shared/domain/errors';
 import { Character, CharacterItem } from '../../../domain/entities/character.entity';
 import { CharacterProcessorService } from '../../../domain/services/character-processor.service';
 import * as characterRepository from '../../ports/out/character.repository';
+import * as itemClient from '../../ports/out/item-client';
 import { AddItemCommand } from '../add-item.comand';
 
 @CommandHandler(AddItemCommand)
 export class AddItemCommandHandler implements ICommandHandler<AddItemCommand, Character> {
   constructor(
-    @Inject('CharacterProcessorService') private readonly characterProcessorService: CharacterProcessorService,
+    @Inject() private readonly characterProcessorService: CharacterProcessorService,
     @Inject('CharacterRepository') private readonly characterRepository: characterRepository.CharacterRepository,
+    @Inject('ItemClient') private readonly itemClient: itemClient.ItemClient,
   ) {}
 
   async execute(command: AddItemCommand): Promise<Character> {
-    this.validateCommand(command);
     const characterId = command.characterId;
     const character = await this.characterRepository.findById(command.characterId);
     if (!character) {
       throw new NotFoundError('Character', characterId);
     }
+    const readedItem = await this.itemClient.getItemById(command.itemTypeId);
     const item: CharacterItem = {
       id: randomUUID(),
-      name: command.item.name ? command.item.name : command.item.itemTypeId,
-      itemTypeId: command.item.itemTypeId,
-      category: command.item.category,
-      weapon: command.item.weapon,
-      weaponRange: command.item.weaponRange,
-      armor: command.item.armor,
-      info: command.item.info,
+      name: command.name || command.itemTypeId,
+      itemTypeId: command.itemTypeId,
+      category: readedItem.category,
+      weapon: readedItem.weapon,
+      weaponRange: readedItem.weaponRange,
+      armor: readedItem.armor,
+      info: readedItem.info,
     };
     character.items.push(item);
     this.characterProcessorService.process(character);
     return await this.characterRepository.update(characterId, character);
-  }
-
-  private validateCommand(command: AddItemCommand): void {
-    if (!command.characterId) {
-      throw new Error('Required characterId');
-    }
-    if (!command.item) {
-      throw new Error('Required item data');
-    }
-    if (!command.item.itemTypeId) {
-      throw new Error('Required itemTypeId');
-    }
-    if (!command.item.category) {
-      throw new Error('Required category');
-    }
-    if (command.item.category === 'weapon' && !command.item.weapon) {
-      throw new Error('Required weapon data for weapon category');
-    }
   }
 }
