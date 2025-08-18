@@ -1,7 +1,11 @@
 import { Character } from '../../../entities/character.entity';
 
-export class ArmorProcessor {
+export class DefenseProcessor {
   static process(character: Partial<Character>): void {
+    this.processArmorType(character);
+  }
+
+  private static processArmorType(character: Partial<Character>): void {
     if (!character.equipment || !character.equipment.body || !character.items || !character.defense) {
       return;
     }
@@ -15,5 +19,13 @@ export class ArmorProcessor {
       //TODO read from racial
       character.defense.armorType = 1;
     }
+  }
+
+  private static processDefensiveBonus(character: Partial<Character>): void {
+    if (!character.defense) {
+      return;
+    }
+    const quBonus = character.statistics?.qu.totalBonus || 0;
+    character.defense.defensiveBonus = quBonus * 3;
   }
 }

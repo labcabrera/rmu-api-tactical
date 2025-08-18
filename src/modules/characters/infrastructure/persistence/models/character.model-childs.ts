@@ -21,6 +21,12 @@ export class CharacterInfo {
 @Schema({ _id: false })
 export class Stat {
   @Prop({ required: true })
+  potential: number;
+
+  @Prop({ required: true })
+  temporary: number;
+
+  @Prop({ required: true })
   bonus: number;
 
   @Prop({ required: true })

@@ -3,7 +3,6 @@ import { Type } from 'class-transformer';
 import { IsArray, IsNotEmpty, IsObject, IsString, ValidateNested } from 'class-validator';
 
 import { CreateCharacterCommand, CreateCharacterItem } from '../../../application/commands/create-character.command';
-import { CharacterStatistics } from '../../../domain/entities/character.entity';
 import { CharacterEnduranceCreationDto } from './character-endurance.dto';
 import { CharacterHPCreationDto } from './character-hp.dto';
 import { CharacterInfoDto } from './character-info.dto';
@@ -11,6 +10,7 @@ import { CharacterInitiativeCreationDto } from './character-initiative.dto';
 import { CharacterItemCreationDto } from './character-item.dto';
 import { CharacterMovementCreationDto } from './character-movement-dto';
 import { CharacterSkillCreationDto } from './character-skill.dto';
+import { CharacterStatisticsCreationDto } from './character-statistics.dto';
 
 export class CreateCharacterDto {
   @ApiProperty({ description: 'Character name', example: 'Foo' })
@@ -34,7 +34,11 @@ export class CreateCharacterDto {
   @IsObject()
   info: CharacterInfoDto;
 
-  statistics: CharacterStatistics;
+  @ApiProperty({ description: 'Character movement', type: CharacterStatisticsCreationDto })
+  @ValidateNested()
+  @Type(() => CharacterStatisticsCreationDto)
+  @IsObject()
+  statistics: CharacterStatisticsCreationDto;
 
   @ApiProperty({ description: 'Character movement', type: CharacterMovementCreationDto })
   @ValidateNested()
@@ -82,7 +86,7 @@ export class CreateCharacterDto {
       dto.faction,
       dto.name,
       dto.info,
-      dto.statistics,
+      dto.statistics.toEntity(),
       dto.movement.strideCustomBonus,
       dto.endurance.customBonus,
       dto.hp.customBonus,

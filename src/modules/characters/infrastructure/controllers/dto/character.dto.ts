@@ -4,6 +4,7 @@ import { PaginationDto } from '../../../../shared/infrastructure/controller/dto'
 import { UpdateCharacterCommand } from '../../../application/commands/update-character.command';
 import * as characterEntity from '../../../domain/entities/character.entity';
 import { CharacterHP } from '../../persistence/models/character.model-childs';
+import { CharacterDefenseDto } from './character-defense.dto';
 import { CharacterEnduranceDto } from './character-endurance.dto';
 import { CharacterEquipmentDto } from './character-equipment.dto';
 import { CharacterHPDto } from './character-hp.dto';
@@ -30,6 +31,8 @@ export class CharacterDto {
 
   movement: CharacterMovementDto;
 
+  defense: CharacterDefenseDto;
+
   endurance: CharacterEnduranceDto;
 
   hp: CharacterHPDto;
@@ -50,6 +53,7 @@ export class CharacterDto {
     dto.info = entity.info;
     dto.statistics = CharacterStatisticsDto.fromEntity(entity.statistics);
     dto.movement = CharacterMovementDto.fromEntity(entity.movement);
+    dto.defense = CharacterDefenseDto.fromEntity(entity.defense);
     dto.endurance = CharacterEnduranceDto.fromEntity(entity.endurance);
     dto.hp = CharacterHPDto.fromEntity(entity.hp);
     dto.inititiative = CharacterInitiativeDto.fromEntity(entity.initiative);

@@ -19,6 +19,7 @@ import {
   CharacterStatistics,
 } from '../../../domain/entities/character.entity';
 import { CharacterProcessorService } from '../../../domain/services/character-processor.service';
+import { Stat } from '../../../infrastructure/persistence/models/character.model-childs';
 import * as characterRepository from '../../ports/out/character.repository';
 import * as itemClient from '../../ports/out/item-client';
 import * as raceClient from '../../ports/out/race-client';
@@ -112,8 +113,8 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
       owner: command.userId,
       createdAt: new Date(),
     };
-    this.characterProcessorService.process(characterData);
     this.loadDefaultEquipment(characterData);
+    this.characterProcessorService.process(characterData);
     const newCharacter = await this.characterRepository.save(characterData);
     return newCharacter;
   }
@@ -122,17 +123,34 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
     const values = ['ag', 'co', 'em', 'in', 'me', 'pr', 'qu', 're', 'sd', 'st'];
     const result: any = {};
     values.forEach((e) => {
+      const value: Stat = statistics[e] as Stat;
+      let potential = value ? value.potential : undefined;
+      let temporary = value ? value.temporary : undefined;
+
+      if (!potential && !temporary) {
+        const random: number[] = [];
+        // Discard rolls < 10
+        random.push(Math.floor(Math.random() * 90) + 10);
+        random.push(Math.floor(Math.random() * 90) + 10);
+        random.push(Math.floor(Math.random() * 90) + 10);
+        random.sort();
+        potential = random[2];
+        temporary = random[1];
+      }
+
       let racial = 0;
       if (raceInfo && raceInfo.defaultStatBonus && raceInfo.defaultStatBonus[e]) {
         racial = raceInfo.defaultStatBonus[e];
       }
       const bonus = 0;
       let custom = 0;
-      if (statistics && statistics[e] && statistics[e].custom) {
-        custom = statistics[e].custom;
+      if (statistics && value && value.custom) {
+        custom = value.custom;
       }
       const total = bonus + racial + custom;
       result[e] = {
+        potential: potential,
+        temporary: temporary,
         bonus: bonus,
         racial: racial,
         custom: custom,

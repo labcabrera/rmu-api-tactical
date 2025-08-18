@@ -29,6 +29,8 @@ export interface CharacterInfo {
 }
 
 export interface Stat {
+  potential: number | undefined;
+  temporary: number | undefined;
   bonus: number;
   racial: number;
   custom: number;
