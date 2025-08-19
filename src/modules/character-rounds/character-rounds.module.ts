@@ -8,6 +8,9 @@ import { AuthModule } from 'src/modules/auth/auth.module';
 import { CharactersModule } from '../characters/characters.module';
 import { GamesModule } from '../games/games.module';
 import { SharedModule } from '../shared/shared.module';
+import { GetCharacterRoundQueryHandler } from './application/queries/handlers/get-character-round.query.handler';
+import { GetCharacterRoundsQueryHandler } from './application/queries/handlers/get-character-rounds.query.handler';
+import { CharacterRoundController } from './infrastructure/controllers/character-round.controller';
 import { CharacterRoundModel, CharacterRoundSchema } from './infrastructure/persistence/models/character-round.model';
 import { MongoCharacterRoundRepository } from './infrastructure/persistence/repositories/mongo-character-model.repository';
 
@@ -22,8 +25,10 @@ import { MongoCharacterRoundRepository } from './infrastructure/persistence/repo
     GamesModule,
     CharactersModule,
   ],
-  controllers: [],
+  controllers: [CharacterRoundController],
   providers: [
+    GetCharacterRoundQueryHandler,
+    GetCharacterRoundsQueryHandler,
     {
       provide: 'CharacterRoundRepository',
       useClass: MongoCharacterRoundRepository,
