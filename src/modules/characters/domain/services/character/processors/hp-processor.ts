@@ -1,7 +1,9 @@
+import { Injectable } from '@nestjs/common';
 import { Character } from '../../../entities/character.entity';
 
+@Injectable()
 export class HPProcessor {
-  static process(character: Partial<Character>): void {
+  process(character: Partial<Character>): void {
     if (!character.hp || !character.skills) {
       return;
     }

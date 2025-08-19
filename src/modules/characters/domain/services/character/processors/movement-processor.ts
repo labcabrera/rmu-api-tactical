@@ -1,7 +1,10 @@
+import { Injectable } from '@nestjs/common';
+
 import { Character } from '../../../entities/character.entity';
 
+@Injectable()
 export class MovementProcessor {
-  static process(character: Partial<Character>): void {
+  process(character: Partial<Character>): void {
     if (!character.movement || !character.statistics || !character.statistics.qu) {
       return;
     }

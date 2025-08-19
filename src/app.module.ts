@@ -25,6 +25,9 @@ import { SharedModule } from './modules/shared/shared.module';
         RMU_KAFKA_BROKERS: Joi.string().required(),
         RMU_KAFKA_CLIENT_ID: Joi.string().required(),
         RMU_KAFKA_DEFAULT_PARTITIONS: Joi.number().integer().min(1).default(1),
+        RMU_API_CORE_URI: Joi.string().uri().required(),
+        RMU_API_ITEMS_URI: Joi.string().uri().required(),
+        RMU_API_ATTACK_URI: Joi.string().uri().required(),
       }),
     }),
     MongooseModule.forRootAsync({

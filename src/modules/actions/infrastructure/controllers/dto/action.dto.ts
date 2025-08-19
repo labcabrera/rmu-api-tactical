@@ -1,43 +1,51 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { PaginationDto } from '../../../../shared/infrastructure/controller/dto';
-import { Action } from '../../../domain/entities/action.entity';
+import * as actionEntity from '../../../domain/entities/action.entity';
+import { ActionAttackDto } from './action-attack.dto';
 
 export class ActionDto {
-  @ApiProperty({ description: 'Action identifier' })
+  @ApiProperty({ description: 'Action identifier', example: 'action-123' })
   id: string;
 
-  @ApiProperty({ description: 'Game identifier' })
+  @ApiProperty({ description: 'Game identifier', example: 'game-456' })
   gameId: string;
 
-  @ApiProperty({ description: 'Character identifier' })
+  @ApiProperty({ description: 'Action status', example: 'declared' })
+  status: actionEntity.ActionStatus;
+
+  @ApiProperty({ description: 'Character identifier', example: 'character-789' })
   characterId: string;
 
-  @ApiProperty({ description: 'The round number in which the action takes place' })
+  @ApiProperty({ description: 'The round number in which the action takes place', example: 1 })
   round: number;
 
-  @ApiProperty({ description: 'Action type' })
-  actionType: string;
+  @ApiProperty({ description: 'Action type', example: 'attack' })
+  actionType: actionEntity.ActionType;
 
-  phaseStart?: number;
-  actionPoints?: number;
-  // attackInfo?: ActionAttackInfo;
-  // attacks?: ActionAttack[];
+  @ApiProperty({ description: 'Phase start', example: 1 })
+  phaseStart: number;
+
+  @ApiProperty({ description: 'Action points', example: 2 })
+  actionPoints: number;
+
+  @ApiProperty({ description: 'Action attacks', type: [ActionAttackDto], required: false })
+  attacks: ActionAttackDto[] | undefined;
+
+  @ApiProperty({ description: 'Action description' })
   description?: string;
-  // result?: ActionResult;
 
-  static fromEntity(entity: Action) {
+  static fromEntity(entity: actionEntity.Action) {
     const dto = new ActionDto();
     dto.id = entity.id;
     dto.gameId = entity.gameId;
     dto.characterId = entity.characterId;
+    dto.status = entity.status;
     dto.round = entity.round;
     dto.actionType = entity.actionType;
     dto.phaseStart = entity.phaseStart;
     dto.actionPoints = entity.actionPoints;
-    // dto.attackInfo = entity.attackInfo;
-    // dto.attacks = entity.attacks;
+    dto.attacks = entity.attacks ? entity.attacks.map((attack) => ActionAttackDto.fromEntity(attack)) : undefined;
     dto.description = entity.description;
-    // dto.result = entity.result;
     return dto;
   }
 }

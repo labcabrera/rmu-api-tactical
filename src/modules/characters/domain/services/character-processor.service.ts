@@ -12,16 +12,25 @@ import { StatProcessor } from './character/processors/stat-processor';
 
 @Injectable()
 export class CharacterProcessorService {
-  constructor(private readonly statProcessor: StatProcessor) {}
+  constructor(
+    private readonly statProcessor: StatProcessor,
+    private readonly movementProcessor: MovementProcessor,
+    private readonly initiativeProcessor: InitiativeProcessor,
+    private readonly skillProcessor: SkillProcessor,
+    private readonly attackProcessor: AttackProcessor,
+    private readonly equipmentProcessor: EquipmentProcessor,
+    private readonly hPProcessor: HPProcessor,
+    private readonly defenseProcessor: DefenseProcessor,
+  ) {}
 
   process(character: Partial<Character>): void {
     this.statProcessor.process(character);
-    MovementProcessor.process(character);
-    InitiativeProcessor.process(character);
-    SkillProcessor.process(character);
-    AttackProcessor.process(character);
-    EquipmentProcessor.process(character);
-    HPProcessor.process(character);
-    DefenseProcessor.process(character);
+    this.movementProcessor.process(character);
+    this.initiativeProcessor.process(character);
+    this.skillProcessor.process(character);
+    this.attackProcessor.process(character);
+    this.equipmentProcessor.process(character);
+    this.hPProcessor.process(character);
+    this.defenseProcessor.process(character);
   }
 }
