@@ -53,7 +53,7 @@ export class StartRoundCommandHandler implements ICommandHandler<StartRoundComma
     const baseInitiative = character.initiative?.baseBonus || 0;
     //TODO check status effects
     const actionPoints: number = 4;
-    const entity: Omit<CharacterRound, 'id'> = {
+    const entity: Partial<CharacterRound> = {
       gameId: character.gameId,
       round: round,
       characterId: character.id,

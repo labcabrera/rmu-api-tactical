@@ -5,6 +5,7 @@ import * as Joi from 'joi';
 
 import { ActionsModule } from './modules/actions/actions.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { CharactersRoundModule } from './modules/character-rounds/character-rounds.module';
 import { CharactersModule } from './modules/characters/characters.module';
 import { GamesModule } from './modules/games/games.module';
 import { SharedModule } from './modules/shared/shared.module';
@@ -37,6 +38,7 @@ import { SharedModule } from './modules/shared/shared.module';
     AuthModule,
     GamesModule,
     CharactersModule,
+    CharactersRoundModule,
     ActionsModule,
   ],
 })

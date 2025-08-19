@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
-import { Inject } from '@nestjs/common';
+import { Inject, NotImplementedException } from '@nestjs/common';
 import { NotFoundError } from '../../../../shared/domain/errors';
 import { CharacterRound } from '../../../domain/entities/character-round.entity';
 import * as characterRoundRepository from '../../ports/out/character-round.repository';
@@ -32,20 +32,21 @@ export class UpdateInitiativeUseCase implements ICommandHandler<UpdateInitiative
   }
 
   private mapToCharacterRoundInitiative(characterRound: any): CharacterRound {
-    return {
-      id: characterRound.id,
-      gameId: characterRound.gameId,
-      characterId: characterRound.characterId,
-      round: characterRound.round,
-      initiative: {
-        base: characterRound.initiative?.base || 0,
-        penalty: characterRound.initiative?.penalty || 0,
-        roll: characterRound.initiative?.roll || 0,
-        total: characterRound.initiative?.total || 0,
-      },
-      actionPoints: characterRound.actionPoints || 0,
-      createdAt: characterRound.createdAt,
-      updatedAt: characterRound.updatedAt,
-    };
+    throw new NotImplementedException();
+    // return {
+    //   id: characterRound.id,
+    //   gameId: characterRound.gameId,
+    //   characterId: characterRound.characterId,
+    //   round: characterRound.round,
+    //   initiative: {
+    //     base: characterRound.initiative?.base || 0,
+    //     penalty: characterRound.initiative?.penalty || 0,
+    //     roll: characterRound.initiative?.roll || 0,
+    //     total: characterRound.initiative?.total || 0,
+    //   },
+    //   actionPoints: characterRound.actionPoints || 0,
+    //   createdAt: characterRound.createdAt,
+    //   updatedAt: characterRound.updatedAt,
+    // };
   }
 }
