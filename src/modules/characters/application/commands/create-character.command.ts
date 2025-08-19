@@ -11,12 +11,18 @@ export class CreateCharacterCommand {
     public readonly enduranceCustomBonus: number | undefined,
     public readonly hpCustomBonus: number | undefined,
     public readonly initiativeCustomBonus: number | undefined,
-    //TODO MAP
-    public readonly skills: any,
+    public readonly skills: CreateCharacterSkill[],
     public readonly items: CreateCharacterItem[],
     public readonly userId: string,
     public readonly roles: string[],
   ) {}
+}
+
+export interface CreateCharacterSkill {
+  skillId: string;
+  specialization: string | undefined;
+  ranks: number;
+  customBonus: number | undefined;
 }
 
 export interface CreateCharacterItem {

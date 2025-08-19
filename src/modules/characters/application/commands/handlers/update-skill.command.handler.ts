@@ -8,9 +8,9 @@ import * as characterRepository from '../../ports/out/character.repository';
 import { UpdateSkillCommand } from '../update-skill.command';
 
 @CommandHandler(UpdateSkillCommand)
-export class UpdateSkillUseCase implements ICommandHandler<UpdateSkillCommand, Character> {
+export class UpdateSkillCommandHandler implements ICommandHandler<UpdateSkillCommand, Character> {
   constructor(
-    @Inject('CharacterProcessorService') private readonly characterProcessorService: CharacterProcessorService,
+    @Inject() private readonly characterProcessorService: CharacterProcessorService,
     @Inject('CharacterRepository') private readonly characterRepository: characterRepository.CharacterRepository,
   ) {}
 
@@ -25,8 +25,10 @@ export class UpdateSkillUseCase implements ICommandHandler<UpdateSkillCommand, C
     if (!skill) {
       throw new Error(`Skill ${skillId} not found for character ${characterId}`);
     }
+    if (command.customBonus !== undefined) {
+      skill.customBonus = command.customBonus;
+    }
     skill.ranks = command.ranks || skill.ranks;
-    skill.customBonus = command.customBonus || skill.customBonus;
     this.characterProcessorService.process(character);
     const updated: Character = await this.characterRepository.update(characterId, character);
     return updated;

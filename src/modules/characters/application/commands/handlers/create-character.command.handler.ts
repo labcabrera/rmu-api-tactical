@@ -51,7 +51,7 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
     this.validateCommand(command, tacticalGame);
     const raceInfo = await this.fetchRace(command.info.race);
     const processedStatistics = this.processStatistics(raceInfo, command.statistics);
-    const skills = await this.processSkills(command);
+    const skills = await this.processSkills(command, raceInfo);
     const items = await this.processItems(command);
 
     const movement: CharacterMovement = {
@@ -160,9 +160,16 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
     return result;
   }
 
-  async processSkills(command: CreateCharacterCommand): Promise<CharacterSkill[]> {
-    if (!command.skills || command.skills.length == 0) {
-      return [];
+  async processSkills(command: CreateCharacterCommand, raceInfo: RaceResponse): Promise<CharacterSkill[]> {
+    const skills = command.skills || [];
+    // Always include the 'body-development' skill
+    if (!skills.some((e) => e.skillId === 'body-development')) {
+      skills.push({
+        skillId: 'body-development',
+        ranks: 0,
+        customBonus: 0,
+        specialization: undefined,
+      });
     }
     const readedSkills = await this.fetchSkills();
     const readedSkillCategories = await this.fetchSkillCategories();
@@ -174,13 +181,20 @@ export class CreateCharacterCommandHandler implements ICommandHandler<CreateChar
       const readedCategory = readedSkillCategories.find((c) => c.id == readedSkill.categoryId);
       const statistics = readedSkill.bonus.concat(readedCategory ? readedCategory.bonus : []);
       const customBonus = e.customBonus ? e.customBonus : 0;
+      let racialBonus: number;
+      if (e.skillId === 'body-development') {
+        racialBonus = raceInfo.baseHits;
+      } else {
+        //TODO read from race info
+        racialBonus = 0;
+      }
       return {
         skillId: readedSkill.id,
         skillCategoryId: readedSkill.categoryId,
         attributeBonus: 0,
         ranks: e.ranks,
         statBonus: 0,
-        racialBonus: 0,
+        racialBonus: racialBonus,
         developmentBonus: 0,
         customBonus: customBonus,
         totalBonus: 0,

@@ -77,6 +77,12 @@ export class CreateCharacterDto {
   items: CharacterItemCreationDto[] | undefined;
 
   static toCommand(dto: CreateCharacterDto, userId: string, roles: string[]): CreateCharacterCommand {
+    const skills = dto.skills!.map((skill) => ({
+      skillId: skill.skillId,
+      ranks: skill.ranks,
+      customBonus: skill.customBonus,
+      specialization: skill.specialization,
+    }));
     const items: CreateCharacterItem[] = dto.items!.map((item) => ({
       name: item.name,
       itemTypeId: item.itemTypeId,
@@ -91,7 +97,7 @@ export class CreateCharacterDto {
       dto.endurance.customBonus,
       dto.hp.customBonus,
       dto.initiative.customBonus,
-      dto.skills,
+      skills,
       items,
       userId,
       roles,

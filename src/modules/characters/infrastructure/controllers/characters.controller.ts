@@ -15,6 +15,7 @@ import { DeleteCharacterCommand } from '../../application/commands/delete-charac
 import { DeleteItemCommand } from '../../application/commands/delete-item.command';
 import { DeleteSkillCommand } from '../../application/commands/delete-skill-command';
 import { UpdateCharacterCommand } from '../../application/commands/update-character.command';
+import { UpdateSkillCommand } from '../../application/commands/update-skill.command';
 import { GetCharacterQuery } from '../../application/queries/get-character.query';
 import { GetCharactersQuery } from '../../application/queries/get-characters.query';
 import { Character } from '../../domain/entities/character.entity';
@@ -22,6 +23,7 @@ import { AddItemDto } from './dto/add-item.dto';
 import { AddSkillDto } from './dto/add-skill.dto';
 import { CharacterDto, CharacterPageDto, UpdateCharacterDto } from './dto/character.dto';
 import { CreateCharacterDto } from './dto/create-character.dto';
+import { UpdateSkillDto } from './dto/update-skill.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('v1/characters')
@@ -106,6 +108,20 @@ export class CharacterController {
     const user = req.user!;
     const command = AddSkillDto.toCommand(id, dto, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<AddSkillCommand, Character>(command);
+    return CharacterDto.fromEntity(entity);
+  }
+
+  @Patch(':id/skills/:skillId')
+  @ApiBody({ type: UpdateSkillDto })
+  @ApiOperation({ operationId: 'updateSkill', summary: 'Update a skill of a character' })
+  @ApiOkResponse({ type: CharacterDto, description: 'Success' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
+  async updateSkill(@Param('id') id: string, @Param('skillId') skillId: string, @Body() dto: UpdateSkillDto, @Request() req) {
+    this.logger.debug(`Updating skill: ${JSON.stringify(dto, null, 2)} for user ${req.user}`);
+    const user = req.user!;
+    const command = UpdateSkillDto.toCommand(id, skillId, dto, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<UpdateSkillCommand, Character>(command);
     return CharacterDto.fromEntity(entity);
   }
 

@@ -14,6 +14,7 @@ import { DeleteCharacterCommandHandler } from './application/commands/handlers/d
 import { DeleteItemCommandHandler } from './application/commands/handlers/delete-item.command.handler';
 import { DeleteSkillCommandHandler } from './application/commands/handlers/delete-skill.command.handler';
 import { UpdateCharacterCommandHandler } from './application/commands/handlers/update-character.command.handler';
+import { UpdateSkillCommandHandler } from './application/commands/handlers/update-skill.command.handler';
 import { GetCharacterQueryHandler } from './application/queries/handlers/get-character.query.handler';
 import { GetCharactersQueryHandler } from './application/queries/handlers/get-characters.query.handler';
 import { CharacterProcessorService } from './domain/services/character-processor.service';
@@ -46,6 +47,7 @@ import { MongoCharacterRepository } from './infrastructure/persistence/repositor
     UpdateCharacterCommandHandler,
     DeleteCharacterCommandHandler,
     AddSkillCommandHandler,
+    UpdateSkillCommandHandler,
     DeleteSkillCommandHandler,
     AddItemCommandHandler,
     DeleteItemCommandHandler,
