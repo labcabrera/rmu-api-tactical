@@ -72,5 +72,6 @@ import { MongoCharacterRepository } from './infrastructure/persistence/repositor
       useClass: ItemApiClient,
     },
   ],
+  exports: ['CharacterRepository'],
 })
 export class CharactersModule {}

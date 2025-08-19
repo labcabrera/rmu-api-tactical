@@ -4,14 +4,14 @@ export interface Action {
   characterId: string;
   round: number;
   actionType: string;
-  phaseStart?: number;
-  actionPoints?: number;
-  attackInfo?: ActionAttackInfo;
-  attacks?: ActionAttack[];
-  description?: string;
-  result?: ActionResult;
-  createdAt?: Date;
-  updatedAt?: Date;
+  phaseStart: number;
+  actionPoints: number;
+  attackInfo: ActionAttackInfo | undefined;
+  attacks: ActionAttack[] | undefined;
+  result: ActionResult | undefined;
+  description: string | undefined;
+  createdAt: Date;
+  updatedAt: Date | undefined;
 }
 
 export interface ActionAttackInfo {

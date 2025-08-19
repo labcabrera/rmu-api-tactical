@@ -9,7 +9,7 @@ import * as actionRepository from '../../ports/out/action.repository';
 import { CreateActionCommand } from '../create-action.command';
 
 @CommandHandler(CreateActionCommand)
-export class CreateActionUseCase implements ICommandHandler<CreateActionCommand, Action> {
+export class CreateActionCommandHandler implements ICommandHandler<CreateActionCommand, Action> {
   constructor(
     @Inject('GameRepository') private readonly gameRepository: gameRepository.GameRepository,
     @Inject('CharacterRepository') private readonly characterRepository: characterRepository.CharacterRepository,
@@ -18,8 +18,7 @@ export class CreateActionUseCase implements ICommandHandler<CreateActionCommand,
   ) {}
 
   async execute(command: CreateActionCommand): Promise<Action> {
-    //TODO VALIDATION
-    const action: Omit<Action, 'id'> = {
+    const action: Partial<Action> = {
       gameId: command.gameId,
       round: command.round,
       characterId: command.characterId,
