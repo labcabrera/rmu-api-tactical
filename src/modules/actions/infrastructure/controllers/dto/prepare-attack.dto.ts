@@ -10,6 +10,11 @@ export class PrepareAttackDto {
   attackType: string;
 
   static toCommand(actionId: string, dto: PrepareAttackDto, userId: string, userRoles: string[]): PrepareAttackCommand {
-    return new PrepareAttackCommand(actionId, dto.attackType, userId, userRoles);
+    const result = new PrepareAttackCommand();
+    result.actionId = actionId;
+    result.attackType = dto.attackType;
+    result.userId = userId;
+    result.roles = userRoles;
+    return result;
   }
 }

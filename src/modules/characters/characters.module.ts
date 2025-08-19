@@ -26,10 +26,10 @@ import { InitiativeProcessor } from './domain/services/character/processors/init
 import { MovementProcessor } from './domain/services/character/processors/movement-processor';
 import { SkillProcessor } from './domain/services/character/processors/skill-processor';
 import { StatProcessor } from './domain/services/character/processors/stat-processor';
-import { ItemApiClient } from './infrastructure/client/item-api-client';
-import { RaceApiClient } from './infrastructure/client/race-api-client';
-import { SkillApiClient } from './infrastructure/client/skill-api-client';
-import { SkillCategoryApiClient } from './infrastructure/client/skill-category-api-client';
+import { ItemApiClient } from './infrastructure/clients/item-api-client';
+import { RaceApiClient } from './infrastructure/clients/race-api-client';
+import { SkillApiClient } from './infrastructure/clients/skill-api-client';
+import { SkillCategoryApiClient } from './infrastructure/clients/skill-category-api-client';
 import { CharacterController } from './infrastructure/controllers/characters.controller';
 import { CharacterModel, CharacterSchema } from './infrastructure/persistence/models/character.model';
 import { MongoCharacterRepository } from './infrastructure/persistence/repositories/mongo-character.repository';

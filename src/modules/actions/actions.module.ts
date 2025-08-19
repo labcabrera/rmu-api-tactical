@@ -14,6 +14,7 @@ import { DeleteActionCommandHandler } from './application/commands/handlers/dele
 import { PrepareAttackCommandHandler } from './application/commands/handlers/prepare-attack-command.handler';
 import { GetActionQueryHandler } from './application/queries/handlers/get-action.query.handler';
 import { GetActionsQueryHandler } from './application/queries/handlers/get-actions.query.handler';
+import { AttackApiClient } from './infrastructure/clients/attack-api-client';
 import { ActionController } from './infrastructure/controllers/action.controller';
 import { KafkaActionProducerService } from './infrastructure/messaging/kafka-action-producer.service';
 import { ActionModel, ActionSchema } from './infrastructure/persistence/models/action.model';
@@ -45,6 +46,10 @@ import { MongoActionRepository } from './infrastructure/persistence/repositories
     {
       provide: 'ActionEventProducer',
       useClass: KafkaActionProducerService,
+    },
+    {
+      provide: 'AttackClient',
+      useClass: AttackApiClient,
     },
   ],
 })
