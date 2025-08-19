@@ -85,7 +85,6 @@ export class MongoActionRepository implements ActionRepository {
       actionType: doc.actionType,
       phaseStart: doc.phaseStart,
       actionPoints: doc.actionPoints,
-      attackInfo: doc.attackInfo,
       attacks: doc.attacks,
       description: doc.description,
       result: doc.result,

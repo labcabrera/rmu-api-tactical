@@ -6,7 +6,6 @@ export interface Action {
   actionType: string;
   phaseStart: number;
   actionPoints: number;
-  attackInfo: ActionAttackInfo | undefined;
   attacks: ActionAttack[] | undefined;
   result: ActionResult | undefined;
   description: string | undefined;
@@ -14,21 +13,12 @@ export interface Action {
   updatedAt: Date | undefined;
 }
 
-export interface ActionAttackInfo {
-  weaponId?: string;
-  targetId?: string;
-  attackType?: string;
-  bonus?: number;
-  [key: string]: any;
-}
-
 export interface ActionAttack {
-  roll: number;
-  bonus: number;
-  total: number;
-  result?: string;
-  damage?: ActionDamage;
-  [key: string]: any;
+  attackId: string | undefined;
+  attackType: string;
+  targetId: string;
+  parry: number;
+  status: 'declared' | 'in_progress' | 'resolved';
 }
 
 export interface ActionDamage {

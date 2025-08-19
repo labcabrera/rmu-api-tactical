@@ -8,7 +8,7 @@ import { Character } from '../../../../characters/domain/entities/character.enti
 import * as gameRepository from '../../../../games/application/ports/out/game.repository';
 import { Game } from '../../../../games/domain/entities/game.entity';
 import { ValidationError } from '../../../../shared/domain/errors';
-import { Action } from '../../../domain/entities/action.entity';
+import { Action, ActionAttack } from '../../../domain/entities/action.entity';
 import * as actionRepository from '../../ports/out/action.repository';
 import { CreateActionCommand } from '../create-action.command';
 
@@ -22,6 +22,7 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
   ) {}
 
   async execute(command: CreateActionCommand): Promise<Action> {
+    this.validate(command);
     const game = await this.readGame(command);
     if (game.round < 1) {
       throw new ValidationError(`Game ${game.name} is not in progress. You need to start the game.`);
@@ -38,6 +39,14 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
       throw new ValidationError(`Not enough action points. Available: ${remainingActionPoints}, Required: ${command.actionPoints}`);
     }
 
+    if (command.attacks) {
+      command.attacks.forEach((attack) => {
+        if (!attack.attackType || !attack.targetId || attack.parry === undefined) {
+          throw new ValidationError(`Invalid attack data`);
+        }
+      });
+    }
+    const attacks = this.prepareAttacks(command);
     const action: Partial<Action> = {
       gameId: command.gameId,
       round: game.round,
@@ -45,6 +54,7 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
       actionType: command.actionType,
       phaseStart: command.phaseStart,
       actionPoints: command.actionPoints,
+      attacks: attacks,
       description: `${character.name} ${command.actionType}`,
       createdAt: new Date(),
     };
@@ -80,5 +90,26 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
     const rsql = `gameId==${command.gameId};characterId==${command.characterId};round==${round}`;
     const actions = await this.actionRepository.findByRsql(rsql, 0, 100);
     return actions.content;
+  }
+
+  private prepareAttacks(command: CreateActionCommand): ActionAttack[] | undefined {
+    if (!command.attacks || command.attacks.length === 0) {
+      return undefined;
+    }
+    return command.attacks.map((attack) => {
+      return {
+        attackType: attack.attackType,
+        targetId: attack.targetId,
+        parry: attack.parry,
+        status: 'declared',
+      } as ActionAttack;
+    });
+  }
+
+  private validate(command: CreateActionCommand): void {
+    //TODO check target exists
+    if (command.actionType === 'attack' && (!command.attacks || command.attacks.length === 0)) {
+      throw new ValidationError(`At least one attack must be provided`);
+    }
   }
 }

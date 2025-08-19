@@ -1,7 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
-import { ActionAttack, ActionAttackInfo, ActionResult } from '../../../domain/entities/action.entity';
+import { ActionResult } from '../../../domain/entities/action.entity';
+import { ActionAttack } from './action.model-childs';
 
 export type ActionDocument = ActionModel & Document;
 
@@ -25,8 +26,7 @@ export class ActionModel {
   @Prop({ required: true })
   actionPoints: number;
 
-  attackInfo: ActionAttackInfo | undefined;
-
+  @Prop({ type: [ActionAttack], required: false })
   attacks: ActionAttack[] | undefined;
 
   description: string | undefined;

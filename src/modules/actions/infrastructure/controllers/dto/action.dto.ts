@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { PaginationDto } from '../../../../shared/infrastructure/controller/dto';
 import { Action } from '../../../domain/entities/action.entity';
+import { ActionAttackDto } from './action-attack.dto';
 
 export class ActionDto {
   @ApiProperty({ description: 'Action identifier' })
@@ -18,12 +19,13 @@ export class ActionDto {
   @ApiProperty({ description: 'Action type' })
   actionType: string;
 
-  phaseStart?: number;
-  actionPoints?: number;
-  // attackInfo?: ActionAttackInfo;
-  // attacks?: ActionAttack[];
+  phaseStart: number;
+
+  actionPoints: number;
+
+  attacks: ActionAttackDto[] | undefined;
+
   description?: string;
-  // result?: ActionResult;
 
   static fromEntity(entity: Action) {
     const dto = new ActionDto();
@@ -34,10 +36,8 @@ export class ActionDto {
     dto.actionType = entity.actionType;
     dto.phaseStart = entity.phaseStart;
     dto.actionPoints = entity.actionPoints;
-    // dto.attackInfo = entity.attackInfo;
-    // dto.attacks = entity.attacks;
+    dto.attacks = entity.attacks ? entity.attacks.map((attack) => ActionAttackDto.fromEntity(attack)) : undefined;
     dto.description = entity.description;
-    // dto.result = entity.result;
     return dto;
   }
 }
