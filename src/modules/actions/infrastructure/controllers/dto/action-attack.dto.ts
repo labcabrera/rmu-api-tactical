@@ -14,8 +14,12 @@ export class ActionAttackDto {
   @ApiProperty({ description: 'Attack status', example: 'declared' })
   status: actionEntity.AttackStatus;
 
+  @ApiProperty({ description: 'External identifier of the attack', example: 'attack-01' })
+  attackId: string | undefined;
+
   static fromEntity(entity: actionEntity.ActionAttack): ActionAttackDto {
     const dto = new ActionAttackDto();
+    dto.attackId = entity.attackId;
     dto.attackType = entity.attackType;
     dto.targetId = entity.targetId;
     dto.parry = entity.parry;

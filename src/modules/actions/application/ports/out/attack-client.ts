@@ -8,6 +8,7 @@ import {
 
 export interface AttackClient {
   prepareAttack(actionId: AttackCreationRequest): Promise<AttackCreationResponse>;
+  deleteAttack(actionId: string): Promise<void>;
 }
 
 export interface AttackRollModifiers {

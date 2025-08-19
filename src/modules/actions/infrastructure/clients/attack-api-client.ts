@@ -7,20 +7,33 @@ import { AttackClient, AttackCreationRequest, AttackCreationResponse } from '../
 
 @Injectable()
 export class AttackApiClient implements AttackClient {
+  private readonly apiCoreUri: string;
+
   constructor(
     private readonly tokenService: TokenService,
-    private readonly configService: ConfigService,
-  ) {}
+    configService: ConfigService,
+  ) {
+    this.apiCoreUri = configService.get('RMU_API_ATTACK_URI') as string;
+  }
 
   async prepareAttack(request: AttackCreationRequest): Promise<AttackCreationResponse> {
     const token = await this.tokenService.getToken();
-    const apiCoreUri = this.configService.get('RMU_API_ATTACK_URI') as string;
-    const uri = `${apiCoreUri}/attacks`;
+    const uri = `${this.apiCoreUri}/attacks`;
     const response = await axios.post(uri, request, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
     return response.data as AttackCreationResponse;
+  }
+
+  async deleteAttack(actionId: string): Promise<void> {
+    const token = await this.tokenService.getToken();
+    const uri = `${this.apiCoreUri}/attacks/${actionId}`;
+    await axios.delete(uri, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
   }
 }
