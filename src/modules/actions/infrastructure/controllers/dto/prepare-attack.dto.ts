@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 

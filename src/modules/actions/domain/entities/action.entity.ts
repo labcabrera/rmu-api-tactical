@@ -1,4 +1,4 @@
-export type ActionType = 'attack' | 'absolute_maneuver' | 'static_maneuver';
+export type ActionType = 'attack' | 'maneuver';
 export type ActionStatus = 'declared' | 'in_progress' | 'completed';
 
 export type ManeuverType = 'absolute' | 'percentage';

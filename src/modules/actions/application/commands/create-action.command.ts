@@ -1,15 +1,24 @@
-import { ActionType } from '../../domain/entities/action.entity';
-import { ActionAttackCreationDto } from '../../infrastructure/controllers/dto/create-action.dto';
+import { ActionType, ManeuverType } from '../../domain/entities/action.entity';
 
 export class CreateActionCommand {
-  constructor(
-    public readonly gameId: string,
-    public readonly characterId: string,
-    public readonly actionType: ActionType,
-    public readonly phaseStart: number,
-    public readonly actionPoints: number,
-    public readonly attacks: ActionAttackCreationDto[] | undefined,
-    public readonly userId: string,
-    public readonly roles: string[],
-  ) {}
+  gameId: string;
+  characterId: string;
+  actionType: ActionType;
+  phaseStart: number;
+  actionPoints: number;
+  attacks: CreateActionCommandAttack[] | undefined;
+  maneuvers: CreateActionCommandManeuver[] | undefined;
+  userId: string;
+  roles: string[];
+}
+
+export class CreateActionCommandAttack {
+  attackType: string;
+  targetId: string;
+  parry: number;
+}
+
+export class CreateActionCommandManeuver {
+  skillId: string;
+  maneuverType: ManeuverType;
 }
