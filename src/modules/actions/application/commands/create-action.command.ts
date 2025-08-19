@@ -1,7 +1,6 @@
 export class CreateActionCommand {
   constructor(
     public readonly gameId: string,
-    public readonly round: number,
     public readonly characterId: string,
     public readonly actionType: string,
     public readonly phaseStart: number,

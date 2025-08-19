@@ -6,7 +6,7 @@ import * as actionRepository from '../../ports/out/action.repository';
 import { DeleteActionCommand } from '../delete-action.command';
 
 @CommandHandler(DeleteActionCommand)
-export class DeleteActionUseCase implements ICommandHandler<DeleteActionCommand> {
+export class DeleteActionCommandHandler implements ICommandHandler<DeleteActionCommand> {
   constructor(@Inject('ActionRepository') private readonly actionRepository: actionRepository.ActionRepository) {}
 
   async execute(command: DeleteActionCommand): Promise<void> {

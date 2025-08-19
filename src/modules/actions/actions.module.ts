@@ -10,6 +10,7 @@ import { CharactersModule } from '../characters/characters.module';
 import { GamesModule } from '../games/games.module';
 import { SharedModule } from '../shared/shared.module';
 import { CreateActionCommandHandler } from './application/commands/handlers/create-action.usecase';
+import { DeleteActionCommandHandler } from './application/commands/handlers/delete-action.usecase';
 import { GetActionQueryHandler } from './application/queries/handlers/get-action.query.handler';
 import { GetActionsQueryHandler } from './application/queries/handlers/get-actions.query.handler';
 import { ActionController } from './infrastructure/controllers/action.controller';
@@ -33,6 +34,7 @@ import { MongoActionRepository } from './infrastructure/persistence/repositories
     GetActionQueryHandler,
     GetActionsQueryHandler,
     CreateActionCommandHandler,
+    DeleteActionCommandHandler,
     {
       provide: 'ActionRepository',
       useClass: MongoActionRepository,
