@@ -1,11 +1,13 @@
+import { Injectable } from '@nestjs/common';
 import { Character } from '../../../entities/character.entity';
 
+@Injectable()
 export class DefenseProcessor {
-  static process(character: Partial<Character>): void {
+  process(character: Partial<Character>): void {
     this.processArmorType(character);
   }
 
-  private static processArmorType(character: Partial<Character>): void {
+  private processArmorType(character: Partial<Character>): void {
     if (!character.equipment || !character.equipment.body || !character.items || !character.defense) {
       return;
     }
@@ -21,7 +23,7 @@ export class DefenseProcessor {
     }
   }
 
-  private static processDefensiveBonus(character: Partial<Character>): void {
+  private processDefensiveBonus(character: Partial<Character>): void {
     if (!character.defense) {
       return;
     }

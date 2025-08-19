@@ -1,7 +1,10 @@
+import { Injectable } from '@nestjs/common';
+
 import { Character } from '../../../entities/character.entity';
 
+@Injectable()
 export class AttackProcessor {
-  static process(character: Partial<Character>): void {
+  process(character: Partial<Character>): void {
     const attacks: any = {};
     this.calculateAttackBonusSlot(character, attacks, 'mainHand');
     this.calculateAttackBonusSlot(character, attacks, 'offHand');
@@ -9,7 +12,7 @@ export class AttackProcessor {
     (character as any).attacks = attacks;
   }
 
-  private static calculateAttackBonusSlot(character: Partial<Character>, attacks: any, slot: string): void {
+  private calculateAttackBonusSlot(character: Partial<Character>, attacks: any, slot: string): void {
     if (!character.items || !character.skills) {
       return;
     }

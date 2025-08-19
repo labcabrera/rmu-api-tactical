@@ -18,6 +18,13 @@ import { UpdateSkillCommandHandler } from './application/commands/handlers/updat
 import { GetCharacterQueryHandler } from './application/queries/handlers/get-character.query.handler';
 import { GetCharactersQueryHandler } from './application/queries/handlers/get-characters.query.handler';
 import { CharacterProcessorService } from './domain/services/character-processor.service';
+import { AttackProcessor } from './domain/services/character/processors/attack-processor';
+import { DefenseProcessor } from './domain/services/character/processors/defense-processor';
+import { EquipmentProcessor } from './domain/services/character/processors/equipment-processor';
+import { HPProcessor } from './domain/services/character/processors/hp-processor';
+import { InitiativeProcessor } from './domain/services/character/processors/initiative-processor';
+import { MovementProcessor } from './domain/services/character/processors/movement-processor';
+import { SkillProcessor } from './domain/services/character/processors/skill-processor';
 import { StatProcessor } from './domain/services/character/processors/stat-processor';
 import { ItemApiClient } from './infrastructure/client/item-api-client';
 import { RaceApiClient } from './infrastructure/client/race-api-client';
@@ -40,6 +47,13 @@ import { MongoCharacterRepository } from './infrastructure/persistence/repositor
   controllers: [CharacterController],
   providers: [
     StatProcessor,
+    MovementProcessor,
+    InitiativeProcessor,
+    SkillProcessor,
+    AttackProcessor,
+    HPProcessor,
+    EquipmentProcessor,
+    DefenseProcessor,
     CharacterProcessorService,
     GetCharacterQueryHandler,
     GetCharactersQueryHandler,
