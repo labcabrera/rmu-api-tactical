@@ -5,9 +5,11 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { TerminusModule } from '@nestjs/terminus';
 
 import { AuthModule } from 'src/modules/auth/auth.module';
+import { CharactersRoundModule } from '../character-rounds/character-rounds.module';
 import { CharactersModule } from '../characters/characters.module';
 import { GamesModule } from '../games/games.module';
 import { SharedModule } from '../shared/shared.module';
+import { CreateActionCommandHandler } from './application/commands/handlers/create-action.usecase';
 import { GetActionQueryHandler } from './application/queries/handlers/get-action.query.handler';
 import { GetActionsQueryHandler } from './application/queries/handlers/get-actions.query.handler';
 import { ActionController } from './infrastructure/controllers/action.controller';
@@ -24,12 +26,13 @@ import { MongoActionRepository } from './infrastructure/persistence/repositories
     SharedModule,
     GamesModule,
     CharactersModule,
+    CharactersRoundModule,
   ],
   controllers: [ActionController],
   providers: [
     GetActionQueryHandler,
     GetActionsQueryHandler,
-    //CreateActionCommandHandler,
+    CreateActionCommandHandler,
     {
       provide: 'ActionRepository',
       useClass: MongoActionRepository,

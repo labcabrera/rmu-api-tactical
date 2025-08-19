@@ -10,6 +10,7 @@ import { Page } from '../../../shared/domain/entities/page.entity';
 import { ErrorDto, PagedQueryDto } from '../../../shared/infrastructure/controller/dto';
 import { CreateGameCommand } from '../../application/commands/create-game.command';
 import { DeleteGameCommand } from '../../application/commands/delete-game.command';
+import { StartRoundCommand } from '../../application/commands/start-round.command';
 import { UpdateGameCommand } from '../../application/commands/update-game.command';
 import { GetGameQuery } from '../../application/queries/get-game.query';
 import { GetGamesQuery } from '../../application/queries/get-games.query';
@@ -96,5 +97,16 @@ export class GameController {
     const user = req.user!;
     const command = new DeleteGameCommand(id, user.id as string, user.roles as string[]);
     await this.commandBus.execute(command);
+  }
+
+  @Post(':id/rounds/start')
+  @ApiOperation({ operationId: 'startRound', summary: 'Start a new round for a game' })
+  @ApiOkResponse({ type: GameDto, description: 'Success' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  async startRound(@Param('id') id: string, @Request() req) {
+    const user = req.user!;
+    const command = new StartRoundCommand(id, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<StartRoundCommand, Game>(command);
+    return GameDto.fromEntity(entity);
   }
 }

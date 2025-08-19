@@ -1,13 +1,16 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import { MongooseModule } from '@nestjs/mongoose';
 import { TerminusModule } from '@nestjs/terminus';
 
 import { AuthModule } from 'src/modules/auth/auth.module';
+import { CharactersRoundModule } from '../character-rounds/character-rounds.module';
+import { CharactersModule } from '../characters/characters.module';
 import { SharedModule } from '../shared/shared.module';
 import { CreateGameCommandHandler } from './application/commands/handlers/create-game.command.handler';
 import { DeleteGameCommandHandler } from './application/commands/handlers/delete-game.command.handler';
+import { StartRoundCommandHandler } from './application/commands/handlers/start-round.command.handler';
 import { UpdateGameCommandHandler } from './application/commands/handlers/update-game.command.handler';
 import { GetGameQueryHandler } from './application/queries/handlers/get-game.query.handler';
 import { GetGamesQueryHandler } from './application/queries/handlers/get-games.query.handler';
@@ -24,6 +27,8 @@ import { MongoGameRepository } from './infrastructure/persistence/repositories/m
     MongooseModule.forFeature([{ name: GameModel.name, schema: GameSchema }]),
     AuthModule,
     SharedModule,
+    forwardRef(() => CharactersModule),
+    forwardRef(() => CharactersRoundModule),
   ],
   controllers: [GameController],
   providers: [
@@ -33,6 +38,7 @@ import { MongoGameRepository } from './infrastructure/persistence/repositories/m
     CreateGameCommandHandler,
     UpdateGameCommandHandler,
     DeleteGameCommandHandler,
+    StartRoundCommandHandler,
     {
       provide: 'GameRepository',
       useClass: MongoGameRepository,
