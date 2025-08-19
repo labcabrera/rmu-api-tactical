@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
-import { ActionResult } from '../../../domain/entities/action.entity';
+import * as actionEntity from '../../../domain/entities/action.entity';
 import { ActionAttack } from './action.model-childs';
 
 export type ActionDocument = ActionModel & Document;
@@ -15,10 +15,13 @@ export class ActionModel {
   characterId: string;
 
   @Prop({ required: true })
+  status: actionEntity.ActionStatus;
+
+  @Prop({ required: true })
   round: number;
 
   @Prop({ required: true })
-  actionType: string;
+  actionType: actionEntity.ActionType;
 
   @Prop({ required: true })
   phaseStart: number;
@@ -31,7 +34,7 @@ export class ActionModel {
 
   description: string | undefined;
 
-  result: ActionResult | undefined;
+  result: actionEntity.ActionResult | undefined;
 
   @Prop({ required: true })
   createdAt: Date;

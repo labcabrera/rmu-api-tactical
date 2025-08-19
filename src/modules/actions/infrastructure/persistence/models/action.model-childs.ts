@@ -1,4 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
+import * as actionEntity from '../../../domain/entities/action.entity';
 
 @Schema({ _id: false })
 export class ActionAttack {
@@ -15,5 +16,5 @@ export class ActionAttack {
   parry: number;
 
   @Prop({ required: true })
-  status: 'declared' | 'in_progress' | 'resolved';
+  status: actionEntity.AttackStatus;
 }

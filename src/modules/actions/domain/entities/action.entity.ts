@@ -1,9 +1,14 @@
+export type ActionType = 'attack' | 'absolute_maneuver' | 'static_maneuver';
+export type ActionStatus = 'declared' | 'in_progress' | 'completed';
+export type AttackStatus = 'declared' | 'in_progress' | 'completed';
+
 export interface Action {
   id: string;
   gameId: string;
   characterId: string;
+  status: ActionStatus;
   round: number;
-  actionType: string;
+  actionType: ActionType;
   phaseStart: number;
   actionPoints: number;
   attacks: ActionAttack[] | undefined;
@@ -18,7 +23,7 @@ export interface ActionAttack {
   attackType: string;
   targetId: string;
   parry: number;
-  status: 'declared' | 'in_progress' | 'resolved';
+  status: AttackStatus;
 }
 
 export interface ActionDamage {

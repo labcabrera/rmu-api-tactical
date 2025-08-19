@@ -49,6 +49,7 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
     const attacks = this.prepareAttacks(command);
     const action: Partial<Action> = {
       gameId: command.gameId,
+      status: 'declared',
       round: game.round,
       characterId: command.characterId,
       actionType: command.actionType,
