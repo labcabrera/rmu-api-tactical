@@ -22,8 +22,9 @@ export class MongoCharacterRepository implements CharacterRepository {
     return readed ? this.mapToEntity(readed) : null;
   }
 
-  findByGameId(gameId: string): Promise<Character[]> {
-    throw new Error('Method not implemented.');
+  async findByGameId(gameId: string): Promise<Character[]> {
+    const characters = await this.characterModel.find({ gameId });
+    return characters.map((doc) => this.mapToEntity(doc));
   }
 
   deleteByGameId(gameId: string): Promise<void> {

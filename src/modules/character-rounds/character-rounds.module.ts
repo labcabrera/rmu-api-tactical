@@ -8,8 +8,8 @@ import { AuthModule } from 'src/modules/auth/auth.module';
 import { CharactersModule } from '../characters/characters.module';
 import { GamesModule } from '../games/games.module';
 import { SharedModule } from '../shared/shared.module';
-import { CharacterRoundModel, CharacterRoundSchema } from './persistence/models/character-round.model';
-import { MongoCharacterRoundRepository } from './persistence/repositories/mongo-character-model.repository';
+import { CharacterRoundModel, CharacterRoundSchema } from './infrastructure/persistence/models/character-round.model';
+import { MongoCharacterRoundRepository } from './infrastructure/persistence/repositories/mongo-character-model.repository';
 
 @Module({
   imports: [

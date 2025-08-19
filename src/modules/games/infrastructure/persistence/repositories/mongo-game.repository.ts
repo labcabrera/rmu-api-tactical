@@ -4,7 +4,7 @@ import { InjectModel } from '@nestjs/mongoose/dist/common/mongoose.decorators';
 import { Model } from 'mongoose';
 
 import { Page } from '../../../../shared/domain/entities/page.entity';
-import { NotFoundError, NotModifiedError } from '../../../../shared/domain/errors';
+import { NotFoundError } from '../../../../shared/domain/errors';
 import { RsqlParser } from '../../../../shared/infrastructure/messaging/rsql-parser';
 import { GameRepository } from '../../../application/ports/out/game.repository';
 import { Game } from '../../../domain/entities/game.entity';
@@ -39,22 +39,11 @@ export class MongoGameRepository implements GameRepository {
     return this.mapToEntity(model);
   }
 
-  async update(id: string, request: Partial<Game>): Promise<Game> {
+  async update(id: string, update: Partial<Game>): Promise<Game> {
     const current = await this.gameModel.findById(id);
     if (!current) {
       throw new NotFoundError('Game', id);
     }
-    const update = {};
-    if (request.name && request.name !== current.name) {
-      update['name'] = request.name;
-    }
-    if (request.description && request.description !== current.description) {
-      update['description'] = request.description;
-    }
-    if (Object.keys(update).length === 0) {
-      throw new NotModifiedError('No fields to update');
-    }
-    update['updatedAt'] = new Date();
     const updatedGame = await this.gameModel.findByIdAndUpdate(id, { $set: update }, { new: true });
     if (!updatedGame) {
       throw new NotFoundError('Game', id);

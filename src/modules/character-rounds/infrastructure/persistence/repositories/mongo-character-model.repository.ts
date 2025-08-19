@@ -2,12 +2,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose/dist/common/mongoose.decorators';
 import { Model } from 'mongoose';
-
-import { Page } from '../../../shared/domain/entities/page.entity';
-import { NotFoundError } from '../../../shared/domain/errors';
-import { RsqlParser } from '../../../shared/infrastructure/messaging/rsql-parser';
-import { CharacterRoundRepository } from '../../application/ports/out/character-round.repository';
-import { CharacterRound } from '../../domain/entities/character-round.entity';
+import { Page } from '../../../../shared/domain/entities/page.entity';
+import { NotFoundError } from '../../../../shared/domain/errors';
+import { RsqlParser } from '../../../../shared/infrastructure/messaging/rsql-parser';
+import { CharacterRoundRepository } from '../../../application/ports/out/character-round.repository';
+import { CharacterRound } from '../../../domain/entities/character-round.entity';
 import { CharacterRoundDocument, CharacterRoundModel } from '../models/character-round.model';
 
 @Injectable()

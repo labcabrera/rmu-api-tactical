@@ -32,13 +32,13 @@ export class StartRoundCommandHandler implements ICommandHandler<StartRoundComma
       throw new ValidationError('No characters associated with the game have been found');
     }
 
-    const newRound = tacticalGame.round + 1;
-    const updatedGame = await this.gameRepository.update(gameId, {
+    const gameUpdate: Partial<Game> = {
       ...tacticalGame,
       status: 'in_progress',
-      round: newRound,
-    });
-    await this.createCharacterRounds(characters, newRound);
+      round: tacticalGame.round + 1,
+    };
+    const updatedGame = await this.gameRepository.update(gameId, gameUpdate);
+    await this.createCharacterRounds(characters, updatedGame.round);
     await this.gameEventProducer.updated(updatedGame);
     return updatedGame;
   }
@@ -51,19 +51,24 @@ export class StartRoundCommandHandler implements ICommandHandler<StartRoundComma
 
   private async createTacticalCharacterRound(character: Character, round: number): Promise<void> {
     const baseInitiative = character.initiative?.baseBonus || 0;
-    //TODO check status effects
-    const actionPoints: number = 4;
     const entity: Partial<CharacterRound> = {
       gameId: character.gameId,
-      round: round,
       characterId: character.id,
+      round: round,
       initiative: {
         base: baseInitiative,
         penalty: 0,
-        roll: 0,
-        total: baseInitiative,
+        roll: undefined,
+        total: undefined,
       },
-      actionPoints: actionPoints,
+      actionPoints: 4,
+      hp: {
+        current: character.hp.current,
+        max: character.hp.max,
+      },
+      effects: [],
+      owner: character.owner,
+      createdAt: new Date(),
     };
     await this.characterRoundRepository.save(entity);
   }
