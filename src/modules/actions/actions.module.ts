@@ -9,8 +9,9 @@ import { CharactersRoundModule } from '../character-rounds/character-rounds.modu
 import { CharactersModule } from '../characters/characters.module';
 import { GamesModule } from '../games/games.module';
 import { SharedModule } from '../shared/shared.module';
-import { CreateActionCommandHandler } from './application/commands/handlers/create-action.usecase';
-import { DeleteActionCommandHandler } from './application/commands/handlers/delete-action.usecase';
+import { CreateActionCommandHandler } from './application/commands/handlers/create-action.command.handler';
+import { DeleteActionCommandHandler } from './application/commands/handlers/delete-action.command.handler';
+import { PrepareAttackCommandHandler } from './application/commands/handlers/prepare-attack-command.handler';
 import { GetActionQueryHandler } from './application/queries/handlers/get-action.query.handler';
 import { GetActionsQueryHandler } from './application/queries/handlers/get-actions.query.handler';
 import { ActionController } from './infrastructure/controllers/action.controller';
@@ -35,6 +36,7 @@ import { MongoActionRepository } from './infrastructure/persistence/repositories
     GetActionsQueryHandler,
     CreateActionCommandHandler,
     DeleteActionCommandHandler,
+    PrepareAttackCommandHandler,
     {
       provide: 'ActionRepository',
       useClass: MongoActionRepository,
