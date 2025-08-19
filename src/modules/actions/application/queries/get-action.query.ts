@@ -1,6 +1,6 @@
-export class GetGameQuery {
+export class GetActionQuery {
   constructor(
-    public readonly gameId: string,
+    public readonly actionId: string,
     public readonly userId: string,
     public readonly roles: string[],
   ) {}

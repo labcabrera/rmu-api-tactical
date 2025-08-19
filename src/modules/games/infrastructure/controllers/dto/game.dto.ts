@@ -1,10 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 import { IsNotEmpty, IsString } from 'class-validator';
-import { PaginationDto } from '../../../shared/infrastructure/controller/dto';
-import { CreateGameCommand } from '../../application/commands/create-game.command';
-import { UpdateGameCommand } from '../../application/commands/update-game.command';
-import { Game } from '../../domain/entities/game.entity';
+import { PaginationDto } from '../../../../shared/infrastructure/controller/dto';
+import { CreateGameCommand } from '../../../application/commands/create-game.command';
+import { UpdateGameCommand } from '../../../application/commands/update-game.command';
+import { Game } from '../../../domain/entities/game.entity';
 
 export class GameDto {
   @ApiProperty({ description: 'Game identifier', example: 'lotr' })

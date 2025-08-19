@@ -7,6 +7,6 @@ export class CreateActionCommand {
     public readonly phaseStart: number,
     public readonly actionPoints: number,
     public readonly userId: string,
-    public readonly roles?: string[],
+    public readonly roles: string[],
   ) {}
 }

@@ -14,7 +14,7 @@ import { UpdateGameCommand } from '../../application/commands/update-game.comman
 import { GetGameQuery } from '../../application/queries/get-game.query';
 import { GetGamesQuery } from '../../application/queries/get-games.query';
 import { Game } from '../../domain/entities/game.entity';
-import { CreateGameDto, GameDto, GamePageDto, UpdateGameDto } from './game.dto';
+import { CreateGameDto, GameDto, GamePageDto, UpdateGameDto } from './dto/game.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('v1/tactical-games')
@@ -30,16 +30,11 @@ export class GameController {
   @Get(':id')
   @ApiOkResponse({ type: GameDto, description: 'Success' })
   @ApiOperation({ operationId: 'findGameById', summary: 'Find game by id' })
-  @ApiUnauthorizedResponse({
-    description: 'Invalid or missing authentication token',
-    type: ErrorDto,
-  })
-  @ApiNotFoundResponse({
-    description: 'Realm not found',
-    type: ErrorDto,
-  })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiNotFoundResponse({ description: 'Game not found', type: ErrorDto })
   async findById(@Param('id') id: string, @Request() req) {
-    const query = new GetGameQuery(id, req.user!.id as string);
+    const user = req.user!;
+    const query = new GetGameQuery(id, user.id as string, user.roles as string[]);
     const entity = await this.queryBus.execute<GetGameQuery, Game>(query);
     this.logger.debug(`Game found: ${JSON.stringify(entity)}`);
     return GameDto.fromEntity(entity);
@@ -63,7 +58,7 @@ export class GameController {
 
   @Post('')
   @ApiBody({ type: CreateGameDto })
-  @ApiOperation({ operationId: 'createGame', summary: 'Create a new tactical game' })
+  @ApiOperation({ operationId: 'createGame', summary: 'Create a new game' })
   @ApiOkResponse({ type: GameDto, description: 'Success' })
   @ApiUnauthorizedResponse({
     description: 'Invalid or missing authentication token',
@@ -85,10 +80,7 @@ export class GameController {
   @Patch(':id')
   @ApiOperation({ operationId: 'updateGame', summary: 'Update game' })
   @ApiOkResponse({ type: GameDto, description: 'Success' })
-  @ApiUnauthorizedResponse({
-    description: 'Invalid or missing authentication token',
-    type: ErrorDto,
-  })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   async updateSettings(@Param('id') id: string, @Body() dto: UpdateGameDto, @Request() req) {
     const user = req.user!;
     const command = UpdateGameDto.toCommand(id, dto, user.id as string, user.roles as string[]);
@@ -98,11 +90,8 @@ export class GameController {
 
   @Delete(':id')
   @HttpCode(204)
-  @ApiUnauthorizedResponse({
-    description: 'Invalid or missing authentication token',
-    type: ErrorDto,
-  })
-  @ApiOperation({ operationId: 'deleteRealm', summary: 'Delete realm by id' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiOperation({ operationId: 'deleteGame', summary: 'Delete game by id' })
   async delete(@Param('id') id: string, @Request() req) {
     const user = req.user!;
     const command = new DeleteGameCommand(id, user.id as string, user.roles as string[]);

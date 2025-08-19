@@ -37,8 +37,8 @@ export class CharacterController {
   ) {}
 
   @Get(':id')
+  @ApiOperation({ operationId: 'findCharacterById', summary: 'Find character by id' })
   @ApiOkResponse({ type: CharacterDto, description: 'Success' })
-  @ApiOperation({ operationId: 'findGameById', summary: 'Find game by id' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiNotFoundResponse({ description: 'Realm not found', type: ErrorDto })
   async findById(@Param('id') id: string, @Request() req) {
@@ -77,7 +77,7 @@ export class CharacterController {
   }
 
   @Patch(':id')
-  @ApiOperation({ operationId: 'updateGame', summary: 'Update game' })
+  @ApiOperation({ operationId: 'updateCharacter', summary: 'Update character' })
   @ApiOkResponse({ type: CharacterDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   async updateSettings(@Param('id') id: string, @Body() dto: UpdateCharacterDto, @Request() req) {
@@ -90,7 +90,7 @@ export class CharacterController {
   @Delete(':id')
   @HttpCode(204)
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  @ApiOperation({ operationId: 'deleteRealm', summary: 'Delete realm by id' })
+  @ApiOperation({ operationId: 'deleteCharacter', summary: 'Delete character by id' })
   async delete(@Param('id') id: string, @Request() req) {
     const user = req.user!;
     const command = new DeleteCharacterCommand(id, user.id as string, user.roles as string[]);
