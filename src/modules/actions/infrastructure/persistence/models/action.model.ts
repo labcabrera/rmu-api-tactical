@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
 import * as actionEntity from '../../../domain/entities/action.entity';
-import { ActionAttack } from './action.model-childs';
+import { ActionAttack, ActionManeuver } from './action.model-childs';
 
 export type ActionDocument = ActionModel & Document;
 
@@ -32,9 +32,10 @@ export class ActionModel {
   @Prop({ type: [ActionAttack], required: false })
   attacks: ActionAttack[] | undefined;
 
-  description: string | undefined;
+  @Prop({ type: ActionManeuver, required: false })
+  maneuver: ActionManeuver | undefined;
 
-  result: actionEntity.ActionResult | undefined;
+  description: string | undefined;
 
   @Prop({ required: true })
   createdAt: Date;

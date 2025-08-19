@@ -58,7 +58,6 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
       phaseStart: command.phaseStart,
       actionPoints: command.actionPoints,
       attacks: attacks,
-      description: `${character.name} ${command.actionType}`,
       createdAt: new Date(),
     };
     const saved = await this.actionRepository.save(action);

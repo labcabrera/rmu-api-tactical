@@ -45,7 +45,6 @@ export class ActionDto {
     dto.phaseStart = entity.phaseStart;
     dto.actionPoints = entity.actionPoints;
     dto.attacks = entity.attacks ? entity.attacks.map((attack) => ActionAttackDto.fromEntity(attack)) : undefined;
-    dto.description = entity.description;
     return dto;
   }
 }

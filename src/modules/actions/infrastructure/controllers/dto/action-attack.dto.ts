@@ -12,7 +12,7 @@ export class ActionAttackDto {
   parry: number;
 
   @ApiProperty({ description: 'Attack status', example: 'declared' })
-  status: actionEntity.AttackStatus;
+  status: actionEntity.ActionStatus;
 
   @ApiProperty({ description: 'External identifier of the attack', example: 'attack-01' })
   attackId: string | undefined;
