@@ -18,14 +18,14 @@ Boundary(frontend, "RMO Frontend") {
 }
 
 Boundary(apis, "RMO APIs") {
-    System_Ext(rmu_api_core, "Core API", "Node.js")
-    System(rmu_api_tactical, "Tactical API", "Node.js")
+    System_Ext(rmu_api_core, "Core API", "Node / NestJS")
+    System(rmu_api_tactical, "Tactical API", "Node / NestJS")
 }
 
 Boundary(infrastructure, "Infrastructure") {
-    System_Ext(mongodb, "MongoDB", "")
+    System_Ext(mongodb, "MongoDB", "8.0")
     System_Ext(keycloak, "Keycloak", "26.3")
-    System_Ext(kafka, "Kafka", "")
+    System_Ext(kafka, "Kafka", "3.4")
 }
 
 Rel(user, rmu_fe_host, "Navigate", "HTTP")
