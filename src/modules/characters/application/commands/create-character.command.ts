@@ -9,7 +9,6 @@ export class CreateCharacterCommand {
     public readonly statistics: CharacterStatistics,
     public readonly strideCustomBonus: number | undefined,
     public readonly enduranceCustomBonus: number | undefined,
-    public readonly hpCustomBonus: number | undefined,
     public readonly initiativeCustomBonus: number | undefined,
     public readonly skills: CreateCharacterSkill[],
     public readonly items: CreateCharacterItem[],

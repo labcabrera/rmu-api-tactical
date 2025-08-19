@@ -90,15 +90,6 @@ export class CharacterDefense {
 @Schema({ _id: false })
 export class CharacterHP {
   @Prop({ required: true })
-  customBonus: number;
-
-  @Prop({ required: true })
-  racialBonus: number;
-
-  @Prop({ required: true })
-  skillBonus: number;
-
-  @Prop({ required: true })
   max: number;
 
   @Prop({ required: true })

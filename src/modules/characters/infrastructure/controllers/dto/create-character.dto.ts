@@ -4,7 +4,6 @@ import { IsArray, IsNotEmpty, IsObject, IsString, ValidateNested } from 'class-v
 
 import { CreateCharacterCommand, CreateCharacterItem } from '../../../application/commands/create-character.command';
 import { CharacterEnduranceCreationDto } from './character-endurance.dto';
-import { CharacterHPCreationDto } from './character-hp.dto';
 import { CharacterInfoDto } from './character-info.dto';
 import { CharacterInitiativeCreationDto } from './character-initiative.dto';
 import { CharacterItemCreationDto } from './character-item.dto';
@@ -52,12 +51,6 @@ export class CreateCharacterDto {
   @IsObject()
   endurance: CharacterEnduranceCreationDto;
 
-  @ApiProperty({ description: 'Character HP', type: CharacterHPCreationDto })
-  @ValidateNested()
-  @Type(() => CharacterHPCreationDto)
-  @IsObject()
-  hp: CharacterHPCreationDto;
-
   @ApiProperty({ description: 'Character initiative', type: CharacterInitiativeCreationDto })
   @ValidateNested()
   @Type(() => CharacterInitiativeCreationDto)
@@ -95,7 +88,6 @@ export class CreateCharacterDto {
       dto.statistics.toEntity(),
       dto.movement.strideCustomBonus,
       dto.endurance.customBonus,
-      dto.hp.customBonus,
       dto.initiative.customBonus,
       skills,
       items,
