@@ -1,9 +1,10 @@
 = Rolemaster Unified Tactical API
 
-REST API for combat management. Each combat (tacticalGame) is associated to a campaign (strategicGame) of the Strategic API module.
+REST API for combat management. Each combat (tacticalGame) is associated to a campaign (strategicGame) of the
+Strategic API module.
 
-This API allows to import characters from the strategic API or to create NPC characters. Once the characters are defined, it allow
-the declaration of actions such as maneuvers or attacks.
+This API allows to import characters from the strategic API or to create NPC characters. Once the characters
+are defined, it allow the declaration of actions such as maneuvers or attacks.
 
 This project is part of RMU Online: https://github.com/labcabrera/rmu-platform
 
@@ -11,15 +12,3 @@ WARNING: *This application is an independent project developed by fans of Rolema
 *All Rolemaster trademarks, game systems, and materials are the property of Iron Crown Enterprises. This software is provided for personal, non-commercial use only. If you enjoy Rolemaster, please support the official publications and content from ICE.*
 
 image::./diagrams/c4-context.png[C4 Context Diagram]
-
-== TODO
-
-* Project refactor
-** Use inversify
-** Testing
-** Configuration
-* Initial security
-* Kafka integration
-* Action integration
-* Attack client
-* RSQL

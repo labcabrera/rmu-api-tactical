@@ -1,79 +1,117 @@
 {
   "name": "rmu-api-tactical",
-  "version": "0.2.0",
-  "main": "dist/server.js",
-  "description": "API táctica para el sistema de juego RMU (Role Master Unified)",
-  "keywords": [
-    "rmo",
-    "rolemaster unified online",
-    "rolemaster",
-    "rolemaster unified",
-    "rmu",
-    "tactical",
-    "api",
-    "express",
-    "typescript",
-    "mongodb"
-  ],
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=8.0.0"
-  },
-  "scripts": {
-    "build": "npm run clean && tsc",
-    "start": "node dist/app.js",
-    "dev": "ts-node-dev --respawn -r tsconfig-paths/register src/app.ts",
-    "dev:watch": "nodemon --exec ts-node src/app.ts",
-    "debug": "ts-node --inspect=0.0.0.0:9229 src/app.ts",
-    "debug:watch": "nodemon --exec ts-node --inspect=0.0.0.0:9229 src/app.ts",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test_": "jest --detectOpenHandles",
-    "clean": "rm -rf dist",
-    "typecheck": "tsc --noEmit",
-    "lint": "tsc --noEmit",
-    "format": "prettier --write \"src/**/*.ts\""
-  },
+  "version": "0.3.0",
+  "description": "Tactical API for RMU",
   "author": {
     "name": "Luis Cabrera",
     "email": "lab.cabrera@gmail.com"
   },
-  "license": "ISC",
+  "private": false,
+  "license": "GPL-3.0",
+  "scripts": {
+    "build": "nest build",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "start:debug": "nest start --debug --watch",
+    "start:prod": "node dist/main",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "test": "jest --passWithNoTests",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:unit": "jest --testPathIgnorePatterns=.*\\.e2e-spec\\.ts$",
+    "test:all": "npm run test:unit && npm run test:e2e"
+  },
   "dependencies": {
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^11.0.1",
+    "@nestjs/cqrs": "^11.0.3",
+    "@nestjs/mapped-types": "*",
+    "@nestjs/microservices": "^11.1.5",
+    "@nestjs/mongoose": "^11.0.3",
+    "@nestjs/passport": "^11.0.5",
+    "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/swagger": "^11.2.0",
+    "@nestjs/terminus": "^11.0.0",
     "@rsql/parser": "^1.6.0",
-    "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "inversify": "^7.7.0",
-    "jsonwebtoken": "^9.0.2",
+    "axios": "^1.11.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "joi": "^18.0.0",
     "jwks-rsa": "^3.2.0",
     "kafkajs": "^2.2.4",
-    "module-alias": "^2.2.3",
+    "module": "^1.2.5",
     "mongoose": "^8.17.0",
-    "pino": "^9.7.0",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
     "swagger-ui-express": "^5.0.1",
-    "tsconfig-paths": "^4.2.0",
-    "yaml": "^2.8.0",
-    "zod": "^4.0.14"
+    "test": "^3.3.0"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.3",
-    "@types/node": "^24.1.0",
-    "@types/swagger-ui-express": "^4.1.8",
-    "jest": "^30.0.5",
-    "nodemon": "^3.1.10",
-    "pino-pretty": "^13.1.1",
-    "prettier": "^3.6.2",
-    "ts-jest": "^29.4.0",
+    "@eslint/eslintrc": "^3.2.0",
+    "@eslint/js": "^9.18.0",
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/schematics": "^11.0.0",
+    "@nestjs/testing": "^11.0.1",
+    "@types/express": "^5.0.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.2.0",
+    "@types/passport-jwt": "^4.0.1",
+    "@types/supertest": "^6.0.2",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-prettier": "^5.2.2",
+    "globals": "^16.0.0",
+    "jest": "^30.0.0",
+    "prettier": "^3.4.2",
+    "source-map-support": "^0.5.21",
+    "supertest": "^7.0.0",
+    "ts-jest": "^29.2.5",
+    "ts-loader": "^9.5.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0"
   },
-  "_moduleAliases": {
-    "@domain": "dist/domain",
-    "@infrastructure": "dist/infrastructure",
-    "@application": "dist/application",
-    "@adapters": "dist/adapters",
-    "@shared": "dist/shared"
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "rootDir": ".",
+    "testMatch": [
+      "<rootDir>/src/**/*.spec.ts",
+      "<rootDir>/test/**/*.spec.ts"
+    ],
+    "testPathIgnorePatterns": [
+      "<rootDir>/test/.*\\.e2e-spec\\.ts$"
+    ],
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "collectCoverageFrom": [
+      "src/**/*.(t|j)s",
+      "!src/**/*.spec.ts",
+      "!src/**/*.e2e-spec.ts",
+      "!src/main.ts",
+      "!src/**/*.module.ts",
+      "!src/**/*.interface.ts"
+    ],
+    "coverageDirectory": "./coverage",
+    "coverageReporters": ["text", "lcov", "html"],
+    "moduleNameMapper": {
+      "^src/(.*)$": "<rootDir>/src/$1"
+    },
+    "setupFilesAfterEnv": ["<rootDir>/test/setup.ts"],
+    "testTimeout": 30000,
+    "verbose": true
   }
 }
