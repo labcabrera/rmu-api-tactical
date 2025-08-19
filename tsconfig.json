@@ -1,36 +1,25 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
-    "lib": ["ES2020", "DOM"],
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "strict": true,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "resolvePackageJsonExports": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
+    "isolatedModules": true,
     "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "experimentalDecorators": true,
+    "removeComments": true,
     "emitDecoratorMetadata": true,
-    "typeRoots": ["./node_modules/@types", "./src/types"],
-    "baseUrl": "./src",
-    "paths": {
-      "@domain/*": ["domain/*"],
-      "@infrastructure/*": ["infrastructure/*"],
-      "@application/*": ["application/*"],
-      "@adapters/*": ["adapters/*"],
-      "@shared/*": ["shared/*"]
-    }
-  },
-  "include": [
-    "src/**/*"
-, "tests/__tests__", "tests/realm-deleted-event.test.ts"  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.test.ts"
-  ]
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2023",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "noFallthroughCasesInSwitch": false
+  }
 }

@@ -1,0 +1,79 @@
+{
+  "name": "rmu-api-tactical",
+  "version": "0.2.0",
+  "main": "dist/server.js",
+  "description": "API táctica para el sistema de juego RMU (Role Master Unified)",
+  "keywords": [
+    "rmo",
+    "rolemaster unified online",
+    "rolemaster",
+    "rolemaster unified",
+    "rmu",
+    "tactical",
+    "api",
+    "express",
+    "typescript",
+    "mongodb"
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "scripts": {
+    "build": "npm run clean && tsc",
+    "start": "node dist/app.js",
+    "dev": "ts-node-dev --respawn -r tsconfig-paths/register src/app.ts",
+    "dev:watch": "nodemon --exec ts-node src/app.ts",
+    "debug": "ts-node --inspect=0.0.0.0:9229 src/app.ts",
+    "debug:watch": "nodemon --exec ts-node --inspect=0.0.0.0:9229 src/app.ts",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test_": "jest --detectOpenHandles",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.ts\""
+  },
+  "author": {
+    "name": "Luis Cabrera",
+    "email": "lab.cabrera@gmail.com"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@rsql/parser": "^1.6.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "inversify": "^7.7.0",
+    "jsonwebtoken": "^9.0.2",
+    "jwks-rsa": "^3.2.0",
+    "kafkajs": "^2.2.4",
+    "module-alias": "^2.2.3",
+    "mongoose": "^8.17.0",
+    "pino": "^9.7.0",
+    "swagger-ui-express": "^5.0.1",
+    "tsconfig-paths": "^4.2.0",
+    "yaml": "^2.8.0",
+    "zod": "^4.0.14"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.1.0",
+    "@types/swagger-ui-express": "^4.1.8",
+    "jest": "^30.0.5",
+    "nodemon": "^3.1.10",
+    "pino-pretty": "^13.1.1",
+    "prettier": "^3.6.2",
+    "ts-jest": "^29.4.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "_moduleAliases": {
+    "@domain": "dist/domain",
+    "@infrastructure": "dist/infrastructure",
+    "@application": "dist/application",
+    "@adapters": "dist/adapters",
+    "@shared": "dist/shared"
+  }
+}
