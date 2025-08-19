@@ -15,6 +15,7 @@ import { PrepareAttackCommandHandler } from './application/commands/handlers/pre
 import { GetActionQueryHandler } from './application/queries/handlers/get-action.query.handler';
 import { GetActionsQueryHandler } from './application/queries/handlers/get-actions.query.handler';
 import { ActionController } from './infrastructure/controllers/action.controller';
+import { KafkaActionProducerService } from './infrastructure/messaging/kafka-action-producer.service';
 import { ActionModel, ActionSchema } from './infrastructure/persistence/models/action.model';
 import { MongoActionRepository } from './infrastructure/persistence/repositories/mongo-action.repository';
 
@@ -40,6 +41,10 @@ import { MongoActionRepository } from './infrastructure/persistence/repositories
     {
       provide: 'ActionRepository',
       useClass: MongoActionRepository,
+    },
+    {
+      provide: 'ActionEventProducer',
+      useClass: KafkaActionProducerService,
     },
   ],
 })

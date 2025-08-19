@@ -7,6 +7,7 @@ import * as characterRepository from '../../../../characters/application/ports/o
 import * as gameRepository from '../../../../games/application/ports/out/game.repository';
 import { ValidationError } from '../../../../shared/domain/errors';
 import { Action, ActionAttack } from '../../../domain/entities/action.entity';
+import * as actionEventProducer from '../../ports/out/action-event-producer';
 import * as actionRepository from '../../ports/out/action.repository';
 import { PrepareAttackCommand } from '../prepare-attack.command';
 
@@ -17,6 +18,7 @@ export class PrepareAttackCommandHandler implements ICommandHandler<PrepareAttac
     @Inject('CharacterRepository') private readonly characterRepository: characterRepository.CharacterRepository,
     @Inject('CharacterRoundRepository') private readonly characterRoundRepository: characterRoundRepository.CharacterRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: actionRepository.ActionRepository,
+    @Inject('ActionEventProducer') private readonly actionEventProducer: actionEventProducer.ActionEventProducer,
   ) {}
 
   async execute(command: PrepareAttackCommand): Promise<Action> {
@@ -38,6 +40,7 @@ export class PrepareAttackCommandHandler implements ICommandHandler<PrepareAttac
     action.status = 'in_progress';
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action.id, action);
+    await this.actionEventProducer.updated(updated);
     return updated;
   }
 

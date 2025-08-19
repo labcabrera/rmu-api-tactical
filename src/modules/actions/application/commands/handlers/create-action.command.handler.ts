@@ -9,6 +9,7 @@ import * as gameRepository from '../../../../games/application/ports/out/game.re
 import { Game } from '../../../../games/domain/entities/game.entity';
 import { ValidationError } from '../../../../shared/domain/errors';
 import { Action, ActionAttack } from '../../../domain/entities/action.entity';
+import * as actionEventProducer from '../../ports/out/action-event-producer';
 import * as actionRepository from '../../ports/out/action.repository';
 import { CreateActionCommand } from '../create-action.command';
 
@@ -19,6 +20,7 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
     @Inject('CharacterRepository') private readonly characterRepository: characterRepository.CharacterRepository,
     @Inject('CharacterRoundRepository') private readonly characterRoundRepository: characterRoundRepository.CharacterRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: actionRepository.ActionRepository,
+    @Inject('ActionEventProducer') private readonly actionEventProducer: actionEventProducer.ActionEventProducer,
   ) {}
 
   async execute(command: CreateActionCommand): Promise<Action> {
@@ -59,7 +61,9 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
       description: `${character.name} ${command.actionType}`,
       createdAt: new Date(),
     };
-    return this.actionRepository.save(action);
+    const saved = await this.actionRepository.save(action);
+    await this.actionEventProducer.created(saved);
+    return saved;
   }
 
   private async readGame(command: CreateActionCommand): Promise<Game> {
