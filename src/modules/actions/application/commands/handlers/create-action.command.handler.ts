@@ -8,7 +8,7 @@ import { Character } from '../../../../characters/domain/entities/character.enti
 import * as gameRepository from '../../../../games/application/ports/out/game.repository';
 import { Game } from '../../../../games/domain/entities/game.entity';
 import { ValidationError } from '../../../../shared/domain/errors';
-import { Action, ActionAttack } from '../../../domain/entities/action.entity';
+import { Action, ActionAttack, ActionManeuver } from '../../../domain/entities/action.entity';
 import * as actionEventProducer from '../../ports/out/action-event-producer';
 import * as actionRepository from '../../ports/out/action.repository';
 import { CreateActionCommand } from '../create-action.command';
@@ -49,6 +49,8 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
       });
     }
     const attacks = this.prepareAttacks(command);
+    const maneuver = this.prepareManeuver(command);
+
     const action: Partial<Action> = {
       gameId: command.gameId,
       status: 'declared',
@@ -58,6 +60,7 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
       phaseStart: command.phaseStart,
       actionPoints: command.actionPoints,
       attacks: attacks,
+      maneuver: maneuver,
       createdAt: new Date(),
     };
     const saved = await this.actionRepository.save(action);
@@ -110,10 +113,26 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
     });
   }
 
+  private prepareManeuver(command: CreateActionCommand): ActionManeuver | undefined {
+    if (!command.maneuver) {
+      return undefined;
+    }
+    return {
+      skillId: command.maneuver.skillId,
+      maneuverType: command.maneuver.maneuverType,
+      difficulty: undefined,
+      result: undefined,
+      status: 'declared',
+    };
+  }
+
   private validate(command: CreateActionCommand): void {
     //TODO check target exists
     if (command.actionType === 'attack' && (!command.attacks || command.attacks.length === 0)) {
       throw new ValidationError(`At least one attack must be provided`);
+    }
+    if (command.actionType === 'maneuver' && !command.maneuver) {
+      throw new ValidationError(`Maneuver must be provided`);
     }
   }
 }

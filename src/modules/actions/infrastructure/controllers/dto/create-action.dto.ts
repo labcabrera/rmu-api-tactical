@@ -77,6 +77,7 @@ export class CreateActionDto {
     command.phaseStart = dto.phaseStart;
     command.actionPoints = dto.actionPoints;
     command.attacks = dto.attacks;
+    command.maneuver = dto.maneuver;
     command.userId = userId;
     command.roles = roles;
     return command;

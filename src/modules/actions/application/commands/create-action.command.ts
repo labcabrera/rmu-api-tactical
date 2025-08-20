@@ -7,7 +7,7 @@ export class CreateActionCommand {
   phaseStart: number;
   actionPoints: number;
   attacks: CreateActionCommandAttack[] | undefined;
-  maneuvers: CreateActionCommandManeuver[] | undefined;
+  maneuver: CreateActionCommandManeuver | undefined;
   userId: string;
   roles: string[];
 }
