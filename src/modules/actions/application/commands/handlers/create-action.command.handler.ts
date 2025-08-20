@@ -3,8 +3,6 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
 import * as characterRoundRepository from '../../../../character-rounds/application/ports/out/character-round.repository';
 import { CharacterRound } from '../../../../character-rounds/domain/entities/character-round.entity';
-import * as characterRepository from '../../../../characters/application/ports/out/character.repository';
-import { Character } from '../../../../characters/domain/entities/character.entity';
 import * as gameRepository from '../../../../games/application/ports/out/game.repository';
 import { Game } from '../../../../games/domain/entities/game.entity';
 import { ValidationError } from '../../../../shared/domain/errors';
@@ -17,7 +15,6 @@ import { CreateActionCommand } from '../create-action.command';
 export class CreateActionCommandHandler implements ICommandHandler<CreateActionCommand, Action> {
   constructor(
     @Inject('GameRepository') private readonly gameRepository: gameRepository.GameRepository,
-    @Inject('CharacterRepository') private readonly characterRepository: characterRepository.CharacterRepository,
     @Inject('CharacterRoundRepository') private readonly characterRoundRepository: characterRoundRepository.CharacterRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: actionRepository.ActionRepository,
     @Inject('ActionEventProducer') private readonly actionEventProducer: actionEventProducer.ActionEventProducer,
@@ -29,25 +26,16 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
     if (game.round < 1) {
       throw new ValidationError(`Game ${game.name} is not in progress. You need to start the game.`);
     }
-    const character = await this.readCharacter(command);
     const characterRound = await this.readCharacterRound(command, game.round);
     const actions = await this.readActions(command, game.round);
 
     const availableActionPoints = characterRound.actionPoints;
     const usedActionPoints = actions.reduce((total, action) => total + action.actionPoints, 0);
     const remainingActionPoints = availableActionPoints - usedActionPoints;
-
     if (remainingActionPoints < command.actionPoints) {
       throw new ValidationError(`Not enough action points. Available: ${remainingActionPoints}, Required: ${command.actionPoints}`);
     }
 
-    if (command.attacks) {
-      command.attacks.forEach((attack) => {
-        if (!attack.attackType || !attack.targetId || attack.parry === undefined) {
-          throw new ValidationError(`Invalid attack data`);
-        }
-      });
-    }
     const attacks = this.prepareAttacks(command);
     const maneuver = this.prepareManeuver(command);
 
@@ -74,14 +62,6 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
       throw new ValidationError(`Game ${command.gameId} not found`);
     }
     return game;
-  }
-
-  private async readCharacter(command: CreateActionCommand): Promise<Character> {
-    const character = await this.characterRepository.findById(command.characterId);
-    if (!character) {
-      throw new ValidationError(`Character ${command.characterId} not found`);
-    }
-    return character;
   }
 
   private async readCharacterRound(command: CreateActionCommand, round: number): Promise<CharacterRound> {
@@ -130,6 +110,13 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
     //TODO check target exists
     if (command.actionType === 'attack' && (!command.attacks || command.attacks.length === 0)) {
       throw new ValidationError(`At least one attack must be provided`);
+    }
+    if (command.attacks) {
+      command.attacks.forEach((attack) => {
+        if (!attack.attackType || !attack.targetId || attack.parry === undefined) {
+          throw new ValidationError(`Invalid attack data`);
+        }
+      });
     }
     if (command.actionType === 'maneuver' && !command.maneuver) {
       throw new ValidationError(`Maneuver must be provided`);
