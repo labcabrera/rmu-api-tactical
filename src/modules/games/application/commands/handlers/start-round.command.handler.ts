@@ -1,23 +1,22 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
-import * as characterRoundRepository from '../../../../character-rounds/application/ports/out/character-round.repository';
+import * as crr from '../../../../character-rounds/application/ports/out/character-round.repository';
 import { CharacterRound } from '../../../../character-rounds/domain/entities/character-round.entity';
-import * as characterRepository from '../../../../characters/application/ports/out/character.repository';
-import { Character } from '../../../../characters/domain/entities/character.entity';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
+import * as cr from '../../../../strategic/application/ports/out/character-client';
 import { Game } from '../../../domain/entities/game.entity';
-import * as gameEventProducer from '../../ports/out/game-event-producer';
-import * as gameRepository from '../../ports/out/game.repository';
+import * as gep from '../../ports/out/game-event-producer';
+import * as gr from '../../ports/out/game.repository';
 import { StartRoundCommand } from '../start-round.command';
 
 @CommandHandler(StartRoundCommand)
 export class StartRoundCommandHandler implements ICommandHandler<StartRoundCommand, Game> {
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: gameRepository.GameRepository,
-    @Inject('CharacterRepository') private readonly characterRepository: characterRepository.CharacterRepository,
-    @Inject('CharacterRoundRepository') private readonly characterRoundRepository: characterRoundRepository.CharacterRoundRepository,
-    @Inject('GameEventProducer') private readonly gameEventProducer: gameEventProducer.GameEventProducer,
+    @Inject('GameRepository') private readonly gameRepository: gr.GameRepository,
+    @Inject('CharacterRoundRepository') private readonly characterRoundRepository: crr.CharacterRoundRepository,
+    @Inject('CharacterClient') private readonly characterClient: cr.CharacterClient,
+    @Inject('GameEventProducer') private readonly gameEventProducer: gep.GameEventProducer,
   ) {}
 
   async execute(command: StartRoundCommand): Promise<Game> {
@@ -27,7 +26,7 @@ export class StartRoundCommandHandler implements ICommandHandler<StartRoundComma
       throw new NotFoundError('Game', gameId);
     }
 
-    const characters = await this.characterRepository.findByGameId(gameId);
+    const characters = await this.characterClient.findByGameId(gameId);
     if (characters.length < 1) {
       throw new ValidationError('No characters associated with the game have been found');
     }
@@ -43,13 +42,13 @@ export class StartRoundCommandHandler implements ICommandHandler<StartRoundComma
     return updatedGame;
   }
 
-  private async createCharacterRounds(characters: Character[], round: number): Promise<void> {
+  private async createCharacterRounds(characters: cr.Character[], round: number): Promise<void> {
     for (const character of characters) {
       await this.createTacticalCharacterRound(character, round);
     }
   }
 
-  private async createTacticalCharacterRound(character: Character, round: number): Promise<void> {
+  private async createTacticalCharacterRound(character: cr.Character, round: number): Promise<void> {
     const baseInitiative = character.initiative?.baseBonus || 0;
     const entity: Partial<CharacterRound> = {
       gameId: character.gameId,
@@ -63,7 +62,7 @@ export class StartRoundCommandHandler implements ICommandHandler<StartRoundComma
       },
       actionPoints: 4,
       hp: {
-        current: character.hp.current,
+        current: character.hp.max,
         max: character.hp.max,
       },
       effects: [],

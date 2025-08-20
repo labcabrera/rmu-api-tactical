@@ -2,7 +2,6 @@ import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
 import * as crr from '../../../../character-rounds/application/ports/out/character-round.repository';
-import * as cr from '../../../../characters/application/ports/out/character.repository';
 import * as gr from '../../../../games/application/ports/out/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/entities/action.entity';
@@ -15,7 +14,6 @@ import { PrepareManeuverCommand } from '../prepare-maneuver.command';
 export class PrepareManeuverCommandHandler implements ICommandHandler<PrepareManeuverCommand, Action> {
   constructor(
     @Inject('GameRepository') private readonly gameRepository: gr.GameRepository,
-    @Inject('CharacterRepository') private readonly characterRepository: cr.CharacterRepository,
     @Inject('CharacterRoundRepository') private readonly characterRoundRepository: crr.CharacterRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: ar.ActionRepository,
     @Inject('AttackClient') private readonly attackClient: ac.AttackClient,

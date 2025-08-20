@@ -5,7 +5,6 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { TerminusModule } from '@nestjs/terminus';
 
 import { AuthModule } from 'src/modules/auth/auth.module';
-import { CharactersModule } from '../characters/characters.module';
 import { GamesModule } from '../games/games.module';
 import { SharedModule } from '../shared/shared.module';
 import { GetCharacterRoundQueryHandler } from './application/queries/handlers/get-character-round.query.handler';
@@ -23,7 +22,6 @@ import { MongoCharacterRoundRepository } from './infrastructure/persistence/repo
     AuthModule,
     SharedModule,
     GamesModule,
-    CharactersModule,
   ],
   controllers: [CharacterRoundController],
   providers: [

@@ -6,8 +6,8 @@ import { TerminusModule } from '@nestjs/terminus';
 
 import { AuthModule } from 'src/modules/auth/auth.module';
 import { CharactersRoundModule } from '../character-rounds/character-rounds.module';
-import { CharactersModule } from '../characters/characters.module';
 import { SharedModule } from '../shared/shared.module';
+import { StrategicModule } from '../strategic/strategic.module';
 import { CreateGameCommandHandler } from './application/commands/handlers/create-game.command.handler';
 import { DeleteGameCommandHandler } from './application/commands/handlers/delete-game.command.handler';
 import { StartRoundCommandHandler } from './application/commands/handlers/start-round.command.handler';
@@ -27,7 +27,7 @@ import { MongoGameRepository } from './infrastructure/persistence/repositories/m
     MongooseModule.forFeature([{ name: GameModel.name, schema: GameSchema }]),
     AuthModule,
     SharedModule,
-    forwardRef(() => CharactersModule),
+    StrategicModule,
     forwardRef(() => CharactersRoundModule),
   ],
   controllers: [GameController],

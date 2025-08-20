@@ -6,7 +6,6 @@ import { TerminusModule } from '@nestjs/terminus';
 
 import { AuthModule } from 'src/modules/auth/auth.module';
 import { CharactersRoundModule } from '../character-rounds/character-rounds.module';
-import { CharactersModule } from '../characters/characters.module';
 import { GamesModule } from '../games/games.module';
 import { SharedModule } from '../shared/shared.module';
 import { CreateActionCommandHandler } from './application/commands/handlers/create-action.command.handler';
@@ -29,7 +28,6 @@ import { MongoActionRepository } from './infrastructure/persistence/repositories
     AuthModule,
     SharedModule,
     GamesModule,
-    CharactersModule,
     CharactersRoundModule,
   ],
   controllers: [ActionController],
