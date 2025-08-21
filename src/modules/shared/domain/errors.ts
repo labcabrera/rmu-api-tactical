@@ -15,6 +15,16 @@ export class NotFoundError extends DomainError {
   }
 }
 
+export class UnprocessableEntityError extends DomainError {
+  public readonly status: number = 422;
+
+  constructor(message: string) {
+    super(message, 422);
+    this.name = 'UnprocessableEntityError';
+    Object.setPrototypeOf(this, UnprocessableEntityError.prototype);
+  }
+}
+
 export class NotModifiedError extends DomainError {
   public readonly status: number = 304;
 
@@ -52,5 +62,13 @@ export class InvalidSearchExpression extends DomainError {
     super(message, 400);
     this.name = 'InvalidSearchExpression';
     Object.setPrototypeOf(this, InvalidSearchExpression.prototype);
+  }
+}
+
+export class BadGatewayError extends DomainError {
+  constructor(message: string) {
+    super(message, 502);
+    this.name = 'BadGatewayError';
+    Object.setPrototypeOf(this, BadGatewayError.prototype);
   }
 }

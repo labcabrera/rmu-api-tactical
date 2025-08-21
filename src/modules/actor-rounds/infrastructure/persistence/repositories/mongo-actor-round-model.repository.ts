@@ -18,9 +18,6 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
   findByGameIdAndRound(gameId: string, round: number): Promise<ActorRound[]> {
     throw new Error('Method not implemented.');
   }
-  findByActorIdAndRound(characterId: string, round: number): Promise<ActorRound | null> {
-    throw new Error('Method not implemented.');
-  }
   deleteByGameId(gameId: string): Promise<void> {
     throw new Error('Method not implemented.');
   }
@@ -39,6 +36,11 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
     ]);
     const content = characterRoundsDocs.map((doc) => this.mapToEntity(doc));
     return new Page<ActorRound>(content, page, size, totalElements);
+  }
+
+  async findByActorIdAndRound(characterId: string, round: number): Promise<ActorRound | null> {
+    const readed = await this.characterRoundModel.findOne({ actorId: characterId, round });
+    return readed ? this.mapToEntity(readed) : null;
   }
 
   async save(request: Partial<ActorRound>): Promise<ActorRound> {

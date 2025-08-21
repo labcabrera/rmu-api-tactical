@@ -8,6 +8,7 @@ import { AuthModule } from 'src/modules/auth/auth.module';
 import { ActorsRoundModule } from '../actor-rounds/actor-rounds.module';
 import { GamesModule } from '../games/games.module';
 import { SharedModule } from '../shared/shared.module';
+import { StrategicModule } from '../strategic/strategic.module';
 import { CreateActionCommandHandler } from './application/commands/handlers/create-action.command.handler';
 import { DeleteActionCommandHandler } from './application/commands/handlers/delete-action.command.handler';
 import { PrepareAttackCommandHandler } from './application/commands/handlers/prepare-attack-command.handler';
@@ -28,6 +29,7 @@ import { MongoActionRepository } from './infrastructure/persistence/repositories
     AuthModule,
     SharedModule,
     GamesModule,
+    StrategicModule,
     ActorsRoundModule,
   ],
   controllers: [ActionController],
