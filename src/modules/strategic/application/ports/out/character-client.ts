@@ -8,6 +8,8 @@ export interface CharacterClient {
 export interface Character {
   id: string;
   gameId: string;
+  factionId: string;
+  name: string;
   hp: CharacterHP;
   initiative: CharacterInitiative;
   owner: string;

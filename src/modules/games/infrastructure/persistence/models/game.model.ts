@@ -1,10 +1,14 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
+import { Actor } from './game.model-childs';
 
 export type GameDocument = GameModel & Document;
 
 @Schema({ collection: 'tactical-games', versionKey: false })
 export class GameModel {
+  @Prop({ required: true })
+  strategicGameId: string;
+
   @Prop({ required: true })
   name: string;
 
@@ -19,6 +23,9 @@ export class GameModel {
 
   @Prop({ required: true })
   phase: 'not_started' | 'declare_actions' | 'declare_initative' | 'resolve_actions' | 'upkeep';
+
+  @Prop({ type: [Actor], required: true })
+  actors: Actor[];
 
   @Prop({ required: false })
   description: string;
