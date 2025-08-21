@@ -14,4 +14,7 @@ export class Actor {
 
   @Prop({ required: true })
   type: ge.ActorType;
+
+  @Prop({ required: true })
+  owner: string;
 }

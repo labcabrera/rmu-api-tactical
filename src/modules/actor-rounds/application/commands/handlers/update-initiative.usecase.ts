@@ -2,17 +2,15 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
 import { Inject, NotImplementedException } from '@nestjs/common';
 import { NotFoundError } from '../../../../shared/domain/errors';
-import { CharacterRound } from '../../../domain/entities/character-round.entity';
+import { ActorRound } from '../../../domain/entities/actor-round.entity';
 import * as characterRoundRepository from '../../ports/out/character-round.repository';
 import { UpdateInitiativeCommand } from '../update-initiative.command';
 
 @CommandHandler(UpdateInitiativeCommand)
-export class UpdateInitiativeUseCase implements ICommandHandler<UpdateInitiativeCommand, CharacterRound> {
-  constructor(
-    @Inject('CharacterRoundRepository') private readonly characterRoundRepository: characterRoundRepository.CharacterRoundRepository,
-  ) {}
+export class UpdateInitiativeUseCase implements ICommandHandler<UpdateInitiativeCommand, ActorRound> {
+  constructor(@Inject('ActorRoundRepository') private readonly characterRoundRepository: characterRoundRepository.ActorRoundRepository) {}
 
-  async execute(command: UpdateInitiativeCommand): Promise<CharacterRound> {
+  async execute(command: UpdateInitiativeCommand): Promise<ActorRound> {
     const characterRound = await this.characterRoundRepository.findById(command.characterRoundId);
     if (!characterRound) {
       throw new NotFoundError('Character round', command.characterRoundId);
@@ -31,7 +29,7 @@ export class UpdateInitiativeUseCase implements ICommandHandler<UpdateInitiative
     return this.mapToCharacterRoundInitiative(updatedCharacterRound);
   }
 
-  private mapToCharacterRoundInitiative(characterRound: any): CharacterRound {
+  private mapToCharacterRoundInitiative(characterRound: any): ActorRound {
     throw new NotImplementedException();
     // return {
     //   id: characterRound.id,

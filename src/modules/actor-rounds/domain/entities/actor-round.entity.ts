@@ -1,29 +1,29 @@
-export interface CharacterRound {
+export interface ActorRound {
   id: string;
   gameId: string;
-  characterId: string;
+  actorId: string;
   round: number;
-  initiative: CharacterRoundInitiative;
+  initiative: ActorRoundInitiative;
   actionPoints: number;
-  hp: CharacterRoundHP;
-  effects: CharacterRoundEffect[];
+  hp: ActorRoundHP;
+  effects: ActorRoundEffect[];
   owner: string;
   createdAt: Date;
   updatedAt: Date | undefined;
 }
 
-export interface CharacterRoundHP {
+export interface ActorRoundHP {
   max: number;
   current: number;
 }
 
-export interface CharacterRoundEffect {
+export interface ActorRoundEffect {
   status: string;
   value: number | undefined;
   rounds: number | undefined;
 }
 
-export interface CharacterRoundInitiative {
+export interface ActorRoundInitiative {
   base: number;
   penalty: number;
   roll: number | undefined;

@@ -4,8 +4,8 @@ import { MongooseModule } from '@nestjs/mongoose';
 import * as Joi from 'joi';
 
 import { ActionsModule } from './modules/actions/actions.module';
+import { ActorsRoundModule } from './modules/actor-rounds/actor-rounds.module';
 import { AuthModule } from './modules/auth/auth.module';
-import { CharactersRoundModule } from './modules/character-rounds/character-rounds.module';
 import { GamesModule } from './modules/games/games.module';
 import { SharedModule } from './modules/shared/shared.module';
 import { StrategicModule } from './modules/strategic/strategic.module';
@@ -42,7 +42,7 @@ import { StrategicModule } from './modules/strategic/strategic.module';
     StrategicModule,
     AuthModule,
     GamesModule,
-    CharactersRoundModule,
+    ActorsRoundModule,
     ActionsModule,
   ],
 })

@@ -5,7 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { TerminusModule } from '@nestjs/terminus';
 
 import { AuthModule } from 'src/modules/auth/auth.module';
-import { CharactersRoundModule } from '../character-rounds/character-rounds.module';
+import { ActorsRoundModule } from '../actor-rounds/actor-rounds.module';
 import { GamesModule } from '../games/games.module';
 import { SharedModule } from '../shared/shared.module';
 import { CreateActionCommandHandler } from './application/commands/handlers/create-action.command.handler';
@@ -28,7 +28,7 @@ import { MongoActionRepository } from './infrastructure/persistence/repositories
     AuthModule,
     SharedModule,
     GamesModule,
-    CharactersRoundModule,
+    ActorsRoundModule,
   ],
   controllers: [ActionController],
   providers: [

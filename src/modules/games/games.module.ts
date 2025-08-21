@@ -5,7 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { TerminusModule } from '@nestjs/terminus';
 
 import { AuthModule } from 'src/modules/auth/auth.module';
-import { CharactersRoundModule } from '../character-rounds/character-rounds.module';
+import { ActorsRoundModule } from '../actor-rounds/actor-rounds.module';
 import { SharedModule } from '../shared/shared.module';
 import { StrategicModule } from '../strategic/strategic.module';
 import { CreateGameCommandHandler } from './application/commands/handlers/create-game.command.handler';
@@ -28,7 +28,7 @@ import { MongoGameRepository } from './infrastructure/persistence/repositories/m
     AuthModule,
     SharedModule,
     StrategicModule,
-    forwardRef(() => CharactersRoundModule),
+    forwardRef(() => ActorsRoundModule),
   ],
   controllers: [GameController],
   providers: [

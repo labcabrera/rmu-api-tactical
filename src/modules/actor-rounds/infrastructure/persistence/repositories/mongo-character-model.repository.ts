@@ -5,32 +5,32 @@ import { Model } from 'mongoose';
 import { Page } from '../../../../shared/domain/entities/page.entity';
 import { NotFoundError } from '../../../../shared/domain/errors';
 import { RsqlParser } from '../../../../shared/infrastructure/messaging/rsql-parser';
-import { CharacterRoundRepository } from '../../../application/ports/out/character-round.repository';
-import { CharacterRound } from '../../../domain/entities/character-round.entity';
-import { CharacterRoundDocument, CharacterRoundModel } from '../models/character-round.model';
+import { ActorRoundRepository } from '../../../application/ports/out/character-round.repository';
+import { ActorRound } from '../../../domain/entities/actor-round.entity';
+import { ActorRoundDocument, ActorRoundModel } from '../models/actor-round.model';
 
 @Injectable()
-export class MongoCharacterRoundRepository implements CharacterRoundRepository {
+export class MongoCharacterRoundRepository implements ActorRoundRepository {
   constructor(
-    @InjectModel(CharacterRoundModel.name) private characterRoundModel: Model<CharacterRoundDocument>,
+    @InjectModel(ActorRoundModel.name) private characterRoundModel: Model<ActorRoundDocument>,
     private rsqlParser: RsqlParser,
   ) {}
-  findByGameIdAndRound(gameId: string, round: number): Promise<CharacterRound[]> {
+  findByGameIdAndRound(gameId: string, round: number): Promise<ActorRound[]> {
     throw new Error('Method not implemented.');
   }
-  findByCharacterIdAndRound(characterId: string, round: number): Promise<CharacterRound | null> {
+  findByActorIdAndRound(characterId: string, round: number): Promise<ActorRound | null> {
     throw new Error('Method not implemented.');
   }
   deleteByGameId(gameId: string): Promise<void> {
     throw new Error('Method not implemented.');
   }
 
-  async findById(id: string): Promise<CharacterRound | null> {
+  async findById(id: string): Promise<ActorRound | null> {
     const readed = await this.characterRoundModel.findById(id);
     return readed ? this.mapToEntity(readed) : null;
   }
 
-  async findByRsql(rsql: string, page: number, size: number): Promise<Page<CharacterRound>> {
+  async findByRsql(rsql: string, page: number, size: number): Promise<Page<ActorRound>> {
     const skip = page * size;
     const mongoQuery = this.rsqlParser.parse(rsql);
     const [characterRoundsDocs, totalElements] = await Promise.all([
@@ -38,16 +38,16 @@ export class MongoCharacterRoundRepository implements CharacterRoundRepository {
       this.characterRoundModel.countDocuments(mongoQuery),
     ]);
     const content = characterRoundsDocs.map((doc) => this.mapToEntity(doc));
-    return new Page<CharacterRound>(content, page, size, totalElements);
+    return new Page<ActorRound>(content, page, size, totalElements);
   }
 
-  async save(request: Partial<CharacterRound>): Promise<CharacterRound> {
+  async save(request: Partial<ActorRound>): Promise<ActorRound> {
     const model = new this.characterRoundModel({ ...request, _id: request.id });
     await model.save();
     return this.mapToEntity(model);
   }
 
-  async update(id: string, request: Partial<CharacterRound>): Promise<CharacterRound> {
+  async update(id: string, request: Partial<ActorRound>): Promise<ActorRound> {
     const current = await this.characterRoundModel.findById(id);
     if (!current) {
       throw new NotFoundError('CharacterRound', id);
@@ -60,7 +60,7 @@ export class MongoCharacterRoundRepository implements CharacterRoundRepository {
     return this.mapToEntity(updatedCharacterRound);
   }
 
-  async deleteById(id: string): Promise<CharacterRound | null> {
+  async deleteById(id: string): Promise<ActorRound | null> {
     const result = await this.characterRoundModel.findByIdAndDelete(id);
     return result ? this.mapToEntity(result) : null;
   }
@@ -70,11 +70,11 @@ export class MongoCharacterRoundRepository implements CharacterRoundRepository {
     return exists !== null;
   }
 
-  private mapToEntity(doc: CharacterRoundDocument): CharacterRound {
+  private mapToEntity(doc: ActorRoundDocument): ActorRound {
     return {
       id: doc.id as string,
       gameId: doc.gameId,
-      characterId: doc.characterId,
+      actorId: doc.actorId,
       round: doc.round,
       initiative: doc.initiative,
       actionPoints: doc.actionPoints,

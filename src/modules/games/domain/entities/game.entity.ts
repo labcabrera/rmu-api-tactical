@@ -23,4 +23,5 @@ export interface Actor {
   name: string;
   factionId: string;
   type: ActorType;
+  owner: string;
 }

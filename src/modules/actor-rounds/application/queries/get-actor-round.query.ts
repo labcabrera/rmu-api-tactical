@@ -1,6 +1,6 @@
-export class GetCharacterRoundQuery {
+export class GetActorRoundQuery {
   constructor(
-    public readonly characterRoundId: string,
+    public readonly actorRoundId: string,
     public readonly userId: string,
     public readonly roles: string[],
   ) {}

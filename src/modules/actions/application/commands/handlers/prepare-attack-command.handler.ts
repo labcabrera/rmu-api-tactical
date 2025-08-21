@@ -1,7 +1,7 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
-import * as crr from '../../../../character-rounds/application/ports/out/character-round.repository';
+import * as crr from '../../../../actor-rounds/application/ports/out/character-round.repository';
 import * as gr from '../../../../games/application/ports/out/game.repository';
 import { ValidationError } from '../../../../shared/domain/errors';
 import { Action, ActionAttack } from '../../../domain/entities/action.entity';
@@ -14,7 +14,7 @@ import { PrepareAttackCommand } from '../prepare-attack.command';
 export class PrepareAttackCommandHandler implements ICommandHandler<PrepareAttackCommand, Action> {
   constructor(
     @Inject('GameRepository') private readonly gameRepository: gr.GameRepository,
-    @Inject('CharacterRoundRepository') private readonly characterRoundRepository: crr.CharacterRoundRepository,
+    @Inject('ActorRoundRepository') private readonly characterRoundRepository: crr.ActorRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: ar.ActionRepository,
     @Inject('AttackClient') private readonly attackClient: ac.AttackClient,
     @Inject('ActionEventProducer') private readonly actionEventProducer: aep.ActionEventProducer,
@@ -44,11 +44,11 @@ export class PrepareAttackCommandHandler implements ICommandHandler<PrepareAttac
   }
 
   private async createAttack(action: Action, attack: ActionAttack, round: number, command: PrepareAttackCommand): Promise<void> {
-    const source = await this.characterRoundRepository.findByCharacterIdAndRound(action.characterId, round);
+    const source = await this.characterRoundRepository.findByActorIdAndRound(action.characterId, round);
     if (!source) {
       throw new ValidationError('Character not found');
     }
-    const target = await this.characterRoundRepository.findByCharacterIdAndRound(attack.targetId, round);
+    const target = await this.characterRoundRepository.findByActorIdAndRound(attack.targetId, round);
     if (!target) {
       throw new ValidationError('Target character not found');
     }

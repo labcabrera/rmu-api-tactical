@@ -1,7 +1,7 @@
 import { Prop, Schema } from '@nestjs/mongoose';
 
 @Schema({ _id: false })
-export class CharacterRoundHP {
+export class ActorRoundHP {
   @Prop({ required: true })
   max: number;
 
@@ -10,7 +10,7 @@ export class CharacterRoundHP {
 }
 
 @Schema({ _id: false })
-export class CharacterRoundEffect {
+export class ActorRoundEffect {
   @Prop({ required: true })
   status: string;
 
@@ -22,7 +22,7 @@ export class CharacterRoundEffect {
 }
 
 @Schema({ _id: false })
-export class CharacterRoundInitiative {
+export class ActorRoundInitiative {
   @Prop({ required: true })
   base: number;
   @Prop({ required: true })

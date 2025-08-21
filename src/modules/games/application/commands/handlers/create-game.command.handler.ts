@@ -3,6 +3,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
 import { ValidationError } from '../../../../shared/domain/errors';
 import * as cc from '../../../../strategic/application/ports/out/character-client';
+import * as sgc from '../../../../strategic/application/ports/out/strategic-game-client';
 import { Actor, Game } from '../../../domain/entities/game.entity';
 import * as gep from '../../ports/out/game-event-producer';
 import * as gr from '../../ports/out/game.repository';
@@ -14,12 +15,17 @@ export class CreateGameCommandHandler implements ICommandHandler<CreateGameComma
 
   constructor(
     @Inject('GameRepository') private readonly gameRepository: gr.GameRepository,
+    @Inject('StrategicGameClient') private readonly strategicGameClient: sgc.StrategicGameClient,
     @Inject('CharacterClient') private readonly characterClient: cc.CharacterClient,
     @Inject('GameEventProducer') private readonly gameEventProducer: gep.GameEventProducer,
   ) {}
 
   async execute(command: CreateGameCommand): Promise<Game> {
     this.logger.debug(`Creating game: ${command.name} for user ${command.userId}`);
+    const strategicGame = await this.strategicGameClient.findById(command.strategicGameId);
+    if (!strategicGame) {
+      throw new ValidationError(`Strategic game ${command.strategicGameId} not found`);
+    }
     const actors: Actor[] = [];
     if (command.actors) {
       for (const actorCommand of command.actors) {
@@ -35,7 +41,7 @@ export class CreateGameCommandHandler implements ICommandHandler<CreateGameComma
       round: 0,
       actors: actors,
       description: command.description,
-      owner: command.userId,
+      owner: strategicGame.owner,
       createdAt: new Date(),
       updatedAt: undefined,
     };
@@ -47,6 +53,7 @@ export class CreateGameCommandHandler implements ICommandHandler<CreateGameComma
   private async mapActor(actor: CreateGameCommandActor): Promise<Actor> {
     let name = 'unknown';
     let factionId = actor.faction || 'neutral';
+    let owner = 'unknown';
     if (actor.type === 'character') {
       const character = await this.characterClient.findById(actor.id);
       if (!character) {
@@ -54,6 +61,7 @@ export class CreateGameCommandHandler implements ICommandHandler<CreateGameComma
       }
       name = character.name;
       factionId = character.factionId;
+      owner = character.owner;
     } else {
       //TODO
       throw new NotImplementedException('NPCs are not implemented');
@@ -63,6 +71,7 @@ export class CreateGameCommandHandler implements ICommandHandler<CreateGameComma
       name: name,
       type: actor.type,
       factionId: factionId,
+      owner: owner,
     };
   }
 }

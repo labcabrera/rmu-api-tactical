@@ -1,4 +1,4 @@
-export class GetCharacterRoundsQuery {
+export class GetActorsRoundsQuery {
   constructor(
     public readonly rsql: string | undefined,
     public readonly page: number,

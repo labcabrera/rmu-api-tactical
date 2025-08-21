@@ -8,16 +8,16 @@ import { ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthori
 import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
 import { Page } from '../../../shared/domain/entities/page.entity';
 import { ErrorDto, PagedQueryDto } from '../../../shared/infrastructure/controller/dto';
-import { GetCharacterRoundQuery } from '../../application/queries/get-character-round.query';
-import { GetCharacterRoundsQuery } from '../../application/queries/get-character-rounds.query';
-import { CharacterRound } from '../../domain/entities/character-round.entity';
-import { CharacterRoundDto, CharacterRoundPageDto } from './dto/character-round.dto';
+import { GetActorRoundQuery } from '../../application/queries/get-actor-round.query';
+import { GetActorsRoundsQuery } from '../../application/queries/get-actor-rounds.query';
+import { ActorRound } from '../../domain/entities/actor-round.entity';
+import { ActorRoundDto, CharacterRoundPageDto } from './dto/character-round.dto';
 
 @UseGuards(JwtAuthGuard)
-@Controller('v1/tactical-character-rounds')
-@ApiTags('Character Rounds')
-export class CharacterRoundController {
-  private readonly logger = new Logger(CharacterRoundController.name);
+@Controller('v1/actor-rounds')
+@ApiTags('Actor Rounds')
+export class ActorRoundController {
+  private readonly logger = new Logger(ActorRoundController.name);
 
   constructor(
     private commandBus: CommandBus,
@@ -25,16 +25,16 @@ export class CharacterRoundController {
   ) {}
 
   @Get(':id')
-  @ApiOkResponse({ type: CharacterRoundDto, description: 'Success' })
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
   @ApiOperation({ operationId: 'findCharacterRoundById', summary: 'Find character round by id' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiNotFoundResponse({ description: 'Character round not found', type: ErrorDto })
   async findById(@Param('id') id: string, @Request() req) {
     const user = req.user!;
-    const query = new GetCharacterRoundQuery(id, user.id as string, user.roles as string[]);
-    const entity = await this.queryBus.execute<GetCharacterRoundQuery, CharacterRound>(query);
+    const query = new GetActorRoundQuery(id, user.id as string, user.roles as string[]);
+    const entity = await this.queryBus.execute<GetActorRoundQuery, ActorRound>(query);
     this.logger.debug(`Character round found: ${JSON.stringify(entity)}`);
-    return CharacterRoundDto.fromEntity(entity);
+    return ActorRoundDto.fromEntity(entity);
   }
 
   @Get('')
@@ -47,9 +47,9 @@ export class CharacterRoundController {
   async find(@Query() dto: PagedQueryDto, @Request() req) {
     this.logger.debug(`Finding character rounds with query: ${JSON.stringify(dto)}`);
     const user = req.user!;
-    const query = new GetCharacterRoundsQuery(dto.q, dto.page, dto.size, user.id as string, user.roles as string[]);
-    const page = await this.queryBus.execute<GetCharacterRoundsQuery, Page<CharacterRound>>(query);
-    const mapped = page.content.map((characterRound) => CharacterRoundDto.fromEntity(characterRound));
-    return new Page<CharacterRoundDto>(mapped, page.pagination.page, page.pagination.size, page.pagination.totalElements);
+    const query = new GetActorsRoundsQuery(dto.q, dto.page, dto.size, user.id as string, user.roles as string[]);
+    const page = await this.queryBus.execute<GetActorsRoundsQuery, Page<ActorRound>>(query);
+    const mapped = page.content.map((characterRound) => ActorRoundDto.fromEntity(characterRound));
+    return new Page<ActorRoundDto>(mapped, page.pagination.page, page.pagination.size, page.pagination.totalElements);
   }
 }

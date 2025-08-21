@@ -1,8 +1,8 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
-import * as characterRoundRepository from '../../../../character-rounds/application/ports/out/character-round.repository';
-import { CharacterRound } from '../../../../character-rounds/domain/entities/character-round.entity';
+import * as characterRoundRepository from '../../../../actor-rounds/application/ports/out/character-round.repository';
+import { ActorRound } from '../../../../actor-rounds/domain/entities/actor-round.entity';
 import * as gameRepository from '../../../../games/application/ports/out/game.repository';
 import { Game } from '../../../../games/domain/entities/game.entity';
 import { ValidationError } from '../../../../shared/domain/errors';
@@ -15,7 +15,7 @@ import { CreateActionCommand } from '../create-action.command';
 export class CreateActionCommandHandler implements ICommandHandler<CreateActionCommand, Action> {
   constructor(
     @Inject('GameRepository') private readonly gameRepository: gameRepository.GameRepository,
-    @Inject('CharacterRoundRepository') private readonly characterRoundRepository: characterRoundRepository.CharacterRoundRepository,
+    @Inject('ActorRoundRepository') private readonly characterRoundRepository: characterRoundRepository.ActorRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: actionRepository.ActionRepository,
     @Inject('ActionEventProducer') private readonly actionEventProducer: actionEventProducer.ActionEventProducer,
   ) {}
@@ -64,7 +64,7 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
     return game;
   }
 
-  private async readCharacterRound(command: CreateActionCommand, round: number): Promise<CharacterRound> {
+  private async readCharacterRound(command: CreateActionCommand, round: number): Promise<ActorRound> {
     const rsql = `gameId==${command.gameId};characterId==${command.characterId};round==${round}`;
     const characterRounds = await this.characterRoundRepository.findByRsql(rsql, 0, 100);
     if (characterRounds.content.length === 0) {

@@ -34,6 +34,9 @@ export class GameDto {
   @ApiProperty({ description: 'Description of the game', required: false, example: 'Tactical battle in Mordor' })
   description: string | undefined;
 
+  @ApiProperty({ description: 'Owner of the game', example: 'user-123' })
+  owner: string;
+
   static fromEntity(entity: ge.Game) {
     const dto = new GameDto();
     dto.id = entity.id;
@@ -43,6 +46,7 @@ export class GameDto {
     dto.round = entity.round;
     dto.actors = entity.actors.map((actor) => ActorDto.fromEntity(actor));
     dto.description = entity.description;
+    dto.owner = entity.owner;
     return dto;
   }
 }

@@ -4,4 +4,5 @@ export interface StrategicGameClient {
 
 export interface StrategicGame {
   id: string;
+  owner: string;
 }
