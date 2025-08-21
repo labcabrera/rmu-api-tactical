@@ -4,7 +4,7 @@ import { ActorRoundEffect, ActorRoundHP, ActorRoundInitiative } from './actor-ro
 
 export type ActorRoundDocument = ActorRoundModel & Document;
 
-@Schema({ collection: 'character-rounds', versionKey: false })
+@Schema({ collection: 'actor-rounds', versionKey: false })
 export class ActorRoundModel {
   @Prop({ required: true })
   gameId: string;

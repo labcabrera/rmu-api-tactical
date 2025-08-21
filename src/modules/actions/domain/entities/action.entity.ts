@@ -18,7 +18,7 @@ export type ManeuverDifficulty =
 export interface Action {
   id: string;
   gameId: string;
-  characterId: string;
+  actorId: string;
   status: ActionStatus;
   round: number;
   actionType: ActionType;
@@ -32,7 +32,7 @@ export interface Action {
 
 export interface ActionAttack {
   attackId: string | undefined;
-  attackType: string;
+  attackName: string;
   targetId: string;
   parry: number;
   status: ActionStatus;

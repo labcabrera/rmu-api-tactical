@@ -31,9 +31,9 @@ export class PrepareAttackCommandHandler implements ICommandHandler<PrepareAttac
     if (action.status !== 'declared') {
       throw new ValidationError('Action is not in a preparable state');
     }
-    const attack = action.attacks?.find((attack) => attack.attackType === command.attackType);
+    const attack = action.attacks?.find((attack) => attack.attackName === command.attackName);
     if (!attack) {
-      throw new ValidationError(`Attack type ${command.attackType} not found in action`);
+      throw new ValidationError(`Attack type ${command.attackName} not found in action`);
     }
     await this.createAttack(action, attack, action.round, command);
     action.status = 'in_progress';
@@ -44,7 +44,7 @@ export class PrepareAttackCommandHandler implements ICommandHandler<PrepareAttac
   }
 
   private async createAttack(action: Action, attack: ActionAttack, round: number, command: PrepareAttackCommand): Promise<void> {
-    const source = await this.characterRoundRepository.findByActorIdAndRound(action.characterId, round);
+    const source = await this.characterRoundRepository.findByActorIdAndRound(action.actorId, round);
     if (!source) {
       throw new ValidationError('Character not found');
     }
@@ -73,7 +73,7 @@ export class PrepareAttackCommandHandler implements ICommandHandler<PrepareAttac
 
     const request = {
       actionId: action.id,
-      sourceId: action.characterId,
+      sourceId: action.actorId,
       targetId: attack.targetId,
       modifiers: {
         attackType: 'melee',

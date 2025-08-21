@@ -7,7 +7,7 @@ export class ActionAttack {
   attackId: string | undefined;
 
   @Prop({ required: true })
-  attackType: string;
+  attackName: string;
 
   @Prop({ required: true })
   targetId: string;

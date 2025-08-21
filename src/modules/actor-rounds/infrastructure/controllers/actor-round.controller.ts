@@ -11,7 +11,7 @@ import { ErrorDto, PagedQueryDto } from '../../../shared/infrastructure/controll
 import { GetActorRoundQuery } from '../../application/queries/get-actor-round.query';
 import { GetActorsRoundsQuery } from '../../application/queries/get-actor-rounds.query';
 import { ActorRound } from '../../domain/entities/actor-round.entity';
-import { ActorRoundDto, CharacterRoundPageDto } from './dto/character-round.dto';
+import { ActorRoundDto, CharacterRoundPageDto } from './dto/actor-round.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('v1/actor-rounds')

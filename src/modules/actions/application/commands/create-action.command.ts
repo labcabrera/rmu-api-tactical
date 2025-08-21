@@ -2,7 +2,7 @@ import { ActionType, ManeuverType } from '../../domain/entities/action.entity';
 
 export class CreateActionCommand {
   gameId: string;
-  characterId: string;
+  actorId: string;
   actionType: ActionType;
   phaseStart: number;
   actionPoints: number;
@@ -13,7 +13,7 @@ export class CreateActionCommand {
 }
 
 export class CreateActionCommandAttack {
-  attackType: string;
+  attackName: string;
   targetId: string;
   parry: number;
 }

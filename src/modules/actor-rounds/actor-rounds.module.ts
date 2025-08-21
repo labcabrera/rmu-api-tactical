@@ -11,7 +11,7 @@ import { GetActorRoundQueryHandler } from './application/queries/handlers/get-ac
 import { GetCharacterRoundsQueryHandler } from './application/queries/handlers/get-actor-rounds.query.handler';
 import { ActorRoundController } from './infrastructure/controllers/actor-round.controller';
 import { ActorRoundModel, ActorRoundSchema } from './infrastructure/persistence/models/actor-round.model';
-import { MongoCharacterRoundRepository as MongoActorRoundRepository } from './infrastructure/persistence/repositories/mongo-character-model.repository';
+import { MongoActorRoundRepository } from './infrastructure/persistence/repositories/mongo-actor-round-model.repository';
 
 @Module({
   imports: [

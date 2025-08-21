@@ -15,7 +15,7 @@ export class ActionDto {
   status: actionEntity.ActionStatus;
 
   @ApiProperty({ description: 'Character identifier', example: 'character-789' })
-  characterId: string;
+  actorId: string;
 
   @ApiProperty({ description: 'The round number in which the action takes place', example: 1 })
   round: number;
@@ -42,7 +42,7 @@ export class ActionDto {
     const dto = new ActionDto();
     dto.id = entity.id;
     dto.gameId = entity.gameId;
-    dto.characterId = entity.characterId;
+    dto.actorId = entity.actorId;
     dto.status = entity.status;
     dto.round = entity.round;
     dto.actionType = entity.actionType;

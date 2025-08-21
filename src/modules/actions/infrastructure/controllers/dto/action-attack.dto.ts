@@ -3,7 +3,7 @@ import * as actionEntity from '../../../domain/entities/action.entity';
 
 export class ActionAttackDto {
   @ApiProperty({ description: 'Attack type', example: 'mainHand' })
-  attackType: string;
+  attackName: string;
 
   @ApiProperty({ description: 'Target identifier', example: 'target-01' })
   targetId: string;
@@ -20,7 +20,7 @@ export class ActionAttackDto {
   static fromEntity(entity: actionEntity.ActionAttack): ActionAttackDto {
     const dto = new ActionAttackDto();
     dto.attackId = entity.attackId;
-    dto.attackType = entity.attackType;
+    dto.attackName = entity.attackName;
     dto.targetId = entity.targetId;
     dto.parry = entity.parry;
     dto.status = entity.status;

@@ -10,7 +10,7 @@ import { ActorRound } from '../../../domain/entities/actor-round.entity';
 import { ActorRoundDocument, ActorRoundModel } from '../models/actor-round.model';
 
 @Injectable()
-export class MongoCharacterRoundRepository implements ActorRoundRepository {
+export class MongoActorRoundRepository implements ActorRoundRepository {
   constructor(
     @InjectModel(ActorRoundModel.name) private characterRoundModel: Model<ActorRoundDocument>,
     private rsqlParser: RsqlParser,

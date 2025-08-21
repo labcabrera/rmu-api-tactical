@@ -12,7 +12,7 @@ export class ActionModel {
   gameId: string;
 
   @Prop({ required: true })
-  characterId: string;
+  actorId: string;
 
   @Prop({ required: true })
   status: actionEntity.ActionStatus;

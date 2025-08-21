@@ -8,7 +8,7 @@ import { ActorRoundEffect, ActorRoundHP, ActorRoundInitiative } from '../../pers
 export class ActorRoundDto {
   id: string;
   gameId: string;
-  characterId: string;
+  actorId: string;
   round: number;
   initiative: ActorRoundInitiative;
   actionPoints: number;
@@ -19,7 +19,7 @@ export class ActorRoundDto {
     const dto = new ActorRoundDto();
     dto.id = entity.id;
     dto.gameId = entity.gameId;
-    dto.characterId = entity.actorId;
+    dto.actorId = entity.actorId;
     dto.round = entity.round;
     dto.initiative = entity.initiative;
     dto.actionPoints = entity.actionPoints;

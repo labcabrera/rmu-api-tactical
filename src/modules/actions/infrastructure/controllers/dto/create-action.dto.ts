@@ -8,7 +8,7 @@ export class ActionAttackCreationDto {
   @ApiProperty({ description: 'Attack type' })
   @IsString()
   @IsNotEmpty()
-  attackType: string;
+  attackName: string;
 
   @ApiProperty({ description: 'Target identifier' })
   @IsString()
@@ -41,7 +41,7 @@ export class CreateActionDto {
   @ApiProperty({ description: 'Character identifier' })
   @IsString()
   @IsNotEmpty()
-  characterId: string;
+  actorId: string;
 
   @ApiProperty({ description: 'Action type' })
   @IsString()
@@ -64,6 +64,7 @@ export class CreateActionDto {
   attacks: ActionAttackCreationDto[] | undefined;
 
   @ApiProperty({ description: 'Action maneuver', type: ActionManeuverCreationDto })
+  @IsOptional()
   @ValidateNested()
   @Type(() => ActionManeuverCreationDto)
   @IsObject()
@@ -72,7 +73,7 @@ export class CreateActionDto {
   static toCommand(dto: CreateActionDto, userId: string, roles: string[]) {
     const command = new CreateActionCommand();
     command.gameId = dto.gameId;
-    command.characterId = dto.characterId;
+    command.actorId = dto.actorId;
     command.actionType = dto.actionType;
     command.phaseStart = dto.phaseStart;
     command.actionPoints = dto.actionPoints;

@@ -25,11 +25,14 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
     const game = await this.readGame(command);
     if (game.round < 1) {
       throw new ValidationError(`Game ${game.name} is not in progress. You need to start the game.`);
+    } else if (game.phase !== 'declare_actions') {
+      throw new ValidationError(`Game ${game.name} is not in the declare_actions phase.`);
     }
-    const characterRound = await this.readCharacterRound(command, game.round);
+
+    const actorRound = await this.readActorRound(command, game.round);
     const actions = await this.readActions(command, game.round);
 
-    const availableActionPoints = characterRound.actionPoints;
+    const availableActionPoints = actorRound.actionPoints;
     const usedActionPoints = actions.reduce((total, action) => total + action.actionPoints, 0);
     const remainingActionPoints = availableActionPoints - usedActionPoints;
     if (remainingActionPoints < command.actionPoints) {
@@ -43,7 +46,7 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
       gameId: command.gameId,
       status: 'declared',
       round: game.round,
-      characterId: command.characterId,
+      actorId: command.actorId,
       actionType: command.actionType,
       phaseStart: command.phaseStart,
       actionPoints: command.actionPoints,
@@ -64,28 +67,29 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
     return game;
   }
 
-  private async readCharacterRound(command: CreateActionCommand, round: number): Promise<ActorRound> {
-    const rsql = `gameId==${command.gameId};characterId==${command.characterId};round==${round}`;
+  private async readActorRound(command: CreateActionCommand, round: number): Promise<ActorRound> {
+    const rsql = `gameId==${command.gameId};actorId==${command.actorId};round==${round}`;
     const characterRounds = await this.characterRoundRepository.findByRsql(rsql, 0, 100);
     if (characterRounds.content.length === 0) {
-      throw new ValidationError(`CharacterRound for game ${command.gameId}, character ${command.characterId}, round ${round} not found`);
+      throw new ValidationError(`CharacterRound for game ${command.gameId}, character ${command.actorId}, round ${round} not found`);
     }
     return characterRounds.content[0];
   }
 
   private async readActions(command: CreateActionCommand, round: number): Promise<Action[]> {
-    const rsql = `gameId==${command.gameId};characterId==${command.characterId};round==${round}`;
+    const rsql = `gameId==${command.gameId};actorId==${command.actorId};round==${round}`;
     const actions = await this.actionRepository.findByRsql(rsql, 0, 100);
     return actions.content;
   }
 
   private prepareAttacks(command: CreateActionCommand): ActionAttack[] | undefined {
+    //TODO validate attack name exists
     if (!command.attacks || command.attacks.length === 0) {
       return undefined;
     }
     return command.attacks.map((attack) => {
       return {
-        attackType: attack.attackType,
+        attackName: attack.attackName,
         targetId: attack.targetId,
         parry: attack.parry,
         status: 'declared',
@@ -113,7 +117,7 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
     }
     if (command.attacks) {
       command.attacks.forEach((attack) => {
-        if (!attack.attackType || !attack.targetId || attack.parry === undefined) {
+        if (!attack.attackName || !attack.targetId || attack.parry === undefined) {
           throw new ValidationError(`Invalid attack data`);
         }
       });
