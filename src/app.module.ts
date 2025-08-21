@@ -4,11 +4,11 @@ import { MongooseModule } from '@nestjs/mongoose';
 import * as Joi from 'joi';
 
 import { ActionsModule } from './modules/actions/actions.module';
+import { ActorsRoundModule } from './modules/actor-rounds/actor-rounds.module';
 import { AuthModule } from './modules/auth/auth.module';
-import { CharactersRoundModule } from './modules/character-rounds/character-rounds.module';
-import { CharactersModule } from './modules/characters/characters.module';
 import { GamesModule } from './modules/games/games.module';
 import { SharedModule } from './modules/shared/shared.module';
+import { StrategicModule } from './modules/strategic/strategic.module';
 
 @Module({
   imports: [
@@ -28,6 +28,7 @@ import { SharedModule } from './modules/shared/shared.module';
         RMU_API_CORE_URI: Joi.string().uri().required(),
         RMU_API_ITEMS_URI: Joi.string().uri().required(),
         RMU_API_ATTACK_URI: Joi.string().uri().required(),
+        RMU_API_STRATEGIC_URI: Joi.string().uri().required(),
       }),
     }),
     MongooseModule.forRootAsync({
@@ -38,10 +39,10 @@ import { SharedModule } from './modules/shared/shared.module';
       inject: [ConfigService],
     }),
     SharedModule,
+    StrategicModule,
     AuthModule,
     GamesModule,
-    CharactersModule,
-    CharactersRoundModule,
+    ActorsRoundModule,
     ActionsModule,
   ],
 })

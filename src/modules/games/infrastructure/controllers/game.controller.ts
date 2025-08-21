@@ -15,7 +15,8 @@ import { UpdateGameCommand } from '../../application/commands/update-game.comman
 import { GetGameQuery } from '../../application/queries/get-game.query';
 import { GetGamesQuery } from '../../application/queries/get-games.query';
 import { Game } from '../../domain/entities/game.entity';
-import { CreateGameDto, GameDto, GamePageDto, UpdateGameDto } from './dto/game.dto';
+import { CreateGameDto } from './dto/create-game.dto';
+import { GameDto, GamePageDto, UpdateGameDto } from './dto/game.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('v1/tactical-games')

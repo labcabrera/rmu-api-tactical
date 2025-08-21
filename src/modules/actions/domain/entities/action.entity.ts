@@ -1,49 +1,54 @@
-export type ActionType = 'attack' | 'absolute_maneuver' | 'static_maneuver';
 export type ActionStatus = 'declared' | 'in_progress' | 'completed';
-export type AttackStatus = 'declared' | 'in_progress' | 'completed';
+export type ActionType = 'attack' | 'maneuver';
+export type ManeuverType = 'absolute' | 'percentage';
+export type ManeuverDifficulty =
+  | 'casual'
+  | 'simple'
+  | 'routine'
+  | 'easy'
+  | 'light'
+  | 'medium'
+  | 'hard'
+  | 'very_hard'
+  | 'extremely_hard'
+  | 'sheer_folly'
+  | 'absurd'
+  | 'nigh_impossible';
 
 export interface Action {
   id: string;
   gameId: string;
-  characterId: string;
+  actorId: string;
   status: ActionStatus;
   round: number;
   actionType: ActionType;
   phaseStart: number;
   actionPoints: number;
   attacks: ActionAttack[] | undefined;
-  result: ActionResult | undefined;
-  description: string | undefined;
+  maneuver: ActionManeuver | undefined;
   createdAt: Date;
   updatedAt: Date | undefined;
 }
 
 export interface ActionAttack {
   attackId: string | undefined;
-  attackType: string;
+  attackName: string;
   targetId: string;
   parry: number;
-  status: AttackStatus;
+  status: ActionStatus;
 }
 
-export interface ActionDamage {
-  points: number;
-  type?: string;
-  location?: string;
-  [key: string]: any;
+export interface ActionManeuver {
+  skillId: string;
+  maneuverType: ManeuverType;
+  difficulty: ManeuverDifficulty | undefined;
+  result: ActionManeuverResult | undefined;
+  status: ActionStatus;
 }
 
-export interface ActionResult {
-  success: boolean;
-  description?: string;
-  effects?: ActionEffect[];
-  [key: string]: any;
-}
-
-export interface ActionEffect {
-  type: string;
-  duration?: number;
-  value?: number;
-  target?: string;
-  [key: string]: any;
+export interface ActionManeuverResult {
+  bonus: { [key: string]: number };
+  roll: number;
+  result: number;
+  description: string;
 }

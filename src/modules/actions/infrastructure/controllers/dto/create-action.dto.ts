@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsNotEmpty, IsNumber, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { CreateActionCommand } from '../../../application/commands/create-action.command';
 import * as actionEntity from '../../../domain/entities/action.entity';
 
@@ -8,7 +8,7 @@ export class ActionAttackCreationDto {
   @ApiProperty({ description: 'Attack type' })
   @IsString()
   @IsNotEmpty()
-  attackType: string;
+  attackName: string;
 
   @ApiProperty({ description: 'Target identifier' })
   @IsString()
@@ -20,6 +20,18 @@ export class ActionAttackCreationDto {
   parry: number;
 }
 
+export class ActionManeuverCreationDto {
+  @ApiProperty({ description: 'Skill identifier' })
+  @IsString()
+  @IsNotEmpty()
+  skillId: string;
+
+  @ApiProperty({ description: 'Maneuver type' })
+  @IsString()
+  @IsNotEmpty()
+  maneuverType: actionEntity.ManeuverType;
+}
+
 export class CreateActionDto {
   @ApiProperty({ description: 'Game identifier' })
   @IsString()
@@ -29,7 +41,7 @@ export class CreateActionDto {
   @ApiProperty({ description: 'Character identifier' })
   @IsString()
   @IsNotEmpty()
-  characterId: string;
+  actorId: string;
 
   @ApiProperty({ description: 'Action type' })
   @IsString()
@@ -44,22 +56,31 @@ export class CreateActionDto {
   @IsNumber()
   actionPoints: number;
 
-  @ApiProperty({ description: 'Character items', type: [ActionAttackCreationDto], required: false })
+  @ApiProperty({ description: 'Action attacks', type: [ActionAttackCreationDto], required: false })
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => ActionAttackCreationDto)
   @IsArray()
   attacks: ActionAttackCreationDto[] | undefined;
 
+  @ApiProperty({ description: 'Action maneuver', type: ActionManeuverCreationDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ActionManeuverCreationDto)
+  @IsObject()
+  maneuver: ActionManeuverCreationDto | undefined;
+
   static toCommand(dto: CreateActionDto, userId: string, roles: string[]) {
-    return new CreateActionCommand(
-      dto.gameId,
-      dto.characterId,
-      dto.actionType,
-      dto.phaseStart,
-      dto.actionPoints,
-      dto.attacks,
-      userId,
-      roles,
-    );
+    const command = new CreateActionCommand();
+    command.gameId = dto.gameId;
+    command.actorId = dto.actorId;
+    command.actionType = dto.actionType;
+    command.phaseStart = dto.phaseStart;
+    command.actionPoints = dto.actionPoints;
+    command.attacks = dto.attacks;
+    command.maneuver = dto.maneuver;
+    command.userId = userId;
+    command.roles = roles;
+    return command;
   }
 }

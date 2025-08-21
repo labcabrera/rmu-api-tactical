@@ -64,12 +64,13 @@ export class MongoGameRepository implements GameRepository {
   private mapToEntity(doc: GameDocument): Game {
     return {
       id: doc.id as string,
+      strategicGameId: doc.strategicGameId,
       name: doc.name,
-      description: doc.description,
-      factions: doc.factions,
       round: doc.round,
       status: doc.status,
       phase: doc.phase,
+      actors: doc.actors,
+      description: doc.description,
       owner: doc.owner,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,

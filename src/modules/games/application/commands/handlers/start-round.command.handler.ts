@@ -1,59 +1,67 @@
-import { Inject } from '@nestjs/common';
+import { Inject, NotImplementedException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
-import * as characterRoundRepository from '../../../../character-rounds/application/ports/out/character-round.repository';
-import { CharacterRound } from '../../../../character-rounds/domain/entities/character-round.entity';
-import * as characterRepository from '../../../../characters/application/ports/out/character.repository';
-import { Character } from '../../../../characters/domain/entities/character.entity';
+import * as crr from '../../../../actor-rounds/application/ports/out/character-round.repository';
+import { ActorRound } from '../../../../actor-rounds/domain/entities/actor-round.entity';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import { Game } from '../../../domain/entities/game.entity';
-import * as gameEventProducer from '../../ports/out/game-event-producer';
-import * as gameRepository from '../../ports/out/game.repository';
+import * as cr from '../../../../strategic/application/ports/out/character-client';
+import { Actor, Game } from '../../../domain/entities/game.entity';
+import * as gep from '../../ports/out/game-event-producer';
+import * as gr from '../../ports/out/game.repository';
 import { StartRoundCommand } from '../start-round.command';
 
 @CommandHandler(StartRoundCommand)
 export class StartRoundCommandHandler implements ICommandHandler<StartRoundCommand, Game> {
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: gameRepository.GameRepository,
-    @Inject('CharacterRepository') private readonly characterRepository: characterRepository.CharacterRepository,
-    @Inject('CharacterRoundRepository') private readonly characterRoundRepository: characterRoundRepository.CharacterRoundRepository,
-    @Inject('GameEventProducer') private readonly gameEventProducer: gameEventProducer.GameEventProducer,
+    @Inject('GameRepository') private readonly gameRepository: gr.GameRepository,
+    @Inject('ActorRoundRepository') private readonly characterRoundRepository: crr.ActorRoundRepository,
+    @Inject('CharacterClient') private readonly characterClient: cr.CharacterClient,
+    @Inject('GameEventProducer') private readonly gameEventProducer: gep.GameEventProducer,
   ) {}
 
   async execute(command: StartRoundCommand): Promise<Game> {
     const { gameId } = command;
-    const tacticalGame = await this.gameRepository.findById(gameId);
-    if (!tacticalGame) {
+    const game = await this.gameRepository.findById(gameId);
+    if (!game) {
       throw new NotFoundError('Game', gameId);
     }
-
-    const characters = await this.characterRepository.findByGameId(gameId);
-    if (characters.length < 1) {
-      throw new ValidationError('No characters associated with the game have been found');
+    if (game.actors.length < 1) {
+      throw new ValidationError('No actors associated with the game have been found');
     }
-
     const gameUpdate: Partial<Game> = {
-      ...tacticalGame,
+      ...game,
       status: 'in_progress',
-      round: tacticalGame.round + 1,
+      phase: 'declare_actions',
+      round: game.round + 1,
     };
     const updatedGame = await this.gameRepository.update(gameId, gameUpdate);
-    await this.createCharacterRounds(characters, updatedGame.round);
+    await this.createCharacterRounds(updatedGame);
     await this.gameEventProducer.updated(updatedGame);
     return updatedGame;
   }
 
-  private async createCharacterRounds(characters: Character[], round: number): Promise<void> {
-    for (const character of characters) {
-      await this.createTacticalCharacterRound(character, round);
+  private async createCharacterRounds(game: Game): Promise<void> {
+    for (const actor of game.actors) {
+      await this.createTacticalCharacterRound(game.id, actor, game.round);
     }
   }
 
-  private async createTacticalCharacterRound(character: Character, round: number): Promise<void> {
-    const baseInitiative = character.initiative?.baseBonus || 0;
-    const entity: Partial<CharacterRound> = {
-      gameId: character.gameId,
-      characterId: character.id,
+  private async createTacticalCharacterRound(gameId: string, actor: Actor, round: number): Promise<void> {
+    let baseInitiative = 0;
+    let hp = 0;
+    if (actor.type === 'character') {
+      const character = await this.characterClient.findById(actor.id);
+      if (!character) {
+        throw new ValidationError(`Character ${actor.id} not found`);
+      }
+      baseInitiative = character.initiative.baseBonus;
+      hp = character.hp.max;
+    } else {
+      throw new NotImplementedException('NPCs are not implemented yet');
+    }
+    const entity: Partial<ActorRound> = {
+      gameId: gameId,
+      actorId: actor.id,
       round: round,
       initiative: {
         base: baseInitiative,
@@ -63,11 +71,11 @@ export class StartRoundCommandHandler implements ICommandHandler<StartRoundComma
       },
       actionPoints: 4,
       hp: {
-        current: character.hp.current,
-        max: character.hp.max,
+        current: hp,
+        max: hp,
       },
       effects: [],
-      owner: character.owner,
+      owner: actor.owner,
       createdAt: new Date(),
     };
     await this.characterRoundRepository.save(entity);

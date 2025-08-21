@@ -80,15 +80,14 @@ export class MongoActionRepository implements ActionRepository {
     return {
       id: doc.id as string,
       gameId: doc.gameId,
-      characterId: doc.characterId,
+      actorId: doc.actorId,
       status: doc.status,
       round: doc.round,
       actionType: doc.actionType,
       phaseStart: doc.phaseStart,
       actionPoints: doc.actionPoints,
+      maneuver: doc.maneuver,
       attacks: doc.attacks,
-      description: doc.description,
-      result: doc.result,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     };

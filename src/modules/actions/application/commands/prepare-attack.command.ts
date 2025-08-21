@@ -10,7 +10,7 @@ export type DodgeType = 'none' | 'passive' | 'partial' | 'full';
 
 export class PrepareAttackCommand {
   actionId: string;
-  attackType: string;
+  attackName: string;
   cover: CoverType;
   restrictedQuarters: RestrictedQuartersType;
   positionalSource: PositionalSourceType;

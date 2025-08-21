@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
@@ -47,7 +45,7 @@ export class PrepareAttackDto {
   static toCommand(actionId: string, dto: PrepareAttackDto, userId: string, roles: string[]): pac.PrepareAttackCommand {
     const result = new pac.PrepareAttackCommand();
     result.actionId = actionId;
-    result.attackType = dto.attackType;
+    result.attackName = dto.attackType;
     result.cover = dto.cover;
     result.restrictedQuarters = dto.restrictedQuarters;
     result.positionalSource = dto.positionalSource;

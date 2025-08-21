@@ -2,68 +2,52 @@ import { ApiProperty } from '@nestjs/swagger';
 
 import { IsNotEmpty, IsString } from 'class-validator';
 import { PaginationDto } from '../../../../shared/infrastructure/controller/dto';
-import { CreateGameCommand } from '../../../application/commands/create-game.command';
 import { UpdateGameCommand } from '../../../application/commands/update-game.command';
-import { Game } from '../../../domain/entities/game.entity';
+import * as ge from '../../../domain/entities/game.entity';
+import { ActorDto } from './actor-dto';
 
 export class GameDto {
   @ApiProperty({ description: 'Game identifier', example: 'lotr' })
   id: string;
 
+  @ApiProperty({ description: 'Strategic Game identifier', example: 'lotr' })
+  strategicGameId: string;
+
   @ApiProperty({ description: 'Name of the game', example: 'Mordor Game 1' })
   name: string;
 
-  @ApiProperty({ description: 'Factions involved in the game', type: [String], example: ['Gondor', 'Mordor'] })
-  @IsString({ each: true })
-  factions: string[];
-
-  @ApiProperty({ description: 'Current status of the game', enum: ['created', 'in_progress', 'finished'] })
+  @ApiProperty({ description: 'Current status of the game' })
   @IsString()
-  status: 'created' | 'in_progress' | 'finished';
+  status: ge.GameStatus;
 
   @ApiProperty({ description: 'Current round of the game', example: 1 })
   @IsNotEmpty()
   round: number;
 
-  @ApiProperty({
-    description: 'Current phase of the game',
-    enum: ['not_started', 'declare_actions', 'declare_initative', 'resolve_actions', 'upkeep'],
-  })
+  @ApiProperty({ description: 'Current phase of the game' })
   @IsString()
-  phase: 'not_started' | 'declare_actions' | 'declare_initative' | 'resolve_actions' | 'upkeep';
+  phase: ge.GamePhase;
+
+  @ApiProperty({ description: 'Factions involved in the game', type: [String], example: ['Gondor', 'Mordor'] })
+  actors: ActorDto[];
 
   @ApiProperty({ description: 'Description of the game', required: false, example: 'Tactical battle in Mordor' })
   description: string | undefined;
 
-  static fromEntity(entity: Game) {
+  @ApiProperty({ description: 'Owner of the game', example: 'user-123' })
+  owner: string;
+
+  static fromEntity(entity: ge.Game) {
     const dto = new GameDto();
     dto.id = entity.id;
     dto.name = entity.name;
-    dto.description = entity.description;
     dto.status = entity.status;
     dto.phase = entity.phase;
-    dto.factions = entity.factions;
     dto.round = entity.round;
+    dto.actors = entity.actors.map((actor) => ActorDto.fromEntity(actor));
+    dto.description = entity.description;
+    dto.owner = entity.owner;
     return dto;
-  }
-}
-
-export class CreateGameDto {
-  @ApiProperty({ description: 'Name of the game', example: 'Mordor Game 1' })
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-
-  @ApiProperty({ description: 'Description of the game', required: false, example: 'Tactical battle in Mordor' })
-  @IsString()
-  description: string | undefined;
-
-  @ApiProperty({ description: 'Factions involved in the game', type: [String], example: ['Gondor', 'Mordor'] })
-  @IsString({ each: true })
-  factions: string[] | undefined;
-
-  static toCommand(dto: CreateGameDto, userId: string, roles: string[]) {
-    return new CreateGameCommand(dto.name, dto.description, dto.factions, userId, roles);
   }
 }
 
