@@ -52,20 +52,25 @@ function configureOpenApi(app: INestApplication<any>) {
       ],
     },
   });
-  // Apply security schema to all paths
+
+  // Apply security schema to all paths except health endpoint
   document.paths = Object.entries(document.paths).reduce(
     (acc, [path, methods]) => {
       acc[path] = {};
       for (const method in methods) {
-        acc[path][method] = {
-          ...methods[method],
-          security: [{ oauth2: [], 'access-token': [] }],
-        };
+        if (path === '/health' && method === 'get') {
+          acc[path][method] = { ...methods[method] };
+        } else {
+          acc[path][method] = {
+            ...methods[method],
+            security: [{ oauth2: [], 'access-token': [] }],
+          };
+        }
       }
       return acc;
     },
-    {} as typeof document.paths,
-  );
+    {} as Record<string, Record<string, any>>,
+  ) as typeof document.paths;
 
   app.use('/api-spec', (req, res) => {
     res.json(document);
