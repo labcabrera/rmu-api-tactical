@@ -40,6 +40,7 @@ export class GameDto {
   static fromEntity(entity: ge.Game) {
     const dto = new GameDto();
     dto.id = entity.id;
+    dto.strategicGameId = entity.strategicGameId;
     dto.name = entity.name;
     dto.status = entity.status;
     dto.phase = entity.phase;
