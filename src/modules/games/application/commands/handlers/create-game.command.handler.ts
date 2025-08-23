@@ -26,6 +26,8 @@ export class CreateGameCommandHandler implements ICommandHandler<CreateGameComma
     if (!strategicGame) {
       throw new ValidationError(`Strategic game ${command.strategicGameId} not found`);
     }
+    //TODO validate actor factions
+    const factions = command.factions || [];
     const actors: Actor[] = [];
     if (command.actors) {
       for (const actorCommand of command.actors) {
@@ -39,6 +41,7 @@ export class CreateGameCommandHandler implements ICommandHandler<CreateGameComma
       status: 'created',
       phase: 'not_started',
       round: 0,
+      factions: factions,
       actors: actors,
       description: command.description,
       owner: strategicGame.owner,

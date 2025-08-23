@@ -8,6 +8,8 @@ import { AuthModule } from 'src/modules/auth/auth.module';
 import { ActorsRoundModule } from '../actor-rounds/actor-rounds.module';
 import { SharedModule } from '../shared/shared.module';
 import { StrategicModule } from '../strategic/strategic.module';
+import { AddGameActorsCommandHandler } from './application/commands/handlers/add-game-actors.command.handler';
+import { AddGameFactionsCommandHandler } from './application/commands/handlers/add-game-factions.command.handler';
 import { CreateGameCommandHandler } from './application/commands/handlers/create-game.command.handler';
 import { DeleteGameCommandHandler } from './application/commands/handlers/delete-game.command.handler';
 import { StartRoundCommandHandler } from './application/commands/handlers/start-round.command.handler';
@@ -39,6 +41,8 @@ import { MongoGameRepository } from './infrastructure/persistence/repositories/m
     UpdateGameCommandHandler,
     DeleteGameCommandHandler,
     StartRoundCommandHandler,
+    AddGameFactionsCommandHandler,
+    AddGameActorsCommandHandler,
     {
       provide: 'GameRepository',
       useClass: MongoGameRepository,

@@ -8,6 +8,7 @@ import { ApiBody, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiResponse,
 import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
 import { Page } from '../../../shared/domain/entities/page.entity';
 import { ErrorDto, PagedQueryDto } from '../../../shared/infrastructure/controller/dto';
+import { AddGameActorsCommand } from '../../application/commands/add-game-actors.command';
 import { CreateGameCommand } from '../../application/commands/create-game.command';
 import { DeleteGameCommand } from '../../application/commands/delete-game.command';
 import { StartRoundCommand } from '../../application/commands/start-round.command';
@@ -15,6 +16,8 @@ import { UpdateGameCommand } from '../../application/commands/update-game.comman
 import { GetGameQuery } from '../../application/queries/get-game.query';
 import { GetGamesQuery } from '../../application/queries/get-games.query';
 import { Game } from '../../domain/entities/game.entity';
+import { AddGameActorsDto } from './dto/add-game-actors-dto';
+import { AddGameFactionsDto } from './dto/add-game-factions.dto';
 import { CreateGameDto } from './dto/create-game.dto';
 import { GameDto, GamePageDto, UpdateGameDto } from './dto/game.dto';
 
@@ -108,6 +111,30 @@ export class GameController {
     const user = req.user!;
     const command = new StartRoundCommand(id, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<StartRoundCommand, Game>(command);
+    return GameDto.fromEntity(entity);
+  }
+
+  @Post(':id/factions')
+  @HttpCode(200)
+  @ApiOperation({ operationId: 'addFactions', summary: 'Add factions to game' })
+  @ApiOkResponse({ type: AddGameFactionsDto, description: 'Success' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  async addFactions(@Param('id') id: string, @Body() dto: AddGameFactionsDto, @Request() req) {
+    const user = req.user!;
+    const command = AddGameFactionsDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<AddGameFactionsDto, Game>(command);
+    return GameDto.fromEntity(entity);
+  }
+
+  @Post(':id/actors')
+  @HttpCode(200)
+  @ApiOperation({ operationId: 'addActors', summary: 'Add actors to game' })
+  @ApiOkResponse({ type: AddGameActorsDto, description: 'Success' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  async addActors(@Param('id') id: string, @Body() dto: AddGameActorsDto, @Request() req) {
+    const user = req.user!;
+    const command = AddGameActorsDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<AddGameActorsCommand, Game>(command);
     return GameDto.fromEntity(entity);
   }
 }

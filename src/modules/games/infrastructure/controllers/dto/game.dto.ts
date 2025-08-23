@@ -28,7 +28,10 @@ export class GameDto {
   @IsString()
   phase: ge.GamePhase;
 
-  @ApiProperty({ description: 'Factions involved in the game', type: [String], example: ['Gondor', 'Mordor'] })
+  @ApiProperty({ description: 'Factions involved in the game', type: [String], example: ['faction-001', 'faction-002'] })
+  factions: string[];
+
+  @ApiProperty({ description: 'Actors involved in the game', type: [ActorDto] })
   actors: ActorDto[];
 
   @ApiProperty({ description: 'Description of the game', required: false, example: 'Tactical battle in Mordor' })
@@ -45,6 +48,7 @@ export class GameDto {
     dto.status = entity.status;
     dto.phase = entity.phase;
     dto.round = entity.round;
+    dto.factions = entity.factions;
     dto.actors = entity.actors.map((actor) => ActorDto.fromEntity(actor));
     dto.description = entity.description;
     dto.owner = entity.owner;

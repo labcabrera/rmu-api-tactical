@@ -11,6 +11,7 @@ export interface Game {
   status: GameStatus;
   phase: GamePhase;
   round: number;
+  factions: string[];
   actors: Actor[];
   description: string | undefined;
   owner: string;

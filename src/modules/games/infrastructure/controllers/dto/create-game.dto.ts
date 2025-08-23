@@ -20,6 +20,10 @@ export class CreateGameActorDto {
   @IsString()
   @IsOptional()
   faction: string | undefined;
+
+  static toCommand(dto: CreateGameActorDto): CreateGameCommandActor {
+    return new CreateGameCommandActor(dto.id, dto.type, dto.faction);
+  }
 }
 
 export class CreateGameDto {
@@ -32,6 +36,12 @@ export class CreateGameDto {
   @IsString()
   @IsNotEmpty()
   name: string;
+
+  @ApiProperty({ description: 'List of factions (characters or NPCs)', example: ['faction-001', 'faction-002'] })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  factions: string[];
 
   @ApiProperty({ description: 'List of factions (characters or NPCs)', type: [CreateGameActorDto] })
   @IsOptional()
@@ -48,6 +58,6 @@ export class CreateGameDto {
     const actors: CreateGameCommandActor[] | undefined = dto.actors
       ? dto.actors.map((actor) => new CreateGameCommandActor(actor.id, actor.type, actor.faction))
       : [];
-    return new CreateGameCommand(dto.strategicGameId, dto.name, actors, dto.description, userId, roles);
+    return new CreateGameCommand(dto.strategicGameId, dto.name, dto.factions, actors, dto.description, userId, roles);
   }
 }
