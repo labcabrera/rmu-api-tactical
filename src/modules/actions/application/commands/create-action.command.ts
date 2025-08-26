@@ -5,18 +5,19 @@ export class CreateActionCommand {
   actorId: string;
   actionType: ActionType;
   phaseStart: number;
-  actionPoints: number;
-  attacks: CreateActionCommandAttack[] | undefined;
+  // actionPoints: number;
+  // attacks: CreateActionCommandAttack[] | undefined;
   maneuver: CreateActionCommandManeuver | undefined;
+  description: string;
   userId: string;
   roles: string[];
 }
 
-export class CreateActionCommandAttack {
-  attackName: string;
-  targetId: string;
-  parry: number;
-}
+// export class CreateActionCommandAttack {
+//   attackName: string;
+//   targetId: string;
+//   parry: number;
+// }
 
 export class CreateActionCommandManeuver {
   skillId: string;

@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { CreateActionCommand } from '../../../application/commands/create-action.command';
 import * as actionEntity from '../../../domain/entities/action.entity';
 
@@ -52,17 +52,6 @@ export class CreateActionDto {
   @IsNumber()
   phaseStart: number;
 
-  @ApiProperty({ description: 'Action points' })
-  @IsNumber()
-  actionPoints: number;
-
-  @ApiProperty({ description: 'Action attacks', type: [ActionAttackCreationDto], required: false })
-  @IsOptional()
-  @ValidateNested({ each: true })
-  @Type(() => ActionAttackCreationDto)
-  @IsArray()
-  attacks: ActionAttackCreationDto[] | undefined;
-
   @ApiProperty({ description: 'Action maneuver', type: ActionManeuverCreationDto })
   @IsOptional()
   @ValidateNested()
@@ -76,8 +65,6 @@ export class CreateActionDto {
     command.actorId = dto.actorId;
     command.actionType = dto.actionType;
     command.phaseStart = dto.phaseStart;
-    command.actionPoints = dto.actionPoints;
-    command.attacks = dto.attacks;
     command.maneuver = dto.maneuver;
     command.userId = userId;
     command.roles = roles;
