@@ -11,6 +11,7 @@ import { StrategicModule } from '../strategic/strategic.module';
 import { AddGameActorsCommandHandler } from './application/commands/handlers/add-game-actors.command.handler';
 import { AddGameFactionsCommandHandler } from './application/commands/handlers/add-game-factions.command.handler';
 import { CreateGameCommandHandler } from './application/commands/handlers/create-game.command.handler';
+import { DeleteGameActorsCommandHandler } from './application/commands/handlers/delete-game-actors.command.handler';
 import { DeleteGameFactionsCommandHandler } from './application/commands/handlers/delete-game-factions.command.handler';
 import { DeleteGameCommandHandler } from './application/commands/handlers/delete-game.command.handler';
 import { StartRoundCommandHandler } from './application/commands/handlers/start-round.command.handler';
@@ -45,6 +46,7 @@ import { MongoGameRepository } from './infrastructure/persistence/repositories/m
     AddGameFactionsCommandHandler,
     AddGameActorsCommandHandler,
     DeleteGameFactionsCommandHandler,
+    DeleteGameActorsCommandHandler,
     {
       provide: 'GameRepository',
       useClass: MongoGameRepository,

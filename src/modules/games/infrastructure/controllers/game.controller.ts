@@ -10,6 +10,7 @@ import { Page } from '../../../shared/domain/entities/page.entity';
 import { ErrorDto, PagedQueryDto } from '../../../shared/infrastructure/controller/dto';
 import { AddGameActorsCommand } from '../../application/commands/add-game-actors.command';
 import { CreateGameCommand } from '../../application/commands/create-game.command';
+import { DeleteGameActorsCommand } from '../../application/commands/delete-game-actors.command';
 import { DeleteGameCommand } from '../../application/commands/delete-game.command';
 import { StartRoundCommand } from '../../application/commands/start-round.command';
 import { UpdateGameCommand } from '../../application/commands/update-game.command';
@@ -19,6 +20,7 @@ import { Game } from '../../domain/entities/game.entity';
 import { AddGameActorsDto } from './dto/add-game-actors-dto';
 import { AddGameFactionsDto } from './dto/add-game-factions.dto';
 import { CreateGameDto } from './dto/create-game.dto';
+import { DeleteGameActorsDto } from './dto/delete-game-actors.dto';
 import { DeleteGameFactionsDto } from './dto/delete-game-factions.dto';
 import { GameDto, GamePageDto, UpdateGameDto } from './dto/game.dto';
 
@@ -148,6 +150,18 @@ export class GameController {
     const user = req.user!;
     const command = AddGameActorsDto.toCommand(id, dto, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<AddGameActorsCommand, Game>(command);
+    return GameDto.fromEntity(entity);
+  }
+
+  @Delete(':id/actors')
+  @HttpCode(200)
+  @ApiOperation({ operationId: 'deleteGameActors', summary: 'Delete game actors' })
+  @ApiOkResponse({ type: DeleteGameActorsDto, description: 'Success' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  async deleteActors(@Param('id') id: string, @Body() dto: DeleteGameActorsDto, @Request() req) {
+    const user = req.user!;
+    const command = DeleteGameActorsDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<DeleteGameActorsCommand, Game>(command);
     return GameDto.fromEntity(entity);
   }
 }
