@@ -50,10 +50,7 @@ export class GameController {
 
   @Get('')
   @ApiOkResponse({ type: GamePageDto, description: 'Success' })
-  @ApiUnauthorizedResponse({
-    description: 'Invalid or missing authentication token',
-    type: ErrorDto,
-  })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiOperation({ operationId: 'findGames', summary: 'Find games by RSQL' })
   async find(@Query() dto: PagedQueryDto, @Request() req) {
     this.logger.debug(`Finding games with query: ${JSON.stringify(dto)}`);
@@ -68,15 +65,8 @@ export class GameController {
   @ApiBody({ type: CreateGameDto })
   @ApiOperation({ operationId: 'createGame', summary: 'Create a new game' })
   @ApiOkResponse({ type: GameDto, description: 'Success' })
-  @ApiUnauthorizedResponse({
-    description: 'Invalid or missing authentication token',
-    type: ErrorDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request, invalid data',
-    type: ErrorDto,
-  })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
   async create(@Body() dto: CreateGameDto, @Request() req) {
     this.logger.debug(`Creating game: ${JSON.stringify(dto)} for user ${req.user}`);
     const user = req.user!;

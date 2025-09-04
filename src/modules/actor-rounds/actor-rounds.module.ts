@@ -7,6 +7,7 @@ import { TerminusModule } from '@nestjs/terminus';
 import { AuthModule } from 'src/modules/auth/auth.module';
 import { GamesModule } from '../games/games.module';
 import { SharedModule } from '../shared/shared.module';
+import { DeclareInitiativeCommandHandler } from './application/commands/handlers/update-initiative.command.handler';
 import { GetActorRoundQueryHandler } from './application/queries/handlers/get-actor-round.query.handler';
 import { GetCharacterRoundsQueryHandler } from './application/queries/handlers/get-actor-rounds.query.handler';
 import { ActorRoundController } from './infrastructure/controllers/actor-round.controller';
@@ -25,6 +26,7 @@ import { MongoActorRoundRepository } from './infrastructure/persistence/reposito
   ],
   controllers: [ActorRoundController],
   providers: [
+    DeclareInitiativeCommandHandler,
     GetActorRoundQueryHandler,
     GetCharacterRoundsQueryHandler,
     {

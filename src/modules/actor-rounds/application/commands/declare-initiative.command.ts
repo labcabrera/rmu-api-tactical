@@ -1,6 +1,6 @@
-export class UpdateInitiativeCommand {
+export class DeclareInitiativeCommand {
   constructor(
-    public readonly characterRoundId: string,
+    public readonly actorRoundId: string,
     public readonly initiativeRoll: number,
     public readonly userId: string,
     public readonly roles: string[],
