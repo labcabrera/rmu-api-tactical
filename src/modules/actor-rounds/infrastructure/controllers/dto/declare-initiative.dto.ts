@@ -3,7 +3,7 @@ import { IsNumber } from 'class-validator';
 import { DeclareInitiativeCommand } from '../../../application/commands/declare-initiative.command';
 
 export class DeclareInitiativeDto {
-  @ApiProperty({ description: 'Initiative roll' })
+  @ApiProperty({ description: 'Initiative roll (2-20)' })
   @IsNumber()
   roll: number;
 

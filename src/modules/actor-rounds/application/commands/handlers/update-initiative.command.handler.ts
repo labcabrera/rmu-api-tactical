@@ -11,8 +11,8 @@ export class DeclareInitiativeCommandHandler implements ICommandHandler<DeclareI
   constructor(@Inject('ActorRoundRepository') private readonly characterRoundRepository: arr.ActorRoundRepository) {}
 
   async execute(command: DeclareInitiativeCommand): Promise<ActorRound> {
-    if (!command.initiativeRoll || command.initiativeRoll < 1 || command.initiativeRoll > 20) {
-      throw new ValidationError('Invalid initiative roll. It must be between 1 and 20');
+    if (!command.initiativeRoll || command.initiativeRoll < 2 || command.initiativeRoll > 20) {
+      throw new ValidationError('Invalid initiative roll. It must be between 2 and 20');
     }
     const characterRound = await this.characterRoundRepository.findById(command.actorRoundId);
     if (!characterRound) {

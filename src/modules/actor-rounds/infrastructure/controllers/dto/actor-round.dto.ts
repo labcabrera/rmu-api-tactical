@@ -3,7 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { PaginationDto } from '../../../../shared/infrastructure/controller/dto';
 import { ActorRound } from '../../../domain/entities/actor-round.entity';
 import { ActorRoundEffect } from '../../persistence/models/actor-round.models-childs';
-import { ActorRoundHPDto } from './actor-round-hp.dtp';
+import { ActorRoundHPDto } from './actor-round-hp.dto';
 import { ActorRoundInitiativeDto } from './actor-round-initiative.dto';
 
 export class ActorRoundDto {
@@ -46,12 +46,9 @@ export class ActorRoundDto {
 }
 
 export class CharacterRoundPageDto {
-  @ApiProperty({
-    type: [ActorRoundDto],
-    description: 'Character Rounds',
-    isArray: true,
-  })
+  @ApiProperty({ type: [ActorRoundDto], description: 'Character Rounds', isArray: true })
   content: ActorRoundDto[];
+
   @ApiProperty({ type: PaginationDto, description: 'Pagination information' })
   pagination: PaginationDto;
 }
