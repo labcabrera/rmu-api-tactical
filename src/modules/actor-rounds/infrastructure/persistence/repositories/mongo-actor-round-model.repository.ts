@@ -33,7 +33,7 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
     const skip = page * size;
     const mongoQuery = this.rsqlParser.parse(rsql);
     const [characterRoundsDocs, totalElements] = await Promise.all([
-      this.characterRoundModel.find(mongoQuery).skip(skip).limit(size).sort({ name: 1 }),
+      this.characterRoundModel.find(mongoQuery).skip(skip).limit(size).sort({ 'initiative.roll': -1, 'initiative.base': -1 }),
       this.characterRoundModel.countDocuments(mongoQuery),
     ]);
     const content = characterRoundsDocs.map((doc) => this.mapToEntity(doc));
