@@ -31,7 +31,7 @@ export class StartRoundCommandHandler implements ICommandHandler<StartRoundComma
     const gameUpdate: Partial<Game> = {
       ...game,
       status: 'in_progress',
-      phase: 'declare_actions',
+      phase: 'declare_initiative',
       round: game.round + 1,
     };
     const updatedGame = await this.gameRepository.update(gameId, gameUpdate);

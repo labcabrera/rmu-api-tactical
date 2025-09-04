@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
@@ -37,11 +38,16 @@ export class PrepareAttackCommandHandler implements ICommandHandler<PrepareAttac
     const game = await this.gameRepository.findById(action.gameId);
     if (!game) {
       throw new UnprocessableEntityError('Game not found');
-    } else if (game.phase !== 'resolve_actions') {
-      //TODO comment for testing
-      // throw new ValidationError('Game is not in resolve actionsphase');
     }
-
+    switch (game.phase) {
+      case 'phase_1':
+      case 'phase_2':
+      case 'phase_3':
+      case 'phase_4':
+        break;
+      default:
+        throw new ValidationError('Game is not in a phase that allows action preparation');
+    }
     const attack = action.attacks?.find((attack) => attack.attackName === command.attackName);
     if (!attack) {
       throw new ValidationError(`Attack type ${command.attackName} not found in action`);

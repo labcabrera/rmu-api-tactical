@@ -25,8 +25,14 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
     const game = await this.readGame(command);
     if (game.round < 1) {
       throw new ValidationError(`Game ${game.name} is not in progress. You need to start the game.`);
-    } else if (game.phase !== 'declare_actions') {
-      throw new ValidationError(`Game ${game.name} is not in the declare_actions phase.`);
+    }
+    switch (game.phase) {
+      case 'not_started':
+      case 'declare_initiative':
+      case 'upkeep':
+        throw new ValidationError(`Game ${game.name} is not in the declare_actions phase.`);
+      default:
+        break;
     }
     const actorRound = await this.readActorRound(command, game.round);
     if (!actorRound) {

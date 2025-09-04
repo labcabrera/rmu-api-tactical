@@ -1,7 +1,5 @@
 export type GameStatus = 'created' | 'in_progress' | 'finished';
-
-export type GamePhase = 'not_started' | 'declare_actions' | 'declare_initative' | 'resolve_actions' | 'upkeep';
-
+export type GamePhase = 'not_started' | 'declare_initiative' | 'phase_1' | 'phase_2' | 'phase_3' | 'phase_4' | 'upkeep';
 export type ActorType = 'character' | 'npc';
 
 export interface Game {

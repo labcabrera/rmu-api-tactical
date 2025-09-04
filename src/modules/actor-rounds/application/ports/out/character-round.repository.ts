@@ -15,4 +15,6 @@ export interface ActorRoundRepository {
   update(characterRoundId: string, data: Partial<ActorRound>): Promise<ActorRound>;
 
   deleteByGameId(gameId: string): Promise<void>;
+
+  countWithUndefinedInitiativeRoll(gameId: string, round: number): Promise<number>;
 }

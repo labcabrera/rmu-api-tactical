@@ -12,6 +12,7 @@ import { AddGameActorsCommand } from '../../application/commands/add-game-actors
 import { CreateGameCommand } from '../../application/commands/create-game.command';
 import { DeleteGameActorsCommand } from '../../application/commands/delete-game-actors.command';
 import { DeleteGameCommand } from '../../application/commands/delete-game.command';
+import { StartPhaseCommand } from '../../application/commands/start-phase.command';
 import { StartRoundCommand } from '../../application/commands/start-round.command';
 import { UpdateGameCommand } from '../../application/commands/update-game.command';
 import { GetGameQuery } from '../../application/queries/get-game.query';
@@ -97,6 +98,7 @@ export class GameController {
   }
 
   @Post(':id/rounds/start')
+  @HttpCode(200)
   @ApiOperation({ operationId: 'startRound', summary: 'Start a new round for a game' })
   @ApiOkResponse({ type: GameDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
@@ -104,6 +106,18 @@ export class GameController {
     const user = req.user!;
     const command = new StartRoundCommand(id, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<StartRoundCommand, Game>(command);
+    return GameDto.fromEntity(entity);
+  }
+
+  @Post(':id/phases/start')
+  @HttpCode(200)
+  @ApiOperation({ operationId: 'startPhase', summary: 'Start a new phase for a game' })
+  @ApiOkResponse({ type: GameDto, description: 'Success' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  async startPhase(@Param('id') id: string, @Request() req) {
+    const user = req.user!;
+    const command = new StartPhaseCommand(id, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<StartPhaseCommand, Game>(command);
     return GameDto.fromEntity(entity);
   }
 
