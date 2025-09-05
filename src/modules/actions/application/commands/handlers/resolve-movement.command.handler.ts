@@ -8,8 +8,11 @@ import * as gr from '../../../../games/application/ports/out/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import * as cc from '../../../../strategic/application/ports/out/character-client';
 import { Character } from '../../../../strategic/application/ports/out/character-client';
+import * as sgc from '../../../../strategic/application/ports/out/strategic-game-client';
+import { StrategicGame } from '../../../../strategic/application/ports/out/strategic-game-client';
 import { ActionMovement, ActionMovementModifiers } from '../../../domain/entities/action-movement.entity';
 import { Action } from '../../../domain/entities/action.entity';
+import { FatigueProcessorService } from '../../../domain/services/fatigue-processor.service';
 import { MovementProcessorService } from '../../../domain/services/movement-processor.service';
 import * as aep from '../../ports/out/action-event-producer';
 import * as ar from '../../ports/out/action.repository';
@@ -20,10 +23,12 @@ import { ResolveMovementCommand } from '../resolve-movement.command';
 export class ResolveMovementCommandHandler implements ICommandHandler<ResolveMovementCommand, Action> {
   constructor(
     @Inject() private readonly movementProcessorService: MovementProcessorService,
+    @Inject() private readonly fatigueProcessorService: FatigueProcessorService,
     @Inject('GameRepository') private readonly gameRepository: gr.GameRepository,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: crr.ActorRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: ar.ActionRepository,
     @Inject('CharacterClient') private readonly characterClient: cc.CharacterClient,
+    @Inject('StrategicGameClient') private readonly strategicGameClient: sgc.StrategicGameClient,
     @Inject('AttackClient') private readonly attackClient: ac.AttackClient,
     @Inject('ActionEventProducer') private readonly actionEventProducer: aep.ActionEventProducer,
   ) {}
@@ -33,28 +38,45 @@ export class ResolveMovementCommandHandler implements ICommandHandler<ResolveMov
     if (!action) {
       throw new NotFoundError('Action', command.actionId);
     }
+    const game = await this.gameRepository.findById(action.gameId);
+    if (!game) {
+      throw new NotFoundError('Game', action.gameId);
+    }
     this.validate(command, action);
-    const [actorRound, character] = await Promise.all([
+    const [actorRound, character, strategicGame] = await Promise.all([
       this.actorRoundRepository.findByActorIdAndRound(action.actorId, action.round),
       this.characterClient.findById(action.actorId),
+      this.strategicGameClient.findById(game.strategicGameId),
     ]);
-    if (!actorRound) {
-      throw new NotFoundError('ActorRound', `${action.actorId} - ${action.round}`);
-    }
-    if (!character) {
-      throw new NotFoundError('Character', action.actorId);
-    }
-    this.processAction(command, action, character, actorRound);
+
+    if (!actorRound) throw new NotFoundError('ActorRound', `${action.actorId} - ${action.round}`);
+    if (!character) throw new NotFoundError('Character', action.actorId);
+    if (!strategicGame) throw new NotFoundError('StrategicGame', game.strategicGameId);
+
+    this.processAction(command, action, character, actorRound, strategicGame);
     const updated = await this.actionRepository.update(action.id, action);
+    if (action.fatigue) {
+      const currentFatigue = actorRound.fatigue || 0;
+      actorRound.fatigue = currentFatigue + action.fatigue;
+      await this.actorRoundRepository.update(actorRound.id, actorRound);
+    }
     await this.actionEventProducer.updated(updated);
     return updated;
   }
 
-  private processAction(command: ResolveMovementCommand, action: Action, character: Character, actorRound: ActorRound): void {
+  private processAction(
+    command: ResolveMovementCommand,
+    action: Action,
+    character: Character,
+    actorRound: ActorRound,
+    strategicGame: StrategicGame,
+  ): void {
+    action.description = command.description;
     action.phaseEnd = command.phase;
     action.actionPoints = action.phaseEnd - action.phaseStart + 1;
     action.movement = this.buildActionMovement(command);
-    this.movementProcessorService.processMovementRoll(command.roll, action, character, actorRound);
+    this.movementProcessorService.process(command.roll, action, character, actorRound);
+    this.fatigueProcessorService.process(action, strategicGame);
     action.status = 'completed';
     action.updatedAt = new Date();
   }

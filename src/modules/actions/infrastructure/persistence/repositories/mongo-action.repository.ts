@@ -90,6 +90,8 @@ export class MongoActionRepository implements ActionRepository {
       movement: doc.movement,
       maneuver: doc.maneuver,
       attacks: doc.attacks,
+      fatigue: doc.fatigue,
+      description: doc.description,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     };

@@ -28,6 +28,10 @@ export class ResolveMovementRequestDto {
   @IsNumber()
   roll: number | undefined;
 
+  @IsOptional()
+  @IsString()
+  description: string | undefined;
+
   static toCommand(actionId: string, dto: ResolveMovementRequestDto, userId: string, roles: string[]): ResolveMovementCommand {
     const cmd = new ResolveMovementCommand();
     cmd.actionId = actionId;
@@ -37,6 +41,7 @@ export class ResolveMovementRequestDto {
     cmd.difficulty = dto.difficulty;
     cmd.skillId = dto.skillId;
     cmd.roll = dto.roll;
+    cmd.description = dto.description;
     cmd.userId = userId;
     cmd.roles = roles;
     return cmd;

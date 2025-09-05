@@ -24,6 +24,9 @@ export class ActorRoundModel {
   @Prop({ type: ActorRoundHP, required: true })
   hp: ActorRoundHP;
 
+  @Prop({ required: true })
+  fatigue: number;
+
   @Prop({ type: [ActorRoundEffect], required: true })
   effects: ActorRoundEffect[];
 

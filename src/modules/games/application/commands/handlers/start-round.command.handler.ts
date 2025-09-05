@@ -74,6 +74,7 @@ export class StartRoundCommandHandler implements ICommandHandler<StartRoundComma
         current: hp,
         max: hp,
       },
+      fatigue: 0,
       effects: [],
       owner: actor.owner,
       createdAt: new Date(),

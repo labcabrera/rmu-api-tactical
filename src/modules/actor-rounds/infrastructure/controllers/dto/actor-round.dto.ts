@@ -28,6 +28,9 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Hit points' })
   hp: ActorRoundHPDto;
 
+  @ApiProperty({ description: 'Fatigue points' })
+  fatigue: number;
+
   @ApiProperty({ description: 'Active effects' })
   effects: ActorRoundEffect[];
 
@@ -40,6 +43,7 @@ export class ActorRoundDto {
     dto.initiative = ActorRoundInitiativeDto.fromEntity(entity.initiative);
     dto.actionPoints = entity.actionPoints;
     dto.hp = ActorRoundHPDto.fromEntity(entity.hp);
+    dto.fatigue = entity.fatigue;
     dto.effects = entity.effects;
     return dto;
   }

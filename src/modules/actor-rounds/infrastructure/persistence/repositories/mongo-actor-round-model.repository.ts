@@ -85,6 +85,7 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
       initiative: doc.initiative,
       actionPoints: doc.actionPoints,
       hp: doc.hp,
+      fatigue: doc.fatigue,
       effects: doc.effects,
       owner: doc.owner,
       createdAt: doc.createdAt,

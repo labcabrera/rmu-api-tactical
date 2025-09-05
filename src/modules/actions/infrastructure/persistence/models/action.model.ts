@@ -42,6 +42,9 @@ export class ActionModel {
   @Prop({ type: [ActionAttack], required: false })
   attacks: ActionAttack[] | undefined;
 
+  @Prop({ type: Number, required: false })
+  fatigue: number | undefined;
+
   @Prop({ type: String, required: false })
   description: string | undefined;
 

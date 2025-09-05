@@ -30,6 +30,8 @@ export interface Action {
   movement: ActionMovement | undefined;
   attacks: ActionAttack[] | undefined;
   maneuver: ActionManeuver | undefined;
+  fatigue: number | undefined;
+  description: string | undefined;
   createdAt: Date;
   updatedAt: Date | undefined;
 }

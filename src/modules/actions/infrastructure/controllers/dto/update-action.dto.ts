@@ -2,10 +2,10 @@ import { ApiProperty } from '@nestjs/swagger';
 import { UpdateActionCommand } from '../../../application/commands/update-action.command';
 
 export class UpdateActionDto {
-  @ApiProperty({ description: 'Action points', example: 2 })
-  actionPoints: number;
+  @ApiProperty({ description: 'Action description', example: 'Attack the enemy' })
+  description: string | undefined;
 
   static toCommand(id: string, dto: UpdateActionDto, userId: string, roles: string[]): UpdateActionCommand {
-    return new UpdateActionCommand(dto.actionPoints, userId, roles);
+    return new UpdateActionCommand(dto.description, userId, roles);
   }
 }

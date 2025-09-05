@@ -7,6 +7,7 @@ export class ResolveMovementCommand {
   skillId: string | undefined;
   customBonus: number | undefined;
   roll: number | undefined;
+  description: string | undefined;
   userId: string;
   roles: string[];
 }

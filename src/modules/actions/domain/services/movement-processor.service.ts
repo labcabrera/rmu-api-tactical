@@ -6,7 +6,7 @@ import { Action } from '../entities/action.entity';
 
 @Injectable()
 export class MovementProcessorService {
-  processMovementRoll(roll: number | undefined, action: Action, character: Character, actorRound: ActorRound): void {
+  process(roll: number | undefined, action: Action, character: Character, actorRound: ActorRound): void {
     if (!action.movement || !action.movement.modifiers) {
       throw new Error('Action does not have movement data');
     } else if (!action.actionPoints) {

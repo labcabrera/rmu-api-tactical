@@ -4,5 +4,10 @@ export interface StrategicGameClient {
 
 export interface StrategicGame {
   id: string;
+  options?: StrategicGameOptions;
   owner: string;
+}
+
+export interface StrategicGameOptions {
+  fatigueMultiplier?: number;
 }
