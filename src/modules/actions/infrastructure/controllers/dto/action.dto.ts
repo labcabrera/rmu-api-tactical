@@ -27,7 +27,7 @@ export class ActionDto {
   phaseStart: number;
 
   @ApiProperty({ description: 'Action points', example: 2 })
-  actionPoints: number;
+  actionPoints: number | undefined;
 
   @ApiProperty({ description: 'Action attacks', type: [ActionAttackDto], required: false })
   attacks: ActionAttackDto[] | undefined;
@@ -48,7 +48,7 @@ export class ActionDto {
     dto.actionType = entity.actionType;
     dto.phaseStart = entity.phaseStart;
     dto.actionPoints = entity.actionPoints;
-    dto.attacks = entity.attacks ? entity.attacks.map((attack) => ActionAttackDto.fromEntity(attack)) : undefined;
+    dto.attacks = entity.attacks && entity.attacks.length > 0 ? entity.attacks.map((a) => ActionAttackDto.fromEntity(a)) : undefined;
     dto.maneuver = entity.maneuver ? ActionManeuverDto.fromEntity(entity.maneuver) : undefined;
     return dto;
   }

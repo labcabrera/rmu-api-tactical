@@ -99,7 +99,6 @@ export class PrepareAttackCommandHandler implements ICommandHandler<PrepareAttac
     const rangePenalty = 0;
     const shield = 0;
     const parry = 0;
-
     const request = {
       actionId: action.id,
       sourceId: action.actorId,
@@ -110,7 +109,7 @@ export class PrepareAttackCommandHandler implements ICommandHandler<PrepareAttac
         attackSize: this.getAttackSize(attackInfo.sizeAdjustment),
         fumbleTable: attackInfo.fumbleTable,
         at: actorTarget.defense.armorType,
-        actionPoints: action.actionPoints,
+        actionPoints: action.actionPoints!,
         fumble: attackInfo.fumble,
         rollModifiers: {
           bo: attackInfo.bo,

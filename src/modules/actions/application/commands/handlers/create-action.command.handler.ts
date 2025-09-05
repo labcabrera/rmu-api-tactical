@@ -21,38 +21,16 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
   ) {}
 
   async execute(command: CreateActionCommand): Promise<Action> {
-    this.validate(command);
+    this.validateCommand(command);
     const game = await this.readGame(command);
-    if (game.round < 1) {
-      throw new ValidationError(`Game ${game.name} is not in progress. You need to start the game.`);
-    }
-    switch (game.phase) {
-      case 'not_started':
-      case 'declare_initiative':
-      case 'upkeep':
-        throw new ValidationError(`Game ${game.name} is not in the declare_actions phase.`);
-      default:
-        break;
-    }
-    const actorRound = await this.readActorRound(command, game.round);
-    if (!actorRound) {
-      throw new ValidationError(`ActorRound for game ${command.gameId}, character ${command.actorId}, round ${game.round} not found`);
-    }
-    const maneuver = this.prepareManeuver(command);
-    const action: Partial<Action> = {
-      gameId: command.gameId,
-      status: 'declared',
-      round: game.round,
-      actorId: command.actorId,
-      actionType: command.actionType,
-      phaseStart: command.phaseStart,
-      actionPoints: 0,
-      maneuver: maneuver,
-      createdAt: new Date(),
-    };
-    const saved = await this.actionRepository.save(action);
-    await this.actionEventProducer.created(saved);
-    return saved;
+    this.validateGame(game);
+    const round = game.round;
+    const [actorRound, roundActions] = await Promise.all([this.readActorRound(command, round), this.readActions(command, round)]);
+    this.validateActorRoundAndActions(actorRound, roundActions);
+    const action = this.buildAction(command, game);
+    return this.actionRepository.save(action).then((saved) => {
+      return this.actionEventProducer.created(saved).then(() => saved);
+    });
   }
 
   private async readGame(command: CreateActionCommand): Promise<Game> {
@@ -78,7 +56,23 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
     return actions.content;
   }
 
-  private prepareManeuver(command: CreateActionCommand): ActionManeuver | undefined {
+  private buildAction(command: CreateActionCommand, game: Game): Partial<Action> {
+    return {
+      gameId: command.gameId,
+      status: 'declared',
+      round: game.round,
+      actorId: command.actorId,
+      actionType: command.actionType,
+      phaseStart: command.phaseStart,
+      actionPoints: undefined,
+      movement: undefined,
+      maneuver: this.buildActionManeuver(command),
+      attacks: undefined,
+      createdAt: new Date(),
+    };
+  }
+
+  private buildActionManeuver(command: CreateActionCommand): ActionManeuver | undefined {
     if (!command.maneuver) {
       return undefined;
     }
@@ -91,17 +85,30 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
     };
   }
 
-  private validate(command: CreateActionCommand): void {
+  private validateCommand(command: CreateActionCommand): void {
     if (command.actionType === 'maneuver' && !command.maneuver) {
       throw new ValidationError(`Maneuver must be provided`);
     }
   }
 
-  private async checkActionCollision(command: CreateActionCommand, game: Game): Promise<void> {
-    const actions = await this.readActions(command, game.round);
+  private validateGame(game: Game): void {
+    if (game.round < 1) {
+      throw new ValidationError(`Game ${game.name} is not in progress. You need to start the game.`);
+    }
+    switch (game.phase) {
+      case 'not_started':
+      case 'declare_initiative':
+      case 'upkeep':
+        throw new ValidationError(`Game ${game.name} is not in the declare_actions phase.`);
+      default:
+        break;
+    }
+  }
+
+  private validateActorRoundAndActions(actorRound: ActorRound, actions: Action[]): void {
     if (actions.length === 0) {
       return;
     }
-    // TODO
+    //TODO check collisions)
   }
 }

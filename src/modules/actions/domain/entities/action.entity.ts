@@ -1,6 +1,6 @@
 export type ActionStatus = 'declared' | 'in_progress' | 'completed';
 export type ActionType = 'attack' | 'maneuver' | 'movement';
-export type ManeuverType = 'absolute' | 'percentage';
+export type ManeuverType = 'absolute' | 'percent';
 export type ManeuverDifficulty =
   | 'casual'
   | 'simple'
@@ -23,11 +23,20 @@ export interface Action {
   round: number;
   actionType: ActionType;
   phaseStart: number;
-  actionPoints: number;
+  phaseEnd: number | undefined;
+  actionPoints: number | undefined;
+  movement: ActionMovement | undefined;
   attacks: ActionAttack[] | undefined;
   maneuver: ActionManeuver | undefined;
   createdAt: Date;
   updatedAt: Date | undefined;
+}
+
+export interface ActionMovement {
+  pace: string;
+  skillId: string | undefined;
+  roll: number | undefined;
+  distance: number | undefined;
 }
 
 export interface ActionAttack {
