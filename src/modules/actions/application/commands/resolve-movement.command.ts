@@ -1,7 +1,9 @@
+import { Pace } from '../../domain/entities/action-movement.entity';
+
 export class ResolveMovementCommand {
   actionId: string;
   phase: number;
-  pace: string;
+  pace: Pace;
   requiredManeuver: boolean;
   difficulty: string | undefined;
   skillId: string | undefined;

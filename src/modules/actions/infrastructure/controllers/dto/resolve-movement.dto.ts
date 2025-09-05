@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 import { ResolveMovementCommand } from '../../../application/commands/resolve-movement.command';
+import * as at from '../../../domain/entities/action-movement.entity';
 
 export class ResolveMovementRequestDto {
   @ApiProperty({ description: 'Movement completion phase', example: 2 })
@@ -9,7 +10,7 @@ export class ResolveMovementRequestDto {
 
   @ApiProperty({ description: 'The pace of the movement', example: 'walk' })
   @IsString()
-  pace: string;
+  pace: at.Pace;
 
   @ApiProperty({ description: 'Indicates if a maneuver is required', example: true })
   @IsOptional()
