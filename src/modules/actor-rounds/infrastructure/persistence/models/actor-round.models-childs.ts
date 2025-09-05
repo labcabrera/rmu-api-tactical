@@ -25,6 +25,7 @@ export class ActorRoundEffect {
 export class ActorRoundInitiative {
   @Prop({ required: true })
   base: number;
+
   @Prop({ required: true })
   penalty: number;
 

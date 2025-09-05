@@ -1,6 +1,6 @@
 {
   "name": "rmu-api-tactical",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Tactical API for RMU",
   "author": {
     "name": "Luis Cabrera",
@@ -25,6 +25,7 @@
     "test:all": "npm run test:unit && npm run test:e2e"
   },
   "dependencies": {
+    "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
@@ -106,11 +107,17 @@
       "!src/**/*.interface.ts"
     ],
     "coverageDirectory": "./coverage",
-    "coverageReporters": ["text", "lcov", "html"],
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ],
     "moduleNameMapper": {
       "^src/(.*)$": "<rootDir>/src/$1"
     },
-    "setupFilesAfterEnv": ["<rootDir>/test/setup.ts"],
+    "setupFilesAfterEnv": [
+      "<rootDir>/test/setup.ts"
+    ],
     "testTimeout": 30000,
     "verbose": true
   }

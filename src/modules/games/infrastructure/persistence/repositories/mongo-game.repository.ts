@@ -69,6 +69,7 @@ export class MongoGameRepository implements GameRepository {
       round: doc.round,
       status: doc.status,
       phase: doc.phase,
+      factions: doc.factions,
       actors: doc.actors,
       description: doc.description,
       owner: doc.owner,

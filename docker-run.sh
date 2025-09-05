@@ -10,6 +10,10 @@ docker build -t labcabrera/rmu-api-tactical:latest .
 
 docker run -d -p 3003:3003 --network rmu-network --name rmu-api-tactical -h rmu-api-tactical \
   -e PORT='3003' \
+  -e RMU_API_CORE_URI=http://rmu-api-core:3001/v1 \
+  -e RMU_API_STRATEGIC_URI=http://rmu-api-strategic:3002/v1 \
+  -e RMU_API_ITEMS_URI=http://rmu-api-items:3006/v1 \
+  -e RMU_API_ATTACK_URI=http://rmu-api-attack:8000/v1 \
   -e RMU_MONGO_TACTICAL_URI='mongodb://admin:admin@rmu-mongo:27017/rmu-tactical?authSource=admin' \
   -e RMU_IAM_TOKEN_URI='http://rmu-keycloak:8080/realms/rmu-local/protocol/openid-connect/token' \
   -e RMU_IAM_JWK_URI='http://rmu-keycloak:8080/realms/rmu-local/protocol/openid-connect/certs' \

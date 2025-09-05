@@ -6,7 +6,7 @@ import { ActorRound } from '../../../../actor-rounds/domain/entities/actor-round
 import * as gameRepository from '../../../../games/application/ports/out/game.repository';
 import { Game } from '../../../../games/domain/entities/game.entity';
 import { ValidationError } from '../../../../shared/domain/errors';
-import { Action, ActionAttack, ActionManeuver } from '../../../domain/entities/action.entity';
+import { Action, ActionManeuver } from '../../../domain/entities/action.entity';
 import * as actionEventProducer from '../../ports/out/action-event-producer';
 import * as actionRepository from '../../ports/out/action.repository';
 import { CreateActionCommand } from '../create-action.command';
@@ -21,42 +21,16 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
   ) {}
 
   async execute(command: CreateActionCommand): Promise<Action> {
-    this.validate(command);
+    this.validateCommand(command);
     const game = await this.readGame(command);
-    if (game.round < 1) {
-      throw new ValidationError(`Game ${game.name} is not in progress. You need to start the game.`);
-    } else if (game.phase !== 'declare_actions') {
-      throw new ValidationError(`Game ${game.name} is not in the declare_actions phase.`);
-    }
-
-    const actorRound = await this.readActorRound(command, game.round);
-    const actions = await this.readActions(command, game.round);
-
-    const availableActionPoints = actorRound.actionPoints;
-    const usedActionPoints = actions.reduce((total, action) => total + action.actionPoints, 0);
-    const remainingActionPoints = availableActionPoints - usedActionPoints;
-    if (remainingActionPoints < command.actionPoints) {
-      throw new ValidationError(`Not enough action points. Available: ${remainingActionPoints}, Required: ${command.actionPoints}`);
-    }
-
-    const attacks = this.prepareAttacks(command);
-    const maneuver = this.prepareManeuver(command);
-
-    const action: Partial<Action> = {
-      gameId: command.gameId,
-      status: 'declared',
-      round: game.round,
-      actorId: command.actorId,
-      actionType: command.actionType,
-      phaseStart: command.phaseStart,
-      actionPoints: command.actionPoints,
-      attacks: attacks,
-      maneuver: maneuver,
-      createdAt: new Date(),
-    };
-    const saved = await this.actionRepository.save(action);
-    await this.actionEventProducer.created(saved);
-    return saved;
+    this.validateGame(game);
+    const round = game.round;
+    const [actorRound, roundActions] = await Promise.all([this.readActorRound(command, round), this.readActions(command, round)]);
+    this.validateActorRoundAndActions(actorRound, roundActions);
+    const action = this.buildAction(command, game);
+    return this.actionRepository.save(action).then((saved) => {
+      return this.actionEventProducer.created(saved).then(() => saved);
+    });
   }
 
   private async readGame(command: CreateActionCommand): Promise<Game> {
@@ -82,22 +56,23 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
     return actions.content;
   }
 
-  private prepareAttacks(command: CreateActionCommand): ActionAttack[] | undefined {
-    //TODO validate attack name exists
-    if (!command.attacks || command.attacks.length === 0) {
-      return undefined;
-    }
-    return command.attacks.map((attack) => {
-      return {
-        attackName: attack.attackName,
-        targetId: attack.targetId,
-        parry: attack.parry,
-        status: 'declared',
-      } as ActionAttack;
-    });
+  private buildAction(command: CreateActionCommand, game: Game): Partial<Action> {
+    return {
+      gameId: command.gameId,
+      status: 'declared',
+      round: game.round,
+      actorId: command.actorId,
+      actionType: command.actionType,
+      phaseStart: command.phaseStart,
+      actionPoints: undefined,
+      movement: undefined,
+      maneuver: this.buildActionManeuver(command),
+      attacks: undefined,
+      createdAt: new Date(),
+    };
   }
 
-  private prepareManeuver(command: CreateActionCommand): ActionManeuver | undefined {
+  private buildActionManeuver(command: CreateActionCommand): ActionManeuver | undefined {
     if (!command.maneuver) {
       return undefined;
     }
@@ -110,20 +85,30 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
     };
   }
 
-  private validate(command: CreateActionCommand): void {
-    //TODO check target exists
-    if (command.actionType === 'attack' && (!command.attacks || command.attacks.length === 0)) {
-      throw new ValidationError(`At least one attack must be provided`);
-    }
-    if (command.attacks) {
-      command.attacks.forEach((attack) => {
-        if (!attack.attackName || !attack.targetId || attack.parry === undefined) {
-          throw new ValidationError(`Invalid attack data`);
-        }
-      });
-    }
+  private validateCommand(command: CreateActionCommand): void {
     if (command.actionType === 'maneuver' && !command.maneuver) {
       throw new ValidationError(`Maneuver must be provided`);
     }
+  }
+
+  private validateGame(game: Game): void {
+    if (game.round < 1) {
+      throw new ValidationError(`Game ${game.name} is not in progress. You need to start the game.`);
+    }
+    switch (game.phase) {
+      case 'not_started':
+      case 'declare_initiative':
+      case 'upkeep':
+        throw new ValidationError(`Game ${game.name} is not in the declare_actions phase.`);
+      default:
+        break;
+    }
+  }
+
+  private validateActorRoundAndActions(actorRound: ActorRound, actions: Action[]): void {
+    if (actions.length === 0) {
+      return;
+    }
+    //TODO check collisions)
   }
 }

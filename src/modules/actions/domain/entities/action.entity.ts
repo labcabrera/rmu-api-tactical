@@ -1,6 +1,8 @@
+import { ActionMovement } from './action-movement.entity';
+
 export type ActionStatus = 'declared' | 'in_progress' | 'completed';
-export type ActionType = 'attack' | 'maneuver';
-export type ManeuverType = 'absolute' | 'percentage';
+export type ActionType = 'attack' | 'maneuver' | 'movement';
+export type ManeuverType = 'absolute' | 'percent';
 export type ManeuverDifficulty =
   | 'casual'
   | 'simple'
@@ -23,9 +25,13 @@ export interface Action {
   round: number;
   actionType: ActionType;
   phaseStart: number;
-  actionPoints: number;
+  phaseEnd: number | undefined;
+  actionPoints: number | undefined;
+  movement: ActionMovement | undefined;
   attacks: ActionAttack[] | undefined;
   maneuver: ActionManeuver | undefined;
+  fatigue: number | undefined;
+  description: string | undefined;
   createdAt: Date;
   updatedAt: Date | undefined;
 }

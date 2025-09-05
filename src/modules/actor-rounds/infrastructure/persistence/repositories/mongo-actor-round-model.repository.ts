@@ -15,9 +15,11 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
     @InjectModel(ActorRoundModel.name) private characterRoundModel: Model<ActorRoundDocument>,
     private rsqlParser: RsqlParser,
   ) {}
+
   findByGameIdAndRound(gameId: string, round: number): Promise<ActorRound[]> {
     throw new Error('Method not implemented.');
   }
+
   deleteByGameId(gameId: string): Promise<void> {
     throw new Error('Method not implemented.');
   }
@@ -31,7 +33,7 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
     const skip = page * size;
     const mongoQuery = this.rsqlParser.parse(rsql);
     const [characterRoundsDocs, totalElements] = await Promise.all([
-      this.characterRoundModel.find(mongoQuery).skip(skip).limit(size).sort({ name: 1 }),
+      this.characterRoundModel.find(mongoQuery).skip(skip).limit(size).sort({ 'initiative.roll': -1, 'initiative.base': -1 }),
       this.characterRoundModel.countDocuments(mongoQuery),
     ]);
     const content = characterRoundsDocs.map((doc) => this.mapToEntity(doc));
@@ -67,11 +69,13 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
     return result ? this.mapToEntity(result) : null;
   }
 
-  async existsById(id: string): Promise<boolean> {
-    const exists = await this.characterRoundModel.exists({ _id: id });
-    return exists !== null;
+  async countWithUndefinedInitiativeRoll(gameId: string, round: number): Promise<number> {
+    return await this.characterRoundModel.countDocuments({
+      gameId,
+      round,
+      $or: [{ 'initiative.roll': { $exists: false } }, { 'initiative.roll': null }],
+    });
   }
-
   private mapToEntity(doc: ActorRoundDocument): ActorRound {
     return {
       id: doc.id as string,
@@ -81,6 +85,7 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
       initiative: doc.initiative,
       actionPoints: doc.actionPoints,
       hp: doc.hp,
+      fatigue: doc.fatigue,
       effects: doc.effects,
       owner: doc.owner,
       createdAt: doc.createdAt,

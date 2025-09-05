@@ -1,18 +1,20 @@
-import {
-  ActionManeuver,
-  ActionManeuverResult,
-  ActionStatus,
-  ManeuverDifficulty,
-  ManeuverType,
-} from '../../../domain/entities/action.entity';
+import { ApiProperty } from '@nestjs/swagger';
+import * as actionEntity from '../../../domain/entities/action.entity';
 
 export class ActionManeuverResultDto {
+  @ApiProperty({ description: 'Bonus modifiers' })
   bonus: { [key: string]: number };
+
+  @ApiProperty({ description: 'Maneuver roll' })
   roll: number;
+
+  @ApiProperty({ description: 'Maneuver result' })
   result: number;
+
+  @ApiProperty({ description: 'Maneuver description' })
   description: string;
 
-  static fromEntity(entity: ActionManeuverResult): ActionManeuverResultDto {
+  static fromEntity(entity: actionEntity.ActionManeuverResult): ActionManeuverResultDto {
     const dto = new ActionManeuverResultDto();
     dto.bonus = entity.bonus;
     dto.roll = entity.roll;
@@ -23,13 +25,22 @@ export class ActionManeuverResultDto {
 }
 
 export class ActionManeuverDto {
+  @ApiProperty({ description: 'Skill identifier', example: 'skill-01' })
   skillId: string;
-  maneuverType: ManeuverType;
-  difficulty: ManeuverDifficulty | undefined;
-  result: ActionManeuverResultDto | undefined;
-  status: ActionStatus;
 
-  static fromEntity(entity: ActionManeuver): ActionManeuverDto {
+  @ApiProperty({ description: 'Maneuver type', example: 'dodge' })
+  maneuverType: actionEntity.ManeuverType;
+
+  @ApiProperty({ description: 'Maneuver difficulty', example: 'average', required: false })
+  difficulty: actionEntity.ManeuverDifficulty | undefined;
+
+  @ApiProperty({ description: 'Maneuver result', required: false })
+  result: ActionManeuverResultDto | undefined;
+
+  @ApiProperty({ description: 'Maneuver status', example: 'declared' })
+  status: actionEntity.ActionStatus;
+
+  static fromEntity(entity: actionEntity.ActionManeuver): ActionManeuverDto {
     const dto = new ActionManeuverDto();
     dto.skillId = entity.skillId;
     dto.maneuverType = entity.maneuverType;

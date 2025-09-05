@@ -8,14 +8,21 @@ import { ApiBody, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiResponse,
 import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
 import { Page } from '../../../shared/domain/entities/page.entity';
 import { ErrorDto, PagedQueryDto } from '../../../shared/infrastructure/controller/dto';
+import { AddGameActorsCommand } from '../../application/commands/add-game-actors.command';
 import { CreateGameCommand } from '../../application/commands/create-game.command';
+import { DeleteGameActorsCommand } from '../../application/commands/delete-game-actors.command';
 import { DeleteGameCommand } from '../../application/commands/delete-game.command';
+import { StartPhaseCommand } from '../../application/commands/start-phase.command';
 import { StartRoundCommand } from '../../application/commands/start-round.command';
 import { UpdateGameCommand } from '../../application/commands/update-game.command';
 import { GetGameQuery } from '../../application/queries/get-game.query';
 import { GetGamesQuery } from '../../application/queries/get-games.query';
 import { Game } from '../../domain/entities/game.entity';
+import { AddGameActorsDto } from './dto/add-game-actors-dto';
+import { AddGameFactionsDto } from './dto/add-game-factions.dto';
 import { CreateGameDto } from './dto/create-game.dto';
+import { DeleteGameActorsDto } from './dto/delete-game-actors.dto';
+import { DeleteGameFactionsDto } from './dto/delete-game-factions.dto';
 import { GameDto, GamePageDto, UpdateGameDto } from './dto/game.dto';
 
 @UseGuards(JwtAuthGuard)
@@ -44,10 +51,7 @@ export class GameController {
 
   @Get('')
   @ApiOkResponse({ type: GamePageDto, description: 'Success' })
-  @ApiUnauthorizedResponse({
-    description: 'Invalid or missing authentication token',
-    type: ErrorDto,
-  })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiOperation({ operationId: 'findGames', summary: 'Find games by RSQL' })
   async find(@Query() dto: PagedQueryDto, @Request() req) {
     this.logger.debug(`Finding games with query: ${JSON.stringify(dto)}`);
@@ -62,15 +66,8 @@ export class GameController {
   @ApiBody({ type: CreateGameDto })
   @ApiOperation({ operationId: 'createGame', summary: 'Create a new game' })
   @ApiOkResponse({ type: GameDto, description: 'Success' })
-  @ApiUnauthorizedResponse({
-    description: 'Invalid or missing authentication token',
-    type: ErrorDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request, invalid data',
-    type: ErrorDto,
-  })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
   async create(@Body() dto: CreateGameDto, @Request() req) {
     this.logger.debug(`Creating game: ${JSON.stringify(dto)} for user ${req.user}`);
     const user = req.user!;
@@ -101,6 +98,7 @@ export class GameController {
   }
 
   @Post(':id/rounds/start')
+  @HttpCode(200)
   @ApiOperation({ operationId: 'startRound', summary: 'Start a new round for a game' })
   @ApiOkResponse({ type: GameDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
@@ -108,6 +106,66 @@ export class GameController {
     const user = req.user!;
     const command = new StartRoundCommand(id, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<StartRoundCommand, Game>(command);
+    return GameDto.fromEntity(entity);
+  }
+
+  @Post(':id/phases/start')
+  @HttpCode(200)
+  @ApiOperation({ operationId: 'startPhase', summary: 'Start a new phase for a game' })
+  @ApiOkResponse({ type: GameDto, description: 'Success' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  async startPhase(@Param('id') id: string, @Request() req) {
+    const user = req.user!;
+    const command = new StartPhaseCommand(id, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<StartPhaseCommand, Game>(command);
+    return GameDto.fromEntity(entity);
+  }
+
+  @Post(':id/factions')
+  @HttpCode(200)
+  @ApiOperation({ operationId: 'addGameFactions', summary: 'Add factions to game' })
+  @ApiOkResponse({ type: AddGameFactionsDto, description: 'Success' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  async addFactions(@Param('id') id: string, @Body() dto: AddGameFactionsDto, @Request() req) {
+    const user = req.user!;
+    const command = AddGameFactionsDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<AddGameFactionsDto, Game>(command);
+    return GameDto.fromEntity(entity);
+  }
+
+  @Delete(':id/factions')
+  @HttpCode(200)
+  @ApiOperation({ operationId: 'deleteGameFactions', summary: 'Delete game factions' })
+  @ApiOkResponse({ type: DeleteGameFactionsDto, description: 'Success' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  async deleteFactions(@Param('id') id: string, @Body() dto: DeleteGameFactionsDto, @Request() req) {
+    const user = req.user!;
+    const command = DeleteGameFactionsDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<DeleteGameFactionsDto, Game>(command);
+    return GameDto.fromEntity(entity);
+  }
+
+  @Post(':id/actors')
+  @HttpCode(200)
+  @ApiOperation({ operationId: 'addActors', summary: 'Add actors to game' })
+  @ApiOkResponse({ type: AddGameActorsDto, description: 'Success' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  async addActors(@Param('id') id: string, @Body() dto: AddGameActorsDto, @Request() req) {
+    const user = req.user!;
+    const command = AddGameActorsDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<AddGameActorsCommand, Game>(command);
+    return GameDto.fromEntity(entity);
+  }
+
+  @Delete(':id/actors')
+  @HttpCode(200)
+  @ApiOperation({ operationId: 'deleteGameActors', summary: 'Delete game actors' })
+  @ApiOkResponse({ type: DeleteGameActorsDto, description: 'Success' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  async deleteActors(@Param('id') id: string, @Body() dto: DeleteGameActorsDto, @Request() req) {
+    const user = req.user!;
+    const command = DeleteGameActorsDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<DeleteGameActorsCommand, Game>(command);
     return GameDto.fromEntity(entity);
   }
 }

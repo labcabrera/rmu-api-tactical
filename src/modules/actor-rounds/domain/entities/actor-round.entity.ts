@@ -6,6 +6,7 @@ export interface ActorRound {
   initiative: ActorRoundInitiative;
   actionPoints: number;
   hp: ActorRoundHP;
+  fatigue: number;
   effects: ActorRoundEffect[];
   owner: string;
   createdAt: Date;

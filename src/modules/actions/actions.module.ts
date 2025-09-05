@@ -12,8 +12,11 @@ import { StrategicModule } from '../strategic/strategic.module';
 import { CreateActionCommandHandler } from './application/commands/handlers/create-action.command.handler';
 import { DeleteActionCommandHandler } from './application/commands/handlers/delete-action.command.handler';
 import { PrepareAttackCommandHandler } from './application/commands/handlers/prepare-attack-command.handler';
+import { ResolveMovementCommandHandler } from './application/commands/handlers/resolve-movement.command.handler';
 import { GetActionQueryHandler } from './application/queries/handlers/get-action.query.handler';
 import { GetActionsQueryHandler } from './application/queries/handlers/get-actions.query.handler';
+import { FatigueProcessorService } from './domain/services/fatigue-processor.service';
+import { MovementProcessorService } from './domain/services/movement-processor.service';
 import { AttackApiClient } from './infrastructure/clients/attack-api-client';
 import { ActionController } from './infrastructure/controllers/action.controller';
 import { KafkaActionProducerService } from './infrastructure/messaging/kafka-action-producer.service';
@@ -34,10 +37,13 @@ import { MongoActionRepository } from './infrastructure/persistence/repositories
   ],
   controllers: [ActionController],
   providers: [
+    MovementProcessorService,
+    FatigueProcessorService,
     GetActionQueryHandler,
     GetActionsQueryHandler,
     CreateActionCommandHandler,
     DeleteActionCommandHandler,
+    ResolveMovementCommandHandler,
     PrepareAttackCommandHandler,
     {
       provide: 'ActionRepository',
