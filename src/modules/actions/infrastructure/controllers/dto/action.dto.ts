@@ -27,6 +27,9 @@ export class ActionDto {
   @ApiProperty({ description: 'Phase start', example: 1 })
   phaseStart: number;
 
+  @ApiProperty({ description: 'Phase end', example: 1 })
+  phaseEnd: number | undefined;
+
   @ApiProperty({ description: 'Action points', example: 2 })
   actionPoints: number | undefined;
 
@@ -51,6 +54,7 @@ export class ActionDto {
     dto.round = entity.round;
     dto.actionType = entity.actionType;
     dto.phaseStart = entity.phaseStart;
+    dto.phaseEnd = entity.phaseEnd;
     dto.actionPoints = entity.actionPoints;
     dto.movement = entity.movement ? ActionMovementDto.fromEntity(entity.movement) : undefined;
     dto.maneuver = entity.maneuver ? ActionManeuverDto.fromEntity(entity.maneuver) : undefined;

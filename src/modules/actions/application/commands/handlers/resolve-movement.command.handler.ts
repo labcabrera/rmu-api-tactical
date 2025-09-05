@@ -55,6 +55,8 @@ export class ResolveMovementCommandHandler implements ICommandHandler<ResolveMov
     action.actionPoints = action.phaseEnd - action.phaseStart + 1;
     action.movement = this.buildActionMovement(command);
     this.movementProcessorService.processMovementRoll(command.roll, action, character, actorRound);
+    action.status = 'completed';
+    action.updatedAt = new Date();
   }
 
   private buildActionMovement(command: ResolveMovementCommand): ActionMovement {

@@ -22,9 +22,9 @@ export class MovementProcessorService {
       modifiers.push({ key: 'armor-penalty', value: character.equipment.maneuverPenalty });
       modifiers.push({ key: 'custom-bonus', value: action.movement.modifiers.customBonus || 0 });
       modifiers.push({ key: 'hp-penalty', value: this.getHpPenalty(actorRound) });
-      modifiers.push({ key: 'roll', value: character.equipment.maneuverPenalty });
+      modifiers.push({ key: 'roll', value: roll });
       action.movement.roll = {
-        rollModifiers: modifiers,
+        rollModifiers: modifiers.filter((mod) => mod.value !== 0),
         roll: roll,
         totalRoll: modifiers.reduce((sum, mod) => sum + mod.value, 0),
       };
