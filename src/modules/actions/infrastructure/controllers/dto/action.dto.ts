@@ -3,6 +3,7 @@ import { PaginationDto } from '../../../../shared/infrastructure/controller/dto'
 import * as actionEntity from '../../../domain/entities/action.entity';
 import { ActionAttackDto } from './action-attack.dto';
 import { ActionManeuverDto } from './action-maneuver.dto';
+import { ActionMovementDto } from './action-movement.dto';
 
 export class ActionDto {
   @ApiProperty({ description: 'Action identifier', example: 'action-123' })
@@ -29,11 +30,14 @@ export class ActionDto {
   @ApiProperty({ description: 'Action points', example: 2 })
   actionPoints: number | undefined;
 
-  @ApiProperty({ description: 'Action attacks', type: [ActionAttackDto], required: false })
-  attacks: ActionAttackDto[] | undefined;
+  @ApiProperty({ description: 'Action movement', type: ActionMovementDto, required: false })
+  movement: ActionMovementDto | undefined;
 
   @ApiProperty({ description: 'Action maneuver', type: ActionManeuverDto, required: false })
   maneuver: ActionManeuverDto | undefined;
+
+  @ApiProperty({ description: 'Action attacks', type: [ActionAttackDto], required: false })
+  attacks: ActionAttackDto[] | undefined;
 
   @ApiProperty({ description: 'Action description' })
   description?: string;
@@ -48,8 +52,9 @@ export class ActionDto {
     dto.actionType = entity.actionType;
     dto.phaseStart = entity.phaseStart;
     dto.actionPoints = entity.actionPoints;
-    dto.attacks = entity.attacks && entity.attacks.length > 0 ? entity.attacks.map((a) => ActionAttackDto.fromEntity(a)) : undefined;
+    dto.movement = entity.movement ? ActionMovementDto.fromEntity(entity.movement) : undefined;
     dto.maneuver = entity.maneuver ? ActionManeuverDto.fromEntity(entity.maneuver) : undefined;
+    dto.attacks = entity.attacks && entity.attacks.length > 0 ? entity.attacks.map((a) => ActionAttackDto.fromEntity(a)) : undefined;
     return dto;
   }
 }

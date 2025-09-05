@@ -1,3 +1,5 @@
+import { ActionMovement } from './action-movement.entity';
+
 export type ActionStatus = 'declared' | 'in_progress' | 'completed';
 export type ActionType = 'attack' | 'maneuver' | 'movement';
 export type ManeuverType = 'absolute' | 'percent';
@@ -30,13 +32,6 @@ export interface Action {
   maneuver: ActionManeuver | undefined;
   createdAt: Date;
   updatedAt: Date | undefined;
-}
-
-export interface ActionMovement {
-  pace: string;
-  skillId: string | undefined;
-  roll: number | undefined;
-  distance: number | undefined;
 }
 
 export interface ActionAttack {

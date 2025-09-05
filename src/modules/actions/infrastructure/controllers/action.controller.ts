@@ -11,6 +11,7 @@ import { ErrorDto, PagedQueryDto } from '../../../shared/infrastructure/controll
 import { CreateActionCommand } from '../../application/commands/create-action.command';
 import { DeleteActionCommand } from '../../application/commands/delete-action.command';
 import { PrepareAttackCommand } from '../../application/commands/prepare-attack.command';
+import { ResolveMovementCommand } from '../../application/commands/resolve-movement.command';
 import { UpdateActionCommand } from '../../application/commands/update-action.command';
 import { GetActionQuery } from '../../application/queries/get-action.query';
 import { GetActionsQuery } from '../../application/queries/get-actions.query';
@@ -18,6 +19,7 @@ import { Action } from '../../domain/entities/action.entity';
 import { ActionDto, ActionPageDto } from './dto/action.dto';
 import { CreateActionDto } from './dto/create-action.dto';
 import { PrepareAttackDto } from './dto/prepare-attack.dto';
+import { ResolveMovementRequestDto } from './dto/resolve-movement.dto';
 import { UpdateActionDto } from './dto/update-action.dto';
 
 @UseGuards(JwtAuthGuard)
@@ -99,7 +101,21 @@ export class ActionController {
     await this.commandBus.execute(command);
   }
 
-  @Post(':id/prepare-attack')
+  @Patch(':id/resolve/movement')
+  @ApiBody({ type: PrepareAttackDto })
+  @ApiOperation({ operationId: 'resolveMovement', summary: 'Resolve movement' })
+  @ApiOkResponse({ type: ActionDto, description: 'Success' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
+  async resolveMovement(@Param('id') id: string, @Body() dto: ResolveMovementRequestDto, @Request() req) {
+    this.logger.debug(`Resolving movement: ${JSON.stringify(dto)} for user ${req.user}`);
+    const user = req.user!;
+    const command = ResolveMovementRequestDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<ResolveMovementCommand, Action>(command);
+    return ActionDto.fromEntity(entity);
+  }
+
+  @Patch(':id/prepare/attack')
   @ApiBody({ type: PrepareAttackDto })
   @ApiOperation({ operationId: 'prepareAttack', summary: 'Prepare attack' })
   @ApiOkResponse({ type: ActionDto, description: 'Success' })

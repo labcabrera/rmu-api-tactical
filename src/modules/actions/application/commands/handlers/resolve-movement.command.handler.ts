@@ -3,10 +3,14 @@ import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
 import * as crr from '../../../../actor-rounds/application/ports/out/character-round.repository';
+import { ActorRound } from '../../../../actor-rounds/domain/entities/actor-round.entity';
 import * as gr from '../../../../games/application/ports/out/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import * as cc from '../../../../strategic/application/ports/out/character-client';
+import { Character } from '../../../../strategic/application/ports/out/character-client';
+import { ActionMovement, ActionMovementModifiers } from '../../../domain/entities/action-movement.entity';
 import { Action } from '../../../domain/entities/action.entity';
+import { MovementProcessorService } from '../../../domain/services/movement-processor.service';
 import * as aep from '../../ports/out/action-event-producer';
 import * as ar from '../../ports/out/action.repository';
 import * as ac from '../../ports/out/attack-client';
@@ -15,6 +19,7 @@ import { ResolveMovementCommand } from '../resolve-movement.command';
 @CommandHandler(ResolveMovementCommand)
 export class ResolveMovementCommandHandler implements ICommandHandler<ResolveMovementCommand, Action> {
   constructor(
+    @Inject() private readonly movementProcessorService: MovementProcessorService,
     @Inject('GameRepository') private readonly gameRepository: gr.GameRepository,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: crr.ActorRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: ar.ActionRepository,
@@ -29,14 +34,52 @@ export class ResolveMovementCommandHandler implements ICommandHandler<ResolveMov
       throw new NotFoundError('Action', command.actionId);
     }
     this.validate(command, action);
-    this.processAction(command, action);
+    const [actorRound, character] = await Promise.all([
+      this.actorRoundRepository.findByActorIdAndRound(action.actorId, action.round),
+      this.characterClient.findById(action.actorId),
+    ]);
+    if (!actorRound) {
+      throw new NotFoundError('ActorRound', `${action.actorId} - ${action.round}`);
+    }
+    if (!character) {
+      throw new NotFoundError('Character', action.actorId);
+    }
+    this.processAction(command, action, character, actorRound);
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventProducer.updated(updated);
     return updated;
   }
 
-  private processAction(command: ResolveMovementCommand, action: Action): void {
-    //action.phase = command.phase;
+  private processAction(command: ResolveMovementCommand, action: Action, character: Character, actorRound: ActorRound): void {
+    action.phaseEnd = command.phase;
+    action.actionPoints = action.phaseEnd - action.phaseStart + 1;
+    action.movement = this.buildActionMovement(command);
+    this.movementProcessorService.processMovementRoll(command.roll, action, character, actorRound);
+  }
+
+  private buildActionMovement(command: ResolveMovementCommand): ActionMovement {
+    return {
+      modifiers: this.buildActionMovementModifers(command),
+      roll: undefined,
+      calculated: {
+        bmr: 0,
+        paceMultiplier: 0,
+        percent: 0,
+        distance: 0,
+        critical: undefined,
+        description: 'Not processed',
+      },
+    };
+  }
+
+  private buildActionMovementModifers(command: ResolveMovementCommand): ActionMovementModifiers {
+    return {
+      pace: command.pace,
+      requiredManeuver: command.requiredManeuver === true,
+      skillId: command.skillId,
+      difficulty: command.difficulty,
+      customBonus: command.customBonus,
+    };
   }
 
   private validate(command: ResolveMovementCommand, action: Action): void {
@@ -44,6 +87,17 @@ export class ResolveMovementCommandHandler implements ICommandHandler<ResolveMov
       throw new ValidationError('Action is not a movement action');
     } else if (action.status === 'completed') {
       throw new ValidationError('Action is already completed');
+    }
+    if (command.requiredManeuver === true) {
+      if (!command.roll) {
+        throw new ValidationError('Roll is required for a maneuver');
+      }
+      if (!command.difficulty) {
+        throw new ValidationError('Difficulty is required for a maneuver');
+      }
+      if (!command.skillId) {
+        throw new ValidationError('SkillId is required for a maneuver');
+      }
     }
   }
 }

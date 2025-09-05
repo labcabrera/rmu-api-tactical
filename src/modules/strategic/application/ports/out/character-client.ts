@@ -11,15 +11,21 @@ export interface Character {
   factionId: string;
   name: string;
   info: CharacterInfo;
+  movement: CharacterMovement;
   defense: CharacterDefense;
   hp: CharacterHP;
   initiative: CharacterInitiative;
+  equipment: CharacterEquipment;
   attacks: CharacterAttack[];
   owner: string;
 }
 
 export interface CharacterInfo {
   sizeId: string;
+}
+
+export interface CharacterMovement {
+  baseMovementRate: number;
 }
 
 export interface CharacterDefense {
@@ -33,6 +39,10 @@ export interface CharacterHP {
 
 export interface CharacterInitiative {
   baseBonus: number;
+}
+
+export interface CharacterEquipment {
+  maneuverPenalty: number;
 }
 
 export interface CharacterAttack {

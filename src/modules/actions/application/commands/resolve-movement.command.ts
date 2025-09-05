@@ -5,6 +5,7 @@ export class ResolveMovementCommand {
   requiredManeuver: boolean;
   difficulty: string | undefined;
   skillId: string | undefined;
+  customBonus: number | undefined;
   roll: number | undefined;
   userId: string;
   roles: string[];
