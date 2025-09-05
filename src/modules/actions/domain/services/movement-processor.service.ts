@@ -33,11 +33,13 @@ export class MovementProcessorService {
     }
     const bmr = character.movement.baseMovementRate;
     const paceMultiplier = this.getPaceMultiplier(action.movement.modifiers.pace);
+    const distance = bmr * percent * action.actionPoints * paceMultiplier;
     action.movement.calculated = {
       bmr: bmr,
       paceMultiplier: paceMultiplier,
       percent: percent,
-      distance: bmr * percent * action.actionPoints * paceMultiplier,
+      distance: distance,
+      distanceAdjusted: distance,
       critical: undefined,
       description: 'Successful movement',
     };

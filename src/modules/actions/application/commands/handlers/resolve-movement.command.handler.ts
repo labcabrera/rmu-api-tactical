@@ -77,7 +77,8 @@ export class ResolveMovementCommandHandler implements ICommandHandler<ResolveMov
     action.movement = this.buildActionMovement(command);
     this.movementProcessorService.process(command.roll, action, character, actorRound);
     this.fatigueProcessorService.process(action, strategicGame);
-    action.status = 'completed';
+    const scale = strategicGame.options?.boardScaleMultiplier || 1;
+    action.movement.calculated.distanceAdjusted = action.movement.calculated.distance * scale;
     action.updatedAt = new Date();
   }
 
@@ -90,6 +91,7 @@ export class ResolveMovementCommandHandler implements ICommandHandler<ResolveMov
         paceMultiplier: 0,
         percent: 0,
         distance: 0,
+        distanceAdjusted: 0,
         critical: undefined,
         description: 'Not processed',
       },

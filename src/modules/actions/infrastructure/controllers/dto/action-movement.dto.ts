@@ -58,6 +58,7 @@ export class ActionMovementResultDto {
   paceMultiplier: number;
   percent: number;
   distance: number;
+  distanceAdjusted: number;
   critical: string | undefined;
   description: string;
 
@@ -67,6 +68,7 @@ export class ActionMovementResultDto {
     dto.paceMultiplier = calculated.paceMultiplier;
     dto.percent = calculated.percent;
     dto.distance = calculated.distance;
+    dto.distanceAdjusted = calculated.distanceAdjusted;
     dto.critical = calculated.critical;
     dto.description = calculated.description;
     return dto;

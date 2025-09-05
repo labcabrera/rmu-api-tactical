@@ -54,6 +54,9 @@ export class ActionMovementResult {
   @Prop({ type: Number, required: true })
   distance: number;
 
+  @Prop({ type: Number, required: true })
+  distanceAdjusted: number;
+
   @Prop({ type: String, required: false })
   critical: string | undefined;
 

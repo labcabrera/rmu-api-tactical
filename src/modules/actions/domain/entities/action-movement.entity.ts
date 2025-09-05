@@ -23,9 +23,9 @@ export interface ActionMovementRoll {
 export interface ActionMovementResult {
   bmr: number;
   paceMultiplier: number;
-
   percent: number;
   distance: number;
+  distanceAdjusted: number;
   critical: string | undefined;
   description: string;
 }

@@ -10,4 +10,5 @@ export interface StrategicGame {
 
 export interface StrategicGameOptions {
   fatigueMultiplier?: number;
+  boardScaleMultiplier?: number;
 }
