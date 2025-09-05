@@ -79,6 +79,7 @@ export class ResolveMovementCommandHandler implements ICommandHandler<ResolveMov
     this.fatigueProcessorService.process(action, strategicGame);
     const scale = strategicGame.options?.boardScaleMultiplier || 1;
     action.movement.calculated.distanceAdjusted = action.movement.calculated.distance * scale;
+    action.status = 'completed';
     action.updatedAt = new Date();
   }
 
