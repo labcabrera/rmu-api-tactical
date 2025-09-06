@@ -7,6 +7,7 @@ import { AuthModule } from 'src/modules/auth/auth.module';
 import { GamesModule } from '../games/games.module';
 import { SharedModule } from '../shared/shared.module';
 import { StrategicModule } from '../strategic/strategic.module';
+import { AddEffectCommandHandler } from './application/commands/handlers/add-effect.command.handler';
 import { AddHpCommandHandler } from './application/commands/handlers/add-hp.command.handler';
 import { DeclareInitiativeCommandHandler } from './application/commands/handlers/update-initiative.command.handler';
 import { GetActorRoundQueryHandler } from './application/queries/handlers/get-actor-round.query.handler';
@@ -36,6 +37,7 @@ import { MongoActorRoundRepository } from './infrastructure/persistence/reposito
     GetActorRoundQueryHandler,
     GetCharacterRoundsQueryHandler,
     AddHpCommandHandler,
+    AddEffectCommandHandler,
     {
       provide: 'ActorRoundRepository',
       useClass: MongoActorRoundRepository,
