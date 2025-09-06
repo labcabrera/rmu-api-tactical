@@ -30,10 +30,13 @@ export class ActorRoundAttack {
   attackType: 'melee' | 'ranged';
 
   @Prop({ required: true })
+  attackTable: string;
+
+  @Prop({ required: true })
   fumbleTable: string;
 
   @Prop({ required: true })
-  attackTable: string;
+  attackSize: 'small' | 'medium' | 'big';
 
   @Prop({ required: true })
   fumble: number;

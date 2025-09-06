@@ -47,8 +47,9 @@ export interface ActorRoundAttack {
   /** Current attack less parry amount and penalties applied */
   currentBo: number;
   attackType: 'melee' | 'ranged';
-  fumbleTable: string;
   attackTable: string;
+  fumbleTable: string;
+  attackSize: 'small' | 'medium' | 'big';
   fumble: number;
   canThrow: boolean;
 }

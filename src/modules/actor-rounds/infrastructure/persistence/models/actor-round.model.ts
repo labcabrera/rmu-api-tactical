@@ -35,7 +35,7 @@ export class ActorRoundModel {
   @Prop({ type: ActorRoundHP, required: true })
   hp: ActorRoundHP;
 
-  @Prop({ required: true })
+  @Prop({ type: ActorRoundFatigue, required: true })
   fatigue: ActorRoundFatigue;
 
   @Prop({ type: [ActorRoundPenalty], required: true })

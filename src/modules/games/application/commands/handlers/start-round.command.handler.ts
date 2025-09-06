@@ -1,11 +1,11 @@
-import { Inject, NotImplementedException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
 import * as crr from '../../../../actor-rounds/application/ports/out/character-round.repository';
-import { ActorRound } from '../../../../actor-rounds/domain/entities/actor-round.entity';
+import { ActorRoundService } from '../../../../actor-rounds/application/services/actor-round-service';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import * as cr from '../../../../strategic/application/ports/out/character-client';
-import { Actor, Game } from '../../../domain/entities/game.entity';
+import { Game } from '../../../domain/entities/game.entity';
 import * as gep from '../../ports/out/game-event-producer';
 import * as gr from '../../ports/out/game.repository';
 import { StartRoundCommand } from '../start-round.command';
@@ -17,6 +17,7 @@ export class StartRoundCommandHandler implements ICommandHandler<StartRoundComma
     @Inject('ActorRoundRepository') private readonly characterRoundRepository: crr.ActorRoundRepository,
     @Inject('CharacterClient') private readonly characterClient: cr.CharacterClient,
     @Inject('GameEventProducer') private readonly gameEventProducer: gep.GameEventProducer,
+    @Inject() private readonly actorRoundService: ActorRoundService,
   ) {}
 
   async execute(command: StartRoundCommand): Promise<Game> {
@@ -41,52 +42,6 @@ export class StartRoundCommandHandler implements ICommandHandler<StartRoundComma
   }
 
   private async createCharacterRounds(game: Game): Promise<void> {
-    for (const actor of game.actors) {
-      await this.buildActorRound(game.id, actor, game.round);
-    }
-  }
-
-  private async buildActorRound(gameId: string, actor: Actor, round: number): Promise<void> {
-    let baseInitiative = 0;
-    let hp = 0;
-    if (actor.type === 'character') {
-      const character = await this.characterClient.findById(actor.id);
-      if (!character) {
-        throw new ValidationError(`Character ${actor.id} not found`);
-      }
-      baseInitiative = character.initiative.baseBonus;
-      hp = character.hp.max;
-    } else {
-      throw new NotImplementedException('NPCs are not implemented yet');
-    }
-    const entity: Partial<ActorRound> = {
-      gameId: gameId,
-      actorId: actor.id,
-      actorName: actor.name,
-      round: round,
-      initiative: {
-        base: baseInitiative,
-        penalty: 0,
-        roll: undefined,
-        total: undefined,
-      },
-      actionPoints: 4,
-      hp: {
-        current: hp,
-        max: hp,
-      },
-      fatigue: {
-        endurance: 0,
-        fatigue: 0,
-        accumulator: 0,
-      },
-      penalties: [],
-      attacks: [],
-      parries: [],
-      effects: [],
-      owner: actor.owner,
-      createdAt: new Date(),
-    };
-    await this.characterRoundRepository.save(entity);
+    await Promise.all(game.actors.map((actor) => this.actorRoundService.create(game.id, actor, game.round)));
   }
 }
