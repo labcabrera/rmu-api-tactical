@@ -42,11 +42,11 @@ export class StartRoundCommandHandler implements ICommandHandler<StartRoundComma
 
   private async createCharacterRounds(game: Game): Promise<void> {
     for (const actor of game.actors) {
-      await this.createTacticalCharacterRound(game.id, actor, game.round);
+      await this.buildActorRound(game.id, actor, game.round);
     }
   }
 
-  private async createTacticalCharacterRound(gameId: string, actor: Actor, round: number): Promise<void> {
+  private async buildActorRound(gameId: string, actor: Actor, round: number): Promise<void> {
     let baseInitiative = 0;
     let hp = 0;
     if (actor.type === 'character') {
@@ -62,6 +62,7 @@ export class StartRoundCommandHandler implements ICommandHandler<StartRoundComma
     const entity: Partial<ActorRound> = {
       gameId: gameId,
       actorId: actor.id,
+      actorName: actor.name,
       round: round,
       initiative: {
         base: baseInitiative,
@@ -74,7 +75,14 @@ export class StartRoundCommandHandler implements ICommandHandler<StartRoundComma
         current: hp,
         max: hp,
       },
-      fatigue: 0,
+      fatigue: {
+        endurance: 0,
+        fatigue: 0,
+        accumulator: 0,
+      },
+      penalties: [],
+      attacks: [],
+      parries: [],
       effects: [],
       owner: actor.owner,
       createdAt: new Date(),

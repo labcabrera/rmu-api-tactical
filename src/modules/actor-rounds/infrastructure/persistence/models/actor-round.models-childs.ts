@@ -10,6 +10,35 @@ export class ActorRoundHP {
 }
 
 @Schema({ _id: false })
+export class ActorRoundFatigue {
+  @Prop({ required: true })
+  fatigue: number;
+
+  @Prop({ required: true })
+  endurance: number;
+
+  @Prop({ required: true })
+  accumulator: number;
+}
+
+@Schema({ _id: false })
+export class ActorRoundPenalty {
+  @Prop({ required: true })
+  key: number;
+
+  @Prop({ required: true })
+  value: number;
+}
+
+export class ActorRoundParry {
+  @Prop({ required: true })
+  attackName: string;
+
+  @Prop({ required: true })
+  parryValue: number;
+}
+
+@Schema({ _id: false })
 export class ActorRoundEffect {
   @Prop({ required: true })
   status: string;

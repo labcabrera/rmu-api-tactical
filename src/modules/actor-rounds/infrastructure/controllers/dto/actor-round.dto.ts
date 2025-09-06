@@ -3,6 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { PaginationDto } from '../../../../shared/infrastructure/controller/dto';
 import { ActorRound } from '../../../domain/entities/actor-round.entity';
 import { ActorRoundEffect } from '../../persistence/models/actor-round.models-childs';
+import { ActorRoundFatigueDto } from './actor-round-fatigue.dto';
 import { ActorRoundHPDto } from './actor-round-hp.dto';
 import { ActorRoundInitiativeDto } from './actor-round-initiative.dto';
 
@@ -29,7 +30,7 @@ export class ActorRoundDto {
   hp: ActorRoundHPDto;
 
   @ApiProperty({ description: 'Fatigue points' })
-  fatigue: number;
+  fatigue: ActorRoundFatigueDto;
 
   @ApiProperty({ description: 'Active effects' })
   effects: ActorRoundEffect[];
@@ -43,7 +44,7 @@ export class ActorRoundDto {
     dto.initiative = ActorRoundInitiativeDto.fromEntity(entity.initiative);
     dto.actionPoints = entity.actionPoints;
     dto.hp = ActorRoundHPDto.fromEntity(entity.hp);
-    dto.fatigue = entity.fatigue;
+    dto.fatigue = ActorRoundFatigueDto.fromEntity(entity.fatigue);
     dto.effects = entity.effects;
     return dto;
   }

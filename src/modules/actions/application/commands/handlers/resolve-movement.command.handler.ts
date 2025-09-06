@@ -56,8 +56,8 @@ export class ResolveMovementCommandHandler implements ICommandHandler<ResolveMov
     this.processAction(command, action, character, actorRound, strategicGame);
     const updated = await this.actionRepository.update(action.id, action);
     if (action.fatigue) {
-      const currentFatigue = actorRound.fatigue || 0;
-      actorRound.fatigue = currentFatigue + action.fatigue;
+      const currentFatigue = actorRound.fatigue.accumulator || 0;
+      actorRound.fatigue.accumulator = currentFatigue + action.fatigue;
       await this.actorRoundRepository.update(actorRound.id, actorRound);
     }
     await this.actionEventProducer.updated(updated);
