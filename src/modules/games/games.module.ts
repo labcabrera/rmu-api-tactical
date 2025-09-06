@@ -4,6 +4,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { MongooseModule } from '@nestjs/mongoose';
 import { TerminusModule } from '@nestjs/terminus';
 import { AuthModule } from 'src/modules/auth/auth.module';
+import { ActionsModule } from '../actions/actions.module';
 import { ActorsRoundModule } from '../actor-rounds/actor-rounds.module';
 import { SharedModule } from '../shared/shared.module';
 import { StrategicModule } from '../strategic/strategic.module';
@@ -33,6 +34,7 @@ import { MongoGameRepository } from './infrastructure/persistence/repositories/m
     SharedModule,
     StrategicModule,
     forwardRef(() => ActorsRoundModule),
+    forwardRef(() => ActionsModule),
   ],
   controllers: [GameController],
   providers: [

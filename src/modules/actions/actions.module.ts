@@ -58,5 +58,6 @@ import { MongoActionRepository } from './infrastructure/persistence/repositories
       useClass: AttackApiClient,
     },
   ],
+  exports: ['ActionRepository'],
 })
 export class ActionsModule {}

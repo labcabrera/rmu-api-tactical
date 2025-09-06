@@ -57,7 +57,7 @@ export class ActorRoundController {
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
   @ApiOperation({ operationId: 'declareInitiative', summary: 'Declare initiative' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  @ApiNotFoundResponse({ description: 'Character round not found', type: ErrorDto })
+  @ApiNotFoundResponse({ description: 'Actor round not found', type: ErrorDto })
   async declareInitiative(@Param('id') id: string, @Body() dto: DeclareInitiativeDto, @Request() req) {
     const user = req.user!;
     const command = DeclareInitiativeDto.toCommand(id, dto, user.id as string, user.roles as string[]);
@@ -65,11 +65,11 @@ export class ActorRoundController {
     return ActorRoundDto.fromEntity(entity);
   }
 
-  @Patch(':id/hp/add/{:hp}')
+  @Patch(':id/add-hp/:hp')
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
-  @ApiOperation({ operationId: 'addHp', summary: 'Declare initiative' })
+  @ApiOperation({ operationId: 'addHp', summary: 'Add or subtract HP' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  @ApiNotFoundResponse({ description: 'Character round not found', type: ErrorDto })
+  @ApiNotFoundResponse({ description: 'Actor round not found', type: ErrorDto })
   async addHp(@Param('id') id: string, @Param('hp') hp: number, @Request() req) {
     const user = req.user!;
     const command = new AddHpCommand(id, hp, user.id as string, user.roles as string[]);

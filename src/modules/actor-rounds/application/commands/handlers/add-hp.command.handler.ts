@@ -19,7 +19,8 @@ export class AddHpCommandHandler implements ICommandHandler<AddHpCommand, ActorR
       throw new NotFoundError('Actor round', command.actorRoundId);
     }
     actorRound.hp.current += command.hp;
-    return await this.actorRoundRepository.save(actorRound);
+    this.checkDeath(actorRound);
+    return await this.actorRoundRepository.update(actorRound.id, actorRound);
   }
 
   private checkDeath(actorRound: ActorRound): void {
