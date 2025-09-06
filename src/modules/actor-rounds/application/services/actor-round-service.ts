@@ -20,13 +20,22 @@ export class ActorRoundService {
     // character could be added in a later round
     const prev = await this.actorRoundRepository.findByActorIdAndRound(actor.id, round - 1);
     if (prev) {
-      return await this.createFromPreviousRound(gameId, actor, round);
+      return await this.createFromPreviousRound(prev);
     }
     return await this.createFromTemplate(gameId, actor, round);
   }
 
-  public async createFromPreviousRound(gameId: string, actor: Actor, round: number): Promise<void> {
-    throw new NotImplementedException('Creating actor round from previous round is not implemented yet');
+  public async createFromPreviousRound(prev): Promise<void> {
+    const template: Partial<ActorRound> = {
+      ...prev,
+      id: undefined,
+      updatedAt: undefined,
+      round: prev.round + 1,
+      actionPoints: 4,
+      parries: [],
+      createdAt: new Date(),
+    };
+    await this.actorRoundRepository.save(template);
   }
 
   public async createFromTemplate(gameId: string, actor: Actor, round: number): Promise<void> {

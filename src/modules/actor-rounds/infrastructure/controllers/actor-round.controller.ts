@@ -8,6 +8,7 @@ import { ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthori
 import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
 import { Page } from '../../../shared/domain/entities/page.entity';
 import { ErrorDto, PagedQueryDto } from '../../../shared/infrastructure/controller/dto';
+import { AddHpCommand } from '../../application/commands/add-hp.command';
 import { DeclareInitiativeCommand } from '../../application/commands/declare-initiative.command';
 import { GetActorRoundQuery } from '../../application/queries/get-actor-round.query';
 import { GetActorsRoundsQuery } from '../../application/queries/get-actor-rounds.query';
@@ -61,6 +62,18 @@ export class ActorRoundController {
     const user = req.user!;
     const command = DeclareInitiativeDto.toCommand(id, dto, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<DeclareInitiativeCommand, ActorRound>(command);
+    return ActorRoundDto.fromEntity(entity);
+  }
+
+  @Patch(':id/hp/add/{:hp}')
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
+  @ApiOperation({ operationId: 'addHp', summary: 'Declare initiative' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiNotFoundResponse({ description: 'Character round not found', type: ErrorDto })
+  async addHp(@Param('id') id: string, @Param('hp') hp: number, @Request() req) {
+    const user = req.user!;
+    const command = new AddHpCommand(id, hp, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<AddHpCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
   }
 }
