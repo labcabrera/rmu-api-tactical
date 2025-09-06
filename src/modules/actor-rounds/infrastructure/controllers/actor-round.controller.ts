@@ -1,19 +1,22 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
-import { Body, Controller, Get, Logger, Param, Patch, Query, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Logger, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
 import { Page } from '../../../shared/domain/entities/page.entity';
 import { ErrorDto, PagedQueryDto } from '../../../shared/infrastructure/controller/dto';
+import { AddEffectCommand } from '../../application/commands/add-effect.command';
 import { AddHpCommand } from '../../application/commands/add-hp.command';
 import { DeclareInitiativeCommand } from '../../application/commands/declare-initiative.command';
 import { GetActorRoundQuery } from '../../application/queries/get-actor-round.query';
 import { GetActorsRoundsQuery } from '../../application/queries/get-actor-rounds.query';
 import { ActorRound } from '../../domain/entities/actor-round.entity';
 import { ActorRoundDto, CharacterRoundPageDto } from './dto/actor-round.dto';
+import { AddEffectDto } from './dto/add-effect.dto';
+import { AddHpDto } from './dto/add-hp.dto';
 import { DeclareInitiativeDto } from './dto/declare-initiative.dto';
 
 @UseGuards(JwtAuthGuard)
@@ -65,15 +68,27 @@ export class ActorRoundController {
     return ActorRoundDto.fromEntity(entity);
   }
 
-  @Patch(':id/add-hp/:hp')
+  @Patch(':id/hp')
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
   @ApiOperation({ operationId: 'addHp', summary: 'Add or subtract HP' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiNotFoundResponse({ description: 'Actor round not found', type: ErrorDto })
-  async addHp(@Param('id') id: string, @Param('hp') hp: number, @Request() req) {
+  async addHp(@Param('id') id: string, @Body() dto: AddHpDto, @Request() req) {
     const user = req.user!;
-    const command = new AddHpCommand(id, hp, user.id as string, user.roles as string[]);
+    const command = AddHpDto.toCommand(id, dto, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<AddHpCommand, ActorRound>(command);
+    return ActorRoundDto.fromEntity(entity);
+  }
+
+  @Post(':id/effects')
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
+  @ApiOperation({ operationId: 'addEffect', summary: 'Add effect' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiNotFoundResponse({ description: 'Actor round not found', type: ErrorDto })
+  async addEffect(@Param('id') id: string, @Body() dto: AddEffectDto, @Request() req) {
+    const user = req.user!;
+    const command = AddEffectDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<AddEffectCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
   }
 }
