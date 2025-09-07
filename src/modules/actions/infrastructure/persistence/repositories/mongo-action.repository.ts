@@ -57,23 +57,11 @@ export class MongoActionRepository implements ActionRepository {
     return result ? this.mapToEntity(result) : null;
   }
 
-  findByGameId(gameId: string): Promise<Action[]> {
-    throw new Error('Method not implemented.');
+  async deleteByGameId(gameId: string): Promise<void> {
+    await this.actionModel.deleteMany({ gameId });
   }
-  findByGameIdAndRound(gameId: string, round: number): Promise<Action[]> {
-    throw new Error('Method not implemented.');
-  }
-  findByCharacterId(characterId: string): Promise<Action[]> {
-    throw new Error('Method not implemented.');
-  }
-  findByCharacterIdAndRound(characterId: string, round: number): Promise<Action[]> {
-    throw new Error('Method not implemented.');
-  }
-  deleteByGameId(gameId: string): Promise<void> {
-    throw new Error('Method not implemented.');
-  }
-  deleteByCharacterId(characterId: string): Promise<void> {
-    throw new Error('Method not implemented.');
+  async deleteByCharacterId(characterId: string): Promise<void> {
+    await this.actionModel.deleteMany({ characterId });
   }
 
   private mapToEntity(doc: ActionDocument): Action {

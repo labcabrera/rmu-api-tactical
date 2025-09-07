@@ -6,8 +6,6 @@ export interface ActorRoundRepository {
 
   findByRsql(rsql: string | undefined, page: number, size: number): Promise<Page<ActorRound>>;
 
-  findByGameIdAndRound(gameId: string, round: number): Promise<ActorRound[]>;
-
   findByActorIdAndRound(characterId: string, round: number): Promise<ActorRound | null>;
 
   save(entity: Partial<ActorRound>): Promise<ActorRound>;

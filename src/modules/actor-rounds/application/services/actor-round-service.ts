@@ -35,6 +35,8 @@ export class ActorRoundService {
       parries: [],
       createdAt: new Date(),
     };
+    template.initiative!.roll = undefined;
+    template.initiative!.total = undefined;
     await this.actorRoundRepository.save(template);
   }
 

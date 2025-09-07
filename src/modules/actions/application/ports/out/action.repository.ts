@@ -6,14 +6,6 @@ export interface ActionRepository {
 
   findByRsql(rsql: string | undefined, page: number, size: number): Promise<Page<Action>>;
 
-  findByGameId(gameId: string): Promise<Action[]>;
-
-  findByGameIdAndRound(gameId: string, round: number): Promise<Action[]>;
-
-  findByCharacterId(characterId: string): Promise<Action[]>;
-
-  findByCharacterIdAndRound(characterId: string, round: number): Promise<Action[]>;
-
   save(entity: Partial<Action>): Promise<Action>;
 
   update(id: string, entity: Partial<Action>): Promise<Action>;

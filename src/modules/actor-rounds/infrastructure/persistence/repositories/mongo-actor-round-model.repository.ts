@@ -16,12 +16,8 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
     private rsqlParser: RsqlParser,
   ) {}
 
-  findByGameIdAndRound(gameId: string, round: number): Promise<ActorRound[]> {
-    throw new Error('Method not implemented.');
-  }
-
-  deleteByGameId(gameId: string): Promise<void> {
-    throw new Error('Method not implemented.');
+  async deleteByGameId(gameId: string): Promise<void> {
+    await this.characterRoundModel.deleteMany({ gameId });
   }
 
   async findById(id: string): Promise<ActorRound | null> {

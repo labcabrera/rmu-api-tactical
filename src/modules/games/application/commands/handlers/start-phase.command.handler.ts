@@ -46,6 +46,9 @@ export class StartPhaseCommandHandler implements ICommandHandler<StartPhaseComma
       case 'phase_3':
         nextPhase = 'phase_4';
         break;
+      case 'phase_4':
+        nextPhase = 'upkeep';
+        break;
       default:
         throw new ValidationError(`Cannot start next phase from phase ${game.phase}`);
     }
