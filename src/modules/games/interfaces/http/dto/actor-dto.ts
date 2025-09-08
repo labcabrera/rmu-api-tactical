@@ -1,4 +1,4 @@
-import { Actor, ActorType } from '../../../domain/entities/game.entity';
+import { Actor, ActorType } from '../../../domain/entities/game.aggregate';
 
 export class ActorDto {
   id: string;

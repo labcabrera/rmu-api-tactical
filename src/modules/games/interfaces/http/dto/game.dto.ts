@@ -3,7 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { PaginationDto } from '../../../../shared/infrastructure/controller/dto';
 import { UpdateGameCommand } from '../../../application/commands/update-game.command';
-import * as ge from '../../../domain/entities/game.entity';
+import * as ge from '../../../domain/entities/game.aggregate';
 import { ActorDto } from './actor-dto';
 
 export class GameDto {

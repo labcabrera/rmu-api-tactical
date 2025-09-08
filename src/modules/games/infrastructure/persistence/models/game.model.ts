@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import * as gameEntity from '../../../domain/entities/game.entity';
+import * as gameEntity from '../../../domain/entities/game.aggregate';
 import { Actor } from './game.model-childs';
 
 export type GameDocument = GameModel & Document;

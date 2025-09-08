@@ -1,5 +1,5 @@
 import { DomainEvent } from '../../../shared/domain/events/domain-event';
-import { Game } from '../entities/game.entity';
+import { Game } from '../entities/game.aggregate';
 
 export class GameCreatedEvent extends DomainEvent<Game> {
   constructor(data: Game) {

@@ -5,7 +5,7 @@ import * as crr from '../../../actor-rounds/application/ports/out/character-roun
 import { ActorRoundService } from '../../../actor-rounds/application/services/actor-round-service';
 import { NotFoundError, ValidationError } from '../../../shared/domain/errors';
 import * as cr from '../../../strategic/application/ports/out/character-client';
-import { Game } from '../../domain/entities/game.entity';
+import { Game } from '../../domain/entities/game.aggregate';
 import { StartRoundCommand } from '../commands/start-round.command';
 import * as gep from '../ports/game-event-bus.port';
 import * as gr from '../ports/game.repository';

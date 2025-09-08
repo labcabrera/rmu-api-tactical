@@ -4,7 +4,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ValidationError } from '../../../shared/domain/errors';
 import * as cc from '../../../strategic/application/ports/out/character-client';
 import * as sgc from '../../../strategic/application/ports/out/strategic-game-client';
-import { Actor, Game } from '../../domain/entities/game.entity';
+import { Actor, Game } from '../../domain/entities/game.aggregate';
 import { CreateGameCommand, CreateGameCommandActor } from '../commands/create-game.command';
 import * as gep from '../ports/game-event-bus.port';
 import * as gr from '../ports/game.repository';

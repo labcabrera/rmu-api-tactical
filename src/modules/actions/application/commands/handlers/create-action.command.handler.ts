@@ -4,7 +4,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import * as characterRoundRepository from '../../../../actor-rounds/application/ports/out/character-round.repository';
 import { ActorRound } from '../../../../actor-rounds/domain/entities/actor-round.entity';
 import * as gameRepository from '../../../../games/application/ports/game.repository';
-import { Game } from '../../../../games/domain/entities/game.entity';
+import { Game } from '../../../../games/domain/entities/game.aggregate';
 import { ValidationError } from '../../../../shared/domain/errors';
 import { Action, ActionManeuver } from '../../../domain/entities/action.entity';
 import * as actionEventProducer from '../../ports/out/action-event-producer';

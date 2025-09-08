@@ -1,7 +1,7 @@
 import { Inject, Logger } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Page } from '../../../shared/domain/entities/page.entity';
-import { Game } from '../../domain/entities/game.entity';
+import { Game } from '../../domain/entities/game.aggregate';
 import * as gr from '../ports/game.repository';
 import { GetGamesQuery } from '../queries/get-games.query';
 

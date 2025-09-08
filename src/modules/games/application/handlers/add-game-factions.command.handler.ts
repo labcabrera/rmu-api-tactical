@@ -2,7 +2,7 @@ import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
 import { NotFoundError, NotModifiedError } from '../../../shared/domain/errors';
-import { Game } from '../../domain/entities/game.entity';
+import { Game } from '../../domain/entities/game.aggregate';
 import { AddGameFactionsCommand } from '../commands/add-game-factions.command';
 import * as gep from '../ports/game-event-bus.port';
 import * as gr from '../ports/game.repository';

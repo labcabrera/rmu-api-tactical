@@ -1,5 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import * as ge from '../../../domain/entities/game.entity';
+import * as ge from '../../../domain/entities/game.aggregate';
 
 @Schema({ _id: false })
 export class Actor {

@@ -3,7 +3,7 @@ import { IsArray, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class
 
 import { Type } from 'class-transformer';
 import { CreateGameCommand, CreateGameCommandActor } from '../../../application/commands/create-game.command';
-import * as ge from '../../../domain/entities/game.entity';
+import * as ge from '../../../domain/entities/game.aggregate';
 
 export class CreateGameActorDto {
   @ApiProperty({ description: 'Actor identifier (character or NPC id)', example: 'actor-123' })

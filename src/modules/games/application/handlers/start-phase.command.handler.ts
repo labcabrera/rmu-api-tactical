@@ -3,7 +3,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
 import * as crr from '../../../actor-rounds/application/ports/out/character-round.repository';
 import { NotFoundError, ValidationError } from '../../../shared/domain/errors';
-import { Game, GamePhase } from '../../domain/entities/game.entity';
+import { Game, GamePhase } from '../../domain/entities/game.aggregate';
 import { StartPhaseCommand } from '../commands/start-phase.command';
 import { StartRoundCommand } from '../commands/start-round.command';
 import * as gep from '../ports/game-event-bus.port';

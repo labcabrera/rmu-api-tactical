@@ -17,7 +17,7 @@ import { StartRoundCommand } from '../../application/commands/start-round.comman
 import { UpdateGameCommand } from '../../application/commands/update-game.command';
 import { GetGameQuery } from '../../application/queries/get-game.query';
 import { GetGamesQuery } from '../../application/queries/get-games.query';
-import { Game } from '../../domain/entities/game.entity';
+import { Game } from '../../domain/entities/game.aggregate';
 import { AddGameActorsDto } from './dto/add-game-actors-dto';
 import { AddGameFactionsDto } from './dto/add-game-factions.dto';
 import { CreateGameDto } from './dto/create-game.dto';

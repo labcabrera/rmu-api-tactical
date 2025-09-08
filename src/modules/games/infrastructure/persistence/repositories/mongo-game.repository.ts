@@ -7,7 +7,7 @@ import { Page } from '../../../../shared/domain/entities/page.entity';
 import { NotFoundError } from '../../../../shared/domain/errors';
 import { RsqlParser } from '../../../../shared/infrastructure/messaging/rsql-parser';
 import { GameRepository } from '../../../application/ports/game.repository';
-import { Game } from '../../../domain/entities/game.entity';
+import { Game } from '../../../domain/entities/game.aggregate';
 import { GameDocument, GameModel } from '../models/game.model';
 
 @Injectable()
