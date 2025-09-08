@@ -1,12 +1,11 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-
 import * as crr from '../../../actor-rounds/application/ports/out/character-round.repository';
 import { ActorRoundService } from '../../../actor-rounds/application/services/actor-round-service';
 import { NotFoundError, ValidationError } from '../../../shared/domain/errors';
 import * as cr from '../../../strategic/application/ports/out/character-client';
 import { Game } from '../../domain/entities/game.aggregate';
-import { StartRoundCommand } from '../commands/start-round.command';
+import { StartRoundCommand } from '../cqrs/commands/start-round.command';
 import * as gep from '../ports/game-event-bus.port';
 import * as gr from '../ports/game.repository';
 

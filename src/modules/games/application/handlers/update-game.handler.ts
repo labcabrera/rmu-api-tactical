@@ -1,8 +1,7 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler } from '@nestjs/cqrs';
-
 import { Game } from '../../domain/entities/game.aggregate';
-import { UpdateGameCommand } from '../commands/update-game.command';
+import { UpdateGameCommand } from '../cqrs/commands/update-game.command';
 import * as gameEventProducer_1 from '../ports/game-event-bus.port';
 import * as gameRepository from '../ports/game.repository';
 

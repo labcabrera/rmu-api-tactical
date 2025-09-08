@@ -1,10 +1,9 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-
 import * as ar from '../../../actions/application/ports/out/action.repository';
 import * as arr from '../../../actor-rounds/application/ports/out/character-round.repository';
 import { NotFoundError } from '../../../shared/domain/errors';
-import { DeleteGameCommand } from '../commands/delete-game.command';
+import { DeleteGameCommand } from '../cqrs/commands/delete-game.command';
 import * as gameEventProducer from '../ports/game-event-bus.port';
 import * as gr from '../ports/game.repository';
 

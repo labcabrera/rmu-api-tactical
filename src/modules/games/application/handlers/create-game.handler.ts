@@ -1,12 +1,11 @@
 import { Inject, Logger, NotImplementedException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-
 import { ValidationError } from '../../../shared/domain/errors';
 import * as cc from '../../../strategic/application/ports/out/character-client';
 import * as sgc from '../../../strategic/application/ports/out/strategic-game-client';
 import { Actor } from '../../domain/entities/actor.vo';
 import { Game } from '../../domain/entities/game.aggregate';
-import { CreateGameCommand, CreateGameCommandActor } from '../commands/create-game.command';
+import { CreateGameCommand, CreateGameCommandActor } from '../cqrs/commands/create-game.command';
 import * as gep from '../ports/game-event-bus.port';
 import * as gr from '../ports/game.repository';
 

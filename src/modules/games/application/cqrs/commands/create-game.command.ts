@@ -1,4 +1,4 @@
-import { ActorType } from '../../domain/entities/game.aggregate';
+import { ActorType } from '../../../domain/entities/game.aggregate';
 
 export class CreateGameCommand {
   constructor(

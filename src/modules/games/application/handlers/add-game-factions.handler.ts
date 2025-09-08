@@ -1,36 +1,32 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-
-import { NotFoundError, NotModifiedError, ValidationError } from '../../../shared/domain/errors';
+import { NotFoundError, NotModifiedError } from '../../../shared/domain/errors';
 import { Game } from '../../domain/entities/game.aggregate';
-import { DeleteGameActorsCommand } from '../commands/delete-game-actors.command';
+import { AddGameFactionsCommand } from '../cqrs/commands/add-game-factions.command';
 import * as gep from '../ports/game-event-bus.port';
 import * as gr from '../ports/game.repository';
 
-@CommandHandler(DeleteGameActorsCommand)
-export class DeleteGameActorsCommandHandler implements ICommandHandler<DeleteGameActorsCommand, Game> {
+@CommandHandler(AddGameFactionsCommand)
+export class AddGameFactionsCommandHandler implements ICommandHandler<AddGameFactionsCommand, Game> {
   constructor(
     @Inject('GameRepository') private readonly gameRepository: gr.GameRepository,
     @Inject('GameEventProducer') private readonly gameEventProducer: gep.GameEventBusPort,
   ) {}
 
-  async execute(command: DeleteGameActorsCommand): Promise<Game> {
+  async execute(command: AddGameFactionsCommand): Promise<Game> {
     const game = await this.gameRepository.findById(command.gameId);
     if (!game) {
       throw new NotFoundError('Game', command.gameId);
     }
-    if (game.status !== 'created') {
-      throw new ValidationError('Only games in created status can be modified');
-    }
     let modified = false;
-    command.actors.forEach((actorId) => {
-      if (game.actors.some((e) => e.id === actorId)) {
-        game.actors = game.actors.filter((e) => e.id !== actorId);
+    command.factions.forEach((faction) => {
+      if (!game.factions.includes(faction)) {
+        game.factions.push(faction);
         modified = true;
       }
     });
     if (!modified) {
-      throw new NotModifiedError('No actors to delete');
+      throw new NotModifiedError('No new factions to add');
     }
     const updated = await this.gameRepository.update(command.gameId, game);
     await this.gameEventProducer.updated(updated);
