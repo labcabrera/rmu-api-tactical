@@ -2,7 +2,7 @@ import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { NotFoundError } from '../../../shared/domain/errors';
 import { Game } from '../../domain/entities/game.entity';
-import * as gr from '../ports/out/game.repository';
+import * as gr from '../ports/game.repository';
 import { GetGameQuery } from '../queries/get-game.query';
 
 @QueryHandler(GetGameQuery)

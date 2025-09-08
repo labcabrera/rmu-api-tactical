@@ -4,8 +4,8 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { NotFoundError, NotModifiedError, ValidationError } from '../../../shared/domain/errors';
 import { Game } from '../../domain/entities/game.entity';
 import { DeleteGameActorsCommand } from '../commands/delete-game-actors.command';
-import * as gep from '../ports/out/game-event-bus.port';
-import * as gr from '../ports/out/game.repository';
+import * as gep from '../ports/game-event-bus.port';
+import * as gr from '../ports/game.repository';
 
 @CommandHandler(DeleteGameActorsCommand)
 export class DeleteGameActorsCommandHandler implements ICommandHandler<DeleteGameActorsCommand, Game> {

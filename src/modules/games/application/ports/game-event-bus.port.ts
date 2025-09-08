@@ -1,4 +1,4 @@
-import { Game } from '../../../domain/entities/game.entity';
+import { Game } from '../../domain/entities/game.entity';
 
 export interface GameEventBusPort {
   updated(entity: Game): Promise<void>;

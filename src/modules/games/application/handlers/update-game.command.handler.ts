@@ -3,8 +3,8 @@ import { CommandHandler } from '@nestjs/cqrs';
 
 import { Game } from '../../domain/entities/game.entity';
 import { UpdateGameCommand } from '../commands/update-game.command';
-import * as gameEventProducer_1 from '../ports/out/game-event-bus.port';
-import * as gameRepository from '../ports/out/game.repository';
+import * as gameEventProducer_1 from '../ports/game-event-bus.port';
+import * as gameRepository from '../ports/game.repository';
 
 @CommandHandler(UpdateGameCommand)
 export class UpdateGameCommandHandler {

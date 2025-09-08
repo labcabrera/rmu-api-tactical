@@ -2,7 +2,7 @@ import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
 import * as crr from '../../../../actor-rounds/application/ports/out/character-round.repository';
-import * as gr from '../../../../games/application/ports/out/game.repository';
+import * as gr from '../../../../games/application/ports/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/entities/action.entity';
 import * as aep from '../../ports/out/action-event-producer';

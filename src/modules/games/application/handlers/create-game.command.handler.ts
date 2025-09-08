@@ -6,8 +6,8 @@ import * as cc from '../../../strategic/application/ports/out/character-client';
 import * as sgc from '../../../strategic/application/ports/out/strategic-game-client';
 import { Actor, Game } from '../../domain/entities/game.entity';
 import { CreateGameCommand, CreateGameCommandActor } from '../commands/create-game.command';
-import * as gep from '../ports/out/game-event-bus.port';
-import * as gr from '../ports/out/game.repository';
+import * as gep from '../ports/game-event-bus.port';
+import * as gr from '../ports/game.repository';
 
 @CommandHandler(CreateGameCommand)
 export class CreateGameCommandHandler implements ICommandHandler<CreateGameCommand, Game> {

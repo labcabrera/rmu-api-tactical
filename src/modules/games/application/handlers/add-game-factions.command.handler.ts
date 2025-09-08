@@ -4,8 +4,8 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { NotFoundError, NotModifiedError } from '../../../shared/domain/errors';
 import { Game } from '../../domain/entities/game.entity';
 import { AddGameFactionsCommand } from '../commands/add-game-factions.command';
-import * as gep from '../ports/out/game-event-bus.port';
-import * as gr from '../ports/out/game.repository';
+import * as gep from '../ports/game-event-bus.port';
+import * as gr from '../ports/game.repository';
 
 @CommandHandler(AddGameFactionsCommand)
 export class AddGameFactionsCommandHandler implements ICommandHandler<AddGameFactionsCommand, Game> {

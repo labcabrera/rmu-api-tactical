@@ -5,8 +5,8 @@ import * as ar from '../../../actions/application/ports/out/action.repository';
 import * as arr from '../../../actor-rounds/application/ports/out/character-round.repository';
 import { NotFoundError } from '../../../shared/domain/errors';
 import { DeleteGameCommand } from '../commands/delete-game.command';
-import * as gameEventProducer from '../ports/out/game-event-bus.port';
-import * as gr from '../ports/out/game.repository';
+import * as gameEventProducer from '../ports/game-event-bus.port';
+import * as gr from '../ports/game.repository';
 
 @CommandHandler(DeleteGameCommand)
 export class DeleteGameCommandHandler implements ICommandHandler<DeleteGameCommand> {

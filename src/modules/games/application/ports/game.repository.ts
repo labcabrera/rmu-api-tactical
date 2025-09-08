@@ -1,5 +1,5 @@
-import { Page } from '../../../../shared/domain/entities/page.entity';
-import { Game } from '../../../domain/entities/game.entity';
+import { Page } from '../../../shared/domain/entities/page.entity';
+import { Game } from '../../domain/entities/game.entity';
 
 export interface GameRepository {
   findById(id: string): Promise<Game | null>;

@@ -6,7 +6,7 @@ import { Model } from 'mongoose';
 import { Page } from '../../../../shared/domain/entities/page.entity';
 import { NotFoundError } from '../../../../shared/domain/errors';
 import { RsqlParser } from '../../../../shared/infrastructure/messaging/rsql-parser';
-import { GameRepository } from '../../../application/ports/out/game.repository';
+import { GameRepository } from '../../../application/ports/game.repository';
 import { Game } from '../../../domain/entities/game.entity';
 import { GameDocument, GameModel } from '../models/game.model';
 

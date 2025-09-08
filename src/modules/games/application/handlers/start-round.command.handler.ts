@@ -7,8 +7,8 @@ import { NotFoundError, ValidationError } from '../../../shared/domain/errors';
 import * as cr from '../../../strategic/application/ports/out/character-client';
 import { Game } from '../../domain/entities/game.entity';
 import { StartRoundCommand } from '../commands/start-round.command';
-import * as gep from '../ports/out/game-event-bus.port';
-import * as gr from '../ports/out/game.repository';
+import * as gep from '../ports/game-event-bus.port';
+import * as gr from '../ports/game.repository';
 
 @CommandHandler(StartRoundCommand)
 export class StartRoundCommandHandler implements ICommandHandler<StartRoundCommand, Game> {

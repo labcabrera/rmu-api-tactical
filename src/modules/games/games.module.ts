@@ -20,7 +20,7 @@ import { StartPhaseCommandHandler } from './application/handlers/start-phase.com
 import { StartRoundCommandHandler } from './application/handlers/start-round.command.handler';
 import { UpdateGameCommandHandler } from './application/handlers/update-game.command.handler';
 import { GameController } from './infrastructure/controllers/game.controller';
-import { KafkaGameProducerService } from './infrastructure/messaging/kafka-game-producer.service';
+import { KafkaGameBusAdapter } from './infrastructure/messaging/kafka.game-bus.adapter';
 import { GameModel, GameSchema } from './infrastructure/persistence/models/game.model';
 import { MongoGameRepository } from './infrastructure/persistence/repositories/mongo-game.repository';
 
@@ -38,7 +38,7 @@ import { MongoGameRepository } from './infrastructure/persistence/repositories/m
   ],
   controllers: [GameController],
   providers: [
-    KafkaGameProducerService,
+    KafkaGameBusAdapter,
     GetGamesQueryHandler,
     GetGameQueryHandler,
     CreateGameCommandHandler,
@@ -56,7 +56,7 @@ import { MongoGameRepository } from './infrastructure/persistence/repositories/m
     },
     {
       provide: 'GameEventProducer',
-      useClass: KafkaGameProducerService,
+      useClass: KafkaGameBusAdapter,
     },
   ],
   exports: ['GameRepository'],
