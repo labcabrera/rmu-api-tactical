@@ -49,7 +49,7 @@ export class Action extends AggregateRoot<Action> {
       actionType,
       phaseStart,
       undefined,
-      'in_progress',
+      'declared',
       undefined,
       movement,
       attacks,

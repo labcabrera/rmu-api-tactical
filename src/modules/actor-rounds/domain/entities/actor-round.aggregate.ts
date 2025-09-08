@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { DomainEvent } from '../../../shared/domain/events/domain-event';
+import { AggregateRoot } from '../../../shared/domain/entities/aggregate-root';
 import { ActorRoundAttack } from '../../infrastructure/persistence/models/actor-round-attack.model';
 import { ActorRoundCreatedEvent } from '../events/actor-round.events';
 import { ActorRoundEffect } from './actor-round-effect.vo';
@@ -9,7 +9,7 @@ import { ActorRoundInitiative } from './actor-round-initiative.vo';
 import { ActorRoundParry } from './actor-round-parry.vo';
 import { ActorRoundPenalty } from './actor-round-penalty.vo';
 
-export class ActorRound {
+export class ActorRound extends AggregateRoot<ActorRound> {
   constructor(
     public readonly id: string,
     public readonly gameId: string,
@@ -27,9 +27,9 @@ export class ActorRound {
     public owner: string,
     public readonly createdAt: Date,
     public updatedAt: Date | undefined,
-  ) {}
-
-  private domainEvents: DomainEvent<ActorRound>[] = [];
+  ) {
+    super();
+  }
 
   static create(
     gameId: string,
@@ -92,21 +92,5 @@ export class ActorRound {
     });
     actorRound.addDomainEvent(new ActorRoundCreatedEvent(actorRound));
     return actorRound;
-  }
-
-  toPersistence(): any {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { domainEvents, ...rest } = this;
-    return { ...rest };
-  }
-
-  addDomainEvent(event: DomainEvent<ActorRound>) {
-    this.domainEvents.push(event);
-  }
-
-  pullDomainEvents(): DomainEvent<ActorRound>[] {
-    const events = [...this.domainEvents];
-    this.domainEvents = [];
-    return events;
   }
 }

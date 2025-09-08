@@ -1,12 +1,12 @@
 import { randomUUID } from 'crypto';
+import { AggregateRoot } from '../../../shared/domain/entities/aggregate-root';
 import { NotModifiedError, ValidationError } from '../../../shared/domain/errors';
-import { DomainEvent } from '../../../shared/domain/events/domain-event';
 import { GameCreatedEvent, GameRoundStartedEvent, GameUpdatedEvent } from '../events/game.events';
 import { Actor } from './actor.vo';
 import { GamePhase } from './game-phase.vo';
 import { GameStatus } from './game-status.vo';
 
-export class Game {
+export class Game extends AggregateRoot<Game> {
   private static readonly phaseTransitions: Map<GamePhase, GamePhase> = new Map([
     ['declare_initiative', 'phase_1'],
     ['phase_1', 'phase_2'],
@@ -14,8 +14,6 @@ export class Game {
     ['phase_3', 'phase_4'],
     ['phase_4', 'upkeep'],
   ]);
-
-  private domainEvents: DomainEvent<Game>[] = [];
 
   constructor(
     public readonly id: string,
@@ -30,7 +28,9 @@ export class Game {
     public owner: string,
     public readonly createdAt: Date,
     public updatedAt: Date | undefined,
-  ) {}
+  ) {
+    super();
+  }
 
   static create(
     strategicGameId: string,
@@ -154,25 +154,5 @@ export class Game {
     this.phase = Game.phaseTransitions.get(this.phase)!;
     this.addDomainEvent(new GameRoundStartedEvent(this));
     this.updatedAt = new Date();
-  }
-
-  /**
-   * Convert the Game entity to a plain object suitable for persistence,
-   * excluding domain events.
-   */
-  toPersistence(): any {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { domainEvents, ...rest } = this;
-    return { ...rest };
-  }
-
-  addDomainEvent(event: DomainEvent<Game>) {
-    this.domainEvents.push(event);
-  }
-
-  pullDomainEvents(): DomainEvent<Game>[] {
-    const events = [...this.domainEvents];
-    this.domainEvents = [];
-    return events;
   }
 }

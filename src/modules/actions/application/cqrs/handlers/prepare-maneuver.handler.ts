@@ -1,11 +1,9 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/entities/action.aggregate';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
-import type { AttackClientPort } from '../../ports/attack-client.port';
 import { PrepareManeuverCommand } from '../commands/prepare-maneuver.command';
 
 @CommandHandler(PrepareManeuverCommand)
@@ -13,9 +11,7 @@ export class PrepareManeuverHandler implements ICommandHandler<PrepareManeuverCo
   private readonly logger = new Logger(PrepareManeuverHandler.name);
 
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('AttackClient') private readonly attackClient: AttackClientPort,
     @Inject('ActionEventProducer') private readonly actionEventProducer: ActionEventBusPort,
   ) {}
 
