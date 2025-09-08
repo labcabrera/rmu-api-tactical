@@ -6,9 +6,9 @@ import type { GameRepository } from '../../../../games/application/ports/game.re
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import type { Character, CharacterPort } from '../../../../strategic/application/ports/character.port';
 import type { StrategicGame, StrategicGamePort } from '../../../../strategic/application/ports/strategic-game.port';
-import { ActionMovementModifiers } from '../../../domain/entities/action-movement.entity';
-import { ActionMovement } from '../../../domain/entities/action-movement.vo';
+import { ActionMovement, ActionMovementModifiers } from '../../../domain/entities/action-movement.vo';
 import { Action } from '../../../domain/entities/action.aggregate';
+import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import { FatigueProcessorService } from '../../../domain/services/fatigue-processor.service';
 import { MovementProcessorService } from '../../../domain/services/movement-processor.service';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
@@ -27,7 +27,7 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
     @Inject('CharacterClient') private readonly characterClient: CharacterPort,
     @Inject('StrategicGameClient') private readonly strategicGameClient: StrategicGamePort,
-    @Inject('ActionEventProducer') private readonly actionEventProducer: ActionEventBusPort,
+    @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
   ) {}
 
   async execute(command: ResolveMovementCommand): Promise<Action> {
@@ -57,7 +57,7 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
       actorRound.fatigue.accumulator = currentFatigue + action.fatigue;
       await this.actorRoundRepository.update(actorRound.id, actorRound);
     }
-    await this.actionEventProducer.updated(updated);
+    await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
     return updated;
   }
 

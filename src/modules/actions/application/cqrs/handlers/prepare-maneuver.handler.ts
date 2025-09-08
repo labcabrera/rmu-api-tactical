@@ -2,6 +2,7 @@ import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/entities/action.aggregate';
+import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import { PrepareManeuverCommand } from '../commands/prepare-maneuver.command';
@@ -12,7 +13,7 @@ export class PrepareManeuverHandler implements ICommandHandler<PrepareManeuverCo
 
   constructor(
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('ActionEventProducer') private readonly actionEventProducer: ActionEventBusPort,
+    @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
   ) {}
 
   async execute(command: PrepareManeuverCommand): Promise<Action> {
@@ -33,7 +34,7 @@ export class PrepareManeuverHandler implements ICommandHandler<PrepareManeuverCo
     action.status = 'in_progress';
     action.maneuver.difficulty = command.difficulty;
     const updated = await this.actionRepository.save(action);
-    await this.actionEventProducer.updated(updated);
+    await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
     return updated;
   }
 }

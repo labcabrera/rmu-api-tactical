@@ -7,7 +7,6 @@ import { AuthModule } from 'src/modules/auth/auth.module';
 import { GamesModule } from '../games/games.module';
 import { SharedModule } from '../shared/shared.module';
 import { StrategicModule } from '../strategic/strategic.module';
-
 import { AddEffectHandler } from './application/cqrs/handlers/add-effect.handler';
 import { AddHpHandler } from './application/cqrs/handlers/add-hp.handler';
 import { CreateActorRoundHandler } from './application/cqrs/handlers/create-actor-round.handler';

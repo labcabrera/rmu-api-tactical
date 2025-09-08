@@ -17,9 +17,9 @@ import { PrepareAttackHandler } from './application/cqrs/handlers/prepare-attack
 import { ResolveMovementHandler } from './application/cqrs/handlers/resolve-movement.handler';
 import { FatigueProcessorService } from './domain/services/fatigue-processor.service';
 import { MovementProcessorService } from './domain/services/movement-processor.service';
-import { ApiAttackClientAdapter } from './infrastructure/clients/api-attack-client.adapter';
-import { MongoActionRepository } from './infrastructure/db/mongo-action.repository';
-import { KafkaActionProducerService } from './infrastructure/messaging/kafka-action-producer.service';
+import { ApiAttackClientAdapter } from './infrastructure/clients/api.attack-client.adapter';
+import { MongoActionRepository } from './infrastructure/db/mongo.action.repository';
+import { KafkaActionEventBusAdapter } from './infrastructure/messaging/kafka.action-event-bus.adapter';
 import { ActionModel, ActionSchema } from './infrastructure/persistence/models/action.model';
 import { ActionController } from './interfaces/http/action.controller';
 
@@ -50,8 +50,8 @@ import { ActionController } from './interfaces/http/action.controller';
       useClass: MongoActionRepository,
     },
     {
-      provide: 'ActionEventProducer',
-      useClass: KafkaActionProducerService,
+      provide: 'ActionEventBus',
+      useClass: KafkaActionEventBusAdapter,
     },
     {
       provide: 'AttackClient',

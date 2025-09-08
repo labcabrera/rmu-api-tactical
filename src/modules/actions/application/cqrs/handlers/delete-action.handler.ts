@@ -1,6 +1,7 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { NotFoundError } from '../../../../shared/domain/errors';
+import { ActionDeletedEvent } from '../../../domain/events/action-events';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import { DeleteActionCommand } from '../commands/delete-action.command';
@@ -11,7 +12,7 @@ export class DeleteActionHandler implements ICommandHandler<DeleteActionCommand>
 
   constructor(
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('ActionEventProducer') private readonly actionEventProducer: ActionEventBusPort,
+    @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
   ) {}
 
   async execute(command: DeleteActionCommand): Promise<void> {
@@ -21,6 +22,6 @@ export class DeleteActionHandler implements ICommandHandler<DeleteActionCommand>
       throw new NotFoundError('Action', command.actionId);
     }
     await this.actionRepository.deleteById(command.actionId);
-    await this.actionEventProducer.deleted(action);
+    await this.actionEventBus.publish(new ActionDeletedEvent(action));
   }
 }

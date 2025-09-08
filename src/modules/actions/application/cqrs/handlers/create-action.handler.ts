@@ -19,7 +19,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('ActionEventProducer') private readonly actionEventBus: ActionEventBusPort,
+    @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
   ) {}
 
   async execute(command: CreateActionCommand): Promise<Action> {
@@ -36,8 +36,6 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       round,
       command.actionType,
       command.phaseStart,
-      undefined,
-      undefined,
       undefined,
       command.description,
       command.userId,

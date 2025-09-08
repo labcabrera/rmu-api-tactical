@@ -8,6 +8,7 @@ import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../
 import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
 import { ActionAttack } from '../../../domain/entities/action-attack.vo';
 import { Action } from '../../../domain/entities/action.aggregate';
+import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import type { AttackClientPort } from '../../ports/attack-client.port';
@@ -23,7 +24,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
     @Inject('CharacterClient') private readonly characterClient: CharacterPort,
     @Inject('AttackClient') private readonly attackClient: AttackClientPort,
-    @Inject('ActionEventProducer') private readonly actionEventProducer: ActionEventBusPort,
+    @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
   ) {}
 
   async execute(command: PrepareAttackCommand): Promise<Action> {
@@ -69,7 +70,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     action.status = 'in_progress';
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action.id, action);
-    await this.actionEventProducer.updated(updated);
+    await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
     return updated;
   }
 
