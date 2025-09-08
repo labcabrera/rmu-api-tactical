@@ -1,5 +1,11 @@
 export type Pace = 'creep' | 'walk' | 'jog' | 'run' | 'sprint' | 'dash';
 
+export interface ActionMovement {
+  modifiers: ActionMovementModifiers;
+  roll: ActionMovementRoll | undefined;
+  calculated: ActionMovementResult;
+}
+
 export interface ActionMovementModifiers {
   pace: Pace;
   requiredManeuver: boolean;

@@ -24,7 +24,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
   ) {}
 
   async execute(command: CreateActorRoundCommand): Promise<ActorRound> {
-    this.logger.debug(`Execute << ${JSON.stringify(command)}`);
+    this.logger.log(`Execute << ${JSON.stringify(command)}`);
     const actor = await this.buildActorRound(command.gameId, command.actor, command.round);
     const updated = await this.actorRoundRepository.save(actor);
     //const events = actor.pullDomainEvents();

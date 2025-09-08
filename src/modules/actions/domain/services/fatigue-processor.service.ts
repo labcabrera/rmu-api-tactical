@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { StrategicGame } from '../../../strategic/application/ports/out/strategic-game-client';
-import { Action } from '../entities/action.entity';
+import { Action } from '../entities/action.aggregate';
 
 @Injectable()
 export class FatigueProcessorService {

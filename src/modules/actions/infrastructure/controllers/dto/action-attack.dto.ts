@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import * as actionEntity from '../../../domain/entities/action.entity';
+import { ActionAttack } from '../../../domain/entities/action-attack.vo';
+import * as actionEntity from '../../../domain/entities/action.aggregate';
 
 export class ActionAttackDto {
   @ApiProperty({ description: 'Attack type', example: 'mainHand' })
@@ -17,7 +18,7 @@ export class ActionAttackDto {
   @ApiProperty({ description: 'External identifier of the attack', example: 'attack-01' })
   attackId: string | undefined;
 
-  static fromEntity(entity: actionEntity.ActionAttack): ActionAttackDto {
+  static fromEntity(entity: ActionAttack): ActionAttackDto {
     const dto = new ActionAttackDto();
     dto.attackId = entity.attackId;
     dto.attackName = entity.attackName;

@@ -10,8 +10,9 @@ import * as cc from '../../../../strategic/application/ports/out/character-clien
 import { Character } from '../../../../strategic/application/ports/out/character-client';
 import * as sgc from '../../../../strategic/application/ports/out/strategic-game-client';
 import { StrategicGame } from '../../../../strategic/application/ports/out/strategic-game-client';
-import { ActionMovement, ActionMovementModifiers } from '../../../domain/entities/action-movement.entity';
-import { Action } from '../../../domain/entities/action.entity';
+import { ActionMovementModifiers } from '../../../domain/entities/action-movement.entity';
+import { ActionMovement } from '../../../domain/entities/action-movement.vo';
+import { Action } from '../../../domain/entities/action.aggregate';
 import { FatigueProcessorService } from '../../../domain/services/fatigue-processor.service';
 import { MovementProcessorService } from '../../../domain/services/movement-processor.service';
 import * as aep from '../../ports/out/action-event-producer';

@@ -106,6 +106,7 @@ export class GameController {
   @ApiOkResponse({ type: GameDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   async startRound(@Param('id') id: string, @Request() req) {
+    this.logger.debug(`Start round for game << ${id}`);
     const user = req.user!;
     const command = new StartRoundCommand(id, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<StartRoundCommand, Game>(command);
@@ -118,6 +119,7 @@ export class GameController {
   @ApiOkResponse({ type: GameDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   async startPhase(@Param('id') id: string, @Request() req) {
+    this.logger.debug(`Start phase for game << ${id}`);
     const user = req.user!;
     const command = new StartPhaseCommand(id, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<StartPhaseCommand, Game>(command);

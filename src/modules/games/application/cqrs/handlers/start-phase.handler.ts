@@ -1,6 +1,7 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { NotFoundError } from '../../../../shared/domain/errors';
+import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import { Game } from '../../../domain/entities/game.aggregate';
 import type { GameEventBusPort } from '../../ports/game-event-bus.port';
 import type { GameRepository } from '../../ports/game.repository';
@@ -13,6 +14,7 @@ export class StartPhaseHandler implements ICommandHandler<StartPhaseCommand, Gam
 
   constructor(
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
+    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('GameEventProducer') private readonly gameEventBus: GameEventBusPort,
   ) {}
 
@@ -23,7 +25,10 @@ export class StartPhaseHandler implements ICommandHandler<StartPhaseCommand, Gam
     if (!game) {
       throw new NotFoundError('Game', gameId);
     }
-    game.startRound();
+    if ((await this.actorRoundRepository.countWithUndefinedInitiativeRoll(game.id, game.round)) > 0) {
+      throw new ValidationError('There are still character rounds without initiative declared');
+    }
+    game.startPhase();
     const updatedGame = await this.gameRepository.update(game.id, game);
     const events = game.pullDomainEvents();
     events.forEach((event) => this.gameEventBus.publish(event));

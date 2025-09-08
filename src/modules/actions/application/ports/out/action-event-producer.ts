@@ -1,4 +1,4 @@
-import { Action } from '../../../domain/entities/action.entity';
+import { Action } from '../../../domain/entities/action.aggregate';
 
 export interface ActionEventProducer {
   updated(entity: Action): Promise<void>;

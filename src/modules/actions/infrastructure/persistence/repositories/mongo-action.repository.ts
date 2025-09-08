@@ -6,7 +6,7 @@ import { Page } from '../../../../shared/domain/entities/page.entity';
 import { NotFoundError } from '../../../../shared/domain/errors';
 import { RsqlParser } from '../../../../shared/infrastructure/messaging/rsql-parser';
 import { ActionRepository } from '../../../application/ports/out/action.repository';
-import { Action } from '../../../domain/entities/action.entity';
+import { Action } from '../../../domain/entities/action.aggregate';
 import { ActionDocument, ActionModel } from '../models/action.model';
 
 @Injectable()

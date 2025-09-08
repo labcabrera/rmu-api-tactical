@@ -1,10 +1,10 @@
 import {
-  ActionMovement,
   ActionMovementBonus,
   ActionMovementModifiers,
   ActionMovementResult,
   ActionMovementRoll,
 } from '../../../domain/entities/action-movement.entity';
+import { ActionMovement } from '../../../domain/entities/action-movement.vo';
 
 export class ActionMovementDto {
   modifiers: ActionMovementModifiersDto;

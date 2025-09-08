@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ActorRound } from '../../../actor-rounds/domain/entities/actor-round.aggregate';
 import { Character } from '../../../strategic/application/ports/out/character-client';
 import { ActionMovementBonus } from '../entities/action-movement.entity';
-import { Action } from '../entities/action.entity';
+import { Action } from '../entities/action.aggregate';
 
 @Injectable()
 export class MovementProcessorService {

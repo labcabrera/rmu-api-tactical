@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { KafkaProducerService } from '../../../shared/infrastructure/messaging/kafka-producer.service';
 import { ActionEventProducer } from '../../application/ports/out/action-event-producer';
-import { Action } from '../../domain/entities/action.entity';
+import { Action } from '../../domain/entities/action.aggregate';
 import { ActionCreatedEvent, ActionDeletedEvent, ActionUpdatedEvent } from '../../domain/events/action-events';
 
 @Injectable()

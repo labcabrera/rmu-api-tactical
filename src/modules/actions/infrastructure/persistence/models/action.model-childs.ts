@@ -1,5 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import * as ae from '../../../domain/entities/action.entity';
+import * as ae from '../../../domain/entities/action.aggregate';
 
 @Schema({ _id: false })
 export class ActionAttack {

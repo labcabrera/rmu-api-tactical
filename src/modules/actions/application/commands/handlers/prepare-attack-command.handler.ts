@@ -7,7 +7,8 @@ import { ActorRound } from '../../../../actor-rounds/domain/entities/actor-round
 import * as gr from '../../../../games/application/ports/game.repository';
 import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../../shared/domain/errors';
 import * as cc from '../../../../strategic/application/ports/out/character-client';
-import { Action, ActionAttack } from '../../../domain/entities/action.entity';
+import { ActionAttack } from '../../../domain/entities/action-attack.vo';
+import { Action } from '../../../domain/entities/action.aggregate';
 import * as aep from '../../ports/out/action-event-producer';
 import * as ar from '../../ports/out/action.repository';
 import * as ac from '../../ports/out/attack-client';

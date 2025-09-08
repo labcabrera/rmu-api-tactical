@@ -2,7 +2,7 @@ import { Inject, Logger } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 
 import { Page } from '../../../../shared/domain/entities/page.entity';
-import { Action } from '../../../domain/entities/action.entity';
+import { Action } from '../../../domain/entities/action.aggregate';
 import * as actionRepository from '../../ports/out/action.repository';
 import { GetActionsQuery } from '../get-actions.query';
 

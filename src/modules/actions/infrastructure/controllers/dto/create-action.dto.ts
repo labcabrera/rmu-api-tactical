@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { CreateActionCommand } from '../../../application/commands/create-action.command';
-import * as actionEntity from '../../../domain/entities/action.entity';
+import * as actionEntity from '../../../domain/entities/action.aggregate';
 
 export class ActionAttackCreationDto {
   @ApiProperty({ description: 'Attack type' })

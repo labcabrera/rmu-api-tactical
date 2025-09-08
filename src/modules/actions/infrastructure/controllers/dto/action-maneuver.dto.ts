@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import * as actionEntity from '../../../domain/entities/action.entity';
+import { ActionManeuver, ActionManeuverResult } from '../../../domain/entities/action-maneuver.vo';
+import * as actionEntity from '../../../domain/entities/action.aggregate';
 
 export class ActionManeuverResultDto {
   @ApiProperty({ description: 'Bonus modifiers' })
@@ -14,7 +15,7 @@ export class ActionManeuverResultDto {
   @ApiProperty({ description: 'Maneuver description' })
   description: string;
 
-  static fromEntity(entity: actionEntity.ActionManeuverResult): ActionManeuverResultDto {
+  static fromEntity(entity: ActionManeuverResult): ActionManeuverResultDto {
     const dto = new ActionManeuverResultDto();
     dto.bonus = entity.bonus;
     dto.roll = entity.roll;
@@ -40,7 +41,7 @@ export class ActionManeuverDto {
   @ApiProperty({ description: 'Maneuver status', example: 'declared' })
   status: actionEntity.ActionStatus;
 
-  static fromEntity(entity: actionEntity.ActionManeuver): ActionManeuverDto {
+  static fromEntity(entity: ActionManeuver): ActionManeuverDto {
     const dto = new ActionManeuverDto();
     dto.skillId = entity.skillId;
     dto.maneuverType = entity.maneuverType;

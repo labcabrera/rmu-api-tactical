@@ -15,7 +15,7 @@ import { ResolveMovementCommand } from '../../application/commands/resolve-movem
 import { UpdateActionCommand } from '../../application/commands/update-action.command';
 import { GetActionQuery } from '../../application/queries/get-action.query';
 import { GetActionsQuery } from '../../application/queries/get-actions.query';
-import { Action } from '../../domain/entities/action.entity';
+import { Action } from '../../domain/entities/action.aggregate';
 import { ActionDto, ActionPageDto } from './dto/action.dto';
 import { CreateActionDto } from './dto/create-action.dto';
 import { PrepareAttackDto } from './dto/prepare-attack.dto';

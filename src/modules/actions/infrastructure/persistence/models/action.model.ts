@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
-import * as actionEntity from '../../../domain/entities/action.entity';
+import * as actionEntity from '../../../domain/entities/action.aggregate';
 import { ActionMovement } from './action-movement.model';
 import { ActionAttack, ActionManeuver } from './action.model-childs';
 

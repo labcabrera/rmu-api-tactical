@@ -1,4 +1,6 @@
-import { ActionMovement } from './action-movement.entity';
+import { ActionAttack } from './action-attack.vo';
+import { ActionManeuver } from './action-maneuver.vo';
+import { ActionMovement } from './action-movement.vo';
 
 export type ActionStatus = 'declared' | 'in_progress' | 'completed';
 export type ActionType = 'attack' | 'maneuver' | 'movement';
@@ -34,27 +36,4 @@ export interface Action {
   description: string | undefined;
   createdAt: Date;
   updatedAt: Date | undefined;
-}
-
-export interface ActionAttack {
-  attackId: string | undefined;
-  attackName: string;
-  targetId: string;
-  parry: number;
-  status: ActionStatus;
-}
-
-export interface ActionManeuver {
-  skillId: string;
-  maneuverType: ManeuverType;
-  difficulty: ManeuverDifficulty | undefined;
-  result: ActionManeuverResult | undefined;
-  status: ActionStatus;
-}
-
-export interface ActionManeuverResult {
-  bonus: { [key: string]: number };
-  roll: number;
-  result: number;
-  description: string;
 }

@@ -1,4 +1,4 @@
-import { ActionType, ManeuverType } from '../../domain/entities/action.entity';
+import { ActionType, ManeuverType } from '../../domain/entities/action.aggregate';
 
 export class CreateActionCommand {
   gameId: string;

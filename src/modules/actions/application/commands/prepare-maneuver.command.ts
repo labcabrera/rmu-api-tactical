@@ -1,4 +1,4 @@
-import { ManeuverDifficulty } from '../../domain/entities/action.entity';
+import { ManeuverDifficulty } from '../../domain/entities/action.aggregate';
 
 export class PrepareManeuverCommand {
   actionId: string;

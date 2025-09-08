@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { PaginationDto } from '../../../../shared/infrastructure/controller/dto';
-import * as actionEntity from '../../../domain/entities/action.entity';
+import * as actionEntity from '../../../domain/entities/action.aggregate';
 import { ActionAttackDto } from './action-attack.dto';
 import { ActionManeuverDto } from './action-maneuver.dto';
 import { ActionMovementDto } from './action-movement.dto';
