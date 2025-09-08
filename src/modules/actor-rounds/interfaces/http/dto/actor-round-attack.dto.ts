@@ -1,4 +1,5 @@
-import { ActorRoundAttack, BoModifiers } from '../../../domain/entities/actor-round-attack.vo';
+import { ActorRoundAttack } from '../../../domain/entities/actor-round-attack.vo';
+import { BoModifiers } from '../../../infrastructure/persistence/models/actor-round-attack.model';
 
 export class BoModifiersDto {
   key: string;

@@ -14,9 +14,9 @@ import { GetActorRoundQueryHandler } from './application/queries/handlers/get-ac
 import { GetCharacterRoundsQueryHandler } from './application/queries/handlers/get-actor-rounds.query.handler';
 import { ActorRoundService } from './application/services/actor-round-service';
 import { ActorRoundEffectService } from './domain/services/actor-round-effect.service';
-import { ActorRoundController } from './infrastructure/controllers/actor-round.controller';
+import { MongoActorRoundRepository } from './infrastructure/db/mongo-actor-round.repository';
 import { ActorRoundModel, ActorRoundSchema } from './infrastructure/persistence/models/actor-round.model';
-import { MongoActorRoundRepository } from './infrastructure/persistence/repositories/mongo-actor-round-model.repository';
+import { ActorRoundController } from './interfaces/http/actor-round.controller';
 
 @Module({
   imports: [

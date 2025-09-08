@@ -1,6 +1,6 @@
 import { IsNumber, IsOptional, IsString } from 'class-validator';
 import { AddEffectCommand } from '../../../application/commands/add-effect.command';
-import { ActorRoundEffect } from '../../persistence/models/actor-round.models-childs';
+import { ActorRoundEffect } from '../../../domain/entities/actor-round-effect.vo';
 
 export class AddEffectDto {
   @IsString()

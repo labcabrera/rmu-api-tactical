@@ -12,8 +12,11 @@ import {
 
 export type ActorRoundDocument = ActorRoundModel & Document;
 
-@Schema({ collection: 'actor-rounds', versionKey: false })
+@Schema({ collection: 'actor-rounds', _id: false, versionKey: false })
 export class ActorRoundModel {
+  @Prop({ required: true })
+  _id: string;
+
   @Prop({ required: true })
   gameId: string;
 
