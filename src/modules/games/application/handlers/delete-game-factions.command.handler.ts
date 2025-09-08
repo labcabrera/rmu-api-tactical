@@ -1,17 +1,17 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
-import { NotFoundError, NotModifiedError, ValidationError } from '../../../../shared/domain/errors';
-import { Game } from '../../../domain/entities/game.entity';
-import * as gep from '../../ports/out/game-event-producer';
-import * as gr from '../../ports/out/game.repository';
-import { DeleteGameFactionsCommand } from '../delete-game-factions.command';
+import { NotFoundError, NotModifiedError, ValidationError } from '../../../shared/domain/errors';
+import { Game } from '../../domain/entities/game.entity';
+import { DeleteGameFactionsCommand } from '../commands/delete-game-factions.command';
+import * as gep from '../ports/out/game-event-bus.port';
+import * as gr from '../ports/out/game.repository';
 
 @CommandHandler(DeleteGameFactionsCommand)
 export class DeleteGameFactionsCommandHandler implements ICommandHandler<DeleteGameFactionsCommand, Game> {
   constructor(
     @Inject('GameRepository') private readonly gameRepository: gr.GameRepository,
-    @Inject('GameEventProducer') private readonly gameEventProducer: gep.GameEventProducer,
+    @Inject('GameEventProducer') private readonly gameEventProducer: gep.GameEventBusPort,
   ) {}
 
   async execute(command: DeleteGameFactionsCommand): Promise<Game> {

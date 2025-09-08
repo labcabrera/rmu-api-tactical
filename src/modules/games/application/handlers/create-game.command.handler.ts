@@ -1,13 +1,13 @@
 import { Inject, Logger, NotImplementedException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
-import { ValidationError } from '../../../../shared/domain/errors';
-import * as cc from '../../../../strategic/application/ports/out/character-client';
-import * as sgc from '../../../../strategic/application/ports/out/strategic-game-client';
-import { Actor, Game } from '../../../domain/entities/game.entity';
-import * as gep from '../../ports/out/game-event-producer';
-import * as gr from '../../ports/out/game.repository';
-import { CreateGameCommand, CreateGameCommandActor } from '../create-game.command';
+import { ValidationError } from '../../../shared/domain/errors';
+import * as cc from '../../../strategic/application/ports/out/character-client';
+import * as sgc from '../../../strategic/application/ports/out/strategic-game-client';
+import { Actor, Game } from '../../domain/entities/game.entity';
+import { CreateGameCommand, CreateGameCommandActor } from '../commands/create-game.command';
+import * as gep from '../ports/out/game-event-bus.port';
+import * as gr from '../ports/out/game.repository';
 
 @CommandHandler(CreateGameCommand)
 export class CreateGameCommandHandler implements ICommandHandler<CreateGameCommand, Game> {
@@ -17,7 +17,7 @@ export class CreateGameCommandHandler implements ICommandHandler<CreateGameComma
     @Inject('GameRepository') private readonly gameRepository: gr.GameRepository,
     @Inject('StrategicGameClient') private readonly strategicGameClient: sgc.StrategicGameClient,
     @Inject('CharacterClient') private readonly characterClient: cc.CharacterClient,
-    @Inject('GameEventProducer') private readonly gameEventProducer: gep.GameEventProducer,
+    @Inject('GameEventProducer') private readonly gameEventProducer: gep.GameEventBusPort,
   ) {}
 
   async execute(command: CreateGameCommand): Promise<Game> {

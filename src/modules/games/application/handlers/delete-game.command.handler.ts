@@ -1,18 +1,18 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
-import * as ar from '../../../../actions/application/ports/out/action.repository';
-import * as arr from '../../../../actor-rounds/application/ports/out/character-round.repository';
-import { NotFoundError } from '../../../../shared/domain/errors';
-import * as gameEventProducer from '../../ports/out/game-event-producer';
-import * as gr from '../../ports/out/game.repository';
-import { DeleteGameCommand } from '../delete-game.command';
+import * as ar from '../../../actions/application/ports/out/action.repository';
+import * as arr from '../../../actor-rounds/application/ports/out/character-round.repository';
+import { NotFoundError } from '../../../shared/domain/errors';
+import { DeleteGameCommand } from '../commands/delete-game.command';
+import * as gameEventProducer from '../ports/out/game-event-bus.port';
+import * as gr from '../ports/out/game.repository';
 
 @CommandHandler(DeleteGameCommand)
 export class DeleteGameCommandHandler implements ICommandHandler<DeleteGameCommand> {
   constructor(
     @Inject('GameRepository') private readonly gameRepository: gr.GameRepository,
-    @Inject('GameEventProducer') private readonly gameEventProducer: gameEventProducer.GameEventProducer,
+    @Inject('GameEventProducer') private readonly gameEventProducer: gameEventProducer.GameEventBusPort,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: arr.ActorRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: ar.ActionRepository,
   ) {}

@@ -1,20 +1,20 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
-import * as crr from '../../../../actor-rounds/application/ports/out/character-round.repository';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import { Game, GamePhase } from '../../../domain/entities/game.entity';
-import * as gep from '../../ports/out/game-event-producer';
-import * as gr from '../../ports/out/game.repository';
-import { StartPhaseCommand } from '../start-phase.command';
-import { StartRoundCommand } from '../start-round.command';
+import * as crr from '../../../actor-rounds/application/ports/out/character-round.repository';
+import { NotFoundError, ValidationError } from '../../../shared/domain/errors';
+import { Game, GamePhase } from '../../domain/entities/game.entity';
+import { StartPhaseCommand } from '../commands/start-phase.command';
+import { StartRoundCommand } from '../commands/start-round.command';
+import * as gep from '../ports/out/game-event-bus.port';
+import * as gr from '../ports/out/game.repository';
 
 @CommandHandler(StartPhaseCommand)
 export class StartPhaseCommandHandler implements ICommandHandler<StartPhaseCommand, Game> {
   constructor(
     @Inject('GameRepository') private readonly gameRepository: gr.GameRepository,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: crr.ActorRoundRepository,
-    @Inject('GameEventProducer') private readonly gameEventProducer: gep.GameEventProducer,
+    @Inject('GameEventProducer') private readonly gameEventProducer: gep.GameEventBusPort,
   ) {}
 
   async execute(command: StartRoundCommand): Promise<Game> {

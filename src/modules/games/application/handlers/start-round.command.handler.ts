@@ -1,14 +1,14 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
-import * as crr from '../../../../actor-rounds/application/ports/out/character-round.repository';
-import { ActorRoundService } from '../../../../actor-rounds/application/services/actor-round-service';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import * as cr from '../../../../strategic/application/ports/out/character-client';
-import { Game } from '../../../domain/entities/game.entity';
-import * as gep from '../../ports/out/game-event-producer';
-import * as gr from '../../ports/out/game.repository';
-import { StartRoundCommand } from '../start-round.command';
+import * as crr from '../../../actor-rounds/application/ports/out/character-round.repository';
+import { ActorRoundService } from '../../../actor-rounds/application/services/actor-round-service';
+import { NotFoundError, ValidationError } from '../../../shared/domain/errors';
+import * as cr from '../../../strategic/application/ports/out/character-client';
+import { Game } from '../../domain/entities/game.entity';
+import { StartRoundCommand } from '../commands/start-round.command';
+import * as gep from '../ports/out/game-event-bus.port';
+import * as gr from '../ports/out/game.repository';
 
 @CommandHandler(StartRoundCommand)
 export class StartRoundCommandHandler implements ICommandHandler<StartRoundCommand, Game> {
@@ -16,7 +16,7 @@ export class StartRoundCommandHandler implements ICommandHandler<StartRoundComma
     @Inject('GameRepository') private readonly gameRepository: gr.GameRepository,
     @Inject('ActorRoundRepository') private readonly characterRoundRepository: crr.ActorRoundRepository,
     @Inject('CharacterClient') private readonly characterClient: cr.CharacterClient,
-    @Inject('GameEventProducer') private readonly gameEventProducer: gep.GameEventProducer,
+    @Inject('GameEventProducer') private readonly gameEventProducer: gep.GameEventBusPort,
     @Inject() private readonly actorRoundService: ActorRoundService,
   ) {}
 

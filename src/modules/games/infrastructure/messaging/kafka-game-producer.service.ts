@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { KafkaProducerService } from '../../../shared/infrastructure/messaging/kafka-producer.service';
-import { GameEventProducer } from '../../application/ports/out/game-event-producer';
+import { GameEventBusPort } from '../../application/ports/out/game-event-bus.port';
 import { Game } from '../../domain/entities/game.entity';
 import { GameCreatedEvent, GameDeletedEvent, GameUpdatedEvent } from '../../domain/events/game-events';
 
 @Injectable()
-export class KafkaGameProducerService implements GameEventProducer {
+export class KafkaGameProducerService implements GameEventBusPort {
   constructor(private readonly kafkaProducerService: KafkaProducerService) {}
 
   async created(entity: Game): Promise<void> {
