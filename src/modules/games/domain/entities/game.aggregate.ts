@@ -1,5 +1,5 @@
 import { DomainEvent } from '../../../shared/domain/events/domain-event';
-import { GameStartedEvent } from '../events/game-events';
+import { GameRoundStartedEvent } from '../events/game-events';
 import { Actor } from './actor.vo';
 import { GamePhase } from './game-phase.vo';
 import { GameStatus } from './game-status.vo';
@@ -22,15 +22,18 @@ export class Game {
     public updatedAt: Date | undefined,
   ) {}
 
-  // Ejemplo de método de dominio
-  startGame() {
-    if (this.status !== 'created') {
-      throw new Error('Game already started or finished');
-    }
+  startRound() {
     this.status = 'in_progress';
     this.phase = 'declare_initiative';
-    this.addDomainEvent(new GameStartedEvent(this));
+    this.round += 1;
+    this.addDomainEvent(new GameRoundStartedEvent(this));
     this.updatedAt = new Date();
+  }
+
+  toPersistence(): any {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { domainEvents, ...rest } = this;
+    return { ...rest };
   }
 
   addDomainEvent(event: DomainEvent<Game>) {
@@ -42,6 +45,4 @@ export class Game {
     this.domainEvents = [];
     return events;
   }
-
-  // Otros métodos de dominio según tu lógica...
 }

@@ -8,7 +8,7 @@ export interface GameRepository {
 
   findByRsql(rsql: string | undefined, page: number, size: number): Promise<Page<Game>>;
 
-  save(entity: Partial<Game>): Promise<Game>;
+  save(entity: Game): Promise<Game>;
 
   update(id: string, entity: Partial<Game>): Promise<Game>;
 

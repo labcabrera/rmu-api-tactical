@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose/dist/common/mongoose.decorators';
 import { Model } from 'mongoose';
@@ -38,18 +38,15 @@ export class MongoGameRepository implements GameRepository {
     return new Page<Game>(content, page, size, totalElements);
   }
 
-  async save(request: Partial<Game>): Promise<Game> {
-    const model = new this.gameModel({ ...request, _id: request.id });
+  async save(game: Game): Promise<Game> {
+    const model = new this.gameModel(game.toPersistence());
     await model.save();
     return this.mapToEntity(model);
   }
 
   async update(id: string, update: Partial<Game>): Promise<Game> {
-    const current = await this.gameModel.findById(id);
-    if (!current) {
-      throw new NotFoundError('Game', id);
-    }
-    const updatedGame = await this.gameModel.findByIdAndUpdate(id, { $set: update }, { new: true });
+    const persistable = update instanceof Game ? update.toPersistence() : update;
+    const updatedGame = await this.gameModel.findByIdAndUpdate(id, { $set: persistable }, { new: true });
     if (!updatedGame) {
       throw new NotFoundError('Game', id);
     }
