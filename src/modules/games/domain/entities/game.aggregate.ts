@@ -1,20 +1,47 @@
+import { DomainEvent } from '../../../shared/domain/events/domain-event';
+import { GameStartedEvent } from '../events/game-events';
 import { Actor } from './actor.vo';
+import { GamePhase } from './game-phase.vo';
+import { GameStatus } from './game-status.vo';
 
-export type GameStatus = 'created' | 'in_progress' | 'finished';
-export type GamePhase = 'not_started' | 'declare_initiative' | 'phase_1' | 'phase_2' | 'phase_3' | 'phase_4' | 'upkeep';
-export type ActorType = 'character' | 'npc';
+export class Game {
+  private domainEvents: DomainEvent<Game>[] = [];
 
-export interface Game {
-  id: string;
-  strategicGameId: string;
-  name: string;
-  status: GameStatus;
-  phase: GamePhase;
-  round: number;
-  factions: string[];
-  actors: Actor[];
-  description: string | undefined;
-  owner: string;
-  createdAt: Date;
-  updatedAt: Date | undefined;
+  constructor(
+    public readonly id: string,
+    public readonly strategicGameId: string,
+    public name: string,
+    public status: GameStatus,
+    public round: number,
+    public phase: GamePhase,
+    public factions: string[],
+    public actors: Actor[],
+    public description: string | undefined,
+    public owner: string,
+    public readonly createdAt: Date,
+    public updatedAt: Date | undefined,
+  ) {}
+
+  // Ejemplo de método de dominio
+  startGame() {
+    if (this.status !== 'created') {
+      throw new Error('Game already started or finished');
+    }
+    this.status = 'in_progress';
+    this.phase = 'declare_initiative';
+    this.addDomainEvent(new GameStartedEvent(this));
+    this.updatedAt = new Date();
+  }
+
+  addDomainEvent(event: DomainEvent<Game>) {
+    this.domainEvents.push(event);
+  }
+
+  pullDomainEvents(): DomainEvent<Game>[] {
+    const events = [...this.domainEvents];
+    this.domainEvents = [];
+    return events;
+  }
+
+  // Otros métodos de dominio según tu lógica...
 }

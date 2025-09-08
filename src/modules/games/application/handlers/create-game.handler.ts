@@ -1,5 +1,6 @@
 import { Inject, Logger, NotImplementedException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { randomUUID } from 'crypto';
 import { ValidationError } from '../../../shared/domain/errors';
 import * as cc from '../../../strategic/application/ports/out/character-client';
 import * as sgc from '../../../strategic/application/ports/out/strategic-game-client';
@@ -35,19 +36,20 @@ export class CreateGameCommandHandler implements ICommandHandler<CreateGameComma
         actors.push(actor);
       }
     }
-    const newGame: Omit<Game, 'id'> = {
-      strategicGameId: command.strategicGameId,
-      name: command.name,
-      status: 'created',
-      phase: 'not_started',
-      round: 0,
-      factions: factions,
-      actors: actors,
-      description: command.description,
-      owner: strategicGame.owner,
-      createdAt: new Date(),
-      updatedAt: undefined,
-    };
+    const newGame = new Game(
+      randomUUID(),
+      command.strategicGameId,
+      command.name,
+      'created',
+      0,
+      'not_started',
+      factions,
+      actors,
+      command.description,
+      strategicGame.owner,
+      new Date(),
+      undefined,
+    );
     const savedGame = await this.gameRepository.save(newGame);
     await this.bus.created(savedGame);
     return savedGame;

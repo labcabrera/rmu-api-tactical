@@ -1,4 +1,4 @@
-import { ActorType } from './game.aggregate';
+import { ActorType } from './actor-type.vo';
 
 export interface Actor {
   id: string;

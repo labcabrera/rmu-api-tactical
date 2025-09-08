@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsArray, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { CreateGameCommand, CreateGameCommandActor } from '../../../application/cqrs/commands/create-game.command';
-import * as ge from '../../../domain/entities/game.aggregate';
+import * as actorTypeVo from '../../../domain/entities/actor-type.vo';
 
 export class CreateGameActorDto {
   @ApiProperty({ description: 'Actor identifier (character or NPC id)', example: 'actor-123' })
@@ -13,7 +13,7 @@ export class CreateGameActorDto {
   @ApiProperty({ description: 'Actor type', example: 'character' })
   @IsString()
   @IsNotEmpty()
-  type: ge.ActorType;
+  type: actorTypeVo.ActorType;
 
   @ApiProperty({ description: 'Faction. Only for NPCs. For characters faction are not required', example: 'neutral' })
   @IsString()

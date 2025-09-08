@@ -18,3 +18,9 @@ export class GameDeletedEvent extends DomainEvent<Game> {
     super('GameDeletedEvent', data);
   }
 }
+
+export class GameStartedEvent extends DomainEvent<Game> {
+  constructor(data: Game) {
+    super('GameStartedEvent', data);
+  }
+}

@@ -3,12 +3,12 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose/dist/common/mongoose.decorators';
 import { Model } from 'mongoose';
 
-import { Page } from '../../../../shared/domain/entities/page.entity';
-import { NotFoundError } from '../../../../shared/domain/errors';
-import { RsqlParser } from '../../../../shared/infrastructure/messaging/rsql-parser';
-import { GameRepository } from '../../../application/ports/game.repository';
-import { Game } from '../../../domain/entities/game.aggregate';
-import { GameDocument, GameModel } from '../models/game.model';
+import { Page } from '../../../shared/domain/entities/page.entity';
+import { NotFoundError } from '../../../shared/domain/errors';
+import { RsqlParser } from '../../../shared/infrastructure/messaging/rsql-parser';
+import { GameRepository } from '../../application/ports/game.repository';
+import { Game } from '../../domain/entities/game.aggregate';
+import { GameDocument, GameModel } from '../persistence/models/game.model';
 
 @Injectable()
 export class MongoGameRepository implements GameRepository {
@@ -67,19 +67,19 @@ export class MongoGameRepository implements GameRepository {
   }
 
   private mapToEntity(doc: GameDocument): Game {
-    return {
-      id: doc.id as string,
-      strategicGameId: doc.strategicGameId,
-      name: doc.name,
-      round: doc.round,
-      status: doc.status,
-      phase: doc.phase,
-      factions: doc.factions,
-      actors: doc.actors,
-      description: doc.description,
-      owner: doc.owner,
-      createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt,
-    };
+    return new Game(
+      doc.id as string,
+      doc.strategicGameId,
+      doc.name,
+      doc.status,
+      doc.round,
+      doc.phase,
+      doc.factions,
+      doc.actors,
+      doc.description,
+      doc.owner,
+      doc.createdAt,
+      doc.updatedAt,
+    );
   }
 }

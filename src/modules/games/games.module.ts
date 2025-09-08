@@ -20,9 +20,9 @@ import { GetGamesQueryHandler } from './application/handlers/get-games.handler';
 import { StartPhaseCommandHandler } from './application/handlers/start-phase.handler';
 import { StartRoundCommandHandler } from './application/handlers/start-round.handler';
 import { UpdateGameCommandHandler } from './application/handlers/update-game.handler';
+import { MongoGameRepository } from './infrastructure/db/mongo-game.repository';
 import { KafkaGameEventBusAdapter } from './infrastructure/messaging/kafka.game-bus.adapter';
 import { GameModel, GameSchema } from './infrastructure/persistence/models/game.model';
-import { MongoGameRepository } from './infrastructure/persistence/repositories/mongo-game.repository';
 import { GameController } from './interfaces/http/game.controller';
 import { StrategicGameKafkaConsumer } from './interfaces/messaging/kafka.strategic-game.consumer';
 

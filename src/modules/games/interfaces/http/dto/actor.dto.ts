@@ -1,5 +1,5 @@
+import { ActorType } from '../../../domain/entities/actor-type.vo';
 import { Actor } from '../../../domain/entities/actor.vo';
-import { ActorType } from '../../../domain/entities/game.aggregate';
 
 export class ActorDto {
   id: string;
