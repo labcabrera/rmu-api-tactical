@@ -1,24 +1,24 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
-import * as characterRoundRepository from '../../../../actor-rounds/application/ports/out/character-round.repository';
+import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
 import { ActorRound } from '../../../../actor-rounds/domain/entities/actor-round.aggregate';
-import * as gameRepository from '../../../../games/application/ports/game.repository';
+import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { Game } from '../../../../games/domain/entities/game.aggregate';
 import { ValidationError } from '../../../../shared/domain/errors';
 import { ActionManeuver } from '../../../domain/entities/action-maneuver.vo';
 import { Action } from '../../../domain/entities/action.aggregate';
-import * as actionEventProducer from '../../ports/out/action-event-producer';
-import * as actionRepository from '../../ports/out/action.repository';
+import type { ActionEventProducer } from '../../ports/out/action-event-producer';
+import type { ActionRepository } from '../../ports/out/action.repository';
 import { CreateActionCommand } from '../create-action.command';
 
 @CommandHandler(CreateActionCommand)
 export class CreateActionCommandHandler implements ICommandHandler<CreateActionCommand, Action> {
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: gameRepository.GameRepository,
-    @Inject('ActorRoundRepository') private readonly characterRoundRepository: characterRoundRepository.ActorRoundRepository,
-    @Inject('ActionRepository') private readonly actionRepository: actionRepository.ActionRepository,
-    @Inject('ActionEventProducer') private readonly actionEventProducer: actionEventProducer.ActionEventProducer,
+    @Inject('GameRepository') private readonly gameRepository: GameRepository,
+    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
+    @Inject('ActionEventProducer') private readonly actionEventBus: ActionEventProducer,
   ) {}
 
   async execute(command: CreateActionCommand): Promise<Action> {
@@ -28,10 +28,22 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
     const round = game.round;
     const [actorRound, roundActions] = await Promise.all([this.readActorRound(command, round), this.readActions(command, round)]);
     this.validateActorRoundAndActions(actorRound, roundActions);
-    const action = this.buildAction(command, game);
-    return this.actionRepository.save(action).then((saved) => {
-      return this.actionEventProducer.created(saved).then(() => saved);
-    });
+    const action = Action.create(
+      command.gameId,
+      command.actorId,
+      round,
+      command.actionType,
+      command.phaseStart,
+      undefined,
+      undefined,
+      undefined,
+      command.description,
+      command.userId,
+    );
+    const saved = await this.actionRepository.save(action);
+    const events = action.pullDomainEvents();
+    events.forEach((event) => this.actionEventBus.publish(event));
+    return saved;
   }
 
   private async readGame(command: CreateActionCommand): Promise<Game> {
@@ -44,7 +56,7 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
 
   private async readActorRound(command: CreateActionCommand, round: number): Promise<ActorRound> {
     const rsql = `gameId==${command.gameId};actorId==${command.actorId};round==${round}`;
-    const characterRounds = await this.characterRoundRepository.findByRsql(rsql, 0, 100);
+    const characterRounds = await this.actorRoundRepository.findByRsql(rsql, 0, 100);
     if (characterRounds.content.length === 0) {
       throw new ValidationError(`CharacterRound for game ${command.gameId}, character ${command.actorId}, round ${round} not found`);
     }

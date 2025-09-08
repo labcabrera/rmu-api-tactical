@@ -1,10 +1,12 @@
+import { randomUUID } from 'crypto';
+import { AggregateRoot } from '../../../shared/domain/entities/aggregate-root';
 import { ActionAttack } from './action-attack.vo';
 import { ActionManeuver } from './action-maneuver.vo';
 import { ActionMovement } from './action-movement.vo';
 import { ActionStatus } from './action-status.vo';
 import { ActionType } from './action-type.vo';
 
-export class Action {
+export class Action extends AggregateRoot<Action> {
   constructor(
     public readonly id: string,
     public readonly gameId: string,
@@ -20,8 +22,44 @@ export class Action {
     public maneuver: ActionManeuver | undefined,
     public fatigue: number | undefined,
     public description: string | undefined,
+    public owner: string,
     public readonly createdAt: Date,
     public updatedAt: Date | undefined,
-    public owner: string,
-  ) {}
+  ) {
+    super();
+  }
+
+  static create(
+    gameId: string,
+    actorId: string,
+    round: number,
+    actionType: ActionType,
+    phaseStart: number,
+    movement: ActionMovement | undefined,
+    attacks: ActionAttack[] | undefined,
+    maneuver: ActionManeuver | undefined,
+    description: string | undefined,
+    owner: string,
+  ) {
+    const action = new Action(
+      randomUUID(),
+      gameId,
+      actorId,
+      round,
+      actionType,
+      phaseStart,
+      undefined,
+      'in_progress',
+      undefined,
+      movement,
+      attacks,
+      maneuver,
+      undefined,
+      description,
+      owner,
+      new Date(),
+      undefined,
+    );
+    return action;
+  }
 }

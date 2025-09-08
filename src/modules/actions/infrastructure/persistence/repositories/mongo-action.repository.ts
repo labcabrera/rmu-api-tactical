@@ -80,9 +80,9 @@ export class MongoActionRepository implements ActionRepository {
       doc.maneuver,
       doc.fatigue,
       doc.description,
+      doc.owner,
       doc.createdAt,
       doc.updatedAt,
-      doc.owner,
     );
   }
 }
