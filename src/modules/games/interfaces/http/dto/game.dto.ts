@@ -3,7 +3,7 @@ import { IsNotEmpty, IsString } from 'class-validator';
 import { PaginationDto } from '../../../../shared/infrastructure/controller/dto';
 import { UpdateGameCommand } from '../../../application/cqrs/commands/update-game.command';
 import * as ge from '../../../domain/entities/game.aggregate';
-import { ActorDto } from './actor-dto';
+import { ActorDto } from './actor.dto';
 
 export class GameDto {
   @ApiProperty({ description: 'Game identifier', example: 'lotr' })

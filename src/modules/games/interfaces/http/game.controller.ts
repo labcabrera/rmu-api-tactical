@@ -19,7 +19,7 @@ import { UpdateGameCommand } from '../../application/cqrs/commands/update-game.c
 import { GetGameQuery } from '../../application/queries/get-game.query';
 import { GetGamesQuery } from '../../application/queries/get-games.query';
 import { Game } from '../../domain/entities/game.aggregate';
-import { AddGameActorsDto } from './dto/add-game-actors-dto';
+import { AddGameActorsDto } from './dto/add-game-actors.dto';
 import { AddGameFactionsDto } from './dto/add-game-factions.dto';
 import { CreateGameDto } from './dto/create-game.dto';
 import { DeleteGameActorsDto } from './dto/delete-game-actors.dto';
