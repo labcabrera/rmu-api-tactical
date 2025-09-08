@@ -65,23 +65,24 @@ export class MongoActionRepository implements ActionRepository {
   }
 
   private mapToEntity(doc: ActionDocument): Action {
-    return {
-      id: doc.id as string,
-      gameId: doc.gameId,
-      actorId: doc.actorId,
-      status: doc.status,
-      round: doc.round,
-      actionType: doc.actionType,
-      phaseStart: doc.phaseStart,
-      phaseEnd: doc.phaseEnd,
-      actionPoints: doc.actionPoints,
-      movement: doc.movement,
-      maneuver: doc.maneuver,
-      attacks: doc.attacks,
-      fatigue: doc.fatigue,
-      description: doc.description,
-      createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt,
-    };
+    return new Action(
+      doc._id,
+      doc.gameId,
+      doc.actorId,
+      doc.round,
+      doc.actionType,
+      doc.phaseStart,
+      doc.phaseEnd,
+      doc.status,
+      doc.actionPoints,
+      doc.movement,
+      doc.attacks,
+      doc.maneuver,
+      doc.fatigue,
+      doc.description,
+      doc.createdAt,
+      doc.updatedAt,
+      doc.owner,
+    );
   }
 }

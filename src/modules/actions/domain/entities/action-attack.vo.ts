@@ -1,4 +1,4 @@
-import { ActionStatus } from './action.aggregate';
+import { ActionStatus } from './action-status.vo';
 
 export class ActionAttack {
   constructor(

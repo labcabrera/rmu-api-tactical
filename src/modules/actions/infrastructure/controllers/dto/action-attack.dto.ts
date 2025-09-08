@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ActionAttack } from '../../../domain/entities/action-attack.vo';
-import * as actionEntity from '../../../domain/entities/action.aggregate';
+import type { ActionStatus } from '../../../domain/entities/action-status.vo';
 
 export class ActionAttackDto {
   @ApiProperty({ description: 'Attack type', example: 'mainHand' })
@@ -13,7 +13,7 @@ export class ActionAttackDto {
   parry: number;
 
   @ApiProperty({ description: 'Attack status', example: 'declared' })
-  status: actionEntity.ActionStatus;
+  status: ActionStatus;
 
   @ApiProperty({ description: 'External identifier of the attack', example: 'attack-01' })
   attackId: string | undefined;

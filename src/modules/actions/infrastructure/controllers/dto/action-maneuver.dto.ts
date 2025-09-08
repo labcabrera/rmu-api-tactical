@@ -1,6 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ActionManeuver, ActionManeuverResult } from '../../../domain/entities/action-maneuver.vo';
-import * as actionEntity from '../../../domain/entities/action.aggregate';
+import type { ActionStatus } from '../../../domain/entities/action-status.vo';
+import { ManeuverDifficulty } from '../../../domain/entities/maneuver-dificulty.vo';
+import type { ManeuverType } from '../../../domain/entities/maneuver-type.vo';
 
 export class ActionManeuverResultDto {
   @ApiProperty({ description: 'Bonus modifiers' })
@@ -30,16 +32,16 @@ export class ActionManeuverDto {
   skillId: string;
 
   @ApiProperty({ description: 'Maneuver type', example: 'dodge' })
-  maneuverType: actionEntity.ManeuverType;
+  maneuverType: ManeuverType;
 
   @ApiProperty({ description: 'Maneuver difficulty', example: 'average', required: false })
-  difficulty: actionEntity.ManeuverDifficulty | undefined;
+  difficulty: ManeuverDifficulty | undefined;
 
   @ApiProperty({ description: 'Maneuver result', required: false })
   result: ActionManeuverResultDto | undefined;
 
   @ApiProperty({ description: 'Maneuver status', example: 'declared' })
-  status: actionEntity.ActionStatus;
+  status: ActionStatus;
 
   static fromEntity(entity: ActionManeuver): ActionManeuverDto {
     const dto = new ActionManeuverDto();

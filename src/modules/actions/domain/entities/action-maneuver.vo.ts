@@ -1,4 +1,6 @@
-import { ActionStatus, ManeuverDifficulty, ManeuverType } from './action.aggregate';
+import { ActionStatus } from './action-status.vo';
+import { ManeuverDifficulty } from './maneuver-dificulty.vo';
+import { ManeuverType } from './maneuver-type.vo';
 
 export class ActionManeuver {
   constructor(

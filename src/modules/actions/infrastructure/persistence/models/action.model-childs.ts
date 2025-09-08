@@ -1,5 +1,7 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import * as ae from '../../../domain/entities/action.aggregate';
+import type { ActionStatus } from '../../../domain/entities/action-status.vo';
+import { ManeuverDifficulty } from '../../../domain/entities/maneuver-dificulty.vo';
+import type { ManeuverType } from '../../../domain/entities/maneuver-type.vo';
 
 @Schema({ _id: false })
 export class ActionAttack {
@@ -16,7 +18,7 @@ export class ActionAttack {
   parry: number;
 
   @Prop({ required: true })
-  status: ae.ActionStatus;
+  status: ActionStatus;
 }
 
 @Schema({ _id: false })
@@ -40,14 +42,14 @@ export class ActionManeuver {
   skillId: string;
 
   @Prop({ type: String, required: true })
-  maneuverType: ae.ManeuverType;
+  maneuverType: ManeuverType;
 
   @Prop({ type: String, required: false })
-  difficulty: ae.ManeuverDifficulty | undefined;
+  difficulty: ManeuverDifficulty | undefined;
 
   @Prop({ type: ActionManeuverResult, required: false })
   result: ActionManeuverResult | undefined;
 
   @Prop({ type: String, required: false })
-  status: ae.ActionStatus;
+  status: ActionStatus;
 }

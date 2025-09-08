@@ -2,7 +2,8 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { CreateActionCommand } from '../../../application/commands/create-action.command';
-import * as actionEntity from '../../../domain/entities/action.aggregate';
+import type { ActionType } from '../../../domain/entities/action-type.vo';
+import type { ManeuverType } from '../../../domain/entities/maneuver-type.vo';
 
 export class ActionAttackCreationDto {
   @ApiProperty({ description: 'Attack type' })
@@ -29,7 +30,7 @@ export class ActionManeuverCreationDto {
   @ApiProperty({ description: 'Maneuver type' })
   @IsString()
   @IsNotEmpty()
-  maneuverType: actionEntity.ManeuverType;
+  maneuverType: ManeuverType;
 }
 
 export class CreateActionDto {
@@ -46,7 +47,7 @@ export class CreateActionDto {
   @ApiProperty({ description: 'Action type' })
   @IsString()
   @IsNotEmpty()
-  actionType: actionEntity.ActionType;
+  actionType: ActionType;
 
   @ApiProperty({ description: 'Phase start' })
   @IsNumber()

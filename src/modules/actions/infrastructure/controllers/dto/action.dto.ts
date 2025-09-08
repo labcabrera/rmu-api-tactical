@@ -1,5 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { PaginationDto } from '../../../../shared/infrastructure/controller/dto';
+import type { ActionStatus } from '../../../domain/entities/action-status.vo';
+import type { ActionType } from '../../../domain/entities/action-type.vo';
 import * as actionEntity from '../../../domain/entities/action.aggregate';
 import { ActionAttackDto } from './action-attack.dto';
 import { ActionManeuverDto } from './action-maneuver.dto';
@@ -13,7 +15,7 @@ export class ActionDto {
   gameId: string;
 
   @ApiProperty({ description: 'Action status', example: 'declared' })
-  status: actionEntity.ActionStatus;
+  status: ActionStatus;
 
   @ApiProperty({ description: 'Character identifier', example: 'character-789' })
   actorId: string;
@@ -22,7 +24,7 @@ export class ActionDto {
   round: number;
 
   @ApiProperty({ description: 'Action type', example: 'attack' })
-  actionType: actionEntity.ActionType;
+  actionType: ActionType;
 
   @ApiProperty({ description: 'Phase start', example: 1 })
   phaseStart: number;
