@@ -12,7 +12,7 @@ export class GetGamesHandler implements IQueryHandler<GetGamesQuery, Page<Game>>
   constructor(@Inject('GameRepository') private readonly gameRepository: GameRepository) {}
 
   async execute(query: GetGamesQuery): Promise<Page<Game>> {
-    this.logger.debug('Finding games with query: ', query.rsql);
+    this.logger.debug(`Finding games with query: ${JSON.stringify(query)}`);
     return await this.gameRepository.findByRsql(query.rsql, query.page, query.size);
   }
 }

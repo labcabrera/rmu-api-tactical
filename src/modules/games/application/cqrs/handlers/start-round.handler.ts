@@ -11,7 +11,7 @@ import { StartRoundCommand } from '../commands/start-round.command';
 export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Game> {
   constructor(
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('GameEventProducer') private readonly eventBus: GameEventBusPort,
+    @Inject('GameEventProducer') private readonly gameEventBus: GameEventBusPort,
     @Inject() private readonly actorRoundService: ActorRoundService,
   ) {}
 
@@ -25,7 +25,7 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
     const updatedGame = await this.gameRepository.update(gameId, game);
     await this.createCharacterRounds(updatedGame);
     const events = game.pullDomainEvents();
-    events.forEach((event) => this.eventBus.publish(event));
+    events.forEach((event) => this.gameEventBus.publish(event));
     return updatedGame;
   }
 

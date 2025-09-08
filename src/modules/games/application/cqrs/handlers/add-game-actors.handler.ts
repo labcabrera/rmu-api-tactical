@@ -1,6 +1,6 @@
 import { Inject, NotImplementedException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { NotFoundError, NotModifiedError, ValidationError } from '../../../../shared/domain/errors';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import type { CharacterClient } from '../../../../strategic/application/ports/out/character-client';
 import { Actor } from '../../../domain/entities/actor.vo';
 import { Game } from '../../../domain/entities/game.aggregate';
@@ -31,12 +31,11 @@ export class AddGameActorsHandler implements ICommandHandler<AddGameActorsComman
         }
       }),
     );
-    if (mappedActors.length === 0) {
-      throw new NotModifiedError('No new actors added');
-    }
-    game.actors.push(...mappedActors);
+    game.addActors(mappedActors);
     const updated = await this.gameRepository.update(command.gameId, game);
     await this.gameEventBus.updated(updated);
+    const events = game.pullDomainEvents();
+    events.forEach((event) => this.gameEventBus.publish(event));
     return updated;
   }
 

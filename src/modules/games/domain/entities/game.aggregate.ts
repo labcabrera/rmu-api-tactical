@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { ValidationError } from '../../../shared/domain/errors';
 import { DomainEvent } from '../../../shared/domain/events/domain-event';
-import { GameCreatedEvent, GameRoundStartedEvent } from '../events/game-events';
+import { GameCreatedEvent, GameRoundStartedEvent, GameUpdatedEvent } from '../events/game-events';
 import { Actor } from './actor.vo';
 import { GamePhase } from './game-phase.vo';
 import { GameStatus } from './game-status.vo';
@@ -56,6 +56,23 @@ export class Game {
     );
     game.addDomainEvent(new GameCreatedEvent(game));
     return game;
+  }
+
+  addActors(actors: Actor[]) {
+    if (actors.length === 0) {
+      throw new ValidationError(`No actors provided`);
+    }
+    for (const actor of actors) {
+      if (this.actors.find((a) => a.id === actor.id && a.type === actor.type)) {
+        throw new ValidationError(`Actor ${actor.id} already exists in the game`);
+      }
+      if (!this.factions.includes(actor.factionId)) {
+        throw new ValidationError(`Actor ${actor.id} has faction ${actor.factionId} which is not part of the game`);
+      }
+    }
+    this.actors.push(...actors);
+    this.updatedAt = new Date();
+    this.addDomainEvent(new GameUpdatedEvent(this));
   }
 
   startRound() {
