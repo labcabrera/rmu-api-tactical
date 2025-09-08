@@ -1,4 +1,4 @@
-import { Inject, NotImplementedException } from '@nestjs/common';
+import { Inject, Logger, NotImplementedException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import type { CharacterClient } from '../../../../strategic/application/ports/out/character-client';
@@ -11,6 +11,8 @@ import type { CreateGameCommandActor } from '../commands/create-game.command';
 
 @CommandHandler(AddGameActorsCommand)
 export class AddGameActorsHandler implements ICommandHandler<AddGameActorsCommand, Game> {
+  private readonly logger = new Logger(AddGameActorsHandler.name);
+
   constructor(
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('CharacterClient') private readonly characterClient: CharacterClient,
@@ -18,6 +20,7 @@ export class AddGameActorsHandler implements ICommandHandler<AddGameActorsComman
   ) {}
 
   async execute(command: AddGameActorsCommand): Promise<Game> {
+    this.logger.log(`Execute << ${JSON.stringify(command)}`);
     const game = await this.gameRepository.findById(command.gameId);
     if (!game) {
       throw new NotFoundError('Game', command.gameId);

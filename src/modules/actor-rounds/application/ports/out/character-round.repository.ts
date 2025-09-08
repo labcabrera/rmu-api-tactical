@@ -8,7 +8,7 @@ export interface ActorRoundRepository {
 
   findByActorIdAndRound(characterId: string, round: number): Promise<ActorRound | null>;
 
-  save(entity: Partial<ActorRound>): Promise<ActorRound>;
+  save(entity: ActorRound): Promise<ActorRound>;
 
   update(characterRoundId: string, data: Partial<ActorRound>): Promise<ActorRound>;
 

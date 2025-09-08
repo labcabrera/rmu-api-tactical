@@ -3,30 +3,30 @@ import { Game } from '../entities/game.aggregate';
 
 export class GameCreatedEvent extends DomainEvent<Game> {
   constructor(data: Game) {
-    super('tactical-game-created', data);
+    super('created', data);
   }
 }
 
 export class GameUpdatedEvent extends DomainEvent<Game> {
   constructor(data: Game) {
-    super('tactical-game-updated', data);
+    super('updated', data);
   }
 }
 
 export class GameDeletedEvent extends DomainEvent<Game> {
   constructor(data: Game) {
-    super('tactical-game-deleted', data);
+    super('deleted', data);
   }
 }
 
 export class GameRoundStartedEvent extends DomainEvent<Game> {
   constructor(data: Game) {
-    super('tactical-game-round-started', data);
+    super('round-started', data);
   }
 }
 
 export class GamePhaseStartedEvent extends DomainEvent<Game> {
   constructor(data: Game) {
-    super('tactical-game-phase-started', data);
+    super('phase-started', data);
   }
 }

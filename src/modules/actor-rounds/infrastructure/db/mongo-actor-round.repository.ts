@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose/dist/common/mongoose.decorators';
 import { Model } from 'mongoose';
@@ -40,8 +41,10 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
     return readed ? this.mapToEntity(readed) : null;
   }
 
-  async save(request: Partial<ActorRound>): Promise<ActorRound> {
-    const model = new this.actorRoundModel({ ...request, _id: request.id });
+  async save(actorRound: ActorRound): Promise<ActorRound> {
+    const persistable = actorRound.toPersistence();
+    const { id, ...rest } = persistable;
+    const model = new this.actorRoundModel({ ...rest, _id: id });
     await model.save();
     return this.mapToEntity(model);
   }
@@ -72,23 +75,23 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
     });
   }
   private mapToEntity(doc: ActorRoundDocument): ActorRound {
-    return {
-      id: doc.id as string,
-      gameId: doc.gameId,
-      actorId: doc.actorId,
-      actorName: doc.actorName,
-      round: doc.round,
-      initiative: doc.initiative,
-      actionPoints: doc.actionPoints,
-      hp: doc.hp,
-      fatigue: doc.fatigue,
-      penalties: doc.penalties,
-      attacks: doc.attacks,
-      parries: doc.parries,
-      effects: doc.effects,
-      owner: doc.owner,
-      createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt,
-    };
+    return new ActorRound(
+      doc._id,
+      doc.gameId,
+      doc.actorId,
+      doc.actorName,
+      doc.round,
+      doc.initiative,
+      doc.actionPoints,
+      doc.hp,
+      doc.fatigue,
+      doc.penalties,
+      doc.attacks,
+      doc.parries,
+      doc.effects,
+      doc.owner,
+      doc.createdAt,
+      doc.updatedAt,
+    );
   }
 }

@@ -1,20 +1,19 @@
 import { Inject, Injectable, NotImplementedException } from '@nestjs/common';
 import { Actor } from '../../../games/domain/entities/actor.vo';
 import { ValidationError } from '../../../shared/domain/errors';
-import * as cc from '../../../strategic/application/ports/out/character-client';
-import { Character } from '../../../strategic/application/ports/out/character-client';
+import type { Character, CharacterClient } from '../../../strategic/application/ports/out/character-client';
 import { ActorRoundAttack } from '../../domain/entities/actor-round-attack.vo';
 import { ActorRound } from '../../domain/entities/actor-round.aggregate';
-import * as crr from '../ports/out/character-round.repository';
+import type { ActorRoundRepository } from '../ports/out/character-round.repository';
 
 @Injectable()
 export class ActorRoundService {
   constructor(
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: crr.ActorRoundRepository,
-    @Inject('CharacterClient') private readonly characterClient: cc.CharacterClient,
+    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject('CharacterClient') private readonly characterClient: CharacterClient,
   ) {}
 
-  public async create(gameId: string, actor: Actor, round: number): Promise<void> {
+  public async create(gameId: string, actor: Actor, round: number): Promise<ActorRound> {
     if (round === 1) {
       return await this.createFromTemplate(gameId, actor, round);
     }
@@ -26,7 +25,7 @@ export class ActorRoundService {
     return await this.createFromTemplate(gameId, actor, round);
   }
 
-  public async createFromPreviousRound(prev): Promise<void> {
+  public createFromPreviousRound(prev): Promise<ActorRound> {
     const template: Partial<ActorRound> = {
       ...prev,
       id: undefined,
@@ -38,10 +37,10 @@ export class ActorRoundService {
     };
     template.initiative!.roll = undefined;
     template.initiative!.total = undefined;
-    await this.actorRoundRepository.save(template);
+    return Promise.resolve(template as ActorRound);
   }
 
-  public async createFromTemplate(gameId: string, actor: Actor, round: number): Promise<void> {
+  public async createFromTemplate(gameId: string, actor: Actor, round: number): Promise<ActorRound> {
     const template: Partial<ActorRound> = {
       gameId: gameId,
       actorId: actor.id,
@@ -83,7 +82,7 @@ export class ActorRoundService {
     } else {
       throw new NotImplementedException('NPCs are not implemented yet');
     }
-    await this.actorRoundRepository.save(template);
+    return template as ActorRound;
   }
 
   private mapAttacksFromCharacter(character: Character): ActorRoundAttack[] {

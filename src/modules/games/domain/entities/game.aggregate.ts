@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { ValidationError } from '../../../shared/domain/errors';
 import { DomainEvent } from '../../../shared/domain/events/domain-event';
-import { GameCreatedEvent, GameRoundStartedEvent, GameUpdatedEvent } from '../events/game-events';
+import { GameCreatedEvent, GameRoundStartedEvent, GameUpdatedEvent } from '../events/game.events';
 import { Actor } from './actor.vo';
 import { GamePhase } from './game-phase.vo';
 import { GameStatus } from './game-status.vo';

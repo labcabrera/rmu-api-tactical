@@ -1,4 +1,4 @@
-import { Inject } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { NotFoundError } from '../../../../shared/domain/errors';
 import { Game } from '../../../domain/entities/game.aggregate';
@@ -9,12 +9,15 @@ import { StartRoundCommand } from '../commands/start-round.command';
 
 @CommandHandler(StartPhaseCommand)
 export class StartPhaseHandler implements ICommandHandler<StartPhaseCommand, Game> {
+  private readonly logger = new Logger(StartPhaseHandler.name);
+
   constructor(
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('GameEventProducer') private readonly gameEventBus: GameEventBusPort,
   ) {}
 
   async execute(command: StartRoundCommand): Promise<Game> {
+    this.logger.log(`Execute << ${JSON.stringify(command)}`);
     const { gameId } = command;
     const game = await this.gameRepository.findById(gameId);
     if (!game) {

@@ -21,16 +21,17 @@ export class CreateGameHandler implements ICommandHandler<CreateGameCommand, Gam
   ) {}
 
   async execute(command: CreateGameCommand): Promise<Game> {
-    this.logger.debug(`Creating game: ${command.name} for user ${command.userId}`);
+    this.logger.debug(`Execute << ${command.name} for user ${command.userId}`);
     const strategicGame = await this.strategicGameClient.findById(command.strategicGameId);
     if (!strategicGame) {
       throw new ValidationError(`Strategic game ${command.strategicGameId} not found`);
     }
     const actors = await (command.actors ? Promise.all(command.actors.map((actor) => this.mapActor(actor))) : undefined);
     const game = Game.create(command.strategicGameId, command.name, command.factions, actors, command.description, command.userId);
-    const savedGame = await this.gameRepository.save(game);
-    await this.gameEventBus.created(savedGame);
-    return savedGame;
+    const saved = await this.gameRepository.save(game);
+    const events = game.pullDomainEvents();
+    events.forEach((event) => this.gameEventBus.publish(event));
+    return saved;
   }
 
   private async mapActor(actor: CreateGameCommandActor): Promise<Actor> {

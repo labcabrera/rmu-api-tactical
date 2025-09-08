@@ -1,4 +1,4 @@
-import { Inject } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import type { ActionRepository } from '../../../../actions/application/ports/out/action.repository';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
@@ -9,6 +9,8 @@ import { DeleteGameCommand } from '../commands/delete-game.command';
 
 @CommandHandler(DeleteGameCommand)
 export class DeleteGameHandler implements ICommandHandler<DeleteGameCommand> {
+  private readonly logger = new Logger(DeleteGameHandler.name);
+
   constructor(
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
@@ -17,6 +19,7 @@ export class DeleteGameHandler implements ICommandHandler<DeleteGameCommand> {
   ) {}
 
   async execute(command: DeleteGameCommand): Promise<void> {
+    this.logger.log(`Execute << ${JSON.stringify(command)}`);
     const game = await this.gameRepository.findById(command.gameId);
     if (!game) {
       throw new NotFoundError('Game', command.gameId);
