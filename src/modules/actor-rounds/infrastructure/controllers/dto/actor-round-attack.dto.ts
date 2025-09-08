@@ -1,4 +1,4 @@
-import { ActorRoundAttack, BoModifiers } from '../../../domain/entities/actor-round.entity';
+import { ActorRoundAttack, BoModifiers } from '../../../domain/entities/actor-round-attack.vo';
 
 export class BoModifiersDto {
   key: string;

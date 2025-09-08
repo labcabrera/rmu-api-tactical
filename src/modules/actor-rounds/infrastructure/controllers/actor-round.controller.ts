@@ -13,7 +13,7 @@ import { AddHpCommand } from '../../application/commands/add-hp.command';
 import { DeclareInitiativeCommand } from '../../application/commands/declare-initiative.command';
 import { GetActorRoundQuery } from '../../application/queries/get-actor-round.query';
 import { GetActorsRoundsQuery } from '../../application/queries/get-actor-rounds.query';
-import { ActorRound } from '../../domain/entities/actor-round.entity';
+import { ActorRound } from '../../domain/entities/actor-round.aggregate';
 import { ActorRoundDto, CharacterRoundPageDto } from './dto/actor-round.dto';
 import { AddEffectDto } from './dto/add-effect.dto';
 import { AddHpDto } from './dto/add-hp.dto';

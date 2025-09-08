@@ -2,7 +2,8 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
 import { Inject } from '@nestjs/common';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import { ActorRound, ActorRoundEffect } from '../../../domain/entities/actor-round.entity';
+import { ActorRoundEffect } from '../../../domain/entities/actor-round-effect.vo';
+import { ActorRound } from '../../../domain/entities/actor-round.aggregate';
 import * as arr from '../../ports/out/character-round.repository';
 import { AddHpCommand } from '../add-hp.command';
 

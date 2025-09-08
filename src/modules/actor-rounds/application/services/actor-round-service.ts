@@ -3,7 +3,8 @@ import { Actor } from '../../../games/domain/entities/actor.vo';
 import { ValidationError } from '../../../shared/domain/errors';
 import * as cc from '../../../strategic/application/ports/out/character-client';
 import { Character } from '../../../strategic/application/ports/out/character-client';
-import { ActorRound, ActorRoundAttack } from '../../domain/entities/actor-round.entity';
+import { ActorRoundAttack } from '../../domain/entities/actor-round-attack.vo';
+import { ActorRound } from '../../domain/entities/actor-round.aggregate';
 import * as crr from '../ports/out/character-round.repository';
 
 @Injectable()

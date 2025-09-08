@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 import { PaginationDto } from '../../../../shared/infrastructure/controller/dto';
-import { ActorRound } from '../../../domain/entities/actor-round.entity';
+import { ActorRound } from '../../../domain/entities/actor-round.aggregate';
 import { ActorRoundEffect } from '../../persistence/models/actor-round.models-childs';
 import { ActorRoundAttackDto } from './actor-round-attack.dto';
 import { ActorRoundFatigueDto } from './actor-round-fatigue.dto';

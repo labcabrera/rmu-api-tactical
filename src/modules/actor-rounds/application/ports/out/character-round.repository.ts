@@ -1,5 +1,5 @@
 import { Page } from '../../../../shared/domain/entities/page.entity';
-import { ActorRound } from '../../../domain/entities/actor-round.entity';
+import { ActorRound } from '../../../domain/entities/actor-round.aggregate';
 
 export interface ActorRoundRepository {
   findById(id: string): Promise<ActorRound | null>;

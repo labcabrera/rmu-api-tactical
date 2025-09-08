@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsOptional } from 'class-validator';
-import { ActorRoundInitiative } from '../../../domain/entities/actor-round.entity';
+import { ActorRoundInitiative } from '../../../domain/entities/actor-round.aggregate';
 
 export class ActorRoundInitiativeDto {
   @ApiProperty({ description: 'Base initiative value' })

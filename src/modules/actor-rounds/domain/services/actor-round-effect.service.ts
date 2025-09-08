@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { NotModifiedError } from '../../../shared/domain/errors';
-import { ActorRound, ActorRoundEffect } from '../entities/actor-round.entity';
+import { ActorRoundEffect } from '../entities/actor-round-effect.vo';
+import { ActorRound } from '../entities/actor-round.aggregate';
 
 @Injectable()
 export class ActorRoundEffectService {

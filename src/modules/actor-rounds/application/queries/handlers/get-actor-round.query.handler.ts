@@ -2,7 +2,7 @@ import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 
 import { NotFoundError } from '../../../../shared/domain/errors';
-import { ActorRound } from '../../../domain/entities/actor-round.entity';
+import { ActorRound } from '../../../domain/entities/actor-round.aggregate';
 import * as crr from '../../ports/out/character-round.repository';
 import { GetActorRoundQuery } from '../get-actor-round.query';
 

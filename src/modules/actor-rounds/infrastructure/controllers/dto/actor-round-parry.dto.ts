@@ -1,4 +1,4 @@
-import { ActorRoundParry } from '../../../domain/entities/actor-round.entity';
+import { ActorRoundParry } from '../../../domain/entities/actor-round.aggregate';
 
 export class ActorRoundParryDto {
   attackName: string;

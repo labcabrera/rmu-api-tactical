@@ -2,7 +2,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
 import { Inject } from '@nestjs/common';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import { ActorRound } from '../../../domain/entities/actor-round.entity';
+import { ActorRound } from '../../../domain/entities/actor-round.aggregate';
 import * as arr from '../../ports/out/character-round.repository';
 import { DeclareInitiativeCommand } from '../declare-initiative.command';
 

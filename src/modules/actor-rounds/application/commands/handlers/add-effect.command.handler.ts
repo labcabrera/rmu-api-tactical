@@ -1,7 +1,7 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { NotFoundError } from '../../../../shared/domain/errors';
-import { ActorRound } from '../../../domain/entities/actor-round.entity';
+import { ActorRound } from '../../../domain/entities/actor-round.aggregate';
 import { ActorRoundEffectService } from '../../../domain/services/actor-round-effect.service';
 import * as arr from '../../ports/out/character-round.repository';
 import { AddEffectCommand } from '../add-effect.command';

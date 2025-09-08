@@ -58,6 +58,38 @@ export class Game {
     return game;
   }
 
+  addFactions(factions: string[]) {
+    if (factions.length === 0) {
+      throw new ValidationError(`No factions provided`);
+    }
+    for (const faction of factions) {
+      if (this.factions.includes(faction)) {
+        throw new ValidationError(`Faction ${faction} already exists in the game`);
+      }
+    }
+    this.factions.push(...factions);
+    this.updatedAt = new Date();
+    this.addDomainEvent(new GameUpdatedEvent(this));
+  }
+
+  deleteFactions(factions: string[]) {
+    if (this.status !== 'created') {
+      throw new ValidationError(`Cannot delete factions from a game that is not in 'created' status`);
+    }
+    if (factions.length === 0) {
+      throw new ValidationError(`No factions provided`);
+    }
+    for (const faction of factions) {
+      if (!this.factions.includes(faction)) {
+        throw new ValidationError(`Faction ${faction} does not exist in the game`);
+      }
+    }
+    this.factions = this.factions.filter((f) => !factions.includes(f));
+    this.actors = this.actors.filter((a) => !factions.includes(a.factionId));
+    this.updatedAt = new Date();
+    this.addDomainEvent(new GameUpdatedEvent(this));
+  }
+
   addActors(actors: Actor[]) {
     if (actors.length === 0) {
       throw new ValidationError(`No actors provided`);
