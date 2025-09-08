@@ -9,7 +9,7 @@ import { ValidationError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/entities/action.aggregate';
 import type { ActionEventProducer } from '../../ports/out/action-event-producer';
 import type { ActionRepository } from '../../ports/out/action.repository';
-import { CreateActionCommand } from '../create-action.command';
+import { CreateActionCommand } from '../commands/create-action.command';
 
 @CommandHandler(CreateActionCommand)
 export class CreateActionHandler implements ICommandHandler<CreateActionCommand, Action> {

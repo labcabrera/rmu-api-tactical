@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { UpdateActionCommand } from '../../../application/commands/update-action.command';
+import { UpdateActionCommand } from '../../../application/cqrs/commands/update-action.command';
 
 export class UpdateActionDto {
   @ApiProperty({ description: 'Action description', example: 'Attack the enemy' })

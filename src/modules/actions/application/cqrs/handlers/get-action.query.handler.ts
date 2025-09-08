@@ -4,7 +4,7 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { NotFoundError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/entities/action.aggregate';
 import * as actionRepository from '../../ports/out/action.repository';
-import { GetActionQuery } from '../get-action.query';
+import { GetActionQuery } from '../queries/get-action.query';
 
 @QueryHandler(GetActionQuery)
 export class GetActionQueryHandler implements IQueryHandler<GetActionQuery, Action> {

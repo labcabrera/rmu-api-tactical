@@ -11,7 +11,7 @@ import { Action } from '../../../domain/entities/action.aggregate';
 import type { ActionEventProducer } from '../../ports/out/action-event-producer';
 import type { ActionRepository } from '../../ports/out/action.repository';
 import type { AttackClient } from '../../ports/out/attack-client';
-import { PrepareAttackCommand } from '../prepare-attack.command';
+import { PrepareAttackCommand } from '../commands/prepare-attack.command';
 
 @CommandHandler(PrepareAttackCommand)
 export class PrepareAttackHandler implements ICommandHandler<PrepareAttackCommand, Action> {

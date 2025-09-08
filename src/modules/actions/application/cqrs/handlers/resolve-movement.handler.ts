@@ -18,7 +18,7 @@ import { MovementProcessorService } from '../../../domain/services/movement-proc
 import * as aep from '../../ports/out/action-event-producer';
 import * as ar from '../../ports/out/action.repository';
 import * as ac from '../../ports/out/attack-client';
-import { ResolveMovementCommand } from '../resolve-movement.command';
+import { ResolveMovementCommand } from '../commands/resolve-movement.command';
 
 @CommandHandler(ResolveMovementCommand)
 export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCommand, Action> {

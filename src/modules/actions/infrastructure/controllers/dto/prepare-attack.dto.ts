@@ -1,7 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
-
-import * as pac from '../../../application/commands/prepare-attack.command';
+import * as prepareAttackCommand from '../../../application/cqrs/commands/prepare-attack.command';
 
 export class PrepareAttackDto {
   @ApiProperty({ description: 'Type of the attack being prepared', example: 'main_hand' })
@@ -11,23 +10,23 @@ export class PrepareAttackDto {
 
   @IsString()
   @IsOptional()
-  cover: pac.CoverType = 'none';
+  cover: prepareAttackCommand.CoverType = 'none';
 
   @IsString()
   @IsOptional()
-  restrictedQuarters: pac.RestrictedQuartersType = 'none';
+  restrictedQuarters: prepareAttackCommand.RestrictedQuartersType = 'none';
 
   @IsString()
   @IsOptional()
-  positionalSource: pac.PositionalSourceType = 'none';
+  positionalSource: prepareAttackCommand.PositionalSourceType = 'none';
 
   @IsString()
   @IsOptional()
-  positionalTarget: pac.PositionalTargetType = 'none';
+  positionalTarget: prepareAttackCommand.PositionalTargetType = 'none';
 
   @IsString()
   @IsOptional()
-  dodge: pac.DodgeType = 'none';
+  dodge: prepareAttackCommand.DodgeType = 'none';
 
   @IsOptional()
   disabledDB: boolean = false;
@@ -42,8 +41,8 @@ export class PrepareAttackDto {
   @IsOptional()
   customBonus: number | undefined;
 
-  static toCommand(actionId: string, dto: PrepareAttackDto, userId: string, roles: string[]): pac.PrepareAttackCommand {
-    const result = new pac.PrepareAttackCommand();
+  static toCommand(actionId: string, dto: PrepareAttackDto, userId: string, roles: string[]): prepareAttackCommand.PrepareAttackCommand {
+    const result = new prepareAttackCommand.PrepareAttackCommand();
     result.actionId = actionId;
     result.attackName = dto.attackType;
     result.cover = dto.cover;

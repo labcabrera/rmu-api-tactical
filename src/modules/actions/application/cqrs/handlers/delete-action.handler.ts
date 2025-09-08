@@ -4,7 +4,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { NotFoundError } from '../../../../shared/domain/errors';
 import type { ActionEventProducer } from '../../ports/out/action-event-producer';
 import type { ActionRepository } from '../../ports/out/action.repository';
-import { DeleteActionCommand } from '../delete-action.command';
+import { DeleteActionCommand } from '../commands/delete-action.command';
 
 @CommandHandler(DeleteActionCommand)
 export class DeleteActionHandler implements ICommandHandler<DeleteActionCommand> {

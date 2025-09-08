@@ -7,7 +7,7 @@ import { Action } from '../../../domain/entities/action.aggregate';
 import type { ActionEventProducer } from '../../ports/out/action-event-producer';
 import type { ActionRepository } from '../../ports/out/action.repository';
 import type { AttackClient } from '../../ports/out/attack-client';
-import { PrepareManeuverCommand } from '../prepare-maneuver.command';
+import { PrepareManeuverCommand } from '../commands/prepare-maneuver.command';
 
 @CommandHandler(PrepareManeuverCommand)
 export class PrepareManeuverHandler implements ICommandHandler<PrepareManeuverCommand, Action> {

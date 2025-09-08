@@ -1,4 +1,4 @@
-export type Pace = 'creep' | 'walk' | 'jog' | 'run' | 'sprint' | 'dash';
+import { Pace } from './action-movement.vo';
 
 export interface ActionMovementModifiers {
   pace: Pace;

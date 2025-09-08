@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
-import { CreateActionCommand } from '../../../application/commands/create-action.command';
+import { CreateActionCommand } from '../../../application/cqrs/commands/create-action.command';
 import type { ActionType } from '../../../domain/entities/action-type.vo';
 import type { ManeuverType } from '../../../domain/entities/maneuver-type.vo';
 

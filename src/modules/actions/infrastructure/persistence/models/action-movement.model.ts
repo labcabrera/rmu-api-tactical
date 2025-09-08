@@ -1,10 +1,10 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import * as ae from '../../../domain/entities/action-movement.entity';
+import type { Pace } from '../../../domain/entities/action-movement.vo';
 
 @Schema({ _id: false })
 export class ActionMovementModifiers {
   @Prop({ type: String, required: true })
-  pace: ae.Pace;
+  pace: Pace;
 
   @Prop({ type: Boolean, required: true })
   requiredManeuver: boolean;
