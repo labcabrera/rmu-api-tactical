@@ -43,10 +43,10 @@ export class GameController {
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiNotFoundResponse({ description: 'Game not found', type: ErrorDto })
   async findById(@Param('id') id: string, @Request() req) {
+    this.logger.debug(`Find game << ${id} for user ${req.user}`);
     const user = req.user!;
     const query = new GetGameQuery(id, user.id as string, user.roles as string[]);
     const entity = await this.queryBus.execute<GetGameQuery, Game>(query);
-    this.logger.debug(`Game found: ${JSON.stringify(entity)}`);
     return GameDto.fromEntity(entity);
   }
 
@@ -55,7 +55,7 @@ export class GameController {
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiOperation({ operationId: 'findGames', summary: 'Find games by RSQL' })
   async find(@Query() dto: PagedQueryDto, @Request() req) {
-    this.logger.debug(`Finding games with query: ${JSON.stringify(dto)}`);
+    this.logger.debug(`Find games << ${JSON.stringify(dto)} for user ${req.user}`);
     const user = req.user!;
     const query = new GetGamesQuery(dto.q, dto.page, dto.size, user.id as string, user.roles as string[]);
     const page = await this.queryBus.execute<GetGamesQuery, Page<Game>>(query);
@@ -70,7 +70,7 @@ export class GameController {
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
   async create(@Body() dto: CreateGameDto, @Request() req) {
-    this.logger.debug(`Creating game: ${JSON.stringify(dto)} for user ${req.user}`);
+    this.logger.debug(`Create game << ${JSON.stringify(dto)} for user ${req.user}`);
     const user = req.user!;
     const command = CreateGameDto.toCommand(dto, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<CreateGameCommand, Game>(command);
@@ -82,6 +82,7 @@ export class GameController {
   @ApiOkResponse({ type: GameDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   async updateSettings(@Param('id') id: string, @Body() dto: UpdateGameDto, @Request() req) {
+    this.logger.debug(`Update game << ${JSON.stringify(dto)} for user ${req.user}`);
     const user = req.user!;
     const command = UpdateGameDto.toCommand(id, dto, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<UpdateGameCommand, Game>(command);
@@ -93,6 +94,7 @@ export class GameController {
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiOperation({ operationId: 'deleteGame', summary: 'Delete game by id' })
   async delete(@Param('id') id: string, @Request() req) {
+    this.logger.debug(`Delete game << ${id} for user ${req.user}`);
     const user = req.user!;
     const command = new DeleteGameCommand(id, user.id as string, user.roles as string[]);
     await this.commandBus.execute(command);

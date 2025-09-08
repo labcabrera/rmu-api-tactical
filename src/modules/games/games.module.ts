@@ -8,18 +8,18 @@ import { ActionsModule } from '../actions/actions.module';
 import { ActorsRoundModule } from '../actor-rounds/actor-rounds.module';
 import { SharedModule } from '../shared/shared.module';
 import { StrategicModule } from '../strategic/strategic.module';
-import { AddGameActorsCommandHandler } from './application/handlers/add-game-actors.handler';
-import { AddGameFactionsCommandHandler } from './application/handlers/add-game-factions.handler';
-import { CreateGameCommandHandler } from './application/handlers/create-game.handler';
-import { DeleteGameActorsCommandHandler } from './application/handlers/delete-game-actors.handler';
-import { DeleteGameFactionsCommandHandler } from './application/handlers/delete-game-factions.handler';
-import { DeleteGameCommandHandler } from './application/handlers/delete-game.handler';
-import { DeleteGamesByStrategicIdHandler } from './application/handlers/delete-games-by-strategic-id.handler';
-import { GetGameQueryHandler } from './application/handlers/get-game.handler';
-import { GetGamesQueryHandler } from './application/handlers/get-games.handler';
-import { StartPhaseCommandHandler } from './application/handlers/start-phase.handler';
-import { StartRoundCommandHandler } from './application/handlers/start-round.handler';
-import { UpdateGameCommandHandler } from './application/handlers/update-game.handler';
+import { AddGameActorsHandler } from './application/cqrs/handlers/add-game-actors.handler';
+import { AddGameFactionsHandler } from './application/cqrs/handlers/add-game-factions.handler';
+import { CreateGameHandler } from './application/cqrs/handlers/create-game.handler';
+import { DeleteGameActorsHandler } from './application/cqrs/handlers/delete-game-actors.handler';
+import { DeleteGameFactionsHandler } from './application/cqrs/handlers/delete-game-factions.handler';
+import { DeleteGameHandler } from './application/cqrs/handlers/delete-game.handler';
+import { DeleteGamesByStrategicIdHandler } from './application/cqrs/handlers/delete-games-by-strategic-id.handler';
+import { GetGameHandler } from './application/cqrs/handlers/get-game.handler';
+import { GetGamesHandler } from './application/cqrs/handlers/get-games.handler';
+import { StartPhaseHandler } from './application/cqrs/handlers/start-phase.handler';
+import { StartRoundHandler } from './application/cqrs/handlers/start-round.handler';
+import { UpdateGameHandler } from './application/cqrs/handlers/update-game.handler';
 import { MongoGameRepository } from './infrastructure/db/mongo-game.repository';
 import { KafkaGameEventBusAdapter } from './infrastructure/messaging/kafka.game-bus.adapter';
 import { GameModel, GameSchema } from './infrastructure/persistence/models/game.model';
@@ -41,17 +41,17 @@ import { StrategicGameKafkaConsumer } from './interfaces/messaging/kafka.strateg
   controllers: [GameController, StrategicGameKafkaConsumer],
   providers: [
     KafkaGameEventBusAdapter,
-    GetGamesQueryHandler,
-    GetGameQueryHandler,
-    CreateGameCommandHandler,
-    UpdateGameCommandHandler,
-    DeleteGameCommandHandler,
-    StartRoundCommandHandler,
-    StartPhaseCommandHandler,
-    AddGameFactionsCommandHandler,
-    AddGameActorsCommandHandler,
-    DeleteGameFactionsCommandHandler,
-    DeleteGameActorsCommandHandler,
+    GetGamesHandler,
+    GetGameHandler,
+    CreateGameHandler,
+    UpdateGameHandler,
+    DeleteGameHandler,
+    StartRoundHandler,
+    StartPhaseHandler,
+    AddGameFactionsHandler,
+    AddGameActorsHandler,
+    DeleteGameFactionsHandler,
+    DeleteGameActorsHandler,
     DeleteGamesByStrategicIdHandler,
     {
       provide: 'GameRepository',

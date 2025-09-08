@@ -1,20 +1,20 @@
 import { Inject, NotImplementedException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { NotFoundError, NotModifiedError, ValidationError } from '../../../shared/domain/errors';
-import * as cc from '../../../strategic/application/ports/out/character-client';
-import { Actor } from '../../domain/entities/actor.vo';
-import { Game } from '../../domain/entities/game.aggregate';
-import { AddGameActorsCommand } from '../cqrs/commands/add-game-actors.command';
-import { CreateGameCommandActor } from '../cqrs/commands/create-game.command';
-import * as gep from '../ports/game-event-bus.port';
-import * as gr from '../ports/game.repository';
+import { NotFoundError, NotModifiedError, ValidationError } from '../../../../shared/domain/errors';
+import type { CharacterClient } from '../../../../strategic/application/ports/out/character-client';
+import { Actor } from '../../../domain/entities/actor.vo';
+import { Game } from '../../../domain/entities/game.aggregate';
+import type { GameEventBusPort } from '../../ports/game-event-bus.port';
+import type { GameRepository } from '../../ports/game.repository';
+import { AddGameActorsCommand } from '../commands/add-game-actors.command';
+import type { CreateGameCommandActor } from '../commands/create-game.command';
 
 @CommandHandler(AddGameActorsCommand)
-export class AddGameActorsCommandHandler implements ICommandHandler<AddGameActorsCommand, Game> {
+export class AddGameActorsHandler implements ICommandHandler<AddGameActorsCommand, Game> {
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: gr.GameRepository,
-    @Inject('CharacterClient') private readonly characterClient: cc.CharacterClient,
-    @Inject('GameEventProducer') private readonly gameEventProducer: gep.GameEventBusPort,
+    @Inject('GameRepository') private readonly gameRepository: GameRepository,
+    @Inject('CharacterClient') private readonly characterClient: CharacterClient,
+    @Inject('GameEventProducer') private readonly gameEventBus: GameEventBusPort,
   ) {}
 
   async execute(command: AddGameActorsCommand): Promise<Game> {
@@ -36,7 +36,7 @@ export class AddGameActorsCommandHandler implements ICommandHandler<AddGameActor
     }
     game.actors.push(...mappedActors);
     const updated = await this.gameRepository.update(command.gameId, game);
-    await this.gameEventProducer.updated(updated);
+    await this.gameEventBus.updated(updated);
     return updated;
   }
 
@@ -51,13 +51,7 @@ export class AddGameActorsCommandHandler implements ICommandHandler<AddGameActor
     if (game.actors.some((a) => a.id === character.id)) {
       throw new ValidationError('Actor is already part of the game');
     }
-    return {
-      id: character.id,
-      name: character.name,
-      factionId: character.factionId,
-      type: actor.type,
-      owner: character.owner,
-    };
+    return new Actor(character.id, character.name, character.factionId, actor.type, character.owner);
   }
 
   private mapNPC(actor: CreateGameCommandActor, game: Game): Promise<Actor> {

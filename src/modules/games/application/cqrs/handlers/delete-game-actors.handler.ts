@@ -1,16 +1,16 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { NotFoundError, NotModifiedError, ValidationError } from '../../../shared/domain/errors';
-import { Game } from '../../domain/entities/game.aggregate';
-import { DeleteGameActorsCommand } from '../cqrs/commands/delete-game-actors.command';
-import * as gep from '../ports/game-event-bus.port';
-import * as gr from '../ports/game.repository';
+import { NotFoundError, NotModifiedError, ValidationError } from '../../../../shared/domain/errors';
+import { Game } from '../../../domain/entities/game.aggregate';
+import type { GameEventBusPort } from '../../ports/game-event-bus.port';
+import type { GameRepository } from '../../ports/game.repository';
+import { DeleteGameActorsCommand } from '../commands/delete-game-actors.command';
 
 @CommandHandler(DeleteGameActorsCommand)
-export class DeleteGameActorsCommandHandler implements ICommandHandler<DeleteGameActorsCommand, Game> {
+export class DeleteGameActorsHandler implements ICommandHandler<DeleteGameActorsCommand, Game> {
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: gr.GameRepository,
-    @Inject('GameEventProducer') private readonly gameEventProducer: gep.GameEventBusPort,
+    @Inject('GameRepository') private readonly gameRepository: GameRepository,
+    @Inject('GameEventProducer') private readonly gameEventBus: GameEventBusPort,
   ) {}
 
   async execute(command: DeleteGameActorsCommand): Promise<Game> {
@@ -32,7 +32,7 @@ export class DeleteGameActorsCommandHandler implements ICommandHandler<DeleteGam
       throw new NotModifiedError('No actors to delete');
     }
     const updated = await this.gameRepository.update(command.gameId, game);
-    await this.gameEventProducer.updated(updated);
+    await this.gameEventBus.updated(updated);
     return updated;
   }
 }

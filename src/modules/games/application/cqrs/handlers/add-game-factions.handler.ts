@@ -1,16 +1,16 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { NotFoundError, NotModifiedError } from '../../../shared/domain/errors';
-import { Game } from '../../domain/entities/game.aggregate';
-import { AddGameFactionsCommand } from '../cqrs/commands/add-game-factions.command';
-import * as gep from '../ports/game-event-bus.port';
-import * as gr from '../ports/game.repository';
+import { NotFoundError, NotModifiedError } from '../../../../shared/domain/errors';
+import { Game } from '../../../domain/entities/game.aggregate';
+import type { GameEventBusPort } from '../../ports/game-event-bus.port';
+import type { GameRepository } from '../../ports/game.repository';
+import { AddGameFactionsCommand } from '../commands/add-game-factions.command';
 
 @CommandHandler(AddGameFactionsCommand)
-export class AddGameFactionsCommandHandler implements ICommandHandler<AddGameFactionsCommand, Game> {
+export class AddGameFactionsHandler implements ICommandHandler<AddGameFactionsCommand, Game> {
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: gr.GameRepository,
-    @Inject('GameEventProducer') private readonly gameEventProducer: gep.GameEventBusPort,
+    @Inject('GameRepository') private readonly gameRepository: GameRepository,
+    @Inject('GameEventProducer') private readonly gameEventProducer: GameEventBusPort,
   ) {}
 
   async execute(command: AddGameFactionsCommand): Promise<Game> {

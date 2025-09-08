@@ -7,6 +7,7 @@ import { Page } from '../../../shared/domain/entities/page.entity';
 import { NotFoundError } from '../../../shared/domain/errors';
 import { RsqlParser } from '../../../shared/infrastructure/messaging/rsql-parser';
 import { GameRepository } from '../../application/ports/game.repository';
+import { Actor } from '../../domain/entities/actor.vo';
 import { Game } from '../../domain/entities/game.aggregate';
 import { GameDocument, GameModel } from '../persistence/models/game.model';
 
@@ -39,7 +40,9 @@ export class MongoGameRepository implements GameRepository {
   }
 
   async save(game: Game): Promise<Game> {
-    const model = new this.gameModel(game.toPersistence());
+    const persistable = game.toPersistence();
+    const { id, ...rest } = persistable;
+    const model = new this.gameModel({ ...rest, _id: id });
     await model.save();
     return this.mapToEntity(model);
   }
@@ -72,7 +75,7 @@ export class MongoGameRepository implements GameRepository {
       doc.round,
       doc.phase,
       doc.factions,
-      doc.actors,
+      doc.actors ? doc.actors.map((a) => new Actor(a.id, a.name, a.factionId, a.type, a.owner)) : [],
       doc.description,
       doc.owner,
       doc.createdAt,
