@@ -3,7 +3,8 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
 import { NotFoundError, NotModifiedError, ValidationError } from '../../../shared/domain/errors';
 import * as cc from '../../../strategic/application/ports/out/character-client';
-import { Actor, Game } from '../../domain/entities/game.aggregate';
+import { Actor } from '../../domain/entities/actor.vo';
+import { Game } from '../../domain/entities/game.aggregate';
 import { AddGameActorsCommand } from '../commands/add-game-actors.command';
 import { CreateGameCommandActor } from '../commands/create-game.command';
 import * as gep from '../ports/game-event-bus.port';

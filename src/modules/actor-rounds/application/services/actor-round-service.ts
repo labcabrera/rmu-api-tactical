@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotImplementedException } from '@nestjs/common';
-import { Actor } from '../../../games/domain/entities/game.aggregate';
+import { Actor } from '../../../games/domain/entities/actor.vo';
 import { ValidationError } from '../../../shared/domain/errors';
 import * as cc from '../../../strategic/application/ports/out/character-client';
 import { Character } from '../../../strategic/application/ports/out/character-client';
