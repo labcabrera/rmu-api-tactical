@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
-import { AddGameFactionsCommand } from '../../../application/commands/add-game-factions.command';
+import { AddGameFactionsCommand } from '../../../application/cqrs/commands/add-game-factions.command';
 
 export class AddGameFactionsDto {
   @ApiProperty({ description: 'Factions identifiers', example: ['faction-001', 'faction-002'] })

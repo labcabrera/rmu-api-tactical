@@ -1,8 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
-
 import { Type } from 'class-transformer';
-import { CreateGameCommand, CreateGameCommandActor } from '../../../application/commands/create-game.command';
+import { IsArray, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { CreateGameCommand, CreateGameCommandActor } from '../../../application/cqrs/commands/create-game.command';
 import * as ge from '../../../domain/entities/game.aggregate';
 
 export class CreateGameActorDto {

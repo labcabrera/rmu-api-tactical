@@ -8,13 +8,14 @@ import { ApiBody, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiResponse,
 import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
 import { Page } from '../../../shared/domain/entities/page.entity';
 import { ErrorDto, PagedQueryDto } from '../../../shared/infrastructure/controller/dto';
-import { AddGameActorsCommand } from '../../application/commands/add-game-actors.command';
-import { CreateGameCommand } from '../../application/commands/create-game.command';
-import { DeleteGameActorsCommand } from '../../application/commands/delete-game-actors.command';
-import { DeleteGameCommand } from '../../application/commands/delete-game.command';
-import { StartPhaseCommand } from '../../application/commands/start-phase.command';
-import { StartRoundCommand } from '../../application/commands/start-round.command';
-import { UpdateGameCommand } from '../../application/commands/update-game.command';
+
+import { AddGameActorsCommand } from '../../application/cqrs/commands/add-game-actors.command';
+import { CreateGameCommand } from '../../application/cqrs/commands/create-game.command';
+import { DeleteGameActorsCommand } from '../../application/cqrs/commands/delete-game-actors.command';
+import { DeleteGameCommand } from '../../application/cqrs/commands/delete-game.command';
+import { StartPhaseCommand } from '../../application/cqrs/commands/start-phase.command';
+import { StartRoundCommand } from '../../application/cqrs/commands/start-round.command';
+import { UpdateGameCommand } from '../../application/cqrs/commands/update-game.command';
 import { GetGameQuery } from '../../application/queries/get-game.query';
 import { GetGamesQuery } from '../../application/queries/get-games.query';
 import { Game } from '../../domain/entities/game.aggregate';

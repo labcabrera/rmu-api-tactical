@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
-import { DeleteGameFactionsCommand } from '../../../application/commands/delete-game-factions.command';
+import { DeleteGameFactionsCommand } from '../../../application/cqrs/commands/delete-game-factions.command';
 
 export class DeleteGameFactionsDto {
   @ApiProperty({ description: 'Factions identifiers', example: ['faction-001', 'faction-002'] })

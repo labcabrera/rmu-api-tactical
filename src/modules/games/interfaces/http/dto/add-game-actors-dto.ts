@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty } from 'class-validator';
-import { AddGameActorsCommand } from '../../../application/commands/add-game-actors.command';
+import { AddGameActorsCommand } from '../../../application/cqrs/commands/add-game-actors.command';
 import { CreateGameActorDto } from './create-game.dto';
 
 export class AddGameActorsDto {
@@ -9,6 +9,11 @@ export class AddGameActorsDto {
   actors: CreateGameActorDto[];
 
   static toCommand(gameId: string, dto: AddGameActorsDto, userId: string, roles: string[]) {
-    return new AddGameActorsCommand(gameId, dto.actors.map(CreateGameActorDto.toCommand), userId, roles);
+    return new AddGameActorsCommand(
+      gameId,
+      dto.actors.map((e) => CreateGameActorDto.toCommand(e)),
+      userId,
+      roles,
+    );
   }
 }

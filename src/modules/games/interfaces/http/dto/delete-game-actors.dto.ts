@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
-import { DeleteGameActorsCommand } from '../../../application/commands/delete-game-actors.command';
+import { DeleteGameActorsCommand } from '../../../application/cqrs/commands/delete-game-actors.command';
 
 export class DeleteGameActorsDto {
   @ApiProperty({ description: 'Actors identifiers', example: ['actor-001', 'actor-002'] })
