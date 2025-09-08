@@ -3,9 +3,9 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/entities/action.aggregate';
-import type { ActionEventProducer } from '../../ports/action-event-producer';
+import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
-import type { AttackClient } from '../../ports/attack-client';
+import type { AttackClientPort } from '../../ports/attack-client.port';
 import { PrepareManeuverCommand } from '../commands/prepare-maneuver.command';
 
 @CommandHandler(PrepareManeuverCommand)
@@ -15,8 +15,8 @@ export class PrepareManeuverHandler implements ICommandHandler<PrepareManeuverCo
   constructor(
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('AttackClient') private readonly attackClient: AttackClient,
-    @Inject('ActionEventProducer') private readonly actionEventProducer: ActionEventProducer,
+    @Inject('AttackClient') private readonly attackClient: AttackClientPort,
+    @Inject('ActionEventProducer') private readonly actionEventProducer: ActionEventBusPort,
   ) {}
 
   async execute(command: PrepareManeuverCommand): Promise<Action> {

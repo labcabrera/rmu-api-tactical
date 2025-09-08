@@ -11,9 +11,9 @@ import { ActionMovement } from '../../../domain/entities/action-movement.vo';
 import { Action } from '../../../domain/entities/action.aggregate';
 import { FatigueProcessorService } from '../../../domain/services/fatigue-processor.service';
 import { MovementProcessorService } from '../../../domain/services/movement-processor.service';
-import type { ActionEventProducer } from '../../ports/action-event-producer';
+import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
-import type { AttackClient } from '../../ports/attack-client';
+import type { AttackClientPort } from '../../ports/attack-client.port';
 import { ResolveMovementCommand } from '../commands/resolve-movement.command';
 
 @CommandHandler(ResolveMovementCommand)
@@ -28,8 +28,8 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
     @Inject('CharacterClient') private readonly characterClient: CharacterClient,
     @Inject('StrategicGameClient') private readonly strategicGameClient: StrategicGameClient,
-    @Inject('AttackClient') private readonly attackClient: AttackClient,
-    @Inject('ActionEventProducer') private readonly actionEventProducer: ActionEventProducer,
+    @Inject('AttackClient') private readonly attackClient: AttackClientPort,
+    @Inject('ActionEventProducer') private readonly actionEventProducer: ActionEventBusPort,
   ) {}
 
   async execute(command: ResolveMovementCommand): Promise<Action> {

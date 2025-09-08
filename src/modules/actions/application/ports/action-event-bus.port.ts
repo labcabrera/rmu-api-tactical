@@ -1,7 +1,7 @@
 import { DomainEvent } from '../../../shared/domain/events/domain-event';
 import { Action } from '../../domain/entities/action.aggregate';
 
-export interface ActionEventProducer {
+export interface ActionEventBusPort {
   publish(event: DomainEvent<Action>): Promise<void>;
 
   updated(entity: Action): Promise<void>;

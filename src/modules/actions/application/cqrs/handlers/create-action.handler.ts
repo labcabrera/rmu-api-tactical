@@ -7,7 +7,7 @@ import type { GameRepository } from '../../../../games/application/ports/game.re
 import { Game } from '../../../../games/domain/entities/game.aggregate';
 import { ValidationError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/entities/action.aggregate';
-import type { ActionEventProducer } from '../../ports/action-event-producer';
+import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import { CreateActionCommand } from '../commands/create-action.command';
 
@@ -19,7 +19,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('ActionEventProducer') private readonly actionEventBus: ActionEventProducer,
+    @Inject('ActionEventProducer') private readonly actionEventBus: ActionEventBusPort,
   ) {}
 
   async execute(command: CreateActionCommand): Promise<Action> {
