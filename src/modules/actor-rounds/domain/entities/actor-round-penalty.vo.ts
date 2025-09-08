@@ -1,4 +1,4 @@
 export class ActorRoundPenalty {
-  key: number;
+  key: string;
   value: number;
 }

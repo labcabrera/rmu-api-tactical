@@ -16,13 +16,8 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
     private rsqlParser: RsqlParser,
   ) {}
 
-  async deleteByGameId(gameId: string): Promise<void> {
-    await this.actorRoundModel.deleteMany({ gameId });
-  }
-
   async findById(id: string): Promise<ActorRound | null> {
-    const readed = await this.actorRoundModel.findById(id);
-    return readed ? this.mapToEntity(readed) : null;
+    return this.actorRoundModel.findById(id).then((readed) => (readed ? this.mapToEntity(readed) : null));
   }
 
   async findByRsql(rsql: string, page: number, size: number): Promise<Page<ActorRound>> {
@@ -37,8 +32,7 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
   }
 
   async findByActorIdAndRound(characterId: string, round: number): Promise<ActorRound | null> {
-    const readed = await this.actorRoundModel.findOne({ actorId: characterId, round });
-    return readed ? this.mapToEntity(readed) : null;
+    return this.actorRoundModel.findOne({ actorId: characterId, round }).then((readed) => (readed ? this.mapToEntity(readed) : null));
   }
 
   async save(actorRound: ActorRound): Promise<ActorRound> {
@@ -63,12 +57,15 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
   }
 
   async deleteById(id: string): Promise<ActorRound | null> {
-    const result = await this.actorRoundModel.findByIdAndDelete(id);
-    return result ? this.mapToEntity(result) : null;
+    return this.actorRoundModel.findByIdAndDelete(id).then((result) => (result ? this.mapToEntity(result) : null));
+  }
+
+  async deleteByGameId(gameId: string): Promise<void> {
+    return this.actorRoundModel.deleteMany({ gameId }).then(() => undefined);
   }
 
   async countWithUndefinedInitiativeRoll(gameId: string, round: number): Promise<number> {
-    return await this.actorRoundModel.countDocuments({
+    return this.actorRoundModel.countDocuments({
       gameId,
       round,
       $or: [{ 'initiative.roll': { $exists: false } }, { 'initiative.roll': null }],

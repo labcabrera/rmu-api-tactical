@@ -3,8 +3,9 @@ import { Document } from 'mongoose';
 
 import type { ActionStatus } from '../../../domain/entities/action-status.vo';
 import type { ActionType } from '../../../domain/entities/action-type.vo';
+import { ActionAttack } from './action-attack.model';
 import { ActionMovement } from './action-movement.model';
-import { ActionAttack, ActionManeuver } from './action.model-childs';
+import { ActionManeuver } from './action.model-childs';
 
 export type ActionDocument = ActionModel & Document;
 

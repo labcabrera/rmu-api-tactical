@@ -35,21 +35,15 @@ export class CreateGameHandler implements ICommandHandler<CreateGameCommand, Gam
   }
 
   private async mapActor(actor: CreateGameCommandActor): Promise<Actor> {
-    let name = 'unknown';
-    let factionId = actor.faction || 'neutral';
-    let owner = 'unknown';
     if (actor.type === 'character') {
       const character = await this.characterClient.findById(actor.id);
       if (!character) {
         throw new ValidationError(`Character ${actor.id} not found`);
       }
-      name = character.name;
-      factionId = character.factionId;
-      owner = character.owner;
+      return new Actor(actor.id, character.name, character.factionId, actor.type, character.owner);
     } else {
       //TODO
       throw new NotImplementedException('NPCs are not implemented');
     }
-    return new Actor(actor.id, name, factionId, actor.type, owner);
   }
 }

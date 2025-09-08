@@ -4,24 +4,6 @@ import { ManeuverDifficulty } from '../../../domain/entities/maneuver-dificulty.
 import type { ManeuverType } from '../../../domain/entities/maneuver-type.vo';
 
 @Schema({ _id: false })
-export class ActionAttack {
-  @Prop({ type: String, required: false })
-  attackId: string | undefined;
-
-  @Prop({ required: true })
-  attackName: string;
-
-  @Prop({ required: true })
-  targetId: string;
-
-  @Prop({ required: true })
-  parry: number;
-
-  @Prop({ required: true })
-  status: ActionStatus;
-}
-
-@Schema({ _id: false })
 export class ActionManeuverResult {
   @Prop({ type: Object, required: true })
   bonus: { [key: string]: number };

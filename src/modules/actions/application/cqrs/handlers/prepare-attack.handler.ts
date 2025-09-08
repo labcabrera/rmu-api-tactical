@@ -11,7 +11,7 @@ import { Action } from '../../../domain/entities/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
-import type { AttackClientPort } from '../../ports/attack-client.port';
+import type { AttackPort } from '../../ports/attack.port';
 import { PrepareAttackCommand } from '../commands/prepare-attack.command';
 
 @CommandHandler(PrepareAttackCommand)
@@ -23,7 +23,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
     @Inject('CharacterClient') private readonly characterClient: CharacterPort,
-    @Inject('AttackClient') private readonly attackClient: AttackClientPort,
+    @Inject('AttackPort') private readonly attackClient: AttackPort,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
   ) {}
 
@@ -52,7 +52,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       default:
         throw new ValidationError('Game is not in a phase that allows action preparation');
     }
-    const attack = action.attacks?.find((attack) => attack.attackName === command.attackName);
+    const attack = action.attacks?.find((attack) => attack.modifiers.attackName === command.attackName);
     if (!attack) {
       throw new ValidationError(`Attack type ${command.attackName} not found in action`);
     }
@@ -61,7 +61,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     if (!actorRoundSource) {
       throw new UnprocessableEntityError('Source actor round not found');
     }
-    const actorRoundTarget = await this.actorRoundRepository.findByActorIdAndRound(attack.targetId, action.round);
+    const actorRoundTarget = await this.actorRoundRepository.findByActorIdAndRound(attack.modifiers.targetId, action.round);
     if (!actorRoundTarget) {
       throw new UnprocessableEntityError('Target actor round not found');
     }
@@ -85,7 +85,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     if (!actorSource) {
       throw new UnprocessableEntityError('Missing source actor');
     }
-    const actorTarget = await this.characterClient.findById(attack.targetId);
+    const actorTarget = await this.characterClient.findById(attack.modifiers.targetId);
     if (!actorTarget) {
       throw new UnprocessableEntityError('Missing target actor');
     }
@@ -106,7 +106,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const request = {
       actionId: action.id,
       sourceId: action.actorId,
-      targetId: attack.targetId,
+      targetId: attack.modifiers.targetId,
       modifiers: {
         attackType: 'melee',
         attackTable: attackInfo.attackTable,
@@ -144,7 +144,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       },
     };
     const response = await this.attackClient.prepareAttack(request);
-    attack.attackId = response.id;
+    attack.externalAttackId = response.id;
     attack.status = 'in_progress';
   }
 

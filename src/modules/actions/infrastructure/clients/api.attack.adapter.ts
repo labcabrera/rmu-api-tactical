@@ -3,10 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { TokenService } from '../../../auth/token.service';
 import { BadGatewayError, ValidationError } from '../../../shared/domain/errors';
-import { AttackClientPort, AttackCreationRequest, AttackCreationResponse } from '../../application/ports/attack-client.port';
+import { AttackCreationRequest, AttackCreationResponse, AttackPort } from '../../application/ports/attack.port';
 
 @Injectable()
-export class ApiAttackClientAdapter implements AttackClientPort {
+export class ApiAttackClientAdapter implements AttackPort {
   private readonly logger = new Logger(ApiAttackClientAdapter.name);
   private readonly apiCoreUri: string;
 
@@ -34,11 +34,8 @@ export class ApiAttackClientAdapter implements AttackClientPort {
           throw new BadGatewayError('Attack API is not available');
         } else if (err.response && err.response.status) {
           this.logger.error(`Attack API return status ${err.response.status} at ${uri}. Error code: ${err.code}`);
-          switch (err.response.status) {
-            case 400:
-              throw new ValidationError('Invalid request');
-            default:
-              break;
+          if (err.response.status === 400) {
+            throw new ValidationError('Invalid request');
           }
         }
       }

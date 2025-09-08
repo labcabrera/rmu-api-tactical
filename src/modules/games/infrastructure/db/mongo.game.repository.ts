@@ -19,13 +19,11 @@ export class MongoGameRepository implements GameRepository {
   ) {}
 
   async findById(id: string): Promise<Game | null> {
-    const readed = await this.gameModel.findById(id);
-    return readed ? this.mapToEntity(readed) : null;
+    return this.gameModel.findById(id).then((readed) => (readed ? this.mapToEntity(readed) : null));
   }
 
   async findByStrategicId(strategicGameId: string): Promise<Game[]> {
-    const games = await this.gameModel.find({ strategicGameId });
-    return games.map((doc) => this.mapToEntity(doc));
+    return this.gameModel.find({ strategicGameId }).then((games) => games.map((doc) => this.mapToEntity(doc)));
   }
 
   async findByRsql(rsql: string, page: number, size: number): Promise<Page<Game>> {
@@ -43,8 +41,7 @@ export class MongoGameRepository implements GameRepository {
     const persistable = game.toPersistence();
     const { id, ...rest } = persistable;
     const model = new this.gameModel({ ...rest, _id: id });
-    await model.save();
-    return this.mapToEntity(model);
+    return model.save().then((saved) => this.mapToEntity(saved));
   }
 
   async update(id: string, update: Partial<Game>): Promise<Game> {
@@ -57,16 +54,13 @@ export class MongoGameRepository implements GameRepository {
   }
 
   async deleteById(id: string): Promise<Game | null> {
-    const result = await this.gameModel.findByIdAndDelete(id);
-    return result ? this.mapToEntity(result) : null;
-  }
-
-  async existsById(id: string): Promise<boolean> {
-    const exists = await this.gameModel.exists({ _id: id });
-    return exists !== null;
+    return this.gameModel.findByIdAndDelete(id).then((result) => (result ? this.mapToEntity(result) : null));
   }
 
   private mapToEntity(doc: GameDocument): Game {
+    if (!doc) {
+      throw new NotFoundError('Game', 'unknown');
+    }
     return new Game(
       doc.id as string,
       doc.strategicGameId,

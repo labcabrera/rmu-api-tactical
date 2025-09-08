@@ -16,11 +16,7 @@ export class MongoActionRepository implements ActionRepository {
   ) {}
 
   async findById(id: string): Promise<Action | null> {
-    // const readed = await this.actionModel.findById(id);
-    // return readed ? this.mapToEntity(readed) : null;
-
     return this.actionModel.findById(id).then((readed) => (readed ? this.mapToEntity(readed) : null));
-    // return readed ? this.mapToEntity(readed) : null;
   }
 
   async findByRsql(rsql: string, page: number, size: number): Promise<Page<Action>> {
