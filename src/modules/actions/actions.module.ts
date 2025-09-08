@@ -13,7 +13,7 @@ import { CreateActionHandler } from './application/cqrs/handlers/create-action.h
 import { DeleteActionHandler } from './application/cqrs/handlers/delete-action.handler';
 import { GetActionQueryHandler } from './application/cqrs/handlers/get-action.handler';
 import { GetActionsQueryHandler } from './application/cqrs/handlers/get-actions.handler';
-import { PrepareAttackHandler } from './application/cqrs/handlers/prepare-attack-handler';
+import { PrepareAttackHandler } from './application/cqrs/handlers/prepare-attack.handler';
 import { ResolveMovementHandler } from './application/cqrs/handlers/resolve-movement.handler';
 import { FatigueProcessorService } from './domain/services/fatigue-processor.service';
 import { MovementProcessorService } from './domain/services/movement-processor.service';
