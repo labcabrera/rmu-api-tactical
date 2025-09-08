@@ -1,5 +1,7 @@
 export class ActorRoundFatigue {
-  endurance: number;
-  fatigue: number;
-  accumulator: number;
+  constructor(
+    public readonly endurance: number,
+    public readonly fatigue: number,
+    public accumulator: number,
+  ) {}
 }

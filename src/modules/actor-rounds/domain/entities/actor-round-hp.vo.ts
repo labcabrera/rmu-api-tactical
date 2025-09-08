@@ -1,4 +1,6 @@
 export class ActorRoundHP {
-  max: number;
-  current: number;
+  constructor(
+    public readonly max: number,
+    public current: number,
+  ) {}
 }

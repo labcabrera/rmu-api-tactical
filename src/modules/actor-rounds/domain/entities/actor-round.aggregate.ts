@@ -1,5 +1,4 @@
 import { randomUUID } from 'crypto';
-import { Game } from '../../../games/domain/entities/game.aggregate';
 import { DomainEvent } from '../../../shared/domain/events/domain-event';
 import { ActorRoundAttack } from '../../infrastructure/persistence/models/actor-round-attack.model';
 import { ActorRoundCreatedEvent } from '../events/actor-round.events';
@@ -14,9 +13,9 @@ export class ActorRound {
   constructor(
     public readonly id: string,
     public readonly gameId: string,
+    public readonly round: number,
     public readonly actorId: string,
     public readonly actorName: string,
-    public readonly round: number,
     public readonly initiative: ActorRoundInitiative,
     public readonly actionPoints: number,
     public hp: ActorRoundHP,
@@ -33,7 +32,8 @@ export class ActorRound {
   private domainEvents: DomainEvent<ActorRound>[] = [];
 
   static create(
-    game: Game,
+    gameId: string,
+    round: number,
     actorId: string,
     actorName: string,
     initiative: ActorRoundInitiative,
@@ -47,10 +47,10 @@ export class ActorRound {
   ): ActorRound {
     const actorRound = new ActorRound(
       randomUUID(),
-      game.id,
+      gameId,
+      round,
       actorId,
       actorName,
-      game.round,
       initiative,
       actionPoints,
       hp,
@@ -63,6 +63,33 @@ export class ActorRound {
       new Date(),
       undefined,
     );
+    actorRound.addDomainEvent(new ActorRoundCreatedEvent(actorRound));
+    return actorRound;
+  }
+
+  static createFromPrevious(previous: ActorRound): ActorRound {
+    const { id, gameId, round, actorId, actorName, initiative, hp, fatigue, penalties, attacks, effects, owner } = previous;
+    const actorRound = new ActorRound(
+      id,
+      gameId,
+      round + 1,
+      actorId,
+      actorName,
+      new ActorRoundInitiative(initiative.base, initiative.penalty, undefined, undefined),
+      4,
+      hp,
+      fatigue,
+      penalties,
+      attacks,
+      [],
+      effects,
+      owner,
+      new Date(),
+      undefined,
+    );
+    actorRound.attacks.forEach((attack) => {
+      attack.currentBo = attack.baseBo;
+    });
     actorRound.addDomainEvent(new ActorRoundCreatedEvent(actorRound));
     return actorRound;
   }

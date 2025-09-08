@@ -1,7 +1,9 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CreateActorRoundCommand } from '../../../../actor-rounds/application/commands/create-actor-round.command';
 import { ActorRoundService } from '../../../../actor-rounds/application/services/actor-round-service';
 import { NotFoundError } from '../../../../shared/domain/errors';
+import { Actor } from '../../../domain/entities/actor.vo';
 import { Game } from '../../../domain/entities/game.aggregate';
 import type { GameEventBusPort } from '../../ports/game-event-bus.port';
 import type { GameRepository } from '../../ports/game.repository';
@@ -15,6 +17,7 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('GameEventProducer') private readonly gameEventBus: GameEventBusPort,
     @Inject() private readonly actorRoundService: ActorRoundService,
+    private commandBus: CommandBus,
   ) {}
 
   async execute(command: StartRoundCommand): Promise<Game> {
@@ -25,14 +28,16 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
       throw new NotFoundError('Game', gameId);
     }
     game.startRound();
+    //TODO make saga
     const updatedGame = await this.gameRepository.update(gameId, game);
-    await this.createCharacterRounds(updatedGame);
+    await Promise.all(game.actors.map((actor) => this.createActorRounds(game, actor)));
     const events = game.pullDomainEvents();
     events.forEach((event) => this.gameEventBus.publish(event));
     return updatedGame;
   }
 
-  private async createCharacterRounds(game: Game): Promise<void> {
-    await Promise.all(game.actors.map((actor) => this.actorRoundService.create(game.id, actor, game.round)));
+  private async createActorRounds(game: Game, actor: Actor): Promise<void> {
+    const command = new CreateActorRoundCommand(game.id, actor, game.round);
+    await this.commandBus.execute(command);
   }
 }

@@ -20,7 +20,7 @@ export class AddGameActorsHandler implements ICommandHandler<AddGameActorsComman
   ) {}
 
   async execute(command: AddGameActorsCommand): Promise<Game> {
-    this.logger.log(`Execute << ${JSON.stringify(command)}`);
+    this.logger.debug(`Execute << ${JSON.stringify(command)}`);
     const game = await this.gameRepository.findById(command.gameId);
     if (!game) {
       throw new NotFoundError('Game', command.gameId);

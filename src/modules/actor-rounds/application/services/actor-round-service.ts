@@ -3,6 +3,11 @@ import { Actor } from '../../../games/domain/entities/actor.vo';
 import { ValidationError } from '../../../shared/domain/errors';
 import type { Character, CharacterClient } from '../../../strategic/application/ports/out/character-client';
 import { ActorRoundAttack } from '../../domain/entities/actor-round-attack.vo';
+import { ActorRoundEffect } from '../../domain/entities/actor-round-effect.vo';
+import { ActorRoundFatigue } from '../../domain/entities/actor-round-fatigue.vo';
+import { ActorRoundHP } from '../../domain/entities/actor-round-hp.vo';
+import { ActorRoundInitiative } from '../../domain/entities/actor-round-initiative.vo';
+import { ActorRoundPenalty } from '../../domain/entities/actor-round-penalty.vo';
 import { ActorRound } from '../../domain/entities/actor-round.aggregate';
 import type { ActorRoundRepository } from '../ports/out/character-round.repository';
 
@@ -13,76 +18,49 @@ export class ActorRoundService {
     @Inject('CharacterClient') private readonly characterClient: CharacterClient,
   ) {}
 
-  public async create(gameId: string, actor: Actor, round: number): Promise<ActorRound> {
+  public async buildActorRound(gameId: string, actor: Actor, round: number): Promise<ActorRound> {
     if (round === 1) {
-      return await this.createFromTemplate(gameId, actor, round);
+      return await this.buildFromTemplate(gameId, actor, round);
     }
     // character could be added in a later round
     const prev = await this.actorRoundRepository.findByActorIdAndRound(actor.id, round - 1);
     if (prev) {
-      return await this.createFromPreviousRound(prev);
+      return ActorRound.createFromPrevious(prev);
     }
-    return await this.createFromTemplate(gameId, actor, round);
+    return await this.buildFromTemplate(gameId, actor, round);
   }
 
-  public createFromPreviousRound(prev): Promise<ActorRound> {
-    const template: Partial<ActorRound> = {
-      ...prev,
-      id: undefined,
-      updatedAt: undefined,
-      round: prev.round + 1,
-      actionPoints: 4,
-      parries: [],
-      createdAt: new Date(),
-    };
-    template.initiative!.roll = undefined;
-    template.initiative!.total = undefined;
-    return Promise.resolve(template as ActorRound);
-  }
-
-  public async createFromTemplate(gameId: string, actor: Actor, round: number): Promise<ActorRound> {
-    const template: Partial<ActorRound> = {
-      gameId: gameId,
-      actorId: actor.id,
-      actorName: actor.name,
-      round: round,
-      initiative: {
-        base: 0,
-        penalty: 0,
-        roll: undefined,
-        total: undefined,
-      },
-      actionPoints: 4,
-      hp: {
-        current: 0,
-        max: 0,
-      },
-      fatigue: {
-        endurance: 0,
-        fatigue: 0,
-        accumulator: 0,
-      },
-      penalties: [],
-      attacks: [],
-      parries: [],
-      effects: [],
-      owner: actor.owner,
-      createdAt: new Date(),
-    };
-
+  public async buildFromTemplate(gameId: string, actor: Actor, round: number): Promise<ActorRound> {
+    let initiativeBase = 0;
+    let attacks: ActorRoundAttack[] = [];
+    let maxHp = 0;
+    let currentHp = 0;
     if (actor.type === 'character') {
       const character = await this.characterClient.findById(actor.id);
       if (!character) {
         throw new ValidationError(`Character ${actor.id} not found`);
       }
-      template.initiative!.base = character.initiative.baseBonus;
-      template.attacks = this.mapAttacksFromCharacter(character);
-      template.hp!.max = character.hp.max;
-      template.hp!.current = character.hp.current;
+      initiativeBase = character.initiative.baseBonus;
+      attacks = this.mapAttacksFromCharacter(character);
+      maxHp = character.hp.max;
+      currentHp = character.hp.current;
     } else {
       throw new NotImplementedException('NPCs are not implemented yet');
     }
-    return template as ActorRound;
+    return ActorRound.create(
+      gameId,
+      round,
+      actor.id,
+      actor.name,
+      new ActorRoundInitiative(initiativeBase, 0, undefined, undefined),
+      4,
+      new ActorRoundHP(maxHp, currentHp),
+      new ActorRoundFatigue(0, 0, 0),
+      [] as ActorRoundPenalty[],
+      attacks,
+      [] as ActorRoundEffect[],
+      'todo-owner',
+    );
   }
 
   private mapAttacksFromCharacter(character: Character): ActorRoundAttack[] {

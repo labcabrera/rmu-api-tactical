@@ -78,9 +78,9 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
     return new ActorRound(
       doc._id,
       doc.gameId,
+      doc.round,
       doc.actorId,
       doc.actorName,
-      doc.round,
       doc.initiative,
       doc.actionPoints,
       doc.hp,
