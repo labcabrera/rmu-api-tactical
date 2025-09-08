@@ -1,5 +1,5 @@
 import { IsNumber } from 'class-validator';
-import { AddHpCommand } from '../../../application/commands/add-hp.command';
+import { AddHpCommand } from '../../../application/cqrs/commands/add-hp.command';
 
 export class AddHpDto {
   @IsNumber()

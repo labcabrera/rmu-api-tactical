@@ -7,13 +7,13 @@ import { AuthModule } from 'src/modules/auth/auth.module';
 import { GamesModule } from '../games/games.module';
 import { SharedModule } from '../shared/shared.module';
 import { StrategicModule } from '../strategic/strategic.module';
-import { AddEffectCommandHandler } from './application/commands/handlers/add-effect.command.handler';
-import { AddHpCommandHandler } from './application/commands/handlers/add-hp.command.handler';
-import { CreateActorRoundHandler } from './application/commands/handlers/create-actor-round.handler';
-import { DeclareInitiativeCommandHandler } from './application/commands/handlers/update-initiative.command.handler';
-import { GetActorRoundQueryHandler } from './application/queries/handlers/get-actor-round.query.handler';
-import { GetCharacterRoundsQueryHandler } from './application/queries/handlers/get-actor-rounds.query.handler';
-import { ActorRoundService } from './application/services/actor-round-service';
+
+import { AddEffectHandler } from './application/cqrs/handlers/add-effect.handler';
+import { AddHpHandler } from './application/cqrs/handlers/add-hp.handler';
+import { CreateActorRoundHandler } from './application/cqrs/handlers/create-actor-round.handler';
+import { GetActorRoundHandler } from './application/cqrs/handlers/get-actor-round.query.handler';
+import { GetActorRoundsHandler } from './application/cqrs/handlers/get-actor-rounds.query.handler';
+import { DeclareInitiativeCommandHandler } from './application/cqrs/handlers/update-initiative.handler';
 import { ActorRoundEffectService } from './domain/services/actor-round-effect.service';
 import { MongoActorRoundRepository } from './infrastructure/db/mongo-actor-round.repository';
 import { ActorRoundModel, ActorRoundSchema } from './infrastructure/persistence/models/actor-round.model';
@@ -33,18 +33,17 @@ import { ActorRoundController } from './interfaces/http/actor-round.controller';
   controllers: [ActorRoundController],
   providers: [
     ActorRoundEffectService,
-    ActorRoundService,
     CreateActorRoundHandler,
     DeclareInitiativeCommandHandler,
-    GetActorRoundQueryHandler,
-    GetCharacterRoundsQueryHandler,
-    AddHpCommandHandler,
-    AddEffectCommandHandler,
+    GetActorRoundHandler,
+    GetActorRoundsHandler,
+    AddHpHandler,
+    AddEffectHandler,
     {
       provide: 'ActorRoundRepository',
       useClass: MongoActorRoundRepository,
     },
   ],
-  exports: [ActorRoundService, 'ActorRoundRepository'],
+  exports: ['ActorRoundRepository'],
 })
 export class ActorsRoundModule {}

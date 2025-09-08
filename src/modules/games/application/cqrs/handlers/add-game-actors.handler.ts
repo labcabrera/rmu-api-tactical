@@ -36,7 +36,6 @@ export class AddGameActorsHandler implements ICommandHandler<AddGameActorsComman
     );
     game.addActors(mappedActors);
     const updated = await this.gameRepository.update(command.gameId, game);
-    await this.gameEventBus.updated(updated);
     const events = game.pullDomainEvents();
     events.forEach((event) => this.gameEventBus.publish(event));
     return updated;

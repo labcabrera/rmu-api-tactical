@@ -3,15 +3,14 @@
 import { Body, Controller, Get, Logger, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
-
 import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
 import { Page } from '../../../shared/domain/entities/page.entity';
 import { ErrorDto, PagedQueryDto } from '../../../shared/infrastructure/controller/dto';
-import { AddEffectCommand } from '../../application/commands/add-effect.command';
-import { AddHpCommand } from '../../application/commands/add-hp.command';
-import { DeclareInitiativeCommand } from '../../application/commands/declare-initiative.command';
-import { GetActorRoundQuery } from '../../application/queries/get-actor-round.query';
-import { GetActorsRoundsQuery } from '../../application/queries/get-actor-rounds.query';
+import { AddEffectCommand } from '../../application/cqrs/commands/add-effect.command';
+import { AddHpCommand } from '../../application/cqrs/commands/add-hp.command';
+import { DeclareInitiativeCommand } from '../../application/cqrs/commands/declare-initiative.command';
+import { GetActorRoundQuery } from '../../application/cqrs/queries/get-actor-round.query';
+import { GetActorsRoundsQuery } from '../../application/cqrs/queries/get-actor-rounds.query';
 import { ActorRound } from '../../domain/entities/actor-round.aggregate';
 import { ActorRoundDto, CharacterRoundPageDto } from './dto/actor-round.dto';
 import { AddEffectDto } from './dto/add-effect.dto';

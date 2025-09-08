@@ -1,16 +1,18 @@
+import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-
-import { Inject } from '@nestjs/common';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import { ActorRound } from '../../../domain/entities/actor-round.aggregate';
-import * as arr from '../../ports/out/character-round.repository';
-import { DeclareInitiativeCommand } from '../declare-initiative.command';
+import type { ActorRoundRepository } from '../../ports/out/character-round.repository';
+import { DeclareInitiativeCommand } from '../commands/declare-initiative.command';
 
 @CommandHandler(DeclareInitiativeCommand)
 export class DeclareInitiativeCommandHandler implements ICommandHandler<DeclareInitiativeCommand, ActorRound> {
-  constructor(@Inject('ActorRoundRepository') private readonly characterRoundRepository: arr.ActorRoundRepository) {}
+  private readonly logger = new Logger(DeclareInitiativeCommandHandler.name);
+
+  constructor(@Inject('ActorRoundRepository') private readonly characterRoundRepository: ActorRoundRepository) {}
 
   async execute(command: DeclareInitiativeCommand): Promise<ActorRound> {
+    this.logger.debug(`Execute << ${JSON.stringify(command)}`);
     if (!command.initiativeRoll || command.initiativeRoll < 2 || command.initiativeRoll > 20) {
       throw new ValidationError('Invalid initiative roll. It must be between 2 and 20');
     }

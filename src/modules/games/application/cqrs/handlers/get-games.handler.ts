@@ -3,7 +3,7 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Page } from '../../../../shared/domain/entities/page.entity';
 import { Game } from '../../../domain/entities/game.aggregate';
 import type { GameRepository } from '../../ports/game.repository';
-import { GetGamesQuery } from '../../queries/get-games.query';
+import { GetGamesQuery } from '../queries/get-games.query';
 
 @QueryHandler(GetGamesQuery)
 export class GetGamesHandler implements IQueryHandler<GetGamesQuery, Page<Game>> {

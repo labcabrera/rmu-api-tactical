@@ -1,4 +1,4 @@
-import { ActorRoundEffect } from '../../domain/entities/actor-round-effect.vo';
+import { ActorRoundEffect } from '../../../domain/entities/actor-round-effect.vo';
 
 export class AddEffectCommand {
   constructor(

@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { ValidationError } from '../../../shared/domain/errors';
+import { NotModifiedError, ValidationError } from '../../../shared/domain/errors';
 import { DomainEvent } from '../../../shared/domain/events/domain-event';
 import { GameCreatedEvent, GameRoundStartedEvent, GameUpdatedEvent } from '../events/game.events';
 import { Actor } from './actor.vo';
@@ -56,6 +56,23 @@ export class Game {
     );
     game.addDomainEvent(new GameCreatedEvent(game));
     return game;
+  }
+
+  update(name: string | undefined, description: string | undefined) {
+    let changes = false;
+    if (name && name !== this.name) {
+      this.name = name;
+      changes = true;
+    }
+    if (description && description !== this.description) {
+      this.description = description;
+      changes = true;
+    }
+    if (!changes) {
+      throw new NotModifiedError('No changes detected');
+    }
+    this.updatedAt = new Date();
+    this.addDomainEvent(new GameUpdatedEvent(this));
   }
 
   addFactions(factions: string[]) {

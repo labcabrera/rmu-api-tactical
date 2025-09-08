@@ -1,7 +1,6 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { CreateActorRoundCommand } from '../../../../actor-rounds/application/commands/create-actor-round.command';
-import { ActorRoundService } from '../../../../actor-rounds/application/services/actor-round-service';
+import { CreateActorRoundCommand } from '../../../../actor-rounds/application/cqrs/commands/create-actor-round.command';
 import { NotFoundError } from '../../../../shared/domain/errors';
 import { Actor } from '../../../domain/entities/actor.vo';
 import { Game } from '../../../domain/entities/game.aggregate';
@@ -16,7 +15,6 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
   constructor(
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('GameEventProducer') private readonly gameEventBus: GameEventBusPort,
-    @Inject() private readonly actorRoundService: ActorRoundService,
     private commandBus: CommandBus,
   ) {}
 

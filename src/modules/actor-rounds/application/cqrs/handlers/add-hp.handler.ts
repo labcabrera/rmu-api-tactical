@@ -1,17 +1,20 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
-import { Inject } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import { ActorRoundEffect } from '../../../domain/entities/actor-round-effect.vo';
 import { ActorRound } from '../../../domain/entities/actor-round.aggregate';
 import * as arr from '../../ports/out/character-round.repository';
-import { AddHpCommand } from '../add-hp.command';
+import { AddHpCommand } from '../commands/add-hp.command';
 
 @CommandHandler(AddHpCommand)
-export class AddHpCommandHandler implements ICommandHandler<AddHpCommand, ActorRound> {
+export class AddHpHandler implements ICommandHandler<AddHpCommand, ActorRound> {
+  private readonly logger = new Logger(AddHpHandler.name);
+
   constructor(@Inject('ActorRoundRepository') private readonly actorRoundRepository: arr.ActorRoundRepository) {}
 
   async execute(command: AddHpCommand): Promise<ActorRound> {
+    this.logger.debug(`Execute << ${JSON.stringify(command)}`);
     if (!command.hp || command.hp == 0) {
       throw new ValidationError('Invalid HP value.');
     }

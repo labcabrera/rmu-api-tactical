@@ -1,14 +1,13 @@
 import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-
 import { NotFoundError } from '../../../../shared/domain/errors';
 import { ActorRound } from '../../../domain/entities/actor-round.aggregate';
-import * as crr from '../../ports/out/character-round.repository';
-import { GetActorRoundQuery } from '../get-actor-round.query';
+import type { ActorRoundRepository } from '../../ports/out/character-round.repository';
+import { GetActorRoundQuery } from '../queries/get-actor-round.query';
 
 @QueryHandler(GetActorRoundQuery)
-export class GetActorRoundQueryHandler implements IQueryHandler<GetActorRoundQuery, ActorRound> {
-  constructor(@Inject('ActorRoundRepository') private readonly characterRoundRepository: crr.ActorRoundRepository) {}
+export class GetActorRoundHandler implements IQueryHandler<GetActorRoundQuery, ActorRound> {
+  constructor(@Inject('ActorRoundRepository') private readonly characterRoundRepository: ActorRoundRepository) {}
 
   async execute(query: GetActorRoundQuery): Promise<ActorRound> {
     const data = await this.characterRoundRepository.findById(query.actorRoundId);

@@ -16,8 +16,8 @@ import { DeleteGameCommand } from '../../application/cqrs/commands/delete-game.c
 import { StartPhaseCommand } from '../../application/cqrs/commands/start-phase.command';
 import { StartRoundCommand } from '../../application/cqrs/commands/start-round.command';
 import { UpdateGameCommand } from '../../application/cqrs/commands/update-game.command';
-import { GetGameQuery } from '../../application/queries/get-game.query';
-import { GetGamesQuery } from '../../application/queries/get-games.query';
+import { GetGameQuery } from '../../application/cqrs/queries/get-game.query';
+import { GetGamesQuery } from '../../application/cqrs/queries/get-games.query';
 import { Game } from '../../domain/entities/game.aggregate';
 import { AddGameActorsDto } from './dto/add-game-actors.dto';
 import { AddGameFactionsDto } from './dto/add-game-factions.dto';

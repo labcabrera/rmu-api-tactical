@@ -11,15 +11,13 @@ import { ActorRoundInitiative } from '../../../domain/entities/actor-round-initi
 import { ActorRoundPenalty } from '../../../domain/entities/actor-round-penalty.vo';
 import { ActorRound } from '../../../domain/entities/actor-round.aggregate';
 import type { ActorRoundRepository } from '../../ports/out/character-round.repository';
-import { ActorRoundService } from '../../services/actor-round-service';
-import { CreateActorRoundCommand } from '../create-actor-round.command';
+import { CreateActorRoundCommand } from '../commands/create-actor-round.command';
 
 @CommandHandler(CreateActorRoundCommand)
 export class CreateActorRoundHandler implements ICommandHandler<CreateActorRoundCommand, ActorRound> {
   private readonly logger = new Logger(CreateActorRoundHandler.name);
 
   constructor(
-    @Inject() private readonly actorRoundService: ActorRoundService,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('CharacterClient') private readonly characterClient: CharacterClient,
     // @Inject('ActorRoundEventBus') private readonly gameEventBus: GameEventBusPort,
@@ -27,7 +25,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
 
   async execute(command: CreateActorRoundCommand): Promise<ActorRound> {
     this.logger.debug(`Execute << ${JSON.stringify(command)}`);
-    const actor = await this.actorRoundService.buildActorRound(command.gameId, command.actor, command.round);
+    const actor = await this.buildActorRound(command.gameId, command.actor, command.round);
     const updated = await this.actorRoundRepository.save(actor);
     //const events = actor.pullDomainEvents();
     // events.forEach((event) => this.gameEventBus.publish(event));
