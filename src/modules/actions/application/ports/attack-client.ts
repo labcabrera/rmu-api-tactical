@@ -4,7 +4,7 @@ import {
   PositionalSourceType,
   PositionalTargetType,
   RestrictedQuartersType,
-} from '../../cqrs/commands/prepare-attack.command';
+} from '../cqrs/commands/prepare-attack.command';
 
 export interface AttackClient {
   prepareAttack(actionId: AttackCreationRequest): Promise<AttackCreationResponse>;

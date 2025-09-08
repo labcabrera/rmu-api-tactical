@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
-
 import { DomainEvent } from '../../../shared/domain/events/domain-event';
 import { KafkaProducerService } from '../../../shared/infrastructure/messaging/kafka-producer.service';
-import { ActionEventProducer } from '../../application/ports/out/action-event-producer';
+import { ActionEventProducer } from '../../application/ports/action-event-producer';
 import { Action } from '../../domain/entities/action.aggregate';
 import { ActionCreatedEvent, ActionDeletedEvent, ActionUpdatedEvent } from '../../domain/events/action-events';
 

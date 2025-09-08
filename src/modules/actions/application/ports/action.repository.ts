@@ -1,5 +1,5 @@
-import { Page } from '../../../../shared/domain/entities/page.entity';
-import { Action } from '../../../domain/entities/action.aggregate';
+import { Page } from '../../../shared/domain/entities/page.entity';
+import { Action } from '../../domain/entities/action.aggregate';
 
 export interface ActionRepository {
   findById(id: string): Promise<Action | null>;

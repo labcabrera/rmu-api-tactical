@@ -7,8 +7,8 @@ import type { GameRepository } from '../../../../games/application/ports/game.re
 import { Game } from '../../../../games/domain/entities/game.aggregate';
 import { ValidationError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/entities/action.aggregate';
-import type { ActionEventProducer } from '../../ports/out/action-event-producer';
-import type { ActionRepository } from '../../ports/out/action.repository';
+import type { ActionEventProducer } from '../../ports/action-event-producer';
+import type { ActionRepository } from '../../ports/action.repository';
 import { CreateActionCommand } from '../commands/create-action.command';
 
 @CommandHandler(CreateActionCommand)

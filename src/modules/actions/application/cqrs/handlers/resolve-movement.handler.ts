@@ -1,23 +1,19 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-
-import * as crr from '../../../../actor-rounds/application/ports/out/character-round.repository';
+import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
 import { ActorRound } from '../../../../actor-rounds/domain/entities/actor-round.aggregate';
-import * as gr from '../../../../games/application/ports/game.repository';
+import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import * as cc from '../../../../strategic/application/ports/out/character-client';
-import { Character } from '../../../../strategic/application/ports/out/character-client';
-import * as sgc from '../../../../strategic/application/ports/out/strategic-game-client';
-import { StrategicGame } from '../../../../strategic/application/ports/out/strategic-game-client';
+import type { Character, CharacterClient } from '../../../../strategic/application/ports/out/character-client';
+import type { StrategicGame, StrategicGameClient } from '../../../../strategic/application/ports/out/strategic-game-client';
 import { ActionMovementModifiers } from '../../../domain/entities/action-movement.entity';
 import { ActionMovement } from '../../../domain/entities/action-movement.vo';
 import { Action } from '../../../domain/entities/action.aggregate';
 import { FatigueProcessorService } from '../../../domain/services/fatigue-processor.service';
 import { MovementProcessorService } from '../../../domain/services/movement-processor.service';
-import * as aep from '../../ports/out/action-event-producer';
-import * as ar from '../../ports/out/action.repository';
-import * as ac from '../../ports/out/attack-client';
+import type { ActionEventProducer } from '../../ports/action-event-producer';
+import type { ActionRepository } from '../../ports/action.repository';
+import type { AttackClient } from '../../ports/attack-client';
 import { ResolveMovementCommand } from '../commands/resolve-movement.command';
 
 @CommandHandler(ResolveMovementCommand)
@@ -27,13 +23,13 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
   constructor(
     @Inject() private readonly movementProcessorService: MovementProcessorService,
     @Inject() private readonly fatigueProcessorService: FatigueProcessorService,
-    @Inject('GameRepository') private readonly gameRepository: gr.GameRepository,
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: crr.ActorRoundRepository,
-    @Inject('ActionRepository') private readonly actionRepository: ar.ActionRepository,
-    @Inject('CharacterClient') private readonly characterClient: cc.CharacterClient,
-    @Inject('StrategicGameClient') private readonly strategicGameClient: sgc.StrategicGameClient,
-    @Inject('AttackClient') private readonly attackClient: ac.AttackClient,
-    @Inject('ActionEventProducer') private readonly actionEventProducer: aep.ActionEventProducer,
+    @Inject('GameRepository') private readonly gameRepository: GameRepository,
+    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
+    @Inject('CharacterClient') private readonly characterClient: CharacterClient,
+    @Inject('StrategicGameClient') private readonly strategicGameClient: StrategicGameClient,
+    @Inject('AttackClient') private readonly attackClient: AttackClient,
+    @Inject('ActionEventProducer') private readonly actionEventProducer: ActionEventProducer,
   ) {}
 
   async execute(command: ResolveMovementCommand): Promise<Action> {

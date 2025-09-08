@@ -8,9 +8,9 @@ import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../
 import type { CharacterClient } from '../../../../strategic/application/ports/out/character-client';
 import { ActionAttack } from '../../../domain/entities/action-attack.vo';
 import { Action } from '../../../domain/entities/action.aggregate';
-import type { ActionEventProducer } from '../../ports/out/action-event-producer';
-import type { ActionRepository } from '../../ports/out/action.repository';
-import type { AttackClient } from '../../ports/out/attack-client';
+import type { ActionEventProducer } from '../../ports/action-event-producer';
+import type { ActionRepository } from '../../ports/action.repository';
+import type { AttackClient } from '../../ports/attack-client';
 import { PrepareAttackCommand } from '../commands/prepare-attack.command';
 
 @CommandHandler(PrepareAttackCommand)

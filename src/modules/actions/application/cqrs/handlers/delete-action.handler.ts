@@ -1,9 +1,8 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-
 import { NotFoundError } from '../../../../shared/domain/errors';
-import type { ActionEventProducer } from '../../ports/out/action-event-producer';
-import type { ActionRepository } from '../../ports/out/action.repository';
+import type { ActionEventProducer } from '../../ports/action-event-producer';
+import type { ActionRepository } from '../../ports/action.repository';
 import { DeleteActionCommand } from '../commands/delete-action.command';
 
 @CommandHandler(DeleteActionCommand)

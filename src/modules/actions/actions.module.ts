@@ -18,10 +18,10 @@ import { ResolveMovementHandler } from './application/cqrs/handlers/resolve-move
 import { FatigueProcessorService } from './domain/services/fatigue-processor.service';
 import { MovementProcessorService } from './domain/services/movement-processor.service';
 import { AttackApiClient } from './infrastructure/clients/attack-api-client';
-import { ActionController } from './infrastructure/controllers/action.controller';
+import { MongoActionRepository } from './infrastructure/db/mongo-action.repository';
 import { KafkaActionProducerService } from './infrastructure/messaging/kafka-action-producer.service';
 import { ActionModel, ActionSchema } from './infrastructure/persistence/models/action.model';
-import { MongoActionRepository } from './infrastructure/persistence/repositories/mongo-action.repository';
+import { ActionController } from './interfaces/http/action.controller';
 
 @Module({
   imports: [

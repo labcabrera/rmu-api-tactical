@@ -1,5 +1,5 @@
-import { DomainEvent } from '../../../../shared/domain/events/domain-event';
-import { Action } from '../../../domain/entities/action.aggregate';
+import { DomainEvent } from '../../../shared/domain/events/domain-event';
+import { Action } from '../../domain/entities/action.aggregate';
 
 export interface ActionEventProducer {
   publish(event: DomainEvent<Action>): Promise<void>;

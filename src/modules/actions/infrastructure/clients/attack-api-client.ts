@@ -1,10 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-
 import { TokenService } from '../../../auth/token.service';
 import { BadGatewayError, ValidationError } from '../../../shared/domain/errors';
-import { AttackClient, AttackCreationRequest, AttackCreationResponse } from '../../application/ports/out/attack-client';
+import { AttackClient, AttackCreationRequest, AttackCreationResponse } from '../../application/ports/attack-client';
 
 @Injectable()
 export class AttackApiClient implements AttackClient {
