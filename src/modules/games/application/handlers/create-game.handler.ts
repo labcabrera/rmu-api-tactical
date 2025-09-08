@@ -17,7 +17,7 @@ export class CreateGameCommandHandler implements ICommandHandler<CreateGameComma
     @Inject('GameRepository') private readonly gameRepository: gr.GameRepository,
     @Inject('StrategicGameClient') private readonly strategicGameClient: sgc.StrategicGameClient,
     @Inject('CharacterClient') private readonly characterClient: cc.CharacterClient,
-    @Inject('GameEventProducer') private readonly gameEventProducer: gep.GameEventBusPort,
+    @Inject('GameEventProducer') private readonly bus: gep.GameEventBusPort,
   ) {}
 
   async execute(command: CreateGameCommand): Promise<Game> {
@@ -49,7 +49,7 @@ export class CreateGameCommandHandler implements ICommandHandler<CreateGameComma
       updatedAt: undefined,
     };
     const savedGame = await this.gameRepository.save(newGame);
-    await this.gameEventProducer.created(savedGame);
+    await this.bus.created(savedGame);
     return savedGame;
   }
 

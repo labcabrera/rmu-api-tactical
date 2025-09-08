@@ -14,6 +14,7 @@ import { CreateGameCommandHandler } from './application/handlers/create-game.han
 import { DeleteGameActorsCommandHandler } from './application/handlers/delete-game-actors.handler';
 import { DeleteGameFactionsCommandHandler } from './application/handlers/delete-game-factions.handler';
 import { DeleteGameCommandHandler } from './application/handlers/delete-game.handler';
+import { DeleteGamesByStrategicIdHandler } from './application/handlers/delete-games-by-strategic-id.handler';
 import { GetGameQueryHandler } from './application/handlers/get-game.handler';
 import { GetGamesQueryHandler } from './application/handlers/get-games.handler';
 import { StartPhaseCommandHandler } from './application/handlers/start-phase.handler';
@@ -23,6 +24,7 @@ import { KafkaGameEventBusAdapter } from './infrastructure/messaging/kafka.game-
 import { GameModel, GameSchema } from './infrastructure/persistence/models/game.model';
 import { MongoGameRepository } from './infrastructure/persistence/repositories/mongo-game.repository';
 import { GameController } from './interfaces/http/game.controller';
+import { StrategicGameKafkaConsumer } from './interfaces/messaging/kafka.strategic-game.consumer';
 
 @Module({
   imports: [
@@ -36,7 +38,7 @@ import { GameController } from './interfaces/http/game.controller';
     forwardRef(() => ActorsRoundModule),
     forwardRef(() => ActionsModule),
   ],
-  controllers: [GameController],
+  controllers: [GameController, StrategicGameKafkaConsumer],
   providers: [
     KafkaGameEventBusAdapter,
     GetGamesQueryHandler,
@@ -50,6 +52,7 @@ import { GameController } from './interfaces/http/game.controller';
     AddGameActorsCommandHandler,
     DeleteGameFactionsCommandHandler,
     DeleteGameActorsCommandHandler,
+    DeleteGamesByStrategicIdHandler,
     {
       provide: 'GameRepository',
       useClass: MongoGameRepository,
