@@ -1,12 +1,16 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import * as gameEntity from '../../../domain/entities/game.entity';
+import type { GamePhase } from '../../../domain/entities/game-phase.vo';
+import type { GameStatus } from '../../../domain/entities/game-status.vo';
 import { Actor } from './game.model-childs';
 
 export type GameDocument = GameModel & Document;
 
-@Schema({ collection: 'tactical-games', versionKey: false })
+@Schema({ collection: 'tactical-games', _id: false, versionKey: false })
 export class GameModel {
+  @Prop({ required: true })
+  _id: string;
+
   @Prop({ required: true })
   strategicGameId: string;
 
@@ -14,13 +18,13 @@ export class GameModel {
   name: string;
 
   @Prop({ required: true })
-  status: gameEntity.GameStatus;
+  status: GameStatus;
 
   @Prop({ required: true })
   round: number;
 
   @Prop({ required: true })
-  phase: gameEntity.GamePhase;
+  phase: GamePhase;
 
   @Prop({ required: true })
   factions: string[];

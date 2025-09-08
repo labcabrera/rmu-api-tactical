@@ -30,6 +30,10 @@ export class RsqlParser {
   }
 
   private processNode(node: any): MongoQuery {
+    if (node.left === 'id') {
+      node.left = '_id';
+    }
+
     switch (node.type) {
       case 'LOGIC':
         if (node.operator === ';') {

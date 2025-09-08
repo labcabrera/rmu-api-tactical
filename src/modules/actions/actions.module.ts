@@ -9,19 +9,19 @@ import { ActorsRoundModule } from '../actor-rounds/actor-rounds.module';
 import { GamesModule } from '../games/games.module';
 import { SharedModule } from '../shared/shared.module';
 import { StrategicModule } from '../strategic/strategic.module';
-import { CreateActionCommandHandler } from './application/commands/handlers/create-action.command.handler';
-import { DeleteActionCommandHandler } from './application/commands/handlers/delete-action.command.handler';
-import { PrepareAttackCommandHandler } from './application/commands/handlers/prepare-attack-command.handler';
-import { ResolveMovementCommandHandler } from './application/commands/handlers/resolve-movement.command.handler';
-import { GetActionQueryHandler } from './application/queries/handlers/get-action.query.handler';
-import { GetActionsQueryHandler } from './application/queries/handlers/get-actions.query.handler';
+import { CreateActionHandler } from './application/cqrs/handlers/create-action.handler';
+import { DeleteActionHandler } from './application/cqrs/handlers/delete-action.handler';
+import { GetActionQueryHandler } from './application/cqrs/handlers/get-action.handler';
+import { GetActionsQueryHandler } from './application/cqrs/handlers/get-actions.handler';
+import { PrepareAttackHandler } from './application/cqrs/handlers/prepare-attack-handler';
+import { ResolveMovementHandler } from './application/cqrs/handlers/resolve-movement.handler';
 import { FatigueProcessorService } from './domain/services/fatigue-processor.service';
 import { MovementProcessorService } from './domain/services/movement-processor.service';
-import { AttackApiClient } from './infrastructure/clients/attack-api-client';
-import { ActionController } from './infrastructure/controllers/action.controller';
+import { ApiAttackClientAdapter } from './infrastructure/clients/api-attack-client.adapter';
+import { MongoActionRepository } from './infrastructure/db/mongo-action.repository';
 import { KafkaActionProducerService } from './infrastructure/messaging/kafka-action-producer.service';
 import { ActionModel, ActionSchema } from './infrastructure/persistence/models/action.model';
-import { MongoActionRepository } from './infrastructure/persistence/repositories/mongo-action.repository';
+import { ActionController } from './interfaces/http/action.controller';
 
 @Module({
   imports: [
@@ -41,10 +41,10 @@ import { MongoActionRepository } from './infrastructure/persistence/repositories
     FatigueProcessorService,
     GetActionQueryHandler,
     GetActionsQueryHandler,
-    CreateActionCommandHandler,
-    DeleteActionCommandHandler,
-    ResolveMovementCommandHandler,
-    PrepareAttackCommandHandler,
+    CreateActionHandler,
+    DeleteActionHandler,
+    ResolveMovementHandler,
+    PrepareAttackHandler,
     {
       provide: 'ActionRepository',
       useClass: MongoActionRepository,
@@ -55,8 +55,9 @@ import { MongoActionRepository } from './infrastructure/persistence/repositories
     },
     {
       provide: 'AttackClient',
-      useClass: AttackApiClient,
+      useClass: ApiAttackClientAdapter,
     },
   ],
+  exports: ['ActionRepository'],
 })
 export class ActionsModule {}

@@ -35,7 +35,7 @@ export class KafkaProducerService implements OnModuleInit {
   }
 
   async emit(topic: string, message: any) {
-    this.logger.debug(`Emitting message to topic ${topic}:`);
+    this.logger.debug(`Kafka >> ${topic}, id: ${message.data.id}`);
     const id = message.data.id ? message.data.id : '';
     await this.producer.send({
       topic,

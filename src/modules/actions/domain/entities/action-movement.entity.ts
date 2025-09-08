@@ -1,10 +1,4 @@
-export type Pace = 'creep' | 'walk' | 'jog' | 'run' | 'sprint' | 'dash';
-
-export interface ActionMovement {
-  modifiers: ActionMovementModifiers;
-  roll: ActionMovementRoll | undefined;
-  calculated: ActionMovementResult;
-}
+import { Pace } from './action-movement.vo';
 
 export interface ActionMovementModifiers {
   pace: Pace;

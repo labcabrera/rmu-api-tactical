@@ -1,14 +1,18 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
-import * as actionEntity from '../../../domain/entities/action.entity';
+import type { ActionStatus } from '../../../domain/entities/action-status.vo';
+import type { ActionType } from '../../../domain/entities/action-type.vo';
 import { ActionMovement } from './action-movement.model';
 import { ActionAttack, ActionManeuver } from './action.model-childs';
 
 export type ActionDocument = ActionModel & Document;
 
-@Schema({ collection: 'actions', versionKey: false })
+@Schema({ collection: 'actions', _id: false, versionKey: false })
 export class ActionModel {
+  @Prop({ required: true })
+  _id: string;
+
   @Prop({ required: true })
   gameId: string;
 
@@ -16,13 +20,13 @@ export class ActionModel {
   actorId: string;
 
   @Prop({ required: true })
-  status: actionEntity.ActionStatus;
+  status: ActionStatus;
 
   @Prop({ required: true })
   round: number;
 
   @Prop({ required: true })
-  actionType: actionEntity.ActionType;
+  actionType: ActionType;
 
   @Prop({ required: true })
   phaseStart: number;
@@ -47,6 +51,9 @@ export class ActionModel {
 
   @Prop({ type: String, required: false })
   description: string | undefined;
+
+  @Prop({ required: true })
+  owner: string;
 
   @Prop({ required: true })
   createdAt: Date;

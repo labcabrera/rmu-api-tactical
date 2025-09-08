@@ -1,0 +1,18 @@
+import { ActionType } from '../../../domain/entities/action-type.vo';
+import { ManeuverType } from '../../../domain/entities/maneuver-type.vo';
+
+export class CreateActionCommand {
+  gameId: string;
+  actorId: string;
+  actionType: ActionType;
+  phaseStart: number;
+  maneuver: CreateActionCommandManeuver | undefined;
+  description: string;
+  userId: string;
+  roles: string[];
+}
+
+export class CreateActionCommandManeuver {
+  skillId: string;
+  maneuverType: ManeuverType;
+}

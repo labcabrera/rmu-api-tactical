@@ -1,5 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import * as ge from '../../../domain/entities/game.entity';
+import * as actorTypeVo from '../../../domain/entities/actor-type.vo';
 
 @Schema({ _id: false })
 export class Actor {
@@ -13,7 +13,7 @@ export class Actor {
   factionId: string;
 
   @Prop({ required: true })
-  type: ge.ActorType;
+  type: actorTypeVo.ActorType;
 
   @Prop({ required: true })
   owner: string;

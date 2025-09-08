@@ -104,6 +104,9 @@ async function bootstrap() {
         clientId: clientId,
         brokers: brokers,
       },
+      consumer: {
+        groupId: app.get(ConfigService).get<string>('RMU_KAFKA_CONSUMER_GROUP_ID') || 'rmu-api-tactical-group',
+      },
     },
   });
 
