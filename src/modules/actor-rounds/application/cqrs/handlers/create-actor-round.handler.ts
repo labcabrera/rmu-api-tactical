@@ -2,7 +2,7 @@ import { Inject, Logger, NotImplementedException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Actor } from '../../../../games/domain/entities/actor.vo';
 import { ValidationError } from '../../../../shared/domain/errors';
-import type { Character, CharacterClient } from '../../../../strategic/application/ports/out/character-client';
+import type { Character, CharacterPort } from '../../../../strategic/application/ports/character.port';
 import { ActorRoundAttack } from '../../../domain/entities/actor-round-attack.vo';
 import { ActorRoundEffect } from '../../../domain/entities/actor-round-effect.vo';
 import { ActorRoundFatigue } from '../../../domain/entities/actor-round-fatigue.vo';
@@ -19,7 +19,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
 
   constructor(
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject('CharacterClient') private readonly characterClient: CharacterClient,
+    @Inject('CharacterClient') private readonly characterClient: CharacterPort,
     // @Inject('ActorRoundEventBus') private readonly gameEventBus: GameEventBusPort,
   ) {}
 

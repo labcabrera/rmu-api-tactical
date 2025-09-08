@@ -11,7 +11,7 @@ export class DeleteGamesByStrategicIdHandler implements ICommandHandler<DeleteGa
 
   constructor(
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('GameEventProducer') private readonly gameEventBus: GameEventBusPort,
+    @Inject('GameEventBus') private readonly gameEventBus: GameEventBusPort,
     private readonly commandBus: CommandBus,
   ) {}
 

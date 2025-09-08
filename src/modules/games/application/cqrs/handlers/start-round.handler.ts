@@ -14,7 +14,7 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
 
   constructor(
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('GameEventProducer') private readonly gameEventBus: GameEventBusPort,
+    @Inject('GameEventBus') private readonly gameEventBus: GameEventBusPort,
     private commandBus: CommandBus,
   ) {}
 

@@ -58,7 +58,7 @@ import { StrategicGameKafkaConsumer } from './interfaces/messaging/kafka.strateg
       useClass: MongoGameRepository,
     },
     {
-      provide: 'GameEventProducer',
+      provide: 'GameEventBus',
       useClass: KafkaGameEventBusAdapter,
     },
   ],

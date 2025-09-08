@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { StrategicGame } from '../../../strategic/application/ports/out/strategic-game-client';
+import { StrategicGame } from '../../../strategic/application/ports/strategic-game.port';
 import { Action } from '../entities/action.aggregate';
 
 @Injectable()

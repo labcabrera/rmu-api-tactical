@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { AggregateRoot } from '../../../shared/domain/entities/aggregate-root';
 import { NotModifiedError, ValidationError } from '../../../shared/domain/errors';
-import { GameCreatedEvent, GameRoundStartedEvent, GameUpdatedEvent } from '../events/game.events';
+import { GameCreatedEvent, GamePhaseStartedEvent, GameRoundStartedEvent, GameUpdatedEvent } from '../events/game.events';
 import { Actor } from './actor.vo';
 import { GamePhase } from './game-phase.vo';
 import { GameStatus } from './game-status.vo';
@@ -152,7 +152,7 @@ export class Game extends AggregateRoot<Game> {
       throw new ValidationError(`Cannot start next phase from phase ${this.phase}`);
     }
     this.phase = Game.phaseTransitions.get(this.phase)!;
-    this.addDomainEvent(new GameRoundStartedEvent(this));
+    this.addDomainEvent(new GamePhaseStartedEvent(this));
     this.updatedAt = new Date();
   }
 }

@@ -5,7 +5,7 @@ import type { ActorRoundRepository } from '../../../../actor-rounds/application/
 import { ActorRound } from '../../../../actor-rounds/domain/entities/actor-round.aggregate';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../../shared/domain/errors';
-import type { CharacterClient } from '../../../../strategic/application/ports/out/character-client';
+import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
 import { ActionAttack } from '../../../domain/entities/action-attack.vo';
 import { Action } from '../../../domain/entities/action.aggregate';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
@@ -21,12 +21,13 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('CharacterClient') private readonly characterClient: CharacterClient,
+    @Inject('CharacterClient') private readonly characterClient: CharacterPort,
     @Inject('AttackClient') private readonly attackClient: AttackClientPort,
     @Inject('ActionEventProducer') private readonly actionEventProducer: ActionEventBusPort,
   ) {}
 
   async execute(command: PrepareAttackCommand): Promise<Action> {
+    this.logger.log(`Execute << ${JSON.stringify(command)}`);
     const action = await this.actionRepository.findById(command.actionId);
     if (!action) {
       throw new NotFoundError('Action', command.actionId);

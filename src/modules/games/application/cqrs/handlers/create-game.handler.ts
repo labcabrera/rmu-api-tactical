@@ -1,8 +1,8 @@
 import { Inject, Logger, NotImplementedException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ValidationError } from '../../../../shared/domain/errors';
-import type { CharacterClient } from '../../../../strategic/application/ports/out/character-client';
-import type { StrategicGameClient } from '../../../../strategic/application/ports/out/strategic-game-client';
+import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
+import type { StrategicGamePort } from '../../../../strategic/application/ports/strategic-game.port';
 import { Actor } from '../../../domain/entities/actor.vo';
 import { Game } from '../../../domain/entities/game.aggregate';
 import type { GameEventBusPort } from '../../ports/game-event-bus.port';
@@ -15,9 +15,9 @@ export class CreateGameHandler implements ICommandHandler<CreateGameCommand, Gam
 
   constructor(
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('StrategicGameClient') private readonly strategicGameClient: StrategicGameClient,
-    @Inject('CharacterClient') private readonly characterClient: CharacterClient,
-    @Inject('GameEventProducer') private readonly gameEventBus: GameEventBusPort,
+    @Inject('StrategicGameClient') private readonly strategicGameClient: StrategicGamePort,
+    @Inject('CharacterClient') private readonly characterClient: CharacterPort,
+    @Inject('GameEventBus') private readonly gameEventBus: GameEventBusPort,
   ) {}
 
   async execute(command: CreateGameCommand): Promise<Game> {

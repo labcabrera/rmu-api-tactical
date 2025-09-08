@@ -4,8 +4,8 @@ import type { ActorRoundRepository } from '../../../../actor-rounds/application/
 import { ActorRound } from '../../../../actor-rounds/domain/entities/actor-round.aggregate';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import type { Character, CharacterClient } from '../../../../strategic/application/ports/out/character-client';
-import type { StrategicGame, StrategicGameClient } from '../../../../strategic/application/ports/out/strategic-game-client';
+import type { Character, CharacterPort } from '../../../../strategic/application/ports/character.port';
+import type { StrategicGame, StrategicGamePort } from '../../../../strategic/application/ports/strategic-game.port';
 import { ActionMovementModifiers } from '../../../domain/entities/action-movement.entity';
 import { ActionMovement } from '../../../domain/entities/action-movement.vo';
 import { Action } from '../../../domain/entities/action.aggregate';
@@ -25,8 +25,8 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('CharacterClient') private readonly characterClient: CharacterClient,
-    @Inject('StrategicGameClient') private readonly strategicGameClient: StrategicGameClient,
+    @Inject('CharacterClient') private readonly characterClient: CharacterPort,
+    @Inject('StrategicGameClient') private readonly strategicGameClient: StrategicGamePort,
     @Inject('ActionEventProducer') private readonly actionEventProducer: ActionEventBusPort,
   ) {}
 
@@ -46,7 +46,6 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
       this.characterClient.findById(action.actorId),
       this.strategicGameClient.findById(game.strategicGameId),
     ]);
-
     if (!actorRound) throw new NotFoundError('ActorRound', `${action.actorId} - ${action.round}`);
     if (!character) throw new NotFoundError('Character', action.actorId);
     if (!strategicGame) throw new NotFoundError('StrategicGame', game.strategicGameId);

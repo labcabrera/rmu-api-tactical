@@ -3,10 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 
 import { TokenService } from '../../../auth/token.service';
-import { StrategicGame, StrategicGameClient } from '../../application/ports/out/strategic-game-client';
+import { Character, CharacterPort } from '../../application/ports/character.port';
 
 @Injectable()
-export class StrategicGameApiClient implements StrategicGameClient {
+export class CharacterApiClient implements CharacterPort {
   private readonly baseUri: string;
 
   constructor(
@@ -16,16 +16,16 @@ export class StrategicGameApiClient implements StrategicGameClient {
     this.baseUri = configService.get('RMU_API_STRATEGIC_URI') as string;
   }
 
-  async findById(id: string): Promise<StrategicGame | undefined> {
+  async findById(id: string): Promise<Character | undefined> {
     const token = await this.tokenService.getToken();
-    const uri = `${this.baseUri}/strategic-games/${id}`;
+    const uri = `${this.baseUri}/characters/${id}`;
     try {
       const response = await axios.get(uri, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      return response.data as StrategicGame;
+      return response.data as Character;
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 404) {
         return undefined;
@@ -33,5 +33,16 @@ export class StrategicGameApiClient implements StrategicGameClient {
         throw err;
       }
     }
+  }
+
+  async findByGameId(gameId: string): Promise<Character[]> {
+    const token = await this.tokenService.getToken();
+    const uri = `${this.baseUri}/characters?q=gameId==${gameId}&page=0&size=1000`;
+    const response = await axios.get(uri, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data as Character[];
   }
 }

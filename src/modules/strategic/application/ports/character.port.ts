@@ -1,4 +1,4 @@
-export interface CharacterClient {
+export interface CharacterPort {
   findById: (id: string) => Promise<Character | undefined>;
 
   findByGameId: (gameId: string) => Promise<Character[]>;

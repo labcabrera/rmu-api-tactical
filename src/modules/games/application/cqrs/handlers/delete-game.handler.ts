@@ -3,6 +3,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import type { ActionRepository } from '../../../../actions/application/ports/action.repository';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
 import { NotFoundError } from '../../../../shared/domain/errors';
+import { GameDeletedEvent } from '../../../domain/events/game.events';
 import type { GameEventBusPort } from '../../ports/game-event-bus.port';
 import type { GameRepository } from '../../ports/game.repository';
 import { DeleteGameCommand } from '../commands/delete-game.command';
@@ -15,7 +16,7 @@ export class DeleteGameHandler implements ICommandHandler<DeleteGameCommand> {
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('GameEventProducer') private readonly gameEventBus: GameEventBusPort,
+    @Inject('GameEventBus') private readonly gameEventBus: GameEventBusPort,
   ) {}
 
   async execute(command: DeleteGameCommand): Promise<void> {
@@ -27,6 +28,6 @@ export class DeleteGameHandler implements ICommandHandler<DeleteGameCommand> {
     await this.actionRepository.deleteByGameId(command.gameId);
     await this.actorRoundRepository.deleteByGameId(command.gameId);
     await this.gameRepository.deleteById(command.gameId);
-    await this.gameEventBus.deleted(game);
+    this.gameEventBus.publish(new GameDeletedEvent(game));
   }
 }
