@@ -124,6 +124,21 @@ export class Game {
     this.addDomainEvent(new GameUpdatedEvent(this));
   }
 
+  deleteActors(ids: string[]) {
+    if (this.status !== 'created') {
+      throw new ValidationError(`Cannot delete actors from a game that is not in 'created' status`);
+    }
+    ids.forEach((id) => {
+      const index = this.actors.findIndex((a) => a.id === id);
+      if (index === -1) {
+        throw new ValidationError(`Actor ${id} does not exist in the game`);
+      }
+      this.actors.splice(index, 1);
+    });
+    this.updatedAt = new Date();
+    this.addDomainEvent(new GameUpdatedEvent(this));
+  }
+
   startRound() {
     this.status = 'in_progress';
     this.phase = 'declare_initiative';

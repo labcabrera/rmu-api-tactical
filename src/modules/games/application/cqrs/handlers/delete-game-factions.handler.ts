@@ -1,6 +1,6 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { NotFoundError, NotModifiedError, ValidationError } from '../../../../shared/domain/errors';
+import { NotFoundError } from '../../../../shared/domain/errors';
 import { Game } from '../../../domain/entities/game.aggregate';
 import type { GameEventBusPort } from '../../ports/game-event-bus.port';
 import type { GameRepository } from '../../ports/game.repository';
@@ -21,22 +21,10 @@ export class DeleteGameFactionsHandler implements ICommandHandler<DeleteGameFact
     if (!game) {
       throw new NotFoundError('Game', command.gameId);
     }
-    if (game.status !== 'created') {
-      throw new ValidationError('Only games in created status can be modified');
-    }
-    let modified = false;
-    command.factions.forEach((factionId) => {
-      if (game.factions.includes(factionId)) {
-        game.factions = game.factions.filter((id) => id !== factionId);
-        //TODO remove actors
-        modified = true;
-      }
-    });
-    if (!modified) {
-      throw new NotModifiedError('No factions to delete');
-    }
+    game.deleteFactions(command.factions);
     const updated = await this.gameRepository.update(command.gameId, game);
-    await this.gameEventBus.updated(updated);
+    const events = game.pullDomainEvents();
+    events.forEach((event) => this.gameEventBus.publish(event));
     return updated;
   }
 }

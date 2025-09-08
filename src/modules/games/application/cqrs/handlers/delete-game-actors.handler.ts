@@ -1,6 +1,6 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { NotFoundError, NotModifiedError, ValidationError } from '../../../../shared/domain/errors';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import { Game } from '../../../domain/entities/game.aggregate';
 import type { GameEventBusPort } from '../../ports/game-event-bus.port';
 import type { GameRepository } from '../../ports/game.repository';
@@ -21,21 +21,13 @@ export class DeleteGameActorsHandler implements ICommandHandler<DeleteGameActors
     if (!game) {
       throw new NotFoundError('Game', command.gameId);
     }
+    game.deleteActors(command.actors);
     if (game.status !== 'created') {
       throw new ValidationError('Only games in created status can be modified');
     }
-    let modified = false;
-    command.actors.forEach((actorId) => {
-      if (game.actors.some((e) => e.id === actorId)) {
-        game.actors = game.actors.filter((e) => e.id !== actorId);
-        modified = true;
-      }
-    });
-    if (!modified) {
-      throw new NotModifiedError('No actors to delete');
-    }
     const updated = await this.gameRepository.update(command.gameId, game);
-    await this.gameEventBus.updated(updated);
+    const events = game.pullDomainEvents();
+    events.forEach((event) => this.gameEventBus.publish(event));
     return updated;
   }
 }

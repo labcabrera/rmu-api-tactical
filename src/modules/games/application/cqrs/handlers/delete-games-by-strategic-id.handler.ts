@@ -23,7 +23,6 @@ export class DeleteGamesByStrategicIdHandler implements ICommandHandler<DeleteGa
       return;
     }
     await Promise.all(games.map((game) => this.commandBus.execute(new DeleteGameCommand(game.id, command.userId, command.roles))));
-    //TODO
-    //await this.gameEventProducer.notifyGamesDeletedByStrategicId(command.strategicGameId);
+    //TODO notify?
   }
 }
