@@ -1,19 +1,22 @@
-import { Inject } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
 import { NotFoundError } from '../../../../shared/domain/errors';
-import * as actionEventProducer from '../../ports/out/action-event-producer';
-import * as actionRepository from '../../ports/out/action.repository';
+import type { ActionEventProducer } from '../../ports/out/action-event-producer';
+import type { ActionRepository } from '../../ports/out/action.repository';
 import { DeleteActionCommand } from '../delete-action.command';
 
 @CommandHandler(DeleteActionCommand)
-export class DeleteActionCommandHandler implements ICommandHandler<DeleteActionCommand> {
+export class DeleteActionHandler implements ICommandHandler<DeleteActionCommand> {
+  private readonly logger = new Logger(DeleteActionHandler.name);
+
   constructor(
-    @Inject('ActionRepository') private readonly actionRepository: actionRepository.ActionRepository,
-    @Inject('ActionEventProducer') private readonly actionEventProducer: actionEventProducer.ActionEventProducer,
+    @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
+    @Inject('ActionEventProducer') private readonly actionEventProducer: ActionEventProducer,
   ) {}
 
   async execute(command: DeleteActionCommand): Promise<void> {
+    this.logger.log(`Execute << ${JSON.stringify(command)}`);
     const action = await this.actionRepository.findById(command.actionId);
     if (!action) {
       throw new NotFoundError('Action', command.actionId);

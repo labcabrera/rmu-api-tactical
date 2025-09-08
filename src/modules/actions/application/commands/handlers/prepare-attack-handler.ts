@@ -1,28 +1,29 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Inject } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-
-import * as crr from '../../../../actor-rounds/application/ports/out/character-round.repository';
+import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
 import { ActorRound } from '../../../../actor-rounds/domain/entities/actor-round.aggregate';
-import * as gr from '../../../../games/application/ports/game.repository';
+import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../../shared/domain/errors';
-import * as cc from '../../../../strategic/application/ports/out/character-client';
+import type { CharacterClient } from '../../../../strategic/application/ports/out/character-client';
 import { ActionAttack } from '../../../domain/entities/action-attack.vo';
 import { Action } from '../../../domain/entities/action.aggregate';
-import * as aep from '../../ports/out/action-event-producer';
-import * as ar from '../../ports/out/action.repository';
-import * as ac from '../../ports/out/attack-client';
+import type { ActionEventProducer } from '../../ports/out/action-event-producer';
+import type { ActionRepository } from '../../ports/out/action.repository';
+import type { AttackClient } from '../../ports/out/attack-client';
 import { PrepareAttackCommand } from '../prepare-attack.command';
 
 @CommandHandler(PrepareAttackCommand)
-export class PrepareAttackCommandHandler implements ICommandHandler<PrepareAttackCommand, Action> {
+export class PrepareAttackHandler implements ICommandHandler<PrepareAttackCommand, Action> {
+  private readonly logger = new Logger(PrepareAttackHandler.name);
+
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: gr.GameRepository,
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: crr.ActorRoundRepository,
-    @Inject('ActionRepository') private readonly actionRepository: ar.ActionRepository,
-    @Inject('CharacterClient') private readonly characterClient: cc.CharacterClient,
-    @Inject('AttackClient') private readonly attackClient: ac.AttackClient,
-    @Inject('ActionEventProducer') private readonly actionEventProducer: aep.ActionEventProducer,
+    @Inject('GameRepository') private readonly gameRepository: GameRepository,
+    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
+    @Inject('CharacterClient') private readonly characterClient: CharacterClient,
+    @Inject('AttackClient') private readonly attackClient: AttackClient,
+    @Inject('ActionEventProducer') private readonly actionEventProducer: ActionEventProducer,
   ) {}
 
   async execute(command: PrepareAttackCommand): Promise<Action> {

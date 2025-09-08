@@ -1,26 +1,28 @@
-import { Inject } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-
-import * as crr from '../../../../actor-rounds/application/ports/out/character-round.repository';
-import * as gr from '../../../../games/application/ports/game.repository';
+import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
+import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/entities/action.aggregate';
-import * as aep from '../../ports/out/action-event-producer';
-import * as ar from '../../ports/out/action.repository';
-import * as ac from '../../ports/out/attack-client';
+import type { ActionEventProducer } from '../../ports/out/action-event-producer';
+import type { ActionRepository } from '../../ports/out/action.repository';
+import type { AttackClient } from '../../ports/out/attack-client';
 import { PrepareManeuverCommand } from '../prepare-maneuver.command';
 
 @CommandHandler(PrepareManeuverCommand)
-export class PrepareManeuverCommandHandler implements ICommandHandler<PrepareManeuverCommand, Action> {
+export class PrepareManeuverHandler implements ICommandHandler<PrepareManeuverCommand, Action> {
+  private readonly logger = new Logger(PrepareManeuverHandler.name);
+
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: gr.GameRepository,
-    @Inject('CharacterRoundRepository') private readonly characterRoundRepository: crr.ActorRoundRepository,
-    @Inject('ActionRepository') private readonly actionRepository: ar.ActionRepository,
-    @Inject('AttackClient') private readonly attackClient: ac.AttackClient,
-    @Inject('ActionEventProducer') private readonly actionEventProducer: aep.ActionEventProducer,
+    @Inject('GameRepository') private readonly gameRepository: GameRepository,
+    @Inject('CharacterRoundRepository') private readonly characterRoundRepository: ActorRoundRepository,
+    @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
+    @Inject('AttackClient') private readonly attackClient: AttackClient,
+    @Inject('ActionEventProducer') private readonly actionEventProducer: ActionEventProducer,
   ) {}
 
   async execute(command: PrepareManeuverCommand): Promise<Action> {
+    this.logger.log(`Execute << ${JSON.stringify(command)}`);
     const action = await this.actionRepository.findById(command.actionId);
     if (!action) {
       throw new NotFoundError('Action', command.actionId);

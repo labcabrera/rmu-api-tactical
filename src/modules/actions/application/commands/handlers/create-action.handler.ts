@@ -1,19 +1,20 @@
-import { Inject } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-misused-promises */
+import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
 import { ActorRound } from '../../../../actor-rounds/domain/entities/actor-round.aggregate';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { Game } from '../../../../games/domain/entities/game.aggregate';
 import { ValidationError } from '../../../../shared/domain/errors';
-import { ActionManeuver } from '../../../domain/entities/action-maneuver.vo';
 import { Action } from '../../../domain/entities/action.aggregate';
 import type { ActionEventProducer } from '../../ports/out/action-event-producer';
 import type { ActionRepository } from '../../ports/out/action.repository';
 import { CreateActionCommand } from '../create-action.command';
 
 @CommandHandler(CreateActionCommand)
-export class CreateActionCommandHandler implements ICommandHandler<CreateActionCommand, Action> {
+export class CreateActionHandler implements ICommandHandler<CreateActionCommand, Action> {
+  private readonly logger = new Logger(CreateActionCommand.name);
+
   constructor(
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
@@ -22,6 +23,7 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
   ) {}
 
   async execute(command: CreateActionCommand): Promise<Action> {
+    this.logger.log(`Execute << ${JSON.stringify(command)}`);
     this.validateCommand(command);
     const game = await this.readGame(command);
     this.validateGame(game);
@@ -67,35 +69,6 @@ export class CreateActionCommandHandler implements ICommandHandler<CreateActionC
     const rsql = `gameId==${command.gameId};actorId==${command.actorId};round==${round}`;
     const actions = await this.actionRepository.findByRsql(rsql, 0, 100);
     return actions.content;
-  }
-
-  private buildAction(command: CreateActionCommand, game: Game): Partial<Action> {
-    return {
-      gameId: command.gameId,
-      status: 'declared',
-      round: game.round,
-      actorId: command.actorId,
-      actionType: command.actionType,
-      phaseStart: command.phaseStart,
-      actionPoints: undefined,
-      movement: undefined,
-      maneuver: this.buildActionManeuver(command),
-      attacks: undefined,
-      createdAt: new Date(),
-    };
-  }
-
-  private buildActionManeuver(command: CreateActionCommand): ActionManeuver | undefined {
-    if (!command.maneuver) {
-      return undefined;
-    }
-    return {
-      skillId: command.maneuver.skillId,
-      maneuverType: command.maneuver.maneuverType,
-      difficulty: undefined,
-      result: undefined,
-      status: 'declared',
-    };
   }
 
   private validateCommand(command: CreateActionCommand): void {

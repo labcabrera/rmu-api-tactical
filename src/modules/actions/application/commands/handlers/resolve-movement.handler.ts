@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Inject } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 
 import * as crr from '../../../../actor-rounds/application/ports/out/character-round.repository';
@@ -21,7 +21,9 @@ import * as ac from '../../ports/out/attack-client';
 import { ResolveMovementCommand } from '../resolve-movement.command';
 
 @CommandHandler(ResolveMovementCommand)
-export class ResolveMovementCommandHandler implements ICommandHandler<ResolveMovementCommand, Action> {
+export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCommand, Action> {
+  private readonly logger = new Logger(ResolveMovementHandler.name);
+
   constructor(
     @Inject() private readonly movementProcessorService: MovementProcessorService,
     @Inject() private readonly fatigueProcessorService: FatigueProcessorService,
@@ -35,6 +37,7 @@ export class ResolveMovementCommandHandler implements ICommandHandler<ResolveMov
   ) {}
 
   async execute(command: ResolveMovementCommand): Promise<Action> {
+    this.logger.log(`Execute << ${JSON.stringify(command)}`);
     const action = await this.actionRepository.findById(command.actionId);
     if (!action) {
       throw new NotFoundError('Action', command.actionId);
