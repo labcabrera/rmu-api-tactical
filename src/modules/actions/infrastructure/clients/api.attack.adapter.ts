@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { TokenService } from '../../../auth/token.service';
-import { BadGatewayError, ValidationError } from '../../../shared/domain/errors';
+import { handleAxiosError } from '../../../shared/infrastructure/api-rest/axios.error.adapter';
 import { AttackCreationRequest, AttackCreationResponse, AttackPort } from '../../application/ports/attack.port';
 
 @Injectable()
@@ -27,19 +27,8 @@ export class ApiAttackClientAdapter implements AttackPort {
         },
       });
       return response.data as AttackCreationResponse;
-    } catch (err) {
-      if (axios.isAxiosError(err)) {
-        if (err.code === 'ECONNREFUSED') {
-          this.logger.error(`Attack API is not available at ${uri}. Error code: ${err.code}`);
-          throw new BadGatewayError('Attack API is not available');
-        } else if (err.response && err.response.status) {
-          this.logger.error(`Attack API return status ${err.response.status} at ${uri}. Error code: ${err.code}`);
-          if (err.response.status === 400) {
-            throw new ValidationError('Invalid request');
-          }
-        }
-      }
-      throw err;
+    } catch (err: unknown) {
+      throw handleAxiosError(err, uri);
     }
   }
 

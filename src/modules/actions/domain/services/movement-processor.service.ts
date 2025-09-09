@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ActorRound } from '../../../actor-rounds/domain/entities/actor-round.aggregate';
 import { ValidationError } from '../../../shared/domain/errors';
 import { Character } from '../../../strategic/application/ports/character.port';
+import type { ManeuverPort } from '../../application/ports/maneuver.port';
 import { ActionMovementBonus } from '../entities/action-movement.vo';
 import { Action } from '../entities/action.aggregate';
 
@@ -31,13 +32,17 @@ export class MovementProcessorService {
     ['dash', 1],
   ]);
 
-  process(roll: number | undefined, action: Action, character: Character, actorRound: ActorRound): void {
+  constructor(@Inject('ManeuverPort') private readonly maneuverClient: ManeuverPort) {}
+
+  async process(roll: number | undefined, action: Action, character: Character, actorRound: ActorRound): Promise<void> {
     if (!action.movement || !action.movement.modifiers) {
       throw new Error('Action does not have movement data');
     } else if (!action.actionPoints) {
       throw new Error('Action does not have action points data');
     }
     let percent = 100;
+    let critical: string | undefined = undefined;
+    let message: string | undefined = undefined;
     if (action.movement.modifiers.requiredManeuver) {
       if (!roll) {
         throw new Error('Roll is required for movement with requiredManeuver');
@@ -56,8 +61,10 @@ export class MovementProcessorService {
         roll: roll,
         totalRoll: modifiers.reduce((sum, mod) => sum + mod.value, 0),
       };
-      //TODO call core api to get success percent
-      percent = 50;
+      const maneuverResult = await this.maneuverClient.percent(action.movement.roll.totalRoll);
+      percent = maneuverResult.percent;
+      critical = maneuverResult.critical;
+      message = maneuverResult.message;
     }
     const bmr = character.movement.baseMovementRate;
     const paceMultiplier = this.getPaceMultiplier(action.movement.modifiers.pace);
@@ -68,8 +75,8 @@ export class MovementProcessorService {
       percent: percent,
       distance: distance,
       distanceAdjusted: distance,
-      critical: undefined,
-      description: 'Successful movement',
+      critical: critical,
+      description: message || `Completed at ${percent}% success`,
     };
   }
 

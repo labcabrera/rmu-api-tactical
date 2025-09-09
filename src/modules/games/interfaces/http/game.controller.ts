@@ -7,7 +7,7 @@ import { ApiBody, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiResponse,
 
 import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
 import { Page } from '../../../shared/domain/entities/page.entity';
-import { ErrorDto, PagedQueryDto } from '../../../shared/infrastructure/controller/dto';
+import { ErrorDto, PagedQueryDto } from '../../../shared/interfaces/http/dto';
 
 import { AddGameActorsCommand } from '../../application/cqrs/commands/add-game-actors.command';
 import { CreateGameCommand } from '../../application/cqrs/commands/create-game.command';

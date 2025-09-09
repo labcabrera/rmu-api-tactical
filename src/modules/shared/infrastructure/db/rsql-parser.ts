@@ -1,9 +1,9 @@
+// NOSONAR
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-
 import { Injectable, Logger } from '@nestjs/common';
 import { parse } from '@rsql/parser';
 import { InvalidSearchExpression } from '../../domain/errors';

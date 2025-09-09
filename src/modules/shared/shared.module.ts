@@ -5,9 +5,9 @@ import { TerminusModule } from '@nestjs/terminus';
 
 import { HttpModule } from '@nestjs/axios';
 import { AuthModule } from 'src/modules/auth/auth.module';
-import { HealthController } from './infrastructure/controller/health.controller';
+import { RsqlParser } from './infrastructure/db/rsql-parser';
 import { KafkaProducerService } from './infrastructure/messaging/kafka-producer.service';
-import { RsqlParser } from './infrastructure/messaging/rsql-parser';
+import { HealthController } from './interfaces/http/health.controller';
 
 @Module({
   imports: [TerminusModule, CqrsModule, ConfigModule, HttpModule, AuthModule],

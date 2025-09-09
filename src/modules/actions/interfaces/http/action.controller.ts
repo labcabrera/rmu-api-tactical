@@ -5,7 +5,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
 import { Page } from '../../../shared/domain/entities/page.entity';
-import { ErrorDto, PagedQueryDto } from '../../../shared/infrastructure/controller/dto';
+import { ErrorDto, PagedQueryDto } from '../../../shared/interfaces/http/dto';
 import { CreateActionCommand } from '../../application/cqrs/commands/create-action.command';
 import { DeleteActionCommand } from '../../application/cqrs/commands/delete-action.command';
 import { PrepareAttackCommand } from '../../application/cqrs/commands/prepare-attack.command';

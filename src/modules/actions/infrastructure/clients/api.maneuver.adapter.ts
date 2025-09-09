@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { TokenService } from '../../../auth/token.service';
-import { BadGatewayError, ValidationError } from '../../../shared/domain/errors';
+import { handleAxiosError } from '../../../shared/infrastructure/api-rest/axios.error.adapter';
 import { ManeuverPort, PercentManeuverResponse } from '../../application/ports/maneuver.port';
 
 @Injectable()
@@ -28,18 +28,7 @@ export class ApiManeuverAdapter implements ManeuverPort {
       });
       return response.data;
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        if (err.code === 'ECONNREFUSED') {
-          this.logger.error(`Core API is not available at ${uri}. Error code: ${err.code}`);
-          throw new BadGatewayError('Core API is not available');
-        } else if (err.response && err.response.status) {
-          this.logger.error(`Core API return status ${err.response.status} at ${uri}. Error code: ${err.code}`);
-          if (err.response.status === 400) {
-            throw new ValidationError('Invalid request');
-          }
-        }
-      }
-      throw err;
+      throw handleAxiosError(err, uri);
     }
   }
 }

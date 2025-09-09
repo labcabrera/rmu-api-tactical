@@ -5,7 +5,7 @@ import { Model } from 'mongoose';
 
 import { Page } from '../../../shared/domain/entities/page.entity';
 import { NotFoundError } from '../../../shared/domain/errors';
-import { RsqlParser } from '../../../shared/infrastructure/messaging/rsql-parser';
+import { RsqlParser } from '../../../shared/infrastructure/db/rsql-parser';
 import { GameRepository } from '../../application/ports/game.repository';
 import { Actor } from '../../domain/entities/actor.vo';
 import { Game } from '../../domain/entities/game.aggregate';

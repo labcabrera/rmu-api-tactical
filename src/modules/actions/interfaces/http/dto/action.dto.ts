@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { PaginationDto } from '../../../../shared/infrastructure/controller/dto';
+import { PaginationDto } from '../../../../shared/interfaces/http/dto';
 import type { ActionStatus } from '../../../domain/entities/action-status.vo';
 import type { ActionType } from '../../../domain/entities/action-type.vo';
 import * as actionEntity from '../../../domain/entities/action.aggregate';
