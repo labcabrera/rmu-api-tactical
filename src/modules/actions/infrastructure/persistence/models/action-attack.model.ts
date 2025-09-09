@@ -20,8 +20,8 @@ export class ActionAttackModifiers {
   public positionalSource: string | undefined;
   public positionalTarget: string | undefined;
   public dodge: string | undefined;
-  public range: string | undefined;
-  public customBonus: string | undefined;
+  public range: number | undefined;
+  public customBonus: number | undefined;
   public disabledDB: boolean | undefined;
   public disabledShield: boolean | undefined;
   public disabledParry: boolean | undefined;

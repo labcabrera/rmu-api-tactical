@@ -4,15 +4,15 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
 import { ActorRound } from '../../../../actor-rounds/domain/entities/actor-round.aggregate';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
-import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../../shared/domain/errors';
+import { NotFoundError, UnprocessableEntityError } from '../../../../shared/domain/errors';
 import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
-import { ActionAttack } from '../../../domain/entities/action-attack.vo';
+import { ActionAttack, ActionAttackModifiers } from '../../../domain/entities/action-attack.vo';
 import { Action } from '../../../domain/entities/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
-import type { AttackPort } from '../../ports/attack.port';
-import { PrepareAttackCommand } from '../commands/prepare-attack.command';
+import type { AttackCreationRequest, AttackPort, AttackRollModifiers, AttackSituationalModifiers } from '../../ports/attack.port';
+import { PrepareAttackCommand, PrepareAttackCommandItem } from '../commands/prepare-attack.command';
 
 @CommandHandler(PrepareAttackCommand)
 export class PrepareAttackHandler implements ICommandHandler<PrepareAttackCommand, Action> {
@@ -33,40 +33,20 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     if (!action) {
       throw new NotFoundError('Action', command.actionId);
     }
-    if (action.actionType !== 'attack') {
-      throw new ValidationError('Action is not an attack');
-    }
-    if (action.status !== 'declared') {
-      throw new ValidationError('Action is not in a preparable state');
-    }
     const game = await this.gameRepository.findById(action.gameId);
     if (!game) {
       throw new UnprocessableEntityError('Game not found');
     }
-    switch (game.phase) {
-      case 'phase_1':
-      case 'phase_2':
-      case 'phase_3':
-      case 'phase_4':
-        break;
-      default:
-        throw new ValidationError('Game is not in a phase that allows action preparation');
-    }
-    const attack = action.attacks?.find((attack) => attack.modifiers.attackName === command.attackName);
-    if (!attack) {
-      throw new ValidationError(`Attack type ${command.attackName} not found in action`);
-    }
+    game.checkValidActionManagement();
+    const actionAttacks = command.attacks.map((attack) => this.mapAttacks(attack));
+    //TODO check intermediate action
+    const actionPoints = game.getActionPhase() - action.phaseStart + 1;
+    const actorRoundIds = Array.from(new Set(actionAttacks.map((a) => a.modifiers.targetId).concat([action.actorId])));
+    const actors = await this.actorRoundRepository.findByIds(actorRoundIds);
+    const requestAttaks = actionAttacks.map((attack) => this.mapAttack(actionPoints, action, attack.modifiers, actors));
 
-    const actorRoundSource = await this.actorRoundRepository.findByActorIdAndRound(action.actorId, action.round);
-    if (!actorRoundSource) {
-      throw new UnprocessableEntityError('Source actor round not found');
-    }
-    const actorRoundTarget = await this.actorRoundRepository.findByActorIdAndRound(attack.modifiers.targetId, action.round);
-    if (!actorRoundTarget) {
-      throw new UnprocessableEntityError('Target actor round not found');
-    }
+    console.log('Request attacks', requestAttaks);
 
-    await this.createAttack(action, attack, actorRoundSource, actorRoundTarget, command);
     action.status = 'in_progress';
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action.id, action);
@@ -74,28 +54,20 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     return updated;
   }
 
-  private async createAttack(
+  private mapAttack(
+    actionPoints: number,
     action: Action,
-    attack: ActionAttack,
-    actionRoundSource: ActorRound,
-    actionRoundTarget: ActorRound,
-    command: PrepareAttackCommand,
-  ): Promise<void> {
-    const actorSource = await this.characterClient.findById(action.actorId);
-    if (!actorSource) {
-      throw new UnprocessableEntityError('Missing source actor');
+    attackModifiers: ActionAttackModifiers,
+    actors: ActorRound[],
+  ): AttackCreationRequest {
+    const actorSource = actors.find((a) => a.actorId === action.actorId)!;
+    const actorTarget = actors.find((a) => a.actorId === attackModifiers.targetId)!;
+    const attack = actorSource?.attacks?.find((a) => a.attackName === attackModifiers.attackName);
+    if (!attack) {
+      throw new UnprocessableEntityError('Attack not found on actor');
     }
-    const actorTarget = await this.characterClient.findById(attack.modifiers.targetId);
-    if (!actorTarget) {
-      throw new UnprocessableEntityError('Missing target actor');
-    }
-    const attackInfo = actorSource.attacks?.find((a) => a.attackName === command.attackName);
-    if (!attackInfo) {
-      throw new UnprocessableEntityError('Missing attack info');
-    }
-
     //TODO MAP
-    const offHand = false;
+    const offHand = attackModifiers.attackName.toLowerCase().includes('off-hand');
     const twoHandedWeapon = false;
     const attackFeatures = [];
     const injuryPenalty = 0;
@@ -103,59 +75,61 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const rangePenalty = 0;
     const shield = 0;
     const parry = 0;
+
+    const rollModifiers = {
+      bo: attackModifiers.bo,
+      bd: 12, //TODO MAP actorTarget
+      injuryPenalty: injuryPenalty,
+      fatiguePenalty: fatiguePenalty,
+      rangePenalty: rangePenalty,
+      shield: shield,
+      parry: parry,
+      customBonus: attackModifiers.customBonus,
+    } as AttackRollModifiers;
+    const situationalModifiers = {
+      cover: attackModifiers.cover || 'none',
+      restrictedQuarters: attackModifiers.restrictedQuarters || 'none',
+      positionalSource: attackModifiers.positionalSource || 'none',
+      positionalTarget: attackModifiers.positionalTarget || 'none',
+      dodge: attackModifiers.dodge || 'none',
+      disabledDB: attackModifiers.disabledDB || false,
+      disabledShield: attackModifiers.disabledShield || false,
+      disabledParry: attackModifiers.disabledParry || false,
+      sizeDifference: 0, //TODO this.calculateSizeDifference(actorSource.info.sizeId, actorTarget.info.sizeId),
+      offHand: offHand,
+      twoHandedWeapon: twoHandedWeapon,
+      sourceStatus: this.mapActorRoundEffects(actorSource),
+      targetStatus: this.mapActorRoundEffects(actorTarget),
+    } as AttackSituationalModifiers;
+
     const request = {
       actionId: action.id,
       sourceId: action.actorId,
-      targetId: attack.modifiers.targetId,
+      targetId: attackModifiers.targetId,
       modifiers: {
         attackType: 'melee',
-        attackTable: attackInfo.attackTable,
-        attackSize: this.getAttackSize(attackInfo.sizeAdjustment),
-        fumbleTable: attackInfo.fumbleTable,
-        at: actorTarget.defense.armorType,
-        actionPoints: action.actionPoints!,
-        fumble: attackInfo.fumble,
-        rollModifiers: {
-          bo: attackInfo.bo,
-          bd: actorTarget.defense.defensiveBonus,
-          injuryPenalty: injuryPenalty,
-          fatiguePenalty: fatiguePenalty,
-          rangePenalty: rangePenalty,
-          shield: shield,
-          parry: parry,
-          customBonus: command.customBonus,
-        },
-        situationalModifiers: {
-          cover: command.cover,
-          restrictedQuarters: command.restrictedQuarters,
-          positionalSource: command.positionalSource,
-          positionalTarget: command.positionalTarget,
-          dodge: command.dodge,
-          disabledDB: command.disabledDB,
-          disabledShield: command.disabledShield,
-          disabledParry: command.disabledParry,
-          sizeDifference: this.calculateSizeDifference(actorSource.info.sizeId, actorTarget.info.sizeId),
-          offHand: offHand,
-          twoHandedWeapon: twoHandedWeapon,
-          sourceStatus: this.mapActorRoundEffects(actionRoundSource),
-          targetStatus: this.mapActorRoundEffects(actionRoundTarget),
-        },
+        attackTable: attack.attackTable,
+        attackSize: 'medium', //this.getAttackSize(attack.sizeAdjustment),
+        fumbleTable: attack.fumbleTable,
+        at: 1, //TODO map
+        actionPoints: actionPoints,
+        fumble: attack.fumble,
+        rollModifiers: rollModifiers,
+        situationalModifiers: situationalModifiers,
         features: attackFeatures,
       },
     };
-    const response = await this.attackClient.prepareAttack(request);
-    attack.externalAttackId = response.id;
-    attack.status = 'in_progress';
+    return request;
   }
 
   private getAttackSize(size: number): string {
     switch (size) {
       case -1:
-        return 'Small';
+        return 'small';
       case 0:
-        return 'Medium';
+        return 'medium';
       case 1:
-        return 'Large';
+        return 'big';
       default:
         throw new UnprocessableEntityError('Invalid size value');
     }
@@ -171,5 +145,26 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
 
   private mapActorRoundEffects(actorRound: ActorRound): string[] {
     return actorRound.effects?.map((effect) => effect.status) || [];
+  }
+
+  private mapAttacks(commandAttack: PrepareAttackCommandItem): ActionAttack {
+    const modifiers = new ActionAttackModifiers(
+      commandAttack.attackName,
+      'melee',
+      commandAttack.targetId,
+      0,
+      commandAttack.bo,
+      commandAttack.cover,
+      commandAttack.restrictedQuarters,
+      commandAttack.positionalSource,
+      commandAttack.positionalTarget,
+      commandAttack.dodge,
+      commandAttack.range,
+      commandAttack.customBonus,
+      commandAttack.disabledDB,
+      commandAttack.disabledShield,
+      commandAttack.disabledParry,
+    );
+    return new ActionAttack(modifiers, undefined, 'declared');
   }
 }

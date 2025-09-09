@@ -20,6 +20,10 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
     return this.actorRoundModel.findById(id).then((readed) => (readed ? this.mapToEntity(readed) : null));
   }
 
+  async findByIds(ids: string[]): Promise<ActorRound[]> {
+    return this.actorRoundModel.find({ _id: { $in: ids } }).then((readed) => (readed ? readed.map((e) => this.mapToEntity(e)) : []));
+  }
+
   async findByRsql(rsql: string, page: number, size: number): Promise<Page<ActorRound>> {
     const skip = page * size;
     const mongoQuery = this.rsqlParser.parse(rsql);

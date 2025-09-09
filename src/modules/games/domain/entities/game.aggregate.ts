@@ -155,4 +155,18 @@ export class Game extends AggregateRoot<Game> {
     this.addDomainEvent(new GamePhaseStartedEvent(this));
     this.updatedAt = new Date();
   }
+
+  getActionPhase(): number {
+    this.checkValidActionManagement();
+    return parseInt(this.phase.replace('phase_', ''));
+  }
+
+  checkValidActionManagement() {
+    if (this.status !== 'in_progress') {
+      throw new ValidationError('Game is not in progress');
+    }
+    if (!['phase_1', 'phase_2', 'phase_3', 'phase_4'].includes(this.phase)) {
+      throw new ValidationError('Game is not in a phase that allows action management');
+    }
+  }
 }

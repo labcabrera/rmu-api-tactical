@@ -60,4 +60,13 @@ export class Action extends AggregateRoot<Action> {
     );
     return action;
   }
+
+  prepare() {
+    if (this.actionType !== 'attack') {
+      throw new Error('Action is not an attack');
+    }
+    if (this.status !== 'declared') {
+      throw new Error('Action is not in a preparable state');
+    }
+  }
 }
