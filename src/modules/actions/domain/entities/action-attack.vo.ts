@@ -1,3 +1,4 @@
+import { Modifier } from '../../../shared/domain/entities/modifier.vo';
 import { ActionStatus } from './action-status.vo';
 
 export type AttackType = 'melee' | 'ranged' | 'thrown';
@@ -6,6 +7,7 @@ export class ActionAttack {
   constructor(
     public modifiers: ActionAttackModifiers,
     public externalAttackId: string | undefined,
+    public calculated: ActionAttackCalculated | undefined,
     public status: ActionStatus,
   ) {}
 }
@@ -27,5 +29,12 @@ export class ActionAttackModifiers {
     public disabledDB: boolean | undefined,
     public disabledShield: boolean | undefined,
     public disabledParry: boolean | undefined,
+  ) {}
+}
+
+export class ActionAttackCalculated {
+  constructor(
+    public rollModifiers: Modifier[],
+    public rollTotal: number,
   ) {}
 }

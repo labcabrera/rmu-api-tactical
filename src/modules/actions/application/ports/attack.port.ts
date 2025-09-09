@@ -68,7 +68,17 @@ export interface AttackCreationRequest {
   modifiers: AttackModifiers;
 }
 
+export interface KeyValue {
+  key: string;
+  value: number;
+}
+
+export interface AttackCalculated {
+  rollModifiers: KeyValue[];
+  rollTotal: number;
+}
+
 export interface AttackCreationResponse {
-  //TODO
   id: string;
+  calculated: AttackCalculated;
 }

@@ -6,7 +6,7 @@ import { ActorRound } from '../../../../actor-rounds/domain/entities/actor-round
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, UnprocessableEntityError } from '../../../../shared/domain/errors';
 import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
-import { ActionAttack, ActionAttackModifiers } from '../../../domain/entities/action-attack.vo';
+import { ActionAttack, ActionAttackCalculated, ActionAttackModifiers } from '../../../domain/entities/action-attack.vo';
 import { Action } from '../../../domain/entities/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
@@ -42,11 +42,16 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     //TODO check intermediate action
     const actionPoints = game.getActionPhase() - action.phaseStart + 1;
     const actorRoundIds = Array.from(new Set(actionAttacks.map((a) => a.modifiers.targetId).concat([action.actorId])));
-    const actors = await this.actorRoundRepository.findByIds(actorRoundIds);
-    const requestAttaks = actionAttacks.map((attack) => this.mapAttack(actionPoints, action, attack.modifiers, actors));
+    const rsql = `gameId==${action.gameId};round==${game.round};actorId=in=(${actorRoundIds.join(',')})`;
+    const actors = (await this.actorRoundRepository.findByRsql(rsql, 0, 1000)).content;
+    if (actorRoundIds.length !== actors.length) {
+      throw new UnprocessableEntityError('Some actors not found in the current round');
+    }
+    const requestAttaks = await Promise.all(actionAttacks.map((attack) => this.processAttackPort(attack, actionPoints, action, actors)));
 
     console.log('Request attacks', requestAttaks);
 
+    action.attacks = actionAttacks;
     action.status = 'in_progress';
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action.id, action);
@@ -54,16 +59,19 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     return updated;
   }
 
-  private mapAttack(
-    actionPoints: number,
-    action: Action,
-    attackModifiers: ActionAttackModifiers,
-    actors: ActorRound[],
-  ): AttackCreationRequest {
+  private async processAttackPort(attack: ActionAttack, actionPoints: number, action: Action, actors: ActorRound[]): Promise<void> {
+    const request = this.mapAttack(attack, actionPoints, action, actors);
+    const portResponse = await this.attackClient.prepareAttack(request);
+    attack.externalAttackId = portResponse.id;
+    attack.calculated = new ActionAttackCalculated(portResponse.calculated.rollModifiers, portResponse.calculated.rollTotal);
+  }
+
+  private mapAttack(attack: ActionAttack, actionPoints: number, action: Action, actors: ActorRound[]): AttackCreationRequest {
+    const attackModifiers = attack.modifiers;
     const actorSource = actors.find((a) => a.actorId === action.actorId)!;
     const actorTarget = actors.find((a) => a.actorId === attackModifiers.targetId)!;
-    const attack = actorSource?.attacks?.find((a) => a.attackName === attackModifiers.attackName);
-    if (!attack) {
+    const attackInfo = actorSource?.attacks?.find((a) => a.attackName === attackModifiers.attackName);
+    if (!attackInfo) {
       throw new UnprocessableEntityError('Attack not found on actor');
     }
     //TODO MAP
@@ -108,12 +116,12 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       targetId: attackModifiers.targetId,
       modifiers: {
         attackType: 'melee',
-        attackTable: attack.attackTable,
+        attackTable: attackInfo.attackTable,
         attackSize: 'medium', //this.getAttackSize(attack.sizeAdjustment),
-        fumbleTable: attack.fumbleTable,
+        fumbleTable: attackInfo.fumbleTable,
         at: 1, //TODO map
         actionPoints: actionPoints,
-        fumble: attack.fumble,
+        fumble: attackInfo.fumble,
         rollModifiers: rollModifiers,
         situationalModifiers: situationalModifiers,
         features: attackFeatures,
@@ -165,6 +173,6 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       commandAttack.disabledShield,
       commandAttack.disabledParry,
     );
-    return new ActionAttack(modifiers, undefined, 'declared');
+    return new ActionAttack(modifiers, undefined, undefined, 'declared');
   }
 }

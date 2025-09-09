@@ -21,7 +21,9 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
   }
 
   async findByIds(ids: string[]): Promise<ActorRound[]> {
-    return this.actorRoundModel.find({ _id: { $in: ids } }).then((readed) => (readed ? readed.map((e) => this.mapToEntity(e)) : []));
+    if (!ids || ids.length === 0) return [];
+    const docs = await this.actorRoundModel.find({ _id: { $in: ids } });
+    return docs.map((doc) => this.mapToEntity(doc));
   }
 
   async findByRsql(rsql: string, page: number, size: number): Promise<Page<ActorRound>> {
