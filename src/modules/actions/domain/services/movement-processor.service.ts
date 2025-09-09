@@ -57,7 +57,8 @@ export class MovementProcessorService {
       });
       modifiers.push({ key: 'roll', value: roll });
       action.movement.roll = {
-        rollModifiers: modifiers.filter((mod) => mod.value !== 0),
+        // modifiers: modifiers.filter((mod) => mod.value !== 0),
+        modifiers: modifiers,
         roll: roll,
         totalRoll: modifiers.reduce((sum, mod) => sum + mod.value, 0),
       };
@@ -76,7 +77,7 @@ export class MovementProcessorService {
       distance: distance,
       distanceAdjusted: distance,
       critical: critical,
-      description: message || `Completed at ${percent}% success`,
+      description: message || `Completed at ${percent}%`,
     };
   }
 

@@ -38,7 +38,7 @@ export class ActionMovementModifiersDto {
 }
 
 export class ActionMovementRollDto {
-  rollModifiers: ActionMovementBonusDto[];
+  modifiers: ActionMovementBonusDto[];
   roll: number;
   totalRoll: number;
 
@@ -46,7 +46,7 @@ export class ActionMovementRollDto {
     if (!roll) return undefined;
 
     const dto = new ActionMovementRollDto();
-    dto.rollModifiers = roll.rollModifiers.map((e) => ActionMovementBonusDto.fromEntity(e));
+    dto.modifiers = roll.modifiers.map((e) => ActionMovementBonusDto.fromEntity(e));
     dto.roll = roll.roll;
     dto.totalRoll = roll.totalRoll;
     return dto;
