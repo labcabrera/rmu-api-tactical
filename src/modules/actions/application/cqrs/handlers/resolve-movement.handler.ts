@@ -10,9 +10,9 @@ import { ActionMovement, ActionMovementModifiers } from '../../../domain/entitie
 import { Action } from '../../../domain/entities/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import { FatigueProcessorService } from '../../../domain/services/fatigue-processor.service';
-import { MovementProcessorService } from '../../../domain/services/movement-processor.service';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
+import { MovementProcessorService } from '../../services/movement-processor.service';
 import { ResolveMovementCommand } from '../commands/resolve-movement.command';
 
 @CommandHandler(ResolveMovementCommand)

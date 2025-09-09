@@ -15,6 +15,7 @@ export interface Character {
   defense: CharacterDefense;
   hp: CharacterHP;
   initiative: CharacterInitiative;
+  skills: CharacterSkill[];
   equipment: CharacterEquipment;
   attacks: CharacterAttack[];
   owner: string;
@@ -40,6 +41,11 @@ export interface CharacterHP {
 
 export interface CharacterInitiative {
   baseBonus: number;
+}
+
+export interface CharacterSkill {
+  skillId: string;
+  totalBonus: number;
 }
 
 export interface CharacterEquipment {

@@ -15,8 +15,8 @@ import { GetActionQueryHandler } from './application/cqrs/handlers/get-action.ha
 import { GetActionsQueryHandler } from './application/cqrs/handlers/get-actions.handler';
 import { PrepareAttackHandler } from './application/cqrs/handlers/prepare-attack.handler';
 import { ResolveMovementHandler } from './application/cqrs/handlers/resolve-movement.handler';
+import { MovementProcessorService } from './application/services/movement-processor.service';
 import { FatigueProcessorService } from './domain/services/fatigue-processor.service';
-import { MovementProcessorService } from './domain/services/movement-processor.service';
 import { ApiAttackClientAdapter } from './infrastructure/clients/api.attack.adapter';
 import { ApiManeuverAdapter } from './infrastructure/clients/api.maneuver.adapter';
 import { MongoActionRepository } from './infrastructure/db/mongo.action.repository';

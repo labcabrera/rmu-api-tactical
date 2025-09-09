@@ -1,10 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ActorRound } from '../../../actor-rounds/domain/entities/actor-round.aggregate';
 import { ValidationError } from '../../../shared/domain/errors';
-import { Character } from '../../../strategic/application/ports/character.port';
-import type { ManeuverPort } from '../../application/ports/maneuver.port';
-import { ActionMovementBonus } from '../entities/action-movement.vo';
-import { Action } from '../entities/action.aggregate';
+import type { Character } from '../../../strategic/application/ports/character.port';
+import { ActionMovementBonus } from '../../domain/entities/action-movement.vo';
+import { Action } from '../../domain/entities/action.aggregate';
+import type { ManeuverPort } from '../ports/maneuver.port';
 
 @Injectable()
 export class MovementProcessorService {
@@ -32,7 +32,7 @@ export class MovementProcessorService {
     ['dash', 1],
   ]);
 
-  constructor(@Inject('ManeuverPort') private readonly maneuverClient: ManeuverPort) {}
+  constructor(@Inject('ManeuverPort') private readonly maneuverPort: ManeuverPort) {}
 
   async process(roll: number | undefined, action: Action, character: Character, actorRound: ActorRound): Promise<void> {
     if (!action.movement || !action.movement.modifiers) {
@@ -47,7 +47,9 @@ export class MovementProcessorService {
       if (!roll) {
         throw new Error('Roll is required for movement with requiredManeuver');
       }
+      const skillId = action.movement.modifiers.skillId || 'running';
       const modifiers: ActionMovementBonus[] = [];
+      modifiers.push({ key: skillId, value: this.getSkillModifier(skillId, character) });
       modifiers.push({ key: 'difficulty', value: this.getGetDifificultyModifier(action.movement.modifiers.difficulty!) });
       modifiers.push({ key: 'armor-penalty', value: character.equipment.maneuverPenalty });
       modifiers.push({ key: 'custom-bonus', value: action.movement.modifiers.customBonus || 0 });
@@ -62,7 +64,7 @@ export class MovementProcessorService {
         roll: roll,
         totalRoll: modifiers.reduce((sum, mod) => sum + mod.value, 0),
       };
-      const maneuverResult = await this.maneuverClient.percent(action.movement.roll.totalRoll);
+      const maneuverResult = await this.maneuverPort.percent(action.movement.roll.totalRoll);
       percent = maneuverResult.percent;
       critical = maneuverResult.critical;
       message = maneuverResult.message;
@@ -79,6 +81,14 @@ export class MovementProcessorService {
       critical: critical,
       description: message || `Completed at ${percent}%`,
     };
+  }
+
+  private getSkillModifier(skillId: string, character: Character): number {
+    if (!character.skills || character.skills.length === 0) {
+      return 0;
+    }
+    const skill = character.skills.find((s) => s.skillId === skillId);
+    return skill ? skill.totalBonus : 0;
   }
 
   private getPaceMultiplier(pace: string): number {
