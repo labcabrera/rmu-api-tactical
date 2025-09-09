@@ -12,7 +12,7 @@ export class DeleteGameActorsHandler implements ICommandHandler<DeleteGameActors
 
   constructor(
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('GameEventProducer') private readonly gameEventBus: GameEventBusPort,
+    @Inject('GameEventBus') private readonly gameEventBus: GameEventBusPort,
   ) {}
 
   async execute(command: DeleteGameActorsCommand): Promise<Game> {

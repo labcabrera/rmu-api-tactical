@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
-import { PaginationDto } from '../../../../shared/infrastructure/controller/dto';
+import { PaginationDto } from '../../../../shared/interfaces/http/dto';
 import { UpdateGameCommand } from '../../../application/cqrs/commands/update-game.command';
 import * as gamePhaseVo from '../../../domain/entities/game-phase.vo';
 import * as gameStatusVo from '../../../domain/entities/game-status.vo';

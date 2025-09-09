@@ -4,11 +4,11 @@ import type { ActorRoundRepository } from '../../../../actor-rounds/application/
 import { ActorRound } from '../../../../actor-rounds/domain/entities/actor-round.aggregate';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import type { Character, CharacterClient } from '../../../../strategic/application/ports/out/character-client';
-import type { StrategicGame, StrategicGameClient } from '../../../../strategic/application/ports/out/strategic-game-client';
-import { ActionMovementModifiers } from '../../../domain/entities/action-movement.entity';
-import { ActionMovement } from '../../../domain/entities/action-movement.vo';
+import type { Character, CharacterPort } from '../../../../strategic/application/ports/character.port';
+import type { StrategicGame, StrategicGamePort } from '../../../../strategic/application/ports/strategic-game.port';
+import { ActionMovement, ActionMovementModifiers } from '../../../domain/entities/action-movement.vo';
 import { Action } from '../../../domain/entities/action.aggregate';
+import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import { FatigueProcessorService } from '../../../domain/services/fatigue-processor.service';
 import { MovementProcessorService } from '../../../domain/services/movement-processor.service';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
@@ -25,9 +25,9 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('CharacterClient') private readonly characterClient: CharacterClient,
-    @Inject('StrategicGameClient') private readonly strategicGameClient: StrategicGameClient,
-    @Inject('ActionEventProducer') private readonly actionEventProducer: ActionEventBusPort,
+    @Inject('CharacterClient') private readonly characterClient: CharacterPort,
+    @Inject('StrategicGameClient') private readonly strategicGameClient: StrategicGamePort,
+    @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
   ) {}
 
   async execute(command: ResolveMovementCommand): Promise<Action> {
@@ -46,7 +46,6 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
       this.characterClient.findById(action.actorId),
       this.strategicGameClient.findById(game.strategicGameId),
     ]);
-
     if (!actorRound) throw new NotFoundError('ActorRound', `${action.actorId} - ${action.round}`);
     if (!character) throw new NotFoundError('Character', action.actorId);
     if (!strategicGame) throw new NotFoundError('StrategicGame', game.strategicGameId);
@@ -58,7 +57,7 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
       actorRound.fatigue.accumulator = currentFatigue + action.fatigue;
       await this.actorRoundRepository.update(actorRound.id, actorRound);
     }
-    await this.actionEventProducer.updated(updated);
+    await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
     return updated;
   }
 

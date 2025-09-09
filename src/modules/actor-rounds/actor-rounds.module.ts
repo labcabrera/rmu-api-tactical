@@ -7,7 +7,6 @@ import { AuthModule } from 'src/modules/auth/auth.module';
 import { GamesModule } from '../games/games.module';
 import { SharedModule } from '../shared/shared.module';
 import { StrategicModule } from '../strategic/strategic.module';
-
 import { AddEffectHandler } from './application/cqrs/handlers/add-effect.handler';
 import { AddHpHandler } from './application/cqrs/handlers/add-hp.handler';
 import { CreateActorRoundHandler } from './application/cqrs/handlers/create-actor-round.handler';
@@ -15,7 +14,7 @@ import { GetActorRoundHandler } from './application/cqrs/handlers/get-actor-roun
 import { GetActorRoundsHandler } from './application/cqrs/handlers/get-actor-rounds.query.handler';
 import { DeclareInitiativeCommandHandler } from './application/cqrs/handlers/update-initiative.handler';
 import { ActorRoundEffectService } from './domain/services/actor-round-effect.service';
-import { MongoActorRoundRepository } from './infrastructure/db/mongo-actor-round.repository';
+import { MongoActorRoundRepository } from './infrastructure/db/mongo.actor-round.repository';
 import { ActorRoundModel, ActorRoundSchema } from './infrastructure/persistence/models/actor-round.model';
 import { ActorRoundController } from './interfaces/http/actor-round.controller';
 

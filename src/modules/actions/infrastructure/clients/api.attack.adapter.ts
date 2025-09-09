@@ -2,11 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { TokenService } from '../../../auth/token.service';
-import { BadGatewayError, ValidationError } from '../../../shared/domain/errors';
-import { AttackClientPort, AttackCreationRequest, AttackCreationResponse } from '../../application/ports/attack-client.port';
+import { handleAxiosError } from '../../../shared/infrastructure/api-rest/axios.error.adapter';
+import { AttackCreationRequest, AttackCreationResponse, AttackPort } from '../../application/ports/attack.port';
 
 @Injectable()
-export class ApiAttackClientAdapter implements AttackClientPort {
+export class ApiAttackClientAdapter implements AttackPort {
   private readonly logger = new Logger(ApiAttackClientAdapter.name);
   private readonly apiCoreUri: string;
 
@@ -27,22 +27,8 @@ export class ApiAttackClientAdapter implements AttackClientPort {
         },
       });
       return response.data as AttackCreationResponse;
-    } catch (err) {
-      if (axios.isAxiosError(err)) {
-        if (err.code === 'ECONNREFUSED') {
-          this.logger.error(`Attack API is not available at ${uri}. Error code: ${err.code}`);
-          throw new BadGatewayError('Attack API is not available');
-        } else if (err.response && err.response.status) {
-          this.logger.error(`Attack API return status ${err.response.status} at ${uri}. Error code: ${err.code}`);
-          switch (err.response.status) {
-            case 400:
-              throw new ValidationError('Invalid request');
-            default:
-              break;
-          }
-        }
-      }
-      throw err;
+    } catch (err: unknown) {
+      throw handleAxiosError(err, uri);
     }
   }
 

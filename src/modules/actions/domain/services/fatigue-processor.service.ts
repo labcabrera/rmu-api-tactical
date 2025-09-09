@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { StrategicGame } from '../../../strategic/application/ports/out/strategic-game-client';
+import { UnprocessableEntityError } from '../../../shared/domain/errors';
+import { StrategicGame } from '../../../strategic/application/ports/strategic-game.port';
 import { Action } from '../entities/action.aggregate';
 
 @Injectable()
@@ -27,9 +28,11 @@ export class FatigueProcessorService {
   }
 
   private getCombatFatigue(action: Action): number | undefined {
-    //TODO check only for melee attacks
-    // check every 6 rounds
-    return 4.16;
+    if (!action.attacks || action.attacks.length === 0) {
+      throw new UnprocessableEntityError('Action does not have attack data');
+    }
+    // check every 6 rounds only for melee attacks
+    return action.attacks.some((e) => e.modifiers.type === 'melee') ? 4.16 : undefined;
   }
 
   private getMovementFatigue(action: Action): number | undefined {

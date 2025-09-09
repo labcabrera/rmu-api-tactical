@@ -24,7 +24,7 @@ export class ActorRoundFatigue {
 @Schema({ _id: false })
 export class ActorRoundPenalty {
   @Prop({ required: true })
-  key: number;
+  key: string;
 
   @Prop({ required: true })
   value: number;

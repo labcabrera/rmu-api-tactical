@@ -6,7 +6,7 @@ import {
   RestrictedQuartersType,
 } from '../cqrs/commands/prepare-attack.command';
 
-export interface AttackClientPort {
+export interface AttackPort {
   prepareAttack(actionId: AttackCreationRequest): Promise<AttackCreationResponse>;
   deleteAttack(actionId: string): Promise<void>;
 }

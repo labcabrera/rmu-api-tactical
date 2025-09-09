@@ -25,3 +25,11 @@ WARNING: *This application is an independent project developed by fans of Rolema
 
 
 image::./diagrams/c4-context.png[C4 Context Diagram]
+
+== Technologies
+
+* NestJS
+* DDD
+* CQRS
+* MongoDB
+* Kafka

@@ -20,7 +20,7 @@ import { GetGamesHandler } from './application/cqrs/handlers/get-games.handler';
 import { StartPhaseHandler } from './application/cqrs/handlers/start-phase.handler';
 import { StartRoundHandler } from './application/cqrs/handlers/start-round.handler';
 import { UpdateGameHandler } from './application/cqrs/handlers/update-game.handler';
-import { MongoGameRepository } from './infrastructure/db/mongo-game.repository';
+import { MongoGameRepository } from './infrastructure/db/mongo.game.repository';
 import { KafkaGameEventBusAdapter } from './infrastructure/messaging/kafka.game-bus.adapter';
 import { GameModel, GameSchema } from './infrastructure/persistence/models/game.model';
 import { GameController } from './interfaces/http/game.controller';
@@ -58,7 +58,7 @@ import { StrategicGameKafkaConsumer } from './interfaces/messaging/kafka.strateg
       useClass: MongoGameRepository,
     },
     {
-      provide: 'GameEventProducer',
+      provide: 'GameEventBus',
       useClass: KafkaGameEventBusAdapter,
     },
   ],

@@ -15,7 +15,7 @@ export class StartPhaseHandler implements ICommandHandler<StartPhaseCommand, Gam
   constructor(
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject('GameEventProducer') private readonly gameEventBus: GameEventBusPort,
+    @Inject('GameEventBus') private readonly gameEventBus: GameEventBusPort,
   ) {}
 
   async execute(command: StartRoundCommand): Promise<Game> {

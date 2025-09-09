@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose/dist/common/mongoose.decorators';
 import { Model } from 'mongoose';
 import { Page } from '../../../shared/domain/entities/page.entity';
 import { NotFoundError } from '../../../shared/domain/errors';
-import { RsqlParser } from '../../../shared/infrastructure/messaging/rsql-parser';
+import { RsqlParser } from '../../../shared/infrastructure/db/rsql-parser';
 import { ActionRepository } from '../../application/ports/action.repository';
 import { Action } from '../../domain/entities/action.aggregate';
 import { ActionDocument, ActionModel } from '../persistence/models/action.model';
@@ -16,8 +16,7 @@ export class MongoActionRepository implements ActionRepository {
   ) {}
 
   async findById(id: string): Promise<Action | null> {
-    const readed = await this.actionModel.findById(id);
-    return readed ? this.mapToEntity(readed) : null;
+    return this.actionModel.findById(id).then((readed) => (readed ? this.mapToEntity(readed) : null));
   }
 
   async findByRsql(rsql: string, page: number, size: number): Promise<Page<Action>> {
@@ -33,8 +32,7 @@ export class MongoActionRepository implements ActionRepository {
 
   async save(request: Partial<Action>): Promise<Action> {
     const model = new this.actionModel({ ...request, _id: request.id });
-    await model.save();
-    return this.mapToEntity(model);
+    return model.save().then((saved) => this.mapToEntity(saved));
   }
 
   async update(id: string, request: Partial<Action>): Promise<Action> {

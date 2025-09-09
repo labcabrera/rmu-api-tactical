@@ -8,7 +8,7 @@ import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { DomainExceptionFilter } from './modules/shared/infrastructure/controller/domain-exception.filter';
+import { DomainExceptionFilter } from './modules/shared/interfaces/http/domain-exception.filter';
 
 function configureOpenApi(app: INestApplication<any>) {
   const openApiConfig = new DocumentBuilder()

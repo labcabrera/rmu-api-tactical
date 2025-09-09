@@ -1,4 +1,4 @@
-export interface StrategicGameClient {
+export interface StrategicGamePort {
   findById: (id: string) => Promise<StrategicGame | undefined>;
 }
 

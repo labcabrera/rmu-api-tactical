@@ -13,8 +13,10 @@ export class ActionManeuver {
 }
 
 export class ActionManeuverResult {
-  bonus: { [key: string]: number };
-  roll: number;
-  result: number;
-  description: string;
+  constructor(
+    public bonus: { [key: string]: number },
+    public roll: number,
+    public result: number,
+    public description: string,
+  ) {}
 }
