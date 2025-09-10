@@ -5,17 +5,28 @@ export type PositionalTargetType = 'none' | 'flank' | 'rear';
 export type DodgeType = 'none' | 'passive' | 'partial' | 'full';
 
 export class PrepareAttackCommand {
-  actionId: string;
-  attackName: string;
-  cover: CoverType;
-  restrictedQuarters: RestrictedQuartersType;
-  positionalSource: PositionalSourceType;
-  positionalTarget: PositionalTargetType;
-  dodge: DodgeType;
-  disabledDB: boolean;
-  disabledShield: boolean;
-  disabledParry: boolean;
-  customBonus: number | undefined;
-  userId: string;
-  roles: string[];
+  constructor(
+    public readonly actionId: string,
+    public readonly attacks: PrepareAttackCommandItem[],
+    public readonly userId,
+    public readonly userRoles,
+  ) {}
+}
+
+export class PrepareAttackCommandItem {
+  constructor(
+    public readonly attackName: string,
+    public readonly targetId: string,
+    public readonly bo: number,
+    public readonly cover: CoverType | undefined,
+    public readonly restrictedQuarters: RestrictedQuartersType | undefined,
+    public readonly positionalSource: PositionalSourceType | undefined,
+    public readonly positionalTarget: PositionalTargetType | undefined,
+    public readonly dodge: DodgeType | undefined,
+    public readonly range: number | undefined,
+    public readonly disabledDB: boolean | undefined,
+    public readonly disabledShield: boolean | undefined,
+    public readonly disabledParry: boolean | undefined,
+    public readonly customBonus: number | undefined,
+  ) {}
 }

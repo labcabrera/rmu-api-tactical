@@ -10,9 +10,9 @@ import { ActionMovement, ActionMovementModifiers } from '../../../domain/entitie
 import { Action } from '../../../domain/entities/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import { FatigueProcessorService } from '../../../domain/services/fatigue-processor.service';
-import { MovementProcessorService } from '../../../domain/services/movement-processor.service';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
+import { MovementProcessorService } from '../../services/movement-processor.service';
 import { ResolveMovementCommand } from '../commands/resolve-movement.command';
 
 @CommandHandler(ResolveMovementCommand)
@@ -50,7 +50,7 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     if (!character) throw new NotFoundError('Character', action.actorId);
     if (!strategicGame) throw new NotFoundError('StrategicGame', game.strategicGameId);
 
-    this.processAction(command, action, character, actorRound, strategicGame);
+    await this.processAction(command, action, character, actorRound, strategicGame);
     const updated = await this.actionRepository.update(action.id, action);
     if (action.fatigue) {
       const currentFatigue = actorRound.fatigue.accumulator || 0;
@@ -61,18 +61,18 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     return updated;
   }
 
-  private processAction(
+  private async processAction(
     command: ResolveMovementCommand,
     action: Action,
     character: Character,
     actorRound: ActorRound,
     strategicGame: StrategicGame,
-  ): void {
+  ): Promise<void> {
     action.description = command.description;
     action.phaseEnd = command.phase;
     action.actionPoints = action.phaseEnd - action.phaseStart + 1;
     action.movement = this.buildActionMovement(command);
-    this.movementProcessorService.process(command.roll, action, character, actorRound);
+    await this.movementProcessorService.process(command.roll, action, character, actorRound);
     this.fatigueProcessorService.process(action, strategicGame);
     const scale = strategicGame.options?.boardScaleMultiplier || 1;
     action.movement.calculated.distanceAdjusted = action.movement.calculated.distance * scale;

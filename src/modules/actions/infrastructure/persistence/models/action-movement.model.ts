@@ -31,7 +31,7 @@ export class ActionMovementBonus {
 @Schema({ _id: false })
 export class ActionMovementRoll {
   @Prop({ type: [ActionMovementBonus], required: false })
-  rollModifiers: ActionMovementBonus[];
+  modifiers: ActionMovementBonus[];
 
   @Prop({ type: Number, required: true })
   roll: number;

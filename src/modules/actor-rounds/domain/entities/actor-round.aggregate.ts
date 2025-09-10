@@ -68,9 +68,9 @@ export class ActorRound extends AggregateRoot<ActorRound> {
   }
 
   static createFromPrevious(previous: ActorRound): ActorRound {
-    const { id, gameId, round, actorId, actorName, initiative, hp, fatigue, penalties, attacks, effects, owner } = previous;
+    const { gameId, round, actorId, actorName, initiative, hp, fatigue, penalties, attacks, effects, owner } = previous;
     const actorRound = new ActorRound(
-      id,
+      randomUUID(),
       gameId,
       round + 1,
       actorId,

@@ -20,7 +20,7 @@ export class ActionMovementModifiers {
 
 export class ActionMovementRoll {
   constructor(
-    public rollModifiers: ActionMovementBonus[],
+    public modifiers: ActionMovementBonus[],
     public roll: number,
     public totalRoll: number,
   ) {}

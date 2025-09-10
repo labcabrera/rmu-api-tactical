@@ -4,6 +4,8 @@ import { ActorRound } from '../../../domain/entities/actor-round.aggregate';
 export interface ActorRoundRepository {
   findById(id: string): Promise<ActorRound | null>;
 
+  findByIds(ids: string[]): Promise<ActorRound[]>;
+
   findByRsql(rsql: string | undefined, page: number, size: number): Promise<Page<ActorRound>>;
 
   findByActorIdAndRound(characterId: string, round: number): Promise<ActorRound | null>;
