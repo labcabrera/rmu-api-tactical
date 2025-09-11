@@ -8,9 +8,9 @@ import {
 } from '../cqrs/commands/prepare-attack.command';
 
 export interface AttackPort {
-  updateRoll(attackId: string, roll: number): unknown;
-  updateParry(attackId: string, parry: number): Promise<AttackCreationResponse>;
-  prepareAttack(actionId: AttackCreationRequest): Promise<AttackCreationResponse>;
+  updateRoll(attackId: string, roll: number): Promise<AttackResponse>;
+  updateParry(attackId: string, parry: number): Promise<AttackResponse>;
+  prepareAttack(actionId: AttackCreationRequest): Promise<AttackResponse>;
   deleteAttack(actionId: string): Promise<void>;
 }
 
@@ -81,7 +81,7 @@ export interface AttackCalculated {
   rollTotal: number;
 }
 
-export interface AttackCreationResponse {
+export interface AttackResponse {
   id: string;
   calculated: AttackCalculated;
   results: ActionAttackResult | undefined;

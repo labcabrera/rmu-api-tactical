@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { TokenService } from '../../../auth/token.service';
 import { handleAxiosError } from '../../../shared/infrastructure/api-rest/axios.error.adapter';
-import { AttackCreationRequest, AttackCreationResponse, AttackPort } from '../../application/ports/attack.port';
+import { AttackCreationRequest, AttackPort, AttackResponse } from '../../application/ports/attack.port';
 
 @Injectable()
 export class ApiAttackClientAdapter implements AttackPort {
@@ -17,7 +17,7 @@ export class ApiAttackClientAdapter implements AttackPort {
     this.apiCoreUri = configService.get('RMU_API_ATTACK_URI') as string;
   }
 
-  async prepareAttack(request: AttackCreationRequest): Promise<AttackCreationResponse> {
+  async prepareAttack(request: AttackCreationRequest): Promise<AttackResponse> {
     const token = await this.tokenService.getToken();
     const uri = `${this.apiCoreUri}/attacks`;
     try {
@@ -26,13 +26,13 @@ export class ApiAttackClientAdapter implements AttackPort {
           Authorization: `Bearer ${token}`,
         },
       });
-      return response.data as AttackCreationResponse;
+      return response.data as AttackResponse;
     } catch (err: unknown) {
       throw handleAxiosError(err, uri);
     }
   }
 
-  async updateParry(externalAttackId: string, parry: number): Promise<AttackCreationResponse> {
+  async updateParry(externalAttackId: string, parry: number): Promise<AttackResponse> {
     const token = await this.tokenService.getToken();
     const uri = `${this.apiCoreUri}/attacks/${externalAttackId}/parry`;
     try {
@@ -45,13 +45,13 @@ export class ApiAttackClientAdapter implements AttackPort {
           },
         },
       );
-      return response.data as AttackCreationResponse;
+      return response.data as AttackResponse;
     } catch (err: unknown) {
       throw handleAxiosError(err, uri);
     }
   }
 
-  async updateRoll(attackId: string, roll: number): Promise<unknown> {
+  async updateRoll(attackId: string, roll: number): Promise<AttackResponse> {
     const token = await this.tokenService.getToken();
     const uri = `${this.apiCoreUri}/attacks/${attackId}/roll`;
     try {
@@ -64,7 +64,7 @@ export class ApiAttackClientAdapter implements AttackPort {
           },
         },
       );
-      return response.data as AttackCreationResponse;
+      return response.data as AttackResponse;
     } catch (err: unknown) {
       throw handleAxiosError(err, uri);
     }
