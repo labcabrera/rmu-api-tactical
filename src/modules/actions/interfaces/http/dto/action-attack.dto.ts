@@ -4,6 +4,7 @@ import type { ActionStatus } from '../../../domain/entities/action-status.vo';
 import { ActionAttackCalculatedDto } from './action-attack-calculated.dto';
 import { ActionAttackModifiersDto } from './action-attack-modifiers.dto';
 import { ActionAttackParryDto } from './action-attack-parry.dto';
+import { ActionAttackResultsDto } from './action-attack-results.dto';
 
 export class ActionAttackDto {
   @ApiProperty({ description: 'Attack type', example: 'mainHand' })
@@ -14,6 +15,9 @@ export class ActionAttackDto {
 
   @ApiProperty({ description: 'Calculated attack values' })
   public calculated: ActionAttackCalculatedDto | undefined;
+
+  @ApiProperty({ description: 'Attack results' })
+  public results: ActionAttackResultsDto | undefined;
 
   //TODO consider not exposing this
   @ApiProperty({ description: 'External attack ID', example: 'abc123', required: false })
@@ -28,6 +32,7 @@ export class ActionAttackDto {
     dto.parries = entity.parries ? entity.parries.map((parry) => ActionAttackParryDto.fromEntity(parry)) : [];
     dto.externalAttackId = entity.externalAttackId;
     dto.status = entity.status;
+    dto.results = entity.results ? ActionAttackResultsDto.fromEntity(entity.results) : undefined;
     dto.calculated = entity.calculated ? ActionAttackCalculatedDto.fromEntity(entity.calculated) : undefined;
     return dto;
   }

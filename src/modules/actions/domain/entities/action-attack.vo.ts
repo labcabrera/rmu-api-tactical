@@ -10,7 +10,7 @@ export class ActionAttack {
     public parries: ActionAttackParry[] | undefined,
     public roll: ActionAttackRoll | undefined,
     public calculated: ActionAttackCalculated | undefined,
-    public result: ActionAttackResult | undefined,
+    public results: ActionAttackResult | undefined,
     public externalAttackId: string | undefined,
     public status: ActionStatus,
   ) {}

@@ -177,7 +177,7 @@ export class ActionAttack {
   public calculated: ActionAttackCalculated | undefined;
 
   @Prop({ type: ActionAttackResult, required: false })
-  public result: ActionAttackResult | undefined;
+  public results: ActionAttackResult | undefined;
 
   @Prop({ type: String, required: false })
   public externalAttackId: string | undefined;
