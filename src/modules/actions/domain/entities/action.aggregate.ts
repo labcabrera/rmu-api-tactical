@@ -1,7 +1,8 @@
 import { randomUUID } from 'crypto';
+import { ActorRound } from '../../../actor-rounds/domain/entities/actor-round.aggregate';
 import { AggregateRoot } from '../../../shared/domain/entities/aggregate-root';
 import { ValidationError } from '../../../shared/domain/errors';
-import { ActionAttack } from './action-attack.vo';
+import { ActionAttack, ActionAttackParry } from './action-attack.vo';
 import { ActionManeuver } from './action-maneuver.vo';
 import { ActionMovement } from './action-movement.vo';
 import { ActionStatus } from './action-status.vo';
@@ -69,6 +70,27 @@ export class Action extends AggregateRoot<Action> {
     if (this.status !== 'declared') {
       throw new Error('Action is not in a preparable state');
     }
+  }
+
+  processParryOptions(action: Action, actors: ActorRound[]) {
+    //TODO check if attacking in last phase
+    //TODO process protectors
+    if (!action.attacks || action.attacks.length === 0) {
+      return;
+    }
+    for (const attack of action.attacks) {
+      attack.parries = [];
+      if (!attack.modifiers.disabledParry) {
+        const target = actors.find((a) => a.actorId === attack.modifiers.targetId);
+        const availableParry = this.getAvailableParry(target!);
+        attack.parries.push(new ActionAttackParry(target!.actorId, target!.actorId, 'parry', availableParry, 0));
+      }
+    }
+  }
+
+  private getAvailableParry(actor: ActorRound): number {
+    const list = actor.attacks.map((attack) => attack.currentBo);
+    return Math.max(...list, 0);
   }
 
   checkValidParryDeclaration() {

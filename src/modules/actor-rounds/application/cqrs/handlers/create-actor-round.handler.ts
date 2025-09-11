@@ -4,6 +4,7 @@ import { Actor } from '../../../../games/domain/entities/actor.vo';
 import { ValidationError } from '../../../../shared/domain/errors';
 import type { Character, CharacterPort } from '../../../../strategic/application/ports/character.port';
 import { ActorRoundAttack } from '../../../domain/entities/actor-round-attack.vo';
+import { ActorRoundDefense } from '../../../domain/entities/actor-round-defense.vo';
 import { ActorRoundEffect } from '../../../domain/entities/actor-round-effect.vo';
 import { ActorRoundFatigue } from '../../../domain/entities/actor-round-fatigue.vo';
 import { ActorRoundHP } from '../../../domain/entities/actor-round-hp.vo';
@@ -49,6 +50,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
     let attacks: ActorRoundAttack[] = [];
     let maxHp = 0;
     let currentHp = 0;
+    let defense;
     if (actor.type === 'character') {
       const character = await this.characterClient.findById(actor.id);
       if (!character) {
@@ -58,6 +60,14 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
       attacks = this.mapAttacksFromCharacter(character);
       maxHp = character.hp.max;
       currentHp = character.hp.current;
+      defense = new ActorRoundDefense(
+        character.defense.defensiveBonus,
+        character.defense.armor.at,
+        character.defense.armor.headAt,
+        character.defense.armor.bodyAt,
+        character.defense.armor.armsAt,
+        character.defense.armor.legsAt,
+      );
     } else {
       throw new NotImplementedException('NPCs are not implemented yet');
     }
@@ -71,6 +81,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
       new ActorRoundHP(maxHp, currentHp),
       new ActorRoundFatigue(0, 0, 0),
       [] as ActorRoundPenalty[],
+      defense,
       attacks,
       [] as ActorRoundEffect[],
       'todo-owner',

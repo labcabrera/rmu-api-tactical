@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { AggregateRoot } from '../../../shared/domain/entities/aggregate-root';
 import { ActorRoundAttack } from '../../infrastructure/persistence/models/actor-round-attack.model';
 import { ActorRoundCreatedEvent } from '../events/actor-round.events';
+import { ActorRoundDefense } from './actor-round-defense.vo';
 import { ActorRoundEffect } from './actor-round-effect.vo';
 import { ActorRoundFatigue } from './actor-round-fatigue.vo';
 import { ActorRoundHP } from './actor-round-hp.vo';
@@ -21,6 +22,7 @@ export class ActorRound extends AggregateRoot<ActorRound> {
     public hp: ActorRoundHP,
     public fatigue: ActorRoundFatigue,
     public penalties: ActorRoundPenalty[],
+    public defense: ActorRoundDefense,
     public attacks: ActorRoundAttack[],
     public parries: ActorRoundParry[],
     public effects: ActorRoundEffect[],
@@ -41,6 +43,7 @@ export class ActorRound extends AggregateRoot<ActorRound> {
     hp: ActorRoundHP,
     fatigue: ActorRoundFatigue,
     penalties: ActorRoundPenalty[],
+    defense: ActorRoundDefense,
     attacks: ActorRoundAttack[],
     effects: ActorRoundEffect[],
     owner: string,
@@ -56,6 +59,7 @@ export class ActorRound extends AggregateRoot<ActorRound> {
       hp,
       fatigue,
       penalties,
+      defense,
       attacks,
       [],
       effects,
@@ -68,7 +72,7 @@ export class ActorRound extends AggregateRoot<ActorRound> {
   }
 
   static createFromPrevious(previous: ActorRound): ActorRound {
-    const { gameId, round, actorId, actorName, initiative, hp, fatigue, penalties, attacks, effects, owner } = previous;
+    const { gameId, round, actorId, actorName, initiative, hp, fatigue, penalties, defense, attacks, effects, owner } = previous;
     const actorRound = new ActorRound(
       randomUUID(),
       gameId,
@@ -80,6 +84,7 @@ export class ActorRound extends AggregateRoot<ActorRound> {
       hp,
       fatigue,
       penalties,
+      defense,
       attacks,
       [],
       effects,

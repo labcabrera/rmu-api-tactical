@@ -6,7 +6,7 @@ import { ActorRound } from '../../../../actor-rounds/domain/entities/actor-round
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, UnprocessableEntityError } from '../../../../shared/domain/errors';
 import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
-import { ActionAttack, ActionAttackCalculated, ActionAttackModifiers, ActionAttackParry } from '../../../domain/entities/action-attack.vo';
+import { ActionAttack, ActionAttackCalculated, ActionAttackModifiers } from '../../../domain/entities/action-attack.vo';
 import { Action } from '../../../domain/entities/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
@@ -49,7 +49,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     }
     await Promise.all(actionAttacks.map((attack) => this.processAttackPort(attack, actionPoints, action, actors)));
     action.attacks = actionAttacks;
-    this.processParryOptions(action, actors);
+    action.processParryOptions(action, actors);
 
     console.log('Final attacks', JSON.stringify(action, null, 2));
 
@@ -175,27 +175,5 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       commandAttack.customBonus,
     );
     return new ActionAttack(modifiers, undefined, undefined, undefined, undefined, undefined, 'declared');
-  }
-
-  //TODO move to domain entity
-  //TODO check if attacking in last phase
-  private processParryOptions(action: Action, actors: ActorRound[]) {
-    if (!action.attacks || action.attacks.length === 0) {
-      return;
-    }
-    for (const attack of action.attacks) {
-      attack.parries = [];
-      if (!attack.modifiers.disabledParry) {
-        const target = actors.find((a) => a.actorId === attack.modifiers.targetId);
-        const availableParry = this.getAvailableParry(target!);
-        attack.parries.push(new ActionAttackParry(target!.actorId, target!.actorId, 'parry', availableParry, 0));
-      }
-    }
-    //TODO process protectors
-  }
-
-  private getAvailableParry(actor: ActorRound): number {
-    const list = actor.attacks.map((attack) => attack.currentBo);
-    return Math.max(...list, 0);
   }
 }
