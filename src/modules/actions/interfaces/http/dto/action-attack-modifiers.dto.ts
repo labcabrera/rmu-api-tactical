@@ -4,8 +4,8 @@ export class ActionAttackModifiersDto {
   public attackName: string;
   public type: AttackType;
   public targetId: string;
-  public parry: number;
   public bo: number;
+  public parry: number;
   public cover: string | undefined;
   public restrictedQuarters: string | undefined;
   public positionalSource: string | undefined;
@@ -22,8 +22,8 @@ export class ActionAttackModifiersDto {
     dto.attackName = entity.attackName;
     dto.type = entity.type;
     dto.targetId = entity.targetId;
-    dto.parry = entity.parry;
     dto.bo = entity.bo;
+    dto.parry = entity.parry;
     dto.cover = entity.cover;
     dto.restrictedQuarters = entity.restrictedQuarters;
     dto.positionalSource = entity.positionalSource;

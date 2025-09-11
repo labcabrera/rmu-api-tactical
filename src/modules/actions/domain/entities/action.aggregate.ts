@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { AggregateRoot } from '../../../shared/domain/entities/aggregate-root';
+import { ValidationError } from '../../../shared/domain/errors';
 import { ActionAttack } from './action-attack.vo';
 import { ActionManeuver } from './action-maneuver.vo';
 import { ActionMovement } from './action-movement.vo';
@@ -67,6 +68,24 @@ export class Action extends AggregateRoot<Action> {
     }
     if (this.status !== 'declared') {
       throw new Error('Action is not in a preparable state');
+    }
+  }
+
+  checkValidParryDeclaration() {
+    this.checkValidAttack('in_progress');
+  }
+
+  checkValidRollDeclaration() {
+    this.checkValidAttack('in_progress');
+  }
+
+  private checkValidAttack(expectedStatus: string) {
+    if (this.actionType !== 'attack') {
+      throw new ValidationError('Action is not an attack');
+    } else if (this.status !== expectedStatus) {
+      throw new ValidationError('Attack is not in progress');
+    } else if (!this.attacks || this.attacks.length === 0) {
+      throw new ValidationError('Attack has no attacks declared');
     }
   }
 }

@@ -6,7 +6,7 @@ import { ActorRound } from '../../../../actor-rounds/domain/entities/actor-round
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, UnprocessableEntityError } from '../../../../shared/domain/errors';
 import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
-import { ActionAttack, ActionAttackCalculated, ActionAttackModifiers } from '../../../domain/entities/action-attack.vo';
+import { ActionAttack, ActionAttackCalculated, ActionAttackModifiers, ActionAttackParry } from '../../../domain/entities/action-attack.vo';
 import { Action } from '../../../domain/entities/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
@@ -47,11 +47,12 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     if (actorRoundIds.length !== actors.length) {
       throw new UnprocessableEntityError('Some actors not found in the current round');
     }
-    const requestAttaks = await Promise.all(actionAttacks.map((attack) => this.processAttackPort(attack, actionPoints, action, actors)));
-
-    console.log('Request attacks', requestAttaks);
-
+    await Promise.all(actionAttacks.map((attack) => this.processAttackPort(attack, actionPoints, action, actors)));
     action.attacks = actionAttacks;
+    this.processParryOptions(action, actors);
+
+    console.log('Final attacks', JSON.stringify(action, null, 2));
+
     action.status = 'in_progress';
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action.id, action);
@@ -82,7 +83,6 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const fatiguePenalty = 0;
     const rangePenalty = 0;
     const shield = 0;
-    const parry = 0;
 
     const rollModifiers = {
       bo: attackModifiers.bo,
@@ -91,7 +91,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       fatiguePenalty: fatiguePenalty,
       rangePenalty: rangePenalty,
       shield: shield,
-      parry: parry,
+      parry: 0,
       customBonus: attackModifiers.customBonus,
     } as AttackRollModifiers;
     const situationalModifiers = {
@@ -158,21 +158,44 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
   private mapAttacks(commandAttack: PrepareAttackCommandItem): ActionAttack {
     const modifiers = new ActionAttackModifiers(
       commandAttack.attackName,
+      //TODO read from attack info
       'melee',
       commandAttack.targetId,
-      0,
       commandAttack.bo,
+      0,
       commandAttack.cover,
       commandAttack.restrictedQuarters,
       commandAttack.positionalSource,
       commandAttack.positionalTarget,
       commandAttack.dodge,
       commandAttack.range,
-      commandAttack.customBonus,
       commandAttack.disabledDB,
       commandAttack.disabledShield,
       commandAttack.disabledParry,
+      commandAttack.customBonus,
     );
-    return new ActionAttack(modifiers, undefined, undefined, 'declared');
+    return new ActionAttack(modifiers, undefined, undefined, undefined, undefined, undefined, 'declared');
+  }
+
+  //TODO move to domain entity
+  //TODO check if attacking in last phase
+  private processParryOptions(action: Action, actors: ActorRound[]) {
+    if (!action.attacks || action.attacks.length === 0) {
+      return;
+    }
+    for (const attack of action.attacks) {
+      attack.parries = [];
+      if (!attack.modifiers.disabledParry) {
+        const target = actors.find((a) => a.actorId === attack.modifiers.targetId);
+        const availableParry = this.getAvailableParry(target!);
+        attack.parries.push(new ActionAttackParry(target!.actorId, target!.actorId, 'parry', availableParry, 0));
+      }
+    }
+    //TODO process protectors
+  }
+
+  private getAvailableParry(actor: ActorRound): number {
+    const list = actor.attacks.map((attack) => attack.currentBo);
+    return Math.max(...list, 0);
   }
 }

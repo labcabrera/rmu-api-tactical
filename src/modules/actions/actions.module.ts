@@ -10,18 +10,21 @@ import { GamesModule } from '../games/games.module';
 import { SharedModule } from '../shared/shared.module';
 import { StrategicModule } from '../strategic/strategic.module';
 import { CreateActionHandler } from './application/cqrs/handlers/create-action.handler';
+import { DeclareParryHandler } from './application/cqrs/handlers/declare-parry.handler';
 import { DeleteActionHandler } from './application/cqrs/handlers/delete-action.handler';
 import { GetActionQueryHandler } from './application/cqrs/handlers/get-action.handler';
 import { GetActionsQueryHandler } from './application/cqrs/handlers/get-actions.handler';
 import { PrepareAttackHandler } from './application/cqrs/handlers/prepare-attack.handler';
 import { ResolveMovementHandler } from './application/cqrs/handlers/resolve-movement.handler';
+import { UpdateAttackRollHandler } from './application/cqrs/handlers/update-attack-roll.handler';
 import { MovementProcessorService } from './application/services/movement-processor.service';
 import { FatigueProcessorService } from './domain/services/fatigue-processor.service';
-import { ApiAttackClientAdapter } from './infrastructure/clients/api.attack.adapter';
-import { ApiManeuverAdapter } from './infrastructure/clients/api.maneuver.adapter';
+import { ApiAttackClientAdapter } from './infrastructure/api-clients/api.attack.adapter';
+import { ApiManeuverAdapter } from './infrastructure/api-clients/api.maneuver.adapter';
 import { MongoActionRepository } from './infrastructure/db/mongo.action.repository';
 import { KafkaActionEventBusAdapter } from './infrastructure/messaging/kafka.action-event-bus.adapter';
 import { ActionModel, ActionSchema } from './infrastructure/persistence/models/action.model';
+import { AttackController } from './interfaces/http/action-attack.controller';
 import { ActionController } from './interfaces/http/action.controller';
 
 @Module({
@@ -36,7 +39,7 @@ import { ActionController } from './interfaces/http/action.controller';
     StrategicModule,
     ActorsRoundModule,
   ],
-  controllers: [ActionController],
+  controllers: [ActionController, AttackController],
   providers: [
     MovementProcessorService,
     FatigueProcessorService,
@@ -46,6 +49,8 @@ import { ActionController } from './interfaces/http/action.controller';
     DeleteActionHandler,
     ResolveMovementHandler,
     PrepareAttackHandler,
+    DeclareParryHandler,
+    UpdateAttackRollHandler,
     {
       provide: 'ActionRepository',
       useClass: MongoActionRepository,

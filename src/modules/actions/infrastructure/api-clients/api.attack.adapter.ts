@@ -1,0 +1,82 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import axios from 'axios';
+import { TokenService } from '../../../auth/token.service';
+import { handleAxiosError } from '../../../shared/infrastructure/api-rest/axios.error.adapter';
+import { AttackCreationRequest, AttackPort, AttackResponse } from '../../application/ports/attack.port';
+
+@Injectable()
+export class ApiAttackClientAdapter implements AttackPort {
+  private readonly logger = new Logger(ApiAttackClientAdapter.name);
+  private readonly apiCoreUri: string;
+
+  constructor(
+    private readonly tokenService: TokenService,
+    configService: ConfigService,
+  ) {
+    this.apiCoreUri = configService.get('RMU_API_ATTACK_URI') as string;
+  }
+
+  async prepareAttack(request: AttackCreationRequest): Promise<AttackResponse> {
+    const token = await this.tokenService.getToken();
+    const uri = `${this.apiCoreUri}/attacks`;
+    try {
+      const response = await axios.post(uri, request, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data as AttackResponse;
+    } catch (err: unknown) {
+      throw handleAxiosError(err, uri);
+    }
+  }
+
+  async updateParry(externalAttackId: string, parry: number): Promise<AttackResponse> {
+    const token = await this.tokenService.getToken();
+    const uri = `${this.apiCoreUri}/attacks/${externalAttackId}/parry`;
+    try {
+      const response = await axios.patch(
+        uri,
+        { parry: parry },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      return response.data as AttackResponse;
+    } catch (err: unknown) {
+      throw handleAxiosError(err, uri);
+    }
+  }
+
+  async updateRoll(attackId: string, roll: number): Promise<AttackResponse> {
+    const token = await this.tokenService.getToken();
+    const uri = `${this.apiCoreUri}/attacks/${attackId}/roll`;
+    try {
+      const response = await axios.patch(
+        uri,
+        { roll: roll },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      return response.data as AttackResponse;
+    } catch (err: unknown) {
+      throw handleAxiosError(err, uri);
+    }
+  }
+
+  async deleteAttack(actionId: string): Promise<void> {
+    const token = await this.tokenService.getToken();
+    const uri = `${this.apiCoreUri}/attacks/${actionId}`;
+    await axios.delete(uri, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+}

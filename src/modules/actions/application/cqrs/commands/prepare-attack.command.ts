@@ -8,6 +8,7 @@ export class PrepareAttackCommand {
   constructor(
     public readonly actionId: string,
     public readonly attacks: PrepareAttackCommandItem[],
+    public readonly parries: PrepareAttackCommandParryItem[] | undefined,
     public readonly userId,
     public readonly userRoles,
   ) {}
@@ -28,5 +29,12 @@ export class PrepareAttackCommandItem {
     public readonly disabledShield: boolean | undefined,
     public readonly disabledParry: boolean | undefined,
     public readonly customBonus: number | undefined,
+  ) {}
+}
+
+export class PrepareAttackCommandParryItem {
+  constructor(
+    public parryActorId: string,
+    public targetId: string,
   ) {}
 }

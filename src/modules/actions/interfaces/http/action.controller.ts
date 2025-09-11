@@ -8,7 +8,6 @@ import { Page } from '../../../shared/domain/entities/page.entity';
 import { ErrorDto, PagedQueryDto } from '../../../shared/interfaces/http/dto';
 import { CreateActionCommand } from '../../application/cqrs/commands/create-action.command';
 import { DeleteActionCommand } from '../../application/cqrs/commands/delete-action.command';
-import { PrepareAttackCommand } from '../../application/cqrs/commands/prepare-attack.command';
 import { ResolveMovementCommand } from '../../application/cqrs/commands/resolve-movement.command';
 import { UpdateActionCommand } from '../../application/cqrs/commands/update-action.command';
 import { GetActionQuery } from '../../application/cqrs/queries/get-action.query';
@@ -46,10 +45,7 @@ export class ActionController {
 
   @Get('')
   @ApiOkResponse({ type: ActionPageDto, description: 'Success' })
-  @ApiUnauthorizedResponse({
-    description: 'Invalid or missing authentication token',
-    type: ErrorDto,
-  })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiOperation({ operationId: 'findActions', summary: 'Find actions by RSQL' })
   async find(@Query() dto: PagedQueryDto, @Request() req) {
     this.logger.debug(`Finding actions with query: ${JSON.stringify(dto)}`);
@@ -77,10 +73,7 @@ export class ActionController {
   @Patch(':id')
   @ApiOperation({ operationId: 'updateAction', summary: 'Update action' })
   @ApiOkResponse({ type: ActionDto, description: 'Success' })
-  @ApiUnauthorizedResponse({
-    description: 'Invalid or missing authentication token',
-    type: ErrorDto,
-  })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   async updateSettings(@Param('id') id: string, @Body() dto: UpdateActionDto, @Request() req) {
     const user = req.user!;
     const command = UpdateActionDto.toCommand(id, dto, user.id as string, user.roles as string[]);
@@ -99,7 +92,7 @@ export class ActionController {
     await this.commandBus.execute(command);
   }
 
-  @Patch(':id/resolve/movement')
+  @Patch(':id/movement/resolve')
   @ApiBody({ type: PrepareAttackDto })
   @ApiOperation({ operationId: 'resolveMovement', summary: 'Resolve movement' })
   @ApiOkResponse({ type: ActionDto, description: 'Success' })
@@ -110,20 +103,6 @@ export class ActionController {
     const user = req.user!;
     const command = ResolveMovementRequestDto.toCommand(id, dto, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<ResolveMovementCommand, Action>(command);
-    return ActionDto.fromEntity(entity);
-  }
-
-  @Patch(':id/prepare/attack')
-  @ApiBody({ type: PrepareAttackDto })
-  @ApiOperation({ operationId: 'prepareAttack', summary: 'Prepare attack' })
-  @ApiOkResponse({ type: ActionDto, description: 'Success' })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
-  async prepareAttack(@Param('id') id: string, @Body() dto: PrepareAttackDto, @Request() req) {
-    this.logger.debug(`Preparing attack: ${JSON.stringify(dto)} for user ${req.user}`);
-    const user = req.user!;
-    const command = PrepareAttackDto.toCommand(id, dto, user.id as string, user.roles as string[]);
-    const entity = await this.commandBus.execute<PrepareAttackCommand, Action>(command);
     return ActionDto.fromEntity(entity);
   }
 }

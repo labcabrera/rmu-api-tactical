@@ -3,16 +3,25 @@ import { ActionAttack } from '../../../domain/entities/action-attack.vo';
 import type { ActionStatus } from '../../../domain/entities/action-status.vo';
 import { ActionAttackCalculatedDto } from './action-attack-calculated.dto';
 import { ActionAttackModifiersDto } from './action-attack-modifiers.dto';
+import { ActionAttackParryDto } from './action-attack-parry.dto';
+import { ActionAttackResultsDto } from './action-attack-results.dto';
 
 export class ActionAttackDto {
   @ApiProperty({ description: 'Attack type', example: 'mainHand' })
   public modifiers: ActionAttackModifiersDto;
 
-  @ApiProperty({ description: 'External attack ID', example: 'abc123', required: false })
-  public externalAttackId: string | undefined;
+  @ApiProperty({ description: 'List of parries', type: [ActionAttackParryDto] })
+  public parries: ActionAttackParryDto[];
 
   @ApiProperty({ description: 'Calculated attack values' })
   public calculated: ActionAttackCalculatedDto | undefined;
+
+  @ApiProperty({ description: 'Attack results' })
+  public results: ActionAttackResultsDto | undefined;
+
+  //TODO consider not exposing this
+  @ApiProperty({ description: 'External attack ID', example: 'abc123', required: false })
+  public externalAttackId: string | undefined;
 
   @ApiProperty({ description: 'Action status', example: 'pending' })
   public status: ActionStatus;
@@ -20,8 +29,10 @@ export class ActionAttackDto {
   static fromEntity(entity: ActionAttack): ActionAttackDto {
     const dto = new ActionAttackDto();
     dto.modifiers = ActionAttackModifiersDto.fromEntity(entity.modifiers);
+    dto.parries = entity.parries ? entity.parries.map((parry) => ActionAttackParryDto.fromEntity(parry)) : [];
     dto.externalAttackId = entity.externalAttackId;
     dto.status = entity.status;
+    dto.results = entity.results ? ActionAttackResultsDto.fromEntity(entity.results) : undefined;
     dto.calculated = entity.calculated ? ActionAttackCalculatedDto.fromEntity(entity.calculated) : undefined;
     return dto;
   }
