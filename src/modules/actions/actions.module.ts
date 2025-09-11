@@ -10,6 +10,7 @@ import { GamesModule } from '../games/games.module';
 import { SharedModule } from '../shared/shared.module';
 import { StrategicModule } from '../strategic/strategic.module';
 import { CreateActionHandler } from './application/cqrs/handlers/create-action.handler';
+import { DeclareParryHandler } from './application/cqrs/handlers/declare-parry.handler';
 import { DeleteActionHandler } from './application/cqrs/handlers/delete-action.handler';
 import { GetActionQueryHandler } from './application/cqrs/handlers/get-action.handler';
 import { GetActionsQueryHandler } from './application/cqrs/handlers/get-actions.handler';
@@ -46,6 +47,7 @@ import { ActionController } from './interfaces/http/action.controller';
     DeleteActionHandler,
     ResolveMovementHandler,
     PrepareAttackHandler,
+    DeclareParryHandler,
     {
       provide: 'ActionRepository',
       useClass: MongoActionRepository,

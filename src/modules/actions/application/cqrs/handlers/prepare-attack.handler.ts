@@ -162,6 +162,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       'melee',
       commandAttack.targetId,
       commandAttack.bo,
+      0,
       commandAttack.cover,
       commandAttack.restrictedQuarters,
       commandAttack.positionalSource,

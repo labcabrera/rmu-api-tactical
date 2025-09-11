@@ -20,6 +20,7 @@ export class ActionAttackModifiers {
     public type: AttackType,
     public targetId: string,
     public bo: number,
+    public parry: number,
     public cover: string | undefined,
     public restrictedQuarters: string | undefined,
     public positionalSource: string | undefined,

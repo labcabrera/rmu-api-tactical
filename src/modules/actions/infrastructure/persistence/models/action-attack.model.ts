@@ -15,10 +15,10 @@ export class ActionAttackModifiers {
   public targetId: string;
 
   @Prop({ type: Number, required: true })
-  public parry: number;
+  public bo: number;
 
   @Prop({ type: Number, required: true })
-  public bo: number;
+  public parry: number;
 
   @Prop({ type: String, required: true })
   public cover: string | undefined;

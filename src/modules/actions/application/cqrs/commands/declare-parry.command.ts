@@ -9,5 +9,6 @@ export class DeclareParryCommand {
 
 export class DeclareParryItemDto {
   public parryActorId: string;
+  public targetId: string;
   public parry: number;
 }
