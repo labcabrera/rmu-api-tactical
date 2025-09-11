@@ -174,7 +174,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       commandAttack.disabledParry,
       commandAttack.customBonus,
     );
-    return new ActionAttack(modifiers, undefined, undefined, undefined, undefined, 'declared');
+    return new ActionAttack(modifiers, undefined, undefined, undefined, undefined, undefined, 'declared');
   }
 
   //TODO move to domain entity

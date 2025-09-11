@@ -19,8 +19,8 @@ import { ResolveMovementHandler } from './application/cqrs/handlers/resolve-move
 import { UpdateAttackRollHandler } from './application/cqrs/handlers/update-attack-roll.handler';
 import { MovementProcessorService } from './application/services/movement-processor.service';
 import { FatigueProcessorService } from './domain/services/fatigue-processor.service';
-import { ApiAttackClientAdapter } from './infrastructure/clients/api.attack.adapter';
-import { ApiManeuverAdapter } from './infrastructure/clients/api.maneuver.adapter';
+import { ApiAttackClientAdapter } from './infrastructure/api-clients/api.attack.adapter';
+import { ApiManeuverAdapter } from './infrastructure/api-clients/api.maneuver.adapter';
 import { MongoActionRepository } from './infrastructure/db/mongo.action.repository';
 import { KafkaActionEventBusAdapter } from './infrastructure/messaging/kafka.action-event-bus.adapter';
 import { ActionModel, ActionSchema } from './infrastructure/persistence/models/action.model';

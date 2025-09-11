@@ -51,12 +51,61 @@ export class ActionAttackModifiers {
   public customBonus: number | undefined;
 }
 
+@Schema({ _id: false })
 export class ActionAttackCalculated {
   @Prop({ type: [Modifier], required: true })
   public rollModifiers: Modifier[];
 
   @Prop({ type: Number, required: true })
   public rollTotal: number;
+}
+
+@Schema({ _id: false })
+export class AttackTableEntry {
+  @Prop({ type: String, required: true })
+  public text: string;
+
+  @Prop({ type: Number, required: true })
+  public damage: number;
+
+  @Prop({ type: String, required: true })
+  public criticalType: string | undefined;
+
+  @Prop({ type: String, required: true })
+  public criticalSeverity: string | undefined;
+}
+
+@Schema({ _id: false })
+export class CriticalEffect {
+  @Prop({ type: String, required: true })
+  public status: string;
+
+  @Prop({ type: Number, required: false })
+  public rounds: number | undefined;
+
+  @Prop({ type: Number, required: false })
+  public value: number | undefined;
+
+  @Prop({ type: Number, required: false })
+  public delay: number | undefined;
+
+  @Prop({ type: String, required: false })
+  public condition: string | undefined;
+}
+
+@Schema({ _id: false })
+export class CriticalResult {
+  @Prop({ type: String, required: true })
+  public text: string;
+
+  @Prop({ type: Number, required: true })
+  public damage: number;
+
+  @Prop({ type: String, required: true })
+  public location: string;
+
+  @Prop({ type: [CriticalEffect], required: true })
+  public effects: CriticalEffect[];
 }
 
 @Schema({ _id: false })
@@ -84,6 +133,36 @@ export class ActionAttackRoll {
 }
 
 @Schema({ _id: false })
+export class Critical {
+  @Prop({ type: String, required: true })
+  public text: string;
+
+  @Prop({ type: String, required: true })
+  public status: string;
+
+  @Prop({ type: String, required: true })
+  public criticalType: string;
+
+  @Prop({ type: String, required: true })
+  public criticalSeverity: string;
+
+  @Prop({ type: Number, required: false })
+  public adjustedRoll: number | undefined;
+
+  @Prop({ type: CriticalResult, required: false })
+  public result: CriticalResult | undefined;
+}
+
+@Schema({ _id: false })
+export class ActionAttackResult {
+  @Prop({ type: AttackTableEntry, required: false })
+  public attackTableEntry: AttackTableEntry | undefined;
+
+  @Prop({ type: [Critical], required: false })
+  public criticals: Critical[] | undefined;
+}
+
+@Schema({ _id: false })
 export class ActionAttack {
   @Prop({ type: ActionAttackModifiers, required: true })
   public modifiers: ActionAttackModifiers;
@@ -96,6 +175,9 @@ export class ActionAttack {
 
   @Prop({ type: ActionAttackCalculated, required: true })
   public calculated: ActionAttackCalculated | undefined;
+
+  @Prop({ type: ActionAttackResult, required: false })
+  public result: ActionAttackResult | undefined;
 
   @Prop({ type: String, required: false })
   public externalAttackId: string | undefined;

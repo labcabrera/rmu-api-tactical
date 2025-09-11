@@ -1,3 +1,4 @@
+import { ActionAttackResult } from '../../domain/entities/action-attack.vo';
 import {
   CoverType,
   DodgeType,
@@ -83,4 +84,5 @@ export interface AttackCalculated {
 export interface AttackCreationResponse {
   id: string;
   calculated: AttackCalculated;
+  results: ActionAttackResult | undefined;
 }
