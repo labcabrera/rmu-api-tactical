@@ -167,10 +167,10 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       commandAttack.positionalTarget,
       commandAttack.dodge,
       commandAttack.range,
-      commandAttack.customBonus,
       commandAttack.disabledDB,
       commandAttack.disabledShield,
       commandAttack.disabledParry,
+      commandAttack.customBonus,
     );
     return new ActionAttack(modifiers, undefined, undefined, undefined, 'declared');
   }

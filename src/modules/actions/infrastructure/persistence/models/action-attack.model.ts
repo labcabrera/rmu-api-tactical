@@ -38,9 +38,6 @@ export class ActionAttackModifiers {
   @Prop({ type: Number, required: true })
   public range: number | undefined;
 
-  @Prop({ type: Number, required: true })
-  public customBonus: number | undefined;
-
   @Prop({ type: Boolean, required: true })
   public disabledDB: boolean | undefined;
 
@@ -49,6 +46,9 @@ export class ActionAttackModifiers {
 
   @Prop({ type: Boolean, required: true })
   public disabledParry: boolean | undefined;
+
+  @Prop({ type: Number, required: true })
+  public customBonus: number | undefined;
 }
 
 export class ActionAttackCalculated {
