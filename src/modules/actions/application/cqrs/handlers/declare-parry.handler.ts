@@ -22,7 +22,7 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
     @Inject('CharacterClient') private readonly characterClient: CharacterPort,
-    @Inject('AttackPort') private readonly attackClient: AttackPort,
+    @Inject('AttackPort') private readonly attackPort: AttackPort,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
   ) {}
 
@@ -56,12 +56,16 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
       });
       attack.parries = attack.parries!.filter((p) => p.parry > 0);
     });
-    // Update attack total parry
-    attacks.map((attack) => {
-      attack.modifiers.parry = attack.parries!.reduce((sum, p) => sum + p.parry, 0);
-    });
+    // Update attack total parry and sent to attack port
+    await Promise.all(
+      attacks.map(async (attack) => {
+        attack.modifiers.parry = attack.parries!.reduce((sum, p) => sum + p.parry, 0);
+        const updatedAttack = await this.attackPort.updateParry(attack.externalAttackId!, attack.modifiers.parry);
+        attack.calculated!.rollModifiers = updatedAttack.calculated.rollModifiers;
+        attack.calculated!.rollTotal = updatedAttack.calculated.rollTotal;
+      }),
+    );
     //TODO update target and protectors actor rounds
-    //TODO send api action patch using parry
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
@@ -87,7 +91,6 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     } else {
       //TODO check protecting skill
     }
-    //TODO check value
     return parry;
   }
 }

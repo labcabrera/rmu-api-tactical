@@ -32,6 +32,25 @@ export class ApiAttackClientAdapter implements AttackPort {
     }
   }
 
+  async updateParry(externalAttackId: string, parry: number): Promise<AttackCreationResponse> {
+    const token = await this.tokenService.getToken();
+    const uri = `${this.apiCoreUri}/attacks/${externalAttackId}/parry`;
+    try {
+      const response = await axios.patch(
+        uri,
+        { parry: parry },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      return response.data as AttackCreationResponse;
+    } catch (err: unknown) {
+      throw handleAxiosError(err, uri);
+    }
+  }
+
   async deleteAttack(actionId: string): Promise<void> {
     const token = await this.tokenService.getToken();
     const uri = `${this.apiCoreUri}/attacks/${actionId}`;

@@ -7,6 +7,7 @@ import {
 } from '../cqrs/commands/prepare-attack.command';
 
 export interface AttackPort {
+  updateParry(externalAttackId: string, parry: number): Promise<AttackCreationResponse>;
   prepareAttack(actionId: AttackCreationRequest): Promise<AttackCreationResponse>;
   deleteAttack(actionId: string): Promise<void>;
 }
