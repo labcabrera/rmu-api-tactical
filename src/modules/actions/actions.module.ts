@@ -24,6 +24,7 @@ import { ApiManeuverAdapter } from './infrastructure/api-clients/api.maneuver.ad
 import { MongoActionRepository } from './infrastructure/db/mongo.action.repository';
 import { KafkaActionEventBusAdapter } from './infrastructure/messaging/kafka.action-event-bus.adapter';
 import { ActionModel, ActionSchema } from './infrastructure/persistence/models/action.model';
+import { AttackController } from './interfaces/http/action-attack.controller';
 import { ActionController } from './interfaces/http/action.controller';
 
 @Module({
@@ -38,7 +39,7 @@ import { ActionController } from './interfaces/http/action.controller';
     StrategicModule,
     ActorsRoundModule,
   ],
-  controllers: [ActionController],
+  controllers: [ActionController, AttackController],
   providers: [
     MovementProcessorService,
     FatigueProcessorService,
