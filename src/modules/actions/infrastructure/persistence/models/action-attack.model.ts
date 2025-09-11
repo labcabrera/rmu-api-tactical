@@ -78,6 +78,12 @@ export class ActionAttackParry {
 }
 
 @Schema({ _id: false })
+export class ActionAttackRoll {
+  @Prop({ type: Number, required: true })
+  public roll: number;
+}
+
+@Schema({ _id: false })
 export class ActionAttack {
   @Prop({ type: ActionAttackModifiers, required: true })
   public modifiers: ActionAttackModifiers;
@@ -85,11 +91,14 @@ export class ActionAttack {
   @Prop({ type: [ActionAttackParry], required: false })
   public parries: ActionAttackParry[] | undefined;
 
-  @Prop({ type: String, required: false })
-  public externalAttackId: string | undefined;
+  @Prop({ type: ActionAttackRoll, required: false })
+  public roll: ActionAttackRoll | undefined;
 
   @Prop({ type: ActionAttackCalculated, required: true })
   public calculated: ActionAttackCalculated | undefined;
+
+  @Prop({ type: String, required: false })
+  public externalAttackId: string | undefined;
 
   @Prop({ type: String, required: true })
   public status: ActionStatus;

@@ -8,8 +8,9 @@ export class ActionAttack {
   constructor(
     public modifiers: ActionAttackModifiers,
     public parries: ActionAttackParry[] | undefined,
-    public externalAttackId: string | undefined,
+    public roll: ActionAttackRoll | undefined,
     public calculated: ActionAttackCalculated | undefined,
+    public externalAttackId: string | undefined,
     public status: ActionStatus,
   ) {}
 }
@@ -42,6 +43,10 @@ export class ActionAttackParry {
     public parryAvailable: number,
     public parry: number,
   ) {}
+}
+
+export class ActionAttackRoll {
+  constructor(public roll: number) {}
 }
 
 export class ActionAttackCalculated {

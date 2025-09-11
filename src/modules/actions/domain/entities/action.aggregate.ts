@@ -72,9 +72,17 @@ export class Action extends AggregateRoot<Action> {
   }
 
   checkValidParryDeclaration() {
+    this.checkValidAttack('in_progress');
+  }
+
+  checkValidRollDeclaration() {
+    this.checkValidAttack('in_progress');
+  }
+
+  private checkValidAttack(expectedStatus: string) {
     if (this.actionType !== 'attack') {
       throw new ValidationError('Action is not an attack');
-    } else if (this.status !== 'in_progress') {
+    } else if (this.status !== expectedStatus) {
       throw new ValidationError('Attack is not in progress');
     } else if (!this.attacks || this.attacks.length === 0) {
       throw new ValidationError('Attack has no attacks declared');

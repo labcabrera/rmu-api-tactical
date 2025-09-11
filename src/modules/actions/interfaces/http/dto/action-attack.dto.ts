@@ -12,11 +12,12 @@ export class ActionAttackDto {
   @ApiProperty({ description: 'List of parries', type: [ActionAttackParryDto] })
   public parries: ActionAttackParryDto[];
 
-  @ApiProperty({ description: 'External attack ID', example: 'abc123', required: false })
-  public externalAttackId: string | undefined;
-
   @ApiProperty({ description: 'Calculated attack values' })
   public calculated: ActionAttackCalculatedDto | undefined;
+
+  //TODO consider not exposing this
+  @ApiProperty({ description: 'External attack ID', example: 'abc123', required: false })
+  public externalAttackId: string | undefined;
 
   @ApiProperty({ description: 'Action status', example: 'pending' })
   public status: ActionStatus;

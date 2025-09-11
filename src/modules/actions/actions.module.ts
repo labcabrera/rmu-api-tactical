@@ -16,6 +16,7 @@ import { GetActionQueryHandler } from './application/cqrs/handlers/get-action.ha
 import { GetActionsQueryHandler } from './application/cqrs/handlers/get-actions.handler';
 import { PrepareAttackHandler } from './application/cqrs/handlers/prepare-attack.handler';
 import { ResolveMovementHandler } from './application/cqrs/handlers/resolve-movement.handler';
+import { UpdateAttackRollHandler } from './application/cqrs/handlers/update-attack-roll.handler';
 import { MovementProcessorService } from './application/services/movement-processor.service';
 import { FatigueProcessorService } from './domain/services/fatigue-processor.service';
 import { ApiAttackClientAdapter } from './infrastructure/clients/api.attack.adapter';
@@ -48,6 +49,7 @@ import { ActionController } from './interfaces/http/action.controller';
     ResolveMovementHandler,
     PrepareAttackHandler,
     DeclareParryHandler,
+    UpdateAttackRollHandler,
     {
       provide: 'ActionRepository',
       useClass: MongoActionRepository,
