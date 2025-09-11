@@ -2,10 +2,12 @@ import { Modifier } from '../../../shared/domain/entities/modifier.vo';
 import { ActionStatus } from './action-status.vo';
 
 export type AttackType = 'melee' | 'ranged' | 'thrown';
+export type ParryType = 'parry' | 'protect';
 
 export class ActionAttack {
   constructor(
     public modifiers: ActionAttackModifiers,
+    public parries: ActionAttackParry[] | undefined,
     public externalAttackId: string | undefined,
     public calculated: ActionAttackCalculated | undefined,
     public status: ActionStatus,
@@ -17,7 +19,6 @@ export class ActionAttackModifiers {
     public attackName: string,
     public type: AttackType,
     public targetId: string,
-    public parry: number,
     public bo: number,
     public cover: string | undefined,
     public restrictedQuarters: string | undefined,
@@ -29,6 +30,16 @@ export class ActionAttackModifiers {
     public disabledDB: boolean | undefined,
     public disabledShield: boolean | undefined,
     public disabledParry: boolean | undefined,
+  ) {}
+}
+
+export class ActionAttackParry {
+  constructor(
+    public parryActorId: string,
+    public targetId: string,
+    public parryType: ParryType,
+    public parryAvailable: number,
+    public parry: number,
   ) {}
 }
 

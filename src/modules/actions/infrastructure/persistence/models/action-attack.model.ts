@@ -1,6 +1,6 @@
 import { Prop, Schema } from '@nestjs/mongoose';
 import { Modifier } from '../../../../shared/infrastructure/persistence/models/modier.model';
-import type { AttackType } from '../../../domain/entities/action-attack.vo';
+import type { AttackType, ParryType } from '../../../domain/entities/action-attack.vo';
 import type { ActionStatus } from '../../../domain/entities/action-status.vo';
 
 @Schema({ _id: false })
@@ -60,9 +60,30 @@ export class ActionAttackCalculated {
 }
 
 @Schema({ _id: false })
+export class ActionAttackParry {
+  @Prop({ type: String, required: true })
+  public parryActorId: string;
+
+  @Prop({ type: String, required: true })
+  public targetId: string;
+
+  @Prop({ type: String, required: true })
+  public parryType: ParryType;
+
+  @Prop({ type: Number, required: true })
+  public parryAvailable: number;
+
+  @Prop({ type: Number, required: true })
+  public parry: number;
+}
+
+@Schema({ _id: false })
 export class ActionAttack {
   @Prop({ type: ActionAttackModifiers, required: true })
   public modifiers: ActionAttackModifiers;
+
+  @Prop({ type: [ActionAttackParry], required: false })
+  public parries: ActionAttackParry[] | undefined;
 
   @Prop({ type: String, required: false })
   public externalAttackId: string | undefined;

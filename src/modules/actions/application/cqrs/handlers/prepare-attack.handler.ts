@@ -82,7 +82,6 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const fatiguePenalty = 0;
     const rangePenalty = 0;
     const shield = 0;
-    const parry = 0;
 
     const rollModifiers = {
       bo: attackModifiers.bo,
@@ -91,7 +90,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       fatiguePenalty: fatiguePenalty,
       rangePenalty: rangePenalty,
       shield: shield,
-      parry: parry,
+      parry: 0,
       customBonus: attackModifiers.customBonus,
     } as AttackRollModifiers;
     const situationalModifiers = {
@@ -158,9 +157,9 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
   private mapAttacks(commandAttack: PrepareAttackCommandItem): ActionAttack {
     const modifiers = new ActionAttackModifiers(
       commandAttack.attackName,
+      //TODO read from attack info
       'melee',
       commandAttack.targetId,
-      0,
       commandAttack.bo,
       commandAttack.cover,
       commandAttack.restrictedQuarters,
@@ -173,6 +172,6 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       commandAttack.disabledShield,
       commandAttack.disabledParry,
     );
-    return new ActionAttack(modifiers, undefined, undefined, 'declared');
+    return new ActionAttack(modifiers, undefined, undefined, undefined, 'declared');
   }
 }

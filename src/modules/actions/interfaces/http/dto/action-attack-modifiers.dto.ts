@@ -22,7 +22,6 @@ export class ActionAttackModifiersDto {
     dto.attackName = entity.attackName;
     dto.type = entity.type;
     dto.targetId = entity.targetId;
-    dto.parry = entity.parry;
     dto.bo = entity.bo;
     dto.cover = entity.cover;
     dto.restrictedQuarters = entity.restrictedQuarters;
