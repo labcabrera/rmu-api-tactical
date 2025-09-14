@@ -1,3 +1,5 @@
+import { CalledShot } from '../../../domain/value-objects/action-attack-modifiers.vo';
+
 export type CoverType = 'none' | 'soft_partial' | 'soft_half' | 'soft_full' | 'hard_partial' | 'hard_half' | 'hard_full';
 export type RestrictedQuartersType = 'none' | 'close' | 'cramped' | 'tight' | 'confined';
 export type PositionalSourceType = 'none' | 'to_flank' | 'to_rear';
@@ -19,6 +21,7 @@ export class PrepareAttackCommandItem {
     public readonly attackName: string,
     public readonly targetId: string,
     public readonly bo: number,
+    public readonly calledShot: CalledShot | undefined,
     public readonly cover: CoverType | undefined,
     public readonly restrictedQuarters: RestrictedQuartersType | undefined,
     public readonly positionalSource: PositionalSourceType | undefined,

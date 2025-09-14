@@ -1,4 +1,5 @@
 export type AttackType = 'melee' | 'ranged' | 'thrown';
+export type CalledShot = 'none' | 'head' | 'body' | 'arms' | 'legs';
 
 export class ActionAttackModifiers {
   constructor(
@@ -7,6 +8,7 @@ export class ActionAttackModifiers {
     public targetId: string,
     public bo: number,
     public parry: number,
+    public calledShot: CalledShot,
     public cover: string | undefined,
     public restrictedQuarters: string | undefined,
     public positionalSource: string | undefined,

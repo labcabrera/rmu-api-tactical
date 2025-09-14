@@ -171,6 +171,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       commandAttack.targetId,
       commandAttack.bo,
       0,
+      commandAttack.calledShot || 'none',
       commandAttack.cover,
       commandAttack.restrictedQuarters,
       commandAttack.positionalSource,
