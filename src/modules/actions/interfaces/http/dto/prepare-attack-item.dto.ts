@@ -35,6 +35,11 @@ export class PrepareAttackItemDto {
   @IsString()
   calledShot: CalledShot | undefined;
 
+  @ApiProperty({ description: 'Penalty for the called shot, if any', required: false, example: 0 })
+  @IsOptional()
+  @IsNumber()
+  calledShotPenalty: number;
+
   @ApiProperty({
     description: 'Type of cover the target has',
     required: false,
@@ -116,6 +121,7 @@ export class PrepareAttackItemDto {
       dto.targetId,
       dto.bo,
       dto.calledShot,
+      dto.calledShotPenalty,
       dto.cover,
       dto.restrictedQuarters,
       dto.positionalSource,

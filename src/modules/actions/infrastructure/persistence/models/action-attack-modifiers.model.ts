@@ -21,6 +21,9 @@ export class ActionAttackModifiers {
   @Prop({ type: String, required: true })
   public calledShot: CalledShot;
 
+  @Prop({ type: Number, required: true })
+  public calledShotPenalty: number;
+
   @Prop({ type: String, required: true })
   public cover: string | undefined;
 

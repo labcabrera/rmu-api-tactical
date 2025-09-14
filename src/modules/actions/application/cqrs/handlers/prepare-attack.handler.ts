@@ -87,7 +87,9 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
 
     const rollModifiers = {
       bo: attackModifiers.bo,
-      bd: 12, //TODO MAP actorTarget
+      bd: actorTarget.defense.bd,
+      calledShot: attackModifiers.calledShot,
+      calledShotPenalty: attackModifiers.calledShotPenalty,
       injuryPenalty: injuryPenalty,
       fatiguePenalty: fatiguePenalty,
       rangePenalty: rangePenalty,
@@ -121,6 +123,9 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
         attackTable: attackInfo.attackTable,
         attackSize: 'medium', //this.getAttackSize(attack.sizeAdjustment),
         fumbleTable: attackInfo.fumbleTable,
+        fumble: attackInfo.fumble,
+        actionPoints: actionPoints,
+        calledShot: attackModifiers.calledShot,
         armor: {
           at: actorTarget.defense.at,
           headAt: actorTarget.defense.headAt,
@@ -128,8 +133,6 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
           armsAt: actorTarget.defense.armsAt,
           legsAt: actorTarget.defense.legsAt,
         },
-        actionPoints: actionPoints,
-        fumble: attackInfo.fumble,
         rollModifiers: rollModifiers,
         situationalModifiers: situationalModifiers,
         features: attackFeatures,
@@ -172,6 +175,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       commandAttack.bo,
       0,
       commandAttack.calledShot || 'none',
+      commandAttack.calledShotPenalty || 0,
       commandAttack.cover,
       commandAttack.restrictedQuarters,
       commandAttack.positionalSource,

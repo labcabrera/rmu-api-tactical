@@ -9,6 +9,7 @@ export class ActionAttackModifiers {
     public bo: number,
     public parry: number,
     public calledShot: CalledShot,
+    public calledShotPenalty: number,
     public cover: string | undefined,
     public restrictedQuarters: string | undefined,
     public positionalSource: string | undefined,

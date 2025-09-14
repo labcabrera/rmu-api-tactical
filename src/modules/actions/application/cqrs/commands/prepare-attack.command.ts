@@ -22,6 +22,7 @@ export class PrepareAttackCommandItem {
     public readonly targetId: string,
     public readonly bo: number,
     public readonly calledShot: CalledShot | undefined,
+    public readonly calledShotPenalty: number | undefined,
     public readonly cover: CoverType | undefined,
     public readonly restrictedQuarters: RestrictedQuartersType | undefined,
     public readonly positionalSource: PositionalSourceType | undefined,
