@@ -4,6 +4,7 @@ import axios from 'axios';
 import { TokenService } from '../../../auth/token.service';
 import { handleAxiosError } from '../../../shared/infrastructure/api-rest/axios.error.adapter';
 import { AttackCreationRequest, AttackPort, AttackResponse } from '../../application/ports/attack.port';
+import { AttackLocation } from '../../domain/value-objects/attack-location.vo';
 
 @Injectable()
 export class ApiAttackClientAdapter implements AttackPort {
@@ -51,13 +52,13 @@ export class ApiAttackClientAdapter implements AttackPort {
     }
   }
 
-  async updateRoll(attackId: string, roll: number): Promise<AttackResponse> {
+  async updateRoll(attackId: string, roll: number, location: AttackLocation | undefined): Promise<AttackResponse> {
     const token = await this.tokenService.getToken();
     const uri = `${this.apiCoreUri}/attacks/${attackId}/roll`;
     try {
       const response = await axios.patch(
         uri,
-        { roll: roll },
+        { roll: roll, location: location },
         {
           headers: {
             Authorization: `Bearer ${token}`,
