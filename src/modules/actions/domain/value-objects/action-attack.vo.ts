@@ -1,6 +1,7 @@
 import { Modifier } from '../../../shared/domain/entities/modifier.vo';
 import { ActionAttackModifiers } from './action-attack-modifiers.vo';
 import { ActionStatus } from './action-status.vo';
+import { AttackLocation } from './attack-location.vo';
 
 export type ParryType = 'parry' | 'protect';
 
@@ -27,7 +28,10 @@ export class ActionAttackParry {
 }
 
 export class ActionAttackRoll {
-  constructor(public roll: number) {}
+  constructor(
+    public roll: number,
+    public location: AttackLocation | undefined,
+  ) {}
 }
 
 export class ActionAttackCalculated {

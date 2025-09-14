@@ -1,10 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
@@ -18,9 +16,7 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
 
   constructor(
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('CharacterClient') private readonly characterClient: CharacterPort,
     @Inject('AttackPort') private readonly attackPort: AttackPort,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
   ) {}
@@ -43,6 +39,7 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     }
     attack.roll = {
       roll: command.roll,
+      location: command.location,
     };
     const attackResponse = await this.attackPort.updateRoll(attack.externalAttackId!, command.roll);
 

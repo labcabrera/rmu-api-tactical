@@ -2,6 +2,7 @@ import { Prop, Schema } from '@nestjs/mongoose';
 import { Modifier } from '../../../../shared/infrastructure/persistence/models/modier.model';
 import type { ParryType } from '../../../domain/value-objects/action-attack.vo';
 import type { ActionStatus } from '../../../domain/value-objects/action-status.vo';
+import { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
 import { ActionAttackModifiers } from './action-attack-modifiers.model';
 
 @Schema({ _id: false })
@@ -83,6 +84,9 @@ export class ActionAttackParry {
 export class ActionAttackRoll {
   @Prop({ type: Number, required: true })
   public roll: number;
+
+  @Prop({ type: String, required: false })
+  public location: AttackLocation | undefined;
 }
 
 @Schema({ _id: false })
