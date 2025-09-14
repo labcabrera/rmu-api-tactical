@@ -1,7 +1,7 @@
 import { Modifier } from '../../../shared/domain/entities/modifier.vo';
+import { ActionAttackModifiers } from './action-attack-modifiers.vo';
 import { ActionStatus } from './action-status.vo';
 
-export type AttackType = 'melee' | 'ranged' | 'thrown';
 export type ParryType = 'parry' | 'protect';
 
 export class ActionAttack {
@@ -13,26 +13,6 @@ export class ActionAttack {
     public results: ActionAttackResult | undefined,
     public externalAttackId: string | undefined,
     public status: ActionStatus,
-  ) {}
-}
-
-export class ActionAttackModifiers {
-  constructor(
-    public attackName: string,
-    public type: AttackType,
-    public targetId: string,
-    public bo: number,
-    public parry: number,
-    public cover: string | undefined,
-    public restrictedQuarters: string | undefined,
-    public positionalSource: string | undefined,
-    public positionalTarget: string | undefined,
-    public dodge: string | undefined,
-    public range: number | undefined,
-    public disabledDB: boolean | undefined,
-    public disabledShield: boolean | undefined,
-    public disabledParry: boolean | undefined,
-    public customBonus: number | undefined,
   ) {}
 }
 

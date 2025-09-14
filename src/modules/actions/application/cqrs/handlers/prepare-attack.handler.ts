@@ -8,7 +8,8 @@ import { NotFoundError, UnprocessableEntityError } from '../../../../shared/doma
 import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
-import { ActionAttack, ActionAttackCalculated, ActionAttackModifiers } from '../../../domain/value-objects/action-attack.vo';
+import { ActionAttackModifiers } from '../../../domain/value-objects/action-attack-modifiers.vo';
+import { ActionAttack, ActionAttackCalculated } from '../../../domain/value-objects/action-attack.vo';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import type { AttackCreationRequest, AttackPort, AttackRollModifiers, AttackSituationalModifiers } from '../../ports/attack.port';

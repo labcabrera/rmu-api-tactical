@@ -1,6 +1,7 @@
 import { Prop, Schema } from '@nestjs/mongoose';
 import { Modifier } from '../../../../shared/infrastructure/persistence/models/modier.model';
-import type { AttackType, ParryType } from '../../../domain/value-objects/action-attack.vo';
+import type { AttackType } from '../../../domain/value-objects/action-attack-modifiers.vo';
+import type { ParryType } from '../../../domain/value-objects/action-attack.vo';
 import type { ActionStatus } from '../../../domain/value-objects/action-status.vo';
 
 @Schema({ _id: false })
