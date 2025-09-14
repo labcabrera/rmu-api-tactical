@@ -6,7 +6,7 @@ import { Page } from '../../../shared/domain/entities/page.entity';
 import { NotFoundError } from '../../../shared/domain/errors';
 import { RsqlParser } from '../../../shared/infrastructure/db/rsql-parser';
 import { ActorRoundRepository } from '../../application/ports/out/character-round.repository';
-import { ActorRound } from '../../domain/entities/actor-round.aggregate';
+import { ActorRound } from '../../domain/aggregates/actor-round.aggregate';
 import { ActorRoundDocument, ActorRoundModel } from '../persistence/models/actor-round.model';
 
 @Injectable()

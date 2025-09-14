@@ -1,6 +1,6 @@
 import { IsNumber, IsOptional, IsString } from 'class-validator';
 import { AddEffectCommand } from '../../../application/cqrs/commands/add-effect.command';
-import { ActorRoundEffect } from '../../../domain/entities/actor-round-effect.vo';
+import { ActorRoundEffect } from '../../../domain/value-objets/actor-round-effect.vo';
 
 export class AddEffectDto {
   @IsString()

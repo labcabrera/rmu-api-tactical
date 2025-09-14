@@ -2,7 +2,7 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
-import { ActorRound } from '../../../../actor-rounds/domain/entities/actor-round.aggregate';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { Game } from '../../../../games/domain/entities/game.aggregate';
 import { ValidationError } from '../../../../shared/domain/errors';

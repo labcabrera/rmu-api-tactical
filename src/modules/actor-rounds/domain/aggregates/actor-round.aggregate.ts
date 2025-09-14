@@ -2,13 +2,13 @@ import { randomUUID } from 'crypto';
 import { AggregateRoot } from '../../../shared/domain/entities/aggregate-root';
 import { ActorRoundAttack } from '../../infrastructure/persistence/models/actor-round-attack.model';
 import { ActorRoundCreatedEvent } from '../events/actor-round.events';
-import { ActorRoundDefense } from './actor-round-defense.vo';
-import { ActorRoundEffect } from './actor-round-effect.vo';
-import { ActorRoundFatigue } from './actor-round-fatigue.vo';
-import { ActorRoundHP } from './actor-round-hp.vo';
-import { ActorRoundInitiative } from './actor-round-initiative.vo';
-import { ActorRoundParry } from './actor-round-parry.vo';
-import { ActorRoundPenalty } from './actor-round-penalty.vo';
+import { ActorRoundDefense } from '../value-objets/actor-round-defense.vo';
+import { ActorRoundEffect } from '../value-objets/actor-round-effect.vo';
+import { ActorRoundFatigue } from '../value-objets/actor-round-fatigue.vo';
+import { ActorRoundHP } from '../value-objets/actor-round-hp.vo';
+import { ActorRoundInitiative } from '../value-objets/actor-round-initiative.vo';
+import { ActorRoundParry } from '../value-objets/actor-round-parry.vo';
+import { ActorRoundPenalty } from '../value-objets/actor-round-penalty.vo';
 
 export class ActorRound extends AggregateRoot<ActorRound> {
   constructor(
@@ -97,5 +97,14 @@ export class ActorRound extends AggregateRoot<ActorRound> {
     });
     actorRound.addDomainEvent(new ActorRoundCreatedEvent(actorRound));
     return actorRound;
+  }
+
+  addEffect(effect: ActorRoundEffect): void {
+    const existing = this.effects.filter((e) => e.status === effect.status);
+    const isUnique = ActorRoundEffect.isUnique(effect);
+    if (isUnique && existing.length > 0) {
+      return;
+    }
+    this.effects.push(effect);
   }
 }

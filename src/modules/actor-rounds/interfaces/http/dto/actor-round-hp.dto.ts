@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActorRoundHP } from '../../../domain/entities/actor-round-hp.vo';
+import { ActorRoundHP } from '../../../domain/value-objets/actor-round-hp.vo';
 
 export class ActorRoundHPDto {
   @ApiProperty({ description: 'Base initiative value' })

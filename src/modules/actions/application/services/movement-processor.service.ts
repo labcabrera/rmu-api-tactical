@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ActorRound } from '../../../actor-rounds/domain/entities/actor-round.aggregate';
+import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.aggregate';
 import { ValidationError } from '../../../shared/domain/errors';
 import type { Character } from '../../../strategic/application/ports/character.port';
 import { ActionMovementBonus } from '../../domain/entities/action-movement.vo';

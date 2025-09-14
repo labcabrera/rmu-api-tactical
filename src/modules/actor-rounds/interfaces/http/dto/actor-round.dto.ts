@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 import { PaginationDto } from '../../../../shared/interfaces/http/dto';
-import { ActorRoundEffect } from '../../../domain/entities/actor-round-effect.vo';
-import { ActorRound } from '../../../domain/entities/actor-round.aggregate';
+import { ActorRound } from '../../../domain/aggregates/actor-round.aggregate';
+import { ActorRoundEffect } from '../../../domain/value-objets/actor-round-effect.vo';
 import { ActorRoundAttackDto } from './actor-round-attack.dto';
 import { ActorRoundDefenseDto } from './actor-round-defense.dto';
 import { ActorRoundFatigueDto } from './actor-round-fatigue.dto';

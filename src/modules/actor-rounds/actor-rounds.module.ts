@@ -13,7 +13,6 @@ import { CreateActorRoundHandler } from './application/cqrs/handlers/create-acto
 import { GetActorRoundHandler } from './application/cqrs/handlers/get-actor-round.query.handler';
 import { GetActorRoundsHandler } from './application/cqrs/handlers/get-actor-rounds.query.handler';
 import { DeclareInitiativeCommandHandler } from './application/cqrs/handlers/update-initiative.handler';
-import { ActorRoundEffectService } from './domain/services/actor-round-effect.service';
 import { MongoActorRoundRepository } from './infrastructure/db/mongo.actor-round.repository';
 import { ActorRoundModel, ActorRoundSchema } from './infrastructure/persistence/models/actor-round.model';
 import { ActorRoundController } from './interfaces/http/actor-round.controller';
@@ -31,7 +30,6 @@ import { ActorRoundController } from './interfaces/http/actor-round.controller';
   ],
   controllers: [ActorRoundController],
   providers: [
-    ActorRoundEffectService,
     CreateActorRoundHandler,
     DeclareInitiativeCommandHandler,
     GetActorRoundHandler,

@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { ActorRound } from '../../../actor-rounds/domain/entities/actor-round.aggregate';
+import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.aggregate';
 import { AggregateRoot } from '../../../shared/domain/entities/aggregate-root';
 import { ValidationError } from '../../../shared/domain/errors';
 import { ActionAttack, ActionAttackParry } from './action-attack.vo';
