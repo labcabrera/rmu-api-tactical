@@ -40,6 +40,7 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     attack.roll = {
       roll: command.roll,
       location: command.location,
+      criticalRolls: undefined,
     };
     const attackResponse = await this.attackPort.updateRoll(attack.externalAttackId!, command.roll, command.location);
 

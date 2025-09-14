@@ -87,6 +87,9 @@ export class ActionAttackRoll {
 
   @Prop({ type: String, required: false })
   public location: AttackLocation | undefined;
+
+  @Prop({ type: Object, required: false })
+  public criticalRolls: Record<string, number> | undefined;
 }
 
 @Schema({ _id: false })
