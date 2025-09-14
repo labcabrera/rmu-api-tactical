@@ -8,11 +8,11 @@ export class ActorRoundDefenseDto {
   @ApiProperty({ description: 'Armor type if all items have the same AT' })
   at: number | undefined;
 
-  @ApiProperty({ description: 'Armor type of the body' })
-  bodyAt: number | undefined;
-
   @ApiProperty({ description: 'Armor type of the head' })
   headAt: number | undefined;
+
+  @ApiProperty({ description: 'Armor type of the body' })
+  bodyAt: number | undefined;
 
   @ApiProperty({ description: 'Armor type of the arms' })
   armsAt: number | undefined;
