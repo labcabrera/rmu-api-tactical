@@ -43,6 +43,15 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
       criticalRolls: undefined,
     };
     const attackResponse = await this.attackPort.updateRoll(attack.externalAttackId!, command.roll, command.location);
+    if (!attackResponse.results?.criticals) {
+      attack.roll.criticalRolls = undefined;
+    } else {
+      const criticalRolls: Record<string, number | undefined> = {};
+      attackResponse.results.criticals.forEach((critical) => {
+        Object.assign(criticalRolls, { [critical.key]: undefined });
+      });
+      attack.roll.criticalRolls = criticalRolls;
+    }
 
     action.updatedAt = new Date();
     attack.results = attackResponse.results;

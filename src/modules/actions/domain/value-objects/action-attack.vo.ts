@@ -31,7 +31,7 @@ export class ActionAttackRoll {
   constructor(
     public roll: number,
     public location: AttackLocation | undefined,
-    public criticalRolls: Record<string, number> | undefined,
+    public criticalRolls: Record<string, number | undefined> | undefined,
   ) {}
 }
 
@@ -62,7 +62,7 @@ export class CriticalResult {
 
 export class Critical {
   constructor(
-    public text: string,
+    public key: string,
     public status: string,
     public criticalType: string,
     public criticalSeverity: string,

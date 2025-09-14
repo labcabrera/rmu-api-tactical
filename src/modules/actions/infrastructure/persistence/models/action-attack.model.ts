@@ -88,14 +88,18 @@ export class ActionAttackRoll {
   @Prop({ type: String, required: false })
   public location: AttackLocation | undefined;
 
-  @Prop({ type: Object, required: false })
-  public criticalRolls: Record<string, number> | undefined;
+  @Prop({
+    type: Map,
+    of: Number,
+    default: {},
+  })
+  public criticalRolls: Record<string, number | undefined> | undefined;
 }
 
 @Schema({ _id: false })
 export class Critical {
   @Prop({ type: String, required: true })
-  public text: string;
+  public key: string;
 
   @Prop({ type: String, required: true })
   public status: string;

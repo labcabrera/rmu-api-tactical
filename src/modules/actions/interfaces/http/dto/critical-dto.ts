@@ -33,8 +33,8 @@ export class CriticalResultDto {
 }
 
 export class CriticalDto {
-  @ApiProperty({ description: 'Critical text', example: 'Lorem ipsum critical text' })
-  text: string;
+  @ApiProperty({ description: 'Critical key', example: 's_b_1' })
+  key: string;
 
   @ApiProperty({ description: 'Critical status', example: 'applied' })
   status: string;
@@ -53,7 +53,7 @@ export class CriticalDto {
 
   static fromEntity(entity: Critical): CriticalDto {
     const dto = new CriticalDto();
-    dto.text = entity.text;
+    dto.key = entity.key;
     dto.status = entity.status;
     dto.criticalType = entity.criticalType;
     dto.criticalSeverity = entity.criticalSeverity;
