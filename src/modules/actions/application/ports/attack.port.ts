@@ -56,7 +56,7 @@ export interface AttackModifiers {
   attackTable: string;
   attackSize: string;
   fumbleTable: string;
-  at: number;
+  armor: AttackArmor;
   actionPoints: number;
   fumble: number;
   rollModifiers: AttackRollModifiers;
@@ -64,7 +64,16 @@ export interface AttackModifiers {
   features: AttackFeature[];
 }
 
+export interface AttackArmor {
+  at: number | undefined;
+  headAt: number | undefined;
+  bodyAt: number | undefined;
+  armsAt: number | undefined;
+  legsAt: number | undefined;
+}
+
 export interface AttackCreationRequest {
+  gameId: string;
   actionId: string;
   sourceId: string;
   targetId: string;

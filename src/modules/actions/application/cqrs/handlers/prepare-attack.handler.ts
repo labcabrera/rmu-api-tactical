@@ -111,6 +111,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     } as AttackSituationalModifiers;
 
     const request = {
+      gameId: action.gameId,
       actionId: action.id,
       sourceId: action.actorId,
       targetId: attackModifiers.targetId,
@@ -119,7 +120,13 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
         attackTable: attackInfo.attackTable,
         attackSize: 'medium', //this.getAttackSize(attack.sizeAdjustment),
         fumbleTable: attackInfo.fumbleTable,
-        at: 1, //TODO map
+        armor: {
+          at: actorTarget.defense.at,
+          headAt: actorTarget.defense.headAt,
+          bodyAt: actorTarget.defense.bodyAt,
+          armsAt: actorTarget.defense.armsAt,
+          legsAt: actorTarget.defense.legsAt,
+        },
         actionPoints: actionPoints,
         fumble: attackInfo.fumble,
         rollModifiers: rollModifiers,
