@@ -1,4 +1,4 @@
-import { ActionAttackModifiers, AttackType } from '../../../domain/entities/action-attack.vo';
+import { ActionAttackModifiers, AttackType } from '../../../domain/value-objects/action-attack.vo';
 
 export class ActionAttackModifiersDto {
   public attackName: string;

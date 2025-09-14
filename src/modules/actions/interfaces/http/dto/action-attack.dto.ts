@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActionAttack } from '../../../domain/entities/action-attack.vo';
-import type { ActionStatus } from '../../../domain/entities/action-status.vo';
+import { ActionAttack } from '../../../domain/value-objects/action-attack.vo';
+import type { ActionStatus } from '../../../domain/value-objects/action-status.vo';
 import { ActionAttackCalculatedDto } from './action-attack-calculated.dto';
 import { ActionAttackModifiersDto } from './action-attack-modifiers.dto';
 import { ActionAttackParryDto } from './action-attack-parry.dto';

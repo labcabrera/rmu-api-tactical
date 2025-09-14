@@ -4,7 +4,7 @@ import {
   ActionMovementModifiers,
   ActionMovementResult,
   ActionMovementRoll,
-} from '../../../domain/entities/action-movement.vo';
+} from '../../../domain/value-objects/action-movement.vo';
 
 export class ActionMovementDto {
   modifiers: ActionMovementModifiersDto;

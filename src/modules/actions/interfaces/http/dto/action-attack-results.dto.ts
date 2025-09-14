@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActionAttackResult } from '../../../domain/entities/action-attack.vo';
+import { ActionAttackResult } from '../../../domain/value-objects/action-attack.vo';
 import { CriticalDto } from './critical-dto';
 
 export class AttackTableEntryDto {

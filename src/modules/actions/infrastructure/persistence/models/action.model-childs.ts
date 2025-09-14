@@ -1,7 +1,7 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import type { ActionStatus } from '../../../domain/entities/action-status.vo';
-import { ManeuverDifficulty } from '../../../domain/entities/maneuver-dificulty.vo';
-import type { ManeuverType } from '../../../domain/entities/maneuver-type.vo';
+import type { ActionStatus } from '../../../domain/value-objects/action-status.vo';
+import { ManeuverDifficulty } from '../../../domain/value-objects/maneuver-dificulty.vo';
+import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo';
 
 @Schema({ _id: false })
 export class ActionManeuverResult {

@@ -8,7 +8,7 @@ import { ErrorDto } from '../../../shared/interfaces/http/dto';
 import { DeclareParryCommand } from '../../application/cqrs/commands/declare-parry.command';
 import { PrepareAttackCommand } from '../../application/cqrs/commands/prepare-attack.command';
 import { UpdateAttackRollCommand } from '../../application/cqrs/commands/update-attack-roll.command';
-import { Action } from '../../domain/entities/action.aggregate';
+import { Action } from '../../domain/aggregates/action.aggregate';
 import { ActionDto } from './dto/action.dto';
 import { DeclareParryDto } from './dto/declare-parry.dto';
 import { PrepareAttackDto } from './dto/prepare-attack.dto';

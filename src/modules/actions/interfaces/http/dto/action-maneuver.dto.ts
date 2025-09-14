@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActionManeuver, ActionManeuverResult } from '../../../domain/entities/action-maneuver.vo';
-import type { ActionStatus } from '../../../domain/entities/action-status.vo';
-import { ManeuverDifficulty } from '../../../domain/entities/maneuver-dificulty.vo';
-import type { ManeuverType } from '../../../domain/entities/maneuver-type.vo';
+import { ActionManeuver, ActionManeuverResult } from '../../../domain/value-objects/action-maneuver.vo';
+import type { ActionStatus } from '../../../domain/value-objects/action-status.vo';
+import { ManeuverDifficulty } from '../../../domain/value-objects/maneuver-dificulty.vo';
+import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo';
 
 export class ActionManeuverResultDto {
   @ApiProperty({ description: 'Bonus modifiers' })

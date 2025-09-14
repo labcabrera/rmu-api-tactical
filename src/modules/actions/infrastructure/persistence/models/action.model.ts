@@ -1,8 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
-import type { ActionStatus } from '../../../domain/entities/action-status.vo';
-import type { ActionType } from '../../../domain/entities/action-type.vo';
+import type { ActionStatus } from '../../../domain/value-objects/action-status.vo';
+import type { ActionType } from '../../../domain/value-objects/action-type.vo';
 import { ActionAttack } from './action-attack.model';
 import { ActionMovement } from './action-movement.model';
 import { ActionManeuver } from './action.model-childs';

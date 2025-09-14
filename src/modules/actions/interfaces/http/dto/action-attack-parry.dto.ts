@@ -1,4 +1,4 @@
-import { ActionAttackParry, ParryType } from '../../../domain/entities/action-attack.vo';
+import { ActionAttackParry, ParryType } from '../../../domain/value-objects/action-attack.vo';
 
 export class ActionAttackParryDto {
   public parryActorId: string;

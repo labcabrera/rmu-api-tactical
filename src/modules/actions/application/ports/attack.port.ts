@@ -1,4 +1,4 @@
-import { ActionAttackResult } from '../../domain/entities/action-attack.vo';
+import { ActionAttackResult } from '../../domain/value-objects/action-attack.vo';
 import {
   CoverType,
   DodgeType,

@@ -6,7 +6,7 @@ import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-rou
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { Game } from '../../../../games/domain/entities/game.aggregate';
 import { ValidationError } from '../../../../shared/domain/errors';
-import { Action } from '../../../domain/entities/action.aggregate';
+import { Action } from '../../../domain/aggregates/action.aggregate';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import { CreateActionCommand } from '../commands/create-action.command';

@@ -1,5 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import type { Pace } from '../../../domain/entities/action-movement.vo';
+import type { Pace } from '../../../domain/value-objects/action-movement.vo';
 
 @Schema({ _id: false })
 export class ActionMovementModifiers {

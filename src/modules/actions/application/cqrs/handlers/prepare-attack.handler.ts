@@ -6,9 +6,9 @@ import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-rou
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, UnprocessableEntityError } from '../../../../shared/domain/errors';
 import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
-import { ActionAttack, ActionAttackCalculated, ActionAttackModifiers } from '../../../domain/entities/action-attack.vo';
-import { Action } from '../../../domain/entities/action.aggregate';
+import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
+import { ActionAttack, ActionAttackCalculated, ActionAttackModifiers } from '../../../domain/value-objects/action-attack.vo';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import type { AttackCreationRequest, AttackPort, AttackRollModifiers, AttackSituationalModifiers } from '../../ports/attack.port';
