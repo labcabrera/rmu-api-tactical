@@ -5,6 +5,7 @@ import { CommandBus } from '@nestjs/cqrs';
 import { ApiBody, ApiOkResponse, ApiOperation, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
 import { ErrorDto } from '../../../shared/interfaces/http/dto';
+import { ApplyAttackCommand } from '../../application/cqrs/commands/apply-attack.command';
 import { DeclareParryCommand } from '../../application/cqrs/commands/declare-parry.command';
 import { PrepareAttackCommand } from '../../application/cqrs/commands/prepare-attack.command';
 import { UpdateAttackRollCommand } from '../../application/cqrs/commands/update-attack-roll.command';
@@ -77,6 +78,19 @@ export class AttackController {
     const user = req.user!;
     const command = UpdateCriticalRollDto.toCommand(id, dto, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<UpdateCriticalRollCommand, Action>(command);
+    return ActionDto.fromEntity(entity);
+  }
+
+  @Patch(':id/attack/apply')
+  @ApiOperation({ operationId: 'applyAttack', summary: 'Apply attack' })
+  @ApiOkResponse({ type: ActionDto, description: 'Success' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
+  async applyAttack(@Param('id') id: string, @Request() req) {
+    this.logger.debug(`Applying attack ${id} for user ${req.user}`);
+    const user = req.user!;
+    const command = new ApplyAttackCommand(id, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<ApplyAttackCommand, Action>(command);
     return ActionDto.fromEntity(entity);
   }
 }

@@ -99,6 +99,17 @@ export class ActorRound extends AggregateRoot<ActorRound> {
     return actorRound;
   }
 
+  applyAttackResults(dmg: number | undefined, effects: ActorRoundEffect[] | undefined) {
+    if (dmg) {
+      this.hp.current -= dmg;
+    }
+    if (effects) {
+      effects.forEach((effect) => {
+        this.addEffect(effect);
+      });
+    }
+  }
+
   addEffect(effect: ActorRoundEffect): void {
     const existing = this.effects.filter((e) => e.status === effect.status);
     const isUnique = ActorRoundEffect.isUnique(effect);

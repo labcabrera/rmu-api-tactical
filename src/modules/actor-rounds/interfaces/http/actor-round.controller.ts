@@ -6,8 +6,7 @@ import { ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthori
 import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
 import { Page } from '../../../shared/domain/entities/page.entity';
 import { ErrorDto, PagedQueryDto } from '../../../shared/interfaces/http/dto';
-import { AddEffectCommand } from '../../application/cqrs/commands/add-effect.command';
-import { AddHpCommand } from '../../application/cqrs/commands/add-hp.command';
+import { AddEffectsCommand } from '../../application/cqrs/commands/add-effects.command';
 import { DeclareInitiativeCommand } from '../../application/cqrs/commands/declare-initiative.command';
 import { GetActorRoundQuery } from '../../application/cqrs/queries/get-actor-round.query';
 import { GetActorsRoundsQuery } from '../../application/cqrs/queries/get-actor-rounds.query';
@@ -73,8 +72,8 @@ export class ActorRoundController {
   @ApiNotFoundResponse({ description: 'Actor round not found', type: ErrorDto })
   async addHp(@Param('id') id: string, @Body() dto: AddHpDto, @Request() req) {
     const user = req.user!;
-    const command = AddHpDto.toCommand(id, dto, user.id as string, user.roles as string[]);
-    const entity = await this.commandBus.execute<AddHpCommand, ActorRound>(command);
+    const command = new AddEffectsCommand(id, dto.dmg, [], user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<AddEffectsCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
   }
 
@@ -86,7 +85,7 @@ export class ActorRoundController {
   async addEffect(@Param('id') id: string, @Body() dto: AddEffectDto, @Request() req) {
     const user = req.user!;
     const command = AddEffectDto.toCommand(id, dto, user.id as string, user.roles as string[]);
-    const entity = await this.commandBus.execute<AddEffectCommand, ActorRound>(command);
+    const entity = await this.commandBus.execute<AddEffectsCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
   }
 }

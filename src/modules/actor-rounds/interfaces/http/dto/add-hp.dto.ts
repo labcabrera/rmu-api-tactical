@@ -1,11 +1,11 @@
 import { IsNumber } from 'class-validator';
-import { AddHpCommand } from '../../../application/cqrs/commands/add-hp.command';
+import { AddEffectsCommand } from '../../../application/cqrs/commands/add-effects.command';
 
 export class AddHpDto {
   @IsNumber()
-  hp: number;
+  dmg: number;
 
-  static toCommand(id: string, dto: AddHpDto, userId: string, userRoles: string[]): AddHpCommand {
-    return new AddHpCommand(id, dto.hp, userId, userRoles);
+  static toCommand(id: string, dto: AddHpDto, userId: string, userRoles: string[]): AddEffectsCommand {
+    return new AddEffectsCommand(id, dto.dmg, [], userId, userRoles);
   }
 }

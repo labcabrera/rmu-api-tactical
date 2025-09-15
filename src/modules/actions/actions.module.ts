@@ -8,6 +8,7 @@ import { ActorsRoundModule } from '../actor-rounds/actor-rounds.module';
 import { GamesModule } from '../games/games.module';
 import { SharedModule } from '../shared/shared.module';
 import { StrategicModule } from '../strategic/strategic.module';
+import { ApplyAttackHandler } from './application/cqrs/handlers/apply-attack.handler';
 import { CreateActionHandler } from './application/cqrs/handlers/create-action.handler';
 import { DeclareParryHandler } from './application/cqrs/handlers/declare-parry.handler';
 import { DeleteActionHandler } from './application/cqrs/handlers/delete-action.handler';
@@ -50,6 +51,7 @@ import { ActionController } from './interfaces/http/action.controller';
     DeclareParryHandler,
     UpdateAttackRollHandler,
     UpdateCriticalRollHandler,
+    ApplyAttackHandler,
     {
       provide: 'ActionRepository',
       useClass: MongoActionRepository,

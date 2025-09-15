@@ -147,6 +147,15 @@ export class Action extends AggregateRoot<Action> {
     }
   }
 
+  checkValidApplyResults() {
+    if (this.actionType !== 'attack') {
+      throw new ValidationError('Action is not an attack');
+    }
+    if (this.status === 'completed') {
+      throw new ValidationError('Attack already completed');
+    }
+  }
+
   processFatigue(action: Action, fatigueMultiplier: number | undefined): void {
     if (!action.actionPoints) {
       throw new Error('Action does not have action points defined');
