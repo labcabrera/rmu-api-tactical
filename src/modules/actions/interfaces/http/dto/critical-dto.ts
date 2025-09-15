@@ -63,13 +63,15 @@ export class CriticalDto {
           text: entity.result.text,
           damage: entity.result.damage,
           location: entity.result.location,
-          effects: entity.result.effects.map((effect) => ({
-            status: effect.status,
-            rounds: effect.rounds,
-            value: effect.value,
-            delay: effect.delay,
-            condition: effect.condition,
-          })),
+          effects: entity.result.effects
+            ? entity.result.effects.map((effect) => ({
+                status: effect.status,
+                rounds: effect.rounds,
+                value: effect.value,
+                delay: effect.delay,
+                condition: effect.condition,
+              }))
+            : [],
         }
       : undefined;
     return dto;
