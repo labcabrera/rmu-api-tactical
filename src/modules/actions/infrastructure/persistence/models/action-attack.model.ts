@@ -93,7 +93,7 @@ export class ActionAttackRoll {
     of: Number,
     default: {},
   })
-  public criticalRolls: Record<string, number | undefined> | undefined;
+  public criticalRolls: Map<string, number | undefined> | undefined;
 }
 
 @Schema({ _id: false })

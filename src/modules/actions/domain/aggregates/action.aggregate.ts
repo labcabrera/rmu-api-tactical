@@ -113,7 +113,7 @@ export class Action extends AggregateRoot<Action> {
     if (!attack.roll || !attack.roll.roll) {
       throw new ValidationError(`Main roll not found in attack ${attackName} of action ${this.id}`);
     }
-    if (!attack.roll.criticalRolls || !(criticalKey in attack.roll.criticalRolls)) {
+    if (!attack.roll.criticalRolls || !attack.roll.criticalRolls.has(criticalKey)) {
       throw new ValidationError(`Critical ${criticalKey} not found in attack ${attackName} of action ${this.id}`);
     }
   }

@@ -42,20 +42,23 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
       criticalRolls: undefined,
     };
     const attackResponse = await this.attackPort.updateRoll(attack.externalAttackId!, command.roll, command.location);
-    if (!attackResponse.results?.criticals) {
+    if (!attackResponse || !attackResponse.results) throw new ValidationError('Attack service did not return results');
+
+    if (!attackResponse.results.criticals) {
       attack.roll.criticalRolls = undefined;
     } else {
-      const criticalRolls: Record<string, number | undefined> = {};
+      attack.roll.criticalRolls = new Map<string, number | undefined>();
       attackResponse.results.criticals.forEach((critical) => {
-        Object.assign(criticalRolls, { [critical.key]: undefined });
+        attack.roll!.criticalRolls!.set(critical.key, undefined);
       });
-      attack.roll.criticalRolls = criticalRolls;
     }
+
+    console.log(JSON.stringify(attack, null, 2));
 
     action.updatedAt = new Date();
     attack.results = attackResponse.results;
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
-    return action;
+    return updated;
   }
 }

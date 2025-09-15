@@ -31,7 +31,7 @@ export class ActionAttackRoll {
   constructor(
     public roll: number,
     public location: AttackLocation | undefined,
-    public criticalRolls: Record<string, number | undefined> | undefined,
+    public criticalRolls: Map<string, number | undefined> | undefined,
   ) {}
 }
 

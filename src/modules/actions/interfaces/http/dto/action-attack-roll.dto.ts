@@ -10,7 +10,7 @@ export class ActionAttackRollDto {
   location: AttackLocation | undefined;
 
   @ApiProperty({ description: 'The critical rolls', example: { s_c_1: 42 }, required: false })
-  criticalRolls: Record<string, number | undefined> | undefined;
+  criticalRolls: Map<string, number | undefined> | undefined;
 
   static fromEntity(entity: ActionAttackRoll): ActionAttackRoll {
     const dto = new ActionAttackRollDto();

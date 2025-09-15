@@ -32,7 +32,7 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
     }
     action.checkValidCriticalRollDeclaration(command.attackName, command.criticalKey, command.roll);
     const attack = action.getAttackByName(command.attackName);
-    attack.roll!.criticalRolls![command.criticalKey] = command.roll;
+    attack.roll!.criticalRolls!.set(command.criticalKey, command.roll);
 
     const attackResponse = await this.attackPort.updateCriticalRoll(attack.externalAttackId!, command.criticalKey, command.roll);
     attack.results = attackResponse.results;
