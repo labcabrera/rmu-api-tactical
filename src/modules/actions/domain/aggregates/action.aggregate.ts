@@ -156,34 +156,34 @@ export class Action extends AggregateRoot<Action> {
     }
   }
 
-  processFatigue(action: Action, fatigueMultiplier: number | undefined): void {
-    if (!action.actionPoints) {
+  processFatigue(fatigueMultiplier: number | undefined): void {
+    if (!this.actionPoints) {
       throw new Error('Action does not have action points defined');
     }
     let value: number | undefined = undefined;
-    switch (action.actionType) {
+    switch (this.actionType) {
       case 'movement':
-        value = this.getMovementFatigue(action);
+        value = this.getMovementFatigue();
         break;
       case 'attack':
-        value = this.getCombatFatigue(action);
+        value = this.getCombatFatigue();
         break;
     }
     if (value) {
-      value = action.actionPoints * value;
+      value = this.actionPoints * value;
     }
     if (value && fatigueMultiplier) {
       value = value * fatigueMultiplier;
     }
-    action.fatigue = value;
+    this.fatigue = value;
   }
 
-  private getCombatFatigue(action: Action): number | undefined {
-    if (!action.attacks || action.attacks.length === 0) {
+  private getCombatFatigue(): number | undefined {
+    if (!this.attacks || this.attacks.length === 0) {
       throw new UnprocessableEntityError('Action does not have attack data');
     }
     // check every 6 rounds only for melee attacks
-    return action.attacks.some((e) => e.modifiers.type === 'melee') ? 4.16 : undefined;
+    return this.attacks.some((e) => e.modifiers.type === 'melee') ? 4.16 : undefined;
   }
 
   private getAvailableParry(actor: ActorRound): number {
@@ -191,9 +191,9 @@ export class Action extends AggregateRoot<Action> {
     return Math.max(...list, 0);
   }
 
-  private getMovementFatigue(action: Action): number | undefined {
-    if (action.movement?.modifiers.skillId) {
-      switch (action.movement.modifiers.skillId) {
+  private getMovementFatigue(): number | undefined {
+    if (this.movement?.modifiers.skillId) {
+      switch (this.movement.modifiers.skillId) {
         case 'climbing':
         case 'swimming':
           // check every 5 min
@@ -202,14 +202,14 @@ export class Action extends AggregateRoot<Action> {
           break;
       }
     }
-    return this.getRunningFatigue(action);
+    return this.getRunningFatigue();
   }
 
-  private getRunningFatigue(action: Action): number | undefined {
-    if (!action.movement || !action.movement.modifiers || !action.movement.modifiers.pace) {
+  private getRunningFatigue(): number | undefined {
+    if (!this.movement || !this.movement.modifiers || !this.movement.modifiers.pace) {
       throw new Error('Action does not have movement data');
     }
-    switch (action.movement.modifiers.pace) {
+    switch (this.movement.modifiers.pace) {
       case 'jog':
         // check every 5 min
         return 0.14;

@@ -1,6 +1,7 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateActorRoundCommand } from '../../../../actor-rounds/application/cqrs/commands/create-actor-round.command';
+import { UpkeepActorRoundCommand } from '../../../../actor-rounds/application/cqrs/commands/upkeep-actor-round.command';
 import { NotFoundError } from '../../../../shared/domain/errors';
 import { Actor } from '../../../domain/entities/actor.vo';
 import { Game } from '../../../domain/entities/game.aggregate';
@@ -25,17 +26,25 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
     if (!game) {
       throw new NotFoundError('Game', gameId);
     }
-    game.startRound();
     //TODO make saga
+    if (game.round > 0) {
+      await Promise.all(game.actors.map((actor) => this.applyUpkeepToActorRounds(actor, game.round, command.userId, command.roles)));
+    }
+    await Promise.all(game.actors.map((actor) => this.createActorRounds(game.id, game.round + 1, actor)));
+    game.startRound();
     const updatedGame = await this.gameRepository.update(gameId, game);
-    await Promise.all(game.actors.map((actor) => this.createActorRounds(game, actor)));
     const events = game.pullDomainEvents();
     events.forEach((event) => this.gameEventBus.publish(event));
     return updatedGame;
   }
 
-  private async createActorRounds(game: Game, actor: Actor): Promise<void> {
-    const command = new CreateActorRoundCommand(game.id, actor, game.round);
+  private async createActorRounds(gameId: string, round: number, actor: Actor): Promise<void> {
+    const command = new CreateActorRoundCommand(gameId, actor, round);
+    await this.commandBus.execute(command);
+  }
+
+  private async applyUpkeepToActorRounds(actor: Actor, round: number, userId: string, roles: string[]): Promise<void> {
+    const command = new UpkeepActorRoundCommand(actor.id, round, userId, roles);
     await this.commandBus.execute(command);
   }
 }

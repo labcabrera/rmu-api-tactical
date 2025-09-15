@@ -56,6 +56,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
 
     //TODO check multiple attacks
     action.status = 'parry_declaration';
+    action.actionPoints = game.getActionPhase() - action.phaseStart + 1;
 
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action.id, action);

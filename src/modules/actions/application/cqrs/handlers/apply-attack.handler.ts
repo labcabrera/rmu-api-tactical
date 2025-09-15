@@ -6,6 +6,7 @@ import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-rou
 import { ActorRoundEffect } from '../../../../actor-rounds/domain/value-objets/actor-round-effect.vo';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, UnprocessableEntityError } from '../../../../shared/domain/errors';
+import { StrategicGameApiClient } from '../../../../strategic/infrastructure/api-clients/api-strategic-game.adapter';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import { ActionAttack } from '../../../domain/value-objects/action-attack.vo';
@@ -22,6 +23,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject('StrategicGameClient') private readonly strategicGamePort: StrategicGameApiClient,
     @Inject('AttackPort') private readonly attackPort: AttackPort,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
     private readonly commandBus: CommandBus,
@@ -36,6 +38,10 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     const game = await this.gameRepository.findById(action.gameId);
     if (!game) {
       throw new NotFoundError('Game', action.gameId);
+    }
+    const strategicGame = await this.strategicGamePort.findById(game.strategicGameId);
+    if (!strategicGame) {
+      throw new NotFoundError('StrategicGame', game.strategicGameId);
     }
     action.checkValidApplyResults();
     const actionAttacks = action.attacks!;
@@ -53,7 +59,9 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
 
     await Promise.all(Array.from(updateCommands.values()).map((cmd) => this.commandBus.execute(cmd)));
 
+    action.processFatigue(strategicGame.options?.fatigueMultiplier);
     action.updatedAt = new Date();
+    action.phaseEnd = game.getActionPhase();
     action.status = 'completed';
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
