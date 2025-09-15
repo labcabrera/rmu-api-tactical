@@ -60,6 +60,13 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     await Promise.all(Array.from(updateCommands.values()).map((cmd) => this.commandBus.execute(cmd)));
 
     action.processFatigue(strategicGame.options?.fatigueMultiplier);
+    if (action.fatigue) {
+      const actorRound = actors.find((a) => a.actorId === action.actorId)!;
+      const currentFatigue = actorRound.fatigue.accumulator || 0;
+      actorRound.fatigue.accumulator = currentFatigue + action.fatigue;
+      await this.actorRoundRepository.update(actorRound.id, actorRound);
+    }
+
     action.updatedAt = new Date();
     action.phaseEnd = game.getActionPhase();
     action.status = 'completed';

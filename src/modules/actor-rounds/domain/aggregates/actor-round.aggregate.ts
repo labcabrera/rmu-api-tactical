@@ -128,7 +128,7 @@ export class ActorRound extends AggregateRoot<ActorRound> {
     this.effects.filter((e) => e.rounds).forEach((e) => (e.rounds! -= 1));
     this.effects = this.effects.filter((e) => !e.rounds || e.rounds > 0);
     if (this.hp.current < 1) {
-      this.applyAttackResults(0, [new ActorRoundEffect('death', undefined, undefined)]);
+      this.applyAttackResults(0, [new ActorRoundEffect('dead', undefined, undefined)]);
     }
   }
 }
