@@ -88,6 +88,35 @@ export class Action extends AggregateRoot<Action> {
     }
   }
 
+  hasPendingAttackRolls(): boolean {
+    if (this.actionType !== 'attack') throw new ValidationError('Action is not an attack');
+    if (!this.attacks || this.attacks.length === 0) throw new ValidationError('Action has no attacks declared');
+    return this.attacks.some((a) => !a.roll || !a.roll.roll);
+  }
+
+  hasPendingCriticalRolls(): boolean {
+    if (this.actionType !== 'attack') throw new ValidationError('Action is not an attack');
+    if (!this.attacks || this.attacks.length === 0) throw new ValidationError('Action has no attacks declared');
+    this.attacks.forEach((a) => {
+      if (a.roll && a.roll.criticalRolls && a.roll.criticalRolls.size > 0) {
+        const hasUndefined = Array.from(a.roll.criticalRolls.values()).some((v) => v === undefined);
+        if (hasUndefined) {
+          return true;
+        }
+      }
+
+      if (!a.roll || !a.roll.criticalRolls) {
+        throw new ValidationError(`Attack ${a.modifiers.attackName} has no criticals declared`);
+      }
+    });
+    return false;
+  }
+
+  hasPendingFumbleRolls(): boolean {
+    // TODO implement fumble rolls
+    return false;
+  }
+
   getAttackByName(attackName: string): ActionAttack {
     if (!this.attacks) throw new ValidationError('Action has no attacks declared');
     const result = this.attacks.find((a) => a.modifiers.attackName === attackName);
@@ -96,15 +125,15 @@ export class Action extends AggregateRoot<Action> {
   }
 
   checkValidParryDeclaration() {
-    this.checkValidAttack('in_progress');
+    //this.checkValidAttack('in_progress');
   }
 
   checkValidRollDeclaration() {
-    this.checkValidAttack('in_progress');
+    //this.checkValidAttack('in_progress');
   }
 
   checkValidCriticalRollDeclaration(attackName: string, criticalKey: string, roll: number) {
-    this.checkValidAttack('in_progress');
+    //this.checkValidAttack('in_progress');
     if (!attackName) throw new ValidationError('Attack name is required');
     if (!criticalKey) throw new ValidationError('Critical key is required');
     if (!roll || roll < 1 || roll > 100) throw new ValidationError('Critical roll must be between 1 and 100');

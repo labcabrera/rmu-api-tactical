@@ -52,8 +52,11 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
         attack.roll!.criticalRolls!.set(critical.key, undefined);
       });
     }
-
-    console.log(JSON.stringify(attack, null, 2));
+    if (action.hasPendingCriticalRolls() || action.hasPendingFumbleRolls()) {
+      action.status = 'critical_and_fumble_roll_declaration';
+    } else {
+      action.status = 'pending_apply';
+    }
 
     action.updatedAt = new Date();
     attack.results = attackResponse.results;

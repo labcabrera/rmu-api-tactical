@@ -54,7 +54,9 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
 
     console.log('Final attacks', JSON.stringify(action, null, 2));
 
-    action.status = 'in_progress';
+    //TODO check multiple attacks
+    action.status = 'parry_declaration';
+
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
