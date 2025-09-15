@@ -71,6 +71,25 @@ export class ApiAttackClientAdapter implements AttackPort {
     }
   }
 
+  async updateCriticalRoll(attackId: string, criticalKey: string, roll: number): Promise<AttackResponse> {
+    const token = await this.tokenService.getToken();
+    const uri = `${this.apiCoreUri}/attacks/${attackId}/critical-roll`;
+    try {
+      const response = await axios.patch(
+        uri,
+        { roll: roll, criticalKey: criticalKey },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      return response.data as AttackResponse;
+    } catch (err: unknown) {
+      throw handleAxiosError(err, uri);
+    }
+  }
+
   async deleteAttack(actionId: string): Promise<void> {
     const token = await this.tokenService.getToken();
     const uri = `${this.apiCoreUri}/attacks/${actionId}`;

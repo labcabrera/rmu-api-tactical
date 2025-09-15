@@ -3,7 +3,6 @@ import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import { MongooseModule } from '@nestjs/mongoose';
 import { TerminusModule } from '@nestjs/terminus';
-
 import { AuthModule } from 'src/modules/auth/auth.module';
 import { ActorsRoundModule } from '../actor-rounds/actor-rounds.module';
 import { GamesModule } from '../games/games.module';
@@ -17,6 +16,7 @@ import { GetActionsQueryHandler } from './application/cqrs/handlers/get-actions.
 import { PrepareAttackHandler } from './application/cqrs/handlers/prepare-attack.handler';
 import { ResolveMovementHandler } from './application/cqrs/handlers/resolve-movement.handler';
 import { UpdateAttackRollHandler } from './application/cqrs/handlers/update-attack-roll.handler';
+import { UpdateCriticalRollHandler } from './application/cqrs/handlers/update-critical-roll.handler';
 import { MovementProcessorService } from './application/services/movement-processor.service';
 import { ApiAttackClientAdapter } from './infrastructure/api-clients/api.attack.adapter';
 import { ApiManeuverAdapter } from './infrastructure/api-clients/api.maneuver.adapter';
@@ -49,6 +49,7 @@ import { ActionController } from './interfaces/http/action.controller';
     PrepareAttackHandler,
     DeclareParryHandler,
     UpdateAttackRollHandler,
+    UpdateCriticalRollHandler,
     {
       provide: 'ActionRepository',
       useClass: MongoActionRepository,

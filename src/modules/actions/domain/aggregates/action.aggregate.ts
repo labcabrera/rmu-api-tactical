@@ -88,9 +88,11 @@ export class Action extends AggregateRoot<Action> {
     }
   }
 
-  private getAvailableParry(actor: ActorRound): number {
-    const list = actor.attacks.map((attack) => attack.currentBo);
-    return Math.max(...list, 0);
+  getAttackByName(attackName: string): ActionAttack {
+    if (!this.attacks) throw new ValidationError('Action has no attacks declared');
+    const result = this.attacks.find((a) => a.modifiers.attackName === attackName);
+    if (!result) throw new ValidationError(`Attack ${attackName} not found in action ${this.id}`);
+    return result;
   }
 
   checkValidParryDeclaration() {
@@ -99,6 +101,21 @@ export class Action extends AggregateRoot<Action> {
 
   checkValidRollDeclaration() {
     this.checkValidAttack('in_progress');
+  }
+
+  checkValidCriticalRollDeclaration(attackName: string, criticalKey: string, roll: number) {
+    this.checkValidAttack('in_progress');
+    if (!attackName) throw new ValidationError('Attack name is required');
+    if (!criticalKey) throw new ValidationError('Critical key is required');
+    if (!roll || roll < 1 || roll > 100) throw new ValidationError('Critical roll must be between 1 and 100');
+    const attack = this.attacks!.find((a) => a.modifiers.attackName === attackName);
+    if (!attack) throw new ValidationError(`Attack ${attackName} not found in action ${this.id}`);
+    if (!attack.roll || !attack.roll.roll) {
+      throw new ValidationError(`Main roll not found in attack ${attackName} of action ${this.id}`);
+    }
+    if (!attack.roll.criticalRolls || !(criticalKey in attack.roll.criticalRolls)) {
+      throw new ValidationError(`Critical ${criticalKey} not found in attack ${attackName} of action ${this.id}`);
+    }
   }
 
   processFatigue(action: Action, fatigueMultiplier: number | undefined): void {
@@ -129,6 +146,11 @@ export class Action extends AggregateRoot<Action> {
     }
     // check every 6 rounds only for melee attacks
     return action.attacks.some((e) => e.modifiers.type === 'melee') ? 4.16 : undefined;
+  }
+
+  private getAvailableParry(actor: ActorRound): number {
+    const list = actor.attacks.map((attack) => attack.currentBo);
+    return Math.max(...list, 0);
   }
 
   private getMovementFatigue(action: Action): number | undefined {

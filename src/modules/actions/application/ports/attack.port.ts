@@ -11,6 +11,7 @@ import {
 export interface AttackPort {
   updateRoll(attackId: string, roll: number, location: AttackLocation | undefined): Promise<AttackResponse>;
   updateParry(attackId: string, parry: number): Promise<AttackResponse>;
+  updateCriticalRoll(attackId: string, criticalKey: string, roll: number): Promise<AttackResponse>;
   prepareAttack(actionId: AttackCreationRequest): Promise<AttackResponse>;
   deleteAttack(actionId: string): Promise<void>;
 }

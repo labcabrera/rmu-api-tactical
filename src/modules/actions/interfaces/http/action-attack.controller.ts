@@ -8,11 +8,13 @@ import { ErrorDto } from '../../../shared/interfaces/http/dto';
 import { DeclareParryCommand } from '../../application/cqrs/commands/declare-parry.command';
 import { PrepareAttackCommand } from '../../application/cqrs/commands/prepare-attack.command';
 import { UpdateAttackRollCommand } from '../../application/cqrs/commands/update-attack-roll.command';
+import { UpdateCriticalRollCommand } from '../../application/cqrs/commands/update-critical-roll.command';
 import { Action } from '../../domain/aggregates/action.aggregate';
 import { ActionDto } from './dto/action.dto';
 import { DeclareParryDto } from './dto/declare-parry.dto';
 import { PrepareAttackDto } from './dto/prepare-attack.dto';
 import { UpdateAttackRollDto } from './dto/update-attack-roll.dto';
+import { UpdateCriticalRollDto } from './dto/update-critical-roll.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('v1/actions')
@@ -61,6 +63,20 @@ export class AttackController {
     const user = req.user!;
     const command = UpdateAttackRollDto.toCommand(id, dto, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<UpdateAttackRollCommand, Action>(command);
+    return ActionDto.fromEntity(entity);
+  }
+
+  @Patch(':id/attack/critical-roll')
+  @ApiBody({ type: UpdateCriticalRollDto })
+  @ApiOperation({ operationId: 'updateCriticalRoll', summary: 'Update critical roll' })
+  @ApiOkResponse({ type: ActionDto, description: 'Success' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
+  async updateCriticalRoll(@Param('id') id: string, @Body() dto: UpdateCriticalRollDto, @Request() req) {
+    this.logger.debug(`Updating critical roll: ${JSON.stringify(dto)} for user ${req.user}`);
+    const user = req.user!;
+    const command = UpdateCriticalRollDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<UpdateCriticalRollCommand, Action>(command);
     return ActionDto.fromEntity(entity);
   }
 }
