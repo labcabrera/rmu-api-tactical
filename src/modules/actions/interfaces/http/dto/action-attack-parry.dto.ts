@@ -1,21 +1,21 @@
-import { ActionAttackParry, ParryType } from '../../../domain/value-objects/action-attack.vo';
+import { ActionParry, ParryType } from '../../../domain/value-objects/action-attack.vo';
 
-export class ActionAttackParryDto {
-  public parryActorId: string;
+export class ActionParryDto {
+  id: string;
+  actorId: string;
+  targetActorId: string;
+  parryType: ParryType;
+  targetAttackName: string | undefined;
+  parryAvailable: number;
+  parry: number;
 
-  public targetId: string;
-
-  public parryType: ParryType;
-
-  public parryAvailable: number;
-
-  public parry: number;
-
-  static fromEntity(entity: ActionAttackParry): ActionAttackParryDto {
-    const dto = new ActionAttackParryDto();
-    dto.parryActorId = entity.parryActorId;
-    dto.targetId = entity.targetId;
+  static fromEntity(entity: ActionParry): ActionParryDto {
+    const dto = new ActionParryDto();
+    dto.id = entity.id;
+    dto.actorId = entity.actorId;
+    dto.targetActorId = entity.targetActorId;
     dto.parryType = entity.parryType;
+    dto.targetAttackName = entity.targetAttackName;
     dto.parryAvailable = entity.parryAvailable;
     dto.parry = entity.parry;
     return dto;

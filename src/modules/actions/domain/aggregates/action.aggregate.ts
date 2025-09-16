@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto';
 import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.aggregate';
 import { AggregateRoot } from '../../../shared/domain/entities/aggregate-root';
 import { UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors';
-import { ActionAttack, ActionAttackParry } from '../value-objects/action-attack.vo';
+import { ActionAttack, ActionParry } from '../value-objects/action-attack.vo';
 import { ActionManeuver } from '../value-objects/action-maneuver.vo';
 import { ActionMovement } from '../value-objects/action-movement.vo';
 import { ActionStatus } from '../value-objects/action-status.vo';
@@ -21,6 +21,7 @@ export class Action extends AggregateRoot<Action> {
     public actionPoints: number | undefined,
     public movement: ActionMovement | undefined,
     public attacks: ActionAttack[] | undefined,
+    public parries: ActionParry[] | undefined,
     public maneuver: ActionManeuver | undefined,
     public fatigue: number | undefined,
     public description: string | undefined,
@@ -53,6 +54,7 @@ export class Action extends AggregateRoot<Action> {
       undefined,
       undefined,
       undefined,
+      undefined,
       maneuver,
       undefined,
       description,
@@ -72,20 +74,20 @@ export class Action extends AggregateRoot<Action> {
     }
   }
 
-  processParryOptions(action: Action, actors: ActorRound[]) {
+  processParryOptions(targets: ActorRound[]) {
     //TODO check if attacking in last phase
     //TODO process protectors
-    if (!action.attacks || action.attacks.length === 0) {
+    if (!this.attacks || this.attacks.length === 0) {
       return;
     }
-    for (const attack of action.attacks) {
-      attack.parries = [];
-      if (!attack.modifiers.disabledParry) {
-        const target = actors.find((a) => a.actorId === attack.modifiers.targetId);
-        const availableParry = this.getAvailableParry(target!);
-        attack.parries.push(new ActionAttackParry(target!.actorId, target!.actorId, 'parry', availableParry, 0));
-      }
-    }
+    this.parries = [];
+    targets
+      .filter((t) => t.actorId !== this.actorId)
+      .forEach((t) => {
+        t.attacks.forEach((attack) => {
+          this.parries!.push(new ActionParry(randomUUID(), t.actorId, this.actorId, 'parry', attack.attackName, attack.currentBo, 0));
+        });
+      });
   }
 
   hasPendingAttackRolls(): boolean {
@@ -184,6 +186,14 @@ export class Action extends AggregateRoot<Action> {
     }
     // check every 6 rounds only for melee attacks
     return this.attacks.some((e) => e.modifiers.type === 'melee') ? 4.16 : undefined;
+  }
+
+  applyParrysToAttacks() {
+    this.attacks?.forEach((attack) => {
+      const targetId = attack.modifiers.targetId;
+      const totalParry = this.parries?.filter((p) => p.targetActorId === targetId).reduce((sum, p) => sum + p.parry, 0) || 0;
+      attack.modifiers.parry = totalParry;
+    });
   }
 
   private getAvailableParry(actor: ActorRound): number {

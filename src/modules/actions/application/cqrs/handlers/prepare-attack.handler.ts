@@ -49,7 +49,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     }
     await Promise.all(actionAttacks.map((attack) => this.processAttackPort(attack, actionPoints, action, actors)));
     action.attacks = actionAttacks;
-    action.processParryOptions(action, actors);
+    action.processParryOptions(actors);
 
     //TODO check multiple attacks
     action.status = 'parry_declaration';
@@ -187,6 +187,6 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       commandAttack.disabledParry,
       commandAttack.customBonus,
     );
-    return new ActionAttack(modifiers, undefined, undefined, undefined, undefined, undefined, 'declared');
+    return new ActionAttack(modifiers, undefined, undefined, undefined, undefined, 'declared');
   }
 }

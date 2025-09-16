@@ -1,6 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
 import { Modifier } from '../../../../shared/infrastructure/persistence/models/modier.model';
-import type { ParryType } from '../../../domain/value-objects/action-attack.vo';
 import type { ActionStatus } from '../../../domain/value-objects/action-status.vo';
 import { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
 import { ActionAttackModifiers } from './action-attack-modifiers.model';
@@ -63,24 +62,6 @@ export class CriticalResult {
 }
 
 @Schema({ _id: false })
-export class ActionAttackParry {
-  @Prop({ type: String, required: true })
-  public parryActorId: string;
-
-  @Prop({ type: String, required: true })
-  public targetId: string;
-
-  @Prop({ type: String, required: true })
-  public parryType: ParryType;
-
-  @Prop({ type: Number, required: true })
-  public parryAvailable: number;
-
-  @Prop({ type: Number, required: true })
-  public parry: number;
-}
-
-@Schema({ _id: false })
 export class ActionAttackRoll {
   @Prop({ type: Number, required: true })
   public roll: number;
@@ -130,9 +111,6 @@ export class ActionAttackResult {
 export class ActionAttack {
   @Prop({ type: ActionAttackModifiers, required: true })
   public modifiers: ActionAttackModifiers;
-
-  @Prop({ type: [ActionAttackParry], required: false })
-  public parries: ActionAttackParry[] | undefined;
 
   @Prop({ type: ActionAttackRoll, required: false })
   public roll: ActionAttackRoll | undefined;

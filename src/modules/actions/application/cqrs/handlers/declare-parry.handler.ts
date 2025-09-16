@@ -1,9 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Inject, Logger } from '@nestjs/common';
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { DeclareActorParryCommand } from '../../../../actor-rounds/application/cqrs/commands/declare-actor-parry.command';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
-import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
@@ -49,23 +47,23 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     }
 
     // Update attack parries with command values
-    attacks.forEach((attack) => {
-      attack.parries!.forEach((parry) => {
-        const actorRound = actorRounds.find((ar) => ar.actorId === parry.parryActorId)!;
-        const commandParry = command.parries.find((p) => p.parryActorId === parry.parryActorId)!;
-        const parryValue = this.validateParry(commandParry?.parry, actorRound, attack.modifiers.targetId !== parry.parryActorId);
-        parry.parry = parryValue;
-      });
-      attack.parries = attack.parries!.filter((p) => p.parry > 0);
-    });
+    for (const [parryId, parryAmount] of command.parries) {
+      const parry = action.parries?.find((p) => p.id === parryId);
+      if (!parry) {
+        throw new ValidationError(`Parry ${parryId} not found`);
+      }
+      parry.parry = parryAmount;
+    }
+
+    // Set up parry values in attacks
+    action.applyParrysToAttacks();
 
     // Send actor parry commands to reduce available bo
-    await this.sendActorParryCommand(action.actorId, command, game.round);
+    await this.sendActorParryCommand(action, command, game.round);
 
     // Update attack total parry and sent to attack port
     await Promise.all(
       attacks.map(async (attack) => {
-        attack.modifiers.parry = attack.parries!.reduce((sum, p) => sum + p.parry, 0);
         const updatedAttack = await this.attackPort.updateParry(attack.externalAttackId!, attack.modifiers.parry);
         attack.calculated!.rollModifiers = updatedAttack.calculated.rollModifiers;
         attack.calculated!.rollTotal = updatedAttack.calculated.rollTotal;
@@ -79,12 +77,26 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     return action;
   }
 
-  private async sendActorParryCommand(sourceId: string, command: DeclareParryCommand, round: number): Promise<void> {
-    const actorParryCommands = command.parries
-      .filter((p) => p.parry > 0)
-      .map((p) => new DeclareActorParryCommand(p.parryActorId, sourceId, round, p.parry, command.userId, command.roles));
+  private async sendActorParryCommand(action: Action, command: DeclareParryCommand, round: number): Promise<void> {
+    const commands = action
+      .parries!.filter((p) => p.parry > 0)
+      .map(
+        (p) =>
+          new DeclareActorParryCommand(
+            p.id,
+            p.actorId,
+            p.targetActorId,
+            action.actorId,
+            round,
+            p.parryType,
+            p.targetAttackName,
+            p.parry,
+            command.userId,
+            command.roles,
+          ),
+      );
     await Promise.all(
-      actorParryCommands.map(async (cmd) => {
+      commands.map(async (cmd) => {
         try {
           await this.commandBus.execute(cmd);
         } catch (error) {
@@ -102,18 +114,5 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
       actorIds.add(attack.modifiers.targetId);
     });
     return Array.from(actorIds);
-  }
-
-  private validateParry(parry: number, actor: ActorRound, protect: boolean): number {
-    if (!protect) {
-      const bos = actor.attacks.map((a) => a.currentBo);
-      const maxBo = Math.max(...bos);
-      if (parry > maxBo) {
-        throw new ValidationError(`Parry ${parry} higher than max BO ${maxBo}`);
-      }
-    } else {
-      //TODO check protecting skill
-    }
-    return parry;
   }
 }

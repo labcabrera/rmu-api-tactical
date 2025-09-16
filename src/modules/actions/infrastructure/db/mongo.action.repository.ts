@@ -74,6 +74,7 @@ export class MongoActionRepository implements ActionRepository {
       doc.actionPoints,
       doc.movement,
       doc.attacks,
+      doc.parries,
       doc.maneuver,
       doc.fatigue,
       doc.description,

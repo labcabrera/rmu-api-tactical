@@ -8,7 +8,6 @@ export type ParryType = 'parry' | 'protect';
 export class ActionAttack {
   constructor(
     public modifiers: ActionAttackModifiers,
-    public parries: ActionAttackParry[] | undefined,
     public roll: ActionAttackRoll | undefined,
     public calculated: ActionAttackCalculated | undefined,
     public results: ActionAttackResult | undefined,
@@ -17,12 +16,17 @@ export class ActionAttack {
   ) {}
 }
 
-export class ActionAttackParry {
+export class ActionParry {
   constructor(
-    public parryActorId: string,
-    public targetId: string,
-    public parryType: ParryType,
-    public parryAvailable: number,
+    public readonly id: string,
+    /** Actor identifier. Can be the target of the attack or a protector */
+    public readonly actorId: string,
+    /** Actor who is the target of the attack (in two handed melee combat one attacker can attack two targets) */
+    public readonly targetActorId: string,
+    public readonly parryType: ParryType,
+    /** Name of the attack used to parry */
+    public readonly targetAttackName: string | undefined,
+    public readonly parryAvailable: number,
     public parry: number,
   ) {}
 }
