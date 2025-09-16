@@ -10,7 +10,6 @@ export class PrepareAttackCommand {
   constructor(
     public readonly actionId: string,
     public readonly attacks: PrepareAttackCommandItem[],
-    public readonly parries: PrepareAttackCommandParryItem[] | undefined,
     public readonly userId,
     public readonly userRoles,
   ) {}
