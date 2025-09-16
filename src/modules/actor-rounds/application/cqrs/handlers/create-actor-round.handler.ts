@@ -50,7 +50,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
     let attacks: ActorRoundAttack[] = [];
     let maxHp = 0;
     let currentHp = 0;
-    let defense;
+    let defense: ActorRoundDefense;
     if (actor.type === 'character') {
       const character = await this.characterClient.findById(actor.id);
       if (!character) {
