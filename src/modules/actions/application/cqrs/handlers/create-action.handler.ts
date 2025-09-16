@@ -26,7 +26,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     this.logger.log(`Execute << ${JSON.stringify(command)}`);
     this.validateCommand(command);
     const game = await this.readGame(command);
-    this.validateGame(game);
+    this.checkDeclareActionAllowed(game);
     const round = game.round;
     const [actorRound, roundActions] = await Promise.all([this.readActorRound(command, round), this.readActions(command, round)]);
     this.validateActorRoundAndActions(actorRound, roundActions);
@@ -56,11 +56,11 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
 
   private async readActorRound(command: CreateActionCommand, round: number): Promise<ActorRound> {
     const rsql = `gameId==${command.gameId};actorId==${command.actorId};round==${round}`;
-    const characterRounds = await this.actorRoundRepository.findByRsql(rsql, 0, 100);
-    if (characterRounds.content.length === 0) {
-      throw new ValidationError(`CharacterRound for game ${command.gameId}, character ${command.actorId}, round ${round} not found`);
+    const actorRounds = await this.actorRoundRepository.findByRsql(rsql, 0, 100);
+    if (actorRounds.content.length === 0) {
+      throw new ValidationError(`Actor round for game ${command.gameId}, character ${command.actorId}, round ${round} not found`);
     }
-    return characterRounds.content[0];
+    return actorRounds.content[0];
   }
 
   private async readActions(command: CreateActionCommand, round: number): Promise<Action[]> {
@@ -75,7 +75,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     }
   }
 
-  private validateGame(game: Game): void {
+  private checkDeclareActionAllowed(game: Game): void {
     if (game.round < 1) {
       throw new ValidationError(`Game ${game.name} is not in progress. You need to start the game.`);
     }
@@ -83,7 +83,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       case 'not_started':
       case 'declare_initiative':
       case 'upkeep':
-        throw new ValidationError(`Game ${game.name} is not in the declare_actions phase.`);
+        throw new ValidationError(`Phase ${game.phase} does not allow declare actions`, `err-invalid-declare-action-phase`);
       default:
         break;
     }

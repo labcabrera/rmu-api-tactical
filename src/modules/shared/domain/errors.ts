@@ -2,14 +2,16 @@ export class DomainError extends Error {
   constructor(
     message: string,
     public readonly statusCode: number = 500,
+    public readonly errorCode: string = 'undefined_error',
   ) {
     super(message);
     this.name = 'DomainError';
+    this.errorCode = errorCode;
   }
 }
 export class NotFoundError extends DomainError {
-  constructor(entity: string, id: number | string) {
-    super(`${entity} ${id} not found`, 404);
+  constructor(entity: string, id: number | string, errorCode: string = 'not_found') {
+    super(`${entity} ${id} not found`, 404, errorCode);
     this.name = 'NotFoundError';
     Object.setPrototypeOf(this, NotFoundError.prototype);
   }
@@ -48,8 +50,8 @@ export class ConflictError extends DomainError {
 export class ValidationError extends DomainError {
   public readonly status: number = 400;
 
-  constructor(message: string) {
-    super(message, 400);
+  constructor(message: string, errorCode: string = 'validation_error') {
+    super(message, 400, errorCode);
     this.name = 'ValidationError';
     Object.setPrototypeOf(this, ValidationError.prototype);
   }
