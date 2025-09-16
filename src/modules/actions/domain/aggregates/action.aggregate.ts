@@ -85,7 +85,7 @@ export class Action extends AggregateRoot<Action> {
       .filter((t) => t.actorId !== this.actorId)
       .forEach((t) => {
         t.attacks.forEach((attack) => {
-          this.parries!.push(new ActionParry(randomUUID(), t.actorId, this.actorId, 'parry', attack.attackName, attack.currentBo, 0));
+          this.parries!.push(new ActionParry(randomUUID(), t.actorId, t.actorId, 'parry', attack.attackName, attack.currentBo, 0));
         });
       });
   }

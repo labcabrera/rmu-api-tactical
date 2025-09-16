@@ -1,6 +1,5 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { DeclareActorParryCommand } from '../../../../actor-rounds/application/cqrs/commands/declare-actor-parry.command';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
@@ -47,19 +46,16 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     }
 
     // Update attack parries with command values
-    for (const [parryId, parryAmount] of command.parries) {
-      const parry = action.parries?.find((p) => p.id === parryId);
+    command.parries.forEach((parryItem) => {
+      const parry = action.parries?.find((p) => p.id === parryItem.parryId);
       if (!parry) {
-        throw new ValidationError(`Parry ${parryId} not found`);
+        throw new ValidationError(`Parry ${parryItem.parryId} not found`);
       }
-      parry.parry = parryAmount;
-    }
+      parry.parry = parryItem.parry;
+    });
 
     // Set up parry values in attacks
     action.applyParrysToAttacks();
-
-    // Send actor parry commands to reduce available bo
-    await this.sendActorParryCommand(action, command, game.round);
 
     // Update attack total parry and sent to attack port
     await Promise.all(
@@ -75,36 +71,6 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
     return action;
-  }
-
-  private async sendActorParryCommand(action: Action, command: DeclareParryCommand, round: number): Promise<void> {
-    const commands = action
-      .parries!.filter((p) => p.parry > 0)
-      .map(
-        (p) =>
-          new DeclareActorParryCommand(
-            p.id,
-            p.actorId,
-            p.targetActorId,
-            action.actorId,
-            round,
-            p.parryType,
-            p.targetAttackName,
-            p.parry,
-            command.userId,
-            command.roles,
-          ),
-      );
-    await Promise.all(
-      commands.map(async (cmd) => {
-        try {
-          await this.commandBus.execute(cmd);
-        } catch (error) {
-          this.logger.error(`Error declaring parry for actor ${cmd.actorId} and round ${cmd.round}: ${error}`);
-          throw error;
-        }
-      }),
-    );
   }
 
   private resolveActorIds(action: Action): string[] {

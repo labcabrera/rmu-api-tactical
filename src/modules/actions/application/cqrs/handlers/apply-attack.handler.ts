@@ -2,6 +2,7 @@ import { Inject, Logger } from '@nestjs/common';
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { AddEffectsCommand } from '../../../../actor-rounds/application/cqrs/commands/add-effects.command';
 import { AddFatigueCommand } from '../../../../actor-rounds/application/cqrs/commands/add-fatigue.command';
+import { DeclareActorParryCommand } from '../../../../actor-rounds/application/cqrs/commands/declare-actor-parry.command';
 import { SubstractBoCommand } from '../../../../actor-rounds/application/cqrs/commands/substract-bo.command';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
@@ -55,7 +56,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       throw new UnprocessableEntityError('Some actors not found in the current round');
     }
     const updateCommands = new Map<string, AddEffectsCommand>();
-    const substractBoCommands = this.processAttackSource(action, actors, command.userId, command.roles);
+    const substractBoCommands = this.processAttackSourceSubstractBo(action, actors, command.userId, command.roles);
     await Promise.all(substractBoCommands.map((cmd) => this.commandBus.execute(cmd)));
 
     actionAttacks.forEach((actionAttack) => {
@@ -63,6 +64,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     });
     await Promise.all(Array.from(updateCommands.values()).map((cmd) => this.commandBus.execute(cmd)));
 
+    await this.processDeclareActorParry(action, command.userId, command.roles);
     await this.processFatigue(action, game.round, strategicGame, command.userId, command.roles);
 
     action.updatedAt = new Date();
@@ -73,7 +75,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     return updated;
   }
 
-  private processAttackSource(action: Action, actors: ActorRound[], userId: string, roles: string[]): SubstractBoCommand[] {
+  private processAttackSourceSubstractBo(action: Action, actors: ActorRound[], userId: string, roles: string[]): SubstractBoCommand[] {
     const actorRound = actors.find((a) => a.actorId === action.actorId);
     if (!actorRound) {
       throw new UnprocessableEntityError('Actor not found');
@@ -89,6 +91,19 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       }
     });
     return substractBoCommands;
+  }
+
+  private async processDeclareActorParry(action: Action, userId: string, roles: string[]): Promise<void> {
+    if (!action.parries || action.parries.length === 0) {
+      return;
+    }
+    const commands: DeclareActorParryCommand[] = [];
+    action.parries
+      .filter((p) => p.parry > 0)
+      .forEach((parry) => {
+        commands.push(DeclareActorParryCommand.fromParry(action.actorId, action.round, parry, userId, roles));
+      });
+    await Promise.all(commands.map((cmd) => this.commandBus.execute(cmd)));
   }
 
   private processAttackTargets(
