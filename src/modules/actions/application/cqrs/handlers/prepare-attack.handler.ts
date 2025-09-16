@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
@@ -51,8 +50,6 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     await Promise.all(actionAttacks.map((attack) => this.processAttackPort(attack, actionPoints, action, actors)));
     action.attacks = actionAttacks;
     action.processParryOptions(action, actors);
-
-    console.log('Final attacks', JSON.stringify(action, null, 2));
 
     //TODO check multiple attacks
     action.status = 'parry_declaration';

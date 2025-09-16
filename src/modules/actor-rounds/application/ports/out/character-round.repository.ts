@@ -16,5 +16,5 @@ export interface ActorRoundRepository {
 
   deleteByGameId(gameId: string): Promise<void>;
 
-  countWithUndefinedInitiativeRoll(gameId: string, round: number): Promise<number>;
+  findWithUndefinedInitiativeRoll(gameId: string, round: number): Promise<ActorRound[]>;
 }

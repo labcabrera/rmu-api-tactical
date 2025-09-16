@@ -70,12 +70,14 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
     return this.actorRoundModel.deleteMany({ gameId }).then(() => undefined);
   }
 
-  async countWithUndefinedInitiativeRoll(gameId: string, round: number): Promise<number> {
-    return this.actorRoundModel.countDocuments({
-      gameId,
-      round,
-      $or: [{ 'initiative.roll': { $exists: false } }, { 'initiative.roll': null }],
-    });
+  async findWithUndefinedInitiativeRoll(gameId: string, round: number): Promise<ActorRound[]> {
+    return this.actorRoundModel
+      .find({
+        gameId,
+        round,
+        $or: [{ 'initiative.roll': { $exists: false } }, { 'initiative.roll': null }],
+      })
+      .then((docs) => docs.map((doc) => this.mapToEntity(doc)));
   }
   private mapToEntity(doc: ActorRoundDocument): ActorRound {
     return new ActorRound(

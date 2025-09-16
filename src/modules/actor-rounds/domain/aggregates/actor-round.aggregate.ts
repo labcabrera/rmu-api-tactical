@@ -148,4 +148,8 @@ export class ActorRound extends AggregateRoot<ActorRound> {
       this.applyAttackResults(0, [new ActorRoundEffect('dead', undefined, undefined)]);
     }
   }
+
+  isDead(): boolean {
+    return this.effects.some((e) => e.status === 'dead');
+  }
 }

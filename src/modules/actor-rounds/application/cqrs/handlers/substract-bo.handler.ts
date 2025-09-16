@@ -20,7 +20,6 @@ export class SubstractBoHandler implements IQueryHandler<SubstractBoCommand> {
     actorRound.substractBo(command.attackName, command.bo);
     const updated = await this.actorRoundRepository.update(actorRound.id, actorRound);
     //TODO propagate events
-    console.debug(`Updated actor round: ${JSON.stringify(updated, null, 2)}`);
     return updated;
   }
 }
