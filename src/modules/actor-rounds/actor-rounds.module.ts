@@ -11,6 +11,7 @@ import { AddEffectsHandler } from './application/cqrs/handlers/add-effects.handl
 import { CreateActorRoundHandler } from './application/cqrs/handlers/create-actor-round.handler';
 import { GetActorRoundHandler } from './application/cqrs/handlers/get-actor-round.query.handler';
 import { GetActorRoundsHandler } from './application/cqrs/handlers/get-actor-rounds.query.handler';
+import { SubstractBoHandler } from './application/cqrs/handlers/substract-bo.handler';
 import { DeclareInitiativeCommandHandler } from './application/cqrs/handlers/update-initiative.handler';
 import { UpkeepActorRoundHandler } from './application/cqrs/handlers/upkeep-actor-round.handler';
 import { MongoActorRoundRepository } from './infrastructure/db/mongo.actor-round.repository';
@@ -36,6 +37,7 @@ import { ActorRoundController } from './interfaces/http/actor-round.controller';
     GetActorRoundsHandler,
     AddEffectsHandler,
     UpkeepActorRoundHandler,
+    SubstractBoHandler,
     {
       provide: 'ActorRoundRepository',
       useClass: MongoActorRoundRepository,

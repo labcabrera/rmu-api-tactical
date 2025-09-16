@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { AggregateRoot } from '../../../shared/domain/entities/aggregate-root';
+import { UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors';
 import { ActorRoundAttack } from '../../infrastructure/persistence/models/actor-round-attack.model';
 import { ActorRoundCreatedEvent } from '../events/actor-round.events';
 import { ActorRoundDefense } from '../value-objets/actor-round-defense.vo';
@@ -117,6 +118,21 @@ export class ActorRound extends AggregateRoot<ActorRound> {
       return;
     }
     this.effects.push(effect);
+  }
+
+  declareParry(parry: number): void {
+    this.attacks.forEach((a) => (a.currentBo -= parry));
+    if (this.attacks.some((a) => a.currentBo < 0)) {
+      throw new ValidationError('Not enough BO to declare that parry');
+    }
+  }
+
+  substractBo(attackName: string, bo: number) {
+    const attack = this.attacks.find((a) => a.attackName === attackName);
+    if (!attack) {
+      throw new UnprocessableEntityError(`Attack not found: ${attackName}`);
+    }
+    attack.currentBo -= bo;
   }
 
   applyUpkeep() {
