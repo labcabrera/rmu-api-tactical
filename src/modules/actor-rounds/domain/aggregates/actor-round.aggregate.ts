@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { AggregateRoot } from '../../../shared/domain/entities/aggregate-root';
-import { UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors';
+import { UnprocessableEntityError } from '../../../shared/domain/errors';
 import { ActorRoundAttack } from '../../infrastructure/persistence/models/actor-round-attack.model';
 import { ActorRoundCreatedEvent } from '../events/actor-round.events';
 import { ActorRoundDefense } from '../value-objets/actor-round-defense.vo';
@@ -129,12 +129,13 @@ export class ActorRound extends AggregateRoot<ActorRound> {
     this.effects.push(effect);
   }
 
-  declareParry(parry: number): void {
-    this.attacks.forEach((a) => (a.currentBo -= parry));
-    if (this.attacks.some((a) => a.currentBo < 0)) {
-      throw new ValidationError(`Not enough BO to declare ${parry} parry`);
+  declareParry(attackName: string, parry: number): void {
+    const attack = this.attacks.find((a) => a.attackName === attackName);
+    if (!attack) {
+      throw new UnprocessableEntityError(`Attack not found: ${attackName}`);
     }
-    this.parries.push(new ActorRoundParry('attack', parry));
+    this.parries.push(new ActorRoundParry(attackName, parry));
+    this.calculateCurrentBo();
   }
 
   addUsedBo(attackName: string, bo: number) {
@@ -172,7 +173,7 @@ export class ActorRound extends AggregateRoot<ActorRound> {
   private calculateAttackCurrentBo(attack: ActorRoundAttack, penalty: number) {
     attack.currentBo = attack.baseBo - penalty;
     this.usedBo.filter((u) => u.attackName === attack.attackName).forEach((u) => (attack.currentBo -= u.usedBo));
-    this.parries.forEach((p) => (attack.currentBo -= p.parryValue));
+    this.parries.filter((p) => p.attackName === attack.attackName).forEach((p) => (attack.currentBo -= p.parryValue));
   }
 
   private getPenaltySum(): number {

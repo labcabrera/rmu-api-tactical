@@ -97,13 +97,10 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     if (!action.parries || action.parries.length === 0) {
       return;
     }
-    const commands: DeclareActorParryCommand[] = [];
-    action.parries
-      .filter((p) => p.parry > 0)
-      .forEach((parry) => {
-        commands.push(DeclareActorParryCommand.fromParry(action.actorId, action.round, parry, userId, roles));
-      });
-    await Promise.all(commands.map((cmd) => this.commandBus.execute(cmd)));
+    for (const parry of action.parries.filter((p) => p.parry > 0)) {
+      const command = DeclareActorParryCommand.fromParry(action.actorId, action.round, parry, userId, roles);
+      await this.commandBus.execute(command);
+    }
   }
 
   private processAttackTargets(

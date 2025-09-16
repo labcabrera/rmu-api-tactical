@@ -17,7 +17,7 @@ export class DeclareActorParryHandler implements ICommandHandler<DeclareActorPar
     if (!actorRound) {
       throw new UnprocessableEntityError(`Unable to find actor round for actor ${command.actorId} and round ${command.round}`);
     }
-    actorRound.declareParry(command.parry);
+    actorRound.declareParry(command.targetAttackName!, command.parry);
     const updated = await this.actorRoundRepository.update(actorRound.id, actorRound);
     //TODO notify event bus
     return updated;
