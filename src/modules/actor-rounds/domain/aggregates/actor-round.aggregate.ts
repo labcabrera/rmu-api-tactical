@@ -171,7 +171,7 @@ export class ActorRound extends AggregateRoot<ActorRound> {
   }
 
   private calculateAttackCurrentBo(attack: ActorRoundAttack, penalty: number) {
-    attack.currentBo = attack.baseBo - penalty;
+    attack.currentBo = attack.baseBo + penalty;
     this.usedBo.filter((u) => u.attackName === attack.attackName).forEach((u) => (attack.currentBo -= u.usedBo));
     this.parries.filter((p) => p.attackName === attack.attackName).forEach((p) => (attack.currentBo -= p.parryValue));
   }
