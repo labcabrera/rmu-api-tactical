@@ -1,12 +1,14 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { AddEffectsCommand } from '../../../../actor-rounds/application/cqrs/commands/add-effects.command';
+import { AddFatigueCommand } from '../../../../actor-rounds/application/cqrs/commands/add-fatigue.command';
 import { SubstractBoCommand } from '../../../../actor-rounds/application/cqrs/commands/substract-bo.command';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
 import { ActorRoundEffect } from '../../../../actor-rounds/domain/value-objets/actor-round-effect.vo';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, UnprocessableEntityError } from '../../../../shared/domain/errors';
+import { StrategicGame } from '../../../../strategic/application/ports/strategic-game.port';
 import { StrategicGameApiClient } from '../../../../strategic/infrastructure/api-clients/api-strategic-game.adapter';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
@@ -61,13 +63,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     });
     await Promise.all(Array.from(updateCommands.values()).map((cmd) => this.commandBus.execute(cmd)));
 
-    action.processFatigue(strategicGame.options?.fatigueMultiplier);
-    if (action.fatigue) {
-      const actorRound = actors.find((a) => a.actorId === action.actorId)!;
-      const currentFatigue = actorRound.fatigue.accumulator || 0;
-      actorRound.fatigue.accumulator = currentFatigue + action.fatigue;
-      await this.actorRoundRepository.update(actorRound.id, actorRound);
-    }
+    await this.processFatigue(action, game.round, strategicGame, command.userId, command.roles);
 
     action.updatedAt = new Date();
     action.phaseEnd = game.getActionPhase();
@@ -77,7 +73,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     return updated;
   }
 
-  private processAttackSource(action: Action, actors: ActorRound[], userId: string, roles): SubstractBoCommand[] {
+  private processAttackSource(action: Action, actors: ActorRound[], userId: string, roles: string[]): SubstractBoCommand[] {
     const actorRound = actors.find((a) => a.actorId === action.actorId);
     if (!actorRound) {
       throw new UnprocessableEntityError('Actor not found');
@@ -126,6 +122,20 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     } else {
       const cmd = new AddEffectsCommand(target.id, dmg, criticalEffects, userId, roles);
       updateCommands.set(target.id, cmd);
+    }
+  }
+
+  private async processFatigue(
+    action: Action,
+    round: number,
+    strategicGame: StrategicGame,
+    userId: string,
+    roles: string[],
+  ): Promise<void> {
+    action.processFatigue(strategicGame.options?.fatigueMultiplier);
+    if (action.fatigue) {
+      const command = new AddFatigueCommand(action.actorId, round, action.fatigue, userId, roles);
+      await this.commandBus.execute(command);
     }
   }
 }

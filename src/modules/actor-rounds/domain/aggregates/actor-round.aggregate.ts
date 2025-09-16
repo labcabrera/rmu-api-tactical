@@ -123,8 +123,9 @@ export class ActorRound extends AggregateRoot<ActorRound> {
   declareParry(parry: number): void {
     this.attacks.forEach((a) => (a.currentBo -= parry));
     if (this.attacks.some((a) => a.currentBo < 0)) {
-      throw new ValidationError('Not enough BO to declare that parry');
+      throw new ValidationError(`Not enough BO to declare ${parry} parry`);
     }
+    this.parries.push(new ActorRoundParry('attack', parry));
   }
 
   substractBo(attackName: string, bo: number) {

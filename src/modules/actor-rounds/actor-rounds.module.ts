@@ -8,7 +8,9 @@ import { GamesModule } from '../games/games.module';
 import { SharedModule } from '../shared/shared.module';
 import { StrategicModule } from '../strategic/strategic.module';
 import { AddEffectsHandler } from './application/cqrs/handlers/add-effects.handler';
+import { AddFatigueHandler } from './application/cqrs/handlers/add-fatigue.handler';
 import { CreateActorRoundHandler } from './application/cqrs/handlers/create-actor-round.handler';
+import { DeclareActorParryHandler } from './application/cqrs/handlers/declare-actor-parry.handler';
 import { GetActorRoundHandler } from './application/cqrs/handlers/get-actor-round.query.handler';
 import { GetActorRoundsHandler } from './application/cqrs/handlers/get-actor-rounds.query.handler';
 import { SubstractBoHandler } from './application/cqrs/handlers/substract-bo.handler';
@@ -38,6 +40,8 @@ import { ActorRoundController } from './interfaces/http/actor-round.controller';
     AddEffectsHandler,
     UpkeepActorRoundHandler,
     SubstractBoHandler,
+    DeclareActorParryHandler,
+    AddFatigueHandler,
     {
       provide: 'ActorRoundRepository',
       useClass: MongoActorRoundRepository,

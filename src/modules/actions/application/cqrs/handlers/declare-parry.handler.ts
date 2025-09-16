@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { DeclareActorParryCommand } from '../../../../actor-rounds/application/cqrs/commands/declare-actor-parry.command';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
@@ -24,6 +25,7 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     @Inject('CharacterClient') private readonly characterClient: CharacterPort,
     @Inject('AttackPort') private readonly attackPort: AttackPort,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
+    private readonly commandBus: CommandBus,
   ) {}
 
   async execute(command: DeclareParryCommand): Promise<Action> {
@@ -56,6 +58,10 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
       });
       attack.parries = attack.parries!.filter((p) => p.parry > 0);
     });
+
+    // Send actor parry commands to reduce available bo
+    await this.sendActorParryCommand(action.actorId, command, game.round);
+
     // Update attack total parry and sent to attack port
     await Promise.all(
       attacks.map(async (attack) => {
@@ -65,11 +71,28 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
         attack.calculated!.rollTotal = updatedAttack.calculated.rollTotal;
       }),
     );
-    //TODO update target and protectors actor rounds
+
+    // Update action and publish events
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
     return action;
+  }
+
+  private async sendActorParryCommand(sourceId: string, command: DeclareParryCommand, round: number): Promise<void> {
+    const actorParryCommands = command.parries
+      .filter((p) => p.parry > 0)
+      .map((p) => new DeclareActorParryCommand(p.parryActorId, sourceId, round, p.parry, command.userId, command.roles));
+    await Promise.all(
+      actorParryCommands.map(async (cmd) => {
+        try {
+          await this.commandBus.execute(cmd);
+        } catch (error) {
+          this.logger.error(`Error declaring parry for actor ${cmd.actorId} and round ${cmd.round}: ${error}`);
+          throw error;
+        }
+      }),
+    );
   }
 
   private resolveActorIds(action: Action): string[] {
