@@ -17,7 +17,7 @@ export class SubstractBoHandler implements IQueryHandler<SubstractBoCommand> {
     if (!actorRound) {
       throw new UnprocessableEntityError(`Actor round not found: ${command.actorRoundId}`);
     }
-    actorRound.substractBo(command.attackName, command.bo);
+    actorRound.addUsedBo(command.attackName, command.bo);
     const updated = await this.actorRoundRepository.update(actorRound.id, actorRound);
     //TODO propagate events
     return updated;

@@ -10,6 +10,7 @@ import { ActorRoundHP } from '../value-objets/actor-round-hp.vo';
 import { ActorRoundInitiative } from '../value-objets/actor-round-initiative.vo';
 import { ActorRoundParry } from '../value-objets/actor-round-parry.vo';
 import { ActorRoundPenalty } from '../value-objets/actor-round-penalty.vo';
+import { ActorRoundUsedBo } from '../value-objets/actor-round-used-bo.vo';
 
 export class ActorRound extends AggregateRoot<ActorRound> {
   constructor(
@@ -25,6 +26,7 @@ export class ActorRound extends AggregateRoot<ActorRound> {
     public penalties: ActorRoundPenalty[],
     public defense: ActorRoundDefense,
     public attacks: ActorRoundAttack[],
+    public usedBo: ActorRoundUsedBo[],
     public parries: ActorRoundParry[],
     public effects: ActorRoundEffect[],
     public owner: string,
@@ -63,6 +65,7 @@ export class ActorRound extends AggregateRoot<ActorRound> {
       defense,
       attacks,
       [],
+      [],
       effects,
       owner,
       new Date(),
@@ -88,6 +91,7 @@ export class ActorRound extends AggregateRoot<ActorRound> {
       defense,
       attacks,
       [],
+      [],
       effects,
       owner,
       new Date(),
@@ -96,6 +100,7 @@ export class ActorRound extends AggregateRoot<ActorRound> {
     actorRound.attacks.forEach((attack) => {
       attack.currentBo = attack.baseBo;
     });
+    actorRound.effects.filter((e) => e.status === 'penalty').forEach((e) => actorRound.addEffect(e));
     actorRound.addDomainEvent(new ActorRoundCreatedEvent(actorRound));
     return actorRound;
   }
@@ -117,6 +122,10 @@ export class ActorRound extends AggregateRoot<ActorRound> {
     if (isUnique && existing.length > 0) {
       return;
     }
+    if (effect.status === 'penalty') {
+      this.attacks.forEach((a) => (a.currentBo -= effect.value ?? 0));
+      this.attacks.forEach((a) => (a.currentBo = Math.max(a.currentBo, 0)));
+    }
     this.effects.push(effect);
   }
 
@@ -128,12 +137,18 @@ export class ActorRound extends AggregateRoot<ActorRound> {
     this.parries.push(new ActorRoundParry('attack', parry));
   }
 
-  substractBo(attackName: string, bo: number) {
+  addUsedBo(attackName: string, bo: number) {
     const attack = this.attacks.find((a) => a.attackName === attackName);
     if (!attack) {
       throw new UnprocessableEntityError(`Attack not found: ${attackName}`);
     }
-    attack.currentBo -= bo;
+    const existing = this.usedBo.find((u) => u.attackName === attackName);
+    if (existing) {
+      existing.usedBo += bo;
+    } else {
+      this.usedBo.push(new ActorRoundUsedBo(attackName, bo));
+    }
+    this.calculateCurrentBo();
   }
 
   applyUpkeep() {
@@ -147,6 +162,21 @@ export class ActorRound extends AggregateRoot<ActorRound> {
     if (this.hp.current < 1) {
       this.applyAttackResults(0, [new ActorRoundEffect('dead', undefined, undefined)]);
     }
+  }
+
+  private calculateCurrentBo() {
+    const penaltySum = this.getPenaltySum();
+    this.attacks.forEach((a) => this.calculateAttackCurrentBo(a, penaltySum));
+  }
+
+  private calculateAttackCurrentBo(attack: ActorRoundAttack, penalty: number) {
+    attack.currentBo = attack.baseBo - penalty;
+    this.usedBo.filter((u) => u.attackName === attack.attackName).forEach((u) => (attack.currentBo -= u.usedBo));
+    this.parries.forEach((p) => (attack.currentBo -= p.parryValue));
+  }
+
+  private getPenaltySum(): number {
+    return this.effects.filter((e) => e.status === 'penalty' || e.status === 'fatigue').reduce((sum, e) => sum + (e.value ?? 0), 0);
   }
 
   isDead(): boolean {

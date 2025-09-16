@@ -93,6 +93,7 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
       doc.penalties,
       doc.defense,
       doc.attacks,
+      doc.usedBo,
       doc.parries,
       doc.effects,
       doc.owner,
