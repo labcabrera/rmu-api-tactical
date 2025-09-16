@@ -1,6 +1,6 @@
 import { IsNumber, IsOptional, IsString } from 'class-validator';
-import { AddEffectCommand } from '../../../application/cqrs/commands/add-effect.command';
-import { ActorRoundEffect } from '../../../domain/entities/actor-round-effect.vo';
+import { AddEffectsCommand } from '../../../application/cqrs/commands/add-effects.command';
+import { ActorRoundEffect } from '../../../domain/value-objets/actor-round-effect.vo';
 
 export class AddEffectDto {
   @IsString()
@@ -14,11 +14,8 @@ export class AddEffectDto {
   @IsNumber()
   rounds: number | undefined;
 
-  static toCommand(id: string, dto: AddEffectDto, userId: string, userRoles: string[]): AddEffectCommand {
-    const effect = new ActorRoundEffect();
-    effect.status = dto.status;
-    effect.value = dto.value;
-    effect.rounds = dto.rounds;
-    return new AddEffectCommand(id, effect, userId, userRoles);
+  static toCommand(id: string, dto: AddEffectDto, userId: string, userRoles: string[]): AddEffectsCommand {
+    const effects = [new ActorRoundEffect(dto.status, dto.value, dto.rounds)];
+    return new AddEffectsCommand(id, 0, effects, userId, userRoles);
   }
 }

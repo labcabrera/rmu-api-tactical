@@ -1,11 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
-import { Action } from '../../../domain/entities/action.aggregate';
+import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
@@ -18,9 +15,7 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
 
   constructor(
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('CharacterClient') private readonly characterClient: CharacterPort,
     @Inject('AttackPort') private readonly attackPort: AttackPort,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
   ) {}
@@ -43,13 +38,30 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     }
     attack.roll = {
       roll: command.roll,
+      location: command.location,
+      criticalRolls: undefined,
     };
-    const attackResponse = await this.attackPort.updateRoll(attack.externalAttackId!, command.roll);
+    const attackResponse = await this.attackPort.updateRoll(attack.externalAttackId!, command.roll, command.location);
+    if (!attackResponse || !attackResponse.results) throw new ValidationError('Attack service did not return results');
+
+    if (!attackResponse.results.criticals) {
+      attack.roll.criticalRolls = undefined;
+    } else {
+      attack.roll.criticalRolls = new Map<string, number | undefined>();
+      attackResponse.results.criticals.forEach((critical) => {
+        attack.roll!.criticalRolls!.set(critical.key, undefined);
+      });
+    }
+    if (action.hasPendingCriticalRolls() || action.hasPendingFumbleRolls()) {
+      action.status = 'critical_and_fumble_roll_declaration';
+    } else {
+      action.status = 'pending_apply';
+    }
 
     action.updatedAt = new Date();
     attack.results = attackResponse.results;
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
-    return action;
+    return updated;
   }
 }

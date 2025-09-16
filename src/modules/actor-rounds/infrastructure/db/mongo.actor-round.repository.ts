@@ -6,7 +6,7 @@ import { Page } from '../../../shared/domain/entities/page.entity';
 import { NotFoundError } from '../../../shared/domain/errors';
 import { RsqlParser } from '../../../shared/infrastructure/db/rsql-parser';
 import { ActorRoundRepository } from '../../application/ports/out/character-round.repository';
-import { ActorRound } from '../../domain/entities/actor-round.aggregate';
+import { ActorRound } from '../../domain/aggregates/actor-round.aggregate';
 import { ActorRoundDocument, ActorRoundModel } from '../persistence/models/actor-round.model';
 
 @Injectable()
@@ -70,12 +70,14 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
     return this.actorRoundModel.deleteMany({ gameId }).then(() => undefined);
   }
 
-  async countWithUndefinedInitiativeRoll(gameId: string, round: number): Promise<number> {
-    return this.actorRoundModel.countDocuments({
-      gameId,
-      round,
-      $or: [{ 'initiative.roll': { $exists: false } }, { 'initiative.roll': null }],
-    });
+  async findWithUndefinedInitiativeRoll(gameId: string, round: number): Promise<ActorRound[]> {
+    return this.actorRoundModel
+      .find({
+        gameId,
+        round,
+        $or: [{ 'initiative.roll': { $exists: false } }, { 'initiative.roll': null }],
+      })
+      .then((docs) => docs.map((doc) => this.mapToEntity(doc)));
   }
   private mapToEntity(doc: ActorRoundDocument): ActorRound {
     return new ActorRound(
@@ -89,7 +91,9 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
       doc.hp,
       doc.fatigue,
       doc.penalties,
+      doc.defense,
       doc.attacks,
+      doc.usedBo,
       doc.parries,
       doc.effects,
       doc.owner,

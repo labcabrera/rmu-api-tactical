@@ -1,5 +1,5 @@
 import { Page } from '../../../../shared/domain/entities/page.entity';
-import { ActorRound } from '../../../domain/entities/actor-round.aggregate';
+import { ActorRound } from '../../../domain/aggregates/actor-round.aggregate';
 
 export interface ActorRoundRepository {
   findById(id: string): Promise<ActorRound | null>;
@@ -16,5 +16,5 @@ export interface ActorRoundRepository {
 
   deleteByGameId(gameId: string): Promise<void>;
 
-  countWithUndefinedInitiativeRoll(gameId: string, round: number): Promise<number>;
+  findWithUndefinedInitiativeRoll(gameId: string, round: number): Promise<ActorRound[]>;
 }

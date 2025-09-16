@@ -12,7 +12,7 @@ import { ResolveMovementCommand } from '../../application/cqrs/commands/resolve-
 import { UpdateActionCommand } from '../../application/cqrs/commands/update-action.command';
 import { GetActionQuery } from '../../application/cqrs/queries/get-action.query';
 import { GetActionsQuery } from '../../application/cqrs/queries/get-actions.query';
-import { Action } from '../../domain/entities/action.aggregate';
+import { Action } from '../../domain/aggregates/action.aggregate';
 import { ActionDto, ActionPageDto } from './dto/action.dto';
 import { CreateActionDto } from './dto/create-action.dto';
 import { PrepareAttackDto } from './dto/prepare-attack.dto';

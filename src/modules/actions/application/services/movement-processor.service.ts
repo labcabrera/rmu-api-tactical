@@ -1,9 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ActorRound } from '../../../actor-rounds/domain/entities/actor-round.aggregate';
+import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.aggregate';
 import { ValidationError } from '../../../shared/domain/errors';
 import type { Character } from '../../../strategic/application/ports/character.port';
-import { ActionMovementBonus } from '../../domain/entities/action-movement.vo';
-import { Action } from '../../domain/entities/action.aggregate';
+import { Action } from '../../domain/aggregates/action.aggregate';
+import { ActionMovementBonus } from '../../domain/value-objects/action-movement.vo';
 import type { ManeuverPort } from '../ports/maneuver.port';
 
 @Injectable()

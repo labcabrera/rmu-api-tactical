@@ -1,4 +1,4 @@
-import { Pace } from '../../../domain/entities/action-movement.vo';
+import { Pace } from '../../../domain/value-objects/action-movement.vo';
 
 export class ResolveMovementCommand {
   actionId: string;

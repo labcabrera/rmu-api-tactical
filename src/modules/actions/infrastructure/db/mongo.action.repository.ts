@@ -5,7 +5,7 @@ import { Page } from '../../../shared/domain/entities/page.entity';
 import { NotFoundError } from '../../../shared/domain/errors';
 import { RsqlParser } from '../../../shared/infrastructure/db/rsql-parser';
 import { ActionRepository } from '../../application/ports/action.repository';
-import { Action } from '../../domain/entities/action.aggregate';
+import { Action } from '../../domain/aggregates/action.aggregate';
 import { ActionDocument, ActionModel } from '../persistence/models/action.model';
 
 @Injectable()
@@ -74,6 +74,7 @@ export class MongoActionRepository implements ActionRepository {
       doc.actionPoints,
       doc.movement,
       doc.attacks,
+      doc.parries,
       doc.maneuver,
       doc.fatigue,
       doc.description,

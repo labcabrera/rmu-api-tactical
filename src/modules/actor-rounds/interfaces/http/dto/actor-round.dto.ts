@@ -1,9 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 import { PaginationDto } from '../../../../shared/interfaces/http/dto';
-import { ActorRoundEffect } from '../../../domain/entities/actor-round-effect.vo';
-import { ActorRound } from '../../../domain/entities/actor-round.aggregate';
+import { ActorRound } from '../../../domain/aggregates/actor-round.aggregate';
+import { ActorRoundEffect } from '../../../domain/value-objets/actor-round-effect.vo';
 import { ActorRoundAttackDto } from './actor-round-attack.dto';
+import { ActorRoundDefenseDto } from './actor-round-defense.dto';
 import { ActorRoundFatigueDto } from './actor-round-fatigue.dto';
 import { ActorRoundHPDto } from './actor-round-hp.dto';
 import { ActorRoundInitiativeDto } from './actor-round-initiative.dto';
@@ -37,6 +38,9 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Fatigue points' })
   fatigue: ActorRoundFatigueDto;
 
+  @ApiProperty({ description: 'Defense information' })
+  defense: ActorRoundDefenseDto;
+
   @ApiProperty({ type: [ActorRoundAttackDto], description: 'Attacks', isArray: true })
   attacks: ActorRoundAttackDto[];
 
@@ -56,6 +60,7 @@ export class ActorRoundDto {
     dto.initiative = ActorRoundInitiativeDto.fromEntity(entity.initiative);
     dto.actionPoints = entity.actionPoints;
     dto.hp = ActorRoundHPDto.fromEntity(entity.hp);
+    dto.defense = ActorRoundDefenseDto.fromEntity(entity.defense);
     dto.attacks = entity.attacks.map((a) => ActorRoundAttackDto.fromEntity(a));
     dto.parries = entity.parries.map((p) => ActorRoundParryDto.fromEntity(p));
     dto.fatigue = ActorRoundFatigueDto.fromEntity(entity.fatigue);

@@ -1,12 +1,10 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
-import { ActorRound } from '../../../../actor-rounds/domain/entities/actor-round.aggregate';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
-import { Action } from '../../../domain/entities/action.aggregate';
+import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
@@ -24,6 +22,7 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     @Inject('CharacterClient') private readonly characterClient: CharacterPort,
     @Inject('AttackPort') private readonly attackPort: AttackPort,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
+    private readonly commandBus: CommandBus,
   ) {}
 
   async execute(command: DeclareParryCommand): Promise<Action> {
@@ -47,25 +46,27 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     }
 
     // Update attack parries with command values
-    attacks.forEach((attack) => {
-      attack.parries!.forEach((parry) => {
-        const actorRound = actorRounds.find((ar) => ar.actorId === parry.parryActorId)!;
-        const commandParry = command.parries.find((p) => p.parryActorId === parry.parryActorId)!;
-        const parryValue = this.validateParry(commandParry?.parry, actorRound, attack.modifiers.targetId !== parry.parryActorId);
-        parry.parry = parryValue;
-      });
-      attack.parries = attack.parries!.filter((p) => p.parry > 0);
+    command.parries.forEach((parryItem) => {
+      const parry = action.parries?.find((p) => p.id === parryItem.parryId);
+      if (!parry) {
+        throw new ValidationError(`Parry ${parryItem.parryId} not found`);
+      }
+      parry.parry = parryItem.parry;
     });
+
+    // Set up parry values in attacks
+    action.applyParrysToAttacks();
+
     // Update attack total parry and sent to attack port
     await Promise.all(
       attacks.map(async (attack) => {
-        attack.modifiers.parry = attack.parries!.reduce((sum, p) => sum + p.parry, 0);
         const updatedAttack = await this.attackPort.updateParry(attack.externalAttackId!, attack.modifiers.parry);
         attack.calculated!.rollModifiers = updatedAttack.calculated.rollModifiers;
         attack.calculated!.rollTotal = updatedAttack.calculated.rollTotal;
       }),
     );
-    //TODO update target and protectors actor rounds
+
+    // Update action and publish events
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
@@ -79,18 +80,5 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
       actorIds.add(attack.modifiers.targetId);
     });
     return Array.from(actorIds);
-  }
-
-  private validateParry(parry: number, actor: ActorRound, protect: boolean): number {
-    if (!protect) {
-      const bos = actor.attacks.map((a) => a.currentBo);
-      const maxBo = Math.max(...bos);
-      if (parry > maxBo) {
-        throw new ValidationError(`Parry ${parry} higher than max BO ${maxBo}`);
-      }
-    } else {
-      //TODO check protecting skill
-    }
-    return parry;
   }
 }

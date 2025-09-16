@@ -7,13 +7,15 @@ import { AuthModule } from 'src/modules/auth/auth.module';
 import { GamesModule } from '../games/games.module';
 import { SharedModule } from '../shared/shared.module';
 import { StrategicModule } from '../strategic/strategic.module';
-import { AddEffectHandler } from './application/cqrs/handlers/add-effect.handler';
-import { AddHpHandler } from './application/cqrs/handlers/add-hp.handler';
+import { AddEffectsHandler } from './application/cqrs/handlers/add-effects.handler';
+import { AddFatigueHandler } from './application/cqrs/handlers/add-fatigue.handler';
 import { CreateActorRoundHandler } from './application/cqrs/handlers/create-actor-round.handler';
+import { DeclareActorParryHandler } from './application/cqrs/handlers/declare-actor-parry.handler';
 import { GetActorRoundHandler } from './application/cqrs/handlers/get-actor-round.query.handler';
 import { GetActorRoundsHandler } from './application/cqrs/handlers/get-actor-rounds.query.handler';
+import { SubstractBoHandler } from './application/cqrs/handlers/substract-bo.handler';
 import { DeclareInitiativeCommandHandler } from './application/cqrs/handlers/update-initiative.handler';
-import { ActorRoundEffectService } from './domain/services/actor-round-effect.service';
+import { UpkeepActorRoundHandler } from './application/cqrs/handlers/upkeep-actor-round.handler';
 import { MongoActorRoundRepository } from './infrastructure/db/mongo.actor-round.repository';
 import { ActorRoundModel, ActorRoundSchema } from './infrastructure/persistence/models/actor-round.model';
 import { ActorRoundController } from './interfaces/http/actor-round.controller';
@@ -31,13 +33,15 @@ import { ActorRoundController } from './interfaces/http/actor-round.controller';
   ],
   controllers: [ActorRoundController],
   providers: [
-    ActorRoundEffectService,
     CreateActorRoundHandler,
     DeclareInitiativeCommandHandler,
     GetActorRoundHandler,
     GetActorRoundsHandler,
-    AddHpHandler,
-    AddEffectHandler,
+    AddEffectsHandler,
+    UpkeepActorRoundHandler,
+    SubstractBoHandler,
+    DeclareActorParryHandler,
+    AddFatigueHandler,
     {
       provide: 'ActorRoundRepository',
       useClass: MongoActorRoundRepository,

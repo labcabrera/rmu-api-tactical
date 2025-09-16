@@ -1,10 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
-import type { ActionStatus } from '../../../domain/entities/action-status.vo';
-import type { ActionType } from '../../../domain/entities/action-type.vo';
+import type { ActionStatus } from '../../../domain/value-objects/action-status.vo';
+import type { ActionType } from '../../../domain/value-objects/action-type.vo';
 import { ActionAttack } from './action-attack.model';
 import { ActionMovement } from './action-movement.model';
+import { ActionParry } from './action-parry.model';
 import { ActionManeuver } from './action.model-childs';
 
 export type ActionDocument = ActionModel & Document;
@@ -46,6 +47,9 @@ export class ActionModel {
 
   @Prop({ type: [ActionAttack], required: false })
   attacks: ActionAttack[] | undefined;
+
+  @Prop({ type: [ActionParry], required: false })
+  public parries: ActionParry[] | undefined;
 
   @Prop({ type: Number, required: false })
   fatigue: number | undefined;

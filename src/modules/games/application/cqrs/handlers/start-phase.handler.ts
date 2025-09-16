@@ -25,7 +25,10 @@ export class StartPhaseHandler implements ICommandHandler<StartPhaseCommand, Gam
     if (!game) {
       throw new NotFoundError('Game', gameId);
     }
-    if ((await this.actorRoundRepository.countWithUndefinedInitiativeRoll(game.id, game.round)) > 0) {
+    const pendingActors = (await this.actorRoundRepository.findWithUndefinedInitiativeRoll(game.id, game.round)).filter(
+      (ar) => !ar.isDead(),
+    );
+    if (pendingActors.length > 0) {
       throw new ValidationError('There are still character rounds without initiative declared');
     }
     game.startPhase();

@@ -1,14 +1,15 @@
 export class DeclareParryCommand {
   constructor(
     public readonly actionId: string,
-    public readonly parries: DeclareParryItemDto[],
+    public readonly parries: DeclareParryItem[],
     public readonly userId: string,
     public readonly roles: string[],
   ) {}
 }
 
-export class DeclareParryItemDto {
-  public parryActorId: string;
-  public targetId: string;
-  public parry: number;
+export class DeclareParryItem {
+  constructor(
+    public readonly parryId: string,
+    public readonly parry: number,
+  ) {}
 }

@@ -1,4 +1,5 @@
-import { ActionAttackResult } from '../../domain/entities/action-attack.vo';
+import { ActionAttackResult } from '../../domain/value-objects/action-attack.vo';
+import { AttackLocation } from '../../domain/value-objects/attack-location.vo';
 import {
   CoverType,
   DodgeType,
@@ -8,8 +9,9 @@ import {
 } from '../cqrs/commands/prepare-attack.command';
 
 export interface AttackPort {
-  updateRoll(attackId: string, roll: number): Promise<AttackResponse>;
+  updateRoll(attackId: string, roll: number, location: AttackLocation | undefined): Promise<AttackResponse>;
   updateParry(attackId: string, parry: number): Promise<AttackResponse>;
+  updateCriticalRoll(attackId: string, criticalKey: string, roll: number): Promise<AttackResponse>;
   prepareAttack(actionId: AttackCreationRequest): Promise<AttackResponse>;
   deleteAttack(actionId: string): Promise<void>;
 }
@@ -56,7 +58,7 @@ export interface AttackModifiers {
   attackTable: string;
   attackSize: string;
   fumbleTable: string;
-  at: number;
+  armor: AttackArmor;
   actionPoints: number;
   fumble: number;
   rollModifiers: AttackRollModifiers;
@@ -64,7 +66,16 @@ export interface AttackModifiers {
   features: AttackFeature[];
 }
 
+export interface AttackArmor {
+  at: number | undefined;
+  headAt: number | undefined;
+  bodyAt: number | undefined;
+  armsAt: number | undefined;
+  legsAt: number | undefined;
+}
+
 export interface AttackCreationRequest {
+  gameId: string;
   actionId: string;
   sourceId: string;
   targetId: string;

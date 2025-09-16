@@ -1,15 +1,14 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
-import { ActorRound } from '../../../../actor-rounds/domain/entities/actor-round.aggregate';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import type { Character, CharacterPort } from '../../../../strategic/application/ports/character.port';
 import type { StrategicGame, StrategicGamePort } from '../../../../strategic/application/ports/strategic-game.port';
-import { ActionMovement, ActionMovementModifiers } from '../../../domain/entities/action-movement.vo';
-import { Action } from '../../../domain/entities/action.aggregate';
+import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
-import { FatigueProcessorService } from '../../../domain/services/fatigue-processor.service';
+import { ActionMovement, ActionMovementModifiers } from '../../../domain/value-objects/action-movement.vo';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import { MovementProcessorService } from '../../services/movement-processor.service';
@@ -21,7 +20,6 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
 
   constructor(
     @Inject() private readonly movementProcessorService: MovementProcessorService,
-    @Inject() private readonly fatigueProcessorService: FatigueProcessorService,
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
@@ -73,7 +71,7 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     action.actionPoints = action.phaseEnd - action.phaseStart + 1;
     action.movement = this.buildActionMovement(command);
     await this.movementProcessorService.process(command.roll, action, character, actorRound);
-    this.fatigueProcessorService.process(action, strategicGame);
+    action.processFatigue(strategicGame.options?.fatigueMultiplier);
     const scale = strategicGame.options?.boardScaleMultiplier || 1;
     action.movement.calculated.distanceAdjusted = action.movement.calculated.distance * scale;
     action.status = 'completed';

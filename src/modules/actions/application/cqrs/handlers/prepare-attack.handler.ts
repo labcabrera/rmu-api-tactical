@@ -1,14 +1,14 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
-import { ActorRound } from '../../../../actor-rounds/domain/entities/actor-round.aggregate';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, UnprocessableEntityError } from '../../../../shared/domain/errors';
 import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
-import { ActionAttack, ActionAttackCalculated, ActionAttackModifiers, ActionAttackParry } from '../../../domain/entities/action-attack.vo';
-import { Action } from '../../../domain/entities/action.aggregate';
+import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
+import { ActionAttackModifiers } from '../../../domain/value-objects/action-attack-modifiers.vo';
+import { ActionAttack, ActionAttackCalculated } from '../../../domain/value-objects/action-attack.vo';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import type { AttackCreationRequest, AttackPort, AttackRollModifiers, AttackSituationalModifiers } from '../../ports/attack.port';
@@ -49,11 +49,12 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     }
     await Promise.all(actionAttacks.map((attack) => this.processAttackPort(attack, actionPoints, action, actors)));
     action.attacks = actionAttacks;
-    this.processParryOptions(action, actors);
+    action.processParryOptions(actors);
 
-    console.log('Final attacks', JSON.stringify(action, null, 2));
+    //TODO check multiple attacks
+    action.status = 'parry_declaration';
+    action.actionPoints = game.getActionPhase() - action.phaseStart + 1;
 
-    action.status = 'in_progress';
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
@@ -86,7 +87,9 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
 
     const rollModifiers = {
       bo: attackModifiers.bo,
-      bd: 12, //TODO MAP actorTarget
+      bd: actorTarget.defense.bd,
+      calledShot: attackModifiers.calledShot,
+      calledShotPenalty: attackModifiers.calledShotPenalty,
       injuryPenalty: injuryPenalty,
       fatiguePenalty: fatiguePenalty,
       rangePenalty: rangePenalty,
@@ -111,6 +114,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     } as AttackSituationalModifiers;
 
     const request = {
+      gameId: action.gameId,
       actionId: action.id,
       sourceId: action.actorId,
       targetId: attackModifiers.targetId,
@@ -119,9 +123,16 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
         attackTable: attackInfo.attackTable,
         attackSize: 'medium', //this.getAttackSize(attack.sizeAdjustment),
         fumbleTable: attackInfo.fumbleTable,
-        at: 1, //TODO map
-        actionPoints: actionPoints,
         fumble: attackInfo.fumble,
+        actionPoints: actionPoints,
+        calledShot: attackModifiers.calledShot,
+        armor: {
+          at: actorTarget.defense.at,
+          headAt: actorTarget.defense.headAt,
+          bodyAt: actorTarget.defense.bodyAt,
+          armsAt: actorTarget.defense.armsAt,
+          legsAt: actorTarget.defense.legsAt,
+        },
         rollModifiers: rollModifiers,
         situationalModifiers: situationalModifiers,
         features: attackFeatures,
@@ -162,7 +173,9 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       'melee',
       commandAttack.targetId,
       commandAttack.bo,
-      0,
+      0, // parry is declared later
+      commandAttack.calledShot || 'none',
+      commandAttack.calledShotPenalty || 0,
       commandAttack.cover,
       commandAttack.restrictedQuarters,
       commandAttack.positionalSource,
@@ -174,28 +187,6 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       commandAttack.disabledParry,
       commandAttack.customBonus,
     );
-    return new ActionAttack(modifiers, undefined, undefined, undefined, undefined, undefined, 'declared');
-  }
-
-  //TODO move to domain entity
-  //TODO check if attacking in last phase
-  private processParryOptions(action: Action, actors: ActorRound[]) {
-    if (!action.attacks || action.attacks.length === 0) {
-      return;
-    }
-    for (const attack of action.attacks) {
-      attack.parries = [];
-      if (!attack.modifiers.disabledParry) {
-        const target = actors.find((a) => a.actorId === attack.modifiers.targetId);
-        const availableParry = this.getAvailableParry(target!);
-        attack.parries.push(new ActionAttackParry(target!.actorId, target!.actorId, 'parry', availableParry, 0));
-      }
-    }
-    //TODO process protectors
-  }
-
-  private getAvailableParry(actor: ActorRound): number {
-    const list = actor.attacks.map((attack) => attack.currentBo);
-    return Math.max(...list, 0);
+    return new ActionAttack(modifiers, undefined, undefined, undefined, undefined, 'declared');
   }
 }

@@ -1,6 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import { ActorRoundAttack } from './actor-round-attack.model';
+import { ActorRoundDefense } from './actor-round-defense.model';
+import { ActorRoundUsedBo } from './actor-round-used-bo.model';
 import {
   ActorRoundEffect,
   ActorRoundFatigue,
@@ -44,8 +46,14 @@ export class ActorRoundModel {
   @Prop({ type: [ActorRoundPenalty], required: true })
   penalties: ActorRoundPenalty[];
 
+  @Prop({ type: ActorRoundDefense, required: true })
+  defense: ActorRoundDefense;
+
   @Prop({ type: [ActorRoundAttack], required: true })
   attacks: ActorRoundAttack[];
+
+  @Prop({ type: [ActorRoundUsedBo], required: true })
+  usedBo: ActorRoundUsedBo[];
 
   @Prop({ type: [ActorRoundParry], required: true })
   parries: ActorRoundParry[];

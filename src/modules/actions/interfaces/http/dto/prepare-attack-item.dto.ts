@@ -8,6 +8,7 @@ import {
   PrepareAttackCommandItem,
   RestrictedQuartersType,
 } from '../../../application/cqrs/commands/prepare-attack.command';
+import { CalledShot } from '../../../domain/value-objects/action-attack-modifiers.vo';
 
 export class PrepareAttackItemDto {
   @ApiProperty({ description: 'Name of the attack obtained from actor round', example: 'mainHand' })
@@ -23,6 +24,21 @@ export class PrepareAttackItemDto {
   @ApiProperty({ description: 'Base offensive value for the attack', example: 42 })
   @IsNumber()
   bo: number;
+
+  @ApiProperty({
+    description: 'Called shot location, if any',
+    required: false,
+    enum: ['none', 'head', 'body', 'arms', 'legs'],
+    example: 'none',
+  })
+  @IsOptional()
+  @IsString()
+  calledShot: CalledShot | undefined;
+
+  @ApiProperty({ description: 'Penalty for the called shot, if any', required: false, example: 0 })
+  @IsOptional()
+  @IsNumber()
+  calledShotPenalty: number;
 
   @ApiProperty({
     description: 'Type of cover the target has',
@@ -104,6 +120,8 @@ export class PrepareAttackItemDto {
       dto.attackName,
       dto.targetId,
       dto.bo,
+      dto.calledShot,
+      dto.calledShotPenalty,
       dto.cover,
       dto.restrictedQuarters,
       dto.positionalSource,

@@ -1,5 +1,5 @@
-import { ActionType } from '../../../domain/entities/action-type.vo';
-import { ManeuverType } from '../../../domain/entities/maneuver-type.vo';
+import { ActionType } from '../../../domain/value-objects/action-type.vo';
+import { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo';
 
 export class CreateActionCommand {
   gameId: string;

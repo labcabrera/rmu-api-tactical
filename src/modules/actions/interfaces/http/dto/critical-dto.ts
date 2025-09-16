@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Critical } from '../../../domain/entities/action-attack.vo';
+import { Critical } from '../../../domain/value-objects/action-attack.vo';
 
 export class CriticalEffectDto {
   @ApiProperty({ description: 'Effect status', example: 'applied' })
@@ -33,8 +33,8 @@ export class CriticalResultDto {
 }
 
 export class CriticalDto {
-  @ApiProperty({ description: 'Critical text', example: 'Lorem ipsum critical text' })
-  text: string;
+  @ApiProperty({ description: 'Critical key', example: 's_b_1' })
+  key: string;
 
   @ApiProperty({ description: 'Critical status', example: 'applied' })
   status: string;
@@ -53,7 +53,7 @@ export class CriticalDto {
 
   static fromEntity(entity: Critical): CriticalDto {
     const dto = new CriticalDto();
-    dto.text = entity.text;
+    dto.key = entity.key;
     dto.status = entity.status;
     dto.criticalType = entity.criticalType;
     dto.criticalSeverity = entity.criticalSeverity;
@@ -63,13 +63,15 @@ export class CriticalDto {
           text: entity.result.text,
           damage: entity.result.damage,
           location: entity.result.location,
-          effects: entity.result.effects.map((effect) => ({
-            status: effect.status,
-            rounds: effect.rounds,
-            value: effect.value,
-            delay: effect.delay,
-            condition: effect.condition,
-          })),
+          effects: entity.result.effects
+            ? entity.result.effects.map((effect) => ({
+                status: effect.status,
+                rounds: effect.rounds,
+                value: effect.value,
+                delay: effect.delay,
+                condition: effect.condition,
+              }))
+            : [],
         }
       : undefined;
     return dto;

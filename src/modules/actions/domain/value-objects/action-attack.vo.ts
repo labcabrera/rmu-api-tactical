@@ -1,13 +1,13 @@
 import { Modifier } from '../../../shared/domain/entities/modifier.vo';
+import { ActionAttackModifiers } from './action-attack-modifiers.vo';
 import { ActionStatus } from './action-status.vo';
+import { AttackLocation } from './attack-location.vo';
 
-export type AttackType = 'melee' | 'ranged' | 'thrown';
 export type ParryType = 'parry' | 'protect';
 
 export class ActionAttack {
   constructor(
     public modifiers: ActionAttackModifiers,
-    public parries: ActionAttackParry[] | undefined,
     public roll: ActionAttackRoll | undefined,
     public calculated: ActionAttackCalculated | undefined,
     public results: ActionAttackResult | undefined,
@@ -16,38 +16,27 @@ export class ActionAttack {
   ) {}
 }
 
-export class ActionAttackModifiers {
+export class ActionParry {
   constructor(
-    public attackName: string,
-    public type: AttackType,
-    public targetId: string,
-    public bo: number,
-    public parry: number,
-    public cover: string | undefined,
-    public restrictedQuarters: string | undefined,
-    public positionalSource: string | undefined,
-    public positionalTarget: string | undefined,
-    public dodge: string | undefined,
-    public range: number | undefined,
-    public disabledDB: boolean | undefined,
-    public disabledShield: boolean | undefined,
-    public disabledParry: boolean | undefined,
-    public customBonus: number | undefined,
-  ) {}
-}
-
-export class ActionAttackParry {
-  constructor(
-    public parryActorId: string,
-    public targetId: string,
-    public parryType: ParryType,
-    public parryAvailable: number,
+    public readonly id: string,
+    /** Actor identifier. Can be the target of the attack or a protector */
+    public readonly actorId: string,
+    /** Actor who is the target of the attack (in two handed melee combat one attacker can attack two targets) */
+    public readonly targetActorId: string,
+    public readonly parryType: ParryType,
+    /** Name of the attack used to parry */
+    public readonly targetAttackName: string | undefined,
+    public readonly parryAvailable: number,
     public parry: number,
   ) {}
 }
 
 export class ActionAttackRoll {
-  constructor(public roll: number) {}
+  constructor(
+    public roll: number,
+    public location: AttackLocation | undefined,
+    public criticalRolls: Map<string, number | undefined> | undefined,
+  ) {}
 }
 
 export class ActionAttackCalculated {
@@ -77,7 +66,7 @@ export class CriticalResult {
 
 export class Critical {
   constructor(
-    public text: string,
+    public key: string,
     public status: string,
     public criticalType: string,
     public criticalSeverity: string,
