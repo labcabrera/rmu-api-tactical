@@ -173,7 +173,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       'melee',
       commandAttack.targetId,
       commandAttack.bo,
-      0,
+      0, // parry is declared later
       commandAttack.calledShot || 'none',
       commandAttack.calledShotPenalty || 0,
       commandAttack.cover,

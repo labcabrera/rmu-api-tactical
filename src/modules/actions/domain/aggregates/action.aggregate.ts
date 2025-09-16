@@ -188,7 +188,7 @@ export class Action extends AggregateRoot<Action> {
 
   private getAvailableParry(actor: ActorRound): number {
     const list = actor.attacks.map((attack) => attack.currentBo);
-    return Math.max(...list, 0);
+    return Math.min(...list);
   }
 
   private getMovementFatigue(): number | undefined {
