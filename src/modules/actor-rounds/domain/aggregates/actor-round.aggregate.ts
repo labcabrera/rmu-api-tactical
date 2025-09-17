@@ -3,6 +3,7 @@ import { AggregateRoot } from '../../../shared/domain/entities/aggregate-root';
 import { UnprocessableEntityError } from '../../../shared/domain/errors';
 import { ActorRoundAttack } from '../../infrastructure/persistence/models/actor-round-attack.model';
 import { ActorRoundCreatedEvent } from '../events/actor-round.events';
+import { ActorRoundAlert } from '../value-objets/actor-round-alert.vo';
 import { ActorRoundDefense } from '../value-objets/actor-round-defense.vo';
 import { ActorRoundEffect } from '../value-objets/actor-round-effect.vo';
 import { ActorRoundFatigue } from '../value-objets/actor-round-fatigue.vo';
@@ -29,6 +30,7 @@ export class ActorRound extends AggregateRoot<ActorRound> {
     public usedBo: ActorRoundUsedBo[],
     public parries: ActorRoundParry[],
     public effects: ActorRoundEffect[],
+    public alerts: ActorRoundAlert[],
     public owner: string,
     public readonly createdAt: Date,
     public readonly updatedAt: Date | undefined,
@@ -49,6 +51,7 @@ export class ActorRound extends AggregateRoot<ActorRound> {
     defense: ActorRoundDefense,
     attacks: ActorRoundAttack[],
     effects: ActorRoundEffect[],
+    alerts: ActorRoundAlert[],
     owner: string,
   ): ActorRound {
     const actorRound = new ActorRound(
@@ -67,6 +70,7 @@ export class ActorRound extends AggregateRoot<ActorRound> {
       [],
       [],
       effects,
+      alerts,
       owner,
       new Date(),
       undefined,
@@ -76,7 +80,7 @@ export class ActorRound extends AggregateRoot<ActorRound> {
   }
 
   static createFromPrevious(previous: ActorRound): ActorRound {
-    const { gameId, round, actorId, actorName, initiative, hp, fatigue, penalties, defense, attacks, effects, owner } = previous;
+    const { gameId, round, actorId, actorName, initiative, hp, fatigue, penalties, defense, attacks, effects, alerts, owner } = previous;
     const actorRound = new ActorRound(
       randomUUID(),
       gameId,
@@ -93,6 +97,7 @@ export class ActorRound extends AggregateRoot<ActorRound> {
       [],
       [],
       effects,
+      alerts,
       owner,
       new Date(),
       undefined,
@@ -116,8 +121,12 @@ export class ActorRound extends AggregateRoot<ActorRound> {
     }
   }
 
-  //TODO required used action points to calculate stunning effects
   addEffect(effect: ActorRoundEffect): void {
+    //TODO required used action points to calculate stunning effects
+    if (effect.status === 'stunned') {
+      effect.rounds! += 1;
+    }
+
     const existing = this.effects.filter((e) => e.status === effect.status);
     const isUnique = ActorRoundEffect.isUnique(effect);
     if (isUnique && existing.length > 0) {

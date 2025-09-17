@@ -4,6 +4,7 @@ import { Actor } from '../../../../games/domain/entities/actor.vo';
 import { ValidationError } from '../../../../shared/domain/errors';
 import type { Character, CharacterPort } from '../../../../strategic/application/ports/character.port';
 import { ActorRound } from '../../../domain/aggregates/actor-round.aggregate';
+import { ActorRoundAlert } from '../../../domain/value-objets/actor-round-alert.vo';
 import { ActorRoundAttack } from '../../../domain/value-objets/actor-round-attack.vo';
 import { ActorRoundDefense } from '../../../domain/value-objets/actor-round-defense.vo';
 import { ActorRoundEffect } from '../../../domain/value-objets/actor-round-effect.vo';
@@ -84,6 +85,8 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
       defense,
       attacks,
       [] as ActorRoundEffect[],
+      [] as ActorRoundAlert[],
+      //TODO read from faction
       'todo-owner',
     );
   }
