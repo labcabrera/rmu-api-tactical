@@ -111,8 +111,12 @@ export class ActorRound extends AggregateRoot<ActorRound> {
         this.addEffect(effect);
       });
     }
+    if (this.hp.current < 1) {
+      this.addEffect(new ActorRoundEffect('dead', undefined, undefined));
+    }
   }
 
+  //TODO required used action points to calculate stunning effects
   addEffect(effect: ActorRoundEffect): void {
     const existing = this.effects.filter((e) => e.status === effect.status);
     const isUnique = ActorRoundEffect.isUnique(effect);
@@ -120,7 +124,7 @@ export class ActorRound extends AggregateRoot<ActorRound> {
       return;
     }
     const isStackable = ActorRoundEffect.isStackable(effect);
-    if (!isStackable) {
+    if (isStackable) {
       if (existing.length > 1) {
         throw new UnprocessableEntityError(`Multiple non-unique effects found: ${effect.status}`);
       } else if (existing.length === 1) {
@@ -160,8 +164,8 @@ export class ActorRound extends AggregateRoot<ActorRound> {
     }
     const totalBleeding = this.effects.filter((e) => e.status === 'bleeding').reduce((sum, e) => sum + (e.value ?? 0), 0);
     this.hp.current -= totalBleeding;
-    this.effects.filter((e) => e.rounds).forEach((e) => (e.rounds! -= 1));
-    this.effects = this.effects.filter((e) => e.rounds === null || (e.rounds !== undefined && e.rounds > 0));
+    this.effects.filter((e) => e.rounds !== undefined && e.rounds !== null).forEach((e) => (e.rounds! -= 1));
+    this.effects = this.effects.filter((e) => e.rounds === undefined || e.rounds === null || e.rounds > 0);
     if (this.hp.current < 1) {
       this.applyAttackResults(0, [new ActorRoundEffect('dead', undefined, undefined)]);
     }

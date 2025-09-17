@@ -55,14 +55,17 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     if (actorRoundIds.length !== actors.length) {
       throw new UnprocessableEntityError('Some actors not found in the current round');
     }
-    const updateCommands = new Map<string, AddEffectsCommand>();
     const substractBoCommands = this.processAttackSourceSubstractBo(action, actors, command.userId, command.roles);
     await Promise.all(substractBoCommands.map((cmd) => this.commandBus.execute(cmd)));
 
+    const updateCommands = new Map<string, AddEffectsCommand>();
     actionAttacks.forEach((actionAttack) => {
       this.processAttackTargets(actionAttack, actors, updateCommands, command.userId, command.roles);
     });
-    await Promise.all(Array.from(updateCommands.values()).map((cmd) => this.commandBus.execute(cmd)));
+    // Apply all effects and damages sinchronously to avoid multiple updates
+    for (const cmd of updateCommands.values()) {
+      await this.commandBus.execute<AddEffectsCommand, void>(cmd);
+    }
 
     await this.processDeclareActorParry(action, command.userId, command.roles);
     await this.processFatigue(action, game.round, strategicGame, command.userId, command.roles);
