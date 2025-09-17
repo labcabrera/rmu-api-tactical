@@ -12,4 +12,13 @@ export class ActorRoundEffect {
     }
     return false;
   }
+
+  static isStackable(effect: ActorRoundEffect): boolean {
+    switch (effect.status) {
+      case 'penalty':
+      case 'fatigue':
+        return true;
+    }
+    return false;
+  }
 }

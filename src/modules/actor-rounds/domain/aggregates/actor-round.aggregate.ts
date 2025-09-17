@@ -31,7 +31,7 @@ export class ActorRound extends AggregateRoot<ActorRound> {
     public effects: ActorRoundEffect[],
     public owner: string,
     public readonly createdAt: Date,
-    public updatedAt: Date | undefined,
+    public readonly updatedAt: Date | undefined,
   ) {
     super();
   }
@@ -100,7 +100,6 @@ export class ActorRound extends AggregateRoot<ActorRound> {
     actorRound.attacks.forEach((attack) => {
       attack.currentBo = attack.baseBo;
     });
-    actorRound.effects.filter((e) => e.status === 'penalty').forEach((e) => actorRound.addEffect(e));
     actorRound.addDomainEvent(new ActorRoundCreatedEvent(actorRound));
     return actorRound;
   }
@@ -122,9 +121,14 @@ export class ActorRound extends AggregateRoot<ActorRound> {
     if (isUnique && existing.length > 0) {
       return;
     }
-    if (effect.status === 'penalty') {
-      this.attacks.forEach((a) => (a.currentBo -= effect.value ?? 0));
-      this.attacks.forEach((a) => (a.currentBo = Math.max(a.currentBo, 0)));
+    const isStackable = ActorRoundEffect.isStackable(effect);
+    if (!isStackable) {
+      if (existing.length > 1) {
+        throw new UnprocessableEntityError(`Multiple non-unique effects found: ${effect.status}`);
+      } else if (existing.length === 1) {
+        existing[0].value! += effect.value!;
+        return;
+      }
     }
     this.effects.push(effect);
   }
@@ -159,7 +163,7 @@ export class ActorRound extends AggregateRoot<ActorRound> {
     const totalBleeding = this.effects.filter((e) => e.status === 'bleeding').reduce((sum, e) => sum + (e.value ?? 0), 0);
     this.hp.current -= totalBleeding;
     this.effects.filter((e) => e.rounds).forEach((e) => (e.rounds! -= 1));
-    this.effects = this.effects.filter((e) => !e.rounds || e.rounds > 0);
+    this.effects = this.effects.filter((e) => e.rounds === undefined || (e.rounds !== undefined && e.rounds > 0));
     if (this.hp.current < 1) {
       this.applyAttackResults(0, [new ActorRoundEffect('dead', undefined, undefined)]);
     }

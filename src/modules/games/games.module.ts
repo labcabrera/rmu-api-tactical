@@ -17,12 +17,15 @@ import { DeleteGameHandler } from './application/cqrs/handlers/delete-game.handl
 import { DeleteGamesByStrategicIdHandler } from './application/cqrs/handlers/delete-games-by-strategic-id.handler';
 import { GetGameHandler } from './application/cqrs/handlers/get-game.handler';
 import { GetGamesHandler } from './application/cqrs/handlers/get-games.handler';
+import { RandomizeInitiativesHandler } from './application/cqrs/handlers/randomize-initiatives.handler';
 import { StartPhaseHandler } from './application/cqrs/handlers/start-phase.handler';
 import { StartRoundHandler } from './application/cqrs/handlers/start-round.handler';
 import { UpdateGameHandler } from './application/cqrs/handlers/update-game.handler';
 import { MongoGameRepository } from './infrastructure/db/mongo.game.repository';
 import { KafkaGameEventBusAdapter } from './infrastructure/messaging/kafka.game-bus.adapter';
 import { GameModel, GameSchema } from './infrastructure/persistence/models/game.model';
+import { GameActorController } from './interfaces/http/game-actor.controller';
+import { GameFactionController } from './interfaces/http/game-faction.controller';
 import { GameController } from './interfaces/http/game.controller';
 import { StrategicGameKafkaConsumer } from './interfaces/messaging/kafka.strategic-game.consumer';
 
@@ -38,7 +41,7 @@ import { StrategicGameKafkaConsumer } from './interfaces/messaging/kafka.strateg
     forwardRef(() => ActorsRoundModule),
     forwardRef(() => ActionsModule),
   ],
-  controllers: [GameController, StrategicGameKafkaConsumer],
+  controllers: [GameController, GameActorController, GameFactionController, StrategicGameKafkaConsumer],
   providers: [
     KafkaGameEventBusAdapter,
     GetGamesHandler,
@@ -53,6 +56,7 @@ import { StrategicGameKafkaConsumer } from './interfaces/messaging/kafka.strateg
     DeleteGameFactionsHandler,
     DeleteGameActorsHandler,
     DeleteGamesByStrategicIdHandler,
+    RandomizeInitiativesHandler,
     {
       provide: 'GameRepository',
       useClass: MongoGameRepository,

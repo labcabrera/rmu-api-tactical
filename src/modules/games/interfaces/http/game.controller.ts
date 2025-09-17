@@ -1,29 +1,21 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-
 import { Body, Controller, Delete, Get, HttpCode, Logger, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
-
 import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
 import { Page } from '../../../shared/domain/entities/page.entity';
 import { ErrorDto, PagedQueryDto } from '../../../shared/interfaces/http/dto';
-
-import { AddGameActorsCommand } from '../../application/cqrs/commands/add-game-actors.command';
 import { CreateGameCommand } from '../../application/cqrs/commands/create-game.command';
-import { DeleteGameActorsCommand } from '../../application/cqrs/commands/delete-game-actors.command';
 import { DeleteGameCommand } from '../../application/cqrs/commands/delete-game.command';
+import { RandomizeInitiativesCommand } from '../../application/cqrs/commands/randomize-intiatives.command';
 import { StartPhaseCommand } from '../../application/cqrs/commands/start-phase.command';
 import { StartRoundCommand } from '../../application/cqrs/commands/start-round.command';
 import { UpdateGameCommand } from '../../application/cqrs/commands/update-game.command';
 import { GetGameQuery } from '../../application/cqrs/queries/get-game.query';
 import { GetGamesQuery } from '../../application/cqrs/queries/get-games.query';
 import { Game } from '../../domain/entities/game.aggregate';
-import { AddGameActorsDto } from './dto/add-game-actors.dto';
-import { AddGameFactionsDto } from './dto/add-game-factions.dto';
 import { CreateGameDto } from './dto/create-game.dto';
-import { DeleteGameActorsDto } from './dto/delete-game-actors.dto';
-import { DeleteGameFactionsDto } from './dto/delete-game-factions.dto';
 import { GameDto, GamePageDto, UpdateGameDto } from './dto/game.dto';
 
 @UseGuards(JwtAuthGuard)
@@ -126,51 +118,16 @@ export class GameController {
     return GameDto.fromEntity(entity);
   }
 
-  @Post(':id/factions')
+  @Post(':id/initiatives/randomize')
   @HttpCode(200)
-  @ApiOperation({ operationId: 'addGameFactions', summary: 'Add factions to game' })
-  @ApiOkResponse({ type: AddGameFactionsDto, description: 'Success' })
+  @ApiOperation({ operationId: 'randomizeInitiatives', summary: 'Randomize undeclared initiatives' })
+  @ApiOkResponse({ type: GameDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  async addFactions(@Param('id') id: string, @Body() dto: AddGameFactionsDto, @Request() req) {
+  async randomizeInitiatives(@Param('id') id: string, @Request() req) {
+    this.logger.debug(`Randomize initiatives for game << ${id}`);
     const user = req.user!;
-    const command = AddGameFactionsDto.toCommand(id, dto, user.id as string, user.roles as string[]);
-    const entity = await this.commandBus.execute<AddGameFactionsDto, Game>(command);
-    return GameDto.fromEntity(entity);
-  }
-
-  @Delete(':id/factions')
-  @HttpCode(200)
-  @ApiOperation({ operationId: 'deleteGameFactions', summary: 'Delete game factions' })
-  @ApiOkResponse({ type: DeleteGameFactionsDto, description: 'Success' })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  async deleteFactions(@Param('id') id: string, @Body() dto: DeleteGameFactionsDto, @Request() req) {
-    const user = req.user!;
-    const command = DeleteGameFactionsDto.toCommand(id, dto, user.id as string, user.roles as string[]);
-    const entity = await this.commandBus.execute<DeleteGameFactionsDto, Game>(command);
-    return GameDto.fromEntity(entity);
-  }
-
-  @Post(':id/actors')
-  @HttpCode(200)
-  @ApiOperation({ operationId: 'addActors', summary: 'Add actors to game' })
-  @ApiOkResponse({ type: AddGameActorsDto, description: 'Success' })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  async addActors(@Param('id') id: string, @Body() dto: AddGameActorsDto, @Request() req) {
-    const user = req.user!;
-    const command = AddGameActorsDto.toCommand(id, dto, user.id as string, user.roles as string[]);
-    const entity = await this.commandBus.execute<AddGameActorsCommand, Game>(command);
-    return GameDto.fromEntity(entity);
-  }
-
-  @Delete(':id/actors')
-  @HttpCode(200)
-  @ApiOperation({ operationId: 'deleteGameActors', summary: 'Delete game actors' })
-  @ApiOkResponse({ type: DeleteGameActorsDto, description: 'Success' })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  async deleteActors(@Param('id') id: string, @Body() dto: DeleteGameActorsDto, @Request() req) {
-    const user = req.user!;
-    const command = DeleteGameActorsDto.toCommand(id, dto, user.id as string, user.roles as string[]);
-    const entity = await this.commandBus.execute<DeleteGameActorsCommand, Game>(command);
+    const command = new RandomizeInitiativesCommand(id, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<RandomizeInitiativesCommand, Game>(command);
     return GameDto.fromEntity(entity);
   }
 }
