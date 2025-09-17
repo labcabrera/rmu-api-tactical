@@ -118,7 +118,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     dmg += actionAttack.results?.attackTableEntry?.damage || 0;
     const criticalEffects: ActorRoundEffect[] = [];
     actionAttack.results?.criticals?.forEach((cr) => {
-      dmg = cr.result?.damage || 0;
+      dmg += cr.result?.damage || 0;
       cr.result?.effects?.forEach((e) => {
         const effect = new ActorRoundEffect(e.status, e.value, e.rounds);
         criticalEffects.push(effect);
