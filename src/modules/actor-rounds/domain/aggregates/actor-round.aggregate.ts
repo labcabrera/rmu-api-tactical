@@ -163,7 +163,7 @@ export class ActorRound extends AggregateRoot<ActorRound> {
     const totalBleeding = this.effects.filter((e) => e.status === 'bleeding').reduce((sum, e) => sum + (e.value ?? 0), 0);
     this.hp.current -= totalBleeding;
     this.effects.filter((e) => e.rounds).forEach((e) => (e.rounds! -= 1));
-    this.effects = this.effects.filter((e) => e.rounds === undefined || (e.rounds !== undefined && e.rounds > 0));
+    this.effects = this.effects.filter((e) => e.rounds === null || (e.rounds !== undefined && e.rounds > 0));
     if (this.hp.current < 1) {
       this.applyAttackResults(0, [new ActorRoundEffect('dead', undefined, undefined)]);
     }
