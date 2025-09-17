@@ -35,12 +35,9 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
     attack.roll!.criticalRolls!.set(command.criticalKey, command.roll);
     const attackResponse = await this.attackPort.updateCriticalRoll(attack.externalAttackId!, command.criticalKey, command.roll);
     attack.results = attackResponse.results;
-    if (action.hasPendingCriticalRolls() || action.hasPendingFumbleRolls()) {
-      action.status = 'critical_and_fumble_roll_declaration';
-    } else {
+    if (!action.hasPendingCriticalRolls() && !action.hasPendingFumbleRolls()) {
       action.status = 'pending_apply';
     }
-
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));

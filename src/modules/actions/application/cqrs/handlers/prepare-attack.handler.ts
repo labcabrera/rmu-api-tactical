@@ -51,8 +51,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     action.attacks = actionAttacks;
     action.processParryOptions(actors);
 
-    //TODO check multiple attacks
-    action.status = 'parry_declaration';
+    //TODO check effects and intermediate actions
     action.actionPoints = game.getActionPhase() - action.phaseStart + 1;
 
     action.updatedAt = new Date();

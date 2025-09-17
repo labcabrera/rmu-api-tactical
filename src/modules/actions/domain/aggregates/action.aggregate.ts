@@ -99,18 +99,14 @@ export class Action extends AggregateRoot<Action> {
   hasPendingCriticalRolls(): boolean {
     if (this.actionType !== 'attack') throw new ValidationError('Action is not an attack');
     if (!this.attacks || this.attacks.length === 0) throw new ValidationError('Action has no attacks declared');
-    this.attacks.forEach((a) => {
-      if (a.roll && a.roll.criticalRolls && a.roll.criticalRolls.size > 0) {
-        const hasUndefined = Array.from(a.roll.criticalRolls.values()).some((v) => v === undefined);
+    this.attacks
+      .filter((attack) => attack.roll && attack.roll.criticalRolls && attack.roll.criticalRolls.size > 0)
+      .forEach((attack) => {
+        const hasUndefined = Array.from(attack.roll!.criticalRolls!.values()).some((v) => v === undefined);
         if (hasUndefined) {
           return true;
         }
-      }
-
-      if (!a.roll || !a.roll.criticalRolls) {
-        throw new ValidationError(`Attack ${a.modifiers.attackName} has no criticals declared`);
-      }
-    });
+      });
     return false;
   }
 

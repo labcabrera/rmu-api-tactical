@@ -97,9 +97,7 @@ export class ActorRound extends AggregateRoot<ActorRound> {
       new Date(),
       undefined,
     );
-    actorRound.attacks.forEach((attack) => {
-      attack.currentBo = attack.baseBo;
-    });
+    actorRound.calculateCurrentBo();
     actorRound.addDomainEvent(new ActorRoundCreatedEvent(actorRound));
     return actorRound;
   }
