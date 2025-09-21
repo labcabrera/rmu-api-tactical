@@ -7,7 +7,7 @@ import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
 import { ErrorDto } from '../../../shared/interfaces/http/dto';
 import { AddGameActorsCommand } from '../../application/cqrs/commands/add-game-actors.command';
 import { DeleteGameActorsCommand } from '../../application/cqrs/commands/delete-game-actors.command';
-import { Game } from '../../domain/entities/game.aggregate';
+import { Game } from '../../domain/aggregates/game.aggregate';
 import { AddGameActorsDto } from './dto/add-game-actors.dto';
 import { DeleteGameActorsDto } from './dto/delete-game-actors.dto';
 import { GameDto } from './dto/game.dto';

@@ -1,4 +1,4 @@
-import { ActorType } from '../../../domain/entities/actor-type.vo';
+import { ActorType } from '../../../domain/value-objects/actor-type.vo';
 
 export class CreateGameCommand {
   constructor(

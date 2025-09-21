@@ -1,7 +1,7 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler } from '@nestjs/cqrs';
 import { NotFoundError } from '../../../../shared/domain/errors';
-import { Game } from '../../../domain/entities/game.aggregate';
+import { Game } from '../../../domain/aggregates/game.aggregate';
 import type { GameEventBusPort } from '../../ports/game-event-bus.port';
 import type { GameRepository } from '../../ports/game.repository';
 import { UpdateGameCommand } from '../commands/update-game.command';
@@ -23,7 +23,7 @@ export class UpdateGameHandler {
     }
     game.update(command.name, command.description);
     const updated = await this.gameRepository.update(command.gameId, command);
-    const events = game.pullDomainEvents();
+    const events = game.getUncommittedEvents();
     events.forEach((event) => this.gameEventBus.publish(event));
     return updated;
   }

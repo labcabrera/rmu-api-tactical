@@ -1,6 +1,6 @@
 import { Inject, Logger, NotImplementedException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Actor } from '../../../../games/domain/entities/actor.vo';
+import { Actor } from '../../../../games/domain/value-objects/actor.vo';
 import { ValidationError } from '../../../../shared/domain/errors';
 import type { Character, CharacterPort } from '../../../../strategic/application/ports/character.port';
 import { ActorRound } from '../../../domain/aggregates/actor-round.aggregate';

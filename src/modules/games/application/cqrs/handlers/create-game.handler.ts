@@ -3,8 +3,8 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ValidationError } from '../../../../shared/domain/errors';
 import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
 import type { StrategicGamePort } from '../../../../strategic/application/ports/strategic-game.port';
-import { Actor } from '../../../domain/entities/actor.vo';
-import { Game } from '../../../domain/entities/game.aggregate';
+import { Game } from '../../../domain/aggregates/game.aggregate';
+import { Actor } from '../../../domain/value-objects/actor.vo';
 import type { GameEventBusPort } from '../../ports/game-event-bus.port';
 import type { GameRepository } from '../../ports/game.repository';
 import { CreateGameCommand, CreateGameCommandActor } from '../commands/create-game.command';
@@ -29,7 +29,7 @@ export class CreateGameHandler implements ICommandHandler<CreateGameCommand, Gam
     const actors = await (command.actors ? Promise.all(command.actors.map((actor) => this.mapActor(actor))) : undefined);
     const game = Game.create(command.strategicGameId, command.name, command.factions, actors, command.description, command.userId);
     const saved = await this.gameRepository.save(game);
-    const events = game.pullDomainEvents();
+    const events = game.getUncommittedEvents();
     events.forEach((event) => this.gameEventBus.publish(event));
     return saved;
   }

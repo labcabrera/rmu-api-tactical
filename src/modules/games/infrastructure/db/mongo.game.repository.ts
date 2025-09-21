@@ -2,13 +2,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose/dist/common/mongoose.decorators';
 import { Model } from 'mongoose';
-
 import { Page } from '../../../shared/domain/entities/page.entity';
 import { NotFoundError } from '../../../shared/domain/errors';
 import { RsqlParser } from '../../../shared/infrastructure/db/rsql-parser';
 import { GameRepository } from '../../application/ports/game.repository';
-import { Actor } from '../../domain/entities/actor.vo';
-import { Game } from '../../domain/entities/game.aggregate';
+import { Game } from '../../domain/aggregates/game.aggregate';
+import { Actor } from '../../domain/value-objects/actor.vo';
 import { GameDocument, GameModel } from '../persistence/models/game.model';
 
 @Injectable()
@@ -38,14 +37,14 @@ export class MongoGameRepository implements GameRepository {
   }
 
   async save(game: Game): Promise<Game> {
-    const persistable = game.toPersistence();
+    const persistable = game.toProps();
     const { id, ...rest } = persistable;
     const model = new this.gameModel({ ...rest, _id: id });
     return model.save().then((saved) => this.mapToEntity(saved));
   }
 
   async update(id: string, update: Partial<Game>): Promise<Game> {
-    const persistable = update instanceof Game ? update.toPersistence() : update;
+    const persistable = update instanceof Game ? update.toProps() : update;
     const updatedGame = await this.gameModel.findByIdAndUpdate(id, { $set: persistable }, { new: true });
     if (!updatedGame) {
       throw new NotFoundError('Game', id);
@@ -61,19 +60,19 @@ export class MongoGameRepository implements GameRepository {
     if (!doc) {
       throw new NotFoundError('Game', 'unknown');
     }
-    return new Game(
-      doc.id as string,
-      doc.strategicGameId,
-      doc.name,
-      doc.status,
-      doc.round,
-      doc.phase,
-      doc.factions,
-      doc.actors ? doc.actors.map((a) => new Actor(a.id, a.name, a.factionId, a.type, a.owner)) : [],
-      doc.description,
-      doc.owner,
-      doc.createdAt,
-      doc.updatedAt,
-    );
+    return Game.fromProps({
+      id: doc.id as string,
+      strategicGameId: doc.strategicGameId,
+      name: doc.name,
+      status: doc.status,
+      round: doc.round,
+      phase: doc.phase,
+      factions: doc.factions,
+      actors: doc.actors ? doc.actors.map((actor) => Actor.fromProps(actor)) : [],
+      description: doc.description,
+      owner: doc.owner,
+      createdAt: doc.createdAt,
+      updatedAt: doc.updatedAt,
+    });
   }
 }

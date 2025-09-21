@@ -5,7 +5,7 @@ import { CommandBus } from '@nestjs/cqrs';
 import { ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
 import { ErrorDto } from '../../../shared/interfaces/http/dto';
-import { Game } from '../../domain/entities/game.aggregate';
+import { Game } from '../../domain/aggregates/game.aggregate';
 import { AddGameFactionsDto } from './dto/add-game-factions.dto';
 import { DeleteGameFactionsDto } from './dto/delete-game-factions.dto';
 import { GameDto } from './dto/game.dto';

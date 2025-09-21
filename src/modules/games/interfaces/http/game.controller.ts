@@ -14,7 +14,7 @@ import { StartRoundCommand } from '../../application/cqrs/commands/start-round.c
 import { UpdateGameCommand } from '../../application/cqrs/commands/update-game.command';
 import { GetGameQuery } from '../../application/cqrs/queries/get-game.query';
 import { GetGamesQuery } from '../../application/cqrs/queries/get-games.query';
-import { Game } from '../../domain/entities/game.aggregate';
+import { Game } from '../../domain/aggregates/game.aggregate';
 import { CreateGameDto } from './dto/create-game.dto';
 import { GameDto, GamePageDto, UpdateGameDto } from './dto/game.dto';
 

@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsArray, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { CreateGameCommand, CreateGameCommandActor } from '../../../application/cqrs/commands/create-game.command';
-import * as actorTypeVo from '../../../domain/entities/actor-type.vo';
+import * as actorTypeVo from '../../../domain/value-objects/actor-type.vo';
 
 export class CreateGameActorDto {
   @ApiProperty({ description: 'Actor identifier (character or NPC id)', example: 'actor-123' })

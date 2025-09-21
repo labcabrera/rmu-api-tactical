@@ -2,8 +2,8 @@ import { Inject, Logger, NotImplementedException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
-import { Actor } from '../../../domain/entities/actor.vo';
-import { Game } from '../../../domain/entities/game.aggregate';
+import { Game } from '../../../domain/aggregates/game.aggregate';
+import { Actor } from '../../../domain/value-objects/actor.vo';
 import type { GameEventBusPort } from '../../ports/game-event-bus.port';
 import type { GameRepository } from '../../ports/game.repository';
 import { AddGameActorsCommand } from '../commands/add-game-actors.command';
@@ -36,7 +36,7 @@ export class AddGameActorsHandler implements ICommandHandler<AddGameActorsComman
     );
     game.addActors(mappedActors);
     const updated = await this.gameRepository.update(command.gameId, game);
-    const events = game.pullDomainEvents();
+    const events = game.getUncommittedEvents();
     events.forEach((event) => this.gameEventBus.publish(event));
     return updated;
   }

@@ -8,8 +8,29 @@ import { ActionMovement } from '../value-objects/action-movement.vo';
 import { ActionStatus } from '../value-objects/action-status.vo';
 import { ActionType } from '../value-objects/action-type.vo';
 
+export interface ActionProps {
+  id: string;
+  gameId: string;
+  actorId: string;
+  round: number;
+  actionType: ActionType;
+  phaseStart: number;
+  phaseEnd: number | undefined;
+  status: ActionStatus;
+  actionPoints: number | undefined;
+  movement: ActionMovement | undefined;
+  attacks: ActionAttack[] | undefined;
+  parries: ActionParry[] | undefined;
+  maneuver: ActionManeuver | undefined;
+  fatigue: number | undefined;
+  description: string | undefined;
+  owner: string;
+  createdAt: Date;
+  updatedAt: Date | undefined;
+}
+
 export class Action extends AggregateRoot<Action> {
-  constructor(
+  private constructor(
     public readonly id: string,
     public readonly gameId: string,
     public readonly actorId: string,
@@ -63,6 +84,29 @@ export class Action extends AggregateRoot<Action> {
       undefined,
     );
     return action;
+  }
+
+  static fromProps(props: ActionProps): Action {
+    return new Action(
+      props.id,
+      props.gameId,
+      props.actorId,
+      props.round,
+      props.actionType,
+      props.phaseStart,
+      props.phaseEnd,
+      props.status,
+      props.actionPoints,
+      props.movement,
+      props.attacks,
+      props.parries,
+      props.maneuver,
+      props.fatigue,
+      props.description,
+      props.owner,
+      props.createdAt,
+      props.updatedAt,
+    );
   }
 
   prepare() {
@@ -192,9 +236,27 @@ export class Action extends AggregateRoot<Action> {
     });
   }
 
-  private getAvailableParry(actor: ActorRound): number {
-    const list = actor.attacks.map((attack) => attack.currentBo);
-    return Math.min(...list);
+  toProps(): ActionProps {
+    return {
+      id: this.id,
+      gameId: this.gameId,
+      actorId: this.actorId,
+      round: this.round,
+      actionType: this.actionType,
+      phaseStart: this.phaseStart,
+      phaseEnd: this.phaseEnd,
+      status: this.status,
+      actionPoints: this.actionPoints,
+      movement: this.movement,
+      attacks: this.attacks,
+      parries: this.parries,
+      maneuver: this.maneuver,
+      fatigue: this.fatigue,
+      description: this.description,
+      owner: this.owner,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
   }
 
   private getMovementFatigue(): number | undefined {
