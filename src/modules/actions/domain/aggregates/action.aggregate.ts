@@ -1,7 +1,9 @@
+import { AggregateRoot } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
 import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.aggregate';
-import { AggregateRoot } from '../../../shared/domain/entities/aggregate-root';
 import { UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors';
+import { DomainEvent } from '../../../shared/domain/events/domain-event';
+import { ActionCreatedEvent } from '../events/action-events';
 import { ActionAttack, ActionParry } from '../value-objects/action-attack.vo';
 import { ActionManeuver } from '../value-objects/action-maneuver.vo';
 import { ActionMovement } from '../value-objects/action-movement.vo';
@@ -29,7 +31,7 @@ export interface ActionProps {
   updatedAt: Date | undefined;
 }
 
-export class Action extends AggregateRoot<Action> {
+export class Action extends AggregateRoot<DomainEvent<Action>> {
   private constructor(
     public readonly id: string,
     public readonly gameId: string,
@@ -83,6 +85,7 @@ export class Action extends AggregateRoot<Action> {
       new Date(),
       undefined,
     );
+    action.apply(new ActionCreatedEvent(action));
     return action;
   }
 

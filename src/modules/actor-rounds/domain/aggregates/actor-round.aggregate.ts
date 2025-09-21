@@ -1,6 +1,7 @@
+import { AggregateRoot } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
-import { AggregateRoot } from '../../../shared/domain/entities/aggregate-root';
 import { UnprocessableEntityError } from '../../../shared/domain/errors';
+import { DomainEvent } from '../../../shared/domain/events/domain-event';
 import { ActorRoundAttack } from '../../infrastructure/persistence/models/actor-round-attack.model';
 import { ActorRoundCreatedEvent } from '../events/actor-round.events';
 import { ActorRoundAlert } from '../value-objets/actor-round-alert.vo';
@@ -13,8 +14,30 @@ import { ActorRoundParry } from '../value-objets/actor-round-parry.vo';
 import { ActorRoundPenalty } from '../value-objets/actor-round-penalty.vo';
 import { ActorRoundUsedBo } from '../value-objets/actor-round-used-bo.vo';
 
-export class ActorRound extends AggregateRoot<ActorRound> {
-  constructor(
+export interface ActorRoundProps {
+  id: string;
+  gameId: string;
+  round: number;
+  actorId: string;
+  actorName: string;
+  initiative: ActorRoundInitiative;
+  actionPoints: number;
+  hp: ActorRoundHP;
+  fatigue: ActorRoundFatigue;
+  penalties: ActorRoundPenalty[];
+  defense: ActorRoundDefense;
+  attacks: ActorRoundAttack[];
+  usedBo: ActorRoundUsedBo[];
+  parries: ActorRoundParry[];
+  effects: ActorRoundEffect[];
+  alerts: ActorRoundAlert[];
+  owner: string;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
+export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
+  private constructor(
     public readonly id: string,
     public readonly gameId: string,
     public readonly round: number,
@@ -75,8 +98,32 @@ export class ActorRound extends AggregateRoot<ActorRound> {
       new Date(),
       undefined,
     );
-    actorRound.addDomainEvent(new ActorRoundCreatedEvent(actorRound));
+    actorRound.apply(new ActorRoundCreatedEvent(actorRound));
     return actorRound;
+  }
+
+  static fromProps(props: ActorRoundProps): ActorRound {
+    return new ActorRound(
+      props.id,
+      props.gameId,
+      props.round,
+      props.actorId,
+      props.actorName,
+      props.initiative,
+      props.actionPoints,
+      props.hp,
+      props.fatigue,
+      props.penalties,
+      props.defense,
+      props.attacks,
+      props.usedBo,
+      props.parries,
+      props.effects,
+      props.alerts,
+      props.owner,
+      props.createdAt,
+      props.updatedAt,
+    );
   }
 
   static createFromPrevious(previous: ActorRound): ActorRound {
@@ -103,7 +150,7 @@ export class ActorRound extends AggregateRoot<ActorRound> {
       undefined,
     );
     actorRound.calculateCurrentBo();
-    actorRound.addDomainEvent(new ActorRoundCreatedEvent(actorRound));
+    actorRound.apply(new ActorRoundCreatedEvent(actorRound));
     return actorRound;
   }
 
@@ -197,5 +244,29 @@ export class ActorRound extends AggregateRoot<ActorRound> {
 
   isDead(): boolean {
     return this.effects.some((e) => e.status === 'dead');
+  }
+
+  toProps(): ActorRoundProps {
+    return {
+      id: this.id,
+      gameId: this.gameId,
+      round: this.round,
+      actorId: this.actorId,
+      actorName: this.actorName,
+      initiative: this.initiative,
+      actionPoints: this.actionPoints,
+      hp: this.hp,
+      fatigue: this.fatigue,
+      penalties: this.penalties,
+      defense: this.defense,
+      attacks: this.attacks,
+      usedBo: this.usedBo,
+      parries: this.parries,
+      effects: this.effects,
+      alerts: this.alerts,
+      owner: this.owner,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
   }
 }

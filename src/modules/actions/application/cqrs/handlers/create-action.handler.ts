@@ -41,7 +41,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       command.userId,
     );
     const saved = await this.actionRepository.save(action);
-    const events = action.pullDomainEvents();
+    const events = action.getUncommittedEvents();
     events.forEach((event) => this.actionEventBus.publish(event));
     return saved;
   }
