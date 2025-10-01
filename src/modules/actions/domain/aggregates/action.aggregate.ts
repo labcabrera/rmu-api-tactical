@@ -132,7 +132,9 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
       .filter((t) => t.actorId !== this.actorId)
       .forEach((t) => {
         t.attacks.forEach((attack) => {
-          this.parries!.push(new ActionParry(randomUUID(), t.actorId, t.actorId, 'parry', attack.attackName, attack.currentBo, 0));
+          this.parries!.push(
+            new ActionParry(randomUUID(), t.actorId, t.actorId, 'parry', attack.attackName, attack.currentBo, 0),
+          );
         });
       });
   }
@@ -234,7 +236,8 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
   applyParrysToAttacks() {
     this.attacks?.forEach((attack) => {
       const targetId = attack.modifiers.targetId;
-      const totalParry = this.parries?.filter((p) => p.targetActorId === targetId).reduce((sum, p) => sum + p.parry, 0) || 0;
+      const totalParry =
+        this.parries?.filter((p) => p.targetActorId === targetId).reduce((sum, p) => sum + p.parry, 0) || 0;
       attack.modifiers.parry = totalParry;
     });
   }

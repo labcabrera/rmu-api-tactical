@@ -78,7 +78,12 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     return updated;
   }
 
-  private processAttackSourceSubstractBo(action: Action, actors: ActorRound[], userId: string, roles: string[]): SubstractBoCommand[] {
+  private processAttackSourceSubstractBo(
+    action: Action,
+    actors: ActorRound[],
+    userId: string,
+    roles: string[],
+  ): SubstractBoCommand[] {
     const actorRound = actors.find((a) => a.actorId === action.actorId);
     if (!actorRound) {
       throw new UnprocessableEntityError('Actor not found');
@@ -90,7 +95,9 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
         throw new UnprocessableEntityError(`Attack ${a.modifiers.attackName} not found`);
       }
       if (attack.modifiers.bo > 0) {
-        substractBoCommands.push(new SubstractBoCommand(actorRound.id, a.modifiers.attackName, attack.modifiers.bo, userId, roles));
+        substractBoCommands.push(
+          new SubstractBoCommand(actorRound.id, a.modifiers.attackName, attack.modifiers.bo, userId, roles),
+        );
       }
     });
     return substractBoCommands;

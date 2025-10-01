@@ -2,7 +2,12 @@ import { AggregateRoot } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
 import { NotModifiedError, ValidationError } from '../../../shared/domain/errors';
 import { DomainEvent } from '../../../shared/domain/events/domain-event';
-import { GameCreatedEvent, GamePhaseStartedEvent, GameRoundStartedEvent, GameUpdatedEvent } from '../events/game.events';
+import {
+  GameCreatedEvent,
+  GamePhaseStartedEvent,
+  GameRoundStartedEvent,
+  GameUpdatedEvent,
+} from '../events/game.events';
 import { Actor } from '../value-objects/actor.vo';
 import { GamePhase } from '../value-objects/game-phase.vo';
 import { GameStatus } from '../value-objects/game-status.vo';

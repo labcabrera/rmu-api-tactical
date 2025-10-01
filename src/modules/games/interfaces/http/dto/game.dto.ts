@@ -29,7 +29,11 @@ export class GameDto {
   @IsString()
   phase: gamePhaseVo.GamePhase;
 
-  @ApiProperty({ description: 'Factions involved in the game', type: [String], example: ['faction-001', 'faction-002'] })
+  @ApiProperty({
+    description: 'Factions involved in the game',
+    type: [String],
+    example: ['faction-001', 'faction-002'],
+  })
   factions: string[];
 
   @ApiProperty({ description: 'Actors involved in the game', type: [ActorDto] })

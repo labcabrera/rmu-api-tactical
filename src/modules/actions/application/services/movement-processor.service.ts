@@ -50,7 +50,10 @@ export class MovementProcessorService {
       const skillId = action.movement.modifiers.skillId || 'running';
       const modifiers: ActionMovementBonus[] = [];
       modifiers.push({ key: skillId, value: this.getSkillModifier(skillId, character) });
-      modifiers.push({ key: 'difficulty', value: this.getGetDifificultyModifier(action.movement.modifiers.difficulty!) });
+      modifiers.push({
+        key: 'difficulty',
+        value: this.getGetDifificultyModifier(action.movement.modifiers.difficulty!),
+      });
       modifiers.push({ key: 'armor-penalty', value: character.equipment.maneuverPenalty });
       modifiers.push({ key: 'custom-bonus', value: action.movement.modifiers.customBonus || 0 });
       actorRound.penalties.forEach((penalty) => {

@@ -127,7 +127,21 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
   }
 
   static createFromPrevious(previous: ActorRound): ActorRound {
-    const { gameId, round, actorId, actorName, initiative, hp, fatigue, penalties, defense, attacks, effects, alerts, owner } = previous;
+    const {
+      gameId,
+      round,
+      actorId,
+      actorName,
+      initiative,
+      hp,
+      fatigue,
+      penalties,
+      defense,
+      attacks,
+      effects,
+      alerts,
+      owner,
+    } = previous;
     const actorRound = new ActorRound(
       randomUUID(),
       gameId,
@@ -218,7 +232,9 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
     if (this.effects.length === 0) {
       return;
     }
-    const totalBleeding = this.effects.filter((e) => e.status === 'bleeding').reduce((sum, e) => sum + (e.value ?? 0), 0);
+    const totalBleeding = this.effects
+      .filter((e) => e.status === 'bleeding')
+      .reduce((sum, e) => sum + (e.value ?? 0), 0);
     this.hp.current -= totalBleeding;
     this.effects.filter((e) => e.rounds !== undefined && e.rounds !== null).forEach((e) => (e.rounds! -= 1));
     this.effects = this.effects.filter((e) => e.rounds === undefined || e.rounds === null || e.rounds > 0);
@@ -239,7 +255,9 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
   }
 
   private getPenaltySum(): number {
-    return this.effects.filter((e) => e.status === 'penalty' || e.status === 'fatigue').reduce((sum, e) => sum + (e.value ?? 0), 0);
+    return this.effects
+      .filter((e) => e.status === 'penalty' || e.status === 'fatigue')
+      .reduce((sum, e) => sum + (e.value ?? 0), 0);
   }
 
   isDead(): boolean {

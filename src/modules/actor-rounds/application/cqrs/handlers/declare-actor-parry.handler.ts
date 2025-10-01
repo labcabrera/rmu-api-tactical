@@ -15,7 +15,9 @@ export class DeclareActorParryHandler implements ICommandHandler<DeclareActorPar
     this.logger.debug(`Execute << ${JSON.stringify(command)}`);
     const actorRound = await this.actorRoundRepository.findByActorIdAndRound(command.actorId, command.round);
     if (!actorRound) {
-      throw new UnprocessableEntityError(`Unable to find actor round for actor ${command.actorId} and round ${command.round}`);
+      throw new UnprocessableEntityError(
+        `Unable to find actor round for actor ${command.actorId} and round ${command.round}`,
+      );
     }
     actorRound.declareParry(command.targetAttackName!, command.parry);
     const updated = await this.actorRoundRepository.update(actorRound.id, actorRound);

@@ -8,7 +8,12 @@ export class DeleteGameFactionsDto {
   @IsNotEmpty()
   factions: string[];
 
-  static toCommand(gameId: string, dto: DeleteGameFactionsDto, userId: string, roles: string[]): DeleteGameFactionsCommand {
+  static toCommand(
+    gameId: string,
+    dto: DeleteGameFactionsDto,
+    userId: string,
+    roles: string[],
+  ): DeleteGameFactionsCommand {
     return new DeleteGameFactionsCommand(gameId, dto.factions, userId, roles);
   }
 }

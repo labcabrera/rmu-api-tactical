@@ -71,7 +71,16 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
 
     await Promise.all(
       actionAttacks.map((attack) =>
-        this.processAttackPort(attack, actionPoints, action, actors, skills, attackNumber, targetsNumber, gameLethality),
+        this.processAttackPort(
+          attack,
+          actionPoints,
+          action,
+          actors,
+          skills,
+          attackNumber,
+          targetsNumber,
+          gameLethality,
+        ),
       ),
     );
     action.attacks = actionAttacks;
@@ -96,10 +105,22 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     targetsNumber: number,
     gameLethality: number,
   ): Promise<void> {
-    const request = this.mapAttack(attack, actionPoints, action, actors, skills, attackNumber, targetsNumber, gameLethality);
+    const request = this.mapAttack(
+      attack,
+      actionPoints,
+      action,
+      actors,
+      skills,
+      attackNumber,
+      targetsNumber,
+      gameLethality,
+    );
     const portResponse = await this.attackClient.prepareAttack(request);
     attack.externalAttackId = portResponse.id;
-    attack.calculated = new ActionAttackCalculated(portResponse.calculated.rollModifiers, portResponse.calculated.rollTotal);
+    attack.calculated = new ActionAttackCalculated(
+      portResponse.calculated.rollModifiers,
+      portResponse.calculated.rollTotal,
+    );
   }
 
   private mapAttack(

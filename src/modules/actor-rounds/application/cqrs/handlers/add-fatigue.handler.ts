@@ -15,7 +15,9 @@ export class AddFatigueHandler implements ICommandHandler<AddFatigueCommand, Act
     this.logger.debug(`Execute << ${JSON.stringify(command)}`);
     const actorRound = await this.actorRoundRepository.findByActorIdAndRound(command.actorId, command.round);
     if (!actorRound) {
-      throw new UnprocessableEntityError(`Actor round not found for actor ${command.actorId} and round ${command.round}`);
+      throw new UnprocessableEntityError(
+        `Actor round not found for actor ${command.actorId} and round ${command.round}`,
+      );
     }
     actorRound.fatigue.accumulator += command.fatigue;
     //TODO check create endurance alert

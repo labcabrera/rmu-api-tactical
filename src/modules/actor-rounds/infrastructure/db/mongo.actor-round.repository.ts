@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose/dist/common/mongoose.decorators';
 import { Model } from 'mongoose';
@@ -30,7 +29,11 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
     const skip = page * size;
     const mongoQuery = this.rsqlParser.parse(rsql);
     const [characterRoundsDocs, totalElements] = await Promise.all([
-      this.actorRoundModel.find(mongoQuery).skip(skip).limit(size).sort({ 'initiative.roll': -1, 'initiative.base': -1 }),
+      this.actorRoundModel
+        .find(mongoQuery)
+        .skip(skip)
+        .limit(size)
+        .sort({ 'initiative.roll': -1, 'initiative.base': -1 }),
       this.actorRoundModel.countDocuments(mongoQuery),
     ]);
     const content = characterRoundsDocs.map((doc) => this.mapToEntity(doc));
@@ -38,7 +41,9 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
   }
 
   async findByActorIdAndRound(characterId: string, round: number): Promise<ActorRound | null> {
-    return this.actorRoundModel.findOne({ actorId: characterId, round }).then((readed) => (readed ? this.mapToEntity(readed) : null));
+    return this.actorRoundModel
+      .findOne({ actorId: characterId, round })
+      .then((readed) => (readed ? this.mapToEntity(readed) : null));
   }
 
   async save(actorRound: ActorRound): Promise<ActorRound> {

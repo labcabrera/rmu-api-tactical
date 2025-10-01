@@ -28,7 +28,10 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     const game = await this.readGame(command);
     this.checkDeclareActionAllowed(game);
     const round = game.round;
-    const [actorRound, roundActions] = await Promise.all([this.readActorRound(command, round), this.readActions(command, round)]);
+    const [actorRound, roundActions] = await Promise.all([
+      this.readActorRound(command, round),
+      this.readActions(command, round),
+    ]);
     this.validateActorRoundAndActions(actorRound, roundActions);
     const action = Action.create(
       command.gameId,
@@ -58,7 +61,9 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     const rsql = `gameId==${command.gameId};actorId==${command.actorId};round==${round}`;
     const actorRounds = await this.actorRoundRepository.findByRsql(rsql, 0, 100);
     if (actorRounds.content.length === 0) {
-      throw new ValidationError(`Actor round for game ${command.gameId}, character ${command.actorId}, round ${round} not found`);
+      throw new ValidationError(
+        `Actor round for game ${command.gameId}, character ${command.actorId}, round ${round} not found`,
+      );
     }
     return actorRounds.content[0];
   }
@@ -83,7 +88,10 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       case 'not_started':
       case 'declare_initiative':
       case 'upkeep':
-        throw new ValidationError(`Phase ${game.phase} does not allow declare actions`, `err-invalid-declare-action-phase`);
+        throw new ValidationError(
+          `Phase ${game.phase} does not allow declare actions`,
+          `err-invalid-declare-action-phase`,
+        );
       default:
         break;
     }

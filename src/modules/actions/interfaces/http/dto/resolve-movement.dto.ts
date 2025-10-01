@@ -33,7 +33,12 @@ export class ResolveMovementRequestDto {
   @IsString()
   description: string | undefined;
 
-  static toCommand(actionId: string, dto: ResolveMovementRequestDto, userId: string, roles: string[]): ResolveMovementCommand {
+  static toCommand(
+    actionId: string,
+    dto: ResolveMovementRequestDto,
+    userId: string,
+    roles: string[],
+  ): ResolveMovementCommand {
     const cmd = new ResolveMovementCommand();
     cmd.actionId = actionId;
     cmd.phase = dto.phase;

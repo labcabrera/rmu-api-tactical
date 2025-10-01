@@ -17,7 +17,12 @@ export class UpdateCriticalRollDto {
   @IsNumber()
   roll: number;
 
-  static toCommand(actionId: string, dto: UpdateCriticalRollDto, userId: string, roles: string[]): UpdateCriticalRollCommand {
+  static toCommand(
+    actionId: string,
+    dto: UpdateCriticalRollDto,
+    userId: string,
+    roles: string[],
+  ): UpdateCriticalRollCommand {
     return new UpdateCriticalRollCommand(actionId, dto.attackName, dto.criticalKey, dto.roll, userId, roles);
   }
 }

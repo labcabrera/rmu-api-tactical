@@ -67,8 +67,12 @@ export class ActionDto {
     dto.actionPoints = entity.actionPoints;
     dto.movement = entity.movement ? ActionMovementDto.fromEntity(entity.movement) : undefined;
     dto.maneuver = entity.maneuver ? ActionManeuverDto.fromEntity(entity.maneuver) : undefined;
-    dto.attacks = entity.attacks && entity.attacks.length > 0 ? entity.attacks.map((a) => ActionAttackDto.fromEntity(a)) : undefined;
-    dto.parries = entity.parries && entity.parries.length > 0 ? entity.parries.map((p) => ActionParryDto.fromEntity(p)) : undefined;
+    dto.attacks =
+      entity.attacks && entity.attacks.length > 0
+        ? entity.attacks.map((a) => ActionAttackDto.fromEntity(a))
+        : undefined;
+    dto.parries =
+      entity.parries && entity.parries.length > 0 ? entity.parries.map((p) => ActionParryDto.fromEntity(p)) : undefined;
     dto.fatigue = entity.fatigue;
     dto.description = entity.description;
     return dto;
