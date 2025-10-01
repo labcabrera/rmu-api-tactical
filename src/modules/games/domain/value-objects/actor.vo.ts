@@ -9,7 +9,7 @@ export interface ActorProps {
 }
 
 export class Actor {
-  constructor(
+  private constructor(
     public id: string,
     public name: string,
     public factionId: string,

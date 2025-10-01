@@ -4,7 +4,6 @@ export interface CharacterPort {
   findByGameId: (gameId: string) => Promise<Character[]>;
 }
 
-//TODO
 export interface Character {
   id: string;
   gameId: string;

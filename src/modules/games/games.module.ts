@@ -21,6 +21,7 @@ import { RandomizeInitiativesHandler } from './application/cqrs/handlers/randomi
 import { StartPhaseHandler } from './application/cqrs/handlers/start-phase.handler';
 import { StartRoundHandler } from './application/cqrs/handlers/start-round.handler';
 import { UpdateGameHandler } from './application/cqrs/handlers/update-game.handler';
+import { ApiNpcAdapter } from './infrastructure/api-clients/api.npc.adapter';
 import { MongoGameRepository } from './infrastructure/db/mongo.game.repository';
 import { KafkaGameEventBusAdapter } from './infrastructure/messaging/kafka.game-bus.adapter';
 import { GameModel, GameSchema } from './infrastructure/persistence/models/game.model';
@@ -64,6 +65,10 @@ import { StrategicGameKafkaConsumer } from './interfaces/messaging/kafka.strateg
     {
       provide: 'GameEventBus',
       useClass: KafkaGameEventBusAdapter,
+    },
+    {
+      provide: 'NpcPort',
+      useClass: ApiNpcAdapter,
     },
   ],
   exports: ['GameRepository'],
