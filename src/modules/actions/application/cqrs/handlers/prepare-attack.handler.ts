@@ -240,7 +240,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
 
   private calculateSizeDifference(sourceSize: string, targetSize: string): number {
     //TODO load table map
-    const sizeMap = { medium: 0, small: -1, large: 1 };
+    const sizeMap = { medium: 0, small: -1, large: 1 } as Record<string, number>;
     const sourceValue = sizeMap[sourceSize];
     const targetValue = sizeMap[targetSize];
     return (sourceValue || 0) - (targetValue || 0);
