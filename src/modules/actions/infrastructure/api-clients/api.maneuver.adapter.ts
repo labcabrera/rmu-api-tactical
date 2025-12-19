@@ -19,7 +19,7 @@ export class ApiManeuverAdapter implements ManeuverPort {
 
   async percent(roll: number): Promise<PercentManeuverResponse> {
     const token = await this.tokenService.getToken();
-    const uri = `${this.apiCoreUri}/maneuvers/percent/${roll}`;
+    const uri = `${this.apiCoreUri}/maneuvers/percent?roll=${roll}`;
     try {
       const response = await axios.get<PercentManeuverResponse>(uri, {
         headers: {
