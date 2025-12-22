@@ -140,22 +140,27 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     });
   }
 
-  processParryOptions(targets: ActorRound[]) {
-    //TODO check if attacking in last phase
+  processParryOptions(targets: ActorRound[], targetActions: Action[]) {
     //TODO process protectors
     if (!this.attacks || this.attacks.length === 0) {
       return;
     }
     this.parries = [];
-    targets
-      .filter((target) => target.actorId !== this.actorId)
-      .forEach((target) => {
-        const availableParry =
-          target.attacks && target.attacks.length > 0
-            ? Math.min(...target.attacks.map((attack) => attack.currentBo || 0))
-            : 0;
-        this.parries?.push(new ActionParry(randomUUID(), target.actorId, target.actorId, 'parry', availableParry, 0));
-      });
+    for (const target of targets) {
+      // read last melee attack against this actor
+      const lastMeleeAttack = targetActions
+        .sort((a, b) => a.phaseStart - b.phaseStart)
+        .find((a) => a.actionType === 'melee-attack');
+      if (lastMeleeAttack) {
+        // read min bo available from parry over all attacks
+        const availableBo: number[] = [];
+        for (const attack of lastMeleeAttack.attacks!) {
+          availableBo.push(target.getCurrentBo(attack.modifiers.attackName));
+        }
+        const minBo = Math.min(...availableBo);
+        this.parries?.push(new ActionParry(randomUUID(), target.actorId, target.actorId, 'parry', minBo, 0));
+      }
+    }
   }
 
   hasPendingAttackRolls(): boolean {

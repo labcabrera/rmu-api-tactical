@@ -84,7 +84,18 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       ),
     );
     action.attacks = actionAttacks;
-    action.processParryOptions(actors);
+    //TODO read actions
+    const targetActions = await this.actionRepository
+      .findByRsql(
+        `gameId==${action.gameId};round==${game.round};actorId=in=(${Array.from(targets).join(',')})`,
+        0,
+        1000,
+      )
+      .then((res) => res.content);
+    action.processParryOptions(
+      actors.filter((a) => a.actorId !== action.actorId),
+      targetActions,
+    );
 
     //TODO check effects and intermediate actions
     action.actionPoints = game.getActionPhase() - action.phaseStart + 1;

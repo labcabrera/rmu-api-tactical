@@ -255,6 +255,14 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
       .reduce((sum, e) => sum + (e.value ?? 0), 0);
   }
 
+  getCurrentBo(attackName: string): number {
+    const attack = this.attacks.find((a) => a.attackName === attackName);
+    if (!attack) {
+      throw new UnprocessableEntityError(`Attack not found: ${attackName}`);
+    }
+    return attack.currentBo;
+  }
+
   isDead(): boolean {
     return this.effects.some((e) => e.status === 'dead');
   }
