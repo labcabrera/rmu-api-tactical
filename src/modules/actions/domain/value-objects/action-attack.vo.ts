@@ -25,7 +25,6 @@ export class ActionParry {
     public readonly targetActorId: string,
     public readonly parryType: ParryType,
     /** Name of the attack used to parry */
-    public readonly targetAttackName: string | undefined,
     public readonly parryAvailable: number,
     public parry: number,
   ) {}

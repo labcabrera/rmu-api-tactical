@@ -3,9 +3,9 @@ import { ActionAttackModifiers, AttackType } from '../../../domain/value-objects
 export class ActionAttackModifiersDto {
   public attackName: string;
   public type: AttackType;
-  public targetId: string;
-  public bo: number;
-  public parry: number;
+  public targetId: string | undefined;
+  public bo: number | undefined;
+  public parry: number | undefined;
   public cover: string | undefined;
   public restrictedQuarters: string | undefined;
   public positionalSource: string | undefined;

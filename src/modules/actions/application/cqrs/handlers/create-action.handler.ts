@@ -43,6 +43,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       command.description,
       command.userId,
     );
+    action.addAttacks(command.attackNames);
     const saved = await this.actionRepository.save(action);
     const events = action.getUncommittedEvents();
     events.forEach((event) => this.actionEventBus.publish(event));
@@ -77,6 +78,9 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
   private validateCommand(command: CreateActionCommand): void {
     if (command.actionType === 'maneuver' && !command.maneuver) {
       throw new ValidationError(`Maneuver must be provided`);
+    }
+    if (command.actionType === 'melee-attack' && (!command.attackNames || command.attackNames.length === 0)) {
+      throw new ValidationError(`At least one attack name must be provided`);
     }
   }
 

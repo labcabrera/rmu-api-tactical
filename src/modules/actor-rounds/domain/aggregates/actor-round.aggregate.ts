@@ -10,7 +10,6 @@ import { ActorRoundEffect } from '../value-objets/actor-round-effect.vo';
 import { ActorRoundFatigue } from '../value-objets/actor-round-fatigue.vo';
 import { ActorRoundHP } from '../value-objets/actor-round-hp.vo';
 import { ActorRoundInitiative } from '../value-objets/actor-round-initiative.vo';
-import { ActorRoundParry } from '../value-objets/actor-round-parry.vo';
 import { ActorRoundPenalty } from '../value-objets/actor-round-penalty.vo';
 import { ActorRoundUsedBo } from '../value-objets/actor-round-used-bo.vo';
 
@@ -28,7 +27,7 @@ export interface ActorRoundProps {
   defense: ActorRoundDefense;
   attacks: ActorRoundAttack[];
   usedBo: ActorRoundUsedBo[];
-  parries: ActorRoundParry[];
+  parries: number[];
   effects: ActorRoundEffect[];
   alerts: ActorRoundAlert[];
   owner: string;
@@ -51,7 +50,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
     public defense: ActorRoundDefense,
     public attacks: ActorRoundAttack[],
     public usedBo: ActorRoundUsedBo[],
-    public parries: ActorRoundParry[],
+    public parries: number[],
     public effects: ActorRoundEffect[],
     public alerts: ActorRoundAlert[],
     public owner: string,
@@ -205,12 +204,8 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
     this.effects.push(effect);
   }
 
-  declareParry(attackName: string, parry: number): void {
-    const attack = this.attacks.find((a) => a.attackName === attackName);
-    if (!attack) {
-      throw new UnprocessableEntityError(`Attack not found: ${attackName}`);
-    }
-    this.parries.push(new ActorRoundParry(attackName, parry));
+  declareParry(parry: number): void {
+    this.parries.push(parry);
     this.calculateCurrentBo();
   }
 
@@ -250,8 +245,8 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
 
   private calculateAttackCurrentBo(attack: ActorRoundAttack, penalty: number) {
     attack.currentBo = attack.baseBo + penalty;
-    this.usedBo.filter((u) => u.attackName === attack.attackName).forEach((u) => (attack.currentBo -= u.usedBo));
-    this.parries.filter((p) => p.attackName === attack.attackName).forEach((p) => (attack.currentBo -= p.parryValue));
+    this.usedBo.forEach((u) => (attack.currentBo -= u.usedBo));
+    this.parries.forEach((p) => (attack.currentBo -= p));
   }
 
   private getPenaltySum(): number {

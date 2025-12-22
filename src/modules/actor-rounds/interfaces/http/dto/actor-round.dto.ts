@@ -46,7 +46,7 @@ export class ActorRoundDto {
   attacks: ActorRoundAttackDto[];
 
   @ApiProperty({ description: 'Parries', type: [ActorRoundParryDto], isArray: true })
-  parries: ActorRoundParryDto[];
+  parries: number[];
 
   @ApiProperty({ description: 'Active effects', type: [ActorRoundEffect], isArray: true })
   effects: ActorRoundEffect[];
@@ -66,7 +66,7 @@ export class ActorRoundDto {
     dto.hp = ActorRoundHPDto.fromEntity(entity.hp);
     dto.defense = ActorRoundDefenseDto.fromEntity(entity.defense);
     dto.attacks = entity.attacks.map((a) => ActorRoundAttackDto.fromEntity(a));
-    dto.parries = entity.parries.map((p) => ActorRoundParryDto.fromEntity(p));
+    dto.parries = entity.parries;
     dto.fatigue = ActorRoundFatigueDto.fromEntity(entity.fatigue);
     dto.effects = entity.effects;
     dto.alerts = entity.alerts.map((a) => ActorRoundAlertDto.fromEntity(a));

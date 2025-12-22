@@ -15,7 +15,6 @@ export class ActionParryDto {
     dto.actorId = entity.actorId;
     dto.targetActorId = entity.targetActorId;
     dto.parryType = entity.parryType;
-    dto.targetAttackName = entity.targetAttackName;
     dto.parryAvailable = entity.parryAvailable;
     dto.parry = entity.parry;
     return dto;

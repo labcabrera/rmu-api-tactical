@@ -94,9 +94,9 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       if (!attack) {
         throw new UnprocessableEntityError(`Attack ${a.modifiers.attackName} not found`);
       }
-      if (attack.modifiers.bo > 0) {
+      if (attack.modifiers.bo! > 0) {
         substractBoCommands.push(
-          new SubstractBoCommand(actorRound.id, a.modifiers.attackName, attack.modifiers.bo, userId, roles),
+          new SubstractBoCommand(actorRound.id, a.modifiers.attackName, attack.modifiers.bo!, userId, roles),
         );
       }
     });

@@ -113,12 +113,31 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
   }
 
   prepare() {
-    if (this.actionType !== 'attack') {
+    if (this.actionType !== 'melee-attack' && this.actionType !== 'ranged-attack') {
       throw new Error('Action is not an attack');
     }
     if (this.status !== 'declared') {
       throw new Error('Action is not in a preparable state');
     }
+  }
+
+  addAttacks(attackNames: string[] | undefined) {
+    if (!attackNames || attackNames.length === 0) {
+      return;
+    }
+    if (!this.attacks) {
+      this.attacks = [];
+    }
+    attackNames.forEach((attackName) => {
+      const attack = {
+        modifiers: {
+          attackName: attackName,
+          type: this.actionType === 'melee-attack' ? 'melee' : 'ranged',
+        },
+        status: 'declared',
+      } as ActionAttack;
+      this.attacks!.push(attack);
+    });
   }
 
   processParryOptions(targets: ActorRound[]) {
@@ -129,24 +148,28 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     }
     this.parries = [];
     targets
-      .filter((t) => t.actorId !== this.actorId)
-      .forEach((t) => {
-        t.attacks.forEach((attack) => {
-          this.parries!.push(
-            new ActionParry(randomUUID(), t.actorId, t.actorId, 'parry', attack.attackName, attack.currentBo, 0),
-          );
-        });
+      .filter((target) => target.actorId !== this.actorId)
+      .forEach((target) => {
+        const availableParry =
+          target.attacks && target.attacks.length > 0
+            ? Math.min(...target.attacks.map((attack) => attack.currentBo || 0))
+            : 0;
+        this.parries?.push(new ActionParry(randomUUID(), target.actorId, target.actorId, 'parry', availableParry, 0));
       });
   }
 
   hasPendingAttackRolls(): boolean {
-    if (this.actionType !== 'attack') throw new ValidationError('Action is not an attack');
+    if (this.actionType !== 'melee-attack' && this.actionType !== 'ranged-attack') {
+      throw new ValidationError('Action is not an attack');
+    }
     if (!this.attacks || this.attacks.length === 0) throw new ValidationError('Action has no attacks declared');
     return this.attacks.some((a) => !a.roll || !a.roll.roll);
   }
 
   hasPendingCriticalRolls(): boolean {
-    if (this.actionType !== 'attack') throw new ValidationError('Action is not an attack');
+    if (this.actionType !== 'melee-attack' && this.actionType !== 'ranged-attack') {
+      throw new ValidationError('Action is not an attack');
+    }
     if (!this.attacks || this.attacks.length === 0) throw new ValidationError('Action has no attacks declared');
     this.attacks
       .filter((attack) => attack.roll && attack.roll.criticalRolls && attack.roll.criticalRolls.size > 0)
@@ -195,7 +218,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
   }
 
   checkValidApplyResults() {
-    if (this.actionType !== 'attack') {
+    if (this.actionType !== 'melee-attack' && this.actionType !== 'ranged-attack') {
       throw new ValidationError('Action is not an attack');
     }
     if (this.status === 'completed') {
@@ -212,7 +235,8 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
       case 'movement':
         value = this.getMovementFatigue();
         break;
-      case 'attack':
+      case 'melee-attack':
+      case 'ranged-attack':
         value = this.getCombatFatigue();
         break;
     }
@@ -301,7 +325,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
   }
 
   private checkValidAttack(expectedStatus: string) {
-    if (this.actionType !== 'attack') {
+    if (this.actionType !== 'melee-attack' && this.actionType !== 'ranged-attack') {
       throw new ValidationError('Action is not an attack');
     } else if (this.status !== expectedStatus) {
       throw new ValidationError('Attack is not in progress');

@@ -9,7 +9,6 @@ import {
   ActorRoundFatigue,
   ActorRoundHP,
   ActorRoundInitiative,
-  ActorRoundParry,
   ActorRoundPenalty,
 } from './actor-round.models-childs';
 
@@ -56,8 +55,8 @@ export class ActorRoundModel {
   @Prop({ type: [ActorRoundUsedBo], required: true })
   usedBo: ActorRoundUsedBo[];
 
-  @Prop({ type: [ActorRoundParry], required: true })
-  parries: ActorRoundParry[];
+  @Prop({ type: [Number], required: true })
+  parries: number[];
 
   @Prop({ type: [ActorRoundEffect], required: true })
   effects: ActorRoundEffect[];
