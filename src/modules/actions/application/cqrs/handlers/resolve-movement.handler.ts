@@ -48,7 +48,8 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     if (!character) throw new NotFoundError('Character', action.actorId);
     if (!strategicGame) throw new NotFoundError('StrategicGame', game.strategicGameId);
 
-    await this.processAction(command, action, character, actorRound, strategicGame);
+    const currentPhase = game.phase.replace('phase_', '') as unknown as number;
+    await this.processAction(command, action, character, actorRound, strategicGame, currentPhase);
     const updated = await this.actionRepository.update(action.id, action);
     if (action.fatigue) {
       const currentFatigue = actorRound.fatigue.accumulator || 0;
@@ -65,12 +66,13 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     character: Character,
     actorRound: ActorRound,
     strategicGame: StrategicGame,
+    currentPhase: number,
   ): Promise<void> {
     action.description = command.description;
-    action.phaseEnd = command.phase;
+    action.phaseEnd = currentPhase;
     action.actionPoints = action.phaseEnd - action.phaseStart + 1;
     action.movement = this.buildActionMovement(command);
-    await this.movementProcessorService.process(command.roll, action, character, actorRound);
+    await this.movementProcessorService.process(command.roll?.roll, action, character, actorRound);
     action.processFatigue(strategicGame.options?.fatigueMultiplier);
     const scale = strategicGame.options?.boardScaleMultiplier || 1;
     action.movement.calculated.distanceAdjusted = action.movement.calculated.distance * scale;
@@ -96,11 +98,11 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
 
   private buildActionMovementModifers(command: ResolveMovementCommand): ActionMovementModifiers {
     return {
-      pace: command.pace,
-      requiredManeuver: command.requiredManeuver === true,
-      skillId: command.skillId,
-      difficulty: command.difficulty,
-      customBonus: command.customBonus,
+      pace: command.modifiers.pace,
+      requiredManeuver: command.modifiers.requiredManeuver === true,
+      skillId: command.modifiers.skillId,
+      difficulty: command.modifiers.difficulty,
+      customBonus: 0,
     };
   }
 
@@ -110,14 +112,14 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     } else if (action.status === 'completed') {
       throw new ValidationError('Action is already completed');
     }
-    if (command.requiredManeuver === true) {
+    if (command.modifiers.requiredManeuver === true) {
       if (!command.roll) {
         throw new ValidationError('Roll is required for a maneuver');
       }
-      if (!command.difficulty) {
+      if (!command.modifiers.difficulty) {
         throw new ValidationError('Difficulty is required for a maneuver');
       }
-      if (!command.skillId) {
+      if (!command.modifiers.skillId) {
         throw new ValidationError('SkillId is required for a maneuver');
       }
     }
