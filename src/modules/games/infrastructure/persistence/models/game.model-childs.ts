@@ -1,5 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import * as actorTypeVo from '../../../domain/entities/actor-type.vo';
+import * as actorTypeVo from '../../../domain/value-objects/actor-type.vo';
 
 @Schema({ _id: false })
 export class Actor {

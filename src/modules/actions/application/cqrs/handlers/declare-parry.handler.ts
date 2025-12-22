@@ -60,7 +60,7 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     // Update attack total parry and sent to attack port
     await Promise.all(
       attacks.map(async (attack) => {
-        const updatedAttack = await this.attackPort.updateParry(attack.externalAttackId!, attack.modifiers.parry);
+        const updatedAttack = await this.attackPort.updateParry(attack.externalAttackId!, attack.modifiers.parry!);
         attack.calculated!.rollModifiers = updatedAttack.calculated.rollModifiers;
         attack.calculated!.rollTotal = updatedAttack.calculated.rollTotal;
       }),
@@ -77,7 +77,7 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     const actorIds = new Set<string>();
     actorIds.add(action.actorId);
     action.attacks?.forEach((attack) => {
-      actorIds.add(attack.modifiers.targetId);
+      actorIds.add(attack.modifiers.targetId!);
     });
     return Array.from(actorIds);
   }

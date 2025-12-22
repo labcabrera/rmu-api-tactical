@@ -55,14 +55,17 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     if (actorRoundIds.length !== actors.length) {
       throw new UnprocessableEntityError('Some actors not found in the current round');
     }
-    const updateCommands = new Map<string, AddEffectsCommand>();
     const substractBoCommands = this.processAttackSourceSubstractBo(action, actors, command.userId, command.roles);
     await Promise.all(substractBoCommands.map((cmd) => this.commandBus.execute(cmd)));
 
+    const updateCommands = new Map<string, AddEffectsCommand>();
     actionAttacks.forEach((actionAttack) => {
       this.processAttackTargets(actionAttack, actors, updateCommands, command.userId, command.roles);
     });
-    await Promise.all(Array.from(updateCommands.values()).map((cmd) => this.commandBus.execute(cmd)));
+    // Apply all effects and damages sinchronously to avoid multiple updates
+    for (const cmd of updateCommands.values()) {
+      await this.commandBus.execute<AddEffectsCommand, void>(cmd);
+    }
 
     await this.processDeclareActorParry(action, command.userId, command.roles);
     await this.processFatigue(action, game.round, strategicGame, command.userId, command.roles);
@@ -75,7 +78,12 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     return updated;
   }
 
-  private processAttackSourceSubstractBo(action: Action, actors: ActorRound[], userId: string, roles: string[]): SubstractBoCommand[] {
+  private processAttackSourceSubstractBo(
+    action: Action,
+    actors: ActorRound[],
+    userId: string,
+    roles: string[],
+  ): SubstractBoCommand[] {
     const actorRound = actors.find((a) => a.actorId === action.actorId);
     if (!actorRound) {
       throw new UnprocessableEntityError('Actor not found');
@@ -86,8 +94,10 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       if (!attack) {
         throw new UnprocessableEntityError(`Attack ${a.modifiers.attackName} not found`);
       }
-      if (attack.modifiers.bo > 0) {
-        substractBoCommands.push(new SubstractBoCommand(actorRound.id, a.modifiers.attackName, attack.modifiers.bo, userId, roles));
+      if (attack.modifiers.bo! > 0) {
+        substractBoCommands.push(
+          new SubstractBoCommand(actorRound.id, a.modifiers.attackName, attack.modifiers.bo!, userId, roles),
+        );
       }
     });
     return substractBoCommands;
@@ -118,7 +128,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     dmg += actionAttack.results?.attackTableEntry?.damage || 0;
     const criticalEffects: ActorRoundEffect[] = [];
     actionAttack.results?.criticals?.forEach((cr) => {
-      dmg = cr.result?.damage || 0;
+      dmg += cr.result?.damage || 0;
       cr.result?.effects?.forEach((e) => {
         const effect = new ActorRoundEffect(e.status, e.value, e.rounds);
         criticalEffects.push(effect);

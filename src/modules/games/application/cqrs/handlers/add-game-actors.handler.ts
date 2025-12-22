@@ -1,11 +1,12 @@
-import { Inject, Logger, NotImplementedException } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
-import { Actor } from '../../../domain/entities/actor.vo';
-import { Game } from '../../../domain/entities/game.aggregate';
+import { Game } from '../../../domain/aggregates/game.aggregate';
+import { Actor } from '../../../domain/value-objects/actor.vo';
 import type { GameEventBusPort } from '../../ports/game-event-bus.port';
 import type { GameRepository } from '../../ports/game.repository';
+import type { NpcPort } from '../../ports/npc.port';
 import { AddGameActorsCommand } from '../commands/add-game-actors.command';
 import type { CreateGameCommandActor } from '../commands/create-game.command';
 
@@ -16,6 +17,7 @@ export class AddGameActorsHandler implements ICommandHandler<AddGameActorsComman
   constructor(
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('CharacterClient') private readonly characterClient: CharacterPort,
+    @Inject('NpcPort') private readonly npcPort: NpcPort,
     @Inject('GameEventBus') private readonly gameEventBus: GameEventBusPort,
   ) {}
 
@@ -36,7 +38,7 @@ export class AddGameActorsHandler implements ICommandHandler<AddGameActorsComman
     );
     game.addActors(mappedActors);
     const updated = await this.gameRepository.update(command.gameId, game);
-    const events = game.pullDomainEvents();
+    const events = game.getUncommittedEvents();
     events.forEach((event) => this.gameEventBus.publish(event));
     return updated;
   }
@@ -52,10 +54,30 @@ export class AddGameActorsHandler implements ICommandHandler<AddGameActorsComman
     if (game.actors.some((a) => a.id === character.id)) {
       throw new ValidationError('Actor is already part of the game');
     }
-    return new Actor(character.id, character.name, character.factionId, actor.type, character.owner);
+    return Actor.fromProps({
+      id: character.id,
+      name: character.name,
+      factionId: character.factionId,
+      type: actor.type,
+      owner: character.owner,
+    });
   }
 
-  private mapNPC(actor: CreateGameCommandActor, game: Game): Promise<Actor> {
-    throw new NotImplementedException('NPC mapping not implemented yet');
+  private async mapNPC(actor: CreateGameCommandActor, game: Game): Promise<Actor> {
+    const npc = await this.npcPort.findById(actor.id);
+    if (!npc) {
+      throw new NotFoundError('Actor', actor.id);
+    }
+    if (!actor.faction) {
+      throw new ValidationError('NPC actor must have a faction');
+    }
+    //TODO check realm
+    return Actor.fromProps({
+      id: npc.id,
+      name: npc.name,
+      factionId: actor.faction,
+      type: actor.type,
+      owner: game.owner,
+    });
   }
 }

@@ -24,6 +24,9 @@ export interface AttackRollModifiers {
   rangePenalty: number | undefined;
   shield: number | undefined;
   parry: number | undefined;
+  attackNumber: number | undefined;
+  attackTargets: number | undefined;
+  gameLethality: number | undefined;
   customBonus: number | undefined;
 }
 
@@ -64,6 +67,12 @@ export interface AttackModifiers {
   rollModifiers: AttackRollModifiers;
   situationalModifiers: AttackSituationalModifiers;
   features: AttackFeature[];
+  sourceSkills: AttackSourceSkill[];
+}
+
+export interface AttackSkill {
+  skillId: string;
+  bonus: number;
 }
 
 export interface AttackArmor {

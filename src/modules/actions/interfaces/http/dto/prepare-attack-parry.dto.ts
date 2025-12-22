@@ -11,7 +11,10 @@ export class PrepareAttackParryDto {
   @IsNotEmpty()
   public parryActorId: string;
 
-  @ApiProperty({ description: 'Actor round identifier who is the target of the attack', example: 'actor-round-target-001' })
+  @ApiProperty({
+    description: 'Actor round identifier who is the target of the attack',
+    example: 'actor-round-target-001',
+  })
   @IsString()
   @IsNotEmpty()
   public targetId: string;

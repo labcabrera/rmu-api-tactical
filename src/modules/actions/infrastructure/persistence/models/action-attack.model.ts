@@ -115,7 +115,7 @@ export class ActionAttack {
   @Prop({ type: ActionAttackRoll, required: false })
   public roll: ActionAttackRoll | undefined;
 
-  @Prop({ type: ActionAttackCalculated, required: true })
+  @Prop({ type: ActionAttackCalculated, required: false })
   public calculated: ActionAttackCalculated | undefined;
 
   @Prop({ type: ActionAttackResult, required: false })

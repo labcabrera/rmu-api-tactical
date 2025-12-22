@@ -9,6 +9,7 @@ export interface StrategicGame {
 }
 
 export interface StrategicGameOptions {
-  fatigueMultiplier?: number;
-  boardScaleMultiplier?: number;
+  fatigueMultiplier: number | undefined;
+  boardScaleMultiplier: number | undefined;
+  lethality: number | undefined;
 }

@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import type { GamePhase } from '../../../domain/entities/game-phase.vo';
-import type { GameStatus } from '../../../domain/entities/game-status.vo';
+import type { GamePhase } from '../../../domain/value-objects/game-phase.vo';
+import type { GameStatus } from '../../../domain/value-objects/game-status.vo';
 import { Actor } from './game.model-childs';
 
 export type GameDocument = GameModel & Document;

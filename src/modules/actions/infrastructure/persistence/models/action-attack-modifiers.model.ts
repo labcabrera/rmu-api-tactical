@@ -9,48 +9,48 @@ export class ActionAttackModifiers {
   @Prop({ type: String, required: true })
   public type: AttackType;
 
-  @Prop({ type: String, required: true })
-  public targetId: string;
+  @Prop({ type: String, required: false })
+  public targetId: string | undefined;
 
-  @Prop({ type: Number, required: true })
-  public bo: number;
+  @Prop({ type: Number, required: false })
+  public bo: number | undefined;
 
-  @Prop({ type: Number, required: true })
-  public parry: number;
+  @Prop({ type: Number, required: false })
+  public parry: number | undefined;
 
-  @Prop({ type: String, required: true })
-  public calledShot: CalledShot;
+  @Prop({ type: String, required: false })
+  public calledShot: CalledShot | undefined;
 
-  @Prop({ type: Number, required: true })
-  public calledShotPenalty: number;
+  @Prop({ type: Number, required: false })
+  public calledShotPenalty: number | undefined;
 
-  @Prop({ type: String, required: true })
+  @Prop({ type: String, required: false })
   public cover: string | undefined;
 
-  @Prop({ type: String, required: true })
+  @Prop({ type: String, required: false })
   public restrictedQuarters: string | undefined;
 
-  @Prop({ type: String, required: true })
+  @Prop({ type: String, required: false })
   public positionalSource: string | undefined;
 
-  @Prop({ type: String, required: true })
+  @Prop({ type: String, required: false })
   public positionalTarget: string | undefined;
 
-  @Prop({ type: String, required: true })
+  @Prop({ type: String, required: false })
   public dodge: string | undefined;
 
-  @Prop({ type: Number, required: true })
+  @Prop({ type: Number, required: false })
   public range: number | undefined;
 
-  @Prop({ type: Boolean, required: true })
+  @Prop({ type: Boolean, required: false })
   public disabledDB: boolean | undefined;
 
-  @Prop({ type: Boolean, required: true })
+  @Prop({ type: Boolean, required: false })
   public disabledShield: boolean | undefined;
 
-  @Prop({ type: Boolean, required: true })
+  @Prop({ type: Boolean, required: false })
   public disabledParry: boolean | undefined;
 
-  @Prop({ type: Number, required: true })
+  @Prop({ type: Number, required: false })
   public customBonus: number | undefined;
 }

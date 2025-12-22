@@ -44,7 +44,7 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     const attackResponse = await this.attackPort.updateRoll(attack.externalAttackId!, command.roll, command.location);
     if (!attackResponse || !attackResponse.results) throw new ValidationError('Attack service did not return results');
 
-    if (!attackResponse.results.criticals) {
+    if (!attackResponse.results.criticals || attackResponse.results.criticals.length === 0) {
       attack.roll.criticalRolls = undefined;
     } else {
       attack.roll.criticalRolls = new Map<string, number | undefined>();
@@ -52,12 +52,9 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
         attack.roll!.criticalRolls!.set(critical.key, undefined);
       });
     }
-    if (action.hasPendingCriticalRolls() || action.hasPendingFumbleRolls()) {
-      action.status = 'critical_and_fumble_roll_declaration';
-    } else {
-      action.status = 'pending_apply';
+    if (!action.hasPendingCriticalRolls() && !action.hasPendingFumbleRolls()) {
+      attack.status = 'pending_apply';
     }
-
     action.updatedAt = new Date();
     attack.results = attackResponse.results;
     const updated = await this.actionRepository.update(action.id, action);

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose/dist/common/mongoose.decorators';
 import { Model } from 'mongoose';
@@ -30,7 +29,11 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
     const skip = page * size;
     const mongoQuery = this.rsqlParser.parse(rsql);
     const [characterRoundsDocs, totalElements] = await Promise.all([
-      this.actorRoundModel.find(mongoQuery).skip(skip).limit(size).sort({ 'initiative.roll': -1, 'initiative.base': -1 }),
+      this.actorRoundModel
+        .find(mongoQuery)
+        .skip(skip)
+        .limit(size)
+        .sort({ 'initiative.roll': -1, 'initiative.base': -1 }),
       this.actorRoundModel.countDocuments(mongoQuery),
     ]);
     const content = characterRoundsDocs.map((doc) => this.mapToEntity(doc));
@@ -38,11 +41,13 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
   }
 
   async findByActorIdAndRound(characterId: string, round: number): Promise<ActorRound | null> {
-    return this.actorRoundModel.findOne({ actorId: characterId, round }).then((readed) => (readed ? this.mapToEntity(readed) : null));
+    return this.actorRoundModel
+      .findOne({ actorId: characterId, round })
+      .then((readed) => (readed ? this.mapToEntity(readed) : null));
   }
 
   async save(actorRound: ActorRound): Promise<ActorRound> {
-    const persistable = actorRound.toPersistence();
+    const persistable = actorRound.toProps();
     const { id, ...rest } = persistable;
     const model = new this.actorRoundModel({ ...rest, _id: id });
     await model.save();
@@ -80,25 +85,26 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
       .then((docs) => docs.map((doc) => this.mapToEntity(doc)));
   }
   private mapToEntity(doc: ActorRoundDocument): ActorRound {
-    return new ActorRound(
-      doc._id,
-      doc.gameId,
-      doc.round,
-      doc.actorId,
-      doc.actorName,
-      doc.initiative,
-      doc.actionPoints,
-      doc.hp,
-      doc.fatigue,
-      doc.penalties,
-      doc.defense,
-      doc.attacks,
-      doc.usedBo,
-      doc.parries,
-      doc.effects,
-      doc.owner,
-      doc.createdAt,
-      doc.updatedAt,
-    );
+    return ActorRound.fromProps({
+      id: doc._id,
+      gameId: doc.gameId,
+      round: doc.round,
+      actorId: doc.actorId,
+      actorName: doc.actorName,
+      initiative: doc.initiative,
+      actionPoints: doc.actionPoints,
+      hp: doc.hp,
+      fatigue: doc.fatigue,
+      penalties: doc.penalties,
+      defense: doc.defense,
+      attacks: doc.attacks,
+      usedBo: doc.usedBo,
+      parries: doc.parries,
+      effects: doc.effects,
+      alerts: doc.alerts,
+      owner: doc.owner,
+      createdAt: doc.createdAt,
+      updatedAt: doc.updatedAt,
+    });
   }
 }

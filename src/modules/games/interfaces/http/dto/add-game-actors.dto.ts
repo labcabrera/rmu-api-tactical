@@ -4,7 +4,10 @@ import { AddGameActorsCommand } from '../../../application/cqrs/commands/add-gam
 import { CreateGameActorDto } from './create-game.dto';
 
 export class AddGameActorsDto {
-  @ApiProperty({ description: 'Actors to add', example: [{ id: 'actor-001', type: 'character', faction: 'faction-001' }] })
+  @ApiProperty({
+    description: 'Actors to add',
+    example: [{ id: 'actor-001', type: 'character', faction: 'faction-001' }],
+  })
   @IsNotEmpty()
   actors: CreateGameActorDto[];
 

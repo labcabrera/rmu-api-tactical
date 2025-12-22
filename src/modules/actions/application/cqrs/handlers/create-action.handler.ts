@@ -4,7 +4,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
-import { Game } from '../../../../games/domain/entities/game.aggregate';
+import { Game } from '../../../../games/domain/aggregates/game.aggregate';
 import { ValidationError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
@@ -28,7 +28,10 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     const game = await this.readGame(command);
     this.checkDeclareActionAllowed(game);
     const round = game.round;
-    const [actorRound, roundActions] = await Promise.all([this.readActorRound(command, round), this.readActions(command, round)]);
+    const [actorRound, roundActions] = await Promise.all([
+      this.readActorRound(command, round),
+      this.readActions(command, round),
+    ]);
     this.validateActorRoundAndActions(actorRound, roundActions);
     const action = Action.create(
       command.gameId,
@@ -40,8 +43,9 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       command.description,
       command.userId,
     );
+    action.addAttacks(command.attackNames);
     const saved = await this.actionRepository.save(action);
-    const events = action.pullDomainEvents();
+    const events = action.getUncommittedEvents();
     events.forEach((event) => this.actionEventBus.publish(event));
     return saved;
   }
@@ -58,7 +62,9 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     const rsql = `gameId==${command.gameId};actorId==${command.actorId};round==${round}`;
     const actorRounds = await this.actorRoundRepository.findByRsql(rsql, 0, 100);
     if (actorRounds.content.length === 0) {
-      throw new ValidationError(`Actor round for game ${command.gameId}, character ${command.actorId}, round ${round} not found`);
+      throw new ValidationError(
+        `Actor round for game ${command.gameId}, character ${command.actorId}, round ${round} not found`,
+      );
     }
     return actorRounds.content[0];
   }
@@ -73,6 +79,9 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     if (command.actionType === 'maneuver' && !command.maneuver) {
       throw new ValidationError(`Maneuver must be provided`);
     }
+    if (command.actionType === 'melee-attack' && (!command.attackNames || command.attackNames.length === 0)) {
+      throw new ValidationError(`At least one attack name must be provided`);
+    }
   }
 
   private checkDeclareActionAllowed(game: Game): void {
@@ -83,7 +92,10 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       case 'not_started':
       case 'declare_initiative':
       case 'upkeep':
-        throw new ValidationError(`Phase ${game.phase} does not allow declare actions`, `err-invalid-declare-action-phase`);
+        throw new ValidationError(
+          `Phase ${game.phase} does not allow declare actions`,
+          `err-invalid-declare-action-phase`,
+        );
       default:
         break;
     }

@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
@@ -60,6 +57,7 @@ function configureOpenApi(app: INestApplication<any>) {
         if (path === '/health' && method === 'get') {
           acc[path][method] = { ...methods[method] };
         } else {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           acc[path][method] = {
             ...methods[method],
             security: [{ oauth2: [], 'access-token': [] }],
@@ -72,6 +70,7 @@ function configureOpenApi(app: INestApplication<any>) {
   ) as typeof document.paths;
 
   app.use('/api-spec', (req, res) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     res.json(document);
   });
 }
@@ -114,4 +113,4 @@ async function bootstrap() {
   await app.startAllMicroservices();
 }
 
-bootstrap();
+void bootstrap();

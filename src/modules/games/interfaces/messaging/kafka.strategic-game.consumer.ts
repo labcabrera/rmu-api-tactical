@@ -13,6 +13,7 @@ export class StrategicGameKafkaConsumer {
   @EventPattern('internal.rmu-core.game.deleted.v1')
   async handleStrategicGameDeleted(@Payload() event: any, @Ctx() context: KafkaContext) {
     this.logger.log(`Received event on topic ${context.getTopic()}: ${JSON.stringify(event)}`);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const strategicGameId = event?.data?.id as string;
     if (strategicGameId) {
       await this.commandBus.execute(new DeleteGamesByStrategicIdCommand(strategicGameId, 'admin', ['admin']));

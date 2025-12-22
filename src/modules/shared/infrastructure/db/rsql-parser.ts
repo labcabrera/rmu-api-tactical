@@ -25,7 +25,9 @@ export class RsqlParser {
       this.logger.debug(`Converted MongoDB query: ${JSON.stringify(result)}`);
       return result;
     } catch (error) {
-      throw new InvalidSearchExpression(`Invalid RSQL query: ${rsql}. ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new InvalidSearchExpression(
+        `Invalid RSQL query: ${rsql}. ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsInt, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class ErrorDto {
   @ApiProperty({ description: 'Error code', example: 'SomeError' })
@@ -15,7 +15,12 @@ export class ErrorDto {
 }
 
 export class PagedQueryDto {
-  @ApiPropertyOptional({ description: 'RSQL search expression', example: 'name=re=lord', type: String, required: false })
+  @ApiPropertyOptional({
+    description: 'RSQL search expression',
+    example: 'name=re=lord',
+    type: String,
+    required: false,
+  })
   @IsString()
   @IsOptional()
   q: string | undefined;
@@ -42,27 +47,22 @@ export class PagedQueryDto {
 }
 
 export class PaginationDto {
-  @ApiProperty({
-    description: 'Current page number',
-    example: 0,
-  })
-  page: number;
+  @ApiProperty({ description: 'Current page number', example: 0 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  page: number = 0;
 
-  @ApiProperty({
-    description: 'Number of items per page',
-    example: 10,
-  })
-  size: number;
+  @ApiProperty({ description: 'Number of items per page', example: 10 })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(1000)
+  size: number = 20;
 
-  @ApiProperty({
-    description: 'Total number of elements',
-    example: 42,
-  })
+  @ApiProperty({ description: 'Total number of elements', example: 42 })
   totalElements: number;
 
-  @ApiProperty({
-    description: 'Total number of pages',
-    example: 5,
-  })
+  @ApiProperty({ description: 'Total number of pages', example: 5 })
   totalPages: number;
 }

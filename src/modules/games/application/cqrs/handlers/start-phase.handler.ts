@@ -2,7 +2,7 @@ import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import { Game } from '../../../domain/entities/game.aggregate';
+import { Game } from '../../../domain/aggregates/game.aggregate';
 import type { GameEventBusPort } from '../../ports/game-event-bus.port';
 import type { GameRepository } from '../../ports/game.repository';
 import { StartPhaseCommand } from '../commands/start-phase.command';
@@ -33,7 +33,7 @@ export class StartPhaseHandler implements ICommandHandler<StartPhaseCommand, Gam
     }
     game.startPhase();
     const updatedGame = await this.gameRepository.update(game.id, game);
-    const events = game.pullDomainEvents();
+    const events = game.getUncommittedEvents();
     events.forEach((event) => this.gameEventBus.publish(event));
     return updatedGame;
   }

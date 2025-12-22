@@ -1,12 +1,13 @@
-import { Inject, Logger, NotImplementedException } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ValidationError } from '../../../../shared/domain/errors';
 import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
 import type { StrategicGamePort } from '../../../../strategic/application/ports/strategic-game.port';
-import { Actor } from '../../../domain/entities/actor.vo';
-import { Game } from '../../../domain/entities/game.aggregate';
+import { Game } from '../../../domain/aggregates/game.aggregate';
+import { Actor } from '../../../domain/value-objects/actor.vo';
 import type { GameEventBusPort } from '../../ports/game-event-bus.port';
 import type { GameRepository } from '../../ports/game.repository';
+import type { NpcPort } from '../../ports/npc.port';
 import { CreateGameCommand, CreateGameCommandActor } from '../commands/create-game.command';
 
 @CommandHandler(CreateGameCommand)
@@ -17,6 +18,7 @@ export class CreateGameHandler implements ICommandHandler<CreateGameCommand, Gam
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('StrategicGameClient') private readonly strategicGameClient: StrategicGamePort,
     @Inject('CharacterClient') private readonly characterClient: CharacterPort,
+    @Inject('NpcPort') private readonly npcPort: NpcPort,
     @Inject('GameEventBus') private readonly gameEventBus: GameEventBusPort,
   ) {}
 
@@ -26,24 +28,48 @@ export class CreateGameHandler implements ICommandHandler<CreateGameCommand, Gam
     if (!strategicGame) {
       throw new ValidationError(`Strategic game ${command.strategicGameId} not found`);
     }
-    const actors = await (command.actors ? Promise.all(command.actors.map((actor) => this.mapActor(actor))) : undefined);
-    const game = Game.create(command.strategicGameId, command.name, command.factions, actors, command.description, command.userId);
+    const actors = await (command.actors
+      ? Promise.all(command.actors.map((actor) => this.mapActor(actor, command.userId)))
+      : undefined);
+    const game = Game.create(
+      command.strategicGameId,
+      command.name,
+      command.factions,
+      actors,
+      command.description,
+      command.userId,
+    );
     const saved = await this.gameRepository.save(game);
-    const events = game.pullDomainEvents();
+    const events = game.getUncommittedEvents();
     events.forEach((event) => this.gameEventBus.publish(event));
     return saved;
   }
 
-  private async mapActor(actor: CreateGameCommandActor): Promise<Actor> {
+  private async mapActor(actor: CreateGameCommandActor, userId: string): Promise<Actor> {
     if (actor.type === 'character') {
       const character = await this.characterClient.findById(actor.id);
       if (!character) {
         throw new ValidationError(`Character ${actor.id} not found`);
       }
-      return new Actor(actor.id, character.name, character.factionId, actor.type, character.owner);
+      return Actor.fromProps({
+        id: actor.id,
+        name: character.name,
+        factionId: character.factionId,
+        type: actor.type,
+        owner: character.owner,
+      });
     } else {
-      //TODO
-      throw new NotImplementedException('NPCs are not implemented');
+      const npc = await this.npcPort.findById(actor.id);
+      if (!npc) {
+        throw new ValidationError(`NPC ${actor.id} not found`);
+      }
+      return Actor.fromProps({
+        id: actor.id,
+        name: npc.name,
+        factionId: npc.realmId,
+        type: actor.type,
+        owner: userId,
+      });
     }
   }
 }

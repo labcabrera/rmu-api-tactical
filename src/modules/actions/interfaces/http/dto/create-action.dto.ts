@@ -60,15 +60,22 @@ export class CreateActionDto {
   @IsObject()
   maneuver: ActionManeuverCreationDto | undefined;
 
+  @ApiProperty({ description: 'Attack names' })
+  @IsOptional()
+  @IsString({ each: true })
+  attackNames: string[] | undefined;
+
   static toCommand(dto: CreateActionDto, userId: string, roles: string[]) {
-    const command = new CreateActionCommand();
-    command.gameId = dto.gameId;
-    command.actorId = dto.actorId;
-    command.actionType = dto.actionType;
-    command.phaseStart = dto.phaseStart;
-    command.maneuver = dto.maneuver;
-    command.userId = userId;
-    command.roles = roles;
-    return command;
+    return new CreateActionCommand(
+      dto.gameId,
+      dto.actorId,
+      dto.actionType,
+      dto.phaseStart,
+      dto.maneuver,
+      dto.attackNames,
+      '',
+      userId,
+      roles,
+    );
   }
 }

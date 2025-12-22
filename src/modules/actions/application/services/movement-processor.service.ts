@@ -50,7 +50,10 @@ export class MovementProcessorService {
       const skillId = action.movement.modifiers.skillId || 'running';
       const modifiers: ActionMovementBonus[] = [];
       modifiers.push({ key: skillId, value: this.getSkillModifier(skillId, character) });
-      modifiers.push({ key: 'difficulty', value: this.getGetDifificultyModifier(action.movement.modifiers.difficulty!) });
+      modifiers.push({
+        key: 'difficulty',
+        value: this.getGetDifificultyModifier(action.movement.modifiers.difficulty!),
+      });
       modifiers.push({ key: 'armor-penalty', value: character.equipment.maneuverPenalty });
       modifiers.push({ key: 'custom-bonus', value: action.movement.modifiers.customBonus || 0 });
       actorRound.penalties.forEach((penalty) => {
@@ -71,7 +74,7 @@ export class MovementProcessorService {
     }
     const bmr = character.movement.baseMovementRate;
     const paceMultiplier = this.getPaceMultiplier(action.movement.modifiers.pace);
-    const distance = bmr * percent * action.actionPoints * paceMultiplier;
+    const distance = (bmr * percent * action.actionPoints * paceMultiplier) / 100;
     action.movement.calculated = {
       bmr: bmr,
       paceMultiplier: paceMultiplier,
@@ -79,7 +82,7 @@ export class MovementProcessorService {
       distance: distance,
       distanceAdjusted: distance,
       critical: critical,
-      description: message || `Completed at ${percent}%`,
+      description: message || `Movement completed at ${percent}%`,
     };
   }
 

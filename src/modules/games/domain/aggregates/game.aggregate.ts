@@ -1,12 +1,33 @@
+import { AggregateRoot } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
-import { AggregateRoot } from '../../../shared/domain/entities/aggregate-root';
 import { NotModifiedError, ValidationError } from '../../../shared/domain/errors';
-import { GameCreatedEvent, GamePhaseStartedEvent, GameRoundStartedEvent, GameUpdatedEvent } from '../events/game.events';
-import { Actor } from './actor.vo';
-import { GamePhase } from './game-phase.vo';
-import { GameStatus } from './game-status.vo';
+import { DomainEvent } from '../../../shared/domain/events/domain-event';
+import {
+  GameCreatedEvent,
+  GamePhaseStartedEvent,
+  GameRoundStartedEvent,
+  GameUpdatedEvent,
+} from '../events/game.events';
+import { Actor } from '../value-objects/actor.vo';
+import { GamePhase } from '../value-objects/game-phase.vo';
+import { GameStatus } from '../value-objects/game-status.vo';
 
-export class Game extends AggregateRoot<Game> {
+export type GameProps = {
+  id: string;
+  strategicGameId: string;
+  name: string;
+  status: GameStatus;
+  round: number;
+  phase: GamePhase;
+  factions: string[];
+  actors: Actor[];
+  description?: string;
+  owner: string;
+  createdAt: Date;
+  updatedAt?: Date;
+};
+
+export class Game extends AggregateRoot<DomainEvent<Game>> {
   private static readonly phaseTransitions: Map<GamePhase, GamePhase> = new Map([
     ['declare_initiative', 'phase_1'],
     ['phase_1', 'phase_2'],
@@ -15,7 +36,7 @@ export class Game extends AggregateRoot<Game> {
     ['phase_4', 'upkeep'],
   ]);
 
-  constructor(
+  private constructor(
     public readonly id: string,
     public readonly strategicGameId: string,
     public name: string,
@@ -54,8 +75,25 @@ export class Game extends AggregateRoot<Game> {
       new Date(),
       undefined,
     );
-    game.addDomainEvent(new GameCreatedEvent(game));
+    game.apply(new GameCreatedEvent(game));
     return game;
+  }
+
+  static fromProps(props: GameProps) {
+    return new Game(
+      props.id,
+      props.strategicGameId,
+      props.name,
+      props.status,
+      props.round,
+      props.phase,
+      props.factions,
+      props.actors,
+      props.description,
+      props.owner,
+      props.createdAt,
+      props.updatedAt,
+    );
   }
 
   update(name: string | undefined, description: string | undefined) {
@@ -72,7 +110,7 @@ export class Game extends AggregateRoot<Game> {
       throw new NotModifiedError('No changes detected');
     }
     this.updatedAt = new Date();
-    this.addDomainEvent(new GameUpdatedEvent(this));
+    this.apply(new GameUpdatedEvent(this));
   }
 
   addFactions(factions: string[]) {
@@ -86,7 +124,7 @@ export class Game extends AggregateRoot<Game> {
     }
     this.factions.push(...factions);
     this.updatedAt = new Date();
-    this.addDomainEvent(new GameUpdatedEvent(this));
+    this.apply(new GameUpdatedEvent(this));
   }
 
   deleteFactions(factions: string[]) {
@@ -104,7 +142,7 @@ export class Game extends AggregateRoot<Game> {
     this.factions = this.factions.filter((f) => !factions.includes(f));
     this.actors = this.actors.filter((a) => !factions.includes(a.factionId));
     this.updatedAt = new Date();
-    this.addDomainEvent(new GameUpdatedEvent(this));
+    this.apply(new GameUpdatedEvent(this));
   }
 
   addActors(actors: Actor[]) {
@@ -121,7 +159,7 @@ export class Game extends AggregateRoot<Game> {
     }
     this.actors.push(...actors);
     this.updatedAt = new Date();
-    this.addDomainEvent(new GameUpdatedEvent(this));
+    this.apply(new GameUpdatedEvent(this));
   }
 
   deleteActors(ids: string[]) {
@@ -136,14 +174,14 @@ export class Game extends AggregateRoot<Game> {
       this.actors.splice(index, 1);
     });
     this.updatedAt = new Date();
-    this.addDomainEvent(new GameUpdatedEvent(this));
+    this.apply(new GameUpdatedEvent(this));
   }
 
   startRound() {
     this.status = 'in_progress';
     this.phase = 'declare_initiative';
     this.round += 1;
-    this.addDomainEvent(new GameRoundStartedEvent(this));
+    this.apply(new GameRoundStartedEvent(this));
     this.updatedAt = new Date();
   }
 
@@ -152,7 +190,7 @@ export class Game extends AggregateRoot<Game> {
       throw new ValidationError(`Cannot start next phase from phase ${this.phase}`);
     }
     this.phase = Game.phaseTransitions.get(this.phase)!;
-    this.addDomainEvent(new GamePhaseStartedEvent(this));
+    this.apply(new GamePhaseStartedEvent(this));
     this.updatedAt = new Date();
   }
 
@@ -168,5 +206,22 @@ export class Game extends AggregateRoot<Game> {
     if (!['phase_1', 'phase_2', 'phase_3', 'phase_4'].includes(this.phase)) {
       throw new ValidationError('Game is not in a phase that allows action management');
     }
+  }
+
+  toProps(): GameProps {
+    return {
+      id: this.id,
+      strategicGameId: this.strategicGameId,
+      name: this.name,
+      status: this.status,
+      round: this.round,
+      phase: this.phase,
+      factions: this.factions,
+      actors: this.actors,
+      description: this.description,
+      owner: this.owner,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
   }
 }

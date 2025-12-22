@@ -1,15 +1,38 @@
+import { AggregateRoot } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
 import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.aggregate';
-import { AggregateRoot } from '../../../shared/domain/entities/aggregate-root';
 import { UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors';
+import { DomainEvent } from '../../../shared/domain/events/domain-event';
+import { ActionCreatedEvent } from '../events/action-events';
 import { ActionAttack, ActionParry } from '../value-objects/action-attack.vo';
 import { ActionManeuver } from '../value-objects/action-maneuver.vo';
 import { ActionMovement } from '../value-objects/action-movement.vo';
 import { ActionStatus } from '../value-objects/action-status.vo';
 import { ActionType } from '../value-objects/action-type.vo';
 
-export class Action extends AggregateRoot<Action> {
-  constructor(
+export interface ActionProps {
+  id: string;
+  gameId: string;
+  actorId: string;
+  round: number;
+  actionType: ActionType;
+  phaseStart: number;
+  phaseEnd: number | undefined;
+  status: ActionStatus;
+  actionPoints: number | undefined;
+  movement: ActionMovement | undefined;
+  attacks: ActionAttack[] | undefined;
+  parries: ActionParry[] | undefined;
+  maneuver: ActionManeuver | undefined;
+  fatigue: number | undefined;
+  description: string | undefined;
+  owner: string;
+  createdAt: Date;
+  updatedAt: Date | undefined;
+}
+
+export class Action extends AggregateRoot<DomainEvent<Action>> {
+  private constructor(
     public readonly id: string,
     public readonly gameId: string,
     public readonly actorId: string,
@@ -62,11 +85,35 @@ export class Action extends AggregateRoot<Action> {
       new Date(),
       undefined,
     );
+    action.apply(new ActionCreatedEvent(action));
     return action;
   }
 
+  static fromProps(props: ActionProps): Action {
+    return new Action(
+      props.id,
+      props.gameId,
+      props.actorId,
+      props.round,
+      props.actionType,
+      props.phaseStart,
+      props.phaseEnd,
+      props.status,
+      props.actionPoints,
+      props.movement,
+      props.attacks,
+      props.parries,
+      props.maneuver,
+      props.fatigue,
+      props.description,
+      props.owner,
+      props.createdAt,
+      props.updatedAt,
+    );
+  }
+
   prepare() {
-    if (this.actionType !== 'attack') {
+    if (this.actionType !== 'melee-attack' && this.actionType !== 'ranged-attack') {
       throw new Error('Action is not an attack');
     }
     if (this.status !== 'declared') {
@@ -74,43 +121,69 @@ export class Action extends AggregateRoot<Action> {
     }
   }
 
-  processParryOptions(targets: ActorRound[]) {
-    //TODO check if attacking in last phase
+  addAttacks(attackNames: string[] | undefined) {
+    if (!attackNames || attackNames.length === 0) {
+      return;
+    }
+    if (!this.attacks) {
+      this.attacks = [];
+    }
+    attackNames.forEach((attackName) => {
+      const attack = {
+        modifiers: {
+          attackName: attackName,
+          type: this.actionType === 'melee-attack' ? 'melee' : 'ranged',
+        },
+        status: 'declared',
+      } as ActionAttack;
+      this.attacks!.push(attack);
+    });
+  }
+
+  processParryOptions(targets: ActorRound[], targetActions: Action[]) {
     //TODO process protectors
     if (!this.attacks || this.attacks.length === 0) {
       return;
     }
     this.parries = [];
-    targets
-      .filter((t) => t.actorId !== this.actorId)
-      .forEach((t) => {
-        t.attacks.forEach((attack) => {
-          this.parries!.push(new ActionParry(randomUUID(), t.actorId, t.actorId, 'parry', attack.attackName, attack.currentBo, 0));
-        });
-      });
+    for (const target of targets) {
+      // read last melee attack against this actor
+      const lastMeleeAttack = targetActions
+        .sort((a, b) => a.phaseStart - b.phaseStart)
+        .find((a) => a.actionType === 'melee-attack');
+      if (lastMeleeAttack) {
+        // read min bo available from parry over all attacks
+        const availableBo: number[] = [];
+        for (const attack of lastMeleeAttack.attacks!) {
+          availableBo.push(target.getCurrentBo(attack.modifiers.attackName));
+        }
+        const minBo = Math.min(...availableBo);
+        this.parries?.push(new ActionParry(randomUUID(), target.actorId, target.actorId, 'parry', minBo, 0));
+      }
+    }
   }
 
   hasPendingAttackRolls(): boolean {
-    if (this.actionType !== 'attack') throw new ValidationError('Action is not an attack');
+    if (this.actionType !== 'melee-attack' && this.actionType !== 'ranged-attack') {
+      throw new ValidationError('Action is not an attack');
+    }
     if (!this.attacks || this.attacks.length === 0) throw new ValidationError('Action has no attacks declared');
     return this.attacks.some((a) => !a.roll || !a.roll.roll);
   }
 
   hasPendingCriticalRolls(): boolean {
-    if (this.actionType !== 'attack') throw new ValidationError('Action is not an attack');
+    if (this.actionType !== 'melee-attack' && this.actionType !== 'ranged-attack') {
+      throw new ValidationError('Action is not an attack');
+    }
     if (!this.attacks || this.attacks.length === 0) throw new ValidationError('Action has no attacks declared');
-    this.attacks.forEach((a) => {
-      if (a.roll && a.roll.criticalRolls && a.roll.criticalRolls.size > 0) {
-        const hasUndefined = Array.from(a.roll.criticalRolls.values()).some((v) => v === undefined);
+    this.attacks
+      .filter((attack) => attack.roll && attack.roll.criticalRolls && attack.roll.criticalRolls.size > 0)
+      .forEach((attack) => {
+        const hasUndefined = Array.from(attack.roll!.criticalRolls!.values()).some((v) => v === undefined);
         if (hasUndefined) {
           return true;
         }
-      }
-
-      if (!a.roll || !a.roll.criticalRolls) {
-        throw new ValidationError(`Attack ${a.modifiers.attackName} has no criticals declared`);
-      }
-    });
+      });
     return false;
   }
 
@@ -150,7 +223,7 @@ export class Action extends AggregateRoot<Action> {
   }
 
   checkValidApplyResults() {
-    if (this.actionType !== 'attack') {
+    if (this.actionType !== 'melee-attack' && this.actionType !== 'ranged-attack') {
       throw new ValidationError('Action is not an attack');
     }
     if (this.status === 'completed') {
@@ -167,7 +240,8 @@ export class Action extends AggregateRoot<Action> {
       case 'movement':
         value = this.getMovementFatigue();
         break;
-      case 'attack':
+      case 'melee-attack':
+      case 'ranged-attack':
         value = this.getCombatFatigue();
         break;
     }
@@ -191,14 +265,33 @@ export class Action extends AggregateRoot<Action> {
   applyParrysToAttacks() {
     this.attacks?.forEach((attack) => {
       const targetId = attack.modifiers.targetId;
-      const totalParry = this.parries?.filter((p) => p.targetActorId === targetId).reduce((sum, p) => sum + p.parry, 0) || 0;
+      const totalParry =
+        this.parries?.filter((p) => p.targetActorId === targetId).reduce((sum, p) => sum + p.parry, 0) || 0;
       attack.modifiers.parry = totalParry;
     });
   }
 
-  private getAvailableParry(actor: ActorRound): number {
-    const list = actor.attacks.map((attack) => attack.currentBo);
-    return Math.min(...list);
+  toProps(): ActionProps {
+    return {
+      id: this.id,
+      gameId: this.gameId,
+      actorId: this.actorId,
+      round: this.round,
+      actionType: this.actionType,
+      phaseStart: this.phaseStart,
+      phaseEnd: this.phaseEnd,
+      status: this.status,
+      actionPoints: this.actionPoints,
+      movement: this.movement,
+      attacks: this.attacks,
+      parries: this.parries,
+      maneuver: this.maneuver,
+      fatigue: this.fatigue,
+      description: this.description,
+      owner: this.owner,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
   }
 
   private getMovementFatigue(): number | undefined {
@@ -237,7 +330,7 @@ export class Action extends AggregateRoot<Action> {
   }
 
   private checkValidAttack(expectedStatus: string) {
-    if (this.actionType !== 'attack') {
+    if (this.actionType !== 'melee-attack' && this.actionType !== 'ranged-attack') {
       throw new ValidationError('Action is not an attack');
     } else if (this.status !== expectedStatus) {
       throw new ValidationError('Attack is not in progress');

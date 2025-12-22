@@ -1,15 +1,22 @@
 import { Pace } from '../../../domain/value-objects/action-movement.vo';
+import { ActionRoll } from './action-roll';
+
+export class ResolveMovementModifiers {
+  constructor(
+    public readonly pace: Pace,
+    public readonly requiredManeuver: boolean,
+    public readonly skillId?: string,
+    public readonly difficulty?: string,
+  ) {}
+}
 
 export class ResolveMovementCommand {
-  actionId: string;
-  phase: number;
-  pace: Pace;
-  requiredManeuver: boolean;
-  difficulty: string | undefined;
-  skillId: string | undefined;
-  customBonus: number | undefined;
-  roll: number | undefined;
-  description: string | undefined;
-  userId: string;
-  roles: string[];
+  constructor(
+    public readonly actionId: string,
+    public readonly modifiers: ResolveMovementModifiers,
+    public readonly roll: ActionRoll | undefined,
+    public readonly description: string | undefined,
+    public readonly userId: string,
+    public readonly roles: string[],
+  ) {}
 }

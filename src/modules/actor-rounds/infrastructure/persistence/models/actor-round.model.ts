@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
+import { ActorRoundAlert } from './actor-round-alert.model';
 import { ActorRoundAttack } from './actor-round-attack.model';
 import { ActorRoundDefense } from './actor-round-defense.model';
 import { ActorRoundUsedBo } from './actor-round-used-bo.model';
@@ -8,7 +9,6 @@ import {
   ActorRoundFatigue,
   ActorRoundHP,
   ActorRoundInitiative,
-  ActorRoundParry,
   ActorRoundPenalty,
 } from './actor-round.models-childs';
 
@@ -55,11 +55,14 @@ export class ActorRoundModel {
   @Prop({ type: [ActorRoundUsedBo], required: true })
   usedBo: ActorRoundUsedBo[];
 
-  @Prop({ type: [ActorRoundParry], required: true })
-  parries: ActorRoundParry[];
+  @Prop({ type: [Number], required: true })
+  parries: number[];
 
   @Prop({ type: [ActorRoundEffect], required: true })
   effects: ActorRoundEffect[];
+
+  @Prop({ type: [ActorRoundAlert], required: true })
+  alerts: ActorRoundAlert[];
 
   @Prop({ required: true })
   owner: string;
