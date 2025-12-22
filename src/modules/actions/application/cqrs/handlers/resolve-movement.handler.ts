@@ -75,8 +75,8 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     await this.movementProcessorService.process(command.roll?.roll, action, character, actorRound);
     action.processFatigue(strategicGame.options?.fatigueMultiplier);
     const scale = strategicGame.options?.boardScaleMultiplier || 1;
-    // Round distanceAdjusted to 1 decimal
-    action.movement.calculated.distanceAdjusted = Math.round(action.movement.calculated.distance * scale * 10) / 10;
+    action.movement.calculated.distanceAdjusted = action.movement.calculated.distance * scale;
+    this.roundResults(action);
     action.status = 'completed';
     action.updatedAt = new Date();
   }
@@ -123,6 +123,13 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
       if (!command.modifiers.skillId) {
         throw new ValidationError('SkillId is required for a maneuver');
       }
+    }
+  }
+
+  private roundResults(action: Action): void {
+    if (action.movement) {
+      action.movement.calculated.distance = Math.round(action.movement.calculated.distance * 10) / 10;
+      action.movement.calculated.distanceAdjusted = Math.round(action.movement.calculated.distanceAdjusted * 10) / 10;
     }
   }
 }
