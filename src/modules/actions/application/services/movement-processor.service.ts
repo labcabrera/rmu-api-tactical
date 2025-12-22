@@ -82,7 +82,7 @@ export class MovementProcessorService {
       distance: distance,
       distanceAdjusted: distance,
       critical: critical,
-      description: message || `Completed at ${percent}%`,
+      description: message || `Movement completed at ${percent}%`,
     };
   }
 

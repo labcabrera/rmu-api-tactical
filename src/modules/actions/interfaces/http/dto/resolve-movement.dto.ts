@@ -17,16 +17,16 @@ export class ResolveMovementModifiersDto {
   @IsBoolean()
   requiredManeuver: boolean;
 
-  @IsString()
-  @IsOptional()
-  difficulty: string | undefined;
-
   @IsOptional()
   @IsString()
   skillId: string | undefined;
 
+  @IsString()
+  @IsOptional()
+  difficulty: string | undefined;
+
   static toCommand(dto: ResolveMovementModifiersDto): ResolveMovementModifiers {
-    return new ResolveMovementModifiers(dto.pace, dto.requiredManeuver, dto.difficulty, dto.skillId);
+    return new ResolveMovementModifiers(dto.pace, dto.requiredManeuver, dto.skillId, dto.difficulty);
   }
 }
 
