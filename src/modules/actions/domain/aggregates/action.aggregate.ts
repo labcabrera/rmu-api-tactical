@@ -133,6 +133,15 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
         modifiers: {
           attackName: attackName,
           type: this.actionType === 'melee-attack' ? 'melee' : 'ranged',
+          calledShot: 'none',
+          cover: 'none',
+          restrictedQuarters: 'none',
+          positionalSource: 'none',
+          positionalTarget: 'none',
+          dodge: 'none',
+          disabledDB: false,
+          disabledShield: false,
+          disabledParry: false,
         },
         status: 'declared',
       } as ActionAttack;
