@@ -98,9 +98,10 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
         boModifiers: [],
         baseBo: attack.bo,
         currentBo: attack.bo,
-        attackType: 'melee',
+        type: attack.type,
         attackTable: attack.attackTable,
         fumbleTable: attack.fumbleTable,
+        //TODO
         attackSize: 'medium',
         fumble: attack.fumble,
         canThrow: false,

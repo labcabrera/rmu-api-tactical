@@ -22,7 +22,7 @@ export class ActorRoundAttackDto {
   baseBo: number;
   /** Current attack less parry amount and penalties applied */
   currentBo: number;
-  attackType: 'melee' | 'ranged';
+  type: 'melee' | 'ranged';
   attackTable: string;
   fumbleTable: string;
   attackSize: 'small' | 'medium' | 'big';
@@ -35,7 +35,7 @@ export class ActorRoundAttackDto {
     dto.boModifiers = entity.boModifiers.map((e) => BoModifiersDto.fromEntity(e));
     dto.baseBo = entity.baseBo;
     dto.currentBo = entity.currentBo;
-    dto.attackType = entity.attackType;
+    dto.type = entity.type;
     dto.attackTable = entity.attackTable;
     dto.fumbleTable = entity.fumbleTable;
     dto.attackSize = entity.attackSize;

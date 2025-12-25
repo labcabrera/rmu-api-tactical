@@ -27,7 +27,7 @@ export class ActorRoundAttack {
   currentBo: number;
 
   @Prop({ required: true })
-  attackType: 'melee' | 'ranged';
+  type: 'melee' | 'ranged';
 
   @Prop({ required: true })
   attackTable: string;

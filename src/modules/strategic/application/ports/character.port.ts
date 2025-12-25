@@ -64,6 +64,7 @@ export interface CharacterAttack {
   attackTable: string;
   sizeAdjustment: number;
   fumbleTable: string;
+  type: string;
   fumble: number;
   bo: number;
 }

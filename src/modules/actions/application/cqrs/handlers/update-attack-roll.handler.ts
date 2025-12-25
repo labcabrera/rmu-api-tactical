@@ -36,12 +36,14 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     if (!attack) {
       throw new ValidationError(`Attack ${command.attackName} not found in action ${action.id}`);
     }
+    const location =
+      attack.modifiers.calledShot && attack.modifiers.calledShot != 'none' ? undefined : command.location;
     attack.roll = {
       roll: command.roll,
-      location: command.location,
+      location: location,
       criticalRolls: undefined,
     };
-    const attackResponse = await this.attackPort.updateRoll(attack.externalAttackId!, command.roll, command.location);
+    const attackResponse = await this.attackPort.updateRoll(attack.externalAttackId!, command.roll, location);
     if (!attackResponse || !attackResponse.results) throw new ValidationError('Attack service did not return results');
 
     if (!attackResponse.results.criticals || attackResponse.results.criticals.length === 0) {
