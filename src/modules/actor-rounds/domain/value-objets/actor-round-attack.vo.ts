@@ -11,10 +11,17 @@ export class ActorRoundAttack {
   attackSize: 'small' | 'medium' | 'big';
   fumble: number;
   canThrow: boolean;
+  ranges: AttackRange[] | undefined;
 }
 
 export class BoModifiers {
   key: string;
   subKey?: string;
   value: number;
+}
+
+export class AttackRange {
+  from: number;
+  to: number;
+  bonus: number;
 }

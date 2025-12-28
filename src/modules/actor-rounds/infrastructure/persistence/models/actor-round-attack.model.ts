@@ -12,6 +12,17 @@ export class BoModifiers {
   value: number;
 }
 
+export class AttackRange {
+  @Prop({ required: true })
+  from: number;
+
+  @Prop({ required: true })
+  to: number;
+
+  @Prop({ required: true })
+  bonus: number;
+}
+
 @Schema({ _id: false })
 export class ActorRoundAttack {
   @Prop({ required: true })
@@ -43,4 +54,7 @@ export class ActorRoundAttack {
 
   @Prop({ required: true })
   canThrow: boolean;
+
+  @Prop({ type: [AttackRange], required: false })
+  ranges: AttackRange[] | undefined;
 }
