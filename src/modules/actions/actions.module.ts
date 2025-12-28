@@ -15,6 +15,7 @@ import { DeleteActionHandler } from './application/cqrs/handlers/delete-action.h
 import { GetActionQueryHandler } from './application/cqrs/handlers/get-action.handler';
 import { GetActionsQueryHandler } from './application/cqrs/handlers/get-actions.handler';
 import { PrepareAttackHandler } from './application/cqrs/handlers/prepare-attack.handler';
+import { ResolveManeuverHandler } from './application/cqrs/handlers/resolve-maneuver.handler';
 import { ResolveMovementHandler } from './application/cqrs/handlers/resolve-movement.handler';
 import { UpdateAttackRollHandler } from './application/cqrs/handlers/update-attack-roll.handler';
 import { UpdateCriticalRollHandler } from './application/cqrs/handlers/update-critical-roll.handler';
@@ -49,6 +50,7 @@ import { MovementController } from './interfaces/http/movement.controller';
     CreateActionHandler,
     DeleteActionHandler,
     ResolveMovementHandler,
+    ResolveManeuverHandler,
     PrepareAttackHandler,
     DeclareParryHandler,
     UpdateAttackRollHandler,

@@ -98,6 +98,8 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     } else {
       action.maneuver.roll.modifiers.push({ key: skillId, value: -25 });
     }
-    //TODO
+    action.maneuver.roll.modifiers.push({ key: 'roll', value: command.roll.roll });
+    const totalRoll = action.maneuver.roll.modifiers.reduce((acc, mod) => acc + mod.value, 0);
+    action.maneuver.roll.totalRoll = totalRoll;
   }
 }
