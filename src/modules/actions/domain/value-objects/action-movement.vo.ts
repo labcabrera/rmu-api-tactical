@@ -1,9 +1,11 @@
+import { ActionRoll } from './action-roll.vo';
+
 export type Pace = 'creep' | 'walk' | 'jog' | 'run' | 'sprint' | 'dash';
 
 export class ActionMovement {
   constructor(
     public modifiers: ActionMovementModifiers,
-    public roll: ActionMovementRoll | undefined,
+    public roll: ActionRoll | undefined,
     public calculated: ActionMovementResult,
   ) {}
 }
@@ -18,14 +20,6 @@ export class ActionMovementModifiers {
   ) {}
 }
 
-export class ActionMovementRoll {
-  constructor(
-    public modifiers: ActionMovementBonus[],
-    public roll: number,
-    public totalRoll: number,
-  ) {}
-}
-
 export class ActionMovementResult {
   constructor(
     public bmr: number,
@@ -35,12 +29,5 @@ export class ActionMovementResult {
     public distanceAdjusted: number,
     public critical: string | undefined,
     public description: string,
-  ) {}
-}
-
-export class ActionMovementBonus {
-  constructor(
-    public key: string,
-    public value: number,
   ) {}
 }

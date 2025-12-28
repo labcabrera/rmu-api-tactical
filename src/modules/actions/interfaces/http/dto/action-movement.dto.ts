@@ -1,21 +1,20 @@
 import {
   ActionMovement,
-  ActionMovementBonus,
   ActionMovementModifiers,
   ActionMovementResult,
-  ActionMovementRoll,
 } from '../../../domain/value-objects/action-movement.vo';
+import { ActionRollDto } from './action-roll.dto';
 
 export class ActionMovementDto {
   modifiers: ActionMovementModifiersDto;
-  roll: ActionMovementRollDto | undefined;
-  calculated: ActionMovementResultDto;
+  roll?: ActionRollDto;
+  calculated?: ActionMovementResultDto;
 
   static fromEntity(movement: ActionMovement): ActionMovementDto {
     const dto = new ActionMovementDto();
     dto.modifiers = ActionMovementModifiersDto.fromEntity(movement.modifiers);
-    dto.roll = ActionMovementRollDto.fromEntity(movement.roll);
-    dto.calculated = ActionMovementResultDto.fromEntity(movement.calculated);
+    dto.roll = movement.roll ? ActionRollDto.fromEntity(movement.roll) : undefined;
+    dto.calculated = movement.calculated ? ActionMovementResultDto.fromEntity(movement.calculated) : undefined;
     return dto;
   }
 }
@@ -33,22 +32,6 @@ export class ActionMovementModifiersDto {
     dto.requiredManeuver = modifiers.requiredManeuver;
     dto.skillId = modifiers.skillId;
     dto.difficulty = modifiers.difficulty;
-    return dto;
-  }
-}
-
-export class ActionMovementRollDto {
-  modifiers: ActionMovementBonusDto[];
-  roll: number;
-  totalRoll: number;
-
-  static fromEntity(roll: ActionMovementRoll | undefined): ActionMovementRollDto | undefined {
-    if (!roll) return undefined;
-
-    const dto = new ActionMovementRollDto();
-    dto.modifiers = roll.modifiers.map((e) => ActionMovementBonusDto.fromEntity(e));
-    dto.roll = roll.roll;
-    dto.totalRoll = roll.totalRoll;
     return dto;
   }
 }
@@ -71,18 +54,6 @@ export class ActionMovementResultDto {
     dto.distanceAdjusted = calculated.distanceAdjusted;
     dto.critical = calculated.critical;
     dto.description = calculated.description;
-    return dto;
-  }
-}
-
-export class ActionMovementBonusDto {
-  key: string;
-  value: number;
-
-  static fromEntity(fromEntity: ActionMovementBonus): ActionMovementBonusDto {
-    const dto = new ActionMovementBonusDto();
-    dto.key = fromEntity.key;
-    dto.value = fromEntity.value;
     return dto;
   }
 }

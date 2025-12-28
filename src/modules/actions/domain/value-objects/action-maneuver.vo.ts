@@ -1,22 +1,33 @@
-import { ActionStatus } from './action-status.vo';
+import { ActionRoll } from './action-roll.vo';
+import { LightType } from './light-type.vo';
+import { LightManeuverModifier } from './ligth-maneuver-modifier.vo';
 import { ManeuverDifficulty } from './maneuver-dificulty.vo';
 import { ManeuverType } from './maneuver-type.vo';
 
 export class ActionManeuver {
   constructor(
+    public modifiers: ActionManeuverModifiers,
+    public roll?: ActionRoll | undefined,
+    public result?: ActionManeuverResult | undefined,
+  ) {}
+}
+
+export class ActionManeuverModifiers {
+  constructor(
     public skillId: string,
     public maneuverType: ManeuverType,
     public difficulty?: ManeuverDifficulty | undefined,
-    public result?: ActionManeuverResult | undefined,
-    public status?: ActionStatus,
+    public customBonus?: number | undefined,
+    public lightModifier?: LightManeuverModifier | undefined,
+    public light?: LightType | undefined,
+    public armorModifier?: boolean | undefined,
   ) {}
 }
 
 export class ActionManeuverResult {
   constructor(
-    public bonus: { [key: string]: number },
-    public roll: number,
-    public result: number,
-    public description: string,
+    public result?: string | undefined,
+    public percent?: number | undefined,
+    public message?: string | undefined,
   ) {}
 }

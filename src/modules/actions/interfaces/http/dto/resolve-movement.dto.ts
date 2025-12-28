@@ -52,7 +52,7 @@ export class ResolveMovementRequestDto {
     return new ResolveMovementCommand(
       actionId,
       ResolveMovementModifiersDto.toCommand(dto.modifiers),
-      dto.roll ? ActionRollDto.toCommand(dto.roll) : undefined,
+      dto.roll ? dto.roll.roll : undefined,
       dto.description,
       userId,
       roles,

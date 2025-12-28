@@ -1,5 +1,4 @@
 import { Pace } from '../../../domain/value-objects/action-movement.vo';
-import { ActionRoll } from './action-roll';
 
 export class ResolveMovementModifiers {
   constructor(
@@ -14,7 +13,7 @@ export class ResolveMovementCommand {
   constructor(
     public readonly actionId: string,
     public readonly modifiers: ResolveMovementModifiers,
-    public readonly roll: ActionRoll | undefined,
+    public readonly roll: number | undefined,
     public readonly description: string | undefined,
     public readonly userId: string,
     public readonly roles: string[],

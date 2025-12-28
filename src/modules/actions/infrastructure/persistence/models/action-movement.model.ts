@@ -1,5 +1,6 @@
 import { Prop, Schema } from '@nestjs/mongoose';
 import type { Pace } from '../../../domain/value-objects/action-movement.vo';
+import { ActionRoll } from './action-roll.model';
 
 @Schema({ _id: false })
 export class ActionMovementModifiers {
@@ -17,27 +18,6 @@ export class ActionMovementModifiers {
 
   @Prop({ type: Number, required: false })
   customBonus: number | undefined;
-}
-
-@Schema({ _id: false })
-export class ActionMovementBonus {
-  @Prop({ type: String, required: true })
-  key: string;
-
-  @Prop({ type: Number, required: true })
-  value: number;
-}
-
-@Schema({ _id: false })
-export class ActionMovementRoll {
-  @Prop({ type: [ActionMovementBonus], required: false })
-  modifiers: ActionMovementBonus[];
-
-  @Prop({ type: Number, required: true })
-  roll: number;
-
-  @Prop({ type: Number, required: true })
-  totalRoll: number;
 }
 
 @Schema({ _id: false })
@@ -69,8 +49,8 @@ export class ActionMovement {
   @Prop({ type: ActionMovementModifiers, required: true })
   modifiers: ActionMovementModifiers;
 
-  @Prop({ type: ActionMovementRoll, required: false })
-  roll: ActionMovementRoll | undefined;
+  @Prop({ type: ActionRoll, required: false })
+  roll: ActionRoll | undefined;
 
   @Prop({ type: ActionMovementResult, required: false })
   calculated: ActionMovementResult;

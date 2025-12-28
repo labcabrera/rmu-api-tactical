@@ -116,8 +116,15 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     switch (command.actionType) {
       case 'maneuver':
         return {
-          skillId: command.maneuver!.skillId,
-          maneuverType: command.maneuver!.maneuverType,
+          modifiers: {
+            skillId: command.maneuver!.skillId,
+            maneuverType: command.maneuver!.maneuverType,
+            difficulty: 'medium',
+            customBonus: 0,
+            lightModifier: 'none',
+            light: 'no_shadows',
+            armorModifier: false,
+          },
         };
       default:
         return undefined;

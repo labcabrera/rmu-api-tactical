@@ -3,7 +3,7 @@ import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.
 import { ValidationError } from '../../../shared/domain/errors';
 import type { Character } from '../../../strategic/application/ports/character.port';
 import { Action } from '../../domain/aggregates/action.aggregate';
-import { ActionMovementBonus } from '../../domain/value-objects/action-movement.vo';
+import { KeyValueModifier } from '../../domain/value-objects/key-value-modifier.vo';
 import type { ManeuverPort } from '../ports/maneuver.port';
 
 @Injectable()
@@ -48,7 +48,7 @@ export class MovementProcessorService {
         throw new Error('Roll is required for movement with requiredManeuver');
       }
       const skillId = action.movement.modifiers.skillId || 'running';
-      const modifiers: ActionMovementBonus[] = [];
+      const modifiers: KeyValueModifier[] = [];
       modifiers.push({ key: skillId, value: this.getSkillModifier(skillId, character) });
       modifiers.push({
         key: 'difficulty',
@@ -67,7 +67,7 @@ export class MovementProcessorService {
         roll: roll,
         totalRoll: modifiers.reduce((sum, mod) => sum + mod.value, 0),
       };
-      const maneuverResult = await this.maneuverPort.percent(action.movement.roll.totalRoll);
+      const maneuverResult = await this.maneuverPort.percent(action.movement.roll.totalRoll!);
       percent = maneuverResult.percent;
       critical = maneuverResult.critical;
       message = maneuverResult.message;
