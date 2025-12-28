@@ -4,23 +4,24 @@ import { ValidationError } from '../../../shared/domain/errors';
 import type { Character } from '../../../strategic/application/ports/character.port';
 import { Action } from '../../domain/aggregates/action.aggregate';
 import { KeyValueModifier } from '../../domain/value-objects/key-value-modifier.vo';
+import { ManeuverDifficulty } from '../../domain/value-objects/maneuver-dificulty.vo';
 import type { ManeuverPort } from '../ports/maneuver.port';
 
 @Injectable()
 export class MovementProcessorService {
-  private static readonly difficultyMap: Map<string, number> = new Map([
-    ['c', 70],
-    ['s', 50],
-    ['r', -30],
-    ['e', 20],
-    ['l', 10],
-    ['m', 0],
-    ['h', -10],
-    ['vh', -20],
-    ['xh', -30],
-    ['sf', -50],
-    ['a', -70],
-    ['ni', -100],
+  private static readonly difficultyMap: Map<ManeuverDifficulty, number> = new Map([
+    ['casual', 70],
+    ['simple', 50],
+    ['routine', -30],
+    ['easy', 20],
+    ['light', 10],
+    ['medium', 0],
+    ['hard', -10],
+    ['very_hard', -20],
+    ['extremely_hard', -30],
+    ['sheer_folly', -50],
+    ['absurd', -70],
+    ['nigh_impossible', -100],
   ]);
 
   private static readonly paceMap: Map<string, number> = new Map([
@@ -102,7 +103,7 @@ export class MovementProcessorService {
     return value;
   }
 
-  private getGetDifificultyModifier(difficulty: string): number {
+  private getGetDifificultyModifier(difficulty: ManeuverDifficulty): number {
     const value = MovementProcessorService.difficultyMap.get(difficulty);
     if (value === undefined) {
       throw new ValidationError(`Unknown difficulty: ${difficulty}`);
