@@ -11,6 +11,8 @@ import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import type { ManeuverPort } from '../../ports/maneuver.port';
+import { AbsoluteManeuverProcessorService } from '../../services/absolute-maneuver-processor.service';
+import { DifficultyService } from '../../services/difficulty-service';
 import { ResolveManeuverCommand } from '../commands/resolve-maneuver.commands';
 
 @CommandHandler(ResolveManeuverCommand)
@@ -25,6 +27,8 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     @Inject('StrategicGameClient') private readonly strategicGameClient: StrategicGamePort,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
     @Inject('ManeuverPort') private readonly maneuverPort: ManeuverPort,
+    private readonly absoluteManeuverProcessorService: AbsoluteManeuverProcessorService,
+    private readonly difficultyService: DifficultyService,
   ) {}
 
   async execute(command: ResolveManeuverCommand): Promise<Action> {
@@ -73,7 +77,8 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     currentPhase: number,
   ): Promise<void> {
     action.phaseEnd = currentPhase;
-    this.calculateModifiers(action, command, character);
+    this.mergeModifiers(action, command);
+    this.absoluteManeuverProcessorService.applyModifiers(action, character, command.roll.roll);
     const result = await this.maneuverPort.absolute(action.maneuver!.roll!.totalRoll!);
     action.maneuver!.result = {
       result: result.result,
@@ -83,23 +88,7 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     action.updatedAt = new Date();
   }
 
-  private calculateModifiers(action: Action, command: ResolveManeuverCommand, character: Character): void {
-    if (!action.maneuver || !action.maneuver.modifiers) {
-      return;
-    }
-    action.maneuver.roll = {
-      modifiers: [],
-      roll: command.roll.roll,
-    };
-    const skillId = action.maneuver.modifiers.skillId;
-    const skill = character.skills.find((s) => s.skillId === skillId);
-    if (skill) {
-      action.maneuver.roll.modifiers.push({ key: skillId, value: skill.totalBonus });
-    } else {
-      action.maneuver.roll.modifiers.push({ key: skillId, value: -25 });
-    }
-    action.maneuver.roll.modifiers.push({ key: 'roll', value: command.roll.roll });
-    const totalRoll = action.maneuver.roll.modifiers.reduce((acc, mod) => acc + mod.value, 0);
-    action.maneuver.roll.totalRoll = totalRoll;
+  private mergeModifiers(action: Action, command: ResolveManeuverCommand): void {
+    action.maneuver!.modifiers = { ...action.maneuver!.modifiers, ...command.modifiers };
   }
 }
