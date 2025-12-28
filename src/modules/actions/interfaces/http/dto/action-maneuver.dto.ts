@@ -35,13 +35,13 @@ export class ActionManeuverDto {
   maneuverType: ManeuverType;
 
   @ApiProperty({ description: 'Maneuver difficulty', example: 'average', required: false })
-  difficulty: ManeuverDifficulty | undefined;
+  difficulty?: ManeuverDifficulty | undefined;
 
   @ApiProperty({ description: 'Maneuver result', required: false })
-  result: ActionManeuverResultDto | undefined;
+  result?: ActionManeuverResultDto | undefined;
 
   @ApiProperty({ description: 'Maneuver status', example: 'declared' })
-  status: ActionStatus;
+  status?: ActionStatus;
 
   static fromEntity(entity: ActionManeuver): ActionManeuverDto {
     const dto = new ActionManeuverDto();

@@ -7,6 +7,7 @@ import type { GameRepository } from '../../../../games/application/ports/game.re
 import { Game } from '../../../../games/domain/aggregates/game.aggregate';
 import { ValidationError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/aggregates/action.aggregate';
+import { ActionManeuver } from '../../../domain/value-objects/action-maneuver.vo';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import { CreateActionCommand } from '../commands/create-action.command';
@@ -33,13 +34,24 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       this.readActions(command, round),
     ]);
     this.validateActorRoundAndActions(actorRound, roundActions);
+    let maneuver: ActionManeuver | undefined;
+    switch (command.actionType) {
+      case 'maneuver':
+        maneuver = {
+          skillId: command.maneuver!.skillId,
+          maneuverType: command.maneuver!.maneuverType,
+        };
+        break;
+      default:
+        maneuver = undefined;
+    }
     const action = Action.create(
       command.gameId,
       command.actorId,
       round,
       command.actionType,
       command.phaseStart,
-      undefined,
+      maneuver,
       command.description,
       command.userId,
     );
