@@ -75,7 +75,7 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     currentPhase: number,
   ): Promise<void> {
     action.phaseEnd = currentPhase;
-    action.actionPoints = action.phaseEnd - action.phaseStart + 1;
+    action.actionPoints = action.freeAction ? 0 : action.phaseEnd - action.phaseStart + 1;
     this.mergeModifiers(action, command);
     this.absoluteManeuverProcessorService.applyModifiers(action, character, actorRound, command.roll.roll);
     const result = await this.maneuverPort.absolute(action.maneuver!.roll!.totalRoll!);

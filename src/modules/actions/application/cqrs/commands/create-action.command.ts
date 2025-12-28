@@ -6,6 +6,7 @@ export class CreateActionCommand {
     public readonly gameId: string,
     public readonly actorId: string,
     public readonly actionType: ActionType,
+    public readonly freeAction: boolean,
     public readonly phaseStart: number,
     public readonly maneuver: CreateActionCommandManeuver | undefined,
     public readonly attackNames: string[] | undefined,

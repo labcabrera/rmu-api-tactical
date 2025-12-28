@@ -68,6 +68,7 @@ export class MongoActionRepository implements ActionRepository {
       actorId: doc.actorId,
       round: doc.round,
       actionType: doc.actionType,
+      freeAction: doc.freeAction,
       phaseStart: doc.phaseStart,
       phaseEnd: doc.phaseEnd,
       status: doc.status,

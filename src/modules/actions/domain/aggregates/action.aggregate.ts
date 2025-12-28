@@ -16,6 +16,7 @@ export interface ActionProps {
   actorId: string;
   round: number;
   actionType: ActionType;
+  freeAction: boolean;
   phaseStart: number;
   phaseEnd: number | undefined;
   status: ActionStatus;
@@ -38,6 +39,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     public readonly actorId: string,
     public readonly round: number,
     public readonly actionType: ActionType,
+    public readonly freeAction: boolean,
     public readonly phaseStart: number,
     public phaseEnd: number | undefined,
     public status: ActionStatus,
@@ -60,6 +62,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     actorId: string,
     round: number,
     actionType: ActionType,
+    freeAction: boolean,
     phaseStart: number,
     maneuver: ActionManeuver | undefined,
     description: string | undefined,
@@ -71,6 +74,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
       actorId,
       round,
       actionType,
+      freeAction,
       phaseStart,
       undefined,
       'declared',
@@ -96,6 +100,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
       props.actorId,
       props.round,
       props.actionType,
+      props.freeAction,
       props.phaseStart,
       props.phaseEnd,
       props.status,
@@ -287,6 +292,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
       actorId: this.actorId,
       round: this.round,
       actionType: this.actionType,
+      freeAction: this.freeAction,
       phaseStart: this.phaseStart,
       phaseEnd: this.phaseEnd,
       status: this.status,

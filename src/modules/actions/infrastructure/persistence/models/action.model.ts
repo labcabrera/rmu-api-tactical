@@ -31,6 +31,9 @@ export class ActionModel {
   actionType: ActionType;
 
   @Prop({ required: true })
+  freeAction: boolean;
+
+  @Prop({ required: true })
   phaseStart: number;
 
   @Prop({ type: Number, required: false })
