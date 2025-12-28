@@ -5,14 +5,13 @@ import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-rou
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import type { Character, CharacterPort } from '../../../../strategic/application/ports/character.port';
-import type { StrategicGame, StrategicGamePort } from '../../../../strategic/application/ports/strategic-game.port';
+import type { StrategicGamePort } from '../../../../strategic/application/ports/strategic-game.port';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import type { ManeuverPort } from '../../ports/maneuver.port';
 import { AbsoluteManeuverProcessorService } from '../../services/absolute-maneuver-processor.service';
-import { DifficultyService } from '../../services/difficulty-service';
 import { ResolveManeuverCommand } from '../commands/resolve-maneuver.commands';
 
 @CommandHandler(ResolveManeuverCommand)
@@ -28,7 +27,6 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
     @Inject('ManeuverPort') private readonly maneuverPort: ManeuverPort,
     private readonly absoluteManeuverProcessorService: AbsoluteManeuverProcessorService,
-    private readonly difficultyService: DifficultyService,
   ) {}
 
   async execute(command: ResolveManeuverCommand): Promise<Action> {
@@ -53,7 +51,7 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
 
     const currentPhase = game.phase.replace('phase_', '') as unknown as number;
 
-    await this.processAction(command, action, character, actorRound, strategicGame, currentPhase);
+    await this.processAction(command, action, character, actorRound, currentPhase);
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
     return updated;
@@ -64,8 +62,9 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
       throw new ValidationError('Action is not a maneuver action');
     } else if (action.status === 'completed') {
       throw new ValidationError('Action is already completed');
+    } else if (!command.roll || !command.roll.roll) {
+      throw new ValidationError('Required roll value');
     }
-    //TODO validate maneuver specific rules
   }
 
   private async processAction(
@@ -73,12 +72,12 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     action: Action,
     character: Character,
     actorRound: ActorRound,
-    strategicGame: StrategicGame,
     currentPhase: number,
   ): Promise<void> {
     action.phaseEnd = currentPhase;
+    action.actionPoints = action.phaseEnd - action.phaseStart + 1;
     this.mergeModifiers(action, command);
-    this.absoluteManeuverProcessorService.applyModifiers(action, character, command.roll.roll);
+    this.absoluteManeuverProcessorService.applyModifiers(action, character, actorRound, command.roll.roll);
     const result = await this.maneuverPort.absolute(action.maneuver!.roll!.totalRoll!);
     action.maneuver!.result = {
       result: result.result,

@@ -12,7 +12,7 @@ export class ActionManeuverDto {
     const dto = new ActionManeuverDto();
     dto.modifiers = ActionManeuverModifiersDto.fromEntity(entity.modifiers);
     dto.roll = entity.roll ? ActionRollDto.fromEntity(entity.roll) : undefined;
-    // dto.result = ActionManeuverResultDto.fromValueObject(entity.result);
+    dto.result = entity.result ? ActionManeuverResultDto.fromEntity(entity.result) : undefined;
     return dto;
   }
 }
