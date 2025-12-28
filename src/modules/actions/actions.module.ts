@@ -26,6 +26,8 @@ import { KafkaActionEventBusAdapter } from './infrastructure/messaging/kafka.act
 import { ActionModel, ActionSchema } from './infrastructure/persistence/models/action.model';
 import { AttackController } from './interfaces/http/action-attack.controller';
 import { ActionController } from './interfaces/http/action.controller';
+import { ManeuverController } from './interfaces/http/maneuver.controller';
+import { MovementController } from './interfaces/http/movement.controller';
 
 @Module({
   imports: [
@@ -39,7 +41,7 @@ import { ActionController } from './interfaces/http/action.controller';
     StrategicModule,
     ActorsRoundModule,
   ],
-  controllers: [ActionController, AttackController],
+  controllers: [ActionController, AttackController, MovementController, ManeuverController],
   providers: [
     MovementProcessorService,
     GetActionQueryHandler,
