@@ -43,7 +43,8 @@ export class ActorRoundAttackDto {
     dto.attackSize = entity.attackSize;
     dto.fumble = entity.fumble;
     dto.canThrow = entity.canThrow;
-    dto.ranges = entity.ranges ? entity.ranges.map((r) => AttackRangeDto.fromEntity(r)) : undefined;
+    dto.ranges =
+      entity.ranges && entity.ranges.length > 0 ? entity.ranges.map((r) => AttackRangeDto.fromEntity(r)) : undefined;
     return dto;
   }
 }
