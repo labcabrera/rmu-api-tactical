@@ -1,1 +1,1 @@
-export type ActionType = 'melee-attack' | 'ranged-attack' | 'maneuver' | 'movement';
+export type ActionType = 'melee_attack' | 'ranged_attack' | 'maneuver' | 'movement';

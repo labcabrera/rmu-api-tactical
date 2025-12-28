@@ -113,7 +113,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
   }
 
   prepare() {
-    if (this.actionType !== 'melee-attack' && this.actionType !== 'ranged-attack') {
+    if (this.actionType !== 'melee_attack' && this.actionType !== 'ranged_attack') {
       throw new Error('Action is not an attack');
     }
     if (this.status !== 'declared') {
@@ -132,7 +132,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
       const attack = {
         modifiers: {
           attackName: attackName,
-          type: this.actionType === 'melee-attack' ? 'melee' : 'ranged',
+          type: this.actionType === 'melee_attack' ? 'melee' : 'ranged',
           calledShot: 'none',
           cover: 'none',
           restrictedQuarters: 'none',
@@ -159,7 +159,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
       // read last melee attack against this actor
       const lastMeleeAttack = targetActions
         .sort((a, b) => a.phaseStart - b.phaseStart)
-        .find((a) => a.actionType === 'melee-attack');
+        .find((a) => a.actionType === 'melee_attack');
       if (lastMeleeAttack) {
         // read min bo available from parry over all attacks
         const availableBo: number[] = [];
@@ -173,7 +173,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
   }
 
   hasPendingAttackRolls(): boolean {
-    if (this.actionType !== 'melee-attack' && this.actionType !== 'ranged-attack') {
+    if (this.actionType !== 'melee_attack' && this.actionType !== 'ranged_attack') {
       throw new ValidationError('Action is not an attack');
     }
     if (!this.attacks || this.attacks.length === 0) throw new ValidationError('Action has no attacks declared');
@@ -181,7 +181,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
   }
 
   hasPendingCriticalRolls(): boolean {
-    if (this.actionType !== 'melee-attack' && this.actionType !== 'ranged-attack') {
+    if (this.actionType !== 'melee_attack' && this.actionType !== 'ranged_attack') {
       throw new ValidationError('Action is not an attack');
     }
     if (!this.attacks || this.attacks.length === 0) throw new ValidationError('Action has no attacks declared');
@@ -232,7 +232,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
   }
 
   checkValidApplyResults() {
-    if (this.actionType !== 'melee-attack' && this.actionType !== 'ranged-attack') {
+    if (this.actionType !== 'melee_attack' && this.actionType !== 'ranged_attack') {
       throw new ValidationError('Action is not an attack');
     }
     if (this.status === 'completed') {
@@ -249,8 +249,8 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
       case 'movement':
         value = this.getMovementFatigue();
         break;
-      case 'melee-attack':
-      case 'ranged-attack':
+      case 'melee_attack':
+      case 'ranged_attack':
         value = this.getCombatFatigue();
         break;
     }
@@ -339,7 +339,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
   }
 
   private checkValidAttack(expectedStatus: string) {
-    if (this.actionType !== 'melee-attack' && this.actionType !== 'ranged-attack') {
+    if (this.actionType !== 'melee_attack' && this.actionType !== 'ranged_attack') {
       throw new ValidationError('Action is not an attack');
     } else if (this.status !== expectedStatus) {
       throw new ValidationError('Attack is not in progress');
