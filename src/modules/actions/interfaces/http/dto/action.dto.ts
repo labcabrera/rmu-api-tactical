@@ -27,6 +27,9 @@ export class ActionDto {
   @ApiProperty({ description: 'Action type', example: 'attack' })
   actionType: ActionType;
 
+  @ApiProperty({ description: 'Is free action', example: false })
+  freeAction: boolean;
+
   @ApiProperty({ description: 'Phase start', example: 1 })
   phaseStart: number;
 
@@ -62,6 +65,7 @@ export class ActionDto {
     dto.status = entity.status;
     dto.round = entity.round;
     dto.actionType = entity.actionType;
+    dto.freeAction = entity.freeAction;
     dto.phaseStart = entity.phaseStart;
     dto.phaseEnd = entity.phaseEnd;
     dto.actionPoints = entity.actionPoints;

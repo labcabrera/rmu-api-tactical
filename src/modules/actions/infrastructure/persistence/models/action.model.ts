@@ -4,9 +4,9 @@ import { Document } from 'mongoose';
 import type { ActionStatus } from '../../../domain/value-objects/action-status.vo';
 import type { ActionType } from '../../../domain/value-objects/action-type.vo';
 import { ActionAttack } from './action-attack.model';
+import { ActionManeuver } from './action-maneuver.model';
 import { ActionMovement } from './action-movement.model';
 import { ActionParry } from './action-parry.model';
-import { ActionManeuver } from './action.model-childs';
 
 export type ActionDocument = ActionModel & Document;
 
@@ -29,6 +29,9 @@ export class ActionModel {
 
   @Prop({ required: true })
   actionType: ActionType;
+
+  @Prop({ required: true })
+  freeAction: boolean;
 
   @Prop({ required: true })
   phaseStart: number;

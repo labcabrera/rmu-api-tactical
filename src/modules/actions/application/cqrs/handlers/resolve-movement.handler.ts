@@ -72,7 +72,7 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     action.phaseEnd = currentPhase;
     action.actionPoints = action.phaseEnd - action.phaseStart + 1;
     action.movement = this.buildActionMovement(command);
-    await this.movementProcessorService.process(command.roll?.roll, action, character, actorRound);
+    await this.movementProcessorService.process(command.roll, action, character, actorRound);
     action.processFatigue(strategicGame.options?.fatigueMultiplier);
     const scale = strategicGame.options?.boardScaleMultiplier || 1;
     action.movement.calculated.distanceAdjusted = action.movement.calculated.distance * scale;

@@ -15,9 +15,12 @@ import { DeleteActionHandler } from './application/cqrs/handlers/delete-action.h
 import { GetActionQueryHandler } from './application/cqrs/handlers/get-action.handler';
 import { GetActionsQueryHandler } from './application/cqrs/handlers/get-actions.handler';
 import { PrepareAttackHandler } from './application/cqrs/handlers/prepare-attack.handler';
+import { ResolveManeuverHandler } from './application/cqrs/handlers/resolve-maneuver.handler';
 import { ResolveMovementHandler } from './application/cqrs/handlers/resolve-movement.handler';
 import { UpdateAttackRollHandler } from './application/cqrs/handlers/update-attack-roll.handler';
 import { UpdateCriticalRollHandler } from './application/cqrs/handlers/update-critical-roll.handler';
+import { AbsoluteManeuverProcessorService } from './application/services/absolute-maneuver-processor.service';
+import { DifficultyService } from './application/services/difficulty-service';
 import { MovementProcessorService } from './application/services/movement-processor.service';
 import { ApiAttackClientAdapter } from './infrastructure/api-clients/api.attack.adapter';
 import { ApiManeuverAdapter } from './infrastructure/api-clients/api.maneuver.adapter';
@@ -26,6 +29,8 @@ import { KafkaActionEventBusAdapter } from './infrastructure/messaging/kafka.act
 import { ActionModel, ActionSchema } from './infrastructure/persistence/models/action.model';
 import { AttackController } from './interfaces/http/action-attack.controller';
 import { ActionController } from './interfaces/http/action.controller';
+import { ManeuverController } from './interfaces/http/maneuver.controller';
+import { MovementController } from './interfaces/http/movement.controller';
 
 @Module({
   imports: [
@@ -39,14 +44,17 @@ import { ActionController } from './interfaces/http/action.controller';
     StrategicModule,
     ActorsRoundModule,
   ],
-  controllers: [ActionController, AttackController],
+  controllers: [ActionController, AttackController, MovementController, ManeuverController],
   providers: [
     MovementProcessorService,
+    DifficultyService,
+    AbsoluteManeuverProcessorService,
     GetActionQueryHandler,
     GetActionsQueryHandler,
     CreateActionHandler,
     DeleteActionHandler,
     ResolveMovementHandler,
+    ResolveManeuverHandler,
     PrepareAttackHandler,
     DeclareParryHandler,
     UpdateAttackRollHandler,

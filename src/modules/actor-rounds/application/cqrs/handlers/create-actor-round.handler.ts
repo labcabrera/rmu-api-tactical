@@ -5,7 +5,7 @@ import { ValidationError } from '../../../../shared/domain/errors';
 import type { Character, CharacterPort } from '../../../../strategic/application/ports/character.port';
 import { ActorRound } from '../../../domain/aggregates/actor-round.aggregate';
 import { ActorRoundAlert } from '../../../domain/value-objets/actor-round-alert.vo';
-import { ActorRoundAttack } from '../../../domain/value-objets/actor-round-attack.vo';
+import { ActorRoundAttack, AttackRange } from '../../../domain/value-objets/actor-round-attack.vo';
 import { ActorRoundDefense } from '../../../domain/value-objets/actor-round-defense.vo';
 import { ActorRoundEffect } from '../../../domain/value-objets/actor-round-effect.vo';
 import { ActorRoundFatigue } from '../../../domain/value-objets/actor-round-fatigue.vo';
@@ -98,13 +98,24 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
         boModifiers: [],
         baseBo: attack.bo,
         currentBo: attack.bo,
-        attackType: 'melee',
+        type: attack.type,
         attackTable: attack.attackTable,
         fumbleTable: attack.fumbleTable,
+        //TODO
         attackSize: 'medium',
         fumble: attack.fumble,
         canThrow: false,
+        ranges: this.mapAttackRanges(character),
       } as ActorRoundAttack;
     });
+  }
+
+  private mapAttackRanges(character: Character): AttackRange[] | undefined {
+    if (!character.equipment || !character.equipment.mainHand) return undefined;
+    const item = character.items.find((it) => it.id === character.equipment.mainHand);
+    if (item && item.weapon && item.weapon.ranges) {
+      return item.weapon.ranges;
+    }
+    return undefined;
   }
 }

@@ -5,6 +5,7 @@ import {
   ResolveMovementModifiers,
 } from '../../../application/cqrs/commands/resolve-movement.command';
 import type { Pace } from '../../../domain/value-objects/action-movement.vo';
+import { ManeuverDifficulty } from '../../../domain/value-objects/maneuver-dificulty.vo';
 import { ActionRollDto } from './action-roll.dto';
 
 export class ResolveMovementModifiersDto {
@@ -23,7 +24,7 @@ export class ResolveMovementModifiersDto {
 
   @IsString()
   @IsOptional()
-  difficulty: string | undefined;
+  difficulty: ManeuverDifficulty | undefined;
 
   static toCommand(dto: ResolveMovementModifiersDto): ResolveMovementModifiers {
     return new ResolveMovementModifiers(dto.pace, dto.requiredManeuver, dto.skillId, dto.difficulty);
@@ -52,7 +53,7 @@ export class ResolveMovementRequestDto {
     return new ResolveMovementCommand(
       actionId,
       ResolveMovementModifiersDto.toCommand(dto.modifiers),
-      dto.roll ? ActionRollDto.toCommand(dto.roll) : undefined,
+      dto.roll ? dto.roll.roll : undefined,
       dto.description,
       userId,
       roles,

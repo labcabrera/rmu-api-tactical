@@ -1,11 +1,20 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActionRoll } from '../../../application/cqrs/commands/action-roll';
+import { ActionRoll } from '../../../domain/value-objects/action-roll.vo';
+import { KeyValueModifierDto } from './key-value-modifier.dto';
 
 export class ActionRollDto {
-  @ApiProperty({ description: 'Action roll', example: '42' })
-  roll: number;
+  modifiers?: KeyValueModifierDto[] | undefined;
 
-  static toCommand(dto: ActionRollDto): ActionRoll {
-    return new ActionRoll(dto.roll);
+  @ApiProperty({ description: 'Action roll', example: '42' })
+  roll: number | undefined;
+
+  totalRoll: number | undefined;
+
+  static fromEntity(entity: ActionRoll): ActionRollDto {
+    const dto = new ActionRollDto();
+    dto.modifiers = entity.modifiers?.map((mod) => KeyValueModifierDto.fromEntity(mod));
+    dto.roll = entity.roll;
+    dto.totalRoll = entity.totalRoll;
+    return dto;
   }
 }

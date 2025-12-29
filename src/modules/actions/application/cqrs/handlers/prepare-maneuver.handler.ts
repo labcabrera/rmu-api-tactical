@@ -32,7 +32,7 @@ export class PrepareManeuverHandler implements ICommandHandler<PrepareManeuverCo
       throw new ValidationError('Required maneuver data is missing');
     }
     action.status = 'in_progress';
-    action.maneuver.difficulty = command.difficulty;
+    action.maneuver.modifiers.difficulty = command.difficulty;
     const updated = await this.actionRepository.save(action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
     return updated;

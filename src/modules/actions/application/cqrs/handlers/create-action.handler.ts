@@ -7,6 +7,7 @@ import type { GameRepository } from '../../../../games/application/ports/game.re
 import { Game } from '../../../../games/domain/aggregates/game.aggregate';
 import { ValidationError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/aggregates/action.aggregate';
+import { ActionManeuver } from '../../../domain/value-objects/action-maneuver.vo';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import { CreateActionCommand } from '../commands/create-action.command';
@@ -33,17 +34,21 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       this.readActions(command, round),
     ]);
     this.validateActorRoundAndActions(actorRound, roundActions);
+    const maneuver = this.mapManeuver(command);
     const action = Action.create(
       command.gameId,
       command.actorId,
       round,
       command.actionType,
+      command.freeAction,
       command.phaseStart,
-      undefined,
+      maneuver,
       command.description,
       command.userId,
     );
-    action.addAttacks(command.attackNames);
+    if (command.actionType === 'melee_attack') {
+      action.addAttacks(command.attackNames);
+    }
     const saved = await this.actionRepository.save(action);
     const events = action.getUncommittedEvents();
     events.forEach((event) => this.actionEventBus.publish(event));
@@ -79,7 +84,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     if (command.actionType === 'maneuver' && !command.maneuver) {
       throw new ValidationError(`Maneuver must be provided`);
     }
-    if (command.actionType === 'melee-attack' && (!command.attackNames || command.attackNames.length === 0)) {
+    if (command.actionType === 'melee_attack' && (!command.attackNames || command.attackNames.length === 0)) {
       throw new ValidationError(`At least one attack name must be provided`);
     }
   }
@@ -106,5 +111,24 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       return;
     }
     //TODO check collisions)
+  }
+
+  private mapManeuver(command: CreateActionCommand): ActionManeuver | undefined {
+    switch (command.actionType) {
+      case 'maneuver':
+        return {
+          modifiers: {
+            skillId: command.maneuver!.skillId,
+            maneuverType: command.maneuver!.maneuverType,
+            difficulty: 'medium',
+            customBonus: 0,
+            lightModifier: 'none',
+            light: 'no_shadows',
+            armorModifier: false,
+          },
+        };
+      default:
+        return undefined;
+    }
   }
 }

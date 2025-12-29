@@ -1,5 +1,6 @@
 import { ActorRoundAttack } from '../../../domain/value-objets/actor-round-attack.vo';
 import { BoModifiers } from '../../../infrastructure/persistence/models/actor-round-attack.model';
+import { AttackRangeDto } from './attack-range.dto';
 
 export class BoModifiersDto {
   key: string;
@@ -22,12 +23,13 @@ export class ActorRoundAttackDto {
   baseBo: number;
   /** Current attack less parry amount and penalties applied */
   currentBo: number;
-  attackType: 'melee' | 'ranged';
+  type: 'melee' | 'ranged';
   attackTable: string;
   fumbleTable: string;
   attackSize: 'small' | 'medium' | 'big';
   fumble: number;
   canThrow: boolean;
+  ranges: AttackRangeDto[] | undefined;
 
   static fromEntity(entity: ActorRoundAttack): ActorRoundAttackDto {
     const dto = new ActorRoundAttackDto();
@@ -35,12 +37,14 @@ export class ActorRoundAttackDto {
     dto.boModifiers = entity.boModifiers.map((e) => BoModifiersDto.fromEntity(e));
     dto.baseBo = entity.baseBo;
     dto.currentBo = entity.currentBo;
-    dto.attackType = entity.attackType;
+    dto.type = entity.type;
     dto.attackTable = entity.attackTable;
     dto.fumbleTable = entity.fumbleTable;
     dto.attackSize = entity.attackSize;
     dto.fumble = entity.fumble;
     dto.canThrow = entity.canThrow;
+    dto.ranges =
+      entity.ranges && entity.ranges.length > 0 ? entity.ranges.map((r) => AttackRangeDto.fromEntity(r)) : undefined;
     return dto;
   }
 }

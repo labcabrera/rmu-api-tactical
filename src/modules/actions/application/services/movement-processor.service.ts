@@ -3,26 +3,12 @@ import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.
 import { ValidationError } from '../../../shared/domain/errors';
 import type { Character } from '../../../strategic/application/ports/character.port';
 import { Action } from '../../domain/aggregates/action.aggregate';
-import { ActionMovementBonus } from '../../domain/value-objects/action-movement.vo';
+import { KeyValueModifier } from '../../domain/value-objects/key-value-modifier.vo';
 import type { ManeuverPort } from '../ports/maneuver.port';
+import { DifficultyService } from './difficulty-service';
 
 @Injectable()
 export class MovementProcessorService {
-  private static readonly difficultyMap: Map<string, number> = new Map([
-    ['c', 70],
-    ['s', 50],
-    ['r', -30],
-    ['e', 20],
-    ['l', 10],
-    ['m', 0],
-    ['h', -10],
-    ['vh', -20],
-    ['xh', -30],
-    ['sf', -50],
-    ['a', -70],
-    ['ni', -100],
-  ]);
-
   private static readonly paceMap: Map<string, number> = new Map([
     ['creep', 0.125],
     ['walk', 0.25],
@@ -32,7 +18,10 @@ export class MovementProcessorService {
     ['dash', 1],
   ]);
 
-  constructor(@Inject('ManeuverPort') private readonly maneuverPort: ManeuverPort) {}
+  constructor(
+    @Inject('ManeuverPort') private readonly maneuverPort: ManeuverPort,
+    private readonly difficultyService: DifficultyService,
+  ) {}
 
   async process(roll: number | undefined, action: Action, character: Character, actorRound: ActorRound): Promise<void> {
     if (!action.movement || !action.movement.modifiers) {
@@ -48,11 +37,11 @@ export class MovementProcessorService {
         throw new Error('Roll is required for movement with requiredManeuver');
       }
       const skillId = action.movement.modifiers.skillId || 'running';
-      const modifiers: ActionMovementBonus[] = [];
+      const modifiers: KeyValueModifier[] = [];
       modifiers.push({ key: skillId, value: this.getSkillModifier(skillId, character) });
       modifiers.push({
         key: 'difficulty',
-        value: this.getGetDifificultyModifier(action.movement.modifiers.difficulty!),
+        value: this.difficultyService.getDifficultyModifier(action.movement.modifiers.difficulty!),
       });
       modifiers.push({ key: 'armor-penalty', value: character.equipment.maneuverPenalty });
       modifiers.push({ key: 'custom-bonus', value: action.movement.modifiers.customBonus || 0 });
@@ -67,7 +56,7 @@ export class MovementProcessorService {
         roll: roll,
         totalRoll: modifiers.reduce((sum, mod) => sum + mod.value, 0),
       };
-      const maneuverResult = await this.maneuverPort.percent(action.movement.roll.totalRoll);
+      const maneuverResult = await this.maneuverPort.percent(action.movement.roll.totalRoll!);
       percent = maneuverResult.percent;
       critical = maneuverResult.critical;
       message = maneuverResult.message;
@@ -98,14 +87,6 @@ export class MovementProcessorService {
     const value = MovementProcessorService.paceMap.get(pace);
     if (value === undefined) {
       throw new ValidationError(`Unknown pace: ${pace}`);
-    }
-    return value;
-  }
-
-  private getGetDifificultyModifier(difficulty: string): number {
-    const value = MovementProcessorService.difficultyMap.get(difficulty);
-    if (value === undefined) {
-      throw new ValidationError(`Unknown difficulty: ${difficulty}`);
     }
     return value;
   }

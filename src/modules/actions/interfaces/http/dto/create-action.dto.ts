@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { CreateActionCommand } from '../../../application/cqrs/commands/create-action.command';
 import type { ActionType } from '../../../domain/value-objects/action-type.vo';
 import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo';
@@ -49,6 +49,11 @@ export class CreateActionDto {
   @IsNotEmpty()
   actionType: ActionType;
 
+  @ApiProperty({ description: 'Is free action', default: false, example: false })
+  @IsOptional()
+  @IsBoolean()
+  freeAction: boolean = false;
+
   @ApiProperty({ description: 'Phase start' })
   @IsNumber()
   phaseStart: number;
@@ -70,6 +75,7 @@ export class CreateActionDto {
       dto.gameId,
       dto.actorId,
       dto.actionType,
+      dto.freeAction,
       dto.phaseStart,
       dto.maneuver,
       dto.attackNames,

@@ -1,4 +1,8 @@
-import { ActionAttackModifiers, AttackType } from '../../../domain/value-objects/action-attack-modifiers.vo';
+import {
+  ActionAttackModifiers,
+  AttackType,
+  CalledShot,
+} from '../../../domain/value-objects/action-attack-modifiers.vo';
 
 export class ActionAttackModifiersDto {
   public attackName: string;
@@ -11,6 +15,7 @@ export class ActionAttackModifiersDto {
   public positionalSource: string | undefined;
   public positionalTarget: string | undefined;
   public dodge: string | undefined;
+  public calledShot: CalledShot | undefined;
   public range: number | undefined;
   public customBonus: number | undefined;
   public disabledDB: boolean | undefined;
@@ -25,11 +30,12 @@ export class ActionAttackModifiersDto {
     dto.bo = entity.bo;
     dto.parry = entity.parry;
     dto.cover = entity.cover;
+    dto.calledShot = entity.calledShot;
+    dto.dodge = entity.dodge;
+    dto.range = entity.range;
     dto.restrictedQuarters = entity.restrictedQuarters;
     dto.positionalSource = entity.positionalSource;
     dto.positionalTarget = entity.positionalTarget;
-    dto.dodge = entity.dodge;
-    dto.range = entity.range;
     dto.customBonus = entity.customBonus;
     dto.disabledDB = entity.disabledDB;
     dto.disabledShield = entity.disabledShield;

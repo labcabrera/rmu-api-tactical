@@ -5,16 +5,23 @@ export class ActorRoundAttack {
   baseBo: number;
   /** Current attack less parry amount and penalties applied */
   currentBo: number;
-  attackType: 'melee' | 'ranged';
+  type: 'melee' | 'ranged';
   attackTable: string;
   fumbleTable: string;
   attackSize: 'small' | 'medium' | 'big';
   fumble: number;
   canThrow: boolean;
+  ranges: AttackRange[] | undefined;
 }
 
 export class BoModifiers {
   key: string;
   subKey?: string;
   value: number;
+}
+
+export class AttackRange {
+  from: number;
+  to: number;
+  bonus: number;
 }

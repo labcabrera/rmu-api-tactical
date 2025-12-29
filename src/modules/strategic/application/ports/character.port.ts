@@ -1,3 +1,5 @@
+import { AttackRange } from '../../../actor-rounds/domain/value-objets/actor-round-attack.vo';
+
 export interface CharacterPort {
   findById: (id: string) => Promise<Character | undefined>;
 
@@ -15,6 +17,7 @@ export interface Character {
   hp: CharacterHP;
   initiative: CharacterInitiative;
   skills: CharacterSkill[];
+  items: CharacterItem[];
   equipment: CharacterEquipment;
   attacks: CharacterAttack[];
   owner: string;
@@ -55,7 +58,28 @@ export interface CharacterSkill {
   totalBonus: number;
 }
 
+export interface CharacterItem {
+  id: string;
+  name: string;
+  itemTypeId: string;
+  category: string;
+  carried: boolean;
+  weapon: CharacterItemWeapon | undefined;
+}
+
+export interface CharacterItemWeapon {
+  attackTable: string;
+  fumbleTable: string;
+  skillId: string;
+  fumble: number;
+  sizeAdjustment: number;
+  requiredHands: number;
+  throwable: boolean;
+  ranges: AttackRange[] | undefined;
+}
+
 export interface CharacterEquipment {
+  mainHand: string | undefined;
   maneuverPenalty: number;
 }
 
@@ -64,6 +88,7 @@ export interface CharacterAttack {
   attackTable: string;
   sizeAdjustment: number;
   fumbleTable: string;
+  type: string;
   fumble: number;
   bo: number;
 }

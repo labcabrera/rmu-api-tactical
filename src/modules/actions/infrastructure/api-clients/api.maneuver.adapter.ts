@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { TokenService } from '../../../auth/token.service';
 import { handleAxiosError } from '../../../shared/infrastructure/api-rest/axios.error.adapter';
-import { ManeuverPort, PercentManeuverResponse } from '../../application/ports/maneuver.port';
+import { AbsoluteManeuverResponse, ManeuverPort, PercentManeuverResponse } from '../../application/ports/maneuver.port';
 
 @Injectable()
 export class ApiManeuverAdapter implements ManeuverPort {
@@ -22,6 +22,21 @@ export class ApiManeuverAdapter implements ManeuverPort {
     const uri = `${this.apiCoreUri}/maneuvers/percent?roll=${roll}`;
     try {
       const response = await axios.get<PercentManeuverResponse>(uri, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (err) {
+      throw handleAxiosError(err, uri);
+    }
+  }
+
+  async absolute(roll: number): Promise<AbsoluteManeuverResponse> {
+    const token = await this.tokenService.getToken();
+    const uri = `${this.apiCoreUri}/maneuvers/absolute?roll=${roll}`;
+    try {
+      const response = await axios.get<AbsoluteManeuverResponse>(uri, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
