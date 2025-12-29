@@ -1,12 +1,6 @@
-import {
-  ActionAttackModifiers,
-  AttackType,
-  CalledShot,
-} from '../../../domain/value-objects/action-attack-modifiers.vo';
+import { ActionAttackModifiers, CalledShot } from '../../../domain/value-objects/action-attack-modifiers.vo';
 
 export class ActionAttackModifiersDto {
-  public attackName: string;
-  public type: AttackType;
   public targetId: string | undefined;
   public bo: number | undefined;
   public parry: number | undefined;
@@ -24,8 +18,6 @@ export class ActionAttackModifiersDto {
 
   static fromEntity(entity: ActionAttackModifiers): ActionAttackModifiersDto {
     const dto = new ActionAttackModifiersDto();
-    dto.attackName = entity.attackName;
-    dto.type = entity.type;
     dto.targetId = entity.targetId;
     dto.bo = entity.bo;
     dto.parry = entity.parry;

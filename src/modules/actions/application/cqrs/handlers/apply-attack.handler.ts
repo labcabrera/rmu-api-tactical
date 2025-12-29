@@ -90,13 +90,13 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     }
     const substractBoCommands: SubstractBoCommand[] = [];
     action.attacks?.forEach((a) => {
-      const attack = action.getAttackByName(a.modifiers.attackName);
+      const attack = action.getAttackByName(a.attackName);
       if (!attack) {
-        throw new UnprocessableEntityError(`Attack ${a.modifiers.attackName} not found`);
+        throw new UnprocessableEntityError(`Attack ${a.attackName} not found`);
       }
       if (attack.modifiers.bo! > 0) {
         substractBoCommands.push(
-          new SubstractBoCommand(actorRound.id, a.modifiers.attackName, attack.modifiers.bo!, userId, roles),
+          new SubstractBoCommand(actorRound.id, a.attackName, attack.modifiers.bo!, userId, roles),
         );
       }
     });

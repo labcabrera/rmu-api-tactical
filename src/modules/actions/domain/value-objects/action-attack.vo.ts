@@ -1,5 +1,5 @@
 import { Modifier } from '../../../shared/domain/entities/modifier.vo';
-import { ActionAttackModifiers } from './action-attack-modifiers.vo';
+import { ActionAttackModifiers, AttackType } from './action-attack-modifiers.vo';
 import { ActionStatus } from './action-status.vo';
 import { AttackLocation } from './attack-location.vo';
 
@@ -7,6 +7,8 @@ export type ParryType = 'parry' | 'protect';
 
 export class ActionAttack {
   constructor(
+    public attackName: string,
+    public type: AttackType,
     public modifiers: ActionAttackModifiers,
     public roll: ActionAttackRoll | undefined,
     public calculated: ActionAttackCalculated | undefined,

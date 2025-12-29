@@ -3,8 +3,6 @@ export type CalledShot = 'none' | 'head' | 'body' | 'arms' | 'legs';
 
 export class ActionAttackModifiers {
   constructor(
-    public attackName: string,
-    public type: AttackType,
     public targetId: string | undefined,
     public bo: number | undefined,
     public parry: number | undefined,

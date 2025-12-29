@@ -8,6 +8,13 @@ import { ActionAttackRollDto } from './action-attack-roll.dto';
 
 export class ActionAttackDto {
   @ApiProperty({ description: 'Attack type', example: 'mainHand' })
+  @ApiProperty({ description: 'Name of the attack', example: 'mainHand' })
+  public attackName: string;
+
+  @ApiProperty({ description: 'Attack type', example: 'melee' })
+  public type: string;
+
+  @ApiProperty({ description: 'Modifiers for the attack' })
   public modifiers: ActionAttackModifiersDto;
 
   @ApiProperty({ description: 'The attack roll' })
@@ -28,6 +35,8 @@ export class ActionAttackDto {
 
   static fromEntity(entity: ActionAttack): ActionAttackDto {
     const dto = new ActionAttackDto();
+    dto.attackName = entity.attackName;
+    dto.type = entity.type;
     dto.modifiers = ActionAttackModifiersDto.fromEntity(entity.modifiers);
     dto.externalAttackId = entity.externalAttackId;
     dto.status = entity.status;

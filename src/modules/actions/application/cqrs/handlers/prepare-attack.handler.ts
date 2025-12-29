@@ -147,12 +147,12 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const attackModifiers = attack.modifiers;
     const actorRoundSource = actors.find((a) => a.actorId === action.actorId)!;
     const actorRoundTarget = actors.find((a) => a.actorId === attackModifiers.targetId)!;
-    const attackInfo = actorRoundSource?.attacks?.find((a) => a.attackName === attackModifiers.attackName);
+    const attackInfo = actorRoundSource?.attacks?.find((a) => a.attackName === attack.attackName);
     if (!attackInfo) {
       throw new UnprocessableEntityError('Attack not found on actor');
     }
     //TODO MAP
-    const offHand = attackModifiers.attackName.toLowerCase().includes('off-hand');
+    const offHand = attack.attackName.toLowerCase().includes('off-hand');
     const twoHandedWeapon = false;
     const attackFeatures = [];
     const injuryPenalty = 0;
@@ -263,9 +263,6 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
 
   private mapAttacks(commandAttack: PrepareAttackCommandItem): ActionAttack {
     const modifiers = new ActionAttackModifiers(
-      commandAttack.attackName,
-      //TODO read from attack info
-      'melee',
       commandAttack.targetId,
       commandAttack.bo,
       0, // parry is declared later
@@ -291,6 +288,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       commandAttack.range,
       commandAttack.customBonus,
     );
-    return new ActionAttack(modifiers, undefined, undefined, undefined, undefined, 'declared');
+    //TODO read attack name and type
+    return new ActionAttack('attackName', 'melee', modifiers, undefined, undefined, undefined, undefined, 'declared');
   }
 }

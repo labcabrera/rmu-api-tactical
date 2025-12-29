@@ -32,7 +32,7 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     }
     const attacks = action.attacks!;
     action.checkValidRollDeclaration();
-    const attack = attacks.find((a) => a.modifiers.attackName === command.attackName);
+    const attack = attacks.find((a) => a.attackName === command.attackName);
     if (!attack) {
       throw new ValidationError(`Attack ${command.attackName} not found in action ${action.id}`);
     }

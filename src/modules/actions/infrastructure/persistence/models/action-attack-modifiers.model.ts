@@ -1,14 +1,8 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import type { AttackType, CalledShot } from '../../../domain/value-objects/action-attack-modifiers.vo';
+import type { CalledShot } from '../../../domain/value-objects/action-attack-modifiers.vo';
 
 @Schema({ _id: false })
 export class ActionAttackModifiers {
-  @Prop({ type: String, required: true })
-  public attackName: string;
-
-  @Prop({ type: String, required: true })
-  public type: AttackType;
-
   @Prop({ type: String, required: false })
   public targetId: string | undefined;
 
