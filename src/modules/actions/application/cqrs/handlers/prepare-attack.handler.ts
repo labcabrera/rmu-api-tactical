@@ -52,7 +52,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const gameLethality = strategicGame.options?.lethality || 0;
 
     game.checkValidActionManagement();
-    const actionAttacks = command.attacks.map((attack) => this.mapAttacks(attack));
+    const actionAttacks = command.attacks.map((attack) => this.mapAttacks(attack, action));
     //TODO check intermediate action
     const actionPoints = game.getActionPhase() - action.phaseStart + 1;
     const actorRoundIds = Array.from(new Set(actionAttacks.map((a) => a.modifiers.targetId).concat([action.actorId])));
@@ -66,7 +66,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
 
     const attackNumber = command.attacks.length;
     const targets: Set<string> = new Set();
-    command.attacks.forEach((a) => targets.add(a.targetId));
+    command.attacks.forEach((a) => targets.add(a.modifiers.targetId));
     const targetsNumber = targets.size;
 
     await Promise.all(
@@ -261,34 +261,46 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     return actorRound.effects?.map((effect) => effect.status) || [];
   }
 
-  private mapAttacks(commandAttack: PrepareAttackCommandItem): ActionAttack {
+  private mapAttacks(commandAttack: PrepareAttackCommandItem, action: Action): ActionAttack {
+    const currentAttack = action.attacks!.find((a) => a.attackName === commandAttack.attackName);
+    if (!currentAttack) {
+      throw new UnprocessableEntityError(`Attack ${commandAttack.attackName} not found on action`);
+    }
     const modifiers = new ActionAttackModifiers(
-      commandAttack.targetId,
-      commandAttack.bo,
+      commandAttack.modifiers.targetId,
+      commandAttack.modifiers.bo,
       0, // parry is declared later
-      commandAttack.calledShot || 'none',
-      commandAttack.calledShotPenalty || 0,
-      commandAttack.positionalSource || 'none',
-      commandAttack.positionalTarget || 'none',
-      commandAttack.restrictedQuarters || 'none',
-      commandAttack.cover || 'none',
-      commandAttack.dodge || 'none',
-      commandAttack.disabledDB,
-      commandAttack.disabledShield,
-      commandAttack.disabledParry,
-      commandAttack.pace,
-      commandAttack.restrictedParry,
-      commandAttack.higherGround,
-      commandAttack.stunnedFoe,
-      commandAttack.surprisedFoe,
-      commandAttack.proneSource,
-      commandAttack.proneTarget,
-      commandAttack.offHand,
-      commandAttack.ambush,
-      commandAttack.range,
-      commandAttack.customBonus,
+      commandAttack.modifiers.calledShot || 'none',
+      commandAttack.modifiers.calledShotPenalty || 0,
+      commandAttack.modifiers.positionalSource || 'none',
+      commandAttack.modifiers.positionalTarget || 'none',
+      commandAttack.modifiers.restrictedQuarters || 'none',
+      commandAttack.modifiers.cover || 'none',
+      commandAttack.modifiers.dodge || 'none',
+      commandAttack.modifiers.disabledDB,
+      commandAttack.modifiers.disabledShield,
+      commandAttack.modifiers.disabledParry,
+      commandAttack.modifiers.pace,
+      commandAttack.modifiers.restrictedParry,
+      commandAttack.modifiers.higherGround,
+      commandAttack.modifiers.stunnedFoe,
+      commandAttack.modifiers.surprisedFoe,
+      commandAttack.modifiers.proneSource,
+      commandAttack.modifiers.proneTarget,
+      commandAttack.modifiers.offHand,
+      commandAttack.modifiers.ambush,
+      commandAttack.modifiers.range,
+      commandAttack.modifiers.customBonus,
     );
-    //TODO read attack name and type
-    return new ActionAttack('attackName', 'melee', modifiers, undefined, undefined, undefined, undefined, 'declared');
+    return new ActionAttack(
+      currentAttack.attackName,
+      currentAttack.type,
+      modifiers,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'declared',
+    );
   }
 }

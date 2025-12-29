@@ -12,7 +12,7 @@ export class PrepareAttackDto {
   static toCommand(actionId: string, dto: PrepareAttackDto, userId: string, roles: string[]): PrepareAttackCommand {
     return new PrepareAttackCommand(
       actionId,
-      dto.attacks.map((attack) => PrepareAttackItemDto.toCommandItem(attack)),
+      dto.attacks.map((attack) => PrepareAttackItemDto.toCommand(attack)),
       userId,
       roles,
     );

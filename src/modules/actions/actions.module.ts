@@ -27,8 +27,8 @@ import { ApiManeuverAdapter } from './infrastructure/api-clients/api.maneuver.ad
 import { MongoActionRepository } from './infrastructure/db/mongo.action.repository';
 import { KafkaActionEventBusAdapter } from './infrastructure/messaging/kafka.action-event-bus.adapter';
 import { ActionModel, ActionSchema } from './infrastructure/persistence/models/action.model';
-import { AttackController } from './interfaces/http/action-attack.controller';
 import { ActionController } from './interfaces/http/action.controller';
+import { AttackController } from './interfaces/http/attack.controller';
 import { ManeuverController } from './interfaces/http/maneuver.controller';
 import { MovementController } from './interfaces/http/movement.controller';
 

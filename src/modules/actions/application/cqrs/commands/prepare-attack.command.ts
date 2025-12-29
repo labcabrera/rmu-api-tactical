@@ -8,9 +8,13 @@ export type CoverType =
   | 'hard_partial'
   | 'hard_half'
   | 'hard_full';
+
 export type RestrictedQuartersType = 'none' | 'close' | 'cramped' | 'tight' | 'confined';
+
 export type PositionalSourceType = 'none' | 'to_flank' | 'to_rear';
+
 export type PositionalTargetType = 'none' | 'flank' | 'rear';
+
 export type DodgeType = 'none' | 'passive' | 'partial' | 'full';
 
 export class PrepareAttackCommand {
@@ -25,6 +29,12 @@ export class PrepareAttackCommand {
 export class PrepareAttackCommandItem {
   constructor(
     public attackName: string,
+    public modifiers: PrepareAttackCommandModifiers,
+  ) {}
+}
+
+export class PrepareAttackCommandModifiers {
+  constructor(
     public targetId: string,
     public bo: number,
     public calledShot: CalledShot | undefined,

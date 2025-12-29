@@ -1,21 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
 import {
   CoverType,
   DodgeType,
   PositionalSourceType,
   PositionalTargetType,
   PrepareAttackCommandItem,
+  PrepareAttackCommandModifiers,
   RestrictedQuartersType,
 } from '../../../application/cqrs/commands/prepare-attack.command';
 import { CalledShot } from '../../../domain/value-objects/action-attack-modifiers.vo';
 
-export class PrepareAttackItemDto {
-  @ApiProperty({ description: 'Name of the attack obtained from actor round', example: 'mainHand' })
-  @IsString()
-  @IsNotEmpty()
-  attackName: string;
-
+export class PrepareAttackModifiersDto {
   @ApiProperty({ description: 'Target actor round identifier', example: 'actor-round-003' })
   @IsString()
   @IsNotEmpty()
@@ -159,9 +155,8 @@ export class PrepareAttackItemDto {
   @IsNumber()
   customBonus: number | undefined;
 
-  static toCommandItem(dto: PrepareAttackItemDto): PrepareAttackCommandItem {
-    return new PrepareAttackCommandItem(
-      dto.attackName,
+  static toCommand(dto: PrepareAttackModifiersDto): PrepareAttackCommandModifiers {
+    return new PrepareAttackCommandModifiers(
       dto.targetId,
       dto.bo,
       dto.calledShot,
@@ -186,5 +181,21 @@ export class PrepareAttackItemDto {
       dto.range,
       dto.customBonus,
     );
+  }
+}
+
+export class PrepareAttackItemDto {
+  @ApiProperty({ description: 'Name of the attack obtained from actor round', example: 'mainHand' })
+  @IsString()
+  @IsNotEmpty()
+  attackName: string;
+
+  @ApiProperty({ description: 'Modifiers for the attack' })
+  @IsNotEmpty()
+  @IsObject()
+  modifiers: PrepareAttackModifiersDto;
+
+  static toCommand(attack: PrepareAttackItemDto): PrepareAttackCommandItem {
+    return new PrepareAttackCommandItem(attack.attackName, PrepareAttackModifiersDto.toCommand(attack.modifiers));
   }
 }
