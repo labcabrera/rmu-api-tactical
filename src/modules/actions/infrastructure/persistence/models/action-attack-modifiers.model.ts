@@ -25,22 +25,19 @@ export class ActionAttackModifiers {
   public calledShotPenalty: number | undefined;
 
   @Prop({ type: String, required: false })
-  public cover: string | undefined;
-
-  @Prop({ type: String, required: false })
-  public restrictedQuarters: string | undefined;
-
-  @Prop({ type: String, required: false })
   public positionalSource: string | undefined;
 
   @Prop({ type: String, required: false })
   public positionalTarget: string | undefined;
 
   @Prop({ type: String, required: false })
-  public dodge: string | undefined;
+  public restrictedQuarters: string | undefined;
 
-  @Prop({ type: Number, required: false })
-  public range: number | undefined;
+  @Prop({ type: String, required: false })
+  public cover: string | undefined;
+
+  @Prop({ type: String, required: false })
+  public dodge: string | undefined;
 
   @Prop({ type: Boolean, required: false })
   public disabledDB: boolean | undefined;
@@ -50,6 +47,36 @@ export class ActionAttackModifiers {
 
   @Prop({ type: Boolean, required: false })
   public disabledParry: boolean | undefined;
+
+  @Prop({ type: String, required: false })
+  public pace: string | undefined;
+
+  @Prop({ type: Boolean, required: false })
+  public restrictedParry: boolean | undefined;
+
+  @Prop({ type: Boolean, required: false })
+  public higherGround: boolean | undefined;
+
+  @Prop({ type: Boolean, required: false })
+  public stunnedFoe: boolean | undefined;
+
+  @Prop({ type: Boolean, required: false })
+  public surprisedFoe: boolean | undefined;
+
+  @Prop({ type: Boolean, required: false })
+  public proneSource: boolean | undefined;
+
+  @Prop({ type: Boolean, required: false })
+  public proneTarget: boolean | undefined;
+
+  @Prop({ type: Boolean, required: false })
+  public offHand: boolean | undefined;
+
+  @Prop({ type: Boolean, required: false })
+  public ambush: boolean | undefined;
+
+  @Prop({ type: Number, required: false })
+  public range: number | undefined;
 
   @Prop({ type: Number, required: false })
   public customBonus: number | undefined;
