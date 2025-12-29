@@ -46,7 +46,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       command.description,
       command.userId,
     );
-    if (command.actionType === 'melee_attack') {
+    if (command.actionType === 'melee_attack' || command.actionType === 'ranged_attack') {
       action.addAttacks(command.attackNames);
     }
     const saved = await this.actionRepository.save(action);
