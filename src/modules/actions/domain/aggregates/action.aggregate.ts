@@ -138,6 +138,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
         attackName: attackName,
         type: this.actionType === 'melee_attack' ? 'melee' : 'ranged',
         modifiers: {
+          bo: 0,
           calledShot: 'none',
           calledShotPenalty: 0,
           positionalSource: 'none',
@@ -162,6 +163,13 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
       } as ActionAttack;
       this.attacks!.push(attack);
     });
+  }
+
+  setAttackBo(attackName: string, currentBo: number) {
+    if (!this.attacks) return;
+    const attack = this.attacks?.find((a) => a.attackName === attackName);
+    if (!attack || !attack.modifiers) return;
+    attack.modifiers.bo = currentBo;
   }
 
   processParryOptions(targets: ActorRound[], targetActions: Action[]) {
