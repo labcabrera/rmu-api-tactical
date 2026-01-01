@@ -197,7 +197,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       sourceId: action.actorId,
       targetId: attackModifiers.targetId!,
       modifiers: {
-        attackType: 'melee',
+        attackType: attack.type,
         attackTable: attackInfo.attackTable,
         attackSize: 'medium', //this.getAttackSize(attack.sizeAdjustment),
         fumbleTable: attackInfo.fumbleTable,
