@@ -22,38 +22,39 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
 
   async execute(command: UpdateAttackRollCommand): Promise<Action> {
     this.logger.log(`Execute << ${JSON.stringify(command)}`);
+
     const action = await this.actionRepository.findById(command.actionId);
-    if (!action) {
-      throw new NotFoundError('Action', command.actionId);
-    }
+    if (!action) throw new NotFoundError('Action', command.actionId);
+
     const game = await this.gameRepository.findById(action.gameId);
-    if (!game) {
-      throw new NotFoundError('Game', action.gameId);
-    }
+    if (!game) throw new NotFoundError('Game', action.gameId);
+
     const attacks = action.attacks!;
     action.checkValidRollDeclaration();
+
     const attack = attacks.find((a) => a.attackName === command.attackName);
-    if (!attack) {
-      throw new ValidationError(`Attack ${command.attackName} not found in action ${action.id}`);
-    }
+    if (!attack) throw new ValidationError(`Attack ${command.attackName} not found in action ${action.id}`);
+
     const location =
       attack.modifiers.calledShot && attack.modifiers.calledShot != 'none' ? undefined : command.location;
     attack.roll = {
       roll: command.roll,
       location: location,
       criticalRolls: undefined,
+      fumbleRoll: undefined,
     };
     const attackResponse = await this.attackPort.updateRoll(attack.externalAttackId!, command.roll, location);
     if (!attackResponse || !attackResponse.results) throw new ValidationError('Attack service did not return results');
 
-    if (!attackResponse.results.criticals || attackResponse.results.criticals.length === 0) {
-      attack.roll.criticalRolls = undefined;
-    } else {
+    if (attackResponse.results.criticals && attackResponse.results.criticals.length > 0) {
       attack.roll.criticalRolls = new Map<string, number | undefined>();
       attackResponse.results.criticals.forEach((critical) => {
         attack.roll!.criticalRolls!.set(critical.key, undefined);
       });
+    } else if (attackResponse.results.fumble) {
+      //TODO
     }
+
     if (!action.hasPendingCriticalRolls() && !action.hasPendingFumbleRolls()) {
       attack.status = 'pending_apply';
     }

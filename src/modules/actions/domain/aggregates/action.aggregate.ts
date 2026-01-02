@@ -228,8 +228,11 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
   }
 
   hasPendingFumbleRolls(): boolean {
-    // TODO implement fumble rolls
-    return false;
+    if (this.actionType !== 'melee_attack' && this.actionType !== 'ranged_attack') {
+      throw new ValidationError('Action is not an attack');
+    }
+    if (!this.attacks || this.attacks.length === 0) throw new ValidationError('Action has no attacks declared');
+    return this.attacks.some((attack) => attack.results?.fumble && !attack.roll?.fumbleRoll);
   }
 
   getAttackByName(attackName: string): ActionAttack {

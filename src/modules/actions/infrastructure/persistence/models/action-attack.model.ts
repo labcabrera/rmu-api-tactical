@@ -76,6 +76,9 @@ export class ActionAttackRoll {
     default: {},
   })
   public criticalRolls: Map<string, number | undefined> | undefined;
+
+  @Prop({ type: Number, required: false })
+  public fumbleRoll: number | undefined;
 }
 
 @Schema({ _id: false })
@@ -100,12 +103,33 @@ export class Critical {
 }
 
 @Schema({ _id: false })
+export class Fumble {
+  @Prop({ type: String, required: true })
+  public status: string;
+
+  @Prop({ type: String, required: false })
+  public text: string | undefined;
+
+  @Prop({ type: String, required: false })
+  public additionalDamageText: string | undefined;
+
+  @Prop({ type: Number, required: false })
+  public damage: number | undefined;
+
+  @Prop({ type: [CriticalEffect], required: false })
+  public effects: CriticalEffect[] | undefined;
+}
+
+@Schema({ _id: false })
 export class ActionAttackResult {
   @Prop({ type: AttackTableEntry, required: false })
   public attackTableEntry: AttackTableEntry | undefined;
 
   @Prop({ type: [Critical], required: false })
   public criticals: Critical[] | undefined;
+
+  @Prop({ type: Fumble, required: false })
+  public fumble: Fumble | undefined;
 }
 
 @Schema({ _id: false })

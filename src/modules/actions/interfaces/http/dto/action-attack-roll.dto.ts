@@ -12,11 +12,14 @@ export class ActionAttackRollDto {
   @ApiProperty({ description: 'The critical rolls', example: { s_c_1: 42 }, required: false })
   criticalRolls: Map<string, number | undefined> | undefined;
 
-  static fromEntity(entity: ActionAttackRoll): ActionAttackRoll {
+  @ApiProperty({ description: 'The fumble roll value if required', required: false, example: 3 })
+  fumbleRoll: number | undefined;
+  static fromEntity(entity: ActionAttackRoll): ActionAttackRollDto {
     const dto = new ActionAttackRollDto();
     dto.roll = entity.roll;
     dto.location = entity.location ? entity.location : undefined;
     dto.criticalRolls = entity.criticalRolls ? entity.criticalRolls : undefined;
+    dto.fumbleRoll = entity.fumbleRoll;
     return dto;
   }
 }
