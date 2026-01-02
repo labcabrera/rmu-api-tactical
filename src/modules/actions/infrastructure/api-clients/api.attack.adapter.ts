@@ -90,6 +90,25 @@ export class ApiAttackClientAdapter implements AttackPort {
     }
   }
 
+  async updateFumbleRoll(attackId: string, fumbleRoll: number): Promise<AttackResponse> {
+    const token = await this.tokenService.getToken();
+    const uri = `${this.apiCoreUri}/attacks/${attackId}/fumble-roll`;
+    try {
+      const response = await axios.patch(
+        uri,
+        { roll: fumbleRoll },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      return response.data as AttackResponse;
+    } catch (err: unknown) {
+      throw handleAxiosError(err, uri);
+    }
+  }
+
   async deleteAttack(actionId: string): Promise<void> {
     const token = await this.tokenService.getToken();
     const uri = `${this.apiCoreUri}/attacks/${actionId}`;

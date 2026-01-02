@@ -10,9 +10,9 @@ export class UpdateFumbleRollDto {
 
   @ApiProperty({ description: 'Fumble roll value', example: 15 })
   @IsNumber()
-  roll: number;
+  fumbleRoll: number;
 
   static toCommand(actionId: string, dto: UpdateFumbleRollDto, userId: string, roles: string[]) {
-    return new UpdateFumbleRollCommand(actionId, dto.attackName, dto.roll, userId, roles);
+    return new UpdateFumbleRollCommand(actionId, dto.attackName, dto.fumbleRoll, userId, roles);
   }
 }

@@ -10,12 +10,14 @@ import { DeclareParryCommand } from '../../application/cqrs/commands/declare-par
 import { PrepareAttackCommand } from '../../application/cqrs/commands/prepare-attack.command';
 import { UpdateAttackRollCommand } from '../../application/cqrs/commands/update-attack-roll.command';
 import { UpdateCriticalRollCommand } from '../../application/cqrs/commands/update-critical-roll.command';
+import { UpdateFumbleRollCommand } from '../../application/cqrs/commands/update-fumble-roll.command';
 import { Action } from '../../domain/aggregates/action.aggregate';
 import { ActionDto } from './dto/action.dto';
 import { DeclareParryDto } from './dto/declare-parry.dto';
 import { PrepareAttackDto } from './dto/prepare-attack.dto';
 import { UpdateAttackRollDto } from './dto/update-attack-roll.dto';
 import { UpdateCriticalRollDto } from './dto/update-critical-roll.dto';
+import { UpdateFumbleRollDto } from './dto/update-fumble-roll.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('v1/actions')
@@ -78,6 +80,20 @@ export class AttackController {
     const user = req.user!;
     const command = UpdateCriticalRollDto.toCommand(id, dto, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<UpdateCriticalRollCommand, Action>(command);
+    return ActionDto.fromEntity(entity);
+  }
+
+  @Patch(':id/attack/fumble-roll')
+  @ApiBody({ type: UpdateFumbleRollDto })
+  @ApiOperation({ operationId: 'updateFumbleRoll', summary: 'Update fumble roll' })
+  @ApiOkResponse({ type: ActionDto, description: 'Success' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
+  async updateFumbleRoll(@Param('id') id: string, @Body() dto: UpdateFumbleRollDto, @Request() req) {
+    this.logger.debug(`Updating fumble roll: ${JSON.stringify(dto)} for user ${req.user}`);
+    const user = req.user!;
+    const command = UpdateFumbleRollDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<UpdateFumbleRollCommand, Action>(command);
     return ActionDto.fromEntity(entity);
   }
 

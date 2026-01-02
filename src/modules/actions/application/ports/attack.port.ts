@@ -10,10 +10,11 @@ import {
 } from '../cqrs/commands/prepare-attack.command';
 
 export interface AttackPort {
+  prepareAttack(actionId: AttackCreationRequest): Promise<AttackResponse>;
   updateRoll(attackId: string, roll: number, location: AttackLocation | undefined): Promise<AttackResponse>;
   updateParry(attackId: string, parry: number): Promise<AttackResponse>;
   updateCriticalRoll(attackId: string, criticalKey: string, roll: number): Promise<AttackResponse>;
-  prepareAttack(actionId: AttackCreationRequest): Promise<AttackResponse>;
+  updateFumbleRoll(attackId: string, fumbleRoll: number): Promise<AttackResponse>;
   deleteAttack(actionId: string): Promise<void>;
 }
 
