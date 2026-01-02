@@ -13,6 +13,32 @@ export class ActorRoundAttack {
   canThrow: boolean;
   ranges: AttackRange[] | undefined;
 
+  constructor(
+    attackName: string,
+    boModifiers: BoModifiers[],
+    baseBo: number,
+    currentBo: number,
+    type: 'melee' | 'ranged',
+    attackTable: string,
+    fumbleTable: string,
+    attackSize: 'small' | 'medium' | 'big',
+    fumble: number,
+    canThrow: boolean,
+    ranges: AttackRange[] | undefined,
+  ) {
+    this.attackName = attackName;
+    this.boModifiers = boModifiers;
+    this.baseBo = baseBo;
+    this.currentBo = currentBo;
+    this.type = type;
+    this.attackTable = attackTable;
+    this.fumbleTable = fumbleTable;
+    this.attackSize = attackSize;
+    this.fumble = fumble;
+    this.canThrow = canThrow;
+    this.ranges = ranges;
+  }
+
   calculateRangeBonus(range: number): number {
     if (!this.ranges || this.ranges.length === 0) {
       throw new Error('No ranges defined for this attack');

@@ -6,6 +6,7 @@ import { NotFoundError } from '../../../shared/domain/errors';
 import { RsqlParser } from '../../../shared/infrastructure/db/rsql-parser';
 import { ActorRoundRepository } from '../../application/ports/out/actor-round.repository';
 import { ActorRound } from '../../domain/aggregates/actor-round.aggregate';
+import { ActorRoundAttack } from '../../domain/value-objets/actor-round-attack.vo';
 import { ActorRoundDocument, ActorRoundModel } from '../persistence/models/actor-round.model';
 
 @Injectable()
@@ -89,6 +90,7 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
       })
       .then((docs) => docs.map((doc) => this.mapToEntity(doc)));
   }
+
   private mapToEntity(doc: ActorRoundDocument): ActorRound {
     return ActorRound.fromProps({
       id: doc._id,
@@ -102,7 +104,7 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
       fatigue: doc.fatigue,
       penalties: doc.penalties,
       defense: doc.defense,
-      attacks: doc.attacks,
+      attacks: doc.attacks.map((attackDoc) => this.mapAttackToEntity(attackDoc)),
       usedBo: doc.usedBo,
       parries: doc.parries,
       effects: doc.effects,
@@ -111,5 +113,21 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     });
+  }
+
+  private mapAttackToEntity(doc: any): ActorRoundAttack {
+    return new ActorRoundAttack(
+      doc.attackName,
+      doc.boModifiers || [],
+      doc.baseBo,
+      doc.currentBo,
+      doc.type,
+      doc.attackTable,
+      doc.fumbleTable,
+      doc.attackSize,
+      doc.fumble,
+      doc.canThrow,
+      doc.ranges,
+    );
   }
 }

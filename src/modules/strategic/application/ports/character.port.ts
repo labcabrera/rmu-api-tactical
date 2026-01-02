@@ -88,7 +88,7 @@ export interface CharacterAttack {
   attackTable: string;
   sizeAdjustment: number;
   fumbleTable: string;
-  type: string;
+  type: 'melee' | 'ranged';
   fumble: number;
   bo: number;
 }

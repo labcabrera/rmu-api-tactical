@@ -93,20 +93,20 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
 
   private mapAttacksFromCharacter(character: Character): ActorRoundAttack[] {
     return character.attacks.map((attack) => {
-      return {
-        attackName: attack.attackName,
-        boModifiers: [],
-        baseBo: attack.bo,
-        currentBo: attack.bo,
-        type: attack.type,
-        attackTable: attack.attackTable,
-        fumbleTable: attack.fumbleTable,
+      return new ActorRoundAttack(
+        attack.attackName,
+        [],
+        attack.bo,
+        attack.bo,
+        attack.type,
+        attack.attackTable,
+        attack.fumbleTable,
         //TODO
-        attackSize: 'medium',
-        fumble: attack.fumble,
-        canThrow: false,
-        ranges: this.mapAttackRanges(character),
-      } as ActorRoundAttack;
+        'medium',
+        attack.fumble,
+        false,
+        this.mapAttackRanges(character),
+      );
     });
   }
 
