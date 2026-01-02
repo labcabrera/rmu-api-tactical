@@ -79,13 +79,13 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
         1000,
       )
       .then((res) => res.content);
-    action.processParryOptions(
-      actors.filter((a) => a.actorId !== action.actorId),
-      targetActions,
-    );
+
+    const targetActors = actors.filter((a) => a.actorId !== action.actorId);
+    action.processParryOptions(targetActors, targetActions);
 
     //TODO check effects and intermediate actions
     action.actionPoints = game.getActionPhase() - action.phaseStart + 1;
+    action.status = action.parries?.length && action.parries.length > 0 ? 'parry' : 'prepared';
 
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action.id, action);

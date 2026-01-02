@@ -4,6 +4,7 @@ import type { GameRepository } from '../../../../games/application/ports/game.re
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
+import { ActionStatus } from '../../../domain/value-objects/action-status.vo';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import type { AttackPort } from '../../ports/attack.port';
@@ -54,10 +55,22 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     }
 
     attack.status = attackResponse.status;
-    action.updatedAt = new Date();
     attack.results = attackResponse.results;
+
+    action.updatedAt = new Date();
+    action.status = this.calculateStatus(action);
+
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
     return updated;
+  }
+
+  private calculateStatus(action: Action): ActionStatus {
+    for (const attack of action.attacks!) {
+      if (attack.status !== 'pending_apply') {
+        return 'prepared';
+      }
+    }
+    return 'pending_apply';
   }
 }
