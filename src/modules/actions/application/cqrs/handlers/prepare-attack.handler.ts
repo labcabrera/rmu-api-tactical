@@ -67,16 +67,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
 
     await Promise.all(
       actionAttacks.map((attack) =>
-        this.processAttackPort(
-          attack,
-          action.actionPoints!,
-          action,
-          actors,
-          skills,
-          attackNumber,
-          targetsNumber,
-          gameLethality,
-        ),
+        this.processAttackPort(attack, action, actors, skills, attackNumber, targetsNumber, gameLethality),
       ),
     );
     action.attacks = actionAttacks;
@@ -104,7 +95,6 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
 
   private async processAttackPort(
     attack: ActionAttack,
-    actionPoints: number,
     action: Action,
     actors: ActorRound[],
     skills: AttackSourceSkill[],
@@ -123,6 +113,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     );
     const portResponse = await this.attackClient.prepareAttack(request);
     attack.externalAttackId = portResponse.id;
+    attack.status = portResponse.status;
     attack.calculated = new ActionAttackCalculated(
       portResponse.calculated.rollModifiers,
       portResponse.calculated.rollTotal,
@@ -326,7 +317,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       undefined,
       undefined,
       undefined,
-      'declared',
+      'pending_attack_roll',
     );
   }
 }

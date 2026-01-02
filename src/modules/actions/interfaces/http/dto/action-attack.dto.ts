@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ActionAttack } from '../../../domain/value-objects/action-attack.vo';
-import type { ActionStatus } from '../../../domain/value-objects/action-status.vo';
+import type { AttackStatus } from '../../../domain/value-objects/attack-status.vo';
 import { ActionAttackCalculatedDto } from './action-attack-calculated.dto';
 import { ActionAttackModifiersDto } from './action-attack-modifiers.dto';
 import { ActionAttackResultsDto } from './action-attack-results.dto';
@@ -31,7 +31,7 @@ export class ActionAttackDto {
   public externalAttackId: string | undefined;
 
   @ApiProperty({ description: 'Action status', example: 'pending' })
-  public status: ActionStatus;
+  public status: AttackStatus;
 
   static fromEntity(entity: ActionAttack): ActionAttackDto {
     const dto = new ActionAttackDto();

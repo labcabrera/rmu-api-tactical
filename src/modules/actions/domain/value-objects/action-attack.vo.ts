@@ -1,7 +1,7 @@
 import { Modifier } from '../../../shared/domain/entities/modifier.vo';
 import { ActionAttackModifiers, AttackType } from './action-attack-modifiers.vo';
-import { ActionStatus } from './action-status.vo';
 import { AttackLocation } from './attack-location.vo';
+import { AttackStatus } from './attack-status.vo';
 
 export type ParryType = 'parry' | 'protect';
 
@@ -14,7 +14,7 @@ export class ActionAttack {
     public calculated: ActionAttackCalculated | undefined,
     public results: ActionAttackResult | undefined,
     public externalAttackId: string | undefined,
-    public status: ActionStatus,
+    public status: AttackStatus,
   ) {}
 }
 

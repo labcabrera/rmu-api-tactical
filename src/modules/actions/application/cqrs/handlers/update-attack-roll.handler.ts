@@ -51,13 +51,9 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
       attackResponse.results.criticals.forEach((critical) => {
         attack.roll!.criticalRolls!.set(critical.key, undefined);
       });
-    } else if (attackResponse.results.fumble) {
-      //TODO
     }
 
-    if (!action.hasPendingCriticalRolls() && !action.hasPendingFumbleRolls()) {
-      attack.status = 'pending_apply';
-    }
+    attack.status = attackResponse.status;
     action.updatedAt = new Date();
     attack.results = attackResponse.results;
     const updated = await this.actionRepository.update(action.id, action);

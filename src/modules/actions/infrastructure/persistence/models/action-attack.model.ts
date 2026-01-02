@@ -1,8 +1,8 @@
 import { Prop, Schema } from '@nestjs/mongoose';
 import { Modifier } from '../../../../shared/infrastructure/persistence/models/modier.model';
 import type { AttackType } from '../../../domain/value-objects/action-attack-modifiers.vo';
-import type { ActionStatus } from '../../../domain/value-objects/action-status.vo';
 import { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
+import type { AttackStatus } from '../../../domain/value-objects/attack-status.vo';
 import { ActionAttackModifiers } from './action-attack-modifiers.model';
 
 @Schema({ _id: false })
@@ -156,5 +156,5 @@ export class ActionAttack {
   public externalAttackId: string | undefined;
 
   @Prop({ type: String, required: true })
-  public status: ActionStatus;
+  public status: AttackStatus;
 }

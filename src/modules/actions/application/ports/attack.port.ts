@@ -1,5 +1,6 @@
 import { ActionAttackResult } from '../../domain/value-objects/action-attack.vo';
 import { AttackLocation } from '../../domain/value-objects/attack-location.vo';
+import { AttackStatus } from '../../domain/value-objects/attack-status.vo';
 import {
   CoverType,
   DodgeType,
@@ -105,4 +106,5 @@ export interface AttackResponse {
   id: string;
   calculated: AttackCalculated;
   results: ActionAttackResult | undefined;
+  status: AttackStatus;
 }

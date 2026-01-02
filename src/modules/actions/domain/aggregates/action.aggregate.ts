@@ -167,7 +167,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
           offHand: attackName === 'offHand' ? true : false,
           ambush: false,
         },
-        status: 'declared',
+        status: 'pending_attack_roll',
       } as ActionAttack;
       this.attacks!.push(attack);
     });
