@@ -12,7 +12,7 @@ import { ActorRoundFatigue } from '../../../domain/value-objets/actor-round-fati
 import { ActorRoundHP } from '../../../domain/value-objets/actor-round-hp.vo';
 import { ActorRoundInitiative } from '../../../domain/value-objets/actor-round-initiative.vo';
 import { ActorRoundPenalty } from '../../../domain/value-objets/actor-round-penalty.vo';
-import type { ActorRoundRepository } from '../../ports/out/character-round.repository';
+import type { ActorRoundRepository } from '../../ports/out/actor-round.repository';
 import { CreateActorRoundCommand } from '../commands/create-actor-round.command';
 
 @CommandHandler(CreateActorRoundCommand)

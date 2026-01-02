@@ -17,10 +17,10 @@ export class DeleteActionHandler implements ICommandHandler<DeleteActionCommand>
 
   async execute(command: DeleteActionCommand): Promise<void> {
     this.logger.log(`Execute << ${JSON.stringify(command)}`);
+
     const action = await this.actionRepository.findById(command.actionId);
-    if (!action) {
-      throw new NotFoundError('Action', command.actionId);
-    }
+    if (!action) throw new NotFoundError('Action', command.actionId);
+
     await this.actionRepository.deleteById(command.actionId);
     await this.actionEventBus.publish(new ActionDeletedEvent(action));
   }

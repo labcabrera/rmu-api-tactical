@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 import { Page } from '../../../shared/domain/entities/page.entity';
 import { NotFoundError } from '../../../shared/domain/errors';
 import { RsqlParser } from '../../../shared/infrastructure/db/rsql-parser';
-import { ActorRoundRepository } from '../../application/ports/out/character-round.repository';
+import { ActorRoundRepository } from '../../application/ports/out/actor-round.repository';
 import { ActorRound } from '../../domain/aggregates/actor-round.aggregate';
 import { ActorRoundDocument, ActorRoundModel } from '../persistence/models/actor-round.model';
 
@@ -38,6 +38,11 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
     ]);
     const content = characterRoundsDocs.map((doc) => this.mapToEntity(doc));
     return new Page<ActorRound>(content, page, size, totalElements);
+  }
+
+  findByGameAndRoundAndActors(gameId: string, round: number, actorIds: string[]): Promise<ActorRound[]> {
+    const rsql = `gameId==${gameId};round==${round};actorId=in=(${actorIds.join(',')})`;
+    return this.findByRsql(rsql, 0, actorIds.length).then((page) => page.content);
   }
 
   async findByActorIdAndRound(characterId: string, round: number): Promise<ActorRound | null> {
