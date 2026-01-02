@@ -149,14 +149,22 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
 
     //TODO MAP
     const offHand = attack.attackName.toLowerCase().includes('off-hand');
+    let rangePenalty = 0;
     const twoHandedWeapon = false;
     const attackFeatures = [];
     const injuryPenalty = 0;
     const fatiguePenalty = 0;
-    const rangePenalty = 0;
     const shield = 0;
     // Declared later
     const parry = 0;
+
+    if (attack.type === 'ranged' && attackModifiers.range !== undefined) {
+      const rangedAttack = actorRoundSource.attacks?.find((a) => a.attackName === attack.attackName);
+      if (!rangedAttack) {
+        throw new UnprocessableEntityError(`Attack ${attack.attackName} not found on actor`);
+      }
+      rangePenalty = rangedAttack.calculateRangeBonus(attackModifiers.range);
+    }
 
     const rollModifiers = {
       bo: attackModifiers.bo,
@@ -186,6 +194,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       sizeDifference: 0, //TODO this.calculateSizeDifference(actorSource.info.sizeId, actorTarget.info.sizeId),
       offHand: offHand,
       twoHandedWeapon: twoHandedWeapon,
+      higherGround: attackModifiers.higherGround || false,
       sourceStatus: this.mapActorSourceRoundEffects(actorRoundSource, attack),
       targetStatus: this.mapActorTargetRoundEffects(actorRoundTarget, attack),
     } as AttackSituationalModifiers;
@@ -276,10 +285,15 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     if (!currentAttack) {
       throw new UnprocessableEntityError(`Attack ${commandAttack.attackName} not found on action`);
     }
+    // Parry is delared later
+    const parry = 0;
+    const surprisedFoe = commandAttack.modifiers.surprisedFoe || false;
+    // Stun cannot be applied if surprised is applied
+    const stunnedFoe = (!surprisedFoe && commandAttack.modifiers.stunnedFoe) || false;
     const modifiers = new ActionAttackModifiers(
       commandAttack.modifiers.targetId,
       commandAttack.modifiers.bo,
-      0, // parry is declared later
+      parry,
       commandAttack.modifiers.calledShot || 'none',
       commandAttack.modifiers.calledShotPenalty || 0,
       commandAttack.modifiers.positionalSource || 'none',
@@ -293,8 +307,8 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       commandAttack.modifiers.pace,
       commandAttack.modifiers.restrictedParry,
       commandAttack.modifiers.higherGround,
-      commandAttack.modifiers.stunnedFoe,
-      commandAttack.modifiers.surprisedFoe,
+      stunnedFoe,
+      surprisedFoe,
       commandAttack.modifiers.proneSource,
       commandAttack.modifiers.proneTarget,
       commandAttack.modifiers.attackerInMelee,

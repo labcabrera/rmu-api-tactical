@@ -12,6 +12,18 @@ export class ActorRoundAttack {
   fumble: number;
   canThrow: boolean;
   ranges: AttackRange[] | undefined;
+
+  calculateRangeBonus(range: number): number {
+    if (!this.ranges || this.ranges.length === 0) {
+      throw new Error('No ranges defined for this attack');
+    }
+    for (const attackRange of this.ranges) {
+      if (range >= attackRange.from && range <= attackRange.to) {
+        return attackRange.bonus;
+      }
+    }
+    throw new Error('Invalid range for this attack');
+  }
 }
 
 export class BoModifiers {
