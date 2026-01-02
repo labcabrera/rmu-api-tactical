@@ -126,6 +126,14 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     }
   }
 
+  setActionPoints(currentPhase: number) {
+    if (this.freeAction) {
+      this.actionPoints = 0;
+    } else {
+      this.actionPoints = currentPhase - this.phaseStart + 1;
+    }
+  }
+
   addAttacks(attackNames: string[] | undefined) {
     if (!attackNames || attackNames.length === 0) {
       return;

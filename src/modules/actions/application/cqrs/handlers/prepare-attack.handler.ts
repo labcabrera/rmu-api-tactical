@@ -49,7 +49,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
 
     game.checkValidActionManagement();
     const actionAttacks = command.attacks.map((attack) => this.mapAttacks(attack, action));
-    const actionPoints = game.getActionPhase() - action.phaseStart + 1;
+    action.setActionPoints(game.getActionPhase());
     const actorRoundIds = Array.from(new Set(actionAttacks.map((a) => a.modifiers.targetId!).concat([action.actorId])));
 
     const actors = await this.actorRoundRepository.findByGameAndRoundAndActors(game.id, game.round, actorRoundIds);
@@ -69,7 +69,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       actionAttacks.map((attack) =>
         this.processAttackPort(
           attack,
-          actionPoints,
+          action.actionPoints!,
           action,
           actors,
           skills,
@@ -114,7 +114,6 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
   ): Promise<void> {
     const request = this.mapAttackToPortModel(
       attack,
-      actionPoints,
       action,
       actors,
       skills,
@@ -132,7 +131,6 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
 
   private mapAttackToPortModel(
     attack: ActionAttack,
-    actionPoints: number,
     action: Action,
     actors: ActorRound[],
     skills: AttackSourceSkill[],
@@ -144,10 +142,13 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const actorRoundSource = actors.find((a) => a.actorId === action.actorId)!;
     const actorRoundTarget = actors.find((a) => a.actorId === attackModifiers.targetId)!;
 
+    const isMeleeAttack = attack.type === 'melee';
+
     const attackInfo = actorRoundSource?.attacks?.find((a) => a.attackName === attack.attackName);
     if (!attackInfo) throw new UnprocessableEntityError('Attack not found on actor');
 
     //TODO MAP
+    const actionPoints = action.freeAction ? (isMeleeAttack ? 4 : 3) : action.actionPoints!;
     const offHand = attack.attackName.toLowerCase().includes('off-hand');
     let rangePenalty = 0;
     const twoHandedWeapon = false;
@@ -158,7 +159,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     // Declared later
     const parry = 0;
 
-    if (attack.type === 'ranged' && attackModifiers.range !== undefined) {
+    if (!isMeleeAttack && attackModifiers.range !== undefined) {
       const rangedAttack = actorRoundSource.attacks?.find((a) => a.attackName === attack.attackName);
       if (!rangedAttack) {
         throw new UnprocessableEntityError(`Attack ${attack.attackName} not found on actor`);
