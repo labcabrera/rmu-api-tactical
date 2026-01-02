@@ -85,6 +85,11 @@ export class PrepareAttackModifiersDto {
   @IsString()
   dodge: DodgeType | undefined;
 
+  @ApiProperty({ description: 'Whether attacker is in melee (close) range', required: false, example: false })
+  @IsOptional()
+  @IsBoolean()
+  attackerInMelee: boolean | undefined;
+
   @ApiProperty({ description: 'Whether the attack disables defensive bonus', required: false, example: false })
   @IsOptional()
   @IsBoolean()
@@ -176,6 +181,7 @@ export class PrepareAttackModifiersDto {
       dto.surprisedFoe,
       dto.proneTarget,
       dto.proneSource,
+      dto.attackerInMelee,
       dto.offHand,
       dto.ambush,
       dto.range,

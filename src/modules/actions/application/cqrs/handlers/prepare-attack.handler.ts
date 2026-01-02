@@ -287,6 +287,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       commandAttack.modifiers.surprisedFoe,
       commandAttack.modifiers.proneSource,
       commandAttack.modifiers.proneTarget,
+      commandAttack.modifiers.attackerInMelee,
       commandAttack.modifiers.offHand,
       commandAttack.modifiers.ambush,
       commandAttack.modifiers.range,

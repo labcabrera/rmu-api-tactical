@@ -54,6 +54,7 @@ export class PrepareAttackCommandModifiers {
     public surprisedFoe: boolean | undefined,
     public proneTarget: boolean | undefined,
     public proneSource: boolean | undefined,
+    public attackerInMelee: boolean | undefined,
     public offHand: boolean | undefined,
     public ambush: boolean | undefined,
     public range: number | undefined,

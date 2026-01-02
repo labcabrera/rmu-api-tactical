@@ -67,6 +67,9 @@ export class ActionAttackModifiersDto {
   @ApiProperty({ description: 'Whether the target is prone', required: false, example: false })
   public proneTarget: boolean | undefined;
 
+  @ApiProperty({ description: 'Whether attacker is in melee (close) range', required: false, example: false })
+  public attackerInMelee: boolean | undefined;
+
   @ApiProperty({ description: 'Whether attack is with off-hand', required: false, example: false })
   public offHand: boolean | undefined;
 
@@ -91,6 +94,7 @@ export class ActionAttackModifiersDto {
     dto.restrictedQuarters = entity.restrictedQuarters;
     dto.cover = entity.cover;
     dto.dodge = entity.dodge;
+    dto.attackerInMelee = entity.attackerInMelee;
     dto.disabledDB = entity.disabledDB;
     dto.disabledShield = entity.disabledShield;
     dto.disabledParry = entity.disabledParry;

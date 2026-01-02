@@ -23,6 +23,7 @@ export class ActionAttackModifiers {
     public surprisedFoe: boolean | undefined,
     public proneSource: boolean | undefined,
     public proneTarget: boolean | undefined,
+    public attackerInMelee: boolean | undefined,
     public offHand: boolean | undefined,
     public ambush: boolean | undefined,
     public range: number | undefined,

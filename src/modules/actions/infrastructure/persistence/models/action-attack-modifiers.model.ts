@@ -64,6 +64,9 @@ export class ActionAttackModifiers {
   public proneTarget: boolean | undefined;
 
   @Prop({ type: Boolean, required: false })
+  public attackerInMelee: boolean | undefined;
+
+  @Prop({ type: Boolean, required: false })
   public offHand: boolean | undefined;
 
   @Prop({ type: Boolean, required: false })
