@@ -239,8 +239,9 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
 
   private getShieldBonus(targetActor: ActorRound, disabledShield: boolean): number {
     if (disabledShield) return 0;
-    //TODO implement;
-    return 0;
+    if (!targetActor.defense.shield) return 0;
+    //TODO update model with current blocks;
+    return targetActor.defense.shield.shieldDb;
   }
 
   private getAttackSize(size: number): string {
