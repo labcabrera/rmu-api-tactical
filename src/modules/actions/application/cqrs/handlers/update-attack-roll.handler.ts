@@ -36,8 +36,10 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     const attack = attacks.find((a) => a.attackName === command.attackName);
     if (!attack) throw new ValidationError(`Attack ${command.attackName} not found in action ${action.id}`);
 
-    const location =
-      attack.modifiers.calledShot && attack.modifiers.calledShot != 'none' ? undefined : command.location;
+    const modifiers = attack.modifiers;
+    const calledShot = modifiers.calledShot;
+    const location = calledShot && calledShot != 'none' ? undefined : command.location;
+
     attack.roll = {
       roll: command.roll,
       location: location,

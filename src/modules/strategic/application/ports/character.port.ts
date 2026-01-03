@@ -80,6 +80,7 @@ export interface CharacterItemWeapon {
 
 export interface CharacterEquipment {
   mainHand: string | undefined;
+  offHand: string | undefined;
   maneuverPenalty: number;
 }
 

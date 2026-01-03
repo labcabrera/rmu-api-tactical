@@ -146,7 +146,8 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const attackFeatures = [];
     const injuryPenalty = 0;
     const fatiguePenalty = 0;
-    const shield = 0;
+
+    const shield = this.getShieldBonus(actorRoundTarget, attackModifiers.disabledShield || false);
     // Declared later
     const parry = 0;
 
@@ -234,6 +235,12 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
   private isCombatSkill(skillId: string): boolean {
     const combatSkills = ['multiple-attacks', 'reverse-strike', 'footwork', 'restricted-quarters', 'called-shot'];
     return combatSkills.includes(skillId);
+  }
+
+  private getShieldBonus(targetActor: ActorRound, disabledShield: boolean): number {
+    if (disabledShield) return 0;
+    //TODO implement;
+    return 0;
   }
 
   private getAttackSize(size: number): string {

@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ActorRoundDefense } from '../../../domain/value-objets/actor-round-defense.vo';
+import { ActorRoundShieldDto } from './actor-round-shield.dto';
 
 export class ActorRoundDefenseDto {
   @ApiProperty({ description: 'Defensive bonus' })
@@ -20,6 +21,9 @@ export class ActorRoundDefenseDto {
   @ApiProperty({ description: 'Armor type of the legs' })
   legsAt: number | undefined;
 
+  @ApiProperty({ description: 'Shield info', required: false })
+  shield: ActorRoundShieldDto | undefined;
+
   static fromEntity(entity: ActorRoundDefense): ActorRoundDefenseDto {
     const dto = new ActorRoundDefenseDto();
     dto.bd = entity.bd;
@@ -28,6 +32,7 @@ export class ActorRoundDefenseDto {
     dto.bodyAt = entity.bodyAt;
     dto.armsAt = entity.armsAt;
     dto.legsAt = entity.legsAt;
+    dto.shield = entity.shield ? ActorRoundShieldDto.fromEntity(entity.shield) : undefined;
     return dto;
   }
 }
