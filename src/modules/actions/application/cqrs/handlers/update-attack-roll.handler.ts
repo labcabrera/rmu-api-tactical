@@ -4,6 +4,7 @@ import type { GameRepository } from '../../../../games/application/ports/game.re
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
+import { ActionStatus } from '../../../domain/value-objects/action-status.vo';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import type { AttackPort } from '../../ports/attack.port';
@@ -22,45 +23,56 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
 
   async execute(command: UpdateAttackRollCommand): Promise<Action> {
     this.logger.log(`Execute << ${JSON.stringify(command)}`);
+
     const action = await this.actionRepository.findById(command.actionId);
-    if (!action) {
-      throw new NotFoundError('Action', command.actionId);
-    }
+    if (!action) throw new NotFoundError('Action', command.actionId);
+
     const game = await this.gameRepository.findById(action.gameId);
-    if (!game) {
-      throw new NotFoundError('Game', action.gameId);
-    }
+    if (!game) throw new NotFoundError('Game', action.gameId);
+
     const attacks = action.attacks!;
     action.checkValidRollDeclaration();
-    const attack = attacks.find((a) => a.modifiers.attackName === command.attackName);
-    if (!attack) {
-      throw new ValidationError(`Attack ${command.attackName} not found in action ${action.id}`);
-    }
-    const location =
-      attack.modifiers.calledShot && attack.modifiers.calledShot != 'none' ? undefined : command.location;
+
+    const attack = attacks.find((a) => a.attackName === command.attackName);
+    if (!attack) throw new ValidationError(`Attack ${command.attackName} not found in action ${action.id}`);
+
+    const modifiers = attack.modifiers;
+    const calledShot = modifiers.calledShot;
+    const location = calledShot && calledShot != 'none' ? undefined : command.location;
+
     attack.roll = {
       roll: command.roll,
       location: location,
       criticalRolls: undefined,
+      fumbleRoll: undefined,
     };
     const attackResponse = await this.attackPort.updateRoll(attack.externalAttackId!, command.roll, location);
     if (!attackResponse || !attackResponse.results) throw new ValidationError('Attack service did not return results');
 
-    if (!attackResponse.results.criticals || attackResponse.results.criticals.length === 0) {
-      attack.roll.criticalRolls = undefined;
-    } else {
+    if (attackResponse.results.criticals && attackResponse.results.criticals.length > 0) {
       attack.roll.criticalRolls = new Map<string, number | undefined>();
       attackResponse.results.criticals.forEach((critical) => {
         attack.roll!.criticalRolls!.set(critical.key, undefined);
       });
     }
-    if (!action.hasPendingCriticalRolls() && !action.hasPendingFumbleRolls()) {
-      attack.status = 'pending_apply';
-    }
-    action.updatedAt = new Date();
+
+    attack.status = attackResponse.status;
     attack.results = attackResponse.results;
+
+    action.updatedAt = new Date();
+    action.status = this.calculateStatus(action);
+
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
     return updated;
+  }
+
+  private calculateStatus(action: Action): ActionStatus {
+    for (const attack of action.attacks!) {
+      if (attack.status !== 'pending_apply') {
+        return 'prepared';
+      }
+    }
+    return 'pending_apply';
   }
 }

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
+import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/actor-round.repository';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { Game } from '../../../../games/domain/aggregates/game.aggregate';
@@ -46,8 +46,11 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       command.description,
       command.userId,
     );
-    if (command.actionType === 'melee_attack') {
+    if (command.actionType === 'melee_attack' || command.actionType === 'ranged_attack') {
       action.addAttacks(command.attackNames);
+      actorRound.attacks.map((attack) => {
+        action.setAttackBo(attack.attackName, attack.currentBo);
+      });
     }
     const saved = await this.actionRepository.save(action);
     const events = action.getUncommittedEvents();

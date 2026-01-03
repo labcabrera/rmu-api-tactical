@@ -19,6 +19,7 @@ import { ResolveManeuverHandler } from './application/cqrs/handlers/resolve-mane
 import { ResolveMovementHandler } from './application/cqrs/handlers/resolve-movement.handler';
 import { UpdateAttackRollHandler } from './application/cqrs/handlers/update-attack-roll.handler';
 import { UpdateCriticalRollHandler } from './application/cqrs/handlers/update-critical-roll.handler';
+import { UpdateFumbleRollHandler } from './application/cqrs/handlers/update-fumble-roll.handler';
 import { AbsoluteManeuverProcessorService } from './application/services/absolute-maneuver-processor.service';
 import { DifficultyService } from './application/services/difficulty-service';
 import { MovementProcessorService } from './application/services/movement-processor.service';
@@ -27,8 +28,8 @@ import { ApiManeuverAdapter } from './infrastructure/api-clients/api.maneuver.ad
 import { MongoActionRepository } from './infrastructure/db/mongo.action.repository';
 import { KafkaActionEventBusAdapter } from './infrastructure/messaging/kafka.action-event-bus.adapter';
 import { ActionModel, ActionSchema } from './infrastructure/persistence/models/action.model';
-import { AttackController } from './interfaces/http/action-attack.controller';
 import { ActionController } from './interfaces/http/action.controller';
+import { AttackController } from './interfaces/http/attack.controller';
 import { ManeuverController } from './interfaces/http/maneuver.controller';
 import { MovementController } from './interfaces/http/movement.controller';
 
@@ -59,6 +60,7 @@ import { MovementController } from './interfaces/http/movement.controller';
     DeclareParryHandler,
     UpdateAttackRollHandler,
     UpdateCriticalRollHandler,
+    UpdateFumbleRollHandler,
     ApplyAttackHandler,
     {
       provide: 'ActionRepository',

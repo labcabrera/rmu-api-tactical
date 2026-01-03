@@ -80,6 +80,7 @@ export interface CharacterItemWeapon {
 
 export interface CharacterEquipment {
   mainHand: string | undefined;
+  offHand: string | undefined;
   maneuverPenalty: number;
 }
 
@@ -88,7 +89,7 @@ export interface CharacterAttack {
   attackTable: string;
   sizeAdjustment: number;
   fumbleTable: string;
-  type: string;
+  type: 'melee' | 'ranged';
   fumble: number;
   bo: number;
 }

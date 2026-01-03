@@ -1,4 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
+import { ActorRoundShield } from './actor-round-shield.model';
 
 @Schema({ _id: false })
 export class ActorRoundDefense {
@@ -19,4 +20,7 @@ export class ActorRoundDefense {
 
   @Prop({ type: Number, required: false })
   public readonly legsAt: number | undefined;
+
+  @Prop({ type: ActorRoundShield, required: false })
+  public readonly shield: ActorRoundShield | undefined;
 }

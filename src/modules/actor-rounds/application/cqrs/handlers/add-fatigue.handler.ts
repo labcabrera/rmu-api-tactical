@@ -2,7 +2,7 @@ import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { UnprocessableEntityError } from '../../../../shared/domain/errors';
 import { ActorRound } from '../../../domain/aggregates/actor-round.aggregate';
-import type { ActorRoundRepository } from '../../ports/out/character-round.repository';
+import type { ActorRoundRepository } from '../../ports/out/actor-round.repository';
 import { AddFatigueCommand } from '../commands/add-fatigue.command';
 
 @CommandHandler(AddFatigueCommand)

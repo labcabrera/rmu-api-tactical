@@ -8,9 +8,13 @@ export type CoverType =
   | 'hard_partial'
   | 'hard_half'
   | 'hard_full';
+
 export type RestrictedQuartersType = 'none' | 'close' | 'cramped' | 'tight' | 'confined';
+
 export type PositionalSourceType = 'none' | 'to_flank' | 'to_rear';
+
 export type PositionalTargetType = 'none' | 'flank' | 'rear';
+
 export type DodgeType = 'none' | 'passive' | 'partial' | 'full';
 
 export class PrepareAttackCommand {
@@ -24,21 +28,37 @@ export class PrepareAttackCommand {
 
 export class PrepareAttackCommandItem {
   constructor(
-    public readonly attackName: string,
-    public readonly targetId: string,
-    public readonly bo: number,
-    public readonly calledShot: CalledShot | undefined,
-    public readonly calledShotPenalty: number | undefined,
-    public readonly cover: CoverType | undefined,
-    public readonly restrictedQuarters: RestrictedQuartersType | undefined,
-    public readonly positionalSource: PositionalSourceType | undefined,
-    public readonly positionalTarget: PositionalTargetType | undefined,
-    public readonly dodge: DodgeType | undefined,
-    public readonly range: number | undefined,
-    public readonly disabledDB: boolean | undefined,
-    public readonly disabledShield: boolean | undefined,
-    public readonly disabledParry: boolean | undefined,
-    public readonly customBonus: number | undefined,
+    public attackName: string,
+    public modifiers: PrepareAttackCommandModifiers,
+  ) {}
+}
+
+export class PrepareAttackCommandModifiers {
+  constructor(
+    public targetId: string,
+    public bo: number,
+    public calledShot: CalledShot | undefined,
+    public calledShotPenalty: number | undefined,
+    public positionalSource: string | undefined,
+    public positionalTarget: string | undefined,
+    public restrictedQuarters: string | undefined,
+    public cover: string | undefined,
+    public dodge: string | undefined,
+    public disabledDB: boolean | undefined,
+    public disabledShield: boolean | undefined,
+    public disabledParry: boolean | undefined,
+    public pace: string | undefined,
+    public restrictedParry: boolean | undefined,
+    public higherGround: boolean | undefined,
+    public stunnedFoe: boolean | undefined,
+    public surprisedFoe: boolean | undefined,
+    public proneTarget: boolean | undefined,
+    public proneSource: boolean | undefined,
+    public attackerInMelee: boolean | undefined,
+    public offHand: boolean | undefined,
+    public ambush: boolean | undefined,
+    public range: number | undefined,
+    public customBonus: number | undefined,
   ) {}
 }
 

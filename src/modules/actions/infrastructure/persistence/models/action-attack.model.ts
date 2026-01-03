@@ -1,7 +1,8 @@
 import { Prop, Schema } from '@nestjs/mongoose';
 import { Modifier } from '../../../../shared/infrastructure/persistence/models/modier.model';
-import type { ActionStatus } from '../../../domain/value-objects/action-status.vo';
+import type { AttackType } from '../../../domain/value-objects/action-attack-modifiers.vo';
 import { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
+import type { AttackStatus } from '../../../domain/value-objects/attack-status.vo';
 import { ActionAttackModifiers } from './action-attack-modifiers.model';
 
 @Schema({ _id: false })
@@ -75,6 +76,9 @@ export class ActionAttackRoll {
     default: {},
   })
   public criticalRolls: Map<string, number | undefined> | undefined;
+
+  @Prop({ type: Number, required: false })
+  public fumbleRoll: number | undefined;
 }
 
 @Schema({ _id: false })
@@ -99,16 +103,43 @@ export class Critical {
 }
 
 @Schema({ _id: false })
+export class Fumble {
+  @Prop({ type: String, required: true })
+  public status: string;
+
+  @Prop({ type: String, required: false })
+  public text: string | undefined;
+
+  @Prop({ type: String, required: false })
+  public additionalDamageText: string | undefined;
+
+  @Prop({ type: Number, required: false })
+  public damage: number | undefined;
+
+  @Prop({ type: [CriticalEffect], required: false })
+  public effects: CriticalEffect[] | undefined;
+}
+
+@Schema({ _id: false })
 export class ActionAttackResult {
   @Prop({ type: AttackTableEntry, required: false })
   public attackTableEntry: AttackTableEntry | undefined;
 
   @Prop({ type: [Critical], required: false })
   public criticals: Critical[] | undefined;
+
+  @Prop({ type: Fumble, required: false })
+  public fumble: Fumble | undefined;
 }
 
 @Schema({ _id: false })
 export class ActionAttack {
+  @Prop({ type: String, required: true })
+  public attackName: string;
+
+  @Prop({ type: String, required: true })
+  public type: AttackType;
+
   @Prop({ type: ActionAttackModifiers, required: true })
   public modifiers: ActionAttackModifiers;
 
@@ -125,5 +156,5 @@ export class ActionAttack {
   public externalAttackId: string | undefined;
 
   @Prop({ type: String, required: true })
-  public status: ActionStatus;
+  public status: AttackStatus;
 }

@@ -1,18 +1,20 @@
 import { Modifier } from '../../../shared/domain/entities/modifier.vo';
-import { ActionAttackModifiers } from './action-attack-modifiers.vo';
-import { ActionStatus } from './action-status.vo';
+import { ActionAttackModifiers, AttackType } from './action-attack-modifiers.vo';
 import { AttackLocation } from './attack-location.vo';
+import { AttackStatus } from './attack-status.vo';
 
 export type ParryType = 'parry' | 'protect';
 
 export class ActionAttack {
   constructor(
+    public attackName: string,
+    public type: AttackType,
     public modifiers: ActionAttackModifiers,
     public roll: ActionAttackRoll | undefined,
     public calculated: ActionAttackCalculated | undefined,
     public results: ActionAttackResult | undefined,
     public externalAttackId: string | undefined,
-    public status: ActionStatus,
+    public status: AttackStatus,
   ) {}
 }
 
@@ -35,6 +37,7 @@ export class ActionAttackRoll {
     public roll: number,
     public location: AttackLocation | undefined,
     public criticalRolls: Map<string, number | undefined> | undefined,
+    public fumbleRoll: number | undefined,
   ) {}
 }
 
@@ -74,10 +77,21 @@ export class Critical {
   ) {}
 }
 
+export class Fumble {
+  constructor(
+    public status: string,
+    public text: string | undefined,
+    public additionalDamageText: string | undefined,
+    public damage: number | undefined,
+    public effects: CriticalEffect[] | undefined,
+  ) {}
+}
+
 export class ActionAttackResult {
   constructor(
     public attackTableEntry: AttackTableEntry | undefined,
     public criticals: Critical[] | undefined,
+    public fumble: Fumble | undefined,
   ) {}
 }
 

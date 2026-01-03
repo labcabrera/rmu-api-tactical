@@ -4,7 +4,7 @@ import { AddEffectsCommand } from '../../../../actor-rounds/application/cqrs/com
 import { AddFatigueCommand } from '../../../../actor-rounds/application/cqrs/commands/add-fatigue.command';
 import { DeclareActorParryCommand } from '../../../../actor-rounds/application/cqrs/commands/declare-actor-parry.command';
 import { SubstractBoCommand } from '../../../../actor-rounds/application/cqrs/commands/substract-bo.command';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/character-round.repository';
+import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/actor-round.repository';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
 import { ActorRoundEffect } from '../../../../actor-rounds/domain/value-objets/actor-round-effect.vo';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
@@ -35,18 +35,16 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
 
   async execute(command: ApplyAttackCommand): Promise<Action> {
     this.logger.log(`Execute << ${JSON.stringify(command)}`);
+
     const action = await this.actionRepository.findById(command.actionId);
-    if (!action) {
-      throw new NotFoundError('Action', command.actionId);
-    }
+    if (!action) throw new NotFoundError('Action', command.actionId);
+
     const game = await this.gameRepository.findById(action.gameId);
-    if (!game) {
-      throw new NotFoundError('Game', action.gameId);
-    }
+    if (!game) throw new NotFoundError('Game', action.gameId);
+
     const strategicGame = await this.strategicGamePort.findById(game.strategicGameId);
-    if (!strategicGame) {
-      throw new NotFoundError('StrategicGame', game.strategicGameId);
-    }
+    if (!strategicGame) throw new NotFoundError('StrategicGame', game.strategicGameId);
+
     action.checkValidApplyResults();
     const actionAttacks = action.attacks!;
     const actorRoundIds = Array.from(new Set(actionAttacks.map((a) => a.modifiers.targetId).concat([action.actorId])));
@@ -58,10 +56,14 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     const substractBoCommands = this.processAttackSourceSubstractBo(action, actors, command.userId, command.roles);
     await Promise.all(substractBoCommands.map((cmd) => this.commandBus.execute(cmd)));
 
+    const sourceActor = actors.find((a) => a.actorId === action.actorId)!;
+
     const updateCommands = new Map<string, AddEffectsCommand>();
     actionAttacks.forEach((actionAttack) => {
-      this.processAttackTargets(actionAttack, actors, updateCommands, command.userId, command.roles);
+      this.processTargetEffects(actionAttack, actors, updateCommands, command.userId, command.roles);
+      this.processSourceEffects(actionAttack, sourceActor, updateCommands, command.userId, command.roles);
     });
+
     // Apply all effects and damages sinchronously to avoid multiple updates
     for (const cmd of updateCommands.values()) {
       await this.commandBus.execute<AddEffectsCommand, void>(cmd);
@@ -90,13 +92,13 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     }
     const substractBoCommands: SubstractBoCommand[] = [];
     action.attacks?.forEach((a) => {
-      const attack = action.getAttackByName(a.modifiers.attackName);
+      const attack = action.getAttackByName(a.attackName);
       if (!attack) {
-        throw new UnprocessableEntityError(`Attack ${a.modifiers.attackName} not found`);
+        throw new UnprocessableEntityError(`Attack ${a.attackName} not found`);
       }
       if (attack.modifiers.bo! > 0) {
         substractBoCommands.push(
-          new SubstractBoCommand(actorRound.id, a.modifiers.attackName, attack.modifiers.bo!, userId, roles),
+          new SubstractBoCommand(actorRound.id, a.attackName, attack.modifiers.bo!, userId, roles),
         );
       }
     });
@@ -113,7 +115,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     }
   }
 
-  private processAttackTargets(
+  private processTargetEffects(
     actionAttack: ActionAttack,
     actors: ActorRound[],
     updateCommands: Map<string, AddEffectsCommand>,
@@ -144,6 +146,34 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     } else {
       const cmd = new AddEffectsCommand(target.id, dmg, criticalEffects, userId, roles);
       updateCommands.set(target.id, cmd);
+    }
+  }
+
+  private processSourceEffects(
+    actionAttack: ActionAttack,
+    actor: ActorRound,
+    updateCommands: Map<string, AddEffectsCommand>,
+    userId: string,
+    roles: string[],
+  ) {
+    if (!actionAttack.results?.fumble) {
+      return;
+    }
+    const fumble = actionAttack.results.fumble;
+    const effects: ActorRoundEffect[] = [];
+    fumble.effects?.forEach((e) => {
+      const effect = new ActorRoundEffect(e.status, e.value, e.rounds);
+      effects.push(effect);
+    });
+    if (effects.length === 0) {
+      return;
+    }
+    if (updateCommands.has(actor.id)) {
+      const cmd = updateCommands.get(actor.id)!;
+      cmd.effects.push(...effects);
+    } else {
+      const cmd = new AddEffectsCommand(actor.id, 0, effects, userId, roles);
+      updateCommands.set(actor.id, cmd);
     }
   }
 

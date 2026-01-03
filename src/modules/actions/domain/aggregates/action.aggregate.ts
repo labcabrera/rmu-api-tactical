@@ -126,6 +126,14 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     }
   }
 
+  setActionPoints(currentPhase: number) {
+    if (this.freeAction) {
+      this.actionPoints = 0;
+    } else {
+      this.actionPoints = currentPhase - this.phaseStart + 1;
+    }
+  }
+
   addAttacks(attackNames: string[] | undefined) {
     if (!attackNames || attackNames.length === 0) {
       return;
@@ -135,23 +143,41 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     }
     attackNames.forEach((attackName) => {
       const attack = {
+        attackName: attackName,
+        type: this.actionType === 'melee_attack' ? 'melee' : 'ranged',
         modifiers: {
-          attackName: attackName,
-          type: this.actionType === 'melee_attack' ? 'melee' : 'ranged',
+          bo: 0,
           calledShot: 'none',
-          cover: 'none',
-          restrictedQuarters: 'none',
+          calledShotPenalty: 0,
           positionalSource: 'none',
           positionalTarget: 'none',
+          restrictedQuarters: 'none',
+          cover: 'none',
           dodge: 'none',
           disabledDB: false,
           disabledShield: false,
           disabledParry: false,
+          pace: 'creep',
+          restrictedParry: false,
+          higherGround: false,
+          stunnedFoe: false,
+          surprisedFoe: false,
+          proneSource: false,
+          proneTarget: false,
+          offHand: attackName === 'offHand' ? true : false,
+          ambush: false,
         },
-        status: 'declared',
+        status: 'pending_attack_roll',
       } as ActionAttack;
       this.attacks!.push(attack);
     });
+  }
+
+  setAttackBo(attackName: string, currentBo: number) {
+    if (!this.attacks) return;
+    const attack = this.attacks?.find((a) => a.attackName === attackName);
+    if (!attack || !attack.modifiers) return;
+    attack.modifiers.bo = currentBo;
   }
 
   processParryOptions(targets: ActorRound[], targetActions: Action[]) {
@@ -169,7 +195,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
         // read min bo available from parry over all attacks
         const availableBo: number[] = [];
         for (const attack of lastMeleeAttack.attacks!) {
-          availableBo.push(target.getCurrentBo(attack.modifiers.attackName));
+          availableBo.push(target.getCurrentBo(attack.attackName));
         }
         const minBo = Math.min(...availableBo);
         this.parries?.push(new ActionParry(randomUUID(), target.actorId, target.actorId, 'parry', minBo, 0));
@@ -202,13 +228,16 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
   }
 
   hasPendingFumbleRolls(): boolean {
-    // TODO implement fumble rolls
-    return false;
+    if (this.actionType !== 'melee_attack' && this.actionType !== 'ranged_attack') {
+      throw new ValidationError('Action is not an attack');
+    }
+    if (!this.attacks || this.attacks.length === 0) throw new ValidationError('Action has no attacks declared');
+    return this.attacks.some((attack) => attack.results?.fumble && !attack.roll?.fumbleRoll);
   }
 
   getAttackByName(attackName: string): ActionAttack {
     if (!this.attacks) throw new ValidationError('Action has no attacks declared');
-    const result = this.attacks.find((a) => a.modifiers.attackName === attackName);
+    const result = this.attacks.find((a) => a.attackName === attackName);
     if (!result) throw new ValidationError(`Attack ${attackName} not found in action ${this.id}`);
     return result;
   }
@@ -226,7 +255,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     if (!attackName) throw new ValidationError('Attack name is required');
     if (!criticalKey) throw new ValidationError('Critical key is required');
     if (!roll || roll < 1 || roll > 100) throw new ValidationError('Critical roll must be between 1 and 100');
-    const attack = this.attacks!.find((a) => a.modifiers.attackName === attackName);
+    const attack = this.attacks!.find((a) => a.attackName === attackName);
     if (!attack) throw new ValidationError(`Attack ${attackName} not found in action ${this.id}`);
     if (!attack.roll || !attack.roll.roll) {
       throw new ValidationError(`Main roll not found in attack ${attackName} of action ${this.id}`);
@@ -273,7 +302,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
       throw new UnprocessableEntityError('Action does not have attack data');
     }
     // check every 6 rounds only for melee attacks
-    return this.attacks.some((e) => e.modifiers.type === 'melee') ? 4.16 : undefined;
+    return this.attacks.some((e) => e.type === 'melee') ? 4.16 : undefined;
   }
 
   applyParrysToAttacks() {

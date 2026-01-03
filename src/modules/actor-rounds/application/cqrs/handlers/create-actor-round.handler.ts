@@ -12,7 +12,8 @@ import { ActorRoundFatigue } from '../../../domain/value-objets/actor-round-fati
 import { ActorRoundHP } from '../../../domain/value-objets/actor-round-hp.vo';
 import { ActorRoundInitiative } from '../../../domain/value-objets/actor-round-initiative.vo';
 import { ActorRoundPenalty } from '../../../domain/value-objets/actor-round-penalty.vo';
-import type { ActorRoundRepository } from '../../ports/out/character-round.repository';
+import { ActorRoundShield } from '../../../domain/value-objets/actor-round-shield.vo';
+import type { ActorRoundRepository } from '../../ports/out/actor-round.repository';
 import { CreateActorRoundCommand } from '../commands/create-actor-round.command';
 
 @CommandHandler(CreateActorRoundCommand)
@@ -61,6 +62,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
       attacks = this.mapAttacksFromCharacter(character);
       maxHp = character.hp.max;
       currentHp = character.hp.current;
+      const shield = this.mapShield(character);
       defense = new ActorRoundDefense(
         character.defense.defensiveBonus,
         character.defense.armor.at,
@@ -68,6 +70,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
         character.defense.armor.bodyAt,
         character.defense.armor.armsAt,
         character.defense.armor.legsAt,
+        shield,
       );
     } else {
       throw new NotImplementedException('NPCs are not implemented yet');
@@ -93,20 +96,20 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
 
   private mapAttacksFromCharacter(character: Character): ActorRoundAttack[] {
     return character.attacks.map((attack) => {
-      return {
-        attackName: attack.attackName,
-        boModifiers: [],
-        baseBo: attack.bo,
-        currentBo: attack.bo,
-        type: attack.type,
-        attackTable: attack.attackTable,
-        fumbleTable: attack.fumbleTable,
+      return new ActorRoundAttack(
+        attack.attackName,
+        [],
+        attack.bo,
+        attack.bo,
+        attack.type,
+        attack.attackTable,
+        attack.fumbleTable,
         //TODO
-        attackSize: 'medium',
-        fumble: attack.fumble,
-        canThrow: false,
-        ranges: this.mapAttackRanges(character),
-      } as ActorRoundAttack;
+        'medium',
+        attack.fumble,
+        false,
+        this.mapAttackRanges(character),
+      );
     });
   }
 
@@ -117,5 +120,27 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
       return item.weapon.ranges;
     }
     return undefined;
+  }
+
+  private mapShield(character: Character): ActorRoundShield | undefined {
+    if (!character.equipment || !character.equipment.offHand) {
+      return undefined;
+    }
+    const item = character.items.find((it) => it.id === character.equipment.offHand);
+    if (item?.category === 'shield') {
+      switch (item.itemTypeId) {
+        //TODO read custom shield properties
+        case 'target-shield':
+          return new ActorRoundShield('target', 15, 1, 0);
+        case 'normal-shield':
+          return new ActorRoundShield('normal', 20, 2, 0);
+        case 'full-shield':
+          return new ActorRoundShield('full', 25, 3, 0);
+        case 'wall-shield':
+          return new ActorRoundShield('wall', 30, 4, 0);
+        default:
+          return undefined;
+      }
+    }
   }
 }
