@@ -55,6 +55,7 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
       } else {
         throw new ValidationError('Location roll is required using different armor types');
       }
+      attack.calculated!.location = location;
     }
 
     attack.roll = {
