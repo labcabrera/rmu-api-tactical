@@ -35,7 +35,7 @@ export class ActionParry {
 export class ActionAttackRoll {
   constructor(
     public roll: number,
-    public location: AttackLocation | undefined,
+    public locationRoll: number | undefined,
     public criticalRolls: Map<string, number | undefined> | undefined,
     public fumbleRoll: number | undefined,
   ) {}
@@ -45,6 +45,7 @@ export class ActionAttackCalculated {
   constructor(
     public rollModifiers: Modifier[],
     public rollTotal: number,
+    public location: AttackLocation | undefined,
   ) {}
 }
 

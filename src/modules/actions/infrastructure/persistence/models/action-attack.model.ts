@@ -12,6 +12,9 @@ export class ActionAttackCalculated {
 
   @Prop({ type: Number, required: true })
   public rollTotal: number;
+
+  @Prop({ type: String, required: false })
+  public location: AttackLocation | undefined;
 }
 
 @Schema({ _id: false })
@@ -67,8 +70,8 @@ export class ActionAttackRoll {
   @Prop({ type: Number, required: true })
   public roll: number;
 
-  @Prop({ type: String, required: false })
-  public location: AttackLocation | undefined;
+  @Prop({ type: Number, required: false })
+  public locationRoll: number | undefined;
 
   @Prop({
     type: Map,

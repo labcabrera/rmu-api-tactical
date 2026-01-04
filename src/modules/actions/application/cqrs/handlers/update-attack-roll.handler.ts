@@ -1,10 +1,12 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/actor-round.repository';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import { ActionStatus } from '../../../domain/value-objects/action-status.vo';
+import { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import type { AttackPort } from '../../ports/attack.port';
@@ -17,6 +19,7 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
   constructor(
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
+    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('AttackPort') private readonly attackPort: AttackPort,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
   ) {}
@@ -37,12 +40,26 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     if (!attack) throw new ValidationError(`Attack ${command.attackName} not found in action ${action.id}`);
 
     const modifiers = attack.modifiers;
-    const calledShot = modifiers.calledShot;
-    const location = calledShot && calledShot != 'none' ? undefined : command.location;
+
+    const targetActor = await this.actorRoundRepository.findById(attack.modifiers.targetId!);
+    if (!targetActor) throw new NotFoundError('ActorRound', attack.modifiers.targetId!);
+
+    const requiredLocationRoll = !targetActor?.defense.at;
+
+    let location: AttackLocation | undefined = undefined;
+    if (requiredLocationRoll) {
+      if (modifiers.calledShot && attack.modifiers.calledShot != 'none') {
+        location = attack.modifiers.calledShot;
+      } else if (command.locationRoll) {
+        location = this.getLocation(command.locationRoll);
+      } else {
+        throw new ValidationError('Location roll is required using different armor types');
+      }
+    }
 
     attack.roll = {
       roll: command.roll,
-      location: location,
+      locationRoll: command.locationRoll,
       criticalRolls: undefined,
       fumbleRoll: undefined,
     };
@@ -65,6 +82,40 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
     return updated;
+  }
+
+  private getLocation(locationRoll: number): AttackLocation | undefined {
+    const locationMap: Array<{ range: [number, number]; location: AttackLocation }> = [
+      { range: [1, 1], location: 'head' },
+      { range: [2, 3], location: 'body' },
+      { range: [4, 5], location: 'body' },
+      { range: [6, 10], location: 'legs' },
+      { range: [11, 15], location: 'arms' },
+      { range: [16, 20], location: 'head' },
+      { range: [21, 25], location: 'body' },
+      { range: [26, 35], location: 'body' },
+      { range: [36, 45], location: 'legs' },
+      { range: [46, 55], location: 'arms' },
+      { range: [56, 65], location: 'arms' },
+      { range: [66, 66], location: 'body' },
+      { range: [67, 75], location: 'legs' },
+      { range: [76, 80], location: 'body' },
+      { range: [81, 85], location: 'head' },
+      { range: [86, 90], location: 'arms' },
+      { range: [91, 95], location: 'legs' },
+      { range: [96, 97], location: 'body' },
+      { range: [98, 99], location: 'body' },
+      { range: [100, 100], location: 'head' },
+    ];
+
+    for (const entry of locationMap) {
+      const [min, max] = entry.range;
+      if (locationRoll >= min && locationRoll <= max) {
+        return entry.location;
+      }
+    }
+
+    return undefined;
   }
 
   private calculateStatus(action: Action): ActionStatus {
