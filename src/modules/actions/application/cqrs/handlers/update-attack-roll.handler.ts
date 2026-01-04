@@ -41,7 +41,7 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
 
     const modifiers = attack.modifiers;
 
-    const targetActor = await this.actorRoundRepository.findById(attack.modifiers.targetId!);
+    const targetActor = await this.actorRoundRepository.findByActorIdAndRound(attack.modifiers.targetId!, action.round);
     if (!targetActor) throw new NotFoundError('ActorRound', attack.modifiers.targetId!);
 
     const requiredLocationRoll = !targetActor?.defense.at;
