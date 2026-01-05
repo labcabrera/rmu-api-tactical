@@ -112,16 +112,13 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       gameLethality,
     );
 
-    //TODO
-    const location = 'head';
-
     const portResponse = await this.attackClient.prepareAttack(request);
     attack.externalAttackId = portResponse.id;
     attack.status = portResponse.status;
     attack.calculated = new ActionAttackCalculated(
       portResponse.calculated.rollModifiers,
       portResponse.calculated.rollTotal,
-      location,
+      undefined,
     );
   }
 
