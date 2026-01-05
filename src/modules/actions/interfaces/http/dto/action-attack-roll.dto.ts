@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActionAttackRoll } from '../../../domain/value-objects/action-attack.vo';
+import { ActionAttackRoll } from '../../../domain/value-objects/action-attack-roll.vo';
 
 export class ActionAttackRollDto {
   @ApiProperty({ description: 'The attack roll', example: 15 })
