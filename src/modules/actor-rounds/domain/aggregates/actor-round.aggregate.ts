@@ -30,6 +30,7 @@ export interface ActorRoundProps {
   parries: number[];
   effects: ActorRoundEffect[];
   alerts: ActorRoundAlert[];
+  imageUrl: string | undefined;
   owner: string;
   createdAt: Date;
   updatedAt?: Date;
@@ -53,6 +54,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
     public parries: number[],
     public effects: ActorRoundEffect[],
     public alerts: ActorRoundAlert[],
+    public imageUrl: string | undefined,
     public owner: string,
     public readonly createdAt: Date,
     public readonly updatedAt: Date | undefined,
@@ -74,6 +76,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
     attacks: ActorRoundAttack[],
     effects: ActorRoundEffect[],
     alerts: ActorRoundAlert[],
+    imageUrl: string | undefined,
     owner: string,
   ): ActorRound {
     const actorRound = new ActorRound(
@@ -93,6 +96,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
       [],
       effects,
       alerts,
+      imageUrl,
       owner,
       new Date(),
       undefined,
@@ -119,6 +123,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
       props.parries,
       props.effects,
       props.alerts,
+      props.imageUrl,
       props.owner,
       props.createdAt,
       props.updatedAt,
@@ -139,6 +144,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
       attacks,
       effects,
       alerts,
+      imageUrl,
       owner,
     } = previous;
     const actorRound = new ActorRound(
@@ -158,6 +164,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
       [],
       effects,
       alerts,
+      imageUrl,
       owner,
       new Date(),
       undefined,
@@ -285,6 +292,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
       parries: this.parries,
       effects: this.effects,
       alerts: this.alerts,
+      imageUrl: this.imageUrl,
       owner: this.owner,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,

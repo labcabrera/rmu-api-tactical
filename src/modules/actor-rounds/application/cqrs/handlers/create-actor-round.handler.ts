@@ -53,6 +53,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
     let maxHp = 0;
     let currentHp = 0;
     let defense: ActorRoundDefense;
+    let imageUrl: string | undefined = undefined;
     if (actor.type === 'character') {
       const character = await this.characterClient.findById(actor.id);
       if (!character) {
@@ -72,6 +73,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
         character.defense.armor.legsAt,
         shield,
       );
+      imageUrl = character.imageUrl;
     } else {
       throw new NotImplementedException('NPCs are not implemented yet');
     }
@@ -89,6 +91,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
       attacks,
       [] as ActorRoundEffect[],
       [] as ActorRoundAlert[],
+      imageUrl,
       //TODO read from faction
       'todo-owner',
     );

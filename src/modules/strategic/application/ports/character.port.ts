@@ -20,6 +20,7 @@ export interface Character {
   items: CharacterItem[];
   equipment: CharacterEquipment;
   attacks: CharacterAttack[];
+  imageUrl: string | undefined;
   owner: string;
 }
 
