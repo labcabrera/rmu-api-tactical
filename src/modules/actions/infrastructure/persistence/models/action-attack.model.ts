@@ -15,6 +15,9 @@ export class ActionAttackCalculated {
 
   @Prop({ type: String, required: false })
   public location: AttackLocation | undefined;
+
+  @Prop({ type: Boolean, required: true })
+  public requiredLocationRoll: boolean;
 }
 
 @Schema({ _id: false })
@@ -73,11 +76,7 @@ export class ActionAttackRoll {
   @Prop({ type: Number, required: false })
   public locationRoll: number | undefined;
 
-  @Prop({
-    type: Map,
-    of: Number,
-    default: {},
-  })
+  @Prop({ type: Map, of: Number, default: {} })
   public criticalRolls: Map<string, number | undefined> | undefined;
 
   @Prop({ type: Number, required: false })

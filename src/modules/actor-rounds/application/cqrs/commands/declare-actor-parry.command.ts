@@ -1,4 +1,5 @@
-import { ActionParry, ParryType } from '../../../../actions/domain/value-objects/action-attack.vo';
+import { ActionParry } from '../../../../actions/domain/value-objects/action-attack-parry.vo';
+import { ParryType } from '../../../../actions/domain/value-objects/parry-type';
 
 export class DeclareActorParryCommand {
   constructor(

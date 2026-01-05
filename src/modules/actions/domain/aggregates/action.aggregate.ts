@@ -4,7 +4,8 @@ import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.
 import { UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors';
 import { DomainEvent } from '../../../shared/domain/events/domain-event';
 import { ActionCreatedEvent } from '../events/action-events';
-import { ActionAttack, ActionParry } from '../value-objects/action-attack.vo';
+import { ActionParry } from '../value-objects/action-attack-parry.vo';
+import { ActionAttack } from '../value-objects/action-attack.vo';
 import { ActionManeuver } from '../value-objects/action-maneuver.vo';
 import { ActionMovement } from '../value-objects/action-movement.vo';
 import { ActionStatus } from '../value-objects/action-status.vo';
