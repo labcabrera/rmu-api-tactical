@@ -65,6 +65,8 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
 
     attack.status = attackResponse.status;
     attack.results = attackResponse.results;
+    attack.calculated!.rollModifiers = attackResponse.calculated.rollModifiers;
+    attack.calculated!.rollTotal = attackResponse.calculated.rollTotal;
 
     action.updatedAt = new Date();
     action.status = this.calculateStatus(action);
