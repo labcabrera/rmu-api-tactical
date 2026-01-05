@@ -1,5 +1,5 @@
 export type AttackType = 'melee' | 'ranged' | 'thrown';
-export type CalledShot = 'none' | 'head' | 'body' | 'arms' | 'legs';
+export type CalledShot = 'none' | 'head' | 'chest' | 'abdomen' | 'arms' | 'legs';
 
 export class ActionAttackModifiers {
   constructor(
