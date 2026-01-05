@@ -33,30 +33,15 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     const game = await this.gameRepository.findById(action.gameId);
     if (!game) throw new NotFoundError('Game', action.gameId);
 
-    const attacks = action.attacks!;
-    action.checkValidRollDeclaration();
+    this.validateCommand(command, action);
 
-    const attack = attacks.find((a) => a.attackName === command.attackName);
-    if (!attack) throw new ValidationError(`Attack ${command.attackName} not found in action ${action.id}`);
-
-    const modifiers = attack.modifiers;
+    const attack = action.attacks!.find((a) => a.attackName === command.attackName)!;
+    const calculated = attack.calculated!;
 
     const targetActor = await this.actorRoundRepository.findByActorIdAndRound(attack.modifiers.targetId!, action.round);
     if (!targetActor) throw new NotFoundError('ActorRound', attack.modifiers.targetId!);
 
-    const requiredLocationRoll = !targetActor?.defense.at;
-
-    let location: AttackLocation | undefined = undefined;
-    if (requiredLocationRoll) {
-      if (modifiers.calledShot && attack.modifiers.calledShot != 'none') {
-        location = attack.modifiers.calledShot;
-      } else if (command.locationRoll) {
-        location = this.getLocation(command.locationRoll);
-      } else {
-        throw new ValidationError('Location roll is required using different armor types');
-      }
-      attack.calculated!.location = location;
-    }
+    calculated.location = calculated.requiredLocationRoll ? this.getLocation(command.locationRoll!) : undefined;
 
     attack.roll = {
       roll: command.roll,
@@ -64,7 +49,11 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
       criticalRolls: undefined,
       fumbleRoll: undefined,
     };
-    const attackResponse = await this.attackPort.updateRoll(attack.externalAttackId!, command.roll, location);
+    const attackResponse = await this.attackPort.updateRoll(
+      attack.externalAttackId!,
+      command.roll,
+      calculated.location,
+    );
     if (!attackResponse || !attackResponse.results) throw new ValidationError('Attack service did not return results');
 
     if (attackResponse.results.criticals && attackResponse.results.criticals.length > 0) {
@@ -126,5 +115,22 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
       }
     }
     return 'pending_apply';
+  }
+
+  private validateCommand(command: UpdateAttackRollCommand, action: Action): void {
+    if (!action.attacks || action.attacks.length === 0) {
+      throw new ValidationError(`Action ${action.id} has no attacks`);
+    }
+    const attack = action.attacks.find((a) => a.attackName === command.attackName);
+    if (!attack) {
+      throw new ValidationError(`Attack ${command.attackName} not found in action ${action.id}`);
+    }
+    if (!attack.calculated) {
+      throw new ValidationError(`Attack ${command.attackName} has no calculated data`);
+    }
+    if (attack.calculated.requiredLocationRoll && !command.locationRoll) {
+      throw new ValidationError(`Location roll is required for attack ${command.attackName}`);
+    }
+    action.checkValidRollDeclaration();
   }
 }
