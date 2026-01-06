@@ -8,8 +8,9 @@ import type { CharacterPort } from '../../../../strategic/application/ports/char
 import { StrategicGameApiClient } from '../../../../strategic/infrastructure/api-clients/api-strategic-game.adapter';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
+import { ActionAttackCalculated } from '../../../domain/value-objects/action-attack-calculated.vo';
 import { ActionAttackModifiers } from '../../../domain/value-objects/action-attack-modifiers.vo';
-import { ActionAttack, ActionAttackCalculated } from '../../../domain/value-objects/action-attack.vo';
+import { ActionAttack } from '../../../domain/value-objects/action-attack.vo';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import type {
@@ -111,12 +112,24 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       targetsNumber,
       gameLethality,
     );
+
     const portResponse = await this.attackClient.prepareAttack(request);
     attack.externalAttackId = portResponse.id;
     attack.status = portResponse.status;
+
+    let requiredLocationRoll = false;
+    if (!ActionAttack.isCalledShot(attack)) {
+      const target = actors.find((a) => a.actorId === attack.modifiers.targetId)!;
+      if (!target.defense.at) {
+        requiredLocationRoll = true;
+      }
+    }
+
     attack.calculated = new ActionAttackCalculated(
       portResponse.calculated.rollModifiers,
       portResponse.calculated.rollTotal,
+      undefined,
+      requiredLocationRoll,
     );
   }
 

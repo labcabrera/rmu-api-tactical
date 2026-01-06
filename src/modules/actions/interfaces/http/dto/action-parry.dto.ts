@@ -1,4 +1,5 @@
-import { ActionParry, ParryType } from '../../../domain/value-objects/action-attack.vo';
+import { ActionParry } from '../../../domain/value-objects/action-attack-parry.vo';
+import { ParryType } from '../../../domain/value-objects/parry-type';
 
 export class ActionParryDto {
   id: string;

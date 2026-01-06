@@ -1,5 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import type { ParryType } from '../../../domain/value-objects/action-attack.vo';
+import type { ParryType } from '../../../domain/value-objects/parry-type';
 
 @Schema({ _id: false })
 export class ActionParry {

@@ -109,6 +109,7 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
       parries: doc.parries,
       effects: doc.effects,
       alerts: doc.alerts,
+      imageUrl: doc.imageUrl,
       owner: doc.owner,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,

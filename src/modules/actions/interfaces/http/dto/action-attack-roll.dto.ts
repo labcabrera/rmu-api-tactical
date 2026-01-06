@@ -1,13 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActionAttackRoll } from '../../../domain/value-objects/action-attack.vo';
-import { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
+import { ActionAttackRoll } from '../../../domain/value-objects/action-attack-roll.vo';
 
 export class ActionAttackRollDto {
   @ApiProperty({ description: 'The attack roll', example: 15 })
   roll: number;
 
-  @ApiProperty({ description: 'The location of the attack', example: 'head', required: false })
-  location: AttackLocation | undefined;
+  @ApiProperty({ description: 'Numeric roll value for location determination', required: false, example: 12 })
+  locationRoll: number | undefined;
 
   @ApiProperty({ description: 'The critical rolls', example: { s_c_1: 42 }, required: false })
   criticalRolls: Map<string, number | undefined> | undefined;
@@ -17,7 +16,7 @@ export class ActionAttackRollDto {
   static fromEntity(entity: ActionAttackRoll): ActionAttackRollDto {
     const dto = new ActionAttackRollDto();
     dto.roll = entity.roll;
-    dto.location = entity.location ? entity.location : undefined;
+    dto.locationRoll = entity.locationRoll;
     dto.criticalRolls = entity.criticalRolls ? entity.criticalRolls : undefined;
     dto.fumbleRoll = entity.fumbleRoll;
     return dto;

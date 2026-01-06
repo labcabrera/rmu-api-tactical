@@ -54,6 +54,9 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Alerts', type: [ActorRoundAlertDto], isArray: true })
   alerts: ActorRoundAlertDto[];
 
+  @ApiProperty({ description: 'Image URL of the actor', example: 'foo/bar/image.png', required: false })
+  imageUrl?: string | undefined;
+
   static fromEntity(entity: ActorRound) {
     const dto = new ActorRoundDto();
     dto.id = entity.id;
@@ -70,6 +73,7 @@ export class ActorRoundDto {
     dto.fatigue = ActorRoundFatigueDto.fromEntity(entity.fatigue);
     dto.effects = entity.effects;
     dto.alerts = entity.alerts.map((a) => ActorRoundAlertDto.fromEntity(a));
+    dto.imageUrl = entity.imageUrl;
     return dto;
   }
 }

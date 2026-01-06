@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Critical } from '../../../domain/value-objects/action-attack.vo';
+import { Critical } from '../../../domain/value-objects/critical.vo';
 
 export class CriticalEffectDto {
   @ApiProperty({ description: 'Effect status', example: 'applied' })

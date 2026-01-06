@@ -64,6 +64,9 @@ export class ActorRoundModel {
   @Prop({ type: [ActorRoundAlert], required: true })
   alerts: ActorRoundAlert[];
 
+  @Prop({ type: String, required: false })
+  imageUrl: string | undefined;
+
   @Prop({ required: true })
   owner: string;
 

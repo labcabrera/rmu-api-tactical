@@ -1,1 +1,1 @@
-export type AttackLocation = 'head' | 'body' | 'arms' | 'legs';
+export type AttackLocation = 'head' | 'chest' | 'abdomen' | 'arms' | 'legs';

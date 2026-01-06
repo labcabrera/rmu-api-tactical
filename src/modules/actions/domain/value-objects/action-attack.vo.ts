@@ -1,9 +1,8 @@
-import { Modifier } from '../../../shared/domain/entities/modifier.vo';
+import { ActionAttackCalculated } from './action-attack-calculated.vo';
 import { ActionAttackModifiers, AttackType } from './action-attack-modifiers.vo';
-import { AttackLocation } from './attack-location.vo';
+import { ActionAttackRoll } from './action-attack-roll.vo';
 import { AttackStatus } from './attack-status.vo';
-
-export type ParryType = 'parry' | 'protect';
+import { Critical } from './critical.vo';
 
 export class ActionAttack {
   constructor(
@@ -16,36 +15,11 @@ export class ActionAttack {
     public externalAttackId: string | undefined,
     public status: AttackStatus,
   ) {}
-}
 
-export class ActionParry {
-  constructor(
-    public readonly id: string,
-    /** Actor identifier. Can be the target of the attack or a protector */
-    public readonly actorId: string,
-    /** Actor who is the target of the attack (in two handed melee combat one attacker can attack two targets) */
-    public readonly targetActorId: string,
-    public readonly parryType: ParryType,
-    /** Name of the attack used to parry */
-    public readonly parryAvailable: number,
-    public parry: number,
-  ) {}
-}
-
-export class ActionAttackRoll {
-  constructor(
-    public roll: number,
-    public location: AttackLocation | undefined,
-    public criticalRolls: Map<string, number | undefined> | undefined,
-    public fumbleRoll: number | undefined,
-  ) {}
-}
-
-export class ActionAttackCalculated {
-  constructor(
-    public rollModifiers: Modifier[],
-    public rollTotal: number,
-  ) {}
+  //TODO make non static
+  static isCalledShot(attack: ActionAttack): boolean {
+    return attack.modifiers.calledShot !== undefined && attack.modifiers.calledShot !== 'none';
+  }
 }
 
 export class AttackTableEntry {
@@ -63,17 +37,6 @@ export class CriticalResult {
     public damage: number,
     public location: string,
     public effects: CriticalEffect[],
-  ) {}
-}
-
-export class Critical {
-  constructor(
-    public key: string,
-    public status: string,
-    public criticalType: string,
-    public criticalSeverity: string,
-    public adjustedRoll: number | undefined,
-    public result: CriticalResult | undefined,
   ) {}
 }
 
