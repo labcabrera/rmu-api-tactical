@@ -107,8 +107,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
         attack.type,
         attack.attackTable,
         attack.fumbleTable,
-        //TODO
-        'medium',
+        attack.sizeAdjustment,
         attack.fumble,
         false,
         this.mapAttackRanges(character),

@@ -61,7 +61,7 @@ export interface AttackSourceSkill {
 export interface AttackModifiers {
   attackType: string;
   attackTable: string;
-  attackSize: string;
+  attackSize: number;
   fumbleTable: string;
   armor: AttackArmor;
   actionPoints: number;

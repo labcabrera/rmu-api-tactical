@@ -8,7 +8,7 @@ export class ActorRoundAttack {
   type: 'melee' | 'ranged';
   attackTable: string;
   fumbleTable: string;
-  attackSize: 'small' | 'medium' | 'big';
+  attackSize: number;
   fumble: number;
   canThrow: boolean;
   ranges: AttackRange[] | undefined;
@@ -21,7 +21,7 @@ export class ActorRoundAttack {
     type: 'melee' | 'ranged',
     attackTable: string,
     fumbleTable: string,
-    attackSize: 'small' | 'medium' | 'big',
+    attackSize: number,
     fumble: number,
     canThrow: boolean,
     ranges: AttackRange[] | undefined,
