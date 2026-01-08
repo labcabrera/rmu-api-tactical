@@ -68,15 +68,19 @@ export interface CharacterItem {
   weapon: CharacterItemWeapon | undefined;
 }
 
-export interface CharacterItemWeapon {
+export interface CharacterItemMode {
+  type: string;
+  attackTypes: string[];
   attackTable: string;
   fumbleTable: string;
+  sizeAdjustment: number;
+  ranges: AttackRange[] | undefined;
+}
+
+export interface CharacterItemWeapon {
   skillId: string;
   fumble: number;
-  sizeAdjustment: number;
-  requiredHands: number;
-  throwable: boolean;
-  ranges: AttackRange[] | undefined;
+  modes: CharacterItemMode[];
 }
 
 export interface CharacterEquipment {

@@ -118,8 +118,10 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
   private mapAttackRanges(character: Character): AttackRange[] | undefined {
     if (!character.equipment || !character.equipment.mainHand) return undefined;
     const item = character.items.find((it) => it.id === character.equipment.mainHand);
-    if (item && item.weapon && item.weapon.ranges) {
-      return item.weapon.ranges;
+    //TODO get active mode
+    if (!item || !item.weapon) return undefined;
+    if (item && item.weapon && item.weapon.modes && item.weapon.modes.length > 0) {
+      return item.weapon.modes[0].ranges || undefined;
     }
     return undefined;
   }
