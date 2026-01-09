@@ -1,5 +1,6 @@
 export class ActorRoundEffect {
   constructor(
+    public readonly id: string,
     public readonly status: string,
     public value: number | undefined,
     public rounds: number | undefined,

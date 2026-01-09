@@ -41,6 +41,9 @@ export class ActorRoundParry {
 @Schema({ _id: false })
 export class ActorRoundEffect {
   @Prop({ required: true })
+  id: string;
+
+  @Prop({ required: true })
   status: string;
 
   @Prop({ type: Number, required: false })

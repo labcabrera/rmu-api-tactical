@@ -1,5 +1,6 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { randomUUID } from 'crypto';
 import { AddEffectsCommand } from '../../../../actor-rounds/application/cqrs/commands/add-effects.command';
 import { AddFatigueCommand } from '../../../../actor-rounds/application/cqrs/commands/add-fatigue.command';
 import { DeclareActorParryCommand } from '../../../../actor-rounds/application/cqrs/commands/declare-actor-parry.command';
@@ -132,7 +133,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     actionAttack.results?.criticals?.forEach((cr) => {
       dmg += cr.result?.damage || 0;
       cr.result?.effects?.forEach((e) => {
-        const effect = new ActorRoundEffect(e.status, e.value, e.rounds);
+        const effect = new ActorRoundEffect(randomUUID(), e.status, e.value, e.rounds);
         criticalEffects.push(effect);
       });
     });
@@ -162,7 +163,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     const fumble = actionAttack.results.fumble;
     const effects: ActorRoundEffect[] = [];
     fumble.effects?.forEach((e) => {
-      const effect = new ActorRoundEffect(e.status, e.value, e.rounds);
+      const effect = new ActorRoundEffect(randomUUID(), e.status, e.value, e.rounds);
       effects.push(effect);
     });
     if (effects.length === 0) {
