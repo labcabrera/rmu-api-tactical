@@ -47,7 +47,8 @@ export class ActorRoundAttack {
   fumbleTable: string;
 
   @Prop({ required: true })
-  attackSize: 'small' | 'medium' | 'big';
+  @Prop({ required: true, type: Number })
+  attackSize: number;
 
   @Prop({ required: true })
   fumble: number;

@@ -184,7 +184,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
       });
     }
     if (this.hp.current < 1) {
-      this.addEffect(new ActorRoundEffect('dead', undefined, undefined));
+      this.addEffect(new ActorRoundEffect(randomUUID(), 'dead', undefined, undefined));
     }
   }
 
@@ -193,7 +193,9 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
     if (effect.status === 'stunned') {
       effect.rounds! += 1;
     }
-
+    if (this.isDead() && effect.status === 'dying') {
+      return;
+    }
     const existing = this.effects.filter((e) => e.status === effect.status);
     const isUnique = ActorRoundEffect.isUnique(effect);
     if (isUnique && existing.length > 0) {
@@ -209,6 +211,10 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
       }
     }
     this.effects.push(effect);
+  }
+
+  deleteEffect(effectId: string) {
+    this.effects = this.effects.filter((e) => e.id !== effectId);
   }
 
   declareParry(parry: number): void {
@@ -238,10 +244,16 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
       .filter((e) => e.status === 'bleeding')
       .reduce((sum, e) => sum + (e.value ?? 0), 0);
     this.hp.current -= totalBleeding;
+    if (this.effects.some((e) => e.status === 'dying' && e.rounds && e.rounds <= 1)) {
+      this.addEffect(new ActorRoundEffect(randomUUID(), 'dead', undefined, undefined));
+    }
     this.effects.filter((e) => e.rounds !== undefined && e.rounds !== null).forEach((e) => (e.rounds! -= 1));
     this.effects = this.effects.filter((e) => e.rounds === undefined || e.rounds === null || e.rounds > 0);
     if (this.hp.current < 1) {
-      this.applyAttackResults(0, [new ActorRoundEffect('dead', undefined, undefined)]);
+      this.applyAttackResults(0, [new ActorRoundEffect(randomUUID(), 'dead', undefined, undefined)]);
+    }
+    if (this.isDead()) {
+      this.effects = this.effects.filter((e) => e.status !== 'dying');
     }
   }
 

@@ -172,6 +172,10 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       rangePenalty = rangedAttack.calculateRangeBonus(attackModifiers.range);
     }
 
+    const attackSize = 2;
+    const defenderSize = 2;
+    const sizeDifference = attackSize - defenderSize;
+
     const rollModifiers = {
       bo: attackModifiers.bo,
       bd: actorRoundTarget.defense.bd,
@@ -197,7 +201,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       disabledDB: attackModifiers.disabledDB || false,
       disabledShield: attackModifiers.disabledShield || false,
       disabledParry: attackModifiers.disabledParry || false,
-      sizeDifference: 0, //TODO this.calculateSizeDifference(actorSource.info.sizeId, actorTarget.info.sizeId),
+      sizeDifference: sizeDifference,
       offHand: offHand,
       twoHandedWeapon: twoHandedWeapon,
       higherGround: attackModifiers.higherGround || false,
@@ -213,7 +217,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       modifiers: {
         attackType: attack.type,
         attackTable: attackInfo.attackTable,
-        attackSize: 'medium', //this.getAttackSize(attack.sizeAdjustment),
+        attackSize: attackInfo.attackSize, // numeric size
         fumbleTable: attackInfo.fumbleTable,
         fumble: attackInfo.fumble,
         actionPoints: actionPoints,
@@ -257,25 +261,17 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     return targetActor.defense.shield.shieldDb;
   }
 
-  private getAttackSize(size: number): string {
+  private getAttackSize(size: number): number {
     switch (size) {
       case -1:
-        return 'small';
+        return -1;
       case 0:
-        return 'medium';
+        return 0;
       case 1:
-        return 'big';
+        return 1;
       default:
         throw new UnprocessableEntityError('Invalid size value');
     }
-  }
-
-  private calculateSizeDifference(sourceSize: string, targetSize: string): number {
-    //TODO load table map
-    const sizeMap = { medium: 0, small: -1, large: 1 } as Record<string, number>;
-    const sourceValue = sizeMap[sourceSize];
-    const targetValue = sizeMap[targetSize];
-    return (sourceValue || 0) - (targetValue || 0);
   }
 
   private mapActorSourceRoundEffects(actorRound: ActorRound, attack: ActionAttack): string[] {

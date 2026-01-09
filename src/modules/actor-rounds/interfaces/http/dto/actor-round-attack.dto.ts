@@ -26,7 +26,7 @@ export class ActorRoundAttackDto {
   type: 'melee' | 'ranged';
   attackTable: string;
   fumbleTable: string;
-  attackSize: 'small' | 'medium' | 'big';
+  attackSize: number;
   fumble: number;
   canThrow: boolean;
   ranges: AttackRangeDto[] | undefined;

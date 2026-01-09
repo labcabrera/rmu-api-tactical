@@ -107,8 +107,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
         attack.type,
         attack.attackTable,
         attack.fumbleTable,
-        //TODO
-        'medium',
+        attack.sizeAdjustment,
         attack.fumble,
         false,
         this.mapAttackRanges(character),
@@ -119,8 +118,9 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
   private mapAttackRanges(character: Character): AttackRange[] | undefined {
     if (!character.equipment || !character.equipment.mainHand) return undefined;
     const item = character.items.find((it) => it.id === character.equipment.mainHand);
-    if (item && item.weapon && item.weapon.ranges) {
-      return item.weapon.ranges;
+    if (!item || !item.weapon) return undefined;
+    if (item && item.weapon && item.weapon.modes && item.weapon.modes.length > 0) {
+      return item.weapon.modes[0].ranges || undefined;
     }
     return undefined;
   }

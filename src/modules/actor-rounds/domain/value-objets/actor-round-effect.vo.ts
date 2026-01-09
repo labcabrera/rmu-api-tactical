@@ -1,5 +1,6 @@
 export class ActorRoundEffect {
   constructor(
+    public readonly id: string,
     public readonly status: string,
     public value: number | undefined,
     public rounds: number | undefined,
@@ -7,7 +8,7 @@ export class ActorRoundEffect {
 
   static isUnique(effect: ActorRoundEffect): boolean {
     switch (effect.status) {
-      case 'death':
+      case 'dead':
         return true;
     }
     return false;

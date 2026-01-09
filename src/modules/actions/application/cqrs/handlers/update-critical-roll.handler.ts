@@ -22,21 +22,22 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
 
   async execute(command: UpdateCriticalRollCommand): Promise<Action> {
     this.logger.log(`Execute << ${JSON.stringify(command)}`);
+
     const action = await this.actionRepository.findById(command.actionId);
-    if (!action) {
-      throw new NotFoundError('Action', command.actionId);
-    }
+    if (!action) throw new NotFoundError('Action', command.actionId);
+
     const game = await this.gameRepository.findById(action.gameId);
-    if (!game) {
-      throw new NotFoundError('Game', action.gameId);
-    }
-    action.checkValidCriticalRollDeclaration(command.attackName, command.criticalKey, command.roll);
+    if (!game) throw new NotFoundError('Game', action.gameId);
+
+    const rollAdjusted = Math.min(Math.max(command.roll, 1), 100);
+
+    action.checkValidCriticalRollDeclaration(command.attackName, command.criticalKey, rollAdjusted);
     const attack = action.getAttackByName(command.attackName);
-    attack.roll!.criticalRolls!.set(command.criticalKey, command.roll);
+    attack.roll!.criticalRolls!.set(command.criticalKey, rollAdjusted);
     const attackResponse = await this.attackPort.updateCriticalRoll(
       attack.externalAttackId!,
       command.criticalKey,
-      command.roll,
+      rollAdjusted,
     );
     attack.results = attackResponse.results;
     if (!action.hasPendingCriticalRolls() && !action.hasPendingFumbleRolls()) {
