@@ -213,6 +213,10 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
     this.effects.push(effect);
   }
 
+  deleteEffect(effectId: string) {
+    this.effects = this.effects.filter((e) => e.id !== effectId);
+  }
+
   declareParry(parry: number): void {
     this.parries.push(parry);
     this.calculateCurrentBo();

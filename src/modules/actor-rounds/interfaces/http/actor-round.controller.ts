@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Body, Controller, Get, Logger, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Logger, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
@@ -8,6 +8,7 @@ import { Page } from '../../../shared/domain/entities/page.entity';
 import { ErrorDto, PagedQueryDto } from '../../../shared/interfaces/http/dto';
 import { AddEffectsCommand } from '../../application/cqrs/commands/add-effects.command';
 import { DeclareInitiativeCommand } from '../../application/cqrs/commands/declare-initiative.command';
+import { DeleteEffectCommand } from '../../application/cqrs/commands/delete-effect.command';
 import { GetActorRoundQuery } from '../../application/cqrs/queries/get-actor-round.query';
 import { GetActorsRoundsQuery } from '../../application/cqrs/queries/get-actor-rounds.query';
 import { ActorRound } from '../../domain/aggregates/actor-round.aggregate';
@@ -86,6 +87,18 @@ export class ActorRoundController {
     const user = req.user!;
     const command = AddEffectDto.toCommand(id, dto, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<AddEffectsCommand, ActorRound>(command);
+    return ActorRoundDto.fromEntity(entity);
+  }
+
+  @Delete(':id/effects/:effectId')
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
+  @ApiOperation({ operationId: 'deleteEffect', summary: 'Delete effect' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiNotFoundResponse({ description: 'Actor round not found', type: ErrorDto })
+  async deleteEffect(@Param('id') id: string, @Param('effectId') effectId: string, @Request() req) {
+    const user = req.user!;
+    const command = new DeleteEffectCommand(id, effectId, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<DeleteEffectCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
   }
 }
