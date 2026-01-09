@@ -193,7 +193,9 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
     if (effect.status === 'stunned') {
       effect.rounds! += 1;
     }
-
+    if (this.isDead() && effect.status === 'dying') {
+      return;
+    }
     const existing = this.effects.filter((e) => e.status === effect.status);
     const isUnique = ActorRoundEffect.isUnique(effect);
     if (isUnique && existing.length > 0) {
@@ -242,6 +244,12 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
     this.effects = this.effects.filter((e) => e.rounds === undefined || e.rounds === null || e.rounds > 0);
     if (this.hp.current < 1) {
       this.applyAttackResults(0, [new ActorRoundEffect('dead', undefined, undefined)]);
+    }
+    if (this.effects.some((e) => e.status === 'stunned' && e.rounds && e.rounds < 1)) {
+      this.addEffect(new ActorRoundEffect('dead', undefined, undefined));
+    }
+    if (this.isDead()) {
+      this.effects = this.effects.filter((e) => e.status !== 'dying');
     }
   }
 
