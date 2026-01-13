@@ -26,13 +26,16 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
   async execute(command: CreateActionCommand): Promise<Action> {
     this.logger.log(`Execute << ${JSON.stringify(command)}`);
     this.validateCommand(command);
+
     const game = await this.readGame(command);
     this.checkDeclareActionAllowed(game);
+
     const round = game.round;
     const [actorRound, roundActions] = await Promise.all([
       this.readActorRound(command, round),
       this.readActions(command, round),
     ]);
+
     this.validateActorRoundAndActions(actorRound, roundActions);
     const maneuver = this.mapManeuver(command);
     const action = Action.create(
@@ -46,12 +49,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       command.description,
       command.userId,
     );
-    if (command.actionType === 'melee_attack' || command.actionType === 'ranged_attack') {
-      action.addAttacks(command.attackNames);
-      actorRound.attacks.map((attack) => {
-        action.setAttackBo(attack.attackName, attack.currentBo);
-      });
-    }
+    this.loadAttacks(command, actorRound, action);
     const saved = await this.actionRepository.save(action);
     const events = action.getUncommittedEvents();
     events.forEach((event) => this.actionEventBus.publish(event));
@@ -87,8 +85,16 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     if (command.actionType === 'maneuver' && !command.maneuver) {
       throw new ValidationError(`Maneuver must be provided`);
     }
-    if (command.actionType === 'melee_attack' && (!command.attackNames || command.attackNames.length === 0)) {
-      throw new ValidationError(`At least one attack name must be provided`);
+  }
+
+  private loadAttacks(command: CreateActionCommand, actorRound: ActorRound, action: Action): void {
+    if (command.actionType === 'melee_attack' || command.actionType === 'ranged_attack') {
+      const attackNames =
+        command.attackNames && command.attackNames.length > 0
+          ? command.attackNames
+          : actorRound.attacks.map((attack) => attack.attackName);
+      action.addAttacks(attackNames);
+      actorRound.attacks.map((attack) => action.setAttackBo(attack.attackName, attack.currentBo));
     }
   }
 
