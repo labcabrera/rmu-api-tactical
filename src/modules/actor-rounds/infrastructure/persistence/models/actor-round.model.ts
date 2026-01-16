@@ -28,6 +28,15 @@ export class ActorRoundModel {
   @Prop({ required: true })
   actorName: string;
 
+  @Prop({ required: false })
+  raceId: string;
+
+  @Prop({ required: false })
+  level: number;
+
+  @Prop({ required: false })
+  faction: string;
+
   @Prop({ required: true })
   round: number;
 

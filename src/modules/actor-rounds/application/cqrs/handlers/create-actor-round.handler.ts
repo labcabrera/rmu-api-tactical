@@ -54,6 +54,9 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
     let currentHp = 0;
     let defense: ActorRoundDefense;
     let imageUrl: string | undefined = undefined;
+    let raceId = 'undefined';
+    let level = 0;
+    let factionId = 'undefined';
     if (actor.type === 'character') {
       const character = await this.characterClient.findById(actor.id);
       if (!character) {
@@ -73,7 +76,10 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
         character.defense.armor.legsAt,
         shield,
       );
+      raceId = character.info.raceId;
+      level = character.experience.level;
       imageUrl = character.imageUrl;
+      factionId = character.factionId;
     } else {
       throw new NotImplementedException('NPCs are not implemented yet');
     }
@@ -82,6 +88,9 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
       round,
       actor.id,
       actor.name,
+      raceId,
+      level,
+      factionId,
       new ActorRoundInitiative(initiativeBase, 0, undefined, undefined),
       4,
       new ActorRoundHP(maxHp, currentHp),

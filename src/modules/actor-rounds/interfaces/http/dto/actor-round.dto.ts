@@ -24,6 +24,15 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Actor name', example: 'Goblin Warrior' })
   actorName: string;
 
+  @ApiProperty({ description: 'Race identifier', example: 'race-goblin', required: false })
+  raceId?: string;
+
+  @ApiProperty({ description: 'Actor level', example: 1, required: false })
+  level?: number;
+
+  @ApiProperty({ description: 'Faction identifier', example: 'faction-1', required: false })
+  faction?: string;
+
   @ApiProperty({ description: 'Round number', example: 1 })
   round: number;
 
@@ -63,6 +72,9 @@ export class ActorRoundDto {
     dto.gameId = entity.gameId;
     dto.actorId = entity.actorId;
     dto.actorName = entity.actorName;
+    dto.raceId = (entity as any).raceId;
+    dto.level = (entity as any).level;
+    dto.faction = (entity as any).faction;
     dto.round = entity.round;
     dto.initiative = ActorRoundInitiativeDto.fromEntity(entity.initiative);
     dto.actionPoints = entity.actionPoints;

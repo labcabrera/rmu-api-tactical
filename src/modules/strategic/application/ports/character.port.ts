@@ -12,6 +12,7 @@ export interface Character {
   factionId: string;
   name: string;
   info: CharacterInfo;
+  experience: CharacterExperience;
   movement: CharacterMovement;
   defense: CharacterDefense;
   hp: CharacterHP;
@@ -25,7 +26,12 @@ export interface Character {
 }
 
 export interface CharacterInfo {
+  raceId: string;
   sizeId: string;
+}
+
+export interface CharacterExperience {
+  level: number;
 }
 
 export interface CharacterMovement {
