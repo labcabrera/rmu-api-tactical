@@ -54,7 +54,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
     let currentHp = 0;
     let defense: ActorRoundDefense;
     let imageUrl: string | undefined = undefined;
-    let raceId = 'undefined';
+    let raceName = 'undefined';
     let level = 0;
     let factionId = 'undefined';
     if (actor.type === 'character') {
@@ -76,7 +76,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
         character.defense.armor.legsAt,
         shield,
       );
-      raceId = character.info.raceId;
+      raceName = character.info.raceName;
       level = character.experience.level;
       imageUrl = character.imageUrl;
       factionId = character.factionId;
@@ -88,7 +88,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
       round,
       actor.id,
       actor.name,
-      raceId,
+      raceName,
       level,
       factionId,
       new ActorRoundInitiative(initiativeBase, 0, undefined, undefined),

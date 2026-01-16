@@ -26,6 +26,7 @@ export interface Character {
 }
 
 export interface CharacterInfo {
+  raceName: string;
   raceId: string;
   sizeId: string;
 }
