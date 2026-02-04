@@ -13,10 +13,10 @@ export class AddEffectsHandler implements ICommandHandler<AddEffectsCommand, Act
 
   async execute(command: AddEffectsCommand): Promise<ActorRound> {
     this.logger.debug(`Execute << ${JSON.stringify(command)}`);
+
     const actorRound = await this.actorRoundRepository.findById(command.actorRoundId);
-    if (!actorRound) {
-      throw new NotFoundError('Actor round', command.actorRoundId);
-    }
+    if (!actorRound) throw new NotFoundError('Actor round', command.actorRoundId);
+
     actorRound.applyAttackResults(command.dmg, command.effects);
     const updated = await this.actorRoundRepository.update(actorRound.id, actorRound);
     //TODO notify event bus

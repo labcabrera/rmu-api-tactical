@@ -1,7 +1,9 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { IsNumber } from 'class-validator';
 import { AddEffectsCommand } from '../../../application/cqrs/commands/add-effects.command';
 
 export class AddHpDto {
+  @ApiProperty({ description: 'HP to add or subtract' })
   @IsNumber()
   dmg: number;
 
