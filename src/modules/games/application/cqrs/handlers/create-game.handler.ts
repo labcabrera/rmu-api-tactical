@@ -54,7 +54,7 @@ export class CreateGameHandler implements ICommandHandler<CreateGameCommand, Gam
       return Actor.fromProps({
         id: actor.id,
         name: character.name,
-        factionId: character.factionId,
+        faction: character.faction,
         type: actor.type,
         owner: character.owner,
       });
@@ -66,7 +66,10 @@ export class CreateGameHandler implements ICommandHandler<CreateGameCommand, Gam
       return Actor.fromProps({
         id: actor.id,
         name: npc.name,
-        factionId: npc.realmId,
+        faction: {
+          id: actor.factionId!,
+          name: 'TODO: undefined-faction',
+        },
         type: actor.type,
         owner: userId,
       });

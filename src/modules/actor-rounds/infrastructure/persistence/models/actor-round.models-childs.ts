@@ -67,3 +67,12 @@ export class ActorRoundInitiative {
   @Prop({ type: Number, required: false })
   total: number | undefined;
 }
+
+@Schema({ _id: false })
+export class ActorRoundFaction {
+  @Prop({ required: true })
+  id: string;
+
+  @Prop({ required: true })
+  name: string;
+}

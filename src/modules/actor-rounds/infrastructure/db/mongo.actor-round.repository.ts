@@ -100,7 +100,7 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
       actorName: doc.actorName,
       raceName: doc.raceName,
       level: doc.level,
-      factionId: doc.factionId,
+      faction: doc.faction,
       initiative: doc.initiative,
       actionPoints: doc.actionPoints,
       hp: doc.hp,

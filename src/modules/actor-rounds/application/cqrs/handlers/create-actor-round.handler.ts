@@ -8,6 +8,7 @@ import { ActorRoundAlert } from '../../../domain/value-objets/actor-round-alert.
 import { ActorRoundAttack, AttackRange } from '../../../domain/value-objets/actor-round-attack.vo';
 import { ActorRoundDefense } from '../../../domain/value-objets/actor-round-defense.vo';
 import { ActorRoundEffect } from '../../../domain/value-objets/actor-round-effect.vo';
+import { ActorRoundFaction } from '../../../domain/value-objets/actor-round-faction.vo';
 import { ActorRoundFatigue } from '../../../domain/value-objets/actor-round-fatigue.vo';
 import { ActorRoundHP } from '../../../domain/value-objets/actor-round-hp.vo';
 import { ActorRoundInitiative } from '../../../domain/value-objets/actor-round-initiative.vo';
@@ -56,7 +57,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
     let imageUrl: string | undefined = undefined;
     let raceName = 'undefined';
     let level = 0;
-    let factionId = 'undefined';
+    let faction: ActorRoundFaction | undefined = undefined;
     if (actor.type === 'character') {
       const character = await this.characterClient.findById(actor.id);
       if (!character) {
@@ -79,7 +80,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
       raceName = character.info.raceName;
       level = character.experience.level;
       imageUrl = character.imageUrl;
-      factionId = character.factionId;
+      faction = character.faction;
     } else {
       throw new NotImplementedException('NPCs are not implemented yet');
     }
@@ -90,7 +91,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
       actor.name,
       raceName,
       level,
-      factionId,
+      faction,
       new ActorRoundInitiative(initiativeBase, 0, undefined, undefined),
       4,
       new ActorRoundHP(maxHp, currentHp),

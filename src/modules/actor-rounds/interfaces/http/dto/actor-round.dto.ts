@@ -6,6 +6,7 @@ import { ActorRoundEffect } from '../../../domain/value-objets/actor-round-effec
 import { ActorRoundAlertDto } from './actor-round-alert.dto';
 import { ActorRoundAttackDto } from './actor-round-attack.dto';
 import { ActorRoundDefenseDto } from './actor-round-defense.dto';
+import { ActorRoundFactionDto } from './actor-round-faction.dto';
 import { ActorRoundFatigueDto } from './actor-round-fatigue.dto';
 import { ActorRoundHPDto } from './actor-round-hp.dto';
 import { ActorRoundInitiativeDto } from './actor-round-initiative.dto';
@@ -30,8 +31,8 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Actor level', example: 1, required: false })
   level?: number;
 
-  @ApiProperty({ description: 'Faction identifier', example: 'faction-1', required: false })
-  factionId?: string;
+  @ApiProperty({ description: 'Faction', required: false })
+  faction?: ActorRoundFactionDto;
 
   @ApiProperty({ description: 'Round number', example: 1 })
   round: number;
@@ -74,7 +75,7 @@ export class ActorRoundDto {
     dto.actorName = entity.actorName;
     dto.raceName = (entity as any).raceName;
     dto.level = (entity as any).level;
-    dto.factionId = (entity as any).factionId;
+    dto.faction = (entity as any).faction ? ActorRoundFactionDto.fromEntity((entity as any).faction) : undefined;
     dto.round = entity.round;
     dto.initiative = ActorRoundInitiativeDto.fromEntity(entity.initiative);
     dto.actionPoints = entity.actionPoints;

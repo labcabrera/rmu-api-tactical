@@ -140,7 +140,7 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
       }
     }
     this.factions = this.factions.filter((f) => !factions.includes(f));
-    this.actors = this.actors.filter((a) => !factions.includes(a.factionId));
+    this.actors = this.actors.filter((a) => !factions.includes(a.faction.id));
     this.updatedAt = new Date();
     this.apply(new GameUpdatedEvent(this));
   }
@@ -153,8 +153,8 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
       if (this.actors.find((a) => a.id === actor.id && a.type === actor.type)) {
         throw new ValidationError(`Actor ${actor.id} already exists in the game`);
       }
-      if (!this.factions.includes(actor.factionId)) {
-        throw new ValidationError(`Actor ${actor.id} has faction ${actor.factionId} which is not part of the game`);
+      if (!this.factions.includes(actor.faction.id)) {
+        throw new ValidationError(`Actor ${actor.id} has faction ${actor.faction.id} which is not part of the game`);
       }
     }
     this.actors.push(...actors);

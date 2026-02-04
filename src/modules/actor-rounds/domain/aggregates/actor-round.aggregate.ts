@@ -7,6 +7,7 @@ import { ActorRoundAlert } from '../value-objets/actor-round-alert.vo';
 import { ActorRoundAttack } from '../value-objets/actor-round-attack.vo';
 import { ActorRoundDefense } from '../value-objets/actor-round-defense.vo';
 import { ActorRoundEffect } from '../value-objets/actor-round-effect.vo';
+import { ActorRoundFaction } from '../value-objets/actor-round-faction.vo';
 import { ActorRoundFatigue } from '../value-objets/actor-round-fatigue.vo';
 import { ActorRoundHP } from '../value-objets/actor-round-hp.vo';
 import { ActorRoundInitiative } from '../value-objets/actor-round-initiative.vo';
@@ -21,7 +22,7 @@ export interface ActorRoundProps {
   actorName: string;
   raceName: string;
   level: number;
-  factionId: string;
+  faction: ActorRoundFaction;
   initiative: ActorRoundInitiative;
   actionPoints: number;
   hp: ActorRoundHP;
@@ -48,7 +49,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
     public readonly actorName: string,
     public readonly raceName: string,
     public readonly level: number,
-    public readonly factionId: string,
+    public readonly faction: ActorRoundFaction,
     public readonly initiative: ActorRoundInitiative,
     public readonly actionPoints: number,
     public hp: ActorRoundHP,
@@ -75,7 +76,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
     actorName: string,
     raceName: string,
     level: number,
-    factionId: string,
+    faction: ActorRoundFaction,
     initiative: ActorRoundInitiative,
     actionPoints: number,
     hp: ActorRoundHP,
@@ -96,7 +97,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
       actorName,
       raceName,
       level,
-      factionId,
+      faction,
       initiative,
       actionPoints,
       hp,
@@ -126,7 +127,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
       props.actorName,
       props.raceName,
       props.level,
-      props.factionId,
+      props.faction,
       props.initiative,
       props.actionPoints,
       props.hp,
@@ -153,7 +154,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
       actorName,
       raceName,
       level,
-      factionId,
+      faction,
       initiative,
       hp,
       fatigue,
@@ -173,7 +174,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
       actorName,
       raceName,
       level,
-      factionId,
+      faction,
       new ActorRoundInitiative(initiative.base, initiative.penalty, undefined, undefined),
       4,
       hp,
@@ -316,7 +317,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
       actorName: this.actorName,
       raceName: this.raceName,
       level: this.level,
-      factionId: this.factionId,
+      faction: this.faction,
       initiative: this.initiative,
       actionPoints: this.actionPoints,
       hp: this.hp,

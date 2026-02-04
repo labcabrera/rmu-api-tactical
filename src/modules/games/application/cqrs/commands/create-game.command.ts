@@ -16,6 +16,6 @@ export class CreateGameCommandActor {
   constructor(
     public readonly id: string,
     public readonly type: ActorType,
-    public readonly faction: string | undefined,
+    public readonly factionId: string | undefined,
   ) {}
 }

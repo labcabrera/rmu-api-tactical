@@ -6,6 +6,7 @@ import { ActorRoundDefense } from './actor-round-defense.model';
 import { ActorRoundUsedBo } from './actor-round-used-bo.model';
 import {
   ActorRoundEffect,
+  ActorRoundFaction,
   ActorRoundFatigue,
   ActorRoundHP,
   ActorRoundInitiative,
@@ -34,8 +35,8 @@ export class ActorRoundModel {
   @Prop({ required: false })
   level: number;
 
-  @Prop({ required: false })
-  factionId: string;
+  @Prop({ required: true })
+  faction: ActorRoundFaction;
 
   @Prop({ required: true })
   round: number;
