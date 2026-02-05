@@ -2,6 +2,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import { ActorRoundFaction } from '../../../../actor-rounds/domain/value-objets/actor-round-faction.vo';
 
 export class ActorRoundFactionDto {
+  constructor(id = '', name = '') {
+    this.id = id;
+    this.name = name;
+  }
+
   @ApiProperty({ description: 'Faction identifier', example: 'faction-001' })
   id: string;
 

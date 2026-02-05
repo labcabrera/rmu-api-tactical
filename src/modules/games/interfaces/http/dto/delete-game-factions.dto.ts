@@ -3,6 +3,10 @@ import { IsNotEmpty, IsString } from 'class-validator';
 import { DeleteGameFactionsCommand } from '../../../application/cqrs/commands/delete-game-factions.command';
 
 export class DeleteGameFactionsDto {
+  constructor(factions: string[] = []) {
+    this.factions = factions;
+  }
+
   @ApiProperty({ description: 'Factions identifiers', example: ['faction-001', 'faction-002'] })
   @IsString({ each: true })
   @IsNotEmpty()

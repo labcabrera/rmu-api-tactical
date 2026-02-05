@@ -9,6 +9,7 @@ import {
   GameUpdatedEvent,
 } from '../events/game.events';
 import { Actor } from '../value-objects/actor.vo';
+import { GameEnvironment } from '../value-objects/game-environment.vo';
 import { GamePhase } from '../value-objects/game-phase.vo';
 import { GameStatus } from '../value-objects/game-status.vo';
 
@@ -21,6 +22,7 @@ export type GameProps = {
   phase: GamePhase;
   factions: string[];
   actors: Actor[];
+  environment?: GameEnvironment;
   description?: string;
   owner: string;
   createdAt: Date;
@@ -45,6 +47,7 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
     public phase: GamePhase,
     public factions: string[],
     public actors: Actor[],
+    public environment: GameEnvironment | undefined,
     public description: string | undefined,
     public owner: string,
     public readonly createdAt: Date,
@@ -58,6 +61,7 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
     name: string,
     factions: string[] | undefined,
     actors: Actor[] | undefined,
+    environment: GameEnvironment | undefined,
     description: string | undefined,
     owner: string,
   ) {
@@ -70,6 +74,7 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
       'not_started',
       factions || [],
       actors || [],
+      environment,
       description,
       owner,
       new Date(),
@@ -89,6 +94,7 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
       props.phase,
       props.factions,
       props.actors,
+      props.environment,
       props.description,
       props.owner,
       props.createdAt,
@@ -218,6 +224,7 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
       phase: this.phase,
       factions: this.factions,
       actors: this.actors,
+      environment: this.environment,
       description: this.description,
       owner: this.owner,
       createdAt: this.createdAt,

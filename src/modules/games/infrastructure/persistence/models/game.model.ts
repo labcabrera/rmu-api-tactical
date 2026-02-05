@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import type { GamePhase } from '../../../domain/value-objects/game-phase.vo';
 import type { GameStatus } from '../../../domain/value-objects/game-status.vo';
-import { Actor } from './game.model-childs';
+import { Actor, GameEnvironment } from './game.model-childs';
 
 export type GameDocument = GameModel & Document;
 
@@ -31,6 +31,9 @@ export class GameModel {
 
   @Prop({ type: [Actor], required: true })
   actors: Actor[];
+
+  @Prop({ type: GameEnvironment, required: false })
+  environment?: GameEnvironment;
 
   @Prop({ required: false })
   description: string;

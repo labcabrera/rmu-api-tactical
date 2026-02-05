@@ -5,6 +5,7 @@ import type { CharacterPort } from '../../../../strategic/application/ports/char
 import type { StrategicGamePort } from '../../../../strategic/application/ports/strategic-game.port';
 import { Game } from '../../../domain/aggregates/game.aggregate';
 import { Actor } from '../../../domain/value-objects/actor.vo';
+import { GameEnvironment } from '../../../domain/value-objects/game-environment.vo';
 import type { GameEventBusPort } from '../../ports/game-event-bus.port';
 import type { GameRepository } from '../../ports/game.repository';
 import type { NpcPort } from '../../ports/npc.port';
@@ -31,11 +32,16 @@ export class CreateGameHandler implements ICommandHandler<CreateGameCommand, Gam
     const actors = await (command.actors
       ? Promise.all(command.actors.map((actor) => this.mapActor(actor, command.userId)))
       : undefined);
+    const environment = command.environment
+      ? new GameEnvironment(command.environment.temperatureFatigueModifier, command.environment.altitudeFatigueModifier)
+      : undefined;
+
     const game = Game.create(
       command.strategicGameId,
       command.name,
       command.factions,
       actors,
+      environment,
       command.description,
       command.userId,
     );

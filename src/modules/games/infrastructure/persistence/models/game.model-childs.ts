@@ -19,3 +19,12 @@ export class Actor {
   @Prop({ required: true })
   owner: string;
 }
+
+@Schema({ _id: false })
+export class GameEnvironment {
+  @Prop({ required: false })
+  temperatureFatigueModifier?: number;
+
+  @Prop({ required: false })
+  altitudeFatigueModifier?: number;
+}
