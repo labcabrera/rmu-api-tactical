@@ -258,6 +258,18 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
     this.calculateCurrentBo();
   }
 
+  addFatigue(fatigue: number) {
+    this.fatigue.accumulator += fatigue;
+    if (this.fatigue.accumulator >= 100) {
+      if (this.alerts.find((a) => a.type === 'endurance')) {
+        return;
+      }
+      this.alerts.push(new ActorRoundAlert(randomUUID(), 'endurance', 'Required endurance check due to fatigue'));
+    } else {
+      this.alerts = this.alerts.filter((a) => a.type !== 'endurance');
+    }
+  }
+
   applyUpkeep() {
     if (this.effects.length === 0) {
       return;

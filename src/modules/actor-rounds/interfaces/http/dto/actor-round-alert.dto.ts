@@ -9,14 +9,14 @@ export class ActorRoundAlertDto {
   @ApiProperty({ description: 'Type of alert', example: 'endurance' })
   type: ActorRoundAlertType;
 
-  @ApiProperty({ description: 'Value of alert', example: 'High stamina' })
-  value: string | undefined;
+  @ApiProperty({ description: 'Message of alert', example: 'High stamina', required: true })
+  message: string;
 
   static fromEntity(alert: ActorRoundAlert): ActorRoundAlertDto {
     const dto = new ActorRoundAlertDto();
     dto.id = alert.id;
     dto.type = alert.type;
-    dto.value = alert.value;
+    dto.message = alert.message;
     return dto;
   }
 }

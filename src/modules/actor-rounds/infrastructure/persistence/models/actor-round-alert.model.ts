@@ -10,5 +10,6 @@ export class ActorRoundAlert {
   type: ActorRoundAlertType;
 
   @Prop({ type: String, required: true })
-  value: string | undefined;
+  @Prop({ type: String, required: true })
+  message: string;
 }
