@@ -5,13 +5,13 @@ import { AddEffectsCommand } from '../../../../actor-rounds/application/cqrs/com
 import { AddFatigueCommand } from '../../../../actor-rounds/application/cqrs/commands/add-fatigue.command';
 import { DeclareActorParryCommand } from '../../../../actor-rounds/application/cqrs/commands/declare-actor-parry.command';
 import { SubstractBoCommand } from '../../../../actor-rounds/application/cqrs/commands/substract-bo.command';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/actor-round.repository';
+import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
 import { ActorRoundEffect } from '../../../../actor-rounds/domain/value-objets/actor-round-effect.vo';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, UnprocessableEntityError } from '../../../../shared/domain/errors';
 import { StrategicGame } from '../../../../strategic/application/ports/strategic-game.port';
-import { StrategicGameApiClient } from '../../../../strategic/infrastructure/api-clients/api-strategic-game.adapter';
+import { StrategicGameApiClient } from '../../../../strategic/infrastructure/api-clients/api.strategic-game.adapter';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import { ActionAttack } from '../../../domain/value-objects/action-attack.vo';

@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 import { Page } from '../../../shared/domain/entities/page.entity';
 import { NotFoundError } from '../../../shared/domain/errors';
 import { RsqlParser } from '../../../shared/infrastructure/db/rsql-parser';
-import { ActorRoundRepository } from '../../application/ports/out/actor-round.repository';
+import { ActorRoundRepository } from '../../application/ports/actor-round.repository';
 import { ActorRound } from '../../domain/aggregates/actor-round.aggregate';
 import { ActorRoundAttack } from '../../domain/value-objets/actor-round-attack.vo';
 import { ActorRoundDocument, ActorRoundModel } from '../persistence/models/actor-round.model';

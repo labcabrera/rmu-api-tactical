@@ -14,7 +14,7 @@ import { ActorRoundHP } from '../../../domain/value-objets/actor-round-hp.vo';
 import { ActorRoundInitiative } from '../../../domain/value-objets/actor-round-initiative.vo';
 import { ActorRoundPenalty } from '../../../domain/value-objets/actor-round-penalty.vo';
 import { ActorRoundShield } from '../../../domain/value-objets/actor-round-shield.vo';
-import type { ActorRoundRepository } from '../../ports/out/actor-round.repository';
+import type { ActorRoundRepository } from '../../ports/actor-round.repository';
 import { CreateActorRoundCommand } from '../commands/create-actor-round.command';
 
 @CommandHandler(CreateActorRoundCommand)

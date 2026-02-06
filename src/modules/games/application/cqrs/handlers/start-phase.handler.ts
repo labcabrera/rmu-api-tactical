@@ -1,6 +1,6 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/actor-round.repository';
+import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import { Game } from '../../../domain/aggregates/game.aggregate';
 import type { GameEventBusPort } from '../../ports/game-event-bus.port';
