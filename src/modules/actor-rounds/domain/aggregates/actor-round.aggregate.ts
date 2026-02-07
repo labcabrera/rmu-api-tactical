@@ -13,32 +13,7 @@ import { ActorRoundHP } from '../value-objets/actor-round-hp.vo';
 import { ActorRoundInitiative } from '../value-objets/actor-round-initiative.vo';
 import { ActorRoundPenalty } from '../value-objets/actor-round-penalty.vo';
 import { ActorRoundUsedBo } from '../value-objets/actor-round-used-bo.vo';
-
-export interface ActorRoundProps {
-  id: string;
-  gameId: string;
-  round: number;
-  actorId: string;
-  actorName: string;
-  raceName: string;
-  level: number;
-  faction: ActorRoundFaction;
-  initiative: ActorRoundInitiative;
-  actionPoints: number;
-  hp: ActorRoundHP;
-  fatigue: ActorRoundFatigue;
-  penalties: ActorRoundPenalty[];
-  defense: ActorRoundDefense;
-  attacks: ActorRoundAttack[];
-  usedBo: ActorRoundUsedBo[];
-  parries: number[];
-  effects: ActorRoundEffect[];
-  alerts: ActorRoundAlert[];
-  imageUrl: string | undefined;
-  owner: string;
-  createdAt: Date;
-  updatedAt?: Date;
-}
+import { ActorRoundProps } from './actor-round-props';
 
 export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
   private constructor(
@@ -54,7 +29,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
     public readonly actionPoints: number,
     public hp: ActorRoundHP,
     public fatigue: ActorRoundFatigue,
-    public penalties: ActorRoundPenalty[],
+    public penalty: ActorRoundPenalty,
     public defense: ActorRoundDefense,
     public attacks: ActorRoundAttack[],
     public usedBo: ActorRoundUsedBo[],
@@ -81,7 +56,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
     actionPoints: number,
     hp: ActorRoundHP,
     fatigue: ActorRoundFatigue,
-    penalties: ActorRoundPenalty[],
+    penalty: ActorRoundPenalty,
     defense: ActorRoundDefense,
     attacks: ActorRoundAttack[],
     effects: ActorRoundEffect[],
@@ -102,7 +77,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
       actionPoints,
       hp,
       fatigue,
-      penalties,
+      penalty,
       defense,
       attacks,
       [],
@@ -132,7 +107,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
       props.actionPoints,
       props.hp,
       props.fatigue,
-      props.penalties,
+      props.penalty,
       props.defense,
       props.attacks,
       props.usedBo,
@@ -158,7 +133,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
       initiative,
       hp,
       fatigue,
-      penalties,
+      penalty,
       defense,
       attacks,
       effects,
@@ -179,7 +154,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
       4,
       hp,
       fatigue,
-      penalties,
+      penalty,
       defense,
       attacks,
       [],
@@ -334,7 +309,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
       actionPoints: this.actionPoints,
       hp: this.hp,
       fatigue: this.fatigue,
-      penalties: this.penalties,
+      penalty: this.penalty,
       defense: this.defense,
       attacks: this.attacks,
       usedBo: this.usedBo,

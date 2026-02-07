@@ -96,7 +96,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
       4,
       new ActorRoundHP(maxHp, currentHp),
       new ActorRoundFatigue(0, 0, 0),
-      [] as ActorRoundPenalty[],
+      new ActorRoundPenalty([]),
       defense,
       attacks,
       [] as ActorRoundEffect[],

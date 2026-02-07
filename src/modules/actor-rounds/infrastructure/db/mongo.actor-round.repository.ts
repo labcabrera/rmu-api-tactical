@@ -105,7 +105,7 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
       actionPoints: doc.actionPoints,
       hp: doc.hp,
       fatigue: doc.fatigue,
-      penalties: doc.penalties,
+      penalty: doc.penalty,
       defense: doc.defense,
       attacks: doc.attacks.map((attackDoc) => this.mapAttackToEntity(attackDoc)),
       usedBo: doc.usedBo,

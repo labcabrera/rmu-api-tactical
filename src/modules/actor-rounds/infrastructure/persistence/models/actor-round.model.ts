@@ -3,20 +3,70 @@ import { Document } from 'mongoose';
 import { ActorRoundAlert } from './actor-round-alert.model';
 import { ActorRoundAttack } from './actor-round-attack.model';
 import { ActorRoundDefense } from './actor-round-defense.model';
+import { ActorRoundHP } from './actor-round-hp.model';
+import { ActorRoundPenalty } from './actor-round-penalty.model';
 import { ActorRoundUsedBo } from './actor-round-used-bo.model';
 import {
   ActorRoundEffect,
   ActorRoundFaction,
   ActorRoundFatigue,
-  ActorRoundHP,
   ActorRoundInitiative,
-  ActorRoundPenalty,
 } from './actor-round.models-childs';
 
 export type ActorRoundDocument = ActorRoundModel & Document;
 
 @Schema({ collection: 'actor-rounds', _id: false, versionKey: false })
 export class ActorRoundModel {
+  constructor(
+    _id: string,
+    gameId: string,
+    actorId: string,
+    actorName: string,
+    raceName: string,
+    level: number,
+    faction: ActorRoundFaction,
+    round: number,
+    initiative: ActorRoundInitiative,
+    actionPoints: number,
+    hp: ActorRoundHP,
+    fatigue: ActorRoundFatigue,
+    penalty: ActorRoundPenalty,
+    defense: ActorRoundDefense,
+    attacks: ActorRoundAttack[],
+    usedBo: ActorRoundUsedBo[],
+    parries: number[],
+    effects: ActorRoundEffect[],
+    alerts: ActorRoundAlert[],
+    imageUrl: string | undefined,
+    owner: string,
+    createdAt: Date,
+    updatedAt?: Date,
+  ) {
+    this._id = _id;
+    this.gameId = gameId;
+    this.actorId = actorId;
+    this.actorName = actorName;
+    this.raceName = raceName;
+    this.level = level;
+    this.faction = faction;
+    this.round = round;
+    this.initiative = initiative;
+    this.actionPoints = actionPoints;
+    this.hp = hp;
+    this.fatigue = fatigue;
+    this.penalty = penalty;
+    this.defense = defense;
+    this.attacks = attacks;
+    this.usedBo = usedBo;
+    this.parries = parries;
+    this.effects = effects;
+    this.alerts = alerts;
+    this.imageUrl = imageUrl;
+    this.owner = owner;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+  }
+
   @Prop({ required: true })
   _id: string;
 
@@ -53,8 +103,8 @@ export class ActorRoundModel {
   @Prop({ type: ActorRoundFatigue, required: true })
   fatigue: ActorRoundFatigue;
 
-  @Prop({ type: [ActorRoundPenalty], required: true })
-  penalties: ActorRoundPenalty[];
+  @Prop({ type: ActorRoundPenalty, required: true })
+  penalty: ActorRoundPenalty;
 
   @Prop({ type: ActorRoundDefense, required: true })
   defense: ActorRoundDefense;

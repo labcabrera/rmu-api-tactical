@@ -3,6 +3,24 @@ import { ActorRoundShield } from './actor-round-shield.model';
 
 @Schema({ _id: false })
 export class ActorRoundDefense {
+  constructor(
+    bd: number,
+    at?: number,
+    bodyAt?: number,
+    headAt?: number,
+    armsAt?: number,
+    legsAt?: number,
+    shield?: ActorRoundShield,
+  ) {
+    this.bd = bd;
+    this.at = at;
+    this.bodyAt = bodyAt;
+    this.headAt = headAt;
+    this.armsAt = armsAt;
+    this.legsAt = legsAt;
+    this.shield = shield;
+  }
+
   @Prop({ required: true })
   public readonly bd: number;
 

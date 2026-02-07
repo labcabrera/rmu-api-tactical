@@ -45,9 +45,9 @@ export class MovementProcessorService {
       });
       modifiers.push({ key: 'armor-penalty', value: character.equipment.maneuverPenalty });
       modifiers.push({ key: 'custom-bonus', value: action.movement.modifiers.customBonus || 0 });
-      actorRound.penalties.forEach((penalty) => {
+      actorRound.penalty.modifiers.forEach((penalty) => {
         //TODO check if penalty applies to movement from core law
-        modifiers.push(penalty);
+        modifiers.push(new KeyValueModifier(penalty.source, penalty.value));
       });
       modifiers.push({ key: 'roll', value: roll });
       action.movement.roll = {

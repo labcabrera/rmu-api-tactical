@@ -79,8 +79,8 @@ export class AbsoluteManeuverProcessorService {
   }
 
   private applyActorRoundPenalties(action: Action, actorRound: ActorRound): void {
-    actorRound.penalties.forEach((penalty) => {
-      action.maneuver!.roll!.modifiers.push({ key: penalty.key, value: penalty.value });
+    actorRound.penalty.modifiers.forEach((penalty) => {
+      action.maneuver!.roll!.modifiers.push({ key: penalty.source, value: penalty.value });
     });
   }
 

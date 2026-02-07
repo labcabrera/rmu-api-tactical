@@ -1,15 +1,6 @@
 import { Prop, Schema } from '@nestjs/mongoose';
 
 @Schema({ _id: false })
-export class ActorRoundHP {
-  @Prop({ required: true })
-  max: number;
-
-  @Prop({ required: true })
-  current: number;
-}
-
-@Schema({ _id: false })
 export class ActorRoundFatigue {
   @Prop({ required: true })
   fatigue: number;
@@ -19,15 +10,6 @@ export class ActorRoundFatigue {
 
   @Prop({ required: true })
   accumulator: number;
-}
-
-@Schema({ _id: false })
-export class ActorRoundPenalty {
-  @Prop({ required: true })
-  key: string;
-
-  @Prop({ required: true })
-  value: number;
 }
 
 export class ActorRoundParry {

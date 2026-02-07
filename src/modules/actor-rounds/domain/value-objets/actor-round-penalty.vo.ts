@@ -1,4 +1,5 @@
+import { ActorRoundPenaltyModifier } from './actor-round-penalty-modifier.vo';
+
 export class ActorRoundPenalty {
-  key: string;
-  value: number;
+  constructor(public modifiers: ActorRoundPenaltyModifier[]) {}
 }
