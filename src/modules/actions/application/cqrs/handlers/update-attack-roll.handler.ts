@@ -16,6 +16,29 @@ import { UpdateAttackRollCommand } from '../commands/update-attack-roll.command'
 export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRollCommand, Action> {
   private readonly logger = new Logger(UpdateAttackRollHandler.name);
 
+  locationMap: Array<{ range: [number, number]; location: AttackLocation }> = [
+    { range: [1, 1], location: 'head' },
+    { range: [2, 3], location: 'chest' },
+    { range: [4, 5], location: 'abdomen' },
+    { range: [6, 10], location: 'legs' },
+    { range: [11, 15], location: 'arms' },
+    { range: [16, 20], location: 'head' },
+    { range: [21, 25], location: 'chest' },
+    { range: [26, 35], location: 'abdomen' },
+    { range: [36, 45], location: 'legs' },
+    { range: [46, 55], location: 'arms' },
+    { range: [56, 65], location: 'arms' },
+    { range: [66, 66], location: 'abdomen' },
+    { range: [67, 75], location: 'legs' },
+    { range: [76, 80], location: 'chest' },
+    { range: [81, 85], location: 'head' },
+    { range: [86, 90], location: 'arms' },
+    { range: [91, 95], location: 'legs' },
+    { range: [96, 97], location: 'abdomen' },
+    { range: [98, 99], location: 'chest' },
+    { range: [100, 100], location: 'head' },
+  ];
+
   constructor(
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
@@ -71,36 +94,21 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     action.updatedAt = new Date();
     action.status = this.calculateStatus(action);
 
+    if (this.requiredBreakage(command.roll)) {
+      const sourceActor = await this.actorRoundRepository.findByActorIdAndRound(action.actorId, action.round);
+      if (!sourceActor) throw new NotFoundError('ActorRound', action.actorId);
+      sourceActor.addAttackBreakageAlert(attack.attackName);
+      await this.actorRoundRepository.update(sourceActor.id, sourceActor);
+      //TODO propagate change event
+    }
+
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
     return updated;
   }
 
   private getLocation(locationRoll: number): AttackLocation | undefined {
-    const locationMap: Array<{ range: [number, number]; location: AttackLocation }> = [
-      { range: [1, 1], location: 'head' },
-      { range: [2, 3], location: 'chest' },
-      { range: [4, 5], location: 'abdomen' },
-      { range: [6, 10], location: 'legs' },
-      { range: [11, 15], location: 'arms' },
-      { range: [16, 20], location: 'head' },
-      { range: [21, 25], location: 'chest' },
-      { range: [26, 35], location: 'abdomen' },
-      { range: [36, 45], location: 'legs' },
-      { range: [46, 55], location: 'arms' },
-      { range: [56, 65], location: 'arms' },
-      { range: [66, 66], location: 'abdomen' },
-      { range: [67, 75], location: 'legs' },
-      { range: [76, 80], location: 'chest' },
-      { range: [81, 85], location: 'head' },
-      { range: [86, 90], location: 'arms' },
-      { range: [91, 95], location: 'legs' },
-      { range: [96, 97], location: 'abdomen' },
-      { range: [98, 99], location: 'chest' },
-      { range: [100, 100], location: 'head' },
-    ];
-
-    for (const entry of locationMap) {
+    for (const entry of this.locationMap) {
       const [min, max] = entry.range;
       if (locationRoll >= min && locationRoll <= max) {
         return entry.location;
@@ -134,5 +142,9 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
       throw new ValidationError(`Location roll is required for attack ${command.attackName}`);
     }
     action.checkValidRollDeclaration();
+  }
+
+  private requiredBreakage(roll: number): boolean {
+    return roll === 33 || roll === 77;
   }
 }

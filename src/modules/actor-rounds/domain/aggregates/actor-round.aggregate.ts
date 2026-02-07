@@ -303,6 +303,10 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
     return this.effects.some((e) => e.status === 'dead');
   }
 
+  addAttackBreakageAlert(attackName: string) {
+    this.alerts.push(new ActorRoundAlert(randomUUID(), 'breakage', `Attack breakage on ${attackName}`));
+  }
+
   toProps(): ActorRoundProps {
     return {
       id: this.id,
