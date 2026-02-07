@@ -23,6 +23,6 @@ export class AddEffectDto {
 
   static toCommand(id: string, dto: AddEffectDto, userId: string, userRoles: string[]): AddEffectsCommand {
     const effects = [new ActorRoundEffect(randomUUID(), dto.status, dto.value, dto.rounds)];
-    return new AddEffectsCommand(id, 0, effects, userId, userRoles);
+    return new AddEffectsCommand(id, 0, effects, undefined, userId, userRoles);
   }
 }

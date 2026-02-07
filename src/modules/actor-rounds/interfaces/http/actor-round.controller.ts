@@ -75,7 +75,7 @@ export class ActorRoundController {
   @ApiNotFoundResponse({ description: 'Actor round not found', type: ErrorDto })
   async addHp(@Param('id') id: string, @Body() dto: AddHpDto, @Request() req) {
     const user = req.user!;
-    const command = new AddEffectsCommand(id, dto.dmg, [], user.id as string, user.roles as string[]);
+    const command = new AddEffectsCommand(id, dto.dmg, [], undefined, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<AddEffectsCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
   }

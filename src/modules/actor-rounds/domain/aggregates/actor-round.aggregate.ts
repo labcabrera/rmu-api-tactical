@@ -1,5 +1,6 @@
 import { AggregateRoot } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
+import { AttackLocation } from '../../../actions/domain/value-objects/attack-location.vo';
 import { UnprocessableEntityError } from '../../../shared/domain/errors';
 import { DomainEvent } from '../../../shared/domain/events/domain-event';
 import { ActorRoundCreatedEvent } from '../events/actor-round.events';
@@ -172,26 +173,38 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
     return actorRound;
   }
 
-  applyAttackResults(dmg: number | undefined, effects: ActorRoundEffect[] | undefined) {
+  applyAttackResults(
+    dmg: number | undefined,
+    effects: ActorRoundEffect[] | undefined,
+    location: AttackLocation | undefined,
+  ) {
     if (dmg) {
       this.hp.current -= dmg;
     }
     if (effects) {
       effects.forEach((effect) => {
-        this.addEffect(effect, 'critical');
+        this.addEffect(effect, 'critical', location);
       });
     }
     if (this.hp.current < 1) {
-      this.addEffect(new ActorRoundEffect(randomUUID(), 'dead', undefined, undefined));
+      this.addEffect(new ActorRoundEffect(randomUUID(), 'dead', undefined, undefined), undefined, undefined);
     }
   }
 
-  private addEffect(effect: ActorRoundEffect, penaltySource?: ActorRoundPenaltySource): void {
+  private addEffect(
+    effect: ActorRoundEffect,
+    penaltySource: ActorRoundPenaltySource | undefined,
+    location: AttackLocation | undefined,
+  ): void {
     // Handle penalty effects separately
     if (effect.status === 'penalty') {
       if (!penaltySource) throw new UnprocessableEntityError('Penalty effects require a penalty source');
       if (!effect.value) throw new UnprocessableEntityError('Penalty effects require a value');
       this.penalty.addModifier(penaltySource, effect.value);
+      return;
+    }
+    if (effect.status === 'breakage_roll') {
+      this.addCriticalBreakageAlert(location);
       return;
     }
     //TODO required used action points to calculate stunning effects
@@ -262,12 +275,12 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
       .reduce((sum, e) => sum + (e.value ?? 0), 0);
     this.hp.current -= totalBleeding;
     if (this.effects.some((e) => e.status === 'dying' && e.rounds && e.rounds <= 1)) {
-      this.addEffect(new ActorRoundEffect(randomUUID(), 'dead', undefined, undefined));
+      this.addEffect(new ActorRoundEffect(randomUUID(), 'dead', undefined, undefined), undefined, undefined);
     }
     this.effects.filter((e) => e.rounds !== undefined && e.rounds !== null).forEach((e) => (e.rounds! -= 1));
     this.effects = this.effects.filter((e) => e.rounds === undefined || e.rounds === null || e.rounds > 0);
     if (this.hp.current < 1) {
-      this.applyAttackResults(0, [new ActorRoundEffect(randomUUID(), 'dead', undefined, undefined)]);
+      this.applyAttackResults(0, [new ActorRoundEffect(randomUUID(), 'dead', undefined, undefined)], undefined);
     }
     if (this.isDead()) {
       this.effects = this.effects.filter((e) => e.status !== 'dying');
@@ -305,6 +318,12 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
 
   addAttackBreakageAlert(attackName: string) {
     this.alerts.push(new ActorRoundAlert(randomUUID(), 'breakage', `Attack breakage on ${attackName}`));
+  }
+
+  addCriticalBreakageAlert(location: AttackLocation | undefined) {
+    this.alerts.push(
+      new ActorRoundAlert(randomUUID(), 'breakage', `Breakage on critical hit${location ? ` at ${location}` : ''}`),
+    );
   }
 
   toProps(): ActorRoundProps {

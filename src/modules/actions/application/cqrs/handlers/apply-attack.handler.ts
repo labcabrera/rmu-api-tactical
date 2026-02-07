@@ -145,7 +145,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       cmd.dmg += dmg || 0;
       cmd.effects.push(...criticalEffects);
     } else {
-      const cmd = new AddEffectsCommand(target.id, dmg, criticalEffects, userId, roles);
+      const cmd = new AddEffectsCommand(target.id, dmg, criticalEffects, undefined, userId, roles);
       updateCommands.set(target.id, cmd);
     }
   }
@@ -173,7 +173,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       const cmd = updateCommands.get(actor.id)!;
       cmd.effects.push(...effects);
     } else {
-      const cmd = new AddEffectsCommand(actor.id, 0, effects, userId, roles);
+      const cmd = new AddEffectsCommand(actor.id, 0, effects, undefined, userId, roles);
       updateCommands.set(actor.id, cmd);
     }
   }
