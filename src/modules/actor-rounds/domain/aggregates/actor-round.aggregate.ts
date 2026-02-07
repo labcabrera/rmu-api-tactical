@@ -187,6 +187,10 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
 
   addEffect(effect: ActorRoundEffect): void {
     //TODO required used action points to calculate stunning effects
+    if (effect.status === 'penalty') {
+      //this.penalty.modifiers.push(new ActorRoundPenalty(effect. ?? 0, effect.rounds));
+    }
+
     if (effect.status === 'stunned') {
       effect.rounds! += 1;
     }

@@ -1,18 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-
-@Schema({ _id: false })
-export class ActorRoundPenaltyModifier {
-  constructor(source: 'critical' | 'endurance' | 'hp', value: number) {
-    this.source = source;
-    this.value = value;
-  }
-
-  @Prop({ required: true })
-  public readonly source: 'critical' | 'endurance' | 'hp';
-
-  @Prop({ required: true })
-  public readonly value: number;
-}
+import { ActorRoundPenaltyModifier } from './actor-round-penalty-modifier.model';
 
 @Schema({ _id: false })
 export class ActorRoundPenalty {
