@@ -11,6 +11,7 @@ import { ActorRoundFaction } from '../value-objets/actor-round-faction.vo';
 import { ActorRoundFatigue } from '../value-objets/actor-round-fatigue.vo';
 import { ActorRoundHP } from '../value-objets/actor-round-hp.vo';
 import { ActorRoundInitiative } from '../value-objets/actor-round-initiative.vo';
+import { ActorRoundPenaltySource } from '../value-objets/actor-round-penalty-source.vo';
 import { ActorRoundPenalty } from '../value-objets/actor-round-penalty.vo';
 import { ActorRoundUsedBo } from '../value-objets/actor-round-used-bo.vo';
 import { ActorRoundProps } from './actor-round-props';
@@ -177,7 +178,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
     }
     if (effects) {
       effects.forEach((effect) => {
-        this.addEffect(effect);
+        this.addEffect(effect, 'critical');
       });
     }
     if (this.hp.current < 1) {
@@ -185,12 +186,15 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
     }
   }
 
-  addEffect(effect: ActorRoundEffect): void {
-    //TODO required used action points to calculate stunning effects
+  private addEffect(effect: ActorRoundEffect, penaltySource?: ActorRoundPenaltySource): void {
+    // Handle penalty effects separately
     if (effect.status === 'penalty') {
-      //this.penalty.modifiers.push(new ActorRoundPenalty(effect. ?? 0, effect.rounds));
+      if (!penaltySource) throw new UnprocessableEntityError('Penalty effects require a penalty source');
+      if (!effect.value) throw new UnprocessableEntityError('Penalty effects require a value');
+      this.penalty.addModifier(penaltySource, effect.value);
+      return;
     }
-
+    //TODO required used action points to calculate stunning effects
     if (effect.status === 'stunned') {
       effect.rounds! += 1;
     }
