@@ -189,6 +189,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
     if (this.hp.current < 1) {
       this.addEffect(new ActorRoundEffect(randomUUID(), 'dead', undefined, undefined), undefined, undefined);
     }
+    this.applyPenalties();
   }
 
   private addEffect(
@@ -285,6 +286,27 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
     if (this.isDead()) {
       this.effects = this.effects.filter((e) => e.status !== 'dying');
     }
+    this.applyPenalties();
+  }
+
+  private applyPenalties() {
+    this.applyHpPenalty();
+  }
+
+  private applyHpPenalty() {
+    const hpPercent = this.hp.current / this.hp.max;
+    let hpPenalty = 0;
+    if (hpPercent < 0.25) {
+      hpPenalty = -25;
+    } else if (hpPercent < 0.5) {
+      hpPenalty = -50;
+    } else if (hpPercent < 0.75) {
+      hpPenalty = -75;
+    }
+    this.penalty.modifiers = this.penalty.modifiers.filter((m) => m.source !== 'hp');
+    if (hpPenalty !== 0) {
+      this.penalty.addModifier('hp', hpPenalty);
+    }
   }
 
   private calculateCurrentBo() {
@@ -299,9 +321,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
   }
 
   private getPenaltySum(): number {
-    return this.effects
-      .filter((e) => e.status === 'penalty' || e.status === 'fatigue')
-      .reduce((sum, e) => sum + (e.value ?? 0), 0);
+    return this.penalty.modifiers.reduce((sum, m) => sum + m.value, 0);
   }
 
   getCurrentBo(attackName: string): number {
