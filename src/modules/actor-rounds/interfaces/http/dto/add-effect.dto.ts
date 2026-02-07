@@ -4,6 +4,12 @@ import { AddEffectsCommand } from '../../../application/cqrs/commands/add-effect
 import { ActorRoundEffect } from '../../../domain/value-objets/actor-round-effect.vo';
 
 export class AddEffectDto {
+  constructor(status: string, value?: number, rounds?: number) {
+    this.status = status;
+    this.value = value;
+    this.rounds = rounds;
+  }
+
   @IsString()
   status: string;
 
