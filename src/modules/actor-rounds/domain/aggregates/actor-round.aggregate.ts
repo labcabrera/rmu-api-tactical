@@ -291,6 +291,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
 
   private applyPenalties() {
     this.applyHpPenalty();
+    this.applyStunPenalty();
   }
 
   private applyHpPenalty() {
@@ -306,6 +307,16 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
     this.penalty.modifiers = this.penalty.modifiers.filter((m) => m.source !== 'hp');
     if (hpPenalty !== 0) {
       this.penalty.addModifier('hp', hpPenalty);
+    }
+  }
+
+  private applyStunPenalty() {
+    const stunPenalty = 0;
+    //TODO filter with delay effects
+    const effectiveStunEffect = this.effects.find((e) => e.status === 'stunned');
+    this.penalty.modifiers = this.penalty.modifiers.filter((m) => m.source !== 'stunned');
+    if (effectiveStunEffect) {
+      this.penalty.addModifier('stunned', stunPenalty);
     }
   }
 
