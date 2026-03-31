@@ -21,7 +21,7 @@ export class UpdateGameHandler {
     if (!game) {
       throw new NotFoundError('Game', command.gameId);
     }
-    game.update(command.name, command.description);
+    game.update(command.name, command.description, command.environment);
     const updated = await this.gameRepository.update(command.gameId, command);
     const events = game.getUncommittedEvents();
     events.forEach((event) => this.gameEventBus.publish(event));

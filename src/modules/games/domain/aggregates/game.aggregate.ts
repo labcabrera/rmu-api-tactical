@@ -102,7 +102,7 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
     );
   }
 
-  update(name: string | undefined, description: string | undefined) {
+  update(name: string | undefined, description: string | undefined, environment: GameEnvironment | undefined) {
     let changes = false;
     if (name && name !== this.name) {
       this.name = name;
@@ -110,6 +110,11 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
     }
     if (description && description !== this.description) {
       this.description = description;
+      changes = true;
+    }
+    if (environment) {
+      this.environment = environment;
+      //TODO check changes
       changes = true;
     }
     if (!changes) {

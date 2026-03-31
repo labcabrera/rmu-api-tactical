@@ -1,39 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { PaginationDto } from '../../../../shared/interfaces/http/dto';
-import { UpdateGameCommand } from '../../../application/cqrs/commands/update-game.command';
 import { Game } from '../../../domain/aggregates/game.aggregate';
 import type { GamePhase } from '../../../domain/value-objects/game-phase.vo';
 import type { GameStatus } from '../../../domain/value-objects/game-status.vo';
 import { ActorDto } from './actor.dto';
+import { GameEnvironmentDto } from './game-environment.dto';
 
 export class GameDto {
-  constructor(
-    id = '',
-    strategicGameId = '',
-    name = '',
-    status: GameStatus = 'created',
-    round = 1,
-    phase: GamePhase = 'declare_initiative',
-    factions: string[] = [],
-    actors: ActorDto[] = [],
-    environment: { temperatureFatigueModifier?: number; altitudeFatigueModifier?: number } | undefined = undefined,
-    description: string | undefined = undefined,
-    owner = '',
-  ) {
-    this.id = id;
-    this.strategicGameId = strategicGameId;
-    this.name = name;
-    this.status = status;
-    this.round = round;
-    this.phase = phase;
-    this.factions = factions;
-    this.actors = actors;
-    this.environment = environment;
-    this.description = description;
-    this.owner = owner;
-  }
-
   @ApiProperty({ description: 'Game identifier', example: 'lotr' })
   id: string;
 
@@ -66,12 +40,7 @@ export class GameDto {
   actors: ActorDto[];
 
   @ApiProperty({ description: 'Environment configuration for the game', required: false })
-  environment:
-    | {
-        temperatureFatigueModifier?: number | undefined;
-        altitudeFatigueModifier?: number | undefined;
-      }
-    | undefined;
+  environment: GameEnvironmentDto | undefined;
 
   @ApiProperty({ description: 'Description of the game', required: false, example: 'Tactical battle in Mordor' })
   description: string | undefined;
@@ -89,29 +58,10 @@ export class GameDto {
     dto.round = entity.round;
     dto.factions = entity.factions;
     dto.actors = entity.actors.map((actor) => ActorDto.fromEntity(actor));
-    dto.environment = entity.environment
-      ? {
-          temperatureFatigueModifier: entity.environment.temperatureFatigueModifier,
-          altitudeFatigueModifier: entity.environment.altitudeFatigueModifier,
-        }
-      : undefined;
+    dto.environment = entity.environment ? GameEnvironmentDto.fromEntity(entity.environment) : undefined;
     dto.description = entity.description;
     dto.owner = entity.owner;
     return dto;
-  }
-}
-
-export class UpdateGameDto {
-  @ApiProperty({ description: 'Name of the game', example: 'Mordor Game 1' })
-  @IsString()
-  name: string | undefined;
-
-  @ApiProperty({ description: 'Description of the game', example: 'Mordor Game 1 description' })
-  @IsString()
-  description: string | undefined;
-
-  static toCommand(id: string, dto: UpdateGameDto, userId: string, roles: string[]) {
-    return new UpdateGameCommand(id, dto.name, dto.description, userId, roles);
   }
 }
 
