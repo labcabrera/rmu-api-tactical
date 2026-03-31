@@ -43,6 +43,7 @@ export class CreateGameHandler implements ICommandHandler<CreateGameCommand, Gam
       actors,
       environment,
       command.description,
+      command.imageUrl,
       command.userId,
     );
     const saved = await this.gameRepository.save(game);

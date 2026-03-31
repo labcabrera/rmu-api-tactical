@@ -45,6 +45,9 @@ export class GameDto {
   @ApiProperty({ description: 'Description of the game', required: false, example: 'Tactical battle in Mordor' })
   description: string | undefined;
 
+  @ApiProperty({ description: 'Image URL for the game', required: false, example: 'https://example.com/image.png' })
+  imageUrl: string | undefined;
+
   @ApiProperty({ description: 'Owner of the game', example: 'user-123' })
   owner: string;
 
@@ -60,6 +63,7 @@ export class GameDto {
     dto.actors = entity.actors.map((actor) => ActorDto.fromEntity(actor));
     dto.environment = entity.environment ? GameEnvironmentDto.fromEntity(entity.environment) : undefined;
     dto.description = entity.description;
+    dto.imageUrl = entity.imageUrl;
     dto.owner = entity.owner;
     return dto;
   }

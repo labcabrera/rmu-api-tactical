@@ -72,6 +72,7 @@ export class MongoGameRepository implements GameRepository {
       environment: doc.environment
         ? new GameEnvironment(doc.environment.temperatureFatigueModifier, doc.environment.altitudeFatigueModifier)
         : undefined,
+      imageUrl: doc.imageUrl,
       description: doc.description,
       owner: doc.owner,
       createdAt: doc.createdAt,

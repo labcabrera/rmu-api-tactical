@@ -10,6 +10,7 @@ export class CreateGameCommand {
       | { temperatureFatigueModifier?: number | undefined; altitudeFatigueModifier?: number | undefined }
       | undefined,
     public readonly description: string | undefined,
+    public readonly imageUrl: string | undefined,
     public readonly userId: string,
     public readonly roles: string[],
   ) {}

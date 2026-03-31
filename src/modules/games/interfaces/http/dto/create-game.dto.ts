@@ -97,6 +97,11 @@ export class CreateGameDto {
   @IsString()
   description: string | undefined;
 
+  @ApiProperty({ description: 'Image URL for the game', required: false, example: 'https://example.com/image.png' })
+  @IsString()
+  @IsOptional()
+  imageUrl: string | undefined;
+
   static toCommand(dto: CreateGameDto, userId: string, roles: string[]) {
     const actors: CreateGameCommandActor[] | undefined = dto.actors
       ? dto.actors.map((actor) => new CreateGameCommandActor(actor.id, actor.type, actor.faction))
@@ -114,6 +119,7 @@ export class CreateGameDto {
       actors,
       environment,
       dto.description,
+      dto.imageUrl,
       userId,
       roles,
     );

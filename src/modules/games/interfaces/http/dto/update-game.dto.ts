@@ -17,10 +17,15 @@ export class UpdateGameDto {
   @IsString()
   description: string | undefined;
 
+  @ApiProperty({ description: 'Image URL for the game', required: false, example: 'https://example.com/image.png' })
+  @IsString()
+  @IsOptional()
+  imageUrl: string | undefined;
+
   static toCommand(id: string, dto: UpdateGameDto, userId: string, roles: string[]) {
     const env = dto.environment
       ? new GameEnvironment(dto.environment.altitudeFatigueModifier, dto.environment.temperatureFatigueModifier)
       : undefined;
-    return new UpdateGameCommand(id, dto.name, env, dto.description, userId, roles);
+    return new UpdateGameCommand(id, dto.name, env, dto.description, dto.imageUrl, userId, roles);
   }
 }

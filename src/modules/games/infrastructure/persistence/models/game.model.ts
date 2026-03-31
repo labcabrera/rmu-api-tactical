@@ -38,6 +38,9 @@ export class GameModel {
   @Prop({ required: false })
   description: string;
 
+  @Prop({ required: false })
+  imageUrl?: string;
+
   @Prop({ required: true })
   owner: string;
 

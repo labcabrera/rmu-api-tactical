@@ -24,6 +24,7 @@ export type GameProps = {
   actors: Actor[];
   environment?: GameEnvironment;
   description?: string;
+  imageUrl?: string;
   owner: string;
   createdAt: Date;
   updatedAt?: Date;
@@ -49,6 +50,7 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
     public actors: Actor[],
     public environment: GameEnvironment | undefined,
     public description: string | undefined,
+    public imageUrl: string | undefined,
     public owner: string,
     public readonly createdAt: Date,
     public updatedAt: Date | undefined,
@@ -63,6 +65,7 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
     actors: Actor[] | undefined,
     environment: GameEnvironment | undefined,
     description: string | undefined,
+    imageUrl: string | undefined,
     owner: string,
   ) {
     const game = new Game(
@@ -76,6 +79,7 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
       actors || [],
       environment,
       description,
+      imageUrl,
       owner,
       new Date(),
       undefined,
@@ -96,13 +100,19 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
       props.actors,
       props.environment,
       props.description,
+      props.imageUrl,
       props.owner,
       props.createdAt,
       props.updatedAt,
     );
   }
 
-  update(name: string | undefined, description: string | undefined, environment: GameEnvironment | undefined) {
+  update(
+    name: string | undefined,
+    description: string | undefined,
+    environment: GameEnvironment | undefined,
+    imageUrl: string | undefined,
+  ) {
     let changes = false;
     if (name && name !== this.name) {
       this.name = name;
@@ -115,6 +125,10 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
     if (environment) {
       this.environment = environment;
       //TODO check changes
+      changes = true;
+    }
+    if (imageUrl !== undefined && imageUrl !== this.imageUrl) {
+      this.imageUrl = imageUrl;
       changes = true;
     }
     if (!changes) {
@@ -231,6 +245,7 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
       actors: this.actors,
       environment: this.environment,
       description: this.description,
+      imageUrl: this.imageUrl,
       owner: this.owner,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
