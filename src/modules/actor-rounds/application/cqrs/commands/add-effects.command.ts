@@ -1,3 +1,4 @@
+import { AttackLocation } from '../../../../actions/domain/value-objects/attack-location.vo';
 import { ActorRoundEffect } from '../../../domain/value-objets/actor-round-effect.vo';
 
 /**
@@ -8,6 +9,7 @@ export class AddEffectsCommand {
     public readonly actorRoundId: string,
     public dmg: number,
     public readonly effects: ActorRoundEffect[],
+    public readonly location: AttackLocation | undefined,
     public readonly userId: string,
     public readonly roles: string[],
   ) {}

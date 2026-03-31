@@ -3,6 +3,10 @@ import { IsNumber } from 'class-validator';
 import { DeclareInitiativeCommand } from '../../../application/cqrs/commands/declare-initiative.command';
 
 export class DeclareInitiativeDto {
+  constructor(roll: number) {
+    this.roll = roll;
+  }
+
   @ApiProperty({ description: 'Initiative roll (2-20)' })
   @IsNumber()
   roll: number;

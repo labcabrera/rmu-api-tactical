@@ -1,4 +1,5 @@
 import { AttackRange } from '../../../actor-rounds/domain/value-objets/actor-round-attack.vo';
+import { ActorRoundFaction } from '../../../actor-rounds/domain/value-objets/actor-round-faction.vo';
 
 export interface CharacterPort {
   findById: (id: string) => Promise<Character | undefined>;
@@ -9,9 +10,10 @@ export interface CharacterPort {
 export interface Character {
   id: string;
   gameId: string;
-  factionId: string;
+  faction: ActorRoundFaction;
   name: string;
   info: CharacterInfo;
+  experience: CharacterExperience;
   movement: CharacterMovement;
   defense: CharacterDefense;
   hp: CharacterHP;
@@ -25,7 +27,13 @@ export interface Character {
 }
 
 export interface CharacterInfo {
+  raceName: string;
+  raceId: string;
   sizeId: string;
+}
+
+export interface CharacterExperience {
+  level: number;
 }
 
 export interface CharacterMovement {

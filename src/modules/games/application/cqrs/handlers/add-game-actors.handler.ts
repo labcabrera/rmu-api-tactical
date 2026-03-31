@@ -48,7 +48,7 @@ export class AddGameActorsHandler implements ICommandHandler<AddGameActorsComman
     if (!character) {
       throw new NotFoundError('Actor', actor.id);
     }
-    if (!game.factions.includes(character.factionId)) {
+    if (!game.factions.includes(character.faction.id)) {
       throw new ValidationError('Actor is not part of the game factions');
     }
     if (game.actors.some((a) => a.id === character.id)) {
@@ -57,7 +57,7 @@ export class AddGameActorsHandler implements ICommandHandler<AddGameActorsComman
     return Actor.fromProps({
       id: character.id,
       name: character.name,
-      factionId: character.factionId,
+      faction: character.faction,
       type: actor.type,
       owner: character.owner,
     });
@@ -68,14 +68,17 @@ export class AddGameActorsHandler implements ICommandHandler<AddGameActorsComman
     if (!npc) {
       throw new NotFoundError('Actor', actor.id);
     }
-    if (!actor.faction) {
+    if (!actor.factionId) {
       throw new ValidationError('NPC actor must have a faction');
     }
-    //TODO check realm
+    //TODO check realm and faction
     return Actor.fromProps({
       id: npc.id,
       name: npc.name,
-      factionId: actor.faction,
+      faction: {
+        id: actor.factionId,
+        name: 'TODO: undefined-faction',
+      },
       type: actor.type,
       owner: game.owner,
     });

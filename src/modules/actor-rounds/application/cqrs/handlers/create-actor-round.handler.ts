@@ -8,12 +8,13 @@ import { ActorRoundAlert } from '../../../domain/value-objets/actor-round-alert.
 import { ActorRoundAttack, AttackRange } from '../../../domain/value-objets/actor-round-attack.vo';
 import { ActorRoundDefense } from '../../../domain/value-objets/actor-round-defense.vo';
 import { ActorRoundEffect } from '../../../domain/value-objets/actor-round-effect.vo';
+import { ActorRoundFaction } from '../../../domain/value-objets/actor-round-faction.vo';
 import { ActorRoundFatigue } from '../../../domain/value-objets/actor-round-fatigue.vo';
 import { ActorRoundHP } from '../../../domain/value-objets/actor-round-hp.vo';
 import { ActorRoundInitiative } from '../../../domain/value-objets/actor-round-initiative.vo';
 import { ActorRoundPenalty } from '../../../domain/value-objets/actor-round-penalty.vo';
 import { ActorRoundShield } from '../../../domain/value-objets/actor-round-shield.vo';
-import type { ActorRoundRepository } from '../../ports/out/actor-round.repository';
+import type { ActorRoundRepository } from '../../ports/actor-round.repository';
 import { CreateActorRoundCommand } from '../commands/create-actor-round.command';
 
 @CommandHandler(CreateActorRoundCommand)
@@ -54,6 +55,9 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
     let currentHp = 0;
     let defense: ActorRoundDefense;
     let imageUrl: string | undefined = undefined;
+    let raceName = 'undefined';
+    let level = 0;
+    let faction: ActorRoundFaction | undefined = undefined;
     if (actor.type === 'character') {
       const character = await this.characterClient.findById(actor.id);
       if (!character) {
@@ -73,7 +77,10 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
         character.defense.armor.legsAt,
         shield,
       );
+      raceName = character.info.raceName;
+      level = character.experience.level;
       imageUrl = character.imageUrl;
+      faction = character.faction;
     } else {
       throw new NotImplementedException('NPCs are not implemented yet');
     }
@@ -82,11 +89,14 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
       round,
       actor.id,
       actor.name,
+      raceName,
+      level,
+      faction,
       new ActorRoundInitiative(initiativeBase, 0, undefined, undefined),
       4,
       new ActorRoundHP(maxHp, currentHp),
       new ActorRoundFatigue(0, 0, 0),
-      [] as ActorRoundPenalty[],
+      new ActorRoundPenalty([]),
       defense,
       attacks,
       [] as ActorRoundEffect[],

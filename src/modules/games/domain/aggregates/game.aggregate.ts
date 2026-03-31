@@ -9,6 +9,7 @@ import {
   GameUpdatedEvent,
 } from '../events/game.events';
 import { Actor } from '../value-objects/actor.vo';
+import { GameEnvironment } from '../value-objects/game-environment.vo';
 import { GamePhase } from '../value-objects/game-phase.vo';
 import { GameStatus } from '../value-objects/game-status.vo';
 
@@ -21,7 +22,9 @@ export type GameProps = {
   phase: GamePhase;
   factions: string[];
   actors: Actor[];
+  environment?: GameEnvironment;
   description?: string;
+  imageUrl?: string;
   owner: string;
   createdAt: Date;
   updatedAt?: Date;
@@ -45,7 +48,9 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
     public phase: GamePhase,
     public factions: string[],
     public actors: Actor[],
+    public environment: GameEnvironment | undefined,
     public description: string | undefined,
+    public imageUrl: string | undefined,
     public owner: string,
     public readonly createdAt: Date,
     public updatedAt: Date | undefined,
@@ -58,7 +63,9 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
     name: string,
     factions: string[] | undefined,
     actors: Actor[] | undefined,
+    environment: GameEnvironment | undefined,
     description: string | undefined,
+    imageUrl: string | undefined,
     owner: string,
   ) {
     const game = new Game(
@@ -70,7 +77,9 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
       'not_started',
       factions || [],
       actors || [],
+      environment,
       description,
+      imageUrl,
       owner,
       new Date(),
       undefined,
@@ -89,14 +98,21 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
       props.phase,
       props.factions,
       props.actors,
+      props.environment,
       props.description,
+      props.imageUrl,
       props.owner,
       props.createdAt,
       props.updatedAt,
     );
   }
 
-  update(name: string | undefined, description: string | undefined) {
+  update(
+    name: string | undefined,
+    description: string | undefined,
+    environment: GameEnvironment | undefined,
+    imageUrl: string | undefined,
+  ) {
     let changes = false;
     if (name && name !== this.name) {
       this.name = name;
@@ -104,6 +120,15 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
     }
     if (description && description !== this.description) {
       this.description = description;
+      changes = true;
+    }
+    if (environment) {
+      this.environment = environment;
+      //TODO check changes
+      changes = true;
+    }
+    if (imageUrl !== undefined && imageUrl !== this.imageUrl) {
+      this.imageUrl = imageUrl;
       changes = true;
     }
     if (!changes) {
@@ -140,7 +165,7 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
       }
     }
     this.factions = this.factions.filter((f) => !factions.includes(f));
-    this.actors = this.actors.filter((a) => !factions.includes(a.factionId));
+    this.actors = this.actors.filter((a) => !factions.includes(a.faction.id));
     this.updatedAt = new Date();
     this.apply(new GameUpdatedEvent(this));
   }
@@ -153,8 +178,8 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
       if (this.actors.find((a) => a.id === actor.id && a.type === actor.type)) {
         throw new ValidationError(`Actor ${actor.id} already exists in the game`);
       }
-      if (!this.factions.includes(actor.factionId)) {
-        throw new ValidationError(`Actor ${actor.id} has faction ${actor.factionId} which is not part of the game`);
+      if (!this.factions.includes(actor.faction.id)) {
+        throw new ValidationError(`Actor ${actor.id} has faction ${actor.faction.id} which is not part of the game`);
       }
     }
     this.actors.push(...actors);
@@ -218,7 +243,9 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
       phase: this.phase,
       factions: this.factions,
       actors: this.actors,
+      environment: this.environment,
       description: this.description,
+      imageUrl: this.imageUrl,
       owner: this.owner,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,

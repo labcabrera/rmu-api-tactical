@@ -37,7 +37,8 @@ import { GetGameQuery } from '../../application/cqrs/queries/get-game.query';
 import { GetGamesQuery } from '../../application/cqrs/queries/get-games.query';
 import { Game } from '../../domain/aggregates/game.aggregate';
 import { CreateGameDto } from './dto/create-game.dto';
-import { GameDto, GamePageDto, UpdateGameDto } from './dto/game.dto';
+import { GameDto, GamePageDto } from './dto/game.dto';
+import { UpdateGameDto } from './dto/update-game.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('v1/tactical-games')

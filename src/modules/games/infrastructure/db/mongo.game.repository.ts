@@ -7,6 +7,7 @@ import { RsqlParser } from '../../../shared/infrastructure/db/rsql-parser';
 import { GameRepository } from '../../application/ports/game.repository';
 import { Game } from '../../domain/aggregates/game.aggregate';
 import { Actor } from '../../domain/value-objects/actor.vo';
+import { GameEnvironment } from '../../domain/value-objects/game-environment.vo';
 import { GameDocument, GameModel } from '../persistence/models/game.model';
 
 @Injectable()
@@ -68,6 +69,10 @@ export class MongoGameRepository implements GameRepository {
       phase: doc.phase,
       factions: doc.factions,
       actors: doc.actors ? doc.actors.map((actor) => Actor.fromProps(actor)) : [],
+      environment: doc.environment
+        ? new GameEnvironment(doc.environment.temperatureFatigueModifier, doc.environment.altitudeFatigueModifier)
+        : undefined,
+      imageUrl: doc.imageUrl,
       description: doc.description,
       owner: doc.owner,
       createdAt: doc.createdAt,

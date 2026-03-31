@@ -3,7 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { TokenService } from '../../../auth/token.service';
 import { handleAxiosError } from '../../../shared/infrastructure/api-rest/axios.error.adapter';
-import { AbsoluteManeuverResponse, ManeuverPort, PercentManeuverResponse } from '../../application/ports/maneuver.port';
+import {
+  AbsoluteManeuverResponse,
+  EnduranceManeuverResult,
+  ManeuverPort,
+  PercentManeuverResponse,
+} from '../../application/ports/maneuver.port';
 
 @Injectable()
 export class ApiManeuverAdapter implements ManeuverPort {
@@ -45,5 +50,16 @@ export class ApiManeuverAdapter implements ManeuverPort {
     } catch (err) {
       throw handleAxiosError(err, uri);
     }
+  }
+
+  async endurance(roll: number): Promise<EnduranceManeuverResult> {
+    const token = await this.tokenService.getToken();
+    const uri = `${this.apiCoreUri}/maneuvers/endurance?roll=${roll}`;
+    const response = await axios.get(uri, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data as EnduranceManeuverResult;
   }
 }

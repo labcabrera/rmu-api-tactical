@@ -4,9 +4,11 @@ import { Model } from 'mongoose';
 import { Page } from '../../../shared/domain/entities/page.entity';
 import { NotFoundError } from '../../../shared/domain/errors';
 import { RsqlParser } from '../../../shared/infrastructure/db/rsql-parser';
-import { ActorRoundRepository } from '../../application/ports/out/actor-round.repository';
+import { ActorRoundRepository } from '../../application/ports/actor-round.repository';
 import { ActorRound } from '../../domain/aggregates/actor-round.aggregate';
 import { ActorRoundAttack } from '../../domain/value-objets/actor-round-attack.vo';
+import { ActorRoundPenaltyModifier } from '../../domain/value-objets/actor-round-penalty-modifier.vo';
+import { ActorRoundPenalty } from '../../domain/value-objets/actor-round-penalty.vo';
 import { ActorRoundDocument, ActorRoundModel } from '../persistence/models/actor-round.model';
 
 @Injectable()
@@ -98,11 +100,18 @@ export class MongoActorRoundRepository implements ActorRoundRepository {
       round: doc.round,
       actorId: doc.actorId,
       actorName: doc.actorName,
+      raceName: doc.raceName,
+      level: doc.level,
+      faction: doc.faction,
       initiative: doc.initiative,
       actionPoints: doc.actionPoints,
       hp: doc.hp,
       fatigue: doc.fatigue,
-      penalties: doc.penalties,
+      penalty: doc.penalty
+        ? new ActorRoundPenalty(
+            (doc.penalty.modifiers || []).map((m: any) => new ActorRoundPenaltyModifier(m.id, m.source, m.value)),
+          )
+        : new ActorRoundPenalty([]),
       defense: doc.defense,
       attacks: doc.attacks.map((attackDoc) => this.mapAttackToEntity(attackDoc)),
       usedBo: doc.usedBo,

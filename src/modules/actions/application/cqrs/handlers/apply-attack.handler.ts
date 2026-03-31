@@ -5,13 +5,13 @@ import { AddEffectsCommand } from '../../../../actor-rounds/application/cqrs/com
 import { AddFatigueCommand } from '../../../../actor-rounds/application/cqrs/commands/add-fatigue.command';
 import { DeclareActorParryCommand } from '../../../../actor-rounds/application/cqrs/commands/declare-actor-parry.command';
 import { SubstractBoCommand } from '../../../../actor-rounds/application/cqrs/commands/substract-bo.command';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/actor-round.repository';
+import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
 import { ActorRoundEffect } from '../../../../actor-rounds/domain/value-objets/actor-round-effect.vo';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, UnprocessableEntityError } from '../../../../shared/domain/errors';
 import { StrategicGame } from '../../../../strategic/application/ports/strategic-game.port';
-import { StrategicGameApiClient } from '../../../../strategic/infrastructure/api-clients/api-strategic-game.adapter';
+import { StrategicGameApiClient } from '../../../../strategic/infrastructure/api-clients/api.strategic-game.adapter';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import { ActionAttack } from '../../../domain/value-objects/action-attack.vo';
@@ -145,7 +145,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       cmd.dmg += dmg || 0;
       cmd.effects.push(...criticalEffects);
     } else {
-      const cmd = new AddEffectsCommand(target.id, dmg, criticalEffects, userId, roles);
+      const cmd = new AddEffectsCommand(target.id, dmg, criticalEffects, undefined, userId, roles);
       updateCommands.set(target.id, cmd);
     }
   }
@@ -173,7 +173,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       const cmd = updateCommands.get(actor.id)!;
       cmd.effects.push(...effects);
     } else {
-      const cmd = new AddEffectsCommand(actor.id, 0, effects, userId, roles);
+      const cmd = new AddEffectsCommand(actor.id, 0, effects, undefined, userId, roles);
       updateCommands.set(actor.id, cmd);
     }
   }
@@ -187,7 +187,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
   ): Promise<void> {
     action.processFatigue(strategicGame.options?.fatigueMultiplier);
     if (action.fatigue) {
-      const command = new AddFatigueCommand(action.actorId, round, action.fatigue, userId, roles);
+      const command = new AddFatigueCommand(undefined, action.actorId, round, action.fatigue, userId, roles);
       await this.commandBus.execute(command);
     }
   }

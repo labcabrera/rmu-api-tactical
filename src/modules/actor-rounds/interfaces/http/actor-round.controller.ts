@@ -7,6 +7,7 @@ import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
 import { Page } from '../../../shared/domain/entities/page.entity';
 import { ErrorDto, PagedQueryDto } from '../../../shared/interfaces/http/dto';
 import { AddEffectsCommand } from '../../application/cqrs/commands/add-effects.command';
+import { AddFatigueCommand } from '../../application/cqrs/commands/add-fatigue.command';
 import { DeclareInitiativeCommand } from '../../application/cqrs/commands/declare-initiative.command';
 import { DeleteEffectCommand } from '../../application/cqrs/commands/delete-effect.command';
 import { GetActorRoundQuery } from '../../application/cqrs/queries/get-actor-round.query';
@@ -14,6 +15,7 @@ import { GetActorsRoundsQuery } from '../../application/cqrs/queries/get-actor-r
 import { ActorRound } from '../../domain/aggregates/actor-round.aggregate';
 import { ActorRoundDto, CharacterRoundPageDto } from './dto/actor-round.dto';
 import { AddEffectDto } from './dto/add-effect.dto';
+import { AddFatigueAccumulatorDto } from './dto/add-fatigue-accumulator.dto';
 import { AddHpDto } from './dto/add-hp.dto';
 import { DeclareInitiativeDto } from './dto/declare-initiative.dto';
 
@@ -73,8 +75,20 @@ export class ActorRoundController {
   @ApiNotFoundResponse({ description: 'Actor round not found', type: ErrorDto })
   async addHp(@Param('id') id: string, @Body() dto: AddHpDto, @Request() req) {
     const user = req.user!;
-    const command = new AddEffectsCommand(id, dto.dmg, [], user.id as string, user.roles as string[]);
+    const command = new AddEffectsCommand(id, dto.dmg, [], undefined, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<AddEffectsCommand, ActorRound>(command);
+    return ActorRoundDto.fromEntity(entity);
+  }
+
+  @Patch(':id/fatigue-accumulator')
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
+  @ApiOperation({ operationId: 'addFatigueAccumulator', summary: 'Add or subtract fatigue accumulator' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiNotFoundResponse({ description: 'Actor round not found', type: ErrorDto })
+  async addFatigueAccumulator(@Param('id') id: string, @Body() dto: AddFatigueAccumulatorDto, @Request() req) {
+    const user = req.user!;
+    const command = AddFatigueAccumulatorDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<AddFatigueCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
   }
 

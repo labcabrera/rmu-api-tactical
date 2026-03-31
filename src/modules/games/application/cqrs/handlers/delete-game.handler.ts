@@ -1,7 +1,7 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import type { ActionRepository } from '../../../../actions/application/ports/action.repository';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/out/actor-round.repository';
+import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
 import { NotFoundError } from '../../../../shared/domain/errors';
 import { GameDeletedEvent } from '../../../domain/events/game.events';
 import type { GameEventBusPort } from '../../ports/game-event-bus.port';

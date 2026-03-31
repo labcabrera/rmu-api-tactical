@@ -2,7 +2,7 @@ import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { NotFoundError } from '../../../../shared/domain/errors';
 import { ActorRound } from '../../../domain/aggregates/actor-round.aggregate';
-import type { ActorRoundRepository } from '../../ports/out/actor-round.repository';
+import type { ActorRoundRepository } from '../../ports/actor-round.repository';
 import { AddEffectsCommand } from '../commands/add-effects.command';
 
 @CommandHandler(AddEffectsCommand)
@@ -13,11 +13,11 @@ export class AddEffectsHandler implements ICommandHandler<AddEffectsCommand, Act
 
   async execute(command: AddEffectsCommand): Promise<ActorRound> {
     this.logger.debug(`Execute << ${JSON.stringify(command)}`);
+
     const actorRound = await this.actorRoundRepository.findById(command.actorRoundId);
-    if (!actorRound) {
-      throw new NotFoundError('Actor round', command.actorRoundId);
-    }
-    actorRound.applyAttackResults(command.dmg, command.effects);
+    if (!actorRound) throw new NotFoundError('Actor round', command.actorRoundId);
+
+    actorRound.applyAttackResults(command.dmg, command.effects, command.location);
     const updated = await this.actorRoundRepository.update(actorRound.id, actorRound);
     //TODO notify event bus
     return updated;
