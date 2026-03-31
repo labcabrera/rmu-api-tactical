@@ -4,13 +4,6 @@ import { Actor } from '../../../domain/value-objects/actor.vo';
 import { ActorRoundFactionDto } from './actor-round-faction.dto';
 
 export class ActorDto {
-  constructor(id = '', name = '', faction = new ActorRoundFactionDto(), type: ActorType = 'character') {
-    this.id = id;
-    this.name = name;
-    this.faction = faction;
-    this.type = type;
-  }
-
   @ApiProperty({ description: 'Actor unique identifier', example: 'actor-001' })
   id: string;
 
