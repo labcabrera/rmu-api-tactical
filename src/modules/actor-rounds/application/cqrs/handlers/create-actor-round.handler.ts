@@ -24,15 +24,12 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
   constructor(
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('CharacterClient') private readonly characterClient: CharacterPort,
-    // @Inject('ActorRoundEventBus') private readonly gameEventBus: GameEventBusPort,
   ) {}
 
   async execute(command: CreateActorRoundCommand): Promise<ActorRound> {
-    this.logger.log(`Execute << ${JSON.stringify(command)}`);
+    this.logger.log(`Creating actor round ${command.actor.id} for game ${command.gameId} round ${command.round}`);
     const actor = await this.buildActorRound(command.gameId, command.actor, command.round);
     const updated = await this.actorRoundRepository.save(actor);
-    //const events = actor.pullDomainEvents();
-    // events.forEach((event) => this.gameEventBus.publish(event));
     return updated;
   }
 

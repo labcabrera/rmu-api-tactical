@@ -20,7 +20,7 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
   ) {}
 
   async execute(command: StartRoundCommand): Promise<Game> {
-    this.logger.log(`Execute << ${JSON.stringify(command)}`);
+    this.logger.log(`Starting round for game ${command.gameId} for user ${command.userId}`);
     const { gameId } = command;
     const game = await this.gameRepository.findById(gameId);
     if (!game) {
