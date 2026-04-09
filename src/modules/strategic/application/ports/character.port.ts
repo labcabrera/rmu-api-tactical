@@ -59,7 +59,7 @@ export interface CharacterHP {
 }
 
 export interface CharacterInitiative {
-  baseBonus: number;
+  totalBonus: number;
 }
 
 export interface CharacterSkill {

@@ -16,6 +16,8 @@ import { ActorRoundShield } from '../../../domain/value-objets/actor-round-shiel
 import type { ActorRoundRepository } from '../../ports/actor-round.repository';
 import { CreateActorRoundCommand } from '../commands/create-actor-round.command';
 
+const DEFAULT_ACTION_POINTS = 4;
+
 @CommandHandler(CreateActorRoundCommand)
 export class CreateActorRoundHandler implements ICommandHandler<CreateActorRoundCommand, ActorRound> {
   private readonly logger = new Logger(CreateActorRoundHandler.name);
@@ -55,7 +57,6 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
   private async buildActorRoundFromCharacter(gameId: string, round: number, characterId: string): Promise<ActorRound> {
     const character = await this.characterClient.findById(characterId);
     if (!character) throw new ValidationError(`Character ${characterId} not found`);
-
     return ActorRound.create(
       gameId,
       round,
@@ -64,11 +65,11 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
       character.info.raceName,
       character.experience.level,
       character.faction.id,
-      new ActorRoundInitiative(character.initiative.baseBonus, 0, undefined, undefined),
-      4,
+      new ActorRoundInitiative(character.initiative.totalBonus, 0, undefined, undefined),
+      DEFAULT_ACTION_POINTS,
       new ActorRoundHP(character.hp.max, character.hp.current),
-      new ActorRoundFatigue(0, 0, 0),
-      new ActorRoundPenalty([]),
+      ActorRoundFatigue.empty(),
+      ActorRoundPenalty.empty(),
       new ActorRoundDefense(
         character.defense.defensiveBonus,
         character.defense.armor.at,

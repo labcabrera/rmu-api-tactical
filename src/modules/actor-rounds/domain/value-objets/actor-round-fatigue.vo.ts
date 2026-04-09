@@ -4,4 +4,8 @@ export class ActorRoundFatigue {
     public readonly fatigue: number,
     public accumulator: number,
   ) {}
+
+  static empty(): ActorRoundFatigue {
+    return new ActorRoundFatigue(0, 0, 0);
+  }
 }
