@@ -1,6 +1,6 @@
 import { DomainEvent } from '../../../shared/domain/events/domain-event';
-import { Game } from '../../domain/aggregates/game.aggregate';
+import { GameProps } from '../../domain/aggregates/game.props';
 
 export interface GameEventBusPort {
-  publish(event: DomainEvent<Game>): void;
+  publish(event: DomainEvent<GameProps>): void;
 }

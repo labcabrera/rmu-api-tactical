@@ -6,12 +6,7 @@ import { ActorRoundDefense } from './actor-round-defense.model';
 import { ActorRoundHP } from './actor-round-hp.model';
 import { ActorRoundPenalty } from './actor-round-penalty.model';
 import { ActorRoundUsedBo } from './actor-round-used-bo.model';
-import {
-  ActorRoundEffect,
-  ActorRoundFaction,
-  ActorRoundFatigue,
-  ActorRoundInitiative,
-} from './actor-round.models-childs';
+import { ActorRoundEffect, ActorRoundFatigue, ActorRoundInitiative } from './actor-round.models-childs';
 
 export type ActorRoundDocument = ActorRoundModel & Document;
 
@@ -24,7 +19,7 @@ export class ActorRoundModel {
     actorName: string,
     raceName: string,
     level: number,
-    faction: ActorRoundFaction,
+    factionId: string,
     round: number,
     initiative: ActorRoundInitiative,
     actionPoints: number,
@@ -48,7 +43,7 @@ export class ActorRoundModel {
     this.actorName = actorName;
     this.raceName = raceName;
     this.level = level;
-    this.faction = faction;
+    this.factionId = factionId;
     this.round = round;
     this.initiative = initiative;
     this.actionPoints = actionPoints;
@@ -86,7 +81,7 @@ export class ActorRoundModel {
   level: number;
 
   @Prop({ required: true })
-  faction: ActorRoundFaction;
+  factionId: string;
 
   @Prop({ required: true })
   round: number;

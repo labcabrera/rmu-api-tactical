@@ -1,7 +1,11 @@
-export class DeleteGameCommand {
+import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command';
+
+export class DeleteGameCommand extends AuthenticatedCommand {
   constructor(
     public readonly gameId: string,
-    public readonly userId: string,
-    public readonly roles: string[],
-  ) {}
+    userId: string,
+    roles: string[],
+  ) {
+    super(userId, roles);
+  }
 }
