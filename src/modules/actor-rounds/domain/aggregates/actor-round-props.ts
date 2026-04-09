@@ -31,5 +31,5 @@ export interface ActorRoundProps {
   imageUrl: string | undefined;
   owner: string;
   createdAt: Date;
-  updatedAt?: Date;
+  updatedAt: Date | null;
 }

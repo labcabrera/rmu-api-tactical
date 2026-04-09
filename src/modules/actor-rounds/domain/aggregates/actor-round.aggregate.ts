@@ -1,8 +1,7 @@
-import { AggregateRoot } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
 import { AttackLocation } from '../../../actions/domain/value-objects/attack-location.vo';
+import { BaseAggregateRoot } from '../../../shared/domain/aggregates/base-aggregate';
 import { UnprocessableEntityError } from '../../../shared/domain/errors';
-import { DomainEvent } from '../../../shared/domain/events/domain-event';
 import { ActorRoundCreatedEvent } from '../events/actor-round.events';
 import { ActorRoundAlert } from '../value-objets/actor-round-alert.vo';
 import { ActorRoundAttack } from '../value-objets/actor-round-attack.vo';
@@ -16,9 +15,9 @@ import { ActorRoundPenalty } from '../value-objets/actor-round-penalty.vo';
 import { ActorRoundUsedBo } from '../value-objets/actor-round-used-bo.vo';
 import { ActorRoundProps } from './actor-round-props';
 
-export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
+export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   private constructor(
-    public readonly id: string,
+    id: string,
     public readonly gameId: string,
     public readonly round: number,
     public readonly actorId: string,
@@ -40,9 +39,9 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
     public imageUrl: string | undefined,
     public owner: string,
     public readonly createdAt: Date,
-    public readonly updatedAt: Date | undefined,
+    public readonly updatedAt: Date | null,
   ) {
-    super();
+    super(id);
   }
 
   static create(
@@ -88,7 +87,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
       imageUrl,
       owner,
       new Date(),
-      undefined,
+      null,
     );
     actorRound.apply(new ActorRoundCreatedEvent(actorRound));
     return actorRound;
@@ -118,7 +117,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
       imageUrl: undefined,
       owner: '',
       createdAt: new Date(),
-      updatedAt: undefined,
+      updatedAt: null,
     });
   }
 
@@ -193,18 +192,14 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
       imageUrl,
       owner,
       new Date(),
-      undefined,
+      null,
     );
     actorRound.calculateCurrentBo();
     actorRound.apply(new ActorRoundCreatedEvent(actorRound));
     return actorRound;
   }
 
-  applyAttackResults(
-    dmg: number | undefined,
-    effects: ActorRoundEffect[] | undefined,
-    location: AttackLocation | undefined,
-  ) {
+  applyAttackResults(dmg: number | undefined, effects: ActorRoundEffect[] | undefined, location: AttackLocation | undefined) {
     if (dmg) {
       this.hp.current -= dmg;
     }
@@ -298,9 +293,7 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
     if (this.effects.length === 0) {
       return;
     }
-    const totalBleeding = this.effects
-      .filter((e) => e.status === 'bleeding')
-      .reduce((sum, e) => sum + (e.value ?? 0), 0);
+    const totalBleeding = this.effects.filter((e) => e.status === 'bleeding').reduce((sum, e) => sum + (e.value ?? 0), 0);
     this.hp.current -= totalBleeding;
     if (this.effects.some((e) => e.status === 'dying' && e.rounds && e.rounds <= 1)) {
       this.addEffect(new ActorRoundEffect(randomUUID(), 'dead', undefined, undefined), undefined, undefined);
@@ -379,12 +372,10 @@ export class ActorRound extends AggregateRoot<DomainEvent<ActorRound>> {
   }
 
   addCriticalBreakageAlert(location: AttackLocation | undefined) {
-    this.alerts.push(
-      new ActorRoundAlert(randomUUID(), 'breakage', `Breakage on critical hit${location ? ` at ${location}` : ''}`),
-    );
+    this.alerts.push(new ActorRoundAlert(randomUUID(), 'breakage', `Breakage on critical hit${location ? ` at ${location}` : ''}`));
   }
 
-  toProps(): ActorRoundProps {
+  getProps(): ActorRoundProps {
     return {
       id: this.id,
       gameId: this.gameId,
