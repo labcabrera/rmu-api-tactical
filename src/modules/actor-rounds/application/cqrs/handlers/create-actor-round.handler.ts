@@ -45,61 +45,44 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
   }
 
   public async buildFromTemplate(gameId: string, actor: Actor, round: number): Promise<ActorRound> {
-    let initiativeBase = 0;
-    let attacks: ActorRoundAttack[] = [];
-    let maxHp = 0;
-    let currentHp = 0;
-    let defense: ActorRoundDefense;
-    let imageUrl: string | undefined = undefined;
-    let raceName = 'undefined';
-    let level = 0;
-    let factionId: string | undefined;
     if (actor.type === 'character') {
-      const character = await this.characterClient.findById(actor.id);
-      if (!character) {
-        throw new ValidationError(`Character ${actor.id} not found`);
-      }
-      initiativeBase = character.initiative.baseBonus;
-      attacks = this.mapAttacksFromCharacter(character);
-      maxHp = character.hp.max;
-      currentHp = character.hp.current;
-      const shield = this.mapShield(character);
-      defense = new ActorRoundDefense(
+      return await this.buildActorRoundFromCharacter(gameId, round, actor.id);
+    } else {
+      throw new NotImplementedException(`Actor type ${actor.type} not supported yet`);
+    }
+  }
+
+  private async buildActorRoundFromCharacter(gameId: string, round: number, characterId: string): Promise<ActorRound> {
+    const character = await this.characterClient.findById(characterId);
+    if (!character) throw new ValidationError(`Character ${characterId} not found`);
+
+    return ActorRound.create(
+      gameId,
+      round,
+      character.id,
+      character.name,
+      character.info.raceName,
+      character.experience.level,
+      character.faction.id,
+      new ActorRoundInitiative(character.initiative.baseBonus, 0, undefined, undefined),
+      4,
+      new ActorRoundHP(character.hp.max, character.hp.current),
+      new ActorRoundFatigue(0, 0, 0),
+      new ActorRoundPenalty([]),
+      new ActorRoundDefense(
         character.defense.defensiveBonus,
         character.defense.armor.at,
         character.defense.armor.headAt,
         character.defense.armor.bodyAt,
         character.defense.armor.armsAt,
         character.defense.armor.legsAt,
-        shield,
-      );
-      raceName = character.info.raceName;
-      level = character.experience.level;
-      imageUrl = character.imageUrl;
-      factionId = character.faction.id;
-    } else {
-      throw new NotImplementedException('NPCs are not implemented yet');
-    }
-    return ActorRound.create(
-      gameId,
-      round,
-      actor.id,
-      actor.name,
-      raceName,
-      level,
-      factionId,
-      new ActorRoundInitiative(initiativeBase, 0, undefined, undefined),
-      4,
-      new ActorRoundHP(maxHp, currentHp),
-      new ActorRoundFatigue(0, 0, 0),
-      new ActorRoundPenalty([]),
-      defense,
-      attacks,
+        this.mapShield(character),
+      ),
+      this.mapAttacksFromCharacter(character),
       [] as ActorRoundEffect[],
       [] as ActorRoundAlert[],
-      imageUrl,
-      //TODO read from faction
-      'todo-owner',
+      character.imageUrl,
+      character.owner,
     );
   }
 
