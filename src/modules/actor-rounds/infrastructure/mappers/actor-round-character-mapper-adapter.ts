@@ -4,12 +4,13 @@ import { Character } from '../../../strategic/application/ports/character.port';
 import { ActorRoundCharacterMapperPort } from '../../application/ports/actor-round-character-mapper-port';
 import { ActorRound } from '../../domain/aggregates/actor-round.aggregate';
 import { ActorRoundAlert } from '../../domain/value-objets/actor-round-alert.vo';
-import { ActorRoundAttack, AttackRange } from '../../domain/value-objets/actor-round-attack.vo';
+import { ActorRoundAttack } from '../../domain/value-objets/actor-round-attack.vo';
 import { ActorRoundDefense } from '../../domain/value-objets/actor-round-defense.vo';
 import { ActorRoundEffect } from '../../domain/value-objets/actor-round-effect.vo';
 import { ActorRoundFatigue } from '../../domain/value-objets/actor-round-fatigue.vo';
 import { ActorRoundHP } from '../../domain/value-objets/actor-round-hp.vo';
 import { ActorRoundInitiative } from '../../domain/value-objets/actor-round-initiative.vo';
+import { ActorRoundMovement } from '../../domain/value-objets/actor-round-movement.vo';
 import { ActorRoundPenalty } from '../../domain/value-objets/actor-round-penalty.vo';
 import { ActorRoundShield } from '../../domain/value-objets/actor-round-shield.vo';
 
@@ -26,6 +27,12 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
     if (character.defense.shield) {
       shield = new ActorRoundShield(character.defense.shield.db, character.defense.shield.blockCount, 0);
     }
+    const movement = new ActorRoundMovement(
+      character.movement.baseMovementRate,
+      character.equipment.maneuverPenalty + character.equipment.encumbrancePenalty,
+      character.movement.maxPace,
+      character.equipment.movementBaseDifficulty,
+    );
     return ActorRound.create(
       gameId,
       round,
@@ -35,6 +42,7 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
       character.info.raceName,
       character.experience.level,
       character.faction.id,
+      movement,
       new ActorRoundInitiative(character.initiative.totalBonus, 0, undefined, undefined),
       DEFAULT_ACTION_POINTS,
       new ActorRoundHP(character.hp.max, character.hp.current),
@@ -70,18 +78,9 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
         attack.sizeAdjustment,
         attack.fumble,
         false,
-        this.mapAttackRanges(character),
+        attack.meleeRange,
+        attack.ranges,
       );
     });
-  }
-
-  private mapAttackRanges(character: Character): AttackRange[] | undefined {
-    if (!character.equipment || !character.equipment.mainHand) return undefined;
-    const item = character.items.find((it) => it.id === character.equipment.mainHand);
-    if (!item || !item.weapon) return undefined;
-    if (item && item.weapon && item.weapon.modes && item.weapon.modes.length > 0) {
-      return item.weapon.modes[0].ranges || undefined;
-    }
-    return undefined;
   }
 }

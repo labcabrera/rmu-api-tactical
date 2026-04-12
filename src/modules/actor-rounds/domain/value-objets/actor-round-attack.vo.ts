@@ -11,7 +11,8 @@ export class ActorRoundAttack {
   attackSize: number;
   fumble: number;
   canThrow: boolean;
-  ranges: AttackRange[] | undefined;
+  meleeRange: number | null;
+  ranges: AttackRange[] | null;
 
   constructor(
     attackName: string,
@@ -24,7 +25,8 @@ export class ActorRoundAttack {
     attackSize: number,
     fumble: number,
     canThrow: boolean,
-    ranges: AttackRange[] | undefined,
+    meleeRange: number | null,
+    ranges: AttackRange[] | null,
   ) {
     this.attackName = attackName;
     this.boModifiers = boModifiers;
@@ -36,6 +38,7 @@ export class ActorRoundAttack {
     this.attackSize = attackSize;
     this.fumble = fumble;
     this.canThrow = canThrow;
+    this.meleeRange = meleeRange;
     this.ranges = ranges;
   }
 

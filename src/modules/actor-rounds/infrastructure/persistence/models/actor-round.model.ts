@@ -5,6 +5,7 @@ import { ActorRoundAttack } from './actor-round-attack.model';
 import { ActorRoundDefense } from './actor-round-defense.model';
 import { ActorRoundHP } from './actor-round-hp.model';
 import { ActorRoundInitiative } from './actor-round-initiative.model';
+import { ActorRoundMovement } from './actor-round-movement.model';
 import { ActorRoundPenalty } from './actor-round-penalty.model';
 import { ActorRoundUsedBo } from './actor-round-used-bo.model';
 import { ActorRoundEffect, ActorRoundFatigue } from './actor-round.models-childs';
@@ -24,6 +25,9 @@ export class ActorRoundModel {
 
   @Prop({ required: true })
   actorName: string;
+
+  @Prop({ type: ActorRoundMovement, required: true })
+  movement: ActorRoundMovement;
 
   @Prop({ type: Number, required: false })
   size: number;

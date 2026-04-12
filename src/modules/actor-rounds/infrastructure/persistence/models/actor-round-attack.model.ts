@@ -56,6 +56,9 @@ export class ActorRoundAttack {
   @Prop({ required: true })
   canThrow: boolean;
 
+  @Prop({ type: Number, required: false })
+  meleeRange: number | null;
+
   @Prop({ type: [AttackRange], required: false })
-  ranges: AttackRange[] | undefined;
+  ranges: AttackRange[] | null;
 }

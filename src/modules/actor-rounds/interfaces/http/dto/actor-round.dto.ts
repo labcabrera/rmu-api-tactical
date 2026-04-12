@@ -8,6 +8,7 @@ import { ActorRoundDefenseDto } from './actor-round-defense.dto';
 import { ActorRoundFatigueDto } from './actor-round-fatigue.dto';
 import { ActorRoundHPDto } from './actor-round-hp.dto';
 import { ActorRoundInitiativeDto } from './actor-round-initiative.dto';
+import { ActorRoundMovementDto } from './actor-round-movement.dto';
 import { ActorRoundParryDto } from './actor-round-parry.dto';
 import { ActorRoundPenaltyDto } from './actor-round-penalty.dto';
 
@@ -38,6 +39,9 @@ export class ActorRoundDto {
 
   @ApiProperty({ description: 'Round number', example: 1 })
   round: number;
+
+  @ApiProperty({ description: 'Initiative information' })
+  movement: ActorRoundMovementDto;
 
   @ApiProperty({ description: 'Initiative information' })
   initiative: ActorRoundInitiativeDto;
@@ -83,6 +87,7 @@ export class ActorRoundDto {
     dto.level = entity.level;
     dto.factionId = entity.factionId;
     dto.round = entity.round;
+    dto.movement = ActorRoundMovementDto.fromEntity(entity.movement);
     dto.initiative = ActorRoundInitiativeDto.fromEntity(entity.initiative);
     dto.actionPoints = entity.actionPoints;
     dto.hp = ActorRoundHPDto.fromEntity(entity.hp);

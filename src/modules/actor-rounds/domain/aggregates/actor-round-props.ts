@@ -5,6 +5,7 @@ import { ActorRoundEffect } from '../value-objets/actor-round-effect.vo';
 import { ActorRoundFatigue } from '../value-objets/actor-round-fatigue.vo';
 import { ActorRoundHP } from '../value-objets/actor-round-hp.vo';
 import { ActorRoundInitiative } from '../value-objets/actor-round-initiative.vo';
+import { ActorRoundMovement } from '../value-objets/actor-round-movement.vo';
 import { ActorRoundPenalty } from '../value-objets/actor-round-penalty.vo';
 import { ActorRoundUsedBo } from '../value-objets/actor-round-used-bo.vo';
 
@@ -15,6 +16,7 @@ export interface ActorRoundProps {
   actorId: string;
   actorName: string;
   size: number;
+  movement: ActorRoundMovement;
   raceName: string;
   level: number;
   factionId: string;

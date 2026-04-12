@@ -2,6 +2,8 @@ import { AttackRange } from '../../../actor-rounds/domain/value-objets/actor-rou
 import { ActorRoundFaction } from '../../../actor-rounds/domain/value-objets/actor-round-faction.vo';
 import { ActorRoundShield } from '../../../actor-rounds/domain/value-objets/actor-round-shield.vo';
 
+export type AttackType = 'melee' | 'ranged';
+
 export interface CharacterPort {
   findById: (id: string) => Promise<Character | undefined>;
 
@@ -39,6 +41,7 @@ export interface CharacterExperience {
 
 export interface CharacterMovement {
   baseMovementRate: number;
+  maxPace: string;
 }
 
 export interface CharacterDefense {
@@ -94,17 +97,26 @@ export interface CharacterItemWeapon {
 }
 
 export interface CharacterEquipment {
-  mainHand: string | undefined;
-  offHand: string | undefined;
+  slots: Record<string, string | null>;
   maneuverPenalty: number;
+  encumbrancePenalty: number;
+  movementBaseDifficulty: string;
+}
+
+export interface CharacterAttackRange {
+  from: number;
+  to: number;
+  bonus: number;
 }
 
 export interface CharacterAttack {
   attackName: string;
   attackTable: string;
   sizeAdjustment: number;
-  fumbleTable: string;
-  type: 'melee' | 'ranged';
   fumble: number;
   bo: number;
+  type: AttackType;
+  meleeRange: number | null;
+  ranges: CharacterAttackRange[] | null;
+  fumbleTable: string;
 }

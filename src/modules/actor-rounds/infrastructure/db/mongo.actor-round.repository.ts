@@ -49,6 +49,23 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
     const penalty = doc.penalty
       ? new ActorRoundPenalty((doc.penalty.modifiers || []).map((m: any) => new ActorRoundPenaltyModifier(m.id, m.source, m.value)))
       : new ActorRoundPenalty([]);
+    const attacks: ActorRoundAttack[] = doc.attacks.map(
+      (e) =>
+        new ActorRoundAttack(
+          e.attackName,
+          e.boModifiers || [],
+          e.baseBo,
+          e.currentBo,
+          e.type,
+          e.attackTable,
+          e.fumbleTable,
+          e.attackSize,
+          e.fumble,
+          e.canThrow,
+          e.meleeRange,
+          e.ranges,
+        ),
+    );
     return ActorRound.fromProps({
       id: doc._id,
       gameId: doc.gameId,
@@ -59,13 +76,14 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       raceName: doc.raceName,
       level: doc.level,
       factionId: doc.factionId,
+      movement: doc.movement,
       initiative: doc.initiative,
       actionPoints: doc.actionPoints,
       hp: doc.hp,
       fatigue: doc.fatigue,
       penalty: penalty,
       defense: doc.defense,
-      attacks: doc.attacks.map((attackDoc) => this.mapAttackToEntity(attackDoc)),
+      attacks: attacks,
       usedBo: doc.usedBo,
       parries: doc.parries,
       effects: doc.effects,
@@ -75,21 +93,5 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     });
-  }
-
-  private mapAttackToEntity(doc: any): ActorRoundAttack {
-    return new ActorRoundAttack(
-      doc.attackName,
-      doc.boModifiers || [],
-      doc.baseBo,
-      doc.currentBo,
-      doc.type,
-      doc.attackTable,
-      doc.fumbleTable,
-      doc.attackSize,
-      doc.fumble,
-      doc.canThrow,
-      doc.ranges,
-    );
   }
 }

@@ -10,6 +10,7 @@ import { ActorRoundEffect } from '../value-objets/actor-round-effect.vo';
 import { ActorRoundFatigue } from '../value-objets/actor-round-fatigue.vo';
 import { ActorRoundHP } from '../value-objets/actor-round-hp.vo';
 import { ActorRoundInitiative } from '../value-objets/actor-round-initiative.vo';
+import { ActorRoundMovement } from '../value-objets/actor-round-movement.vo';
 import { ActorRoundPenaltySource } from '../value-objets/actor-round-penalty-source.vo';
 import { ActorRoundPenalty } from '../value-objets/actor-round-penalty.vo';
 import { ActorRoundUsedBo } from '../value-objets/actor-round-used-bo.vo';
@@ -26,6 +27,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     public readonly raceName: string,
     public readonly level: number,
     public readonly factionId: string,
+    public readonly movement: ActorRoundMovement,
     public readonly initiative: ActorRoundInitiative,
     public readonly actionPoints: number,
     public hp: ActorRoundHP,
@@ -54,6 +56,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     raceName: string,
     level: number,
     factionId: string,
+    movement: ActorRoundMovement,
     initiative: ActorRoundInitiative,
     actionPoints: number,
     hp: ActorRoundHP,
@@ -76,6 +79,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       raceName,
       level,
       factionId,
+      movement,
       initiative,
       actionPoints,
       hp,
@@ -107,6 +111,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       raceName: '',
       level: 0,
       factionId: '',
+      movement: new ActorRoundMovement(0, 0, '', ''),
       initiative: new ActorRoundInitiative(0, 0, undefined, undefined),
       actionPoints: 0,
       hp: new ActorRoundHP(0, 0),
@@ -136,6 +141,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       props.raceName,
       props.level,
       props.factionId,
+      props.movement,
       props.initiative,
       props.actionPoints,
       props.hp,
@@ -161,6 +167,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       actorId,
       actorName,
       size,
+      movement,
       raceName,
       level,
       factionId,
@@ -185,6 +192,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       raceName,
       level,
       factionId,
+      movement,
       new ActorRoundInitiative(initiative.base, initiative.penalty, undefined, undefined),
       4,
       hp,
@@ -390,6 +398,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       actorId: this.actorId,
       actorName: this.actorName,
       size: this.size,
+      movement: this.movement,
       raceName: this.raceName,
       level: this.level,
       factionId: this.factionId,
