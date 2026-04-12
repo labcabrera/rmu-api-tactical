@@ -18,6 +18,7 @@ import { SubstractBoHandler } from './application/cqrs/handlers/substract-bo.han
 import { DeclareInitiativeCommandHandler } from './application/cqrs/handlers/update-initiative.handler';
 import { UpkeepActorRoundHandler } from './application/cqrs/handlers/upkeep-actor-round.handler';
 import { MongoActorRoundRepository } from './infrastructure/db/mongo.actor-round.repository';
+import { ActorRoundCharacterMapperAdapter } from './infrastructure/mappers/actor-round-character-mapper-adapter';
 import { ActorRoundModel, ActorRoundSchema } from './infrastructure/persistence/models/actor-round.model';
 import { ActorRoundController } from './interfaces/http/actor-round.controller';
 
@@ -47,6 +48,10 @@ import { ActorRoundController } from './interfaces/http/actor-round.controller';
     {
       provide: 'ActorRoundRepository',
       useClass: MongoActorRoundRepository,
+    },
+    {
+      provide: 'ActorRoundCharacterMapperPort',
+      useClass: ActorRoundCharacterMapperAdapter,
     },
   ],
   exports: ['ActorRoundRepository'],
