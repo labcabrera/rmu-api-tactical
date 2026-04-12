@@ -57,6 +57,10 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
   private async buildActorRoundFromCharacter(gameId: string, round: number, characterId: string): Promise<ActorRound> {
     const character = await this.characterClient.findById(characterId);
     if (!character) throw new ValidationError(`Character ${characterId} not found`);
+    let shield: ActorRoundShield | null = null;
+    if (character.defense.shield) {
+      shield = new ActorRoundShield(character.defense.shield.db, character.defense.shield.blockCount, 0);
+    }
     return ActorRound.create(
       gameId,
       round,
@@ -77,7 +81,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
         character.defense.armor.bodyAt,
         character.defense.armor.armsAt,
         character.defense.armor.legsAt,
-        this.mapShield(character),
+        shield,
       ),
       this.mapAttacksFromCharacter(character),
       [] as ActorRoundEffect[],
@@ -113,27 +117,5 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
       return item.weapon.modes[0].ranges || undefined;
     }
     return undefined;
-  }
-
-  private mapShield(character: Character): ActorRoundShield | undefined {
-    if (!character.equipment || !character.equipment.offHand) {
-      return undefined;
-    }
-    const item = character.items.find((it) => it.id === character.equipment.offHand);
-    if (item?.category === 'shield') {
-      switch (item.itemTypeId) {
-        //TODO read custom shield properties
-        case 'target-shield':
-          return new ActorRoundShield('target', 15, 1, 0);
-        case 'normal-shield':
-          return new ActorRoundShield('normal', 20, 2, 0);
-        case 'full-shield':
-          return new ActorRoundShield('full', 25, 3, 0);
-        case 'wall-shield':
-          return new ActorRoundShield('wall', 30, 4, 0);
-        default:
-          return undefined;
-      }
-    }
   }
 }

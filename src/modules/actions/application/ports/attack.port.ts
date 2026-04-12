@@ -78,11 +78,11 @@ export interface AttackSkill {
 }
 
 export interface AttackArmor {
-  at: number | undefined;
-  headAt: number | undefined;
-  bodyAt: number | undefined;
-  armsAt: number | undefined;
-  legsAt: number | undefined;
+  at: number | null;
+  headAt: number | null;
+  bodyAt: number | null;
+  armsAt: number | null;
+  legsAt: number | null;
 }
 
 export interface AttackCreationRequest {

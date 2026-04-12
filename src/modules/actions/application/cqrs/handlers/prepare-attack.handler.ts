@@ -67,18 +67,12 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const targetsNumber = targets.size;
 
     await Promise.all(
-      actionAttacks.map((attack) =>
-        this.processAttackPort(attack, action, actors, skills, attackNumber, targetsNumber, gameLethality),
-      ),
+      actionAttacks.map((attack) => this.processAttackPort(attack, action, actors, skills, attackNumber, targetsNumber, gameLethality)),
     );
     action.attacks = actionAttacks;
     //TODO read actions
     const targetActions = await this.actionRepository
-      .findByRsql(
-        `gameId==${action.gameId};round==${game.round};actorId=in=(${Array.from(targets).join(',')})`,
-        0,
-        1000,
-      )
+      .findByRsql(`gameId==${action.gameId};round==${game.round};actorId=in=(${Array.from(targets).join(',')})`, 0, 1000)
       .then((res) => res.content);
 
     const targetActors = actors.filter((a) => a.actorId !== action.actorId);
@@ -103,15 +97,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     targetsNumber: number,
     gameLethality: number,
   ): Promise<void> {
-    const request = this.mapAttackToPortModel(
-      attack,
-      action,
-      actors,
-      skills,
-      attackNumber,
-      targetsNumber,
-      gameLethality,
-    );
+    const request = this.mapAttackToPortModel(attack, action, actors, skills, attackNumber, targetsNumber, gameLethality);
 
     const portResponse = await this.attackClient.prepareAttack(request);
     attack.externalAttackId = portResponse.id;
@@ -172,6 +158,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       rangePenalty = rangedAttack.calculateRangeBonus(attackModifiers.range);
     }
 
+    //TODO
     const attackSize = 2;
     const defenderSize = 2;
     const sizeDifference = attackSize - defenderSize;
@@ -217,7 +204,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       modifiers: {
         attackType: attack.type,
         attackTable: attackInfo.attackTable,
-        attackSize: attackInfo.attackSize, // numeric size
+        attackSize: attackInfo.attackSize,
         fumbleTable: attackInfo.fumbleTable,
         fumble: attackInfo.fumble,
         actionPoints: actionPoints,
@@ -255,10 +242,10 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
   }
 
   private getShieldBonus(targetActor: ActorRound, disabledShield: boolean): number {
-    if (disabledShield) return 0;
-    if (!targetActor.defense.shield) return 0;
-    //TODO update model with current blocks;
-    return targetActor.defense.shield.shieldDb;
+    if (disabledShield || !targetActor.defense.shield) return 0;
+    const shield = targetActor.defense.shield;
+    if (shield.currentBlocks >= shield.blockCount) return 0;
+    return shield.db;
   }
 
   private getAttackSize(size: number): number {

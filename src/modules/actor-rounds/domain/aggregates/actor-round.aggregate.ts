@@ -108,7 +108,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       hp: new ActorRoundHP(0, 0),
       fatigue: new ActorRoundFatigue(0, 0, 0),
       penalty: new ActorRoundPenalty([]),
-      defense: new ActorRoundDefense(0, 0, 0, 0, 0, 0, undefined),
+      defense: new ActorRoundDefense(0, 0, 0, 0, 0, 0, null),
       attacks: [],
       usedBo: [],
       parries: [],

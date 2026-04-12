@@ -1,5 +1,6 @@
 import { AttackRange } from '../../../actor-rounds/domain/value-objets/actor-round-attack.vo';
 import { ActorRoundFaction } from '../../../actor-rounds/domain/value-objets/actor-round-faction.vo';
+import { ActorRoundShield } from '../../../actor-rounds/domain/value-objets/actor-round-shield.vo';
 
 export interface CharacterPort {
   findById: (id: string) => Promise<Character | undefined>;
@@ -43,14 +44,15 @@ export interface CharacterMovement {
 export interface CharacterDefense {
   defensiveBonus: number;
   armor: CharacterArmor;
+  shield: ActorRoundShield | null;
 }
 
 export interface CharacterArmor {
-  at: number | undefined;
-  bodyAt: number | undefined;
-  headAt: number | undefined;
-  armsAt: number | undefined;
-  legsAt: number | undefined;
+  at: number | null;
+  bodyAt: number | null;
+  headAt: number | null;
+  armsAt: number | null;
+  legsAt: number | null;
 }
 
 export interface CharacterHP {
