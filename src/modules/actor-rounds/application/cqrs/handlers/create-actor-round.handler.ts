@@ -17,6 +17,7 @@ import type { ActorRoundRepository } from '../../ports/actor-round.repository';
 import { CreateActorRoundCommand } from '../commands/create-actor-round.command';
 
 const DEFAULT_ACTION_POINTS = 4;
+const ACTOR_SIZES: Record<string, number> = { medium: 0, small: -1, big: 1 };
 
 @CommandHandler(CreateActorRoundCommand)
 export class CreateActorRoundHandler implements ICommandHandler<CreateActorRoundCommand, ActorRound> {
@@ -57,6 +58,9 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
   private async buildActorRoundFromCharacter(gameId: string, round: number, characterId: string): Promise<ActorRound> {
     const character = await this.characterClient.findById(characterId);
     if (!character) throw new ValidationError(`Character ${characterId} not found`);
+    if (ACTOR_SIZES[character.info.sizeId] === undefined) {
+      throw new ValidationError(`Character size ${character.info.sizeId} not supported`);
+    }
     let shield: ActorRoundShield | null = null;
     if (character.defense.shield) {
       shield = new ActorRoundShield(character.defense.shield.db, character.defense.shield.blockCount, 0);
@@ -66,6 +70,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
       round,
       character.id,
       character.name,
+      ACTOR_SIZES[character.info.sizeId],
       character.info.raceName,
       character.experience.level,
       character.faction.id,

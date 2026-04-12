@@ -25,6 +25,9 @@ export class ActorRoundModel {
   @Prop({ required: true })
   actorName: string;
 
+  @Prop({ type: Number, required: false })
+  size: number;
+
   @Prop({ required: false })
   raceName: string;
 

@@ -14,6 +14,7 @@ export interface ActorRoundProps {
   round: number;
   actorId: string;
   actorName: string;
+  size: number;
   raceName: string;
   level: number;
   factionId: string;

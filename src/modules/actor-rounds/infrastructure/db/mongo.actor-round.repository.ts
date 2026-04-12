@@ -55,6 +55,7 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       round: doc.round,
       actorId: doc.actorId,
       actorName: doc.actorName,
+      size: doc.size,
       raceName: doc.raceName,
       level: doc.level,
       factionId: doc.factionId,
