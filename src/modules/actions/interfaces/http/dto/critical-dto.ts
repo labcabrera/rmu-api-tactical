@@ -64,7 +64,7 @@ export class CriticalDto {
           damage: entity.result.damage,
           location: entity.result.location,
           effects: entity.result.effects
-            ? entity.result.effects.map((effect) => ({
+            ? entity.result.effects.map(effect => ({
                 status: effect.status,
                 rounds: effect.rounds,
                 value: effect.value,

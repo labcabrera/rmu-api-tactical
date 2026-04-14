@@ -42,7 +42,7 @@ export abstract class MongoBaseRepository<E extends BaseAggregateRoot<any>, D> {
         .sort(sort || { _id: 1 }),
       this.model.countDocuments(mongoQuery),
     ]);
-    const content = docs.map((doc) => this.mapToEntity(doc));
+    const content = docs.map(doc => this.mapToEntity(doc));
     return new Page<E>(content, page, size, totalElements);
   }
 

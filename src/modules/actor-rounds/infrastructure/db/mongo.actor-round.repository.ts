@@ -19,16 +19,16 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
   async findByIds(ids: string[]): Promise<ActorRound[]> {
     if (!ids || ids.length === 0) return [];
     const docs = await this.model.find({ _id: { $in: ids } });
-    return docs.map((doc) => this.mapToEntity(doc));
+    return docs.map(doc => this.mapToEntity(doc));
   }
 
   findByGameAndRoundAndActors(gameId: string, round: number, actorIds: string[]): Promise<ActorRound[]> {
     const rsql = `gameId==${gameId};round==${round};actorId=in=(${actorIds.join(',')})`;
-    return this.findByRsql(rsql, 0, actorIds.length).then((page) => page.content);
+    return this.findByRsql(rsql, 0, actorIds.length).then(page => page.content);
   }
 
   async findByActorIdAndRound(characterId: string, round: number): Promise<ActorRound | null> {
-    return this.model.findOne({ actorId: characterId, round }).then((readed) => (readed ? this.mapToEntity(readed) : null));
+    return this.model.findOne({ actorId: characterId, round }).then(readed => (readed ? this.mapToEntity(readed) : null));
   }
 
   async deleteByGameId(gameId: string): Promise<void> {
@@ -42,15 +42,15 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
         round,
         $or: [{ 'initiative.roll': { $exists: false } }, { 'initiative.roll': null }],
       })
-      .then((docs) => docs.map((doc) => this.mapToEntity(doc)));
+      .then(docs => docs.map(doc => this.mapToEntity(doc)));
   }
 
   protected mapToEntity(doc: ActorRoundDocument): ActorRound {
     const penalty = doc.penalty
-      ? new ActorRoundPenalty((doc.penalty.modifiers || []).map((m: any) => new ActorRoundPenaltyModifier(m.id, m.source, m.value)))
+      ? new ActorRoundPenalty((doc.penalty.modifiers || []).map(m => new ActorRoundPenaltyModifier(m.id, m.source, m.value)))
       : new ActorRoundPenalty([]);
     const attacks: ActorRoundAttack[] = doc.attacks.map(
-      (e) =>
+      e =>
         new ActorRoundAttack(
           e.attackName,
           e.boModifiers || [],

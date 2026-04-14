@@ -24,7 +24,7 @@ export class UpdateGameHandler {
     game.update(command.name, command.description, command.environment, command.imageUrl);
     const updated = await this.gameRepository.update(command.gameId, command);
     const events = game.getUncommittedEvents();
-    events.forEach((event) => this.gameEventBus.publish(event));
+    events.forEach(event => this.gameEventBus.publish(event));
     return updated;
   }
 }

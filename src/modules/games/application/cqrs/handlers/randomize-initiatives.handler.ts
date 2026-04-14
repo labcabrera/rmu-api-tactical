@@ -27,14 +27,12 @@ export class RandomizeInitiativesHandler implements ICommandHandler<RandomizeIni
     if (!game) {
       throw new NotFoundError('Game', gameId);
     }
-    const pendingActors = (await this.actorRoundRepository.findWithUndefinedInitiativeRoll(game.id, game.round)).filter(
-      (ar) => !ar.isDead(),
-    );
-    const commands = pendingActors.map((ar) => {
+    const pendingActors = (await this.actorRoundRepository.findWithUndefinedInitiativeRoll(game.id, game.round)).filter(ar => !ar.isDead());
+    const commands = pendingActors.map(ar => {
       const random = this.random() + this.random();
       return new DeclareInitiativeCommand(ar.id, random, command.userId, command.roles);
     });
-    await Promise.all(commands.map((c) => this.commandBus.execute(c)));
+    await Promise.all(commands.map(c => this.commandBus.execute(c)));
     return game;
   }
 

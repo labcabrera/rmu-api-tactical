@@ -40,7 +40,7 @@ export class AbsoluteManeuverProcessorService {
 
   private applySkillModifier(action: Action, character: Character): void {
     const skillId = action.maneuver!.modifiers.skillId;
-    const skill = character.skills.find((s) => s.skillId === skillId);
+    const skill = character.skills.find(s => s.skillId === skillId);
     if (skill) {
       action.maneuver!.roll!.modifiers.push({ key: skillId, value: skill.totalBonus });
     } else {
@@ -79,7 +79,7 @@ export class AbsoluteManeuverProcessorService {
   }
 
   private applyActorRoundPenalties(action: Action, actorRound: ActorRound): void {
-    actorRound.penalty.modifiers.forEach((penalty) => {
+    actorRound.penalty.modifiers.forEach(penalty => {
       action.maneuver!.roll!.modifiers.push({ key: penalty.source, value: penalty.value });
     });
   }

@@ -17,7 +17,7 @@ export class MongoGameRepository extends MongoBaseRepository<Game, GameDocument>
   }
 
   async findByStrategicId(strategicGameId: string): Promise<Game[]> {
-    return this.model.find({ strategicGameId }).then((games) => games.map((doc) => this.mapToEntity(doc)));
+    return this.model.find({ strategicGameId }).then(games => games.map(doc => this.mapToEntity(doc)));
   }
 
   mapToEntity(doc: GameDocument): Game {
@@ -35,7 +35,7 @@ export class MongoGameRepository extends MongoBaseRepository<Game, GameDocument>
       round: doc.round,
       phase: doc.phase,
       factions: doc.factions,
-      actors: doc.actors ? doc.actors.map((actor) => Actor.fromProps(actor)) : [],
+      actors: doc.actors ? doc.actors.map(actor => Actor.fromProps(actor)) : [],
       environment: environment,
       imageUrl: doc.imageUrl,
       description: doc.description,

@@ -14,7 +14,7 @@ export class KafkaProducerService implements OnModuleInit {
     const brokers = this.configService
       .get<string>('RMU_KAFKA_BROKERS')!
       .split(',')
-      .map((broker) => broker.trim());
+      .map(broker => broker.trim());
     const clientId = this.configService.get<string>('RMU_KAFKA_CLIENT_ID')!;
     this.kafka = new Kafka({
       clientId,
@@ -41,6 +41,7 @@ export class KafkaProducerService implements OnModuleInit {
       messages: [
         {
           value: JSON.stringify(message),
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           partition: this.getPartition(id),
         },
       ],

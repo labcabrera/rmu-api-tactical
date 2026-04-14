@@ -142,7 +142,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     if (!this.attacks) {
       this.attacks = [];
     }
-    attackNames.forEach((attackName) => {
+    attackNames.forEach(attackName => {
       const attack = {
         attackName: attackName,
         type: this.actionType === 'melee_attack' ? 'melee' : 'ranged',
@@ -176,7 +176,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
 
   setAttackBo(attackName: string, currentBo: number) {
     if (!this.attacks) return;
-    const attack = this.attacks?.find((a) => a.attackName === attackName);
+    const attack = this.attacks?.find(a => a.attackName === attackName);
     if (!attack || !attack.modifiers) return;
     attack.modifiers.bo = currentBo;
   }
@@ -189,9 +189,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     this.parries = [];
     for (const target of targets) {
       // read last melee attack against this actor
-      const lastMeleeAttack = targetActions
-        .sort((a, b) => a.phaseStart - b.phaseStart)
-        .find((a) => a.actionType === 'melee_attack');
+      const lastMeleeAttack = targetActions.sort((a, b) => a.phaseStart - b.phaseStart).find(a => a.actionType === 'melee_attack');
       if (lastMeleeAttack) {
         // read min bo available from parry over all attacks
         const availableBo: number[] = [];
@@ -209,7 +207,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
       throw new ValidationError('Action is not an attack');
     }
     if (!this.attacks || this.attacks.length === 0) throw new ValidationError('Action has no attacks declared');
-    return this.attacks.some((a) => !a.roll || !a.roll.roll);
+    return this.attacks.some(a => !a.roll || !a.roll.roll);
   }
 
   hasPendingCriticalRolls(): boolean {
@@ -218,9 +216,9 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     }
     if (!this.attacks || this.attacks.length === 0) throw new ValidationError('Action has no attacks declared');
     this.attacks
-      .filter((attack) => attack.roll && attack.roll.criticalRolls && attack.roll.criticalRolls.size > 0)
-      .forEach((attack) => {
-        const hasUndefined = Array.from(attack.roll!.criticalRolls!.values()).some((v) => v === undefined);
+      .filter(attack => attack.roll && attack.roll.criticalRolls && attack.roll.criticalRolls.size > 0)
+      .forEach(attack => {
+        const hasUndefined = Array.from(attack.roll!.criticalRolls!.values()).some(v => v === undefined);
         if (hasUndefined) {
           return true;
         }
@@ -233,12 +231,12 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
       throw new ValidationError('Action is not an attack');
     }
     if (!this.attacks || this.attacks.length === 0) throw new ValidationError('Action has no attacks declared');
-    return this.attacks.some((attack) => attack.results?.fumble && !attack.roll?.fumbleRoll);
+    return this.attacks.some(attack => attack.results?.fumble && !attack.roll?.fumbleRoll);
   }
 
   getAttackByName(attackName: string): ActionAttack {
     if (!this.attacks) throw new ValidationError('Action has no attacks declared');
-    const result = this.attacks.find((a) => a.attackName === attackName);
+    const result = this.attacks.find(a => a.attackName === attackName);
     if (!result) throw new ValidationError(`Attack ${attackName} not found in action ${this.id}`);
     return result;
   }
@@ -256,7 +254,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     if (!attackName) throw new ValidationError('Attack name is required');
     if (!criticalKey) throw new ValidationError('Critical key is required');
     if (!roll || roll < 1 || roll > 100) throw new ValidationError('Critical roll must be between 1 and 100');
-    const attack = this.attacks!.find((a) => a.attackName === attackName);
+    const attack = this.attacks!.find(a => a.attackName === attackName);
     if (!attack) throw new ValidationError(`Attack ${attackName} not found in action ${this.id}`);
     if (!attack.roll || !attack.roll.roll) {
       throw new ValidationError(`Main roll not found in attack ${attackName} of action ${this.id}`);
@@ -303,14 +301,13 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
       throw new UnprocessableEntityError('Action does not have attack data');
     }
     // check every 6 rounds only for melee attacks
-    return this.attacks.some((e) => e.type === 'melee') ? 4.16 : undefined;
+    return this.attacks.some(e => e.type === 'melee') ? 4.16 : undefined;
   }
 
   applyParrysToAttacks() {
-    this.attacks?.forEach((attack) => {
+    this.attacks?.forEach(attack => {
       const targetId = attack.modifiers.targetId;
-      const totalParry =
-        this.parries?.filter((p) => p.targetActorId === targetId).reduce((sum, p) => sum + p.parry, 0) || 0;
+      const totalParry = this.parries?.filter(p => p.targetActorId === targetId).reduce((sum, p) => sum + p.parry, 0) || 0;
       attack.modifiers.parry = totalParry;
     });
   }

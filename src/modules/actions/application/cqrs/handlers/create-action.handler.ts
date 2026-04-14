@@ -31,10 +31,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     this.checkDeclareActionAllowed(game);
 
     const round = game.round;
-    const [actorRound, roundActions] = await Promise.all([
-      this.readActorRound(command, round),
-      this.readActions(command, round),
-    ]);
+    const [actorRound, roundActions] = await Promise.all([this.readActorRound(command, round), this.readActions(command, round)]);
 
     this.validateActorRoundAndActions(actorRound, roundActions);
     const maneuver = this.mapManeuver(command);
@@ -52,7 +49,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     this.loadAttacks(command, actorRound, action);
     const saved = await this.actionRepository.save(action);
     const events = action.getUncommittedEvents();
-    events.forEach((event) => this.actionEventBus.publish(event));
+    events.forEach(event => this.actionEventBus.publish(event));
     return saved;
   }
 
@@ -68,9 +65,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     const rsql = `gameId==${command.gameId};actorId==${command.actorId};round==${round}`;
     const actorRounds = await this.actorRoundRepository.findByRsql(rsql, 0, 100);
     if (actorRounds.content.length === 0) {
-      throw new ValidationError(
-        `Actor round for game ${command.gameId}, character ${command.actorId}, round ${round} not found`,
-      );
+      throw new ValidationError(`Actor round for game ${command.gameId}, character ${command.actorId}, round ${round} not found`);
     }
     return actorRounds.content[0];
   }
@@ -90,11 +85,9 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
   private loadAttacks(command: CreateActionCommand, actorRound: ActorRound, action: Action): void {
     if (command.actionType === 'melee_attack' || command.actionType === 'ranged_attack') {
       const attackNames =
-        command.attackNames && command.attackNames.length > 0
-          ? command.attackNames
-          : actorRound.attacks.map((attack) => attack.attackName);
+        command.attackNames && command.attackNames.length > 0 ? command.attackNames : actorRound.attacks.map(attack => attack.attackName);
       action.addAttacks(attackNames);
-      actorRound.attacks.map((attack) => action.setAttackBo(attack.attackName, attack.currentBo));
+      actorRound.attacks.map(attack => action.setAttackBo(attack.attackName, attack.currentBo));
     }
   }
 
@@ -106,10 +99,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       case 'not_started':
       case 'declare_initiative':
       case 'upkeep':
-        throw new ValidationError(
-          `Phase ${game.phase} does not allow declare actions`,
-          `err-invalid-declare-action-phase`,
-        );
+        throw new ValidationError(`Phase ${game.phase} does not allow declare actions`, `err-invalid-declare-action-phase`);
       default:
         break;
     }

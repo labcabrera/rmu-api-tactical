@@ -25,16 +25,14 @@ export class StartPhaseHandler implements ICommandHandler<StartPhaseCommand, Gam
     if (!game) {
       throw new NotFoundError('Game', gameId);
     }
-    const pendingActors = (await this.actorRoundRepository.findWithUndefinedInitiativeRoll(game.id, game.round)).filter(
-      (ar) => !ar.isDead(),
-    );
+    const pendingActors = (await this.actorRoundRepository.findWithUndefinedInitiativeRoll(game.id, game.round)).filter(ar => !ar.isDead());
     if (pendingActors.length > 0) {
       throw new ValidationError('There are still character rounds without initiative declared');
     }
     game.startPhase();
     const updatedGame = await this.gameRepository.update(game.id, game);
     const events = game.getUncommittedEvents();
-    events.forEach((event) => this.gameEventBus.publish(event));
+    events.forEach(event => this.gameEventBus.publish(event));
     return updatedGame;
   }
 }

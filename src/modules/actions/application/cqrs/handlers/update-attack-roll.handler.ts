@@ -58,7 +58,7 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
 
     this.validateCommand(command, action);
 
-    const attack = action.attacks!.find((a) => a.attackName === command.attackName)!;
+    const attack = action.attacks!.find(a => a.attackName === command.attackName)!;
     const calculated = attack.calculated!;
 
     const targetActor = await this.actorRoundRepository.findByActorIdAndRound(attack.modifiers.targetId!, action.round);
@@ -72,16 +72,12 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
       criticalRolls: undefined,
       fumbleRoll: undefined,
     };
-    const attackResponse = await this.attackPort.updateRoll(
-      attack.externalAttackId!,
-      command.roll,
-      calculated.location,
-    );
+    const attackResponse = await this.attackPort.updateRoll(attack.externalAttackId!, command.roll, calculated.location);
     if (!attackResponse || !attackResponse.results) throw new ValidationError('Attack service did not return results');
 
     if (attackResponse.results.criticals && attackResponse.results.criticals.length > 0) {
       attack.roll.criticalRolls = new Map<string, number | undefined>();
-      attackResponse.results.criticals.forEach((critical) => {
+      attackResponse.results.criticals.forEach(critical => {
         attack.roll!.criticalRolls!.set(critical.key, undefined);
       });
     }
@@ -131,7 +127,7 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     if (!action.attacks || action.attacks.length === 0) {
       throw new ValidationError(`Action ${action.id} has no attacks`);
     }
-    const attack = action.attacks.find((a) => a.attackName === command.attackName);
+    const attack = action.attacks.find(a => a.attackName === command.attackName);
     if (!attack) {
       throw new ValidationError(`Attack ${command.attackName} not found in action ${action.id}`);
     }

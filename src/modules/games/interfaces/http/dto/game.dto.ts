@@ -60,7 +60,7 @@ export class GameDto {
     dto.phase = entity.phase;
     dto.round = entity.round;
     dto.factions = entity.factions;
-    dto.actors = entity.actors.map((actor) => ActorDto.fromEntity(actor));
+    dto.actors = entity.actors.map(actor => ActorDto.fromEntity(actor));
     dto.environment = entity.environment ? GameEnvironmentDto.fromEntity(entity.environment) : undefined;
     dto.description = entity.description;
     dto.imageUrl = entity.imageUrl;

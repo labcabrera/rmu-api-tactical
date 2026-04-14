@@ -1,29 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpCode,
-  Logger,
-  Param,
-  Patch,
-  Post,
-  Query,
-  Request,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Logger, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import {
-  ApiBody,
-  ApiNotFoundResponse,
-  ApiOkResponse,
-  ApiOperation,
-  ApiResponse,
-  ApiTags,
-  ApiUnauthorizedResponse,
-} from '@nestjs/swagger';
+import { ApiBody, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
 import { Page } from '../../../shared/domain/entities/page.entity';
 import { ErrorDto, PagedQueryDto } from '../../../shared/interfaces/http/dto';
@@ -70,7 +49,7 @@ export class ActionController {
     const user = req.user!;
     const query = new GetActionsQuery(dto.q, dto.page, dto.size, user.id as string, user.roles as string[]);
     const page = await this.queryBus.execute<GetActionsQuery, Page<Action>>(query);
-    const mapped = page.content.map((action) => ActionDto.fromEntity(action));
+    const mapped = page.content.map(action => ActionDto.fromEntity(action));
     return new Page<ActionDto>(mapped, page.pagination.page, page.pagination.size, page.pagination.totalElements);
   }
 

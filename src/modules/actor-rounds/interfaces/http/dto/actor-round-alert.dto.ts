@@ -43,7 +43,7 @@ export class ActorRoundAlertDto {
       alert.id,
       alert.type,
       alert.message,
-      alert.modifiers ? alert.modifiers.map((m) => ActorRoundAlertModifierDto.fromEntity(m)) : undefined,
+      alert.modifiers ? alert.modifiers.map(m => ActorRoundAlertModifierDto.fromEntity(m)) : undefined,
       alert.status,
     );
   }

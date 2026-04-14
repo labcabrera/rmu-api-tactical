@@ -93,11 +93,11 @@ export class ActorRoundDto {
     dto.hp = ActorRoundHPDto.fromEntity(entity.hp);
     dto.fatigue = ActorRoundFatigueDto.fromEntity(entity.fatigue);
     dto.defense = ActorRoundDefenseDto.fromEntity(entity.defense);
-    dto.attacks = entity.attacks.map((a) => ActorRoundAttackDto.fromEntity(a));
+    dto.attacks = entity.attacks.map(a => ActorRoundAttackDto.fromEntity(a));
     dto.parries = entity.parries;
     dto.penalty = ActorRoundPenaltyDto.fromEntity(entity.penalty);
     dto.effects = entity.effects;
-    dto.alerts = entity.alerts.map((a) => ActorRoundAlertDto.fromEntity(a));
+    dto.alerts = entity.alerts.map(a => ActorRoundAlertDto.fromEntity(a));
     dto.imageUrl = entity.imageUrl;
     return dto;
   }

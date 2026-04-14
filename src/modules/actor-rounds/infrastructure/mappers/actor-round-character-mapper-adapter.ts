@@ -66,7 +66,7 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
   }
 
   private mapAttacksFromCharacter(character: Character): ActorRoundAttack[] {
-    return character.attacks.map((attack) => {
+    return character.attacks.map(attack => {
       return new ActorRoundAttack(
         attack.attackName,
         [],

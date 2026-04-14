@@ -219,7 +219,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       this.hp.current -= dmg;
     }
     if (effects) {
-      effects.forEach((effect) => {
+      effects.forEach(effect => {
         this.addEffect(effect, 'critical', location);
       });
     }
@@ -252,7 +252,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     if (this.isDead() && effect.status === 'dying') {
       return;
     }
-    const existing = this.effects.filter((e) => e.status === effect.status);
+    const existing = this.effects.filter(e => e.status === effect.status);
     const isUnique = ActorRoundEffect.isUnique(effect);
     if (isUnique && existing.length > 0) {
       return;
@@ -270,7 +270,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   }
 
   deleteEffect(effectId: string) {
-    this.effects = this.effects.filter((e) => e.id !== effectId);
+    this.effects = this.effects.filter(e => e.id !== effectId);
   }
 
   declareParry(parry: number): void {
@@ -279,11 +279,11 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   }
 
   addUsedBo(attackName: string, bo: number) {
-    const attack = this.attacks.find((a) => a.attackName === attackName);
+    const attack = this.attacks.find(a => a.attackName === attackName);
     if (!attack) {
       throw new UnprocessableEntityError(`Attack not found: ${attackName}`);
     }
-    const existing = this.usedBo.find((u) => u.attackName === attackName);
+    const existing = this.usedBo.find(u => u.attackName === attackName);
     if (existing) {
       existing.usedBo += bo;
     } else {
@@ -295,12 +295,12 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   addFatigue(fatigue: number) {
     this.fatigue.accumulator += fatigue;
     if (this.fatigue.accumulator >= 100) {
-      if (this.alerts.find((a) => a.type === 'endurance')) {
+      if (this.alerts.find(a => a.type === 'endurance')) {
         return;
       }
       this.alerts.push(new ActorRoundAlert(randomUUID(), 'endurance', 'Required endurance check due to fatigue'));
     } else {
-      this.alerts = this.alerts.filter((a) => a.type !== 'endurance');
+      this.alerts = this.alerts.filter(a => a.type !== 'endurance');
     }
   }
 
@@ -308,18 +308,18 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     if (this.effects.length === 0) {
       return;
     }
-    const totalBleeding = this.effects.filter((e) => e.status === 'bleeding').reduce((sum, e) => sum + (e.value ?? 0), 0);
+    const totalBleeding = this.effects.filter(e => e.status === 'bleeding').reduce((sum, e) => sum + (e.value ?? 0), 0);
     this.hp.current -= totalBleeding;
-    if (this.effects.some((e) => e.status === 'dying' && e.rounds && e.rounds <= 1)) {
+    if (this.effects.some(e => e.status === 'dying' && e.rounds && e.rounds <= 1)) {
       this.addEffect(new ActorRoundEffect(randomUUID(), 'dead', undefined, undefined), undefined, undefined);
     }
-    this.effects.filter((e) => e.rounds !== undefined && e.rounds !== null).forEach((e) => (e.rounds! -= 1));
-    this.effects = this.effects.filter((e) => e.rounds === undefined || e.rounds === null || e.rounds > 0);
+    this.effects.filter(e => e.rounds !== undefined && e.rounds !== null).forEach(e => (e.rounds! -= 1));
+    this.effects = this.effects.filter(e => e.rounds === undefined || e.rounds === null || e.rounds > 0);
     if (this.hp.current < 1) {
       this.applyAttackResults(0, [new ActorRoundEffect(randomUUID(), 'dead', undefined, undefined)], undefined);
     }
     if (this.isDead()) {
-      this.effects = this.effects.filter((e) => e.status !== 'dying');
+      this.effects = this.effects.filter(e => e.status !== 'dying');
     }
     this.applyPenalties();
   }
@@ -339,7 +339,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     } else if (hpPercent < 0.75) {
       hpPenalty = -75;
     }
-    this.penalty.modifiers = this.penalty.modifiers.filter((m) => m.source !== 'hp');
+    this.penalty.modifiers = this.penalty.modifiers.filter(m => m.source !== 'hp');
     if (hpPenalty !== 0) {
       this.penalty.addModifier('hp', hpPenalty);
     }
@@ -348,8 +348,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   private applyStunPenalty() {
     const stunPenalty = 0;
     //TODO filter with delay effects
-    const effectiveStunEffect = this.effects.find((e) => e.status === 'stunned');
-    this.penalty.modifiers = this.penalty.modifiers.filter((m) => m.source !== 'stunned');
+    const effectiveStunEffect = this.effects.find(e => e.status === 'stunned');
+    this.penalty.modifiers = this.penalty.modifiers.filter(m => m.source !== 'stunned');
     if (effectiveStunEffect) {
       this.penalty.addModifier('stunned', stunPenalty);
     }
@@ -357,13 +357,13 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
 
   private calculateCurrentBo() {
     const penaltySum = this.getPenaltySum();
-    this.attacks.forEach((a) => this.calculateAttackCurrentBo(a, penaltySum));
+    this.attacks.forEach(a => this.calculateAttackCurrentBo(a, penaltySum));
   }
 
   private calculateAttackCurrentBo(attack: ActorRoundAttack, penalty: number) {
     attack.currentBo = attack.baseBo + penalty;
-    this.usedBo.forEach((u) => (attack.currentBo -= u.usedBo));
-    this.parries.forEach((p) => (attack.currentBo -= p));
+    this.usedBo.forEach(u => (attack.currentBo -= u.usedBo));
+    this.parries.forEach(p => (attack.currentBo -= p));
   }
 
   private getPenaltySum(): number {
@@ -371,7 +371,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   }
 
   getCurrentBo(attackName: string): number {
-    const attack = this.attacks.find((a) => a.attackName === attackName);
+    const attack = this.attacks.find(a => a.attackName === attackName);
     if (!attack) {
       throw new UnprocessableEntityError(`Attack not found: ${attackName}`);
     }
@@ -379,7 +379,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   }
 
   isDead(): boolean {
-    return this.effects.some((e) => e.status === 'dead');
+    return this.effects.some(e => e.status === 'dead');
   }
 
   addAttackBreakageAlert(attackName: string) {

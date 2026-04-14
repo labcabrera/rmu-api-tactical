@@ -48,19 +48,19 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
 
     action.checkValidApplyResults();
     const actionAttacks = action.attacks!;
-    const actorRoundIds = Array.from(new Set(actionAttacks.map((a) => a.modifiers.targetId).concat([action.actorId])));
+    const actorRoundIds = Array.from(new Set(actionAttacks.map(a => a.modifiers.targetId).concat([action.actorId])));
     const rsql = `gameId==${action.gameId};round==${game.round};actorId=in=(${actorRoundIds.join(',')})`;
     const actors = (await this.actorRoundRepository.findByRsql(rsql, 0, 1000)).content;
     if (actorRoundIds.length !== actors.length) {
       throw new UnprocessableEntityError('Some actors not found in the current round');
     }
     const substractBoCommands = this.processAttackSourceSubstractBo(action, actors, command.userId, command.roles);
-    await Promise.all(substractBoCommands.map((cmd) => this.commandBus.execute(cmd)));
+    await Promise.all(substractBoCommands.map(cmd => this.commandBus.execute(cmd)));
 
-    const sourceActor = actors.find((a) => a.actorId === action.actorId)!;
+    const sourceActor = actors.find(a => a.actorId === action.actorId)!;
 
     const updateCommands = new Map<string, AddEffectsCommand>();
-    actionAttacks.forEach((actionAttack) => {
+    actionAttacks.forEach(actionAttack => {
       this.processTargetEffects(actionAttack, actors, updateCommands, command.userId, command.roles);
       this.processSourceEffects(actionAttack, sourceActor, updateCommands, command.userId, command.roles);
     });
@@ -81,26 +81,19 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     return updated;
   }
 
-  private processAttackSourceSubstractBo(
-    action: Action,
-    actors: ActorRound[],
-    userId: string,
-    roles: string[],
-  ): SubstractBoCommand[] {
-    const actorRound = actors.find((a) => a.actorId === action.actorId);
+  private processAttackSourceSubstractBo(action: Action, actors: ActorRound[], userId: string, roles: string[]): SubstractBoCommand[] {
+    const actorRound = actors.find(a => a.actorId === action.actorId);
     if (!actorRound) {
       throw new UnprocessableEntityError('Actor not found');
     }
     const substractBoCommands: SubstractBoCommand[] = [];
-    action.attacks?.forEach((a) => {
+    action.attacks?.forEach(a => {
       const attack = action.getAttackByName(a.attackName);
       if (!attack) {
         throw new UnprocessableEntityError(`Attack ${a.attackName} not found`);
       }
       if (attack.modifiers.bo! > 0) {
-        substractBoCommands.push(
-          new SubstractBoCommand(actorRound.id, a.attackName, attack.modifiers.bo!, userId, roles),
-        );
+        substractBoCommands.push(new SubstractBoCommand(actorRound.id, a.attackName, attack.modifiers.bo!, userId, roles));
       }
     });
     return substractBoCommands;
@@ -110,7 +103,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     if (!action.parries || action.parries.length === 0) {
       return;
     }
-    for (const parry of action.parries.filter((p) => p.parry > 0)) {
+    for (const parry of action.parries.filter(p => p.parry > 0)) {
       const command = DeclareActorParryCommand.fromParry(action.actorId, action.round, parry, userId, roles);
       await this.commandBus.execute(command);
     }
@@ -123,16 +116,16 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     userId: string,
     roles: string[],
   ) {
-    const target = actors.find((a) => a.actorId === actionAttack.modifiers.targetId);
+    const target = actors.find(a => a.actorId === actionAttack.modifiers.targetId);
     if (!target) {
       throw new UnprocessableEntityError('Actor not found');
     }
     let dmg = 0;
     dmg += actionAttack.results?.attackTableEntry?.damage || 0;
     const criticalEffects: ActorRoundEffect[] = [];
-    actionAttack.results?.criticals?.forEach((cr) => {
+    actionAttack.results?.criticals?.forEach(cr => {
       dmg += cr.result?.damage || 0;
-      cr.result?.effects?.forEach((e) => {
+      cr.result?.effects?.forEach(e => {
         const effect = new ActorRoundEffect(randomUUID(), e.status, e.value, e.rounds);
         criticalEffects.push(effect);
       });
@@ -162,7 +155,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     }
     const fumble = actionAttack.results.fumble;
     const effects: ActorRoundEffect[] = [];
-    fumble.effects?.forEach((e) => {
+    fumble.effects?.forEach(e => {
       const effect = new ActorRoundEffect(randomUUID(), e.status, e.value, e.rounds);
       effects.push(effect);
     });

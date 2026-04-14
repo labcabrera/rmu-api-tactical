@@ -104,7 +104,7 @@ export class CreateGameDto {
 
   static toCommand(dto: CreateGameDto, userId: string, roles: string[]) {
     const actors: CreateGameCommandActor[] | undefined = dto.actors
-      ? dto.actors.map((actor) => new CreateGameCommandActor(actor.id, actor.type, actor.faction))
+      ? dto.actors.map(actor => new CreateGameCommandActor(actor.id, actor.type, actor.faction))
       : [];
     const environment = dto.environment
       ? {

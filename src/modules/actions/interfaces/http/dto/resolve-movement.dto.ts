@@ -1,9 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsObject, IsOptional, IsString } from 'class-validator';
-import {
-  ResolveMovementCommand,
-  ResolveMovementModifiers,
-} from '../../../application/cqrs/commands/resolve-movement.command';
+import { ResolveMovementCommand, ResolveMovementModifiers } from '../../../application/cqrs/commands/resolve-movement.command';
 import type { Pace } from '../../../domain/value-objects/action-movement.vo';
 import { ManeuverDifficulty } from '../../../domain/value-objects/maneuver-dificulty.vo';
 import { ActionRollDto } from './action-roll.dto';
@@ -44,12 +41,7 @@ export class ResolveMovementRequestDto {
   @IsString()
   description: string | undefined;
 
-  static toCommand(
-    actionId: string,
-    dto: ResolveMovementRequestDto,
-    userId: string,
-    roles: string[],
-  ): ResolveMovementCommand {
+  static toCommand(actionId: string, dto: ResolveMovementRequestDto, userId: string, roles: string[]): ResolveMovementCommand {
     return new ResolveMovementCommand(
       actionId,
       ResolveMovementModifiersDto.toCommand(dto.modifiers),

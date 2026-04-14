@@ -14,7 +14,7 @@ export class AddGameActorsDto {
   static toCommand(gameId: string, dto: AddGameActorsDto, userId: string, roles: string[]) {
     return new AddGameActorsCommand(
       gameId,
-      dto.actors.map((e) => CreateGameActorDto.toCommand(e)),
+      dto.actors.map(e => CreateGameActorDto.toCommand(e)),
       userId,
       roles,
     );

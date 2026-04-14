@@ -49,9 +49,9 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     if (!strategicGame) throw new NotFoundError('StrategicGame', game.strategicGameId);
 
     game.checkValidActionManagement();
-    const actionAttacks = command.attacks.map((attack) => this.mapAttacks(attack, action));
+    const actionAttacks = command.attacks.map(attack => this.mapAttacks(attack, action));
     action.setActionPoints(game.getActionPhase());
-    const actorRoundIds = Array.from(new Set(actionAttacks.map((a) => a.modifiers.targetId!).concat([action.actorId])));
+    const actorRoundIds = Array.from(new Set(actionAttacks.map(a => a.modifiers.targetId!).concat([action.actorId])));
 
     const actors = await this.actorRoundRepository.findByGameAndRoundAndActors(game.id, game.round, actorRoundIds);
     if (actorRoundIds.length !== actors.length) {
@@ -63,19 +63,19 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const gameLethality = strategicGame.options?.lethality || 0;
     const attackNumber = command.attacks.length;
     const targets: Set<string> = new Set();
-    command.attacks.forEach((a) => targets.add(a.modifiers.targetId));
+    command.attacks.forEach(a => targets.add(a.modifiers.targetId));
     const targetsNumber = targets.size;
 
     await Promise.all(
-      actionAttacks.map((attack) => this.processAttackPort(attack, action, actors, skills, attackNumber, targetsNumber, gameLethality)),
+      actionAttacks.map(attack => this.processAttackPort(attack, action, actors, skills, attackNumber, targetsNumber, gameLethality)),
     );
     action.attacks = actionAttacks;
     //TODO read actions
     const targetActions = await this.actionRepository
       .findByRsql(`gameId==${action.gameId};round==${game.round};actorId=in=(${Array.from(targets).join(',')})`, 0, 1000)
-      .then((res) => res.content);
+      .then(res => res.content);
 
-    const targetActors = actors.filter((a) => a.actorId !== action.actorId);
+    const targetActors = actors.filter(a => a.actorId !== action.actorId);
     action.processParryOptions(targetActors, targetActions);
 
     //TODO check effects and intermediate actions
@@ -105,7 +105,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
 
     let requiredLocationRoll = false;
     if (!ActionAttack.isCalledShot(attack)) {
-      const target = actors.find((a) => a.actorId === attack.modifiers.targetId)!;
+      const target = actors.find(a => a.actorId === attack.modifiers.targetId)!;
       if (!target.defense.at) {
         requiredLocationRoll = true;
       }
@@ -129,12 +129,12 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     gameLethality: number,
   ): AttackCreationRequest {
     const attackModifiers = attack.modifiers;
-    const actorRoundSource = actors.find((a) => a.actorId === action.actorId)!;
-    const actorRoundTarget = actors.find((a) => a.actorId === attackModifiers.targetId)!;
+    const actorRoundSource = actors.find(a => a.actorId === action.actorId)!;
+    const actorRoundTarget = actors.find(a => a.actorId === attackModifiers.targetId)!;
 
     const isMeleeAttack = attack.type === 'melee';
 
-    const attackInfo = actorRoundSource?.attacks?.find((a) => a.attackName === attack.attackName);
+    const attackInfo = actorRoundSource?.attacks?.find(a => a.attackName === attack.attackName);
     if (!attackInfo) throw new UnprocessableEntityError('Attack not found on actor');
 
     //TODO MAP
@@ -151,7 +151,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const parry = 0;
 
     if (!isMeleeAttack && attackModifiers.range !== undefined) {
-      const rangedAttack = actorRoundSource.attacks?.find((a) => a.attackName === attack.attackName);
+      const rangedAttack = actorRoundSource.attacks?.find(a => a.attackName === attack.attackName);
       if (!rangedAttack) {
         throw new UnprocessableEntityError(`Attack ${attack.attackName} not found on actor`);
       }
@@ -226,13 +226,13 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
   }
 
   private async getSourceSkills(sourceActorId: string, actors: ActorRound[]): Promise<AttackSourceSkill[]> {
-    const actor = actors.find((a) => a.actorId === sourceActorId);
+    const actor = actors.find(a => a.actorId === sourceActorId);
     //TODO NPCs
     const character = await this.characterClient.findById(actor?.actorId || '');
     return (
       character?.skills
-        .filter((skill) => this.isCombatSkill(skill.skillId))
-        .map((skill) => ({ skillId: skill.skillId, bonus: skill.totalBonus })) || []
+        .filter(skill => this.isCombatSkill(skill.skillId))
+        .map(skill => ({ skillId: skill.skillId, bonus: skill.totalBonus })) || []
     );
   }
 
@@ -262,14 +262,14 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
   }
 
   private mapActorSourceRoundEffects(actorRound: ActorRound, attack: ActionAttack): string[] {
-    const effects = actorRound.effects?.map((effect) => effect.status) || [];
+    const effects = actorRound.effects?.map(effect => effect.status) || [];
     if (attack.modifiers.proneSource) effects.push('prone');
     if (attack.modifiers.attackerInMelee) effects.push('melee');
     return effects;
   }
 
   private mapActorTargetRoundEffects(actorRound: ActorRound, attack: ActionAttack): string[] {
-    const effects = actorRound.effects?.map((effect) => effect.status) || [];
+    const effects = actorRound.effects?.map(effect => effect.status) || [];
     if (attack.modifiers.proneTarget) effects.push('prone');
     if (attack.modifiers.surprisedFoe) effects.push('surprised');
     if (attack.modifiers.stunnedFoe) effects.push('stunned');
@@ -277,7 +277,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
   }
 
   private mapAttacks(commandAttack: PrepareAttackCommandItem, action: Action): ActionAttack {
-    const currentAttack = action.attacks!.find((a) => a.attackName === commandAttack.attackName);
+    const currentAttack = action.attacks!.find(a => a.attackName === commandAttack.attackName);
     if (!currentAttack) {
       throw new UnprocessableEntityError(`Attack ${commandAttack.attackName} not found on action`);
     }

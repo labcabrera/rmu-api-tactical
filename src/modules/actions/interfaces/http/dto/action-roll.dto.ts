@@ -12,7 +12,7 @@ export class ActionRollDto {
 
   static fromEntity(entity: ActionRoll): ActionRollDto {
     const dto = new ActionRollDto();
-    dto.modifiers = entity.modifiers?.map((mod) => KeyValueModifierDto.fromEntity(mod));
+    dto.modifiers = entity.modifiers?.map(mod => KeyValueModifierDto.fromEntity(mod));
     dto.roll = entity.roll;
     dto.totalRoll = entity.totalRoll;
     return dto;

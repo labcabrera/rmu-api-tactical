@@ -22,9 +22,7 @@ export class DeleteGamesByStrategicIdHandler implements ICommandHandler<DeleteGa
       this.logger.log(`No games found for strategic game id ${command.strategicGameId}`);
       return;
     }
-    await Promise.all(
-      games.map((game) => this.commandBus.execute(new DeleteGameCommand(game.id, command.userId, command.roles))),
-    );
+    await Promise.all(games.map(game => this.commandBus.execute(new DeleteGameCommand(game.id, command.userId, command.roles))));
     //TODO notify?
   }
 }

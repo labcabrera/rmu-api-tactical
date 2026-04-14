@@ -29,8 +29,6 @@ export class ActorRoundPenaltyDto {
   modifiers: ActorRoundPenaltyModifierDto[];
 
   static fromEntity(penalty: ActorRoundPenaltyDto): ActorRoundPenaltyDto {
-    return new ActorRoundPenaltyDto(
-      penalty.modifiers.map((m) => new ActorRoundPenaltyModifierDto(m.id, m.source, m.value)),
-    );
+    return new ActorRoundPenaltyDto(penalty.modifiers.map(m => new ActorRoundPenaltyModifierDto(m.id, m.source, m.value)));
   }
 }
