@@ -52,7 +52,7 @@ export class ActionAttackResultsDto {
           criticalSeverity: entity.attackTableEntry.criticalSeverity,
         }
       : undefined;
-    dto.criticals = entity.criticals ? entity.criticals.map((critical) => CriticalDto.fromEntity(critical)) : undefined;
+    dto.criticals = entity.criticals ? entity.criticals.map(critical => CriticalDto.fromEntity(critical)) : undefined;
     dto.fumble = entity.fumble
       ? {
           status: entity.fumble.status,
@@ -60,7 +60,7 @@ export class ActionAttackResultsDto {
           additionalDamageText: entity.fumble.additionalDamageText,
           damage: entity.fumble.damage,
           effects: entity.fumble.effects
-            ? entity.fumble.effects.map((e) => ({
+            ? entity.fumble.effects.map(e => ({
                 status: e.status,
                 rounds: e.rounds,
                 value: e.value,

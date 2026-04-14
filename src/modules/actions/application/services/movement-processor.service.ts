@@ -45,7 +45,7 @@ export class MovementProcessorService {
       });
       modifiers.push({ key: 'armor-penalty', value: character.equipment.maneuverPenalty });
       modifiers.push({ key: 'custom-bonus', value: action.movement.modifiers.customBonus || 0 });
-      actorRound.penalty.modifiers.forEach((penalty) => {
+      actorRound.penalty.modifiers.forEach(penalty => {
         //TODO check if penalty applies to movement from core law
         modifiers.push(new KeyValueModifier(penalty.source, penalty.value));
       });
@@ -79,7 +79,7 @@ export class MovementProcessorService {
     if (!character.skills || character.skills.length === 0) {
       return 0;
     }
-    const skill = character.skills.find((s) => s.skillId === skillId);
+    const skill = character.skills.find(s => s.skillId === skillId);
     return skill ? skill.totalBonus : 0;
   }
 

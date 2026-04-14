@@ -20,23 +20,20 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
   ) {}
 
   async execute(command: StartRoundCommand): Promise<Game> {
-    this.logger.log(`Execute << ${JSON.stringify(command)}`);
+    this.logger.log(`Starting round for game ${command.gameId} for user ${command.userId}`);
     const { gameId } = command;
     const game = await this.gameRepository.findById(gameId);
-    if (!game) {
-      throw new NotFoundError('Game', gameId);
-    }
+    if (!game) throw new NotFoundError('Game', gameId);
+
     //TODO make saga
     if (game.round > 0) {
-      await Promise.all(
-        game.actors.map((actor) => this.applyUpkeepToActorRounds(actor, game.round, command.userId, command.roles)),
-      );
+      await Promise.all(game.actors.map(actor => this.applyUpkeepToActorRounds(actor, game.round, command.userId, command.roles)));
     }
-    await Promise.all(game.actors.map((actor) => this.createActorRounds(game.id, game.round + 1, actor)));
+    await Promise.all(game.actors.map(actor => this.createActorRounds(game.id, game.round + 1, actor)));
     game.startRound();
     const updatedGame = await this.gameRepository.update(gameId, game);
     const events = game.getUncommittedEvents();
-    events.forEach((event) => this.gameEventBus.publish(event));
+    events.forEach(event => this.gameEventBus.publish(event));
     return updatedGame;
   }
 

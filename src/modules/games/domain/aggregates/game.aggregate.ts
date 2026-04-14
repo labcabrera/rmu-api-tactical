@@ -1,36 +1,14 @@
-import { AggregateRoot } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
+import { BaseAggregateRoot } from '../../../shared/domain/aggregates/base-aggregate';
 import { NotModifiedError, ValidationError } from '../../../shared/domain/errors';
-import { DomainEvent } from '../../../shared/domain/events/domain-event';
-import {
-  GameCreatedEvent,
-  GamePhaseStartedEvent,
-  GameRoundStartedEvent,
-  GameUpdatedEvent,
-} from '../events/game.events';
+import { GameCreatedEvent, GamePhaseStartedEvent, GameRoundStartedEvent, GameUpdatedEvent } from '../events/game.events';
 import { Actor } from '../value-objects/actor.vo';
 import { GameEnvironment } from '../value-objects/game-environment.vo';
 import { GamePhase } from '../value-objects/game-phase.vo';
 import { GameStatus } from '../value-objects/game-status.vo';
+import { GameProps } from './game.props';
 
-export type GameProps = {
-  id: string;
-  strategicGameId: string;
-  name: string;
-  status: GameStatus;
-  round: number;
-  phase: GamePhase;
-  factions: string[];
-  actors: Actor[];
-  environment?: GameEnvironment;
-  description?: string;
-  imageUrl?: string;
-  owner: string;
-  createdAt: Date;
-  updatedAt?: Date;
-};
-
-export class Game extends AggregateRoot<DomainEvent<Game>> {
+export class Game extends BaseAggregateRoot<GameProps> {
   private static readonly phaseTransitions: Map<GamePhase, GamePhase> = new Map([
     ['declare_initiative', 'phase_1'],
     ['phase_1', 'phase_2'],
@@ -40,7 +18,7 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
   ]);
 
   private constructor(
-    public readonly id: string,
+    id: string,
     public readonly strategicGameId: string,
     public name: string,
     public status: GameStatus,
@@ -55,7 +33,7 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
     public readonly createdAt: Date,
     public updatedAt: Date | undefined,
   ) {
-    super();
+    super(id);
   }
 
   static create(
@@ -164,8 +142,8 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
         throw new ValidationError(`Faction ${faction} does not exist in the game`);
       }
     }
-    this.factions = this.factions.filter((f) => !factions.includes(f));
-    this.actors = this.actors.filter((a) => !factions.includes(a.faction.id));
+    this.factions = this.factions.filter(f => !factions.includes(f));
+    this.actors = this.actors.filter(a => !factions.includes(a.faction.id));
     this.updatedAt = new Date();
     this.apply(new GameUpdatedEvent(this));
   }
@@ -175,7 +153,7 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
       throw new ValidationError(`No actors provided`);
     }
     for (const actor of actors) {
-      if (this.actors.find((a) => a.id === actor.id && a.type === actor.type)) {
+      if (this.actors.find(a => a.id === actor.id && a.type === actor.type)) {
         throw new ValidationError(`Actor ${actor.id} already exists in the game`);
       }
       if (!this.factions.includes(actor.faction.id)) {
@@ -191,8 +169,8 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
     if (this.status !== 'created') {
       throw new ValidationError(`Cannot delete actors from a game that is not in 'created' status`);
     }
-    ids.forEach((id) => {
-      const index = this.actors.findIndex((a) => a.id === id);
+    ids.forEach(id => {
+      const index = this.actors.findIndex(a => a.id === id);
       if (index === -1) {
         throw new ValidationError(`Actor ${id} does not exist in the game`);
       }
@@ -233,7 +211,7 @@ export class Game extends AggregateRoot<DomainEvent<Game>> {
     }
   }
 
-  toProps(): GameProps {
+  getProps(): GameProps {
     return {
       id: this.id,
       strategicGameId: this.strategicGameId,

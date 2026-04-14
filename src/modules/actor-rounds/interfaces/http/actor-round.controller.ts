@@ -52,7 +52,7 @@ export class ActorRoundController {
     const user = req.user!;
     const query = new GetActorsRoundsQuery(dto.q, dto.page, dto.size, user.id as string, user.roles as string[]);
     const page = await this.queryBus.execute<GetActorsRoundsQuery, Page<ActorRound>>(query);
-    const mapped = page.content.map((actorRound) => ActorRoundDto.fromEntity(actorRound));
+    const mapped = page.content.map(actorRound => ActorRoundDto.fromEntity(actorRound));
     return new Page<ActorRoundDto>(mapped, page.pagination.page, page.pagination.size, page.pagination.totalElements);
   }
 

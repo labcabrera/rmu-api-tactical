@@ -22,7 +22,7 @@ export class DeclareParryDto {
   static toCommand(actionId: string, dto: DeclareParryDto, userId: string, roles: string[]) {
     return new DeclareParryCommand(
       actionId,
-      dto.parries.map((e) => DeclareParryItemDto.toCommandItem(e)),
+      dto.parries.map(e => DeclareParryItemDto.toCommandItem(e)),
       userId,
       roles,
     );

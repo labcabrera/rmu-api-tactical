@@ -28,7 +28,7 @@ export class AddGameActorsHandler implements ICommandHandler<AddGameActorsComman
       throw new NotFoundError('Game', command.gameId);
     }
     const mappedActors = await Promise.all(
-      command.actors.map(async (actor) => {
+      command.actors.map(async actor => {
         if (actor.type === 'character') {
           return await this.mapCharacter(actor, game);
         } else {
@@ -39,7 +39,7 @@ export class AddGameActorsHandler implements ICommandHandler<AddGameActorsComman
     game.addActors(mappedActors);
     const updated = await this.gameRepository.update(command.gameId, game);
     const events = game.getUncommittedEvents();
-    events.forEach((event) => this.gameEventBus.publish(event));
+    events.forEach(event => this.gameEventBus.publish(event));
     return updated;
   }
 
@@ -51,7 +51,7 @@ export class AddGameActorsHandler implements ICommandHandler<AddGameActorsComman
     if (!game.factions.includes(character.faction.id)) {
       throw new ValidationError('Actor is not part of the game factions');
     }
-    if (game.actors.some((a) => a.id === character.id)) {
+    if (game.actors.some(a => a.id === character.id)) {
       throw new ValidationError('Actor is already part of the game');
     }
     return Actor.fromProps({

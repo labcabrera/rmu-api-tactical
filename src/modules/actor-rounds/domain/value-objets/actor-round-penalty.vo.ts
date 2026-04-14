@@ -7,4 +7,8 @@ export class ActorRoundPenalty {
   addModifier(source: ActorRoundPenaltySource, value: number): void {
     this.modifiers.push(new ActorRoundPenaltyModifier(crypto.randomUUID(), source, value));
   }
+
+  static empty(): ActorRoundPenalty {
+    return new ActorRoundPenalty([]);
+  }
 }

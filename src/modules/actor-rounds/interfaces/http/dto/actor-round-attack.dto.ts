@@ -34,7 +34,7 @@ export class ActorRoundAttackDto {
   static fromEntity(entity: ActorRoundAttack): ActorRoundAttackDto {
     const dto = new ActorRoundAttackDto();
     dto.attackName = entity.attackName;
-    dto.boModifiers = entity.boModifiers.map((e) => BoModifiersDto.fromEntity(e));
+    dto.boModifiers = entity.boModifiers.map(e => BoModifiersDto.fromEntity(e));
     dto.baseBo = entity.baseBo;
     dto.currentBo = entity.currentBo;
     dto.type = entity.type;
@@ -43,8 +43,7 @@ export class ActorRoundAttackDto {
     dto.attackSize = entity.attackSize;
     dto.fumble = entity.fumble;
     dto.canThrow = entity.canThrow;
-    dto.ranges =
-      entity.ranges && entity.ranges.length > 0 ? entity.ranges.map((r) => AttackRangeDto.fromEntity(r)) : undefined;
+    dto.ranges = entity.ranges && entity.ranges.length > 0 ? entity.ranges.map(r => AttackRangeDto.fromEntity(r)) : undefined;
     return dto;
   }
 }

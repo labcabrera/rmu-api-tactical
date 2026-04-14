@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose/dist/common/mongoose.decorators';
 import { Model } from 'mongoose';
-import { Page } from '../../../shared/domain/entities/page.entity';
 import { NotFoundError } from '../../../shared/domain/errors';
+import { MongoBaseRepository } from '../../../shared/infrastructure/db/mongo.base.repository';
 import { RsqlParser } from '../../../shared/infrastructure/db/rsql-parser';
 import { GameRepository } from '../../application/ports/game.repository';
 import { Game } from '../../domain/aggregates/game.aggregate';
@@ -11,55 +11,22 @@ import { GameEnvironment } from '../../domain/value-objects/game-environment.vo'
 import { GameDocument, GameModel } from '../persistence/models/game.model';
 
 @Injectable()
-export class MongoGameRepository implements GameRepository {
-  constructor(
-    @InjectModel(GameModel.name) private gameModel: Model<GameDocument>,
-    private rsqlParser: RsqlParser,
-  ) {}
-
-  async findById(id: string): Promise<Game | null> {
-    return this.gameModel.findById(id).then((readed) => (readed ? this.mapToEntity(readed) : null));
+export class MongoGameRepository extends MongoBaseRepository<Game, GameDocument> implements GameRepository {
+  constructor(@InjectModel(GameModel.name) gameModel: Model<GameDocument>, rsqlParser: RsqlParser) {
+    super(gameModel, rsqlParser);
   }
 
   async findByStrategicId(strategicGameId: string): Promise<Game[]> {
-    return this.gameModel.find({ strategicGameId }).then((games) => games.map((doc) => this.mapToEntity(doc)));
+    return this.model.find({ strategicGameId }).then(games => games.map(doc => this.mapToEntity(doc)));
   }
 
-  async findByRsql(rsql: string, page: number, size: number): Promise<Page<Game>> {
-    const skip = page * size;
-    const mongoQuery = this.rsqlParser.parse(rsql);
-    const [gamesDocs, totalElements] = await Promise.all([
-      this.gameModel.find(mongoQuery).skip(skip).limit(size).sort({ name: 1 }),
-      this.gameModel.countDocuments(mongoQuery),
-    ]);
-    const content = gamesDocs.map((doc) => this.mapToEntity(doc));
-    return new Page<Game>(content, page, size, totalElements);
-  }
-
-  async save(game: Game): Promise<Game> {
-    const persistable = game.toProps();
-    const { id, ...rest } = persistable;
-    const model = new this.gameModel({ ...rest, _id: id });
-    return model.save().then((saved) => this.mapToEntity(saved));
-  }
-
-  async update(id: string, update: Partial<Game>): Promise<Game> {
-    const persistable = update instanceof Game ? update.toProps() : update;
-    const updatedGame = await this.gameModel.findByIdAndUpdate(id, { $set: persistable }, { new: true });
-    if (!updatedGame) {
-      throw new NotFoundError('Game', id);
-    }
-    return this.mapToEntity(updatedGame);
-  }
-
-  async deleteById(id: string): Promise<Game | null> {
-    return this.gameModel.findByIdAndDelete(id).then((result) => (result ? this.mapToEntity(result) : null));
-  }
-
-  private mapToEntity(doc: GameDocument): Game {
+  mapToEntity(doc: GameDocument): Game {
     if (!doc) {
       throw new NotFoundError('Game', 'unknown');
     }
+    const environment = doc.environment
+      ? new GameEnvironment(doc.environment.temperatureFatigueModifier, doc.environment.altitudeFatigueModifier)
+      : undefined;
     return Game.fromProps({
       id: doc.id as string,
       strategicGameId: doc.strategicGameId,
@@ -68,10 +35,8 @@ export class MongoGameRepository implements GameRepository {
       round: doc.round,
       phase: doc.phase,
       factions: doc.factions,
-      actors: doc.actors ? doc.actors.map((actor) => Actor.fromProps(actor)) : [],
-      environment: doc.environment
-        ? new GameEnvironment(doc.environment.temperatureFatigueModifier, doc.environment.altitudeFatigueModifier)
-        : undefined,
+      actors: doc.actors ? doc.actors.map(actor => Actor.fromProps(actor)) : [],
+      environment: environment,
       imageUrl: doc.imageUrl,
       description: doc.description,
       owner: doc.owner,

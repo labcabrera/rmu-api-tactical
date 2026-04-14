@@ -29,9 +29,7 @@ export class CreateGameHandler implements ICommandHandler<CreateGameCommand, Gam
     if (!strategicGame) {
       throw new ValidationError(`Strategic game ${command.strategicGameId} not found`);
     }
-    const actors = await (command.actors
-      ? Promise.all(command.actors.map((actor) => this.mapActor(actor, command.userId)))
-      : undefined);
+    const actors = await (command.actors ? Promise.all(command.actors.map(actor => this.mapActor(actor, command.userId))) : undefined);
     const environment = command.environment
       ? new GameEnvironment(command.environment.temperatureFatigueModifier, command.environment.altitudeFatigueModifier)
       : undefined;
@@ -48,7 +46,7 @@ export class CreateGameHandler implements ICommandHandler<CreateGameCommand, Gam
     );
     const saved = await this.gameRepository.save(game);
     const events = game.getUncommittedEvents();
-    events.forEach((event) => this.gameEventBus.publish(event));
+    events.forEach(event => this.gameEventBus.publish(event));
     return saved;
   }
 

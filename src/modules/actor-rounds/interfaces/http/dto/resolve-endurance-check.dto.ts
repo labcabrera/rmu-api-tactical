@@ -26,12 +26,7 @@ export class ResolveEnduranceCheckDto {
   @ApiProperty({ description: 'Modifiers applied to the roll', type: [KeyValueModifierDto], required: true })
   modifiers: KeyValueModifierDto[];
 
-  static toCommand(
-    actorRoundId: string,
-    dto: ResolveEnduranceCheckDto,
-    userId: string,
-    roles: string[],
-  ): ResolveEnduranceCheckCommand {
+  static toCommand(actorRoundId: string, dto: ResolveEnduranceCheckDto, userId: string, roles: string[]): ResolveEnduranceCheckCommand {
     return new ResolveEnduranceCheckCommand(actorRoundId, dto.alertId, dto.roll, dto.modifiers, userId, roles);
   }
 }

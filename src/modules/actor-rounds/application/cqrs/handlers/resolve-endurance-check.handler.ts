@@ -27,8 +27,7 @@ export class ResolveEnduranceCheckHandler implements ICommandHandler<ResolveEndu
     if (!game) throw new NotFoundError('Game', actorRound.gameId);
 
     if (command.alertId) {
-      if (!actorRound.alerts.some((a) => a.id === command.alertId))
-        throw new BadRequestException('ActorRoundAlert', command.alertId);
+      if (!actorRound.alerts.some(a => a.id === command.alertId)) throw new BadRequestException('ActorRoundAlert', command.alertId);
     }
 
     const roll = command.roll;

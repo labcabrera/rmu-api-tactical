@@ -1,5 +1,8 @@
 import { AttackRange } from '../../../actor-rounds/domain/value-objets/actor-round-attack.vo';
 import { ActorRoundFaction } from '../../../actor-rounds/domain/value-objets/actor-round-faction.vo';
+import { ActorRoundShield } from '../../../actor-rounds/domain/value-objets/actor-round-shield.vo';
+
+export type AttackType = 'melee' | 'ranged';
 
 export interface CharacterPort {
   findById: (id: string) => Promise<Character | undefined>;
@@ -38,19 +41,21 @@ export interface CharacterExperience {
 
 export interface CharacterMovement {
   baseMovementRate: number;
+  maxPace: string;
 }
 
 export interface CharacterDefense {
   defensiveBonus: number;
   armor: CharacterArmor;
+  shield: ActorRoundShield | null;
 }
 
 export interface CharacterArmor {
-  at: number | undefined;
-  bodyAt: number | undefined;
-  headAt: number | undefined;
-  armsAt: number | undefined;
-  legsAt: number | undefined;
+  at: number | null;
+  bodyAt: number | null;
+  headAt: number | null;
+  armsAt: number | null;
+  legsAt: number | null;
 }
 
 export interface CharacterHP {
@@ -59,7 +64,7 @@ export interface CharacterHP {
 }
 
 export interface CharacterInitiative {
-  baseBonus: number;
+  totalBonus: number;
 }
 
 export interface CharacterSkill {
@@ -92,17 +97,26 @@ export interface CharacterItemWeapon {
 }
 
 export interface CharacterEquipment {
-  mainHand: string | undefined;
-  offHand: string | undefined;
+  slots: Record<string, string | null>;
   maneuverPenalty: number;
+  encumbrancePenalty: number;
+  movementBaseDifficulty: string;
+}
+
+export interface CharacterAttackRange {
+  from: number;
+  to: number;
+  bonus: number;
 }
 
 export interface CharacterAttack {
   attackName: string;
   attackTable: string;
   sizeAdjustment: number;
-  fumbleTable: string;
-  type: 'melee' | 'ranged';
   fumble: number;
   bo: number;
+  type: AttackType;
+  meleeRange: number | null;
+  ranges: CharacterAttackRange[] | null;
+  fumbleTable: string;
 }

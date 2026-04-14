@@ -7,22 +7,22 @@ export class ActorRoundDefenseDto {
   bd: number;
 
   @ApiProperty({ description: 'Armor type if all items have the same AT' })
-  at: number | undefined;
+  at: number | null;
 
   @ApiProperty({ description: 'Armor type of the head' })
-  headAt: number | undefined;
+  headAt: number | null;
 
   @ApiProperty({ description: 'Armor type of the body' })
-  bodyAt: number | undefined;
+  bodyAt: number | null;
 
   @ApiProperty({ description: 'Armor type of the arms' })
-  armsAt: number | undefined;
+  armsAt: number | null;
 
   @ApiProperty({ description: 'Armor type of the legs' })
-  legsAt: number | undefined;
+  legsAt: number | null;
 
   @ApiProperty({ description: 'Shield info', required: false })
-  shield: ActorRoundShieldDto | undefined;
+  shield: ActorRoundShieldDto | null;
 
   static fromEntity(entity: ActorRoundDefense): ActorRoundDefenseDto {
     const dto = new ActorRoundDefenseDto();
@@ -32,7 +32,7 @@ export class ActorRoundDefenseDto {
     dto.bodyAt = entity.bodyAt;
     dto.armsAt = entity.armsAt;
     dto.legsAt = entity.legsAt;
-    dto.shield = entity.shield ? ActorRoundShieldDto.fromEntity(entity.shield) : undefined;
+    dto.shield = entity.shield ? ActorRoundShieldDto.fromEntity(entity.shield) : null;
     return dto;
   }
 }

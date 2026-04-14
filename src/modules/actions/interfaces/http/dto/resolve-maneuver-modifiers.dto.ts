@@ -21,12 +21,6 @@ export class ResolveManeuverModifiersDto {
   customBonus?: number | undefined;
 
   static toCommand(dto: ResolveManeuverModifiersDto): ResolveManeuverModifiers {
-    return new ResolveManeuverModifiers(
-      dto.difficulty,
-      dto.lightModifier,
-      dto.light,
-      dto.armorModifier,
-      dto.customBonus,
-    );
+    return new ResolveManeuverModifiers(dto.difficulty, dto.lightModifier, dto.light, dto.armorModifier, dto.customBonus);
   }
 }

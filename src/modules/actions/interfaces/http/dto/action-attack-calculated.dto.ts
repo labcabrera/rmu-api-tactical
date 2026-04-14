@@ -17,9 +17,7 @@ export class ActionAttackCalculatedDto {
 
   static fromEntity(entity: ActionAttackCalculatedDto): ActionAttackCalculatedDto {
     const dto = new ActionAttackCalculatedDto();
-    dto.rollModifiers = entity.rollModifiers
-      ? entity.rollModifiers.map((mod) => KeyValueModifierDto.fromEntity(mod))
-      : [];
+    dto.rollModifiers = entity.rollModifiers ? entity.rollModifiers.map(mod => KeyValueModifierDto.fromEntity(mod)) : [];
     dto.rollTotal = entity.rollTotal;
     dto.location = entity.location;
     dto.requiredLocationRoll = entity.requiredLocationRoll;

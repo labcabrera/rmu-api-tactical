@@ -46,8 +46,8 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     }
 
     // Update attack parries with command values
-    command.parries.forEach((parryItem) => {
-      const parry = action.parries?.find((p) => p.id === parryItem.parryId);
+    command.parries.forEach(parryItem => {
+      const parry = action.parries?.find(p => p.id === parryItem.parryId);
       if (!parry) {
         throw new ValidationError(`Parry ${parryItem.parryId} not found`);
       }
@@ -59,7 +59,7 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
 
     // Update attack total parry and sent to attack port
     await Promise.all(
-      attacks.map(async (attack) => {
+      attacks.map(async attack => {
         const updatedAttack = await this.attackPort.updateParry(attack.externalAttackId!, attack.modifiers.parry!);
         attack.calculated!.rollModifiers = updatedAttack.calculated.rollModifiers;
         attack.calculated!.rollTotal = updatedAttack.calculated.rollTotal;
@@ -76,7 +76,7 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
   private resolveActorIds(action: Action): string[] {
     const actorIds = new Set<string>();
     actorIds.add(action.actorId);
-    action.attacks?.forEach((attack) => {
+    action.attacks?.forEach(attack => {
       actorIds.add(attack.modifiers.targetId!);
     });
     return Array.from(actorIds);

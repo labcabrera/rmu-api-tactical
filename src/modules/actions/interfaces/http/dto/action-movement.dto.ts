@@ -1,8 +1,4 @@
-import {
-  ActionMovement,
-  ActionMovementModifiers,
-  ActionMovementResult,
-} from '../../../domain/value-objects/action-movement.vo';
+import { ActionMovement, ActionMovementModifiers, ActionMovementResult } from '../../../domain/value-objects/action-movement.vo';
 import { ActionRollDto } from './action-roll.dto';
 
 export class ActionMovementDto {

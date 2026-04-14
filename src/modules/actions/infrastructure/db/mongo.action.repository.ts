@@ -16,7 +16,7 @@ export class MongoActionRepository implements ActionRepository {
   ) {}
 
   async findById(id: string): Promise<Action | null> {
-    return this.actionModel.findById(id).then((readed) => (readed ? this.mapToEntity(readed) : null));
+    return this.actionModel.findById(id).then(readed => (readed ? this.mapToEntity(readed) : null));
   }
 
   async findByRsql(rsql: string, page: number, size: number): Promise<Page<Action>> {
@@ -26,13 +26,13 @@ export class MongoActionRepository implements ActionRepository {
       this.actionModel.find(mongoQuery).skip(skip).limit(size).sort({ name: 1 }),
       this.actionModel.countDocuments(mongoQuery),
     ]);
-    const content = actionsDocs.map((doc) => this.mapToEntity(doc));
+    const content = actionsDocs.map(doc => this.mapToEntity(doc));
     return new Page<Action>(content, page, size, totalElements);
   }
 
   async save(request: Partial<Action>): Promise<Action> {
     const model = new this.actionModel({ ...request, _id: request.id });
-    return model.save().then((saved) => this.mapToEntity(saved));
+    return model.save().then(saved => this.mapToEntity(saved));
   }
 
   async update(id: string, request: Partial<Action>): Promise<Action> {

@@ -12,7 +12,7 @@ export class KafkaGameEventBusAdapter implements GameEventBusPort {
   constructor(private readonly kafkaProducerService: KafkaProducerService) {}
 
   publish(event: DomainEvent<Game>): void {
-    this.kafkaProducerService.emit(`internal.rmu-tactical.game.${event.eventType}.v1`, event).catch((err) => {
+    this.kafkaProducerService.emit(`internal.rmu-tactical.game.${event.eventType}.v1`, event).catch(err => {
       //TODO handle error properly
       this.logger.error('Error publishing event to Kafka', err);
     });
