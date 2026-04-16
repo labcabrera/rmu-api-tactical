@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Body, Controller, Logger, Param, Patch, Request, UseGuards } from '@nestjs/common';
-import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { CommandBus } from '@nestjs/cqrs';
 import { ApiBody, ApiOkResponse, ApiOperation, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
 import { ErrorDto } from '../../../shared/interfaces/http/dto';
@@ -17,10 +17,7 @@ import { ResolveMovementRequestDto } from './dto/resolve-movement.dto';
 export class MovementController {
   private readonly logger = new Logger(MovementController.name);
 
-  constructor(
-    private commandBus: CommandBus,
-    private queryBus: QueryBus,
-  ) {}
+  constructor(private commandBus: CommandBus) {}
 
   @Patch(':id/movement/resolve')
   @ApiBody({ type: PrepareAttackDto })

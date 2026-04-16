@@ -21,7 +21,6 @@ import { UpdateAttackRollHandler } from './application/cqrs/handlers/update-atta
 import { UpdateCriticalRollHandler } from './application/cqrs/handlers/update-critical-roll.handler';
 import { UpdateFumbleRollHandler } from './application/cqrs/handlers/update-fumble-roll.handler';
 import { AbsoluteManeuverProcessorService } from './application/services/absolute-maneuver-processor.service';
-import { DifficultyService } from './application/services/difficulty-service';
 import { MovementProcessorService } from './application/services/movement-processor.service';
 import { ApiAttackClientAdapter } from './infrastructure/api-clients/api.attack.adapter';
 import { ApiManeuverAdapter } from './infrastructure/api-clients/api.maneuver.adapter';
@@ -48,7 +47,6 @@ import { MovementController } from './interfaces/http/movement.controller';
   controllers: [ActionController, AttackController, MovementController, ManeuverController],
   providers: [
     MovementProcessorService,
-    DifficultyService,
     AbsoluteManeuverProcessorService,
     GetActionQueryHandler,
     GetActionsQueryHandler,

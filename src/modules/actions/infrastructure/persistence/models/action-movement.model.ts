@@ -12,13 +12,13 @@ export class ActionMovementModifiers {
   requiredManeuver: boolean;
 
   @Prop({ type: String, required: false })
-  skillId: string | undefined;
+  skillId: string | null;
 
   @Prop({ type: String, required: false })
-  difficulty: Difficulty | undefined;
+  difficulty: Difficulty | null;
 
   @Prop({ type: Number, required: false })
-  customBonus: number | undefined;
+  customBonus: number | null;
 }
 
 @Schema({ _id: false })
@@ -39,7 +39,7 @@ export class ActionMovementResult {
   distanceAdjusted: number;
 
   @Prop({ type: String, required: false })
-  critical: string | undefined;
+  critical: string | null;
 
   @Prop({ type: String, required: true })
   description: string;
@@ -51,7 +51,7 @@ export class ActionMovement {
   modifiers: ActionMovementModifiers;
 
   @Prop({ type: ActionRoll, required: false })
-  roll: ActionRoll | undefined;
+  roll: ActionRoll | null;
 
   @Prop({ type: ActionMovementResult, required: false })
   calculated: ActionMovementResult;

@@ -37,28 +37,28 @@ export class ActionModel {
   phaseStart: number;
 
   @Prop({ type: Number, required: false })
-  phaseEnd: number | undefined;
+  phaseEnd: number | null;
 
   @Prop({ type: Number, required: false })
-  actionPoints: number | undefined;
+  actionPoints: number | null;
 
   @Prop({ type: ActionMovement, required: false })
-  movement: ActionMovement | undefined;
+  movement: ActionMovement | null;
 
   @Prop({ type: ActionManeuver, required: false })
-  maneuver: ActionManeuver | undefined;
+  maneuver: ActionManeuver | null;
 
   @Prop({ type: [ActionAttack], required: false })
-  attacks: ActionAttack[] | undefined;
+  attacks: ActionAttack[] | null;
 
   @Prop({ type: [ActionParry], required: false })
-  public parries: ActionParry[] | undefined;
+  public parries: ActionParry[] | null;
 
   @Prop({ type: Number, required: false })
-  fatigue: number | undefined;
+  fatigue: number | null;
 
   @Prop({ type: String, required: false })
-  description: string | undefined;
+  description: string | null;
 
   @Prop({ required: true })
   owner: string;
@@ -67,7 +67,7 @@ export class ActionModel {
   createdAt: Date;
 
   @Prop({ type: Date, required: false })
-  updatedAt: Date | undefined;
+  updatedAt: Date | null;
 }
 
 export const ActionSchema = SchemaFactory.createForClass(ActionModel);

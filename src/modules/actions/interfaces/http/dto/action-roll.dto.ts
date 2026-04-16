@@ -6,9 +6,9 @@ export class ActionRollDto {
   modifiers?: KeyValueModifierDto[] | undefined;
 
   @ApiProperty({ description: 'Action roll', example: '42' })
-  roll: number | undefined;
+  roll: number | null;
 
-  totalRoll: number | undefined;
+  totalRoll: number | null;
 
   static fromEntity(entity: ActionRoll): ActionRollDto {
     const dto = new ActionRollDto();

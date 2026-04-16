@@ -72,8 +72,9 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     action.phaseEnd = currentPhase;
     action.actionPoints = action.phaseEnd - action.phaseStart + 1;
     action.movement = this.buildActionMovement(command);
+    const fatigueMultiplier = strategicGame.options?.fatigueMultiplier ?? 1;
     await this.movementProcessorService.process(command.roll, action, character, actorRound);
-    action.processFatigue(strategicGame.options?.fatigueMultiplier);
+    action.processFatigue(fatigueMultiplier);
     const scale = strategicGame.options?.boardScaleMultiplier || 1;
     action.movement.calculated.distanceAdjusted = action.movement.calculated.distance * scale;
     this.roundResults(action);
@@ -84,14 +85,14 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
   private buildActionMovement(command: ResolveMovementCommand): ActionMovement {
     return {
       modifiers: this.buildActionMovementModifers(command),
-      roll: undefined,
+      roll: null,
       calculated: {
         bmr: 0,
         paceMultiplier: 0,
         percent: 0,
         distance: 0,
         distanceAdjusted: 0,
-        critical: undefined,
+        critical: null,
         description: 'Not processed',
       },
     };

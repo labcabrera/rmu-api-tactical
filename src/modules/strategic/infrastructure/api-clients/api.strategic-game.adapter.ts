@@ -16,7 +16,7 @@ export class StrategicGameApiClient implements StrategicGamePort {
     this.baseUri = configService.get('RMU_API_STRATEGIC_URI') as string;
   }
 
-  async findById(id: string): Promise<StrategicGame | undefined> {
+  async findById(id: string): Promise<StrategicGame | null> {
     const token = await this.tokenService.getToken();
     const uri = `${this.baseUri}/strategic-games/${id}`;
     try {
@@ -28,7 +28,7 @@ export class StrategicGameApiClient implements StrategicGamePort {
       return response.data as StrategicGame;
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 404) {
-        return undefined;
+        return null;
       } else {
         throw err;
       }

@@ -112,14 +112,14 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     //TODO check collisions)
   }
 
-  private mapManeuver(command: CreateActionCommand): ActionManeuver | undefined {
+  private mapManeuver(command: CreateActionCommand): ActionManeuver | null {
     switch (command.actionType) {
       case 'maneuver':
         return {
           modifiers: {
             skillId: command.maneuver!.skillId,
             maneuverType: command.maneuver!.maneuverType,
-            difficulty: 'medium',
+            difficulty: 'm',
             customBonus: 0,
             lightModifier: 'none',
             light: 'no_shadows',
@@ -127,7 +127,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
           },
         };
       default:
-        return undefined;
+        return null;
     }
   }
 }

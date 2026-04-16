@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.aggregate';
 import { Character } from '../../../strategic/application/ports/character.port';
 import { Action } from '../../domain/aggregates/action.aggregate';
+import { DIFFICULTY_MAP } from '../../domain/value-objects/dificulty.vo';
 import { LightType } from '../../domain/value-objects/light-type.vo';
-import { DifficultyService } from './difficulty-service';
 
 @Injectable()
 export class AbsoluteManeuverProcessorService {
@@ -17,8 +17,6 @@ export class AbsoluteManeuverProcessorService {
     ['pitch_black', -50],
   ]);
 
-  constructor(private readonly difficultyService: DifficultyService) {}
-
   applyModifiers(action: Action, character: Character, actorRound: ActorRound, roll: number): void {
     if (!action.maneuver || !action.maneuver.modifiers) {
       return;
@@ -26,6 +24,7 @@ export class AbsoluteManeuverProcessorService {
     action.maneuver.roll = {
       modifiers: [],
       roll: roll,
+      totalRoll: null,
     };
     action.maneuver.roll.modifiers.push({ key: 'roll', value: roll });
     this.applySkillModifier(action, character);
@@ -70,7 +69,7 @@ export class AbsoluteManeuverProcessorService {
 
   private applyDifficultyModifier(action: Action): void {
     const difficulty = action.maneuver!.modifiers.difficulty!;
-    const modifier = this.difficultyService.getDifficultyModifier(difficulty);
+    const modifier = DIFFICULTY_MAP.get(difficulty)!;
     action.maneuver!.roll!.modifiers.push({ key: 'difficulty', value: modifier });
   }
 

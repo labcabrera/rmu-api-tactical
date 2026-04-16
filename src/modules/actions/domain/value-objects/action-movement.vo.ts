@@ -6,7 +6,7 @@ export type Pace = 'creep' | 'walk' | 'jog' | 'run' | 'sprint' | 'dash';
 export class ActionMovement {
   constructor(
     public modifiers: ActionMovementModifiers,
-    public roll: ActionRoll | undefined,
+    public roll: ActionRoll | null,
     public calculated: ActionMovementResult,
   ) {}
 }
@@ -15,9 +15,9 @@ export class ActionMovementModifiers {
   constructor(
     public pace: Pace,
     public requiredManeuver: boolean,
-    public skillId: string | undefined,
-    public difficulty: Difficulty | undefined,
-    public customBonus: number | undefined,
+    public skillId: string | null,
+    public difficulty: Difficulty | null,
+    public customBonus: number | null,
   ) {}
 }
 
@@ -28,7 +28,7 @@ export class ActionMovementResult {
     public percent: number,
     public distance: number,
     public distanceAdjusted: number,
-    public critical: string | undefined,
+    public critical: string | null,
     public description: string,
   ) {}
 }

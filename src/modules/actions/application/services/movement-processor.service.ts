@@ -3,9 +3,9 @@ import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.
 import { ValidationError } from '../../../shared/domain/errors';
 import type { Character } from '../../../strategic/application/ports/character.port';
 import { Action } from '../../domain/aggregates/action.aggregate';
+import { DIFFICULTY_MAP } from '../../domain/value-objects/dificulty.vo';
 import { KeyValueModifier } from '../../domain/value-objects/key-value-modifier.vo';
 import type { ManeuverPort } from '../ports/maneuver.port';
-import { DifficultyService } from './difficulty-service';
 
 @Injectable()
 export class MovementProcessorService {
@@ -18,20 +18,17 @@ export class MovementProcessorService {
     ['dash', 1],
   ]);
 
-  constructor(
-    @Inject('ManeuverPort') private readonly maneuverPort: ManeuverPort,
-    private readonly difficultyService: DifficultyService,
-  ) {}
+  constructor(@Inject('ManeuverPort') private readonly maneuverPort: ManeuverPort) {}
 
-  async process(roll: number | undefined, action: Action, character: Character, actorRound: ActorRound): Promise<void> {
+  async process(roll: number | null, action: Action, character: Character, actorRound: ActorRound): Promise<void> {
     if (!action.movement || !action.movement.modifiers) {
       throw new Error('Action does not have movement data');
     } else if (!action.actionPoints) {
       throw new Error('Action does not have action points data');
     }
     let percent = 100;
-    let critical: string | undefined = undefined;
-    let message: string | undefined = undefined;
+    let critical: string | null = null;
+    let message: string | null = null;
     if (action.movement.modifiers.requiredManeuver) {
       if (!roll) {
         throw new Error('Roll is required for movement with requiredManeuver');
@@ -41,7 +38,7 @@ export class MovementProcessorService {
       modifiers.push({ key: skillId, value: this.getSkillModifier(skillId, character) });
       modifiers.push({
         key: 'difficulty',
-        value: this.difficultyService.getDifficultyModifier(action.movement.modifiers.difficulty!),
+        value: DIFFICULTY_MAP.get(action.movement.modifiers.difficulty!)!,
       });
       modifiers.push({ key: 'armor-penalty', value: character.equipment.maneuverPenalty });
       modifiers.push({ key: 'custom-bonus', value: action.movement.modifiers.customBonus || 0 });

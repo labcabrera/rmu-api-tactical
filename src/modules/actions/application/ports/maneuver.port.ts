@@ -16,7 +16,7 @@ export interface EnduranceManeuverResult {
 
 export interface PercentManeuverResponse {
   percent: number;
-  critical: string | undefined;
+  critical: string | null;
   message: string;
 }
 

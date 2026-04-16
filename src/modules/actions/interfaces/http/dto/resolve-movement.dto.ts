@@ -17,11 +17,11 @@ export class ResolveMovementModifiersDto {
 
   @IsOptional()
   @IsString()
-  skillId: string | undefined;
+  skillId: string;
 
   @IsString()
   @IsOptional()
-  difficulty: Difficulty | undefined;
+  difficulty: Difficulty | null;
 
   static toCommand(dto: ResolveMovementModifiersDto): ResolveMovementModifiers {
     return new ResolveMovementModifiers(dto.pace, dto.requiredManeuver, dto.skillId, dto.difficulty);
@@ -35,17 +35,17 @@ export class ResolveMovementRequestDto {
 
   @IsOptional()
   @IsObject()
-  roll: ActionRollDto | undefined;
+  roll: ActionRollDto | null;
 
   @IsOptional()
   @IsString()
-  description: string | undefined;
+  description: string | null;
 
   static toCommand(actionId: string, dto: ResolveMovementRequestDto, userId: string, roles: string[]): ResolveMovementCommand {
     return new ResolveMovementCommand(
       actionId,
       ResolveMovementModifiersDto.toCommand(dto.modifiers),
-      dto.roll ? dto.roll.roll : undefined,
+      dto.roll?.roll || null,
       dto.description,
       userId,
       roles,

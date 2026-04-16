@@ -3,14 +3,14 @@ import { ActionRollDto } from './action-roll.dto';
 
 export class ActionMovementDto {
   modifiers: ActionMovementModifiersDto;
-  roll?: ActionRollDto;
-  calculated?: ActionMovementResultDto;
+  roll: ActionRollDto | null;
+  calculated: ActionMovementResultDto | null;
 
   static fromEntity(movement: ActionMovement): ActionMovementDto {
     const dto = new ActionMovementDto();
     dto.modifiers = ActionMovementModifiersDto.fromEntity(movement.modifiers);
-    dto.roll = movement.roll ? ActionRollDto.fromEntity(movement.roll) : undefined;
-    dto.calculated = movement.calculated ? ActionMovementResultDto.fromEntity(movement.calculated) : undefined;
+    dto.roll = movement.roll ? ActionRollDto.fromEntity(movement.roll) : null;
+    dto.calculated = movement.calculated ? ActionMovementResultDto.fromEntity(movement.calculated) : null;
     return dto;
   }
 }
@@ -18,9 +18,9 @@ export class ActionMovementDto {
 export class ActionMovementModifiersDto {
   pace: string;
   requiredManeuver: boolean;
-  skillId: string | undefined;
-  difficulty: string | undefined;
-  customBonus: number | undefined;
+  skillId: string | null;
+  difficulty: string | null;
+  customBonus: number | null;
 
   static fromEntity(modifiers: ActionMovementModifiers): ActionMovementModifiersDto {
     const dto = new ActionMovementModifiersDto();
@@ -38,7 +38,7 @@ export class ActionMovementResultDto {
   percent: number;
   distance: number;
   distanceAdjusted: number;
-  critical: string | undefined;
+  critical: string | null;
   description: string;
 
   static fromEntity(calculated: ActionMovementResult): ActionMovementResultDto {
