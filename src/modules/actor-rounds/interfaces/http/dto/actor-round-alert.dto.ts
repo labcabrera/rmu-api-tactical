@@ -5,20 +5,6 @@ import { ActorRoundAlert } from '../../../domain/value-objets/actor-round-alert.
 import { ActorRoundAlertModifierDto } from './actor-round-alert-modifier.dto';
 
 export class ActorRoundAlertDto {
-  constructor(
-    id: string,
-    type: ActorRoundAlertType,
-    message: string,
-    modifiers: { key: string; value: number; modifier: string }[] | undefined,
-    status: ActorRoundAlertStatus,
-  ) {
-    this.id = id;
-    this.type = type;
-    this.message = message;
-    this.modifiers = modifiers;
-    this.status = status;
-  }
-
   @ApiProperty({ description: 'Alert identifier', example: 'a1b2c3d4-e5f6-7g8h-9i0j-k1l2m3n4o5p6' })
   id: string;
 
@@ -33,18 +19,19 @@ export class ActorRoundAlertDto {
     type: [ActorRoundAlertModifierDto],
     required: false,
   })
-  modifiers?: ActorRoundAlertModifierDto[];
+  modifiers: ActorRoundAlertModifierDto[] | null;
 
   @ApiProperty({ description: 'Status of the alert', example: 'pending' })
   status: ActorRoundAlertStatus;
 
   static fromEntity(alert: ActorRoundAlert): ActorRoundAlertDto {
-    return new ActorRoundAlertDto(
-      alert.id,
-      alert.type,
-      alert.message,
-      alert.modifiers ? alert.modifiers.map(m => ActorRoundAlertModifierDto.fromEntity(m)) : undefined,
-      alert.status,
-    );
+    const modifiers = alert.modifiers ? alert.modifiers.map(m => ActorRoundAlertModifierDto.fromEntity(m)) : null;
+    const dto = new ActorRoundAlertDto();
+    dto.id = alert.id;
+    dto.type = alert.type;
+    dto.message = alert.message;
+    dto.modifiers = modifiers;
+    dto.status = alert.status;
+    return dto;
   }
 }

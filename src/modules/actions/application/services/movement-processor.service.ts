@@ -41,7 +41,7 @@ export class MovementProcessorService {
 
       const modifiers: KeyValueModifier[] = [];
       const difficultyBonus = DIFFICULTY_MAP.get(action.movement.modifiers.difficulty!)!;
-      if (!difficultyBonus) {
+      if (!difficultyBonus && difficultyBonus !== 0) {
         throw new ValidationError(`Unknown difficulty: ${action.movement.modifiers.difficulty}`);
       }
       modifiers.push({ key: skillId, value: skillBonus });

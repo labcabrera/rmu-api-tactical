@@ -1,13 +1,9 @@
 import { Type } from 'class-transformer';
 import { IsArray, IsNumber, IsString, ValidateNested } from 'class-validator';
+import { ActorRoundPenaltyModifier } from '../../../domain/value-objets/actor-round-penalty-modifier.vo';
+import { ActorRoundPenalty } from '../../../domain/value-objets/actor-round-penalty.vo';
 
 export class ActorRoundPenaltyModifierDto {
-  constructor(id: string, source: string, value: number) {
-    this.id = id;
-    this.source = source;
-    this.value = value;
-  }
-
   @IsString()
   id: string;
 
@@ -16,19 +12,25 @@ export class ActorRoundPenaltyModifierDto {
 
   @IsNumber()
   value: number;
+
+  static fromEntity(entity: ActorRoundPenaltyModifier): ActorRoundPenaltyModifierDto {
+    const dto = new ActorRoundPenaltyModifierDto();
+    dto.id = entity.id;
+    dto.source = entity.source;
+    dto.value = entity.value;
+    return dto;
+  }
 }
 
 export class ActorRoundPenaltyDto {
-  constructor(modifiers: ActorRoundPenaltyModifierDto[]) {
-    this.modifiers = modifiers;
-  }
-
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ActorRoundPenaltyModifierDto)
   modifiers: ActorRoundPenaltyModifierDto[];
 
-  static fromEntity(penalty: ActorRoundPenaltyDto): ActorRoundPenaltyDto {
-    return new ActorRoundPenaltyDto(penalty.modifiers.map(m => new ActorRoundPenaltyModifierDto(m.id, m.source, m.value)));
+  static fromEntity(entity: ActorRoundPenalty): ActorRoundPenaltyDto {
+    const dto = new ActorRoundPenaltyDto();
+    dto.modifiers = entity.modifiers.map(m => ActorRoundPenaltyModifierDto.fromEntity(m));
+    return dto;
   }
 }

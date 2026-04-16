@@ -3,6 +3,18 @@ import type { ActorRoundAlertStatus } from '../../../domain/value-objets/actor-r
 import type { ActorRoundAlertType } from '../../../domain/value-objets/actor-round-alert-type.vo';
 
 @Schema({ _id: false })
+export class ActorRoundAlertModifier {
+  @Prop({ type: String, required: true })
+  key: string;
+
+  @Prop({ type: Number, required: false })
+  value: number | null;
+
+  @Prop({ type: String, required: false })
+  modifier: string | null;
+}
+
+@Schema({ _id: false })
 export class ActorRoundAlert {
   @Prop({ required: true })
   id: string;
@@ -13,8 +25,8 @@ export class ActorRoundAlert {
   @Prop({ type: String, required: true })
   message: string;
 
-  @Prop({ type: [{ key: String, value: Number, modifier: String }], required: false })
-  modifiers?: { key: string; value: number; modifier: string }[];
+  @Prop({ type: [ActorRoundAlertModifier], required: false })
+  modifiers: ActorRoundAlertModifier[] | null;
 
   @Prop({ type: String, required: true, default: 'pending' })
   status: ActorRoundAlertStatus;

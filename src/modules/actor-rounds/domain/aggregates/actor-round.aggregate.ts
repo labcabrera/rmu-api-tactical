@@ -306,7 +306,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       if (this.alerts.find(a => a.type === 'endurance')) {
         return;
       }
-      this.alerts.push(new ActorRoundAlert(randomUUID(), 'endurance', 'Required endurance check due to fatigue'));
+      const alert = ActorRoundAlert.buildEndurance();
+      this.alerts.push(alert);
     } else {
       this.alerts = this.alerts.filter(a => a.type !== 'endurance');
     }
@@ -391,11 +392,12 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   }
 
   addAttackBreakageAlert(attackName: string) {
-    this.alerts.push(new ActorRoundAlert(randomUUID(), 'breakage', `Attack breakage on ${attackName}`));
+    this.alerts.push(ActorRoundAlert.buildBreakageFromAttack(attackName));
   }
 
   addCriticalBreakageAlert(location: AttackLocation | undefined) {
-    this.alerts.push(new ActorRoundAlert(randomUUID(), 'breakage', `Breakage on critical hit${location ? ` at ${location}` : ''}`));
+    //TODO required location
+    this.alerts.push(ActorRoundAlert.buildBreakageFromCritical(location || 'chest'));
   }
 
   getProps(): ActorRoundProps {

@@ -2,6 +2,7 @@ import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
+import { ActorRoundAlert } from '../../../../actor-rounds/domain/value-objets/actor-round-alert.vo';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import type { StrategicGame, StrategicGamePort } from '../../../../strategic/application/ports/strategic-game.port';
@@ -45,9 +46,18 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     const currentPhase = game.phase.replace('phase_', '') as unknown as number;
     await this.processAction(command, action, actorRound, strategicGame, currentPhase);
     const updated = await this.actionRepository.update(action.id, action);
+    let actorRoundModified = false;
     if (action.fatigue) {
+      actorRoundModified = true;
       const currentFatigue = actorRound.fatigue.accumulator || 0;
       actorRound.fatigue.accumulator = currentFatigue + action.fatigue;
+    }
+    if (action.movement?.calculated.critical) {
+      actorRoundModified = true;
+      const alert = ActorRoundAlert.buildCritical('k', action.movement?.calculated.critical);
+      actorRound.alerts.push(alert);
+    }
+    if (actorRoundModified) {
       await this.actorRoundRepository.update(actorRound.id, actorRound);
     }
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
