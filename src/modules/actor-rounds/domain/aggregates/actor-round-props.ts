@@ -8,11 +8,13 @@ import { ActorRoundInitiative } from '../value-objets/actor-round-initiative.vo'
 import { ActorRoundMovement } from '../value-objets/actor-round-movement.vo';
 import { ActorRoundPenalty } from '../value-objets/actor-round-penalty.vo';
 import { ActorRoundUsedBo } from '../value-objets/actor-round-used-bo.vo';
+import { ActorType } from '../value-objets/actor-type.vo';
 
 export interface ActorRoundProps {
   id: string;
   gameId: string;
   round: number;
+  actorType: ActorType;
   actorId: string;
   actorName: string;
   size: number;

@@ -14,6 +14,7 @@ import { ActorRoundMovement } from '../value-objets/actor-round-movement.vo';
 import { ActorRoundPenaltySource } from '../value-objets/actor-round-penalty-source.vo';
 import { ActorRoundPenalty } from '../value-objets/actor-round-penalty.vo';
 import { ActorRoundUsedBo } from '../value-objets/actor-round-used-bo.vo';
+import { ActorType } from '../value-objets/actor-type.vo';
 import { ActorRoundProps } from './actor-round-props';
 
 export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
@@ -21,6 +22,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     id: string,
     public readonly gameId: string,
     public readonly round: number,
+    public readonly actorType: ActorType,
     public readonly actorId: string,
     public readonly actorName: string,
     public readonly size: number,
@@ -50,6 +52,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   static create(
     gameId: string,
     round: number,
+    actorType: ActorType,
     actorId: string,
     actorName: string,
     size: number,
@@ -73,6 +76,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       randomUUID(),
       gameId,
       round,
+      actorType,
       actorId,
       actorName,
       size,
@@ -105,6 +109,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       id: randomUUID(),
       gameId: '',
       round: 0,
+      actorType: 'character',
       actorId: '',
       actorName: '',
       size: 1,
@@ -135,6 +140,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       props.id,
       props.gameId,
       props.round,
+      props.actorType,
       props.actorId,
       props.actorName,
       props.size,
@@ -164,6 +170,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     const {
       gameId,
       round,
+      actorType,
       actorId,
       actorName,
       size,
@@ -186,6 +193,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       randomUUID(),
       gameId,
       round + 1,
+      actorType,
       actorId,
       actorName,
       size,
@@ -333,11 +341,11 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     const hpPercent = this.hp.current / this.hp.max;
     let hpPenalty = 0;
     if (hpPercent < 0.25) {
-      hpPenalty = -25;
+      hpPenalty = -75;
     } else if (hpPercent < 0.5) {
       hpPenalty = -50;
     } else if (hpPercent < 0.75) {
-      hpPenalty = -75;
+      hpPenalty = -25;
     }
     this.penalty.modifiers = this.penalty.modifiers.filter(m => m.source !== 'hp');
     if (hpPenalty !== 0) {
@@ -395,6 +403,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       id: this.id,
       gameId: this.gameId,
       round: this.round,
+      actorType: this.actorType,
       actorId: this.actorId,
       actorName: this.actorName,
       size: this.size,

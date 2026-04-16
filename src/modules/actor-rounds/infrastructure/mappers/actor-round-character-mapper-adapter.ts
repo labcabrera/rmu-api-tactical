@@ -36,6 +36,7 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
     return ActorRound.create(
       gameId,
       round,
+      'character',
       character.id,
       character.name,
       ACTOR_SIZES[character.info.sizeId],

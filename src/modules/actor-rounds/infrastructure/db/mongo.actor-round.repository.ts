@@ -69,6 +69,7 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
     return ActorRound.fromProps({
       id: doc._id,
       gameId: doc.gameId,
+      actorType: doc.actorType as any,
       round: doc.round,
       actorId: doc.actorId,
       actorName: doc.actorName,
