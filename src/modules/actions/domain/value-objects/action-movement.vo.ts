@@ -1,5 +1,5 @@
 import { ActionRoll } from './action-roll.vo';
-import { ManeuverDifficulty } from './maneuver-dificulty.vo';
+import { Difficulty } from './dificulty.vo';
 
 export type Pace = 'creep' | 'walk' | 'jog' | 'run' | 'sprint' | 'dash';
 
@@ -16,7 +16,7 @@ export class ActionMovementModifiers {
     public pace: Pace,
     public requiredManeuver: boolean,
     public skillId: string | undefined,
-    public difficulty: ManeuverDifficulty | undefined,
+    public difficulty: Difficulty | undefined,
     public customBonus: number | undefined,
   ) {}
 }

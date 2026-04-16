@@ -1,8 +1,8 @@
-import { ManeuverDifficulty } from '../../../domain/value-objects/maneuver-dificulty.vo';
+import { Difficulty } from '../../../domain/value-objects/dificulty.vo';
 
 export class PrepareManeuverCommand {
   actionId: string;
-  difficulty: ManeuverDifficulty;
+  difficulty: Difficulty;
   userId: string;
   roles: string[];
 }

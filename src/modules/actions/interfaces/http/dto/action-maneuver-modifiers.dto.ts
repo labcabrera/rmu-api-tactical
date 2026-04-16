@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ActionManeuverModifiers } from '../../../domain/value-objects/action-maneuver.vo';
-import { ManeuverDifficulty } from '../../../domain/value-objects/maneuver-dificulty.vo';
+import { Difficulty } from '../../../domain/value-objects/dificulty.vo';
 import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo';
 
 export class ActionManeuverModifiersDto {
@@ -11,7 +11,7 @@ export class ActionManeuverModifiersDto {
   maneuverType: ManeuverType;
 
   @ApiProperty({ description: 'Maneuver difficulty', example: 'average', required: false })
-  difficulty?: ManeuverDifficulty | undefined;
+  difficulty?: Difficulty | undefined;
 
   customBonus?: number | undefined;
 

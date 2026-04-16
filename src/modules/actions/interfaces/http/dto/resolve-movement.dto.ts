@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsObject, IsOptional, IsString } from 'class-validator';
 import { ResolveMovementCommand, ResolveMovementModifiers } from '../../../application/cqrs/commands/resolve-movement.command';
 import type { Pace } from '../../../domain/value-objects/action-movement.vo';
-import { ManeuverDifficulty } from '../../../domain/value-objects/maneuver-dificulty.vo';
+import { Difficulty } from '../../../domain/value-objects/dificulty.vo';
 import { ActionRollDto } from './action-roll.dto';
 
 export class ResolveMovementModifiersDto {
@@ -21,7 +21,7 @@ export class ResolveMovementModifiersDto {
 
   @IsString()
   @IsOptional()
-  difficulty: ManeuverDifficulty | undefined;
+  difficulty: Difficulty | undefined;
 
   static toCommand(dto: ResolveMovementModifiersDto): ResolveMovementModifiers {
     return new ResolveMovementModifiers(dto.pace, dto.requiredManeuver, dto.skillId, dto.difficulty);

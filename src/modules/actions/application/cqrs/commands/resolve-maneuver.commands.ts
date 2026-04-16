@@ -1,11 +1,11 @@
+import { Difficulty } from '../../../domain/value-objects/dificulty.vo';
 import { LightType } from '../../../domain/value-objects/light-type.vo';
 import { LightManeuverModifier } from '../../../domain/value-objects/ligth-maneuver-modifier.vo';
-import { ManeuverDifficulty } from '../../../domain/value-objects/maneuver-dificulty.vo';
 import { SimpleRoll } from './simple-roll';
 
 export class ResolveManeuverModifiers {
   constructor(
-    public difficulty: ManeuverDifficulty | undefined,
+    public difficulty: Difficulty | undefined,
     public lightModifier: LightManeuverModifier | undefined,
     public light: LightType | undefined,
     public armorModifier: boolean | undefined,

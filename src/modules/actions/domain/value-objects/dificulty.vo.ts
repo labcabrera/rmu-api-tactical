@@ -1,4 +1,4 @@
-export type ManeuverDifficulty =
+export type Difficulty =
   | 'casual'
   | 'simple'
   | 'routine'

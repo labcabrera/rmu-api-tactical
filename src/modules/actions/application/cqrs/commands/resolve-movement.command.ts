@@ -1,12 +1,12 @@
 import { Pace } from '../../../domain/value-objects/action-movement.vo';
-import { ManeuverDifficulty } from '../../../domain/value-objects/maneuver-dificulty.vo';
+import { Difficulty } from '../../../domain/value-objects/dificulty.vo';
 
 export class ResolveMovementModifiers {
   constructor(
     public readonly pace: Pace,
     public readonly requiredManeuver: boolean,
     public readonly skillId?: string,
-    public readonly difficulty?: ManeuverDifficulty,
+    public readonly difficulty?: Difficulty,
   ) {}
 }
 

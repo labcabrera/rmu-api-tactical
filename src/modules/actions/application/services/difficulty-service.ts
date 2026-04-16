@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ValidationError } from '../../../shared/domain/errors';
-import { ManeuverDifficulty } from '../../domain/value-objects/maneuver-dificulty.vo';
+import { Difficulty } from '../../domain/value-objects/dificulty.vo';
 
 @Injectable()
 export class DifficultyService {
-  private static readonly difficultyMap: Map<ManeuverDifficulty, number> = new Map([
+  private static readonly difficultyMap: Map<Difficulty, number> = new Map([
     ['casual', 70],
     ['simple', 50],
     ['routine', 30],
@@ -19,7 +19,7 @@ export class DifficultyService {
     ['nigh_impossible', -100],
   ]);
 
-  getDifficultyModifier(difficulty: ManeuverDifficulty): number {
+  getDifficultyModifier(difficulty: Difficulty): number {
     const value = DifficultyService.difficultyMap.get(difficulty);
     if (value === undefined) {
       throw new ValidationError(`Unknown difficulty: ${difficulty}`);
