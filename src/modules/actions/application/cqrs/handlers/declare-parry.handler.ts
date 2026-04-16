@@ -28,13 +28,11 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
   async execute(command: DeclareParryCommand): Promise<Action> {
     this.logger.log(`Execute << ${JSON.stringify(command)}`);
     const action = await this.actionRepository.findById(command.actionId);
-    if (!action) {
-      throw new NotFoundError('Action', command.actionId);
-    }
+    if (!action) throw new NotFoundError('Action', command.actionId);
+
     const game = await this.gameRepository.findById(action.gameId);
-    if (!game) {
-      throw new NotFoundError('Game', action.gameId);
-    }
+    if (!game) throw new NotFoundError('Game', action.gameId);
+
     const attacks = action.attacks!;
     action.checkValidParryDeclaration();
 

@@ -11,9 +11,8 @@ export class GetActionQueryHandler implements IQueryHandler<GetActionQuery, Acti
 
   async execute(query: GetActionQuery): Promise<Action> {
     const data = await this.actionRepository.findById(query.actionId);
-    if (!data) {
-      throw new NotFoundError('Action', query.actionId);
-    }
+    if (!data) throw new NotFoundError('Action', query.actionId);
+
     return data;
   }
 }

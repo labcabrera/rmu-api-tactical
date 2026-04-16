@@ -69,6 +69,7 @@ export interface CharacterInitiative {
 
 export interface CharacterSkill {
   skillId: string;
+  specialization: string | null;
   totalBonus: number;
 }
 

@@ -32,13 +32,11 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
   async execute(command: ResolveManeuverCommand): Promise<Action> {
     this.logger.log(`Execute << ${JSON.stringify(command)}`);
     const action = await this.actionRepository.findById(command.actionId);
-    if (!action) {
-      throw new NotFoundError('Action', command.actionId);
-    }
+    if (!action) throw new NotFoundError('Action', command.actionId);
+
     const game = await this.gameRepository.findById(action.gameId);
-    if (!game) {
-      throw new NotFoundError('Game', action.gameId);
-    }
+    if (!game) throw new NotFoundError('Game', action.gameId);
+
     this.validate(command, action);
     const [actorRound, character, strategicGame] = await Promise.all([
       this.actorRoundRepository.findByActorIdAndRound(action.actorId, action.round),
