@@ -35,11 +35,12 @@ export class MovementProcessorService {
       }
       const skillId = action.movement.modifiers.skillId || 'running';
       const modifiers: KeyValueModifier[] = [];
+      const difficultyBonus = DIFFICULTY_MAP.get(action.movement.modifiers.difficulty!)!;
+      if (!difficultyBonus) {
+        throw new ValidationError(`Unknown difficulty: ${action.movement.modifiers.difficulty}`);
+      }
       modifiers.push({ key: skillId, value: this.getSkillModifier(skillId, character) });
-      modifiers.push({
-        key: 'difficulty',
-        value: DIFFICULTY_MAP.get(action.movement.modifiers.difficulty!)!,
-      });
+      modifiers.push({ key: 'difficulty', value: difficultyBonus });
       modifiers.push({ key: 'armor-penalty', value: character.equipment.maneuverPenalty });
       modifiers.push({ key: 'custom-bonus', value: action.movement.modifiers.customBonus || 0 });
       actorRound.penalty.modifiers.forEach(penalty => {
@@ -47,11 +48,12 @@ export class MovementProcessorService {
         modifiers.push(new KeyValueModifier(penalty.source, penalty.value));
       });
       modifiers.push({ key: 'roll', value: roll });
+      const totalRoll = modifiers.reduce((acc, mod) => acc + mod.value, 0);
       action.movement.roll = {
         // modifiers: modifiers.filter((mod) => mod.value !== 0),
         modifiers: modifiers,
         roll: roll,
-        totalRoll: modifiers.reduce((sum, mod) => sum + mod.value, 0),
+        totalRoll: totalRoll,
       };
       const maneuverResult = await this.maneuverPort.percent(action.movement.roll.totalRoll!);
       percent = maneuverResult.percent;
