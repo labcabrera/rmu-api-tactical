@@ -1,7 +1,6 @@
 import { ActionRoll } from './action-roll.vo';
 import { Difficulty } from './dificulty.vo';
-
-export type Pace = 'creep' | 'walk' | 'jog' | 'run' | 'sprint' | 'dash';
+import { Pace } from './pace.vo';
 
 export class ActionMovement {
   constructor(

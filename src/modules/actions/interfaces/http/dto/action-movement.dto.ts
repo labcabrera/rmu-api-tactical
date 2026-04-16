@@ -1,4 +1,8 @@
+import { ApiProperty } from '@nestjs/swagger';
+import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 import { ActionMovement, ActionMovementModifiers, ActionMovementResult } from '../../../domain/value-objects/action-movement.vo';
+import { Difficulty } from '../../../domain/value-objects/dificulty.vo';
+import type { Pace } from '../../../domain/value-objects/pace.vo';
 import { ActionRollDto } from './action-roll.dto';
 
 export class ActionMovementDto {
@@ -16,10 +20,24 @@ export class ActionMovementDto {
 }
 
 export class ActionMovementModifiersDto {
-  pace: string;
+  @ApiProperty({ description: 'The pace of the movement', example: 'walk' })
+  @IsString()
+  pace: Pace;
+
+  @ApiProperty({ description: 'Indicates if a maneuver is required', example: true })
+  @IsBoolean()
   requiredManeuver: boolean;
+
+  @IsOptional()
+  @IsString()
   skillId: string | null;
-  difficulty: string | null;
+
+  @IsString()
+  @IsOptional()
+  difficulty: Difficulty | null;
+
+  @IsNumber()
+  @IsOptional()
   customBonus: number | null;
 
   static fromEntity(modifiers: ActionMovementModifiers): ActionMovementModifiersDto {
@@ -29,6 +47,10 @@ export class ActionMovementModifiersDto {
     dto.skillId = modifiers.skillId;
     dto.difficulty = modifiers.difficulty;
     return dto;
+  }
+
+  static toEntity(dto: ActionMovementModifiersDto): ActionMovementModifiers {
+    return new ActionMovementModifiers(dto.pace, dto.requiredManeuver, dto.skillId, dto.difficulty, dto.customBonus);
   }
 }
 

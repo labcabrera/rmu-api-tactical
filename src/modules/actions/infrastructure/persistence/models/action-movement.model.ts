@@ -1,6 +1,6 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import type { Pace } from '../../../domain/value-objects/action-movement.vo';
 import { Difficulty } from '../../../domain/value-objects/dificulty.vo';
+import type { Pace } from '../../../domain/value-objects/pace.vo';
 import { ActionRoll } from './action-roll.model';
 
 @Schema({ _id: false })
