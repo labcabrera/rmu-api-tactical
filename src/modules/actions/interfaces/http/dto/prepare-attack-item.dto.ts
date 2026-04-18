@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
 import {
   CoverType,
   DodgeType,
@@ -201,7 +201,13 @@ export class PrepareAttackItemDto {
   @IsObject()
   modifiers: PrepareAttackModifiersDto;
 
+  @ApiProperty({ description: 'Protector actor identifiers', required: false, example: ['actor-round-002'] })
+  @IsArray()
+  @IsOptional()
+  @IsString({ each: true })
+  protectors: string[] | null;
+
   static toCommand(attack: PrepareAttackItemDto): PrepareAttackCommandItem {
-    return new PrepareAttackCommandItem(attack.attackName, PrepareAttackModifiersDto.toCommand(attack.modifiers));
+    return new PrepareAttackCommandItem(attack.attackName, PrepareAttackModifiersDto.toCommand(attack.modifiers), attack.protectors);
   }
 }

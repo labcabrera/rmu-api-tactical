@@ -19,6 +19,7 @@ export class PrepareAttackCommandItem {
   constructor(
     public attackName: string,
     public modifiers: PrepareAttackCommandModifiers,
+    public protectors: string[] | null,
   ) {}
 }
 

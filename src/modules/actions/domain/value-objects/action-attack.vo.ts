@@ -14,6 +14,7 @@ export class ActionAttack {
     public results: ActionAttackResult | undefined,
     public externalAttackId: string | undefined,
     public status: AttackStatus,
+    public protectors: string[] | null,
   ) {}
 
   //TODO make non static

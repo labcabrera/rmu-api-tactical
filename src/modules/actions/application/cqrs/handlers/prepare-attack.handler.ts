@@ -323,6 +323,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       undefined,
       undefined,
       'pending_attack_roll',
+      commandAttack.protectors,
     );
   }
 }
