@@ -188,14 +188,9 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     }
     this.parries = [];
     for (const target of targets) {
-      // read last melee attack against this actor
-      const lastMeleeAttack = targetActions.sort((a, b) => a.phaseStart - b.phaseStart).find(a => a.actionType === 'melee_attack');
-      if (lastMeleeAttack) {
-        // read min bo available from parry over all attacks
-        const availableBo: number[] = [];
-        for (const attack of lastMeleeAttack.attacks!) {
-          availableBo.push(target.getCurrentBo(attack.attackName));
-        }
+      const declaredMeleeAttack = targetActions.sort((a, b) => a.phaseStart - b.phaseStart).some(a => a.actionType === 'melee_attack');
+      if (declaredMeleeAttack === true) {
+        const availableBo: number[] = target.attacks.filter(a => a.type === 'melee').map(a => a.currentBo);
         const minBo = Math.min(...availableBo);
         this.parries?.push(new ActionParry(randomUUID(), target.actorId, target.actorId, 'parry', minBo, 0));
       }
