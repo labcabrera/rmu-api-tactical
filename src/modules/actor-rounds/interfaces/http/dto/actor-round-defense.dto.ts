@@ -24,6 +24,9 @@ export class ActorRoundDefenseDto {
   @ApiProperty({ description: 'Shield info', required: false })
   shield: ActorRoundShieldDto | null;
 
+  @ApiProperty({ description: 'Protect value', required: false, example: 0 })
+  protect: number;
+
   static fromEntity(entity: ActorRoundDefense): ActorRoundDefenseDto {
     const dto = new ActorRoundDefenseDto();
     dto.bd = entity.bd;
@@ -33,6 +36,7 @@ export class ActorRoundDefenseDto {
     dto.armsAt = entity.armsAt;
     dto.legsAt = entity.legsAt;
     dto.shield = entity.shield ? ActorRoundShieldDto.fromEntity(entity.shield) : null;
+    (dto as any).protect = (entity as any).protect || 0;
     return dto;
   }
 }

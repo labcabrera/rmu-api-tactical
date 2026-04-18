@@ -9,5 +9,6 @@ export class ActorRoundDefense {
     public readonly armsAt: number | null,
     public readonly legsAt: number | null,
     public readonly shield: ActorRoundShield | null,
+    public readonly protect: number,
   ) {}
 }
