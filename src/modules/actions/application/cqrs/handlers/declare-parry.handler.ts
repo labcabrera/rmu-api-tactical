@@ -1,5 +1,5 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
@@ -22,11 +22,10 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     @Inject('CharacterClient') private readonly characterClient: CharacterPort,
     @Inject('AttackPort') private readonly attackPort: AttackPort,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
-    private readonly commandBus: CommandBus,
   ) {}
 
   async execute(command: DeclareParryCommand): Promise<Action> {
-    this.logger.log(`Execute << ${JSON.stringify(command)}`);
+    this.logger.log(`Processing parry for action ${command.actionId} for user ${command.userId}`);
     const action = await this.actionRepository.findById(command.actionId);
     if (!action) throw new NotFoundError('Action', command.actionId);
 
@@ -65,6 +64,7 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     );
 
     // Update action and publish events
+    action.status = 'pending_attack_roll';
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));

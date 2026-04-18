@@ -190,9 +190,11 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     for (const target of targets) {
       const declaredMeleeAttack = targetActions.sort((a, b) => a.phaseStart - b.phaseStart).some(a => a.actionType === 'melee_attack');
       if (declaredMeleeAttack === true) {
-        const availableBo: number[] = target.attacks.filter(a => a.type === 'melee').map(a => a.currentBo);
-        const minBo = Math.min(...availableBo);
-        this.parries?.push(new ActionParry(randomUUID(), target.actorId, target.actorId, 'parry', minBo, 0));
+        const availableBo: number[] = target.attacks.filter(a => a.type === 'melee' && a.currentBo > 0).map(a => a.currentBo);
+        const maxBo = Math.max(...availableBo);
+        if (maxBo > 0) {
+          this.parries?.push(new ActionParry(randomUUID(), target.actorId, target.actorId, 'parry', maxBo, 0));
+        }
       }
     }
   }
