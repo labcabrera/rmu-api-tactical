@@ -51,7 +51,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     game.checkValidActionManagement();
     action.setActionPoints(game.getActionPhase());
 
-    const actorRoundIds = Array.from(new Set(command.attacks.map(a => a.modifiers.targetId).concat([action.actorId])));
+    const actorRoundIds = this.getActorIds(action, command);
     const actors = await this.actorRoundRepository.findByGameAndRoundAndActors(game.id, game.round, actorRoundIds);
     if (actorRoundIds.length !== actors.length) throw new UnprocessableEntityError('Missing actors in the current round');
 
@@ -71,7 +71,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     action.attacks = actionAttacks;
     //TODO read actions
     const targetActions = await this.actionRepository
-      .findByRsql(`gameId==${action.gameId};round==${game.round};actorId=in=(${Array.from(targets).join(',')})`, 0, 1000)
+      .findByRsql(`gameId==${action.gameId};round==${game.round};actorId=in=(${Array.from(actorRoundIds).join(',')})`, 0, 1000)
       .then(res => res.content);
 
     const targetActors = actors.filter(a => a.actorId !== action.actorId);
@@ -85,6 +85,12 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
     return updated;
+  }
+
+  private getActorIds(action: Action, command: PrepareAttackCommand): string[] {
+    const targetIds = command.attacks.map(a => a.modifiers.targetId);
+    const protectors = command.attacks.flatMap(a => a.protectors || []);
+    return Array.from(new Set([...targetIds, ...protectors, action.actorId]));
   }
 
   private async processAttackPort(

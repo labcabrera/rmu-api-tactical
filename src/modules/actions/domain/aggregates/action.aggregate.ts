@@ -181,22 +181,48 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     attack.modifiers.bo = currentBo;
   }
 
-  processParryOptions(targets: ActorRound[], targetActions: Action[]) {
-    //TODO process protectors
+  processParryOptions(actorRounds: ActorRound[], actions: Action[]) {
     if (!this.attacks || this.attacks.length === 0) {
       return;
     }
     this.parries = [];
-    for (const target of targets) {
-      const declaredMeleeAttack = targetActions.sort((a, b) => a.phaseStart - b.phaseStart).some(a => a.actionType === 'melee_attack');
-      if (declaredMeleeAttack === true) {
-        const availableBo: number[] = target.attacks.filter(a => a.type === 'melee' && a.currentBo > 0).map(a => a.currentBo);
+    for (const attack of this.attacks) {
+      if (attack.type !== 'melee') {
+        continue;
+      }
+      // Parries
+      const attackTarget = actorRounds.find(t => t.actorId === attack.modifiers.targetId)!;
+      if (this.hasDeclaredMeleeAttack(attackTarget, actions)) {
+        const availableBo: number[] = attackTarget.attacks.filter(a => a.type === 'melee' && a.currentBo > 0).map(a => a.currentBo);
         const maxBo = Math.max(...availableBo);
         if (maxBo > 0) {
-          this.parries?.push(new ActionParry(randomUUID(), target.actorId, target.actorId, 'parry', maxBo, 0));
+          this.parries?.push(new ActionParry(randomUUID(), attackTarget.actorId, attackTarget.actorId, 'parry', maxBo, 0));
         }
       }
+      // Protectors
+      for (const protectorId of attack.protectors || []) {
+        const protector = actorRounds.find(t => t.actorId === protectorId)!;
+        const protectSkill = protector.defense.protect || 0;
+        if (protectSkill < 1) {
+          continue;
+        } else if (!this.hasDeclaredMeleeAttack(protector, actions)) {
+          continue;
+        }
+        const maxBo = protector.attacks
+          .filter(a => a.type === 'melee' && a.currentBo > 0)
+          .map(a => a.currentBo)
+          .reduce((a, b) => Math.max(a, b), 0);
+        const protectValue = Math.min(protectSkill, maxBo);
+        this.parries?.push(new ActionParry(randomUUID(), protector.actorId, attackTarget.actorId, 'protect', protectValue, 0));
+      }
     }
+  }
+
+  hasDeclaredMeleeAttack(actorRound: ActorRound, actions: Action[]): boolean {
+    return actions
+      .filter(e => e.actorId === actorRound.actorId)
+      .sort((a, b) => a.phaseStart - b.phaseStart)
+      .some(a => a.actionType === 'melee_attack');
   }
 
   hasPendingAttackRolls(): boolean {
