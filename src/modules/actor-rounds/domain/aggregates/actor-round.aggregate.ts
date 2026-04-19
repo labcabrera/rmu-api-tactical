@@ -231,8 +231,10 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
         this.addEffect(effect, 'critical', location);
       });
     }
-    if (this.hp.current < 1) {
+    if (this.hp.current < -this.hp.max) {
       this.addEffect(new ActorRoundEffect(randomUUID(), 'dead', undefined, undefined), undefined, undefined);
+    } else if (this.hp.current < 1) {
+      this.addEffect(new ActorRoundEffect(randomUUID(), 'unconcious', undefined, undefined), undefined, undefined);
     }
     this.applyPenalties();
   }
