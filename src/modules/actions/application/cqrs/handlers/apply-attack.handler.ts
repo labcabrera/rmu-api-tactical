@@ -178,7 +178,8 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     userId: string,
     roles: string[],
   ): Promise<void> {
-    action.processFatigue(strategicGame.options?.fatigueMultiplier);
+    const multiplier = strategicGame.options?.fatigueMultiplier ?? 1;
+    action.processFatigue(multiplier);
     if (action.fatigue) {
       const command = new AddFatigueCommand(undefined, action.actorId, round, action.fatigue, userId, roles);
       await this.commandBus.execute(command);

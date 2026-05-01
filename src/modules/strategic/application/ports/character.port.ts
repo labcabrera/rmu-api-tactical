@@ -48,6 +48,7 @@ export interface CharacterDefense {
   defensiveBonus: number;
   armor: CharacterArmor;
   shield: ActorRoundShield | null;
+  protect: number;
 }
 
 export interface CharacterArmor {
@@ -69,6 +70,7 @@ export interface CharacterInitiative {
 
 export interface CharacterSkill {
   skillId: string;
+  specialization: string | null;
   totalBonus: number;
 }
 

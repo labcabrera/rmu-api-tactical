@@ -14,6 +14,7 @@ import { ActorRoundMovement } from '../value-objets/actor-round-movement.vo';
 import { ActorRoundPenaltySource } from '../value-objets/actor-round-penalty-source.vo';
 import { ActorRoundPenalty } from '../value-objets/actor-round-penalty.vo';
 import { ActorRoundUsedBo } from '../value-objets/actor-round-used-bo.vo';
+import { ActorType } from '../value-objets/actor-type.vo';
 import { ActorRoundProps } from './actor-round-props';
 
 export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
@@ -21,6 +22,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     id: string,
     public readonly gameId: string,
     public readonly round: number,
+    public readonly actorType: ActorType,
     public readonly actorId: string,
     public readonly actorName: string,
     public readonly size: number,
@@ -50,6 +52,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   static create(
     gameId: string,
     round: number,
+    actorType: ActorType,
     actorId: string,
     actorName: string,
     size: number,
@@ -73,6 +76,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       randomUUID(),
       gameId,
       round,
+      actorType,
       actorId,
       actorName,
       size,
@@ -105,6 +109,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       id: randomUUID(),
       gameId: '',
       round: 0,
+      actorType: 'character',
       actorId: '',
       actorName: '',
       size: 1,
@@ -117,7 +122,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       hp: new ActorRoundHP(0, 0),
       fatigue: new ActorRoundFatigue(0, 0, 0),
       penalty: new ActorRoundPenalty([]),
-      defense: new ActorRoundDefense(0, 0, 0, 0, 0, 0, null),
+      defense: new ActorRoundDefense(0, 0, 0, 0, 0, 0, null, 0),
       attacks: [],
       usedBo: [],
       parries: [],
@@ -135,6 +140,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       props.id,
       props.gameId,
       props.round,
+      props.actorType,
       props.actorId,
       props.actorName,
       props.size,
@@ -164,6 +170,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     const {
       gameId,
       round,
+      actorType,
       actorId,
       actorName,
       size,
@@ -186,6 +193,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       randomUUID(),
       gameId,
       round + 1,
+      actorType,
       actorId,
       actorName,
       size,
@@ -223,8 +231,10 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
         this.addEffect(effect, 'critical', location);
       });
     }
-    if (this.hp.current < 1) {
+    if (this.hp.current < -this.hp.max) {
       this.addEffect(new ActorRoundEffect(randomUUID(), 'dead', undefined, undefined), undefined, undefined);
+    } else if (this.hp.current < 1) {
+      this.addEffect(new ActorRoundEffect(randomUUID(), 'unconcious', undefined, undefined), undefined, undefined);
     }
     this.applyPenalties();
   }
@@ -298,7 +308,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       if (this.alerts.find(a => a.type === 'endurance')) {
         return;
       }
-      this.alerts.push(new ActorRoundAlert(randomUUID(), 'endurance', 'Required endurance check due to fatigue'));
+      const alert = ActorRoundAlert.buildEndurance();
+      this.alerts.push(alert);
     } else {
       this.alerts = this.alerts.filter(a => a.type !== 'endurance');
     }
@@ -333,11 +344,11 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     const hpPercent = this.hp.current / this.hp.max;
     let hpPenalty = 0;
     if (hpPercent < 0.25) {
-      hpPenalty = -25;
+      hpPenalty = -75;
     } else if (hpPercent < 0.5) {
       hpPenalty = -50;
     } else if (hpPercent < 0.75) {
-      hpPenalty = -75;
+      hpPenalty = -25;
     }
     this.penalty.modifiers = this.penalty.modifiers.filter(m => m.source !== 'hp');
     if (hpPenalty !== 0) {
@@ -383,11 +394,12 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   }
 
   addAttackBreakageAlert(attackName: string) {
-    this.alerts.push(new ActorRoundAlert(randomUUID(), 'breakage', `Attack breakage on ${attackName}`));
+    this.alerts.push(ActorRoundAlert.buildBreakageFromAttack(attackName));
   }
 
   addCriticalBreakageAlert(location: AttackLocation | undefined) {
-    this.alerts.push(new ActorRoundAlert(randomUUID(), 'breakage', `Breakage on critical hit${location ? ` at ${location}` : ''}`));
+    //TODO required location
+    this.alerts.push(ActorRoundAlert.buildBreakageFromCritical(location || 'chest'));
   }
 
   getProps(): ActorRoundProps {
@@ -395,6 +407,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       id: this.id,
       gameId: this.gameId,
       round: this.round,
+      actorType: this.actorType,
       actorId: this.actorId,
       actorName: this.actorName,
       size: this.size,

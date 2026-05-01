@@ -36,6 +36,7 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
     return ActorRound.create(
       gameId,
       round,
+      'character',
       character.id,
       character.name,
       ACTOR_SIZES[character.info.sizeId],
@@ -56,6 +57,7 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
         character.defense.armor.armsAt,
         character.defense.armor.legsAt,
         shield,
+        (character as any).defense?.protect || 0,
       ),
       this.mapAttacksFromCharacter(character),
       [] as ActorRoundEffect[],

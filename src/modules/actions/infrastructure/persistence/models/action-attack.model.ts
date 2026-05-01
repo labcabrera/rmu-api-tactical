@@ -159,4 +159,7 @@ export class ActionAttack {
 
   @Prop({ type: String, required: true })
   public status: AttackStatus;
+
+  @Prop({ type: [String], required: false })
+  public protectors: string[] | null;
 }

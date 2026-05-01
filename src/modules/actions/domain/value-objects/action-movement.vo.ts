@@ -1,12 +1,11 @@
 import { ActionRoll } from './action-roll.vo';
-import { ManeuverDifficulty } from './maneuver-dificulty.vo';
-
-export type Pace = 'creep' | 'walk' | 'jog' | 'run' | 'sprint' | 'dash';
+import { Difficulty } from './dificulty.vo';
+import { Pace } from './pace.vo';
 
 export class ActionMovement {
   constructor(
     public modifiers: ActionMovementModifiers,
-    public roll: ActionRoll | undefined,
+    public roll: ActionRoll | null,
     public calculated: ActionMovementResult,
   ) {}
 }
@@ -15,9 +14,9 @@ export class ActionMovementModifiers {
   constructor(
     public pace: Pace,
     public requiredManeuver: boolean,
-    public skillId: string | undefined,
-    public difficulty: ManeuverDifficulty | undefined,
-    public customBonus: number | undefined,
+    public skillId: string | null,
+    public difficulty: Difficulty | null,
+    public customBonus: number | null,
   ) {}
 }
 
@@ -28,7 +27,7 @@ export class ActionMovementResult {
     public percent: number,
     public distance: number,
     public distanceAdjusted: number,
-    public critical: string | undefined,
+    public critical: string | null,
     public description: string,
   ) {}
 }

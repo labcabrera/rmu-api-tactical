@@ -1,7 +1,7 @@
 import { ActionRoll } from './action-roll.vo';
+import { Difficulty } from './dificulty.vo';
 import { LightType } from './light-type.vo';
 import { LightManeuverModifier } from './ligth-maneuver-modifier.vo';
-import { ManeuverDifficulty } from './maneuver-dificulty.vo';
 import { ManeuverType } from './maneuver-type.vo';
 
 export class ActionManeuver {
@@ -16,7 +16,7 @@ export class ActionManeuverModifiers {
   constructor(
     public skillId: string,
     public maneuverType: ManeuverType,
-    public difficulty?: ManeuverDifficulty | undefined,
+    public difficulty?: Difficulty | undefined,
     public customBonus?: number | undefined,
     public lightModifier?: LightManeuverModifier | undefined,
     public light?: LightType | undefined,

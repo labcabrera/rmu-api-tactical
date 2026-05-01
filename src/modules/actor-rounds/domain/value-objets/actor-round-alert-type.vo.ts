@@ -1,1 +1,1 @@
-export type ActorRoundAlertType = 'endurance' | 'breakage';
+export type ActorRoundAlertType = 'endurance' | 'breakage' | 'critical';

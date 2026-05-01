@@ -1,15 +1,15 @@
 export interface StrategicGamePort {
-  findById: (id: string) => Promise<StrategicGame | undefined>;
+  findById: (id: string) => Promise<StrategicGame | null>;
 }
 
 export interface StrategicGame {
   id: string;
-  options?: StrategicGameOptions;
+  options: StrategicGameOptions | null;
   owner: string;
 }
 
 export interface StrategicGameOptions {
-  fatigueMultiplier: number | undefined;
-  boardScaleMultiplier: number | undefined;
-  lethality: number | undefined;
+  fatigueMultiplier: number | null;
+  boardScaleMultiplier: number | null;
+  lethality: number | null;
 }

@@ -23,4 +23,7 @@ export class ActorRoundDefense {
 
   @Prop({ type: ActorRoundShield, required: false })
   public readonly shield: ActorRoundShield | null;
+
+  @Prop({ type: Number, required: false })
+  public readonly protect: number;
 }

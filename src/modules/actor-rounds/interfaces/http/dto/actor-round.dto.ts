@@ -22,6 +22,9 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Actor identifier', example: 'actor-001' })
   actorId: string;
 
+  @ApiProperty({ description: 'Actor type', example: 'character' })
+  actorType: string;
+
   @ApiProperty({ description: 'Actor name', example: 'Goblin Warrior' })
   actorName: string;
 
@@ -80,6 +83,7 @@ export class ActorRoundDto {
     const dto = new ActorRoundDto();
     dto.id = entity.id;
     dto.gameId = entity.gameId;
+    dto.actorType = (entity as any).actorType;
     dto.actorId = entity.actorId;
     dto.actorName = entity.actorName;
     dto.size = entity.size;

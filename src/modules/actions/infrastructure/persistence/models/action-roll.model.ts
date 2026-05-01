@@ -6,9 +6,9 @@ export class ActionRoll {
   @Prop({ type: [KeyValueModifier], required: false })
   modifiers: KeyValueModifier[];
 
-  @Prop({ required: false })
-  roll?: number;
+  @Prop({ type: Number, required: false })
+  roll: number | null;
 
-  @Prop({ required: false })
-  totalRoll?: number;
+  @Prop({ type: Number, required: false })
+  totalRoll: number | null;
 }

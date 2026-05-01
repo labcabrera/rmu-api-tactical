@@ -21,6 +21,9 @@ export class ActorRoundModel {
   gameId: string;
 
   @Prop({ required: true })
+  actorType: string;
+
+  @Prop({ required: true })
   actorId: string;
 
   @Prop({ required: true })

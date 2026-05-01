@@ -3,7 +3,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
-import { NotFoundError, UnprocessableEntityError } from '../../../../shared/domain/errors';
+import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../../shared/domain/errors';
 import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
 import { StrategicGameApiClient } from '../../../../strategic/infrastructure/api-clients/api.strategic-game.adapter';
 import { Action } from '../../../domain/aggregates/action.aggregate';
@@ -49,17 +49,16 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     if (!strategicGame) throw new NotFoundError('StrategicGame', game.strategicGameId);
 
     game.checkValidActionManagement();
-    const actionAttacks = command.attacks.map(attack => this.mapAttacks(attack, action));
     action.setActionPoints(game.getActionPhase());
-    const actorRoundIds = Array.from(new Set(actionAttacks.map(a => a.modifiers.targetId!).concat([action.actorId])));
 
+    const actorRoundIds = this.getActorIds(action, command);
     const actors = await this.actorRoundRepository.findByGameAndRoundAndActors(game.id, game.round, actorRoundIds);
-    if (actorRoundIds.length !== actors.length) {
-      throw new UnprocessableEntityError('Missing actors in the current round');
-    }
+    if (actorRoundIds.length !== actors.length) throw new UnprocessableEntityError('Missing actors in the current round');
+
+    const sourceActorRound = actors.find(a => a.actorId === action.actorId)!;
+    const actionAttacks = command.attacks.map(attack => this.mapAttacks(attack, action, sourceActorRound));
 
     const skills = await this.getSourceSkills(action.actorId, actors);
-
     const gameLethality = strategicGame.options?.lethality || 0;
     const attackNumber = command.attacks.length;
     const targets: Set<string> = new Set();
@@ -72,7 +71,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     action.attacks = actionAttacks;
     //TODO read actions
     const targetActions = await this.actionRepository
-      .findByRsql(`gameId==${action.gameId};round==${game.round};actorId=in=(${Array.from(targets).join(',')})`, 0, 1000)
+      .findByRsql(`gameId==${action.gameId};round==${game.round};actorId=in=(${Array.from(actorRoundIds).join(',')})`, 0, 1000)
       .then(res => res.content);
 
     const targetActors = actors.filter(a => a.actorId !== action.actorId);
@@ -80,12 +79,18 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
 
     //TODO check effects and intermediate actions
     action.actionPoints = game.getActionPhase() - action.phaseStart + 1;
-    action.status = action.parries?.length && action.parries.length > 0 ? 'parry' : 'prepared';
+    action.status = action.parries?.length && action.parries.length > 0 ? 'parry' : 'pending_attack_roll';
 
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
     return updated;
+  }
+
+  private getActorIds(action: Action, command: PrepareAttackCommand): string[] {
+    const targetIds = command.attacks.map(a => a.modifiers.targetId);
+    const protectors = command.attacks.flatMap(a => a.protectors || []);
+    return Array.from(new Set([...targetIds, ...protectors, action.actorId]));
   }
 
   private async processAttackPort(
@@ -276,12 +281,14 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     return effects;
   }
 
-  private mapAttacks(commandAttack: PrepareAttackCommandItem, action: Action): ActionAttack {
-    const currentAttack = action.attacks!.find(a => a.attackName === commandAttack.attackName);
-    if (!currentAttack) {
-      throw new UnprocessableEntityError(`Attack ${commandAttack.attackName} not found on action`);
+  private mapAttacks(commandAttack: PrepareAttackCommandItem, action: Action, source: ActorRound): ActionAttack {
+    const attack = source.attacks?.find(a => a.attackName === commandAttack.attackName);
+    if (!attack) {
+      throw new UnprocessableEntityError(`Attack ${commandAttack.attackName} not found on actor`);
     }
-    // Parry is delared later
+    if (commandAttack.modifiers.bo > attack.currentBo) {
+      throw new ValidationError(`BO cannot be higher than current BO (${attack.currentBo})`);
+    }
     const parry = 0;
     const surprisedFoe = commandAttack.modifiers.surprisedFoe || false;
     // Stun cannot be applied if surprised is applied
@@ -314,14 +321,15 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       commandAttack.modifiers.customBonus,
     );
     return new ActionAttack(
-      currentAttack.attackName,
-      currentAttack.type,
+      commandAttack.attackName,
+      attack.type,
       modifiers,
       undefined,
       undefined,
       undefined,
       undefined,
       'pending_attack_roll',
+      commandAttack.protectors,
     );
   }
 }

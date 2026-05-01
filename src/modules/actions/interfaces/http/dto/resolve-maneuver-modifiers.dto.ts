@@ -1,12 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ResolveManeuverModifiers } from '../../../application/cqrs/commands/resolve-maneuver.commands';
+import { Difficulty } from '../../../domain/value-objects/dificulty.vo';
 import { LightType } from '../../../domain/value-objects/light-type.vo';
 import { LightManeuverModifier } from '../../../domain/value-objects/ligth-maneuver-modifier.vo';
-import { ManeuverDifficulty } from '../../../domain/value-objects/maneuver-dificulty.vo';
 
 export class ResolveManeuverModifiersDto {
   @ApiProperty({ description: 'The difficulty of the maneuver', example: 'easy' })
-  difficulty?: ManeuverDifficulty | undefined;
+  difficulty?: Difficulty | undefined;
 
   @ApiProperty({ description: 'Indicates the light maneuver modifier', example: 'helpful' })
   lightModifier?: LightManeuverModifier | undefined;

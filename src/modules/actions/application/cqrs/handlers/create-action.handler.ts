@@ -46,7 +46,6 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       command.description,
       command.userId,
     );
-    this.loadAttacks(command, actorRound, action);
     const saved = await this.actionRepository.save(action);
     const events = action.getUncommittedEvents();
     events.forEach(event => this.actionEventBus.publish(event));
@@ -82,15 +81,6 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     }
   }
 
-  private loadAttacks(command: CreateActionCommand, actorRound: ActorRound, action: Action): void {
-    if (command.actionType === 'melee_attack' || command.actionType === 'ranged_attack') {
-      const attackNames =
-        command.attackNames && command.attackNames.length > 0 ? command.attackNames : actorRound.attacks.map(attack => attack.attackName);
-      action.addAttacks(attackNames);
-      actorRound.attacks.map(attack => action.setAttackBo(attack.attackName, attack.currentBo));
-    }
-  }
-
   private checkDeclareActionAllowed(game: Game): void {
     if (game.round < 1) {
       throw new ValidationError(`Game ${game.name} is not in progress. You need to start the game.`);
@@ -112,14 +102,14 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     //TODO check collisions)
   }
 
-  private mapManeuver(command: CreateActionCommand): ActionManeuver | undefined {
+  private mapManeuver(command: CreateActionCommand): ActionManeuver | null {
     switch (command.actionType) {
       case 'maneuver':
         return {
           modifiers: {
             skillId: command.maneuver!.skillId,
             maneuverType: command.maneuver!.maneuverType,
-            difficulty: 'medium',
+            difficulty: 'm',
             customBonus: 0,
             lightModifier: 'none',
             light: 'no_shadows',
@@ -127,7 +117,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
           },
         };
       default:
-        return undefined;
+        return null;
     }
   }
 }

@@ -19,18 +19,12 @@ export class PrepareManeuverHandler implements ICommandHandler<PrepareManeuverCo
   async execute(command: PrepareManeuverCommand): Promise<Action> {
     this.logger.log(`Execute << ${JSON.stringify(command)}`);
     const action = await this.actionRepository.findById(command.actionId);
-    if (!action) {
-      throw new NotFoundError('Action', command.actionId);
-    }
-    if (action.actionType !== 'maneuver') {
-      throw new ValidationError('Action is not a maneuver');
-    }
-    if (action.status !== 'declared') {
-      throw new ValidationError('Action is not in a preparable state');
-    }
-    if (!action.maneuver) {
-      throw new ValidationError('Required maneuver data is missing');
-    }
+
+    if (!action) throw new NotFoundError('Action', command.actionId);
+    if (action.actionType !== 'maneuver') throw new ValidationError('Action is not a maneuver');
+    if (action.status !== 'declared') throw new ValidationError('Action is not in a preparable state');
+    if (!action.maneuver) throw new ValidationError('Required maneuver data is missing');
+
     action.status = 'prepared';
     action.maneuver.modifiers.difficulty = command.difficulty;
     const updated = await this.actionRepository.save(action);

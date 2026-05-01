@@ -9,6 +9,7 @@ export class ActorRoundEffect {
   static isUnique(effect: ActorRoundEffect): boolean {
     switch (effect.status) {
       case 'dead':
+      case 'unconcious':
         return true;
     }
     return false;

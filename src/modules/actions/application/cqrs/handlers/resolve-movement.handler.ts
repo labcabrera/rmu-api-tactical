@@ -2,9 +2,9 @@ import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
+import { ActorRoundAlert } from '../../../../actor-rounds/domain/value-objets/actor-round-alert.vo';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import type { Character, CharacterPort } from '../../../../strategic/application/ports/character.port';
 import type { StrategicGame, StrategicGamePort } from '../../../../strategic/application/ports/strategic-game.port';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
@@ -23,7 +23,6 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('CharacterClient') private readonly characterClient: CharacterPort,
     @Inject('StrategicGameClient') private readonly strategicGameClient: StrategicGamePort,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
   ) {}
@@ -31,29 +30,34 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
   async execute(command: ResolveMovementCommand): Promise<Action> {
     this.logger.log(`Execute << ${JSON.stringify(command)}`);
     const action = await this.actionRepository.findById(command.actionId);
-    if (!action) {
-      throw new NotFoundError('Action', command.actionId);
-    }
+    if (!action) throw new NotFoundError('Action', command.actionId);
+
     const game = await this.gameRepository.findById(action.gameId);
-    if (!game) {
-      throw new NotFoundError('Game', action.gameId);
-    }
+    if (!game) throw new NotFoundError('Game', action.gameId);
+
     this.validate(command, action);
-    const [actorRound, character, strategicGame] = await Promise.all([
+    const [actorRound, strategicGame] = await Promise.all([
       this.actorRoundRepository.findByActorIdAndRound(action.actorId, action.round),
-      this.characterClient.findById(action.actorId),
       this.strategicGameClient.findById(game.strategicGameId),
     ]);
     if (!actorRound) throw new NotFoundError('ActorRound', `${action.actorId} - ${action.round}`);
-    if (!character) throw new NotFoundError('Character', action.actorId);
     if (!strategicGame) throw new NotFoundError('StrategicGame', game.strategicGameId);
 
     const currentPhase = game.phase.replace('phase_', '') as unknown as number;
-    await this.processAction(command, action, character, actorRound, strategicGame, currentPhase);
+    await this.processAction(command, action, actorRound, strategicGame, currentPhase);
     const updated = await this.actionRepository.update(action.id, action);
+    let actorRoundModified = false;
     if (action.fatigue) {
+      actorRoundModified = true;
       const currentFatigue = actorRound.fatigue.accumulator || 0;
       actorRound.fatigue.accumulator = currentFatigue + action.fatigue;
+    }
+    if (action.movement?.calculated.critical) {
+      actorRoundModified = true;
+      const alert = ActorRoundAlert.buildCritical('k', action.movement?.calculated.critical);
+      actorRound.alerts.push(alert);
+    }
+    if (actorRoundModified) {
       await this.actorRoundRepository.update(actorRound.id, actorRound);
     }
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
@@ -63,7 +67,6 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
   private async processAction(
     command: ResolveMovementCommand,
     action: Action,
-    character: Character,
     actorRound: ActorRound,
     strategicGame: StrategicGame,
     currentPhase: number,
@@ -72,8 +75,9 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     action.phaseEnd = currentPhase;
     action.actionPoints = action.phaseEnd - action.phaseStart + 1;
     action.movement = this.buildActionMovement(command);
-    await this.movementProcessorService.process(command.roll, action, character, actorRound);
-    action.processFatigue(strategicGame.options?.fatigueMultiplier);
+    const fatigueMultiplier = strategicGame.options?.fatigueMultiplier ?? 1;
+    await this.movementProcessorService.process(command.roll, action, actorRound);
+    action.processFatigue(fatigueMultiplier);
     const scale = strategicGame.options?.boardScaleMultiplier || 1;
     action.movement.calculated.distanceAdjusted = action.movement.calculated.distance * scale;
     this.roundResults(action);
@@ -84,14 +88,14 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
   private buildActionMovement(command: ResolveMovementCommand): ActionMovement {
     return {
       modifiers: this.buildActionMovementModifers(command),
-      roll: undefined,
+      roll: null,
       calculated: {
         bmr: 0,
         paceMultiplier: 0,
         percent: 0,
         distance: 0,
         distanceAdjusted: 0,
-        critical: undefined,
+        critical: null,
         description: 'Not processed',
       },
     };
@@ -103,7 +107,7 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
       requiredManeuver: command.modifiers.requiredManeuver === true,
       skillId: command.modifiers.skillId,
       difficulty: command.modifiers.difficulty,
-      customBonus: 0,
+      customBonus: command.modifiers.customBonus,
     };
   }
 

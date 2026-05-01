@@ -1,7 +1,7 @@
 import { Prop, Schema } from '@nestjs/mongoose';
+import { Difficulty } from '../../../domain/value-objects/dificulty.vo';
 import { LightType } from '../../../domain/value-objects/light-type.vo';
 import { LightManeuverModifier } from '../../../domain/value-objects/ligth-maneuver-modifier.vo';
-import { ManeuverDifficulty } from '../../../domain/value-objects/maneuver-dificulty.vo';
 import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo';
 import { ActionRoll } from './action-roll.model';
 
@@ -14,7 +14,7 @@ export class ActionManeuverModifiers {
   maneuverType: ManeuverType;
 
   @Prop({ type: String, required: false })
-  difficulty: ManeuverDifficulty | undefined;
+  difficulty: Difficulty | undefined;
 
   @Prop({ type: Number, required: false })
   customBonus: number | undefined;

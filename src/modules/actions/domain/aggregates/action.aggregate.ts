@@ -19,18 +19,18 @@ export interface ActionProps {
   actionType: ActionType;
   freeAction: boolean;
   phaseStart: number;
-  phaseEnd: number | undefined;
+  phaseEnd: number | null;
   status: ActionStatus;
-  actionPoints: number | undefined;
-  movement: ActionMovement | undefined;
-  attacks: ActionAttack[] | undefined;
-  parries: ActionParry[] | undefined;
-  maneuver: ActionManeuver | undefined;
-  fatigue: number | undefined;
-  description: string | undefined;
+  actionPoints: number | null;
+  movement: ActionMovement | null;
+  attacks: ActionAttack[] | null;
+  parries: ActionParry[] | null;
+  maneuver: ActionManeuver | null;
+  fatigue: number | null;
+  description: string | null;
   owner: string;
   createdAt: Date;
-  updatedAt: Date | undefined;
+  updatedAt: Date | null;
 }
 
 export class Action extends AggregateRoot<DomainEvent<Action>> {
@@ -42,18 +42,18 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     public readonly actionType: ActionType,
     public readonly freeAction: boolean,
     public readonly phaseStart: number,
-    public phaseEnd: number | undefined,
+    public phaseEnd: number | null,
     public status: ActionStatus,
-    public actionPoints: number | undefined,
-    public movement: ActionMovement | undefined,
-    public attacks: ActionAttack[] | undefined,
-    public parries: ActionParry[] | undefined,
-    public maneuver: ActionManeuver | undefined,
-    public fatigue: number | undefined,
-    public description: string | undefined,
+    public actionPoints: number | null,
+    public movement: ActionMovement | null,
+    public attacks: ActionAttack[] | null,
+    public parries: ActionParry[] | null,
+    public maneuver: ActionManeuver | null,
+    public fatigue: number | null,
+    public description: string | null,
     public owner: string,
     public readonly createdAt: Date,
-    public updatedAt: Date | undefined,
+    public updatedAt: Date | null,
   ) {
     super();
   }
@@ -65,8 +65,8 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     actionType: ActionType,
     freeAction: boolean,
     phaseStart: number,
-    maneuver: ActionManeuver | undefined,
-    description: string | undefined,
+    maneuver: ActionManeuver | null,
+    description: string | null,
     owner: string,
   ) {
     const action = new Action(
@@ -77,18 +77,18 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
       actionType,
       freeAction,
       phaseStart,
-      undefined,
+      null,
       'declared',
-      undefined,
-      undefined,
-      undefined,
-      undefined,
+      null,
+      null,
+      null,
+      null,
       maneuver,
-      undefined,
+      null,
       description,
       owner,
       new Date(),
-      undefined,
+      null,
     );
     action.apply(new ActionCreatedEvent(action));
     return action;
@@ -181,25 +181,48 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     attack.modifiers.bo = currentBo;
   }
 
-  processParryOptions(targets: ActorRound[], targetActions: Action[]) {
-    //TODO process protectors
+  processParryOptions(actorRounds: ActorRound[], actions: Action[]) {
     if (!this.attacks || this.attacks.length === 0) {
       return;
     }
     this.parries = [];
-    for (const target of targets) {
-      // read last melee attack against this actor
-      const lastMeleeAttack = targetActions.sort((a, b) => a.phaseStart - b.phaseStart).find(a => a.actionType === 'melee_attack');
-      if (lastMeleeAttack) {
-        // read min bo available from parry over all attacks
-        const availableBo: number[] = [];
-        for (const attack of lastMeleeAttack.attacks!) {
-          availableBo.push(target.getCurrentBo(attack.attackName));
+    for (const attack of this.attacks) {
+      if (attack.type !== 'melee') {
+        continue;
+      }
+      // Parries
+      const attackTarget = actorRounds.find(t => t.actorId === attack.modifiers.targetId)!;
+      if (this.hasDeclaredMeleeAttack(attackTarget, actions)) {
+        const availableBo: number[] = attackTarget.attacks.filter(a => a.type === 'melee' && a.currentBo > 0).map(a => a.currentBo);
+        const maxBo = Math.max(...availableBo);
+        if (maxBo > 0) {
+          this.parries?.push(new ActionParry(randomUUID(), attackTarget.actorId, attackTarget.actorId, 'parry', maxBo, 0));
         }
-        const minBo = Math.min(...availableBo);
-        this.parries?.push(new ActionParry(randomUUID(), target.actorId, target.actorId, 'parry', minBo, 0));
+      }
+      // Protectors
+      for (const protectorId of attack.protectors || []) {
+        const protector = actorRounds.find(t => t.actorId === protectorId)!;
+        const protectSkill = protector.defense.protect || 0;
+        if (protectSkill < 1) {
+          continue;
+        } else if (!this.hasDeclaredMeleeAttack(protector, actions)) {
+          continue;
+        }
+        const maxBo = protector.attacks
+          .filter(a => a.type === 'melee' && a.currentBo > 0)
+          .map(a => a.currentBo)
+          .reduce((a, b) => Math.max(a, b), 0);
+        const protectValue = Math.min(protectSkill, maxBo);
+        this.parries?.push(new ActionParry(randomUUID(), protector.actorId, attackTarget.actorId, 'protect', protectValue, 0));
       }
     }
+  }
+
+  hasDeclaredMeleeAttack(actorRound: ActorRound, actions: Action[]): boolean {
+    return actions
+      .filter(e => e.actorId === actorRound.actorId)
+      .sort((a, b) => a.phaseStart - b.phaseStart)
+      .some(a => a.actionType === 'melee_attack');
   }
 
   hasPendingAttackRolls(): boolean {
@@ -273,11 +296,11 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     }
   }
 
-  processFatigue(fatigueMultiplier: number | undefined): void {
+  processFatigue(fatigueMultiplier: number | null): void {
     if (!this.actionPoints) {
       throw new Error('Action does not have action points defined');
     }
-    let value: number | undefined = undefined;
+    let value: number | null = null;
     switch (this.actionType) {
       case 'movement':
         value = this.getMovementFatigue();
@@ -296,12 +319,12 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     this.fatigue = value;
   }
 
-  private getCombatFatigue(): number | undefined {
+  private getCombatFatigue(): number | null {
     if (!this.attacks || this.attacks.length === 0) {
       throw new UnprocessableEntityError('Action does not have attack data');
     }
     // check every 6 rounds only for melee attacks
-    return this.attacks.some(e => e.type === 'melee') ? 4.16 : undefined;
+    return this.attacks.some(e => e.type === 'melee') ? 4.16 : null;
   }
 
   applyParrysToAttacks() {
@@ -336,7 +359,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     };
   }
 
-  private getMovementFatigue(): number | undefined {
+  private getMovementFatigue(): number | null {
     if (this.movement?.modifiers.skillId) {
       switch (this.movement.modifiers.skillId) {
         case 'climbing':
@@ -350,7 +373,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     return this.getRunningFatigue();
   }
 
-  private getRunningFatigue(): number | undefined {
+  private getRunningFatigue(): number | null {
     if (!this.movement || !this.movement.modifiers || !this.movement.modifiers.pace) {
       throw new Error('Action does not have movement data');
     }
@@ -368,7 +391,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
         // check every round
         return 25;
     }
-    return undefined;
+    return null;
   }
 
   private checkValidAttack(expectedStatus: string) {
