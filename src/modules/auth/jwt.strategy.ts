@@ -29,7 +29,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       username: payload.preferred_username,
       given_name: payload.given_name,
       family_name: payload.family_name,
-      roles: payload.realm_access.roles,
+      roles: payload.groups || [],
     };
   }
 }
