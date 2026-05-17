@@ -1,26 +1,32 @@
 #!/bin/bash
 
-docker stop rmu-api-tactical
+set -euo pipefail
 
-docker rm rmu-api-tactical
+CONTAINER_NAME="${CONTAINER_NAME:-rmu-api-tactical}"
+IMAGE_NAME="${IMAGE_NAME:-labcabrera/rmu-api-tactical:latest}"
+ENV_FILE="${ENV_FILE:-.env.docker}"
+HOST_PORT="${HOST_PORT:-3003}"
+CONTAINER_PORT="${CONTAINER_PORT:-3003}"
 
-docker rmi labcabrera/rmu-api-tactical:latest
+if [ ! -f "${ENV_FILE}" ]; then
+    echo "Missing ${ENV_FILE}. Copy docker-run.env.example to ${ENV_FILE} and provide local secret values." >&2
+    exit 1
+fi
 
-docker build -t labcabrera/rmu-api-tactical:latest .
+docker stop "${CONTAINER_NAME}" >/dev/null 2>&1 || true
 
-docker run -d -p 3003:3003 --network rmu-network --name rmu-api-tactical -h rmu-api-tactical \
-  -e PORT='3003' \
-  -e RMU_API_CORE_URI=http://rmu-api-core:3001/v1 \
-  -e RMU_API_STRATEGIC_URI=http://rmu-api-strategic:3002/v1 \
-  -e RMU_API_ITEMS_URI=http://rmu-api-items:3006/v1 \
-  -e RMU_API_ATTACK_URI=http://rmu-api-attack:8000/v1 \
-  -e RMU_MONGO_TACTICAL_URI='mongodb://admin:admin@rmu-mongo:27017/rmu-tactical?authSource=admin' \
-  -e RMU_IAM_TOKEN_URI='http://rmu-keycloak:8080/realms/rmu-local/protocol/openid-connect/token' \
-  -e RMU_IAM_JWK_URI='http://rmu-keycloak:8080/realms/rmu-local/protocol/openid-connect/certs' \
-  -e RMU_IAM_CLIENT_ID=rmu-client \
-  -e RMU_IAM_CLIENT_SECRET=1tUzPc24SYJMPpX37g2eymEoS9C3Ttzw \
-  -e RMU_KAFKA_BROKERS=rmu-kafka-broker:9092 \
-  -e RMU_KAFKA_CLIENT_ID=rmu-api-tactical \
-  labcabrera/rmu-api-tactical:latest
+docker rm "${CONTAINER_NAME}" >/dev/null 2>&1 || true
 
-docker logs -f rmu-api-tactical
+docker rmi "${IMAGE_NAME}" >/dev/null 2>&1 || true
+
+docker build -t "${IMAGE_NAME}" .
+
+docker run -d \
+    -p "${HOST_PORT}:${CONTAINER_PORT}" \
+    --network rmu-network \
+    --name "${CONTAINER_NAME}" \
+    -h "${CONTAINER_NAME}" \
+    --env-file "${ENV_FILE}" \
+    "${IMAGE_NAME}"
+
+docker logs -f "${CONTAINER_NAME}"
