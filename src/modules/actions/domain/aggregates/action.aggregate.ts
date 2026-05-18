@@ -238,15 +238,9 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
       throw new ValidationError('Action is not an attack');
     }
     if (!this.attacks || this.attacks.length === 0) throw new ValidationError('Action has no attacks declared');
-    this.attacks
+    return this.attacks
       .filter(attack => attack.roll && attack.roll.criticalRolls && attack.roll.criticalRolls.size > 0)
-      .forEach(attack => {
-        const hasUndefined = Array.from(attack.roll!.criticalRolls!.values()).some(v => v === undefined);
-        if (hasUndefined) {
-          return true;
-        }
-      });
-    return false;
+      .some(attack => Array.from(attack.roll!.criticalRolls!.values()).some(v => v === undefined));
   }
 
   hasPendingFumbleRolls(): boolean {

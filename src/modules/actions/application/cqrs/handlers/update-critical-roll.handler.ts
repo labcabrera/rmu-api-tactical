@@ -1,12 +1,13 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
-import { NotFoundError } from '../../../../shared/domain/errors';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
-import type { AttackPort } from '../../ports/attack.port';
+import type { CriticalTablePort } from '../../ports/critical-table.port';
+import { CombatRulesEngineService } from '../../services/combat';
 import { UpdateCriticalRollCommand } from '../commands/update-critical-roll.command';
 
 @CommandHandler(UpdateCriticalRollCommand)
@@ -16,8 +17,9 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
   constructor(
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('AttackPort') private readonly attackPort: AttackPort,
+    @Inject('CriticalTablePort') private readonly criticalTablePort: CriticalTablePort,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
+    private readonly rulesEngine: CombatRulesEngineService,
   ) {}
 
   async execute(command: UpdateCriticalRollCommand): Promise<Action> {
@@ -33,11 +35,39 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
 
     action.checkValidCriticalRollDeclaration(command.attackName, command.criticalKey, rollAdjusted);
     const attack = action.getAttackByName(command.attackName);
-    attack.roll!.criticalRolls!.set(command.criticalKey, rollAdjusted);
-    const attackResponse = await this.attackPort.updateCriticalRoll(attack.externalAttackId!, command.criticalKey, rollAdjusted);
-    attack.results = attackResponse.results;
+
+    let ctx = await this.rulesEngine.runHook('combat.beforeCritical', {
+      action,
+      attack,
+      criticalKey: command.criticalKey,
+      criticalRoll: rollAdjusted,
+      location: attack.calculated?.location,
+      trace: [],
+    });
+
+    attack.roll!.criticalRolls!.set(command.criticalKey, ctx.criticalRoll);
+    const critical = attack.results?.criticals?.find(c => c.key === command.criticalKey);
+    if (!critical) {
+      throw new ValidationError(`Critical ${command.criticalKey} not found in attack ${command.attackName}`);
+    }
+
+    critical.adjustedRoll = ctx.criticalRoll;
+    critical.result = await this.criticalTablePort.lookup({
+      criticalType: critical.criticalType,
+      criticalSeverity: critical.criticalSeverity,
+      roll: ctx.criticalRoll!,
+      location: attack.calculated?.location,
+    });
+    critical.status = 'completed';
+
+    ctx = await this.rulesEngine.runHook('combat.afterCritical', ctx);
+
     if (!action.hasPendingCriticalRolls() && !action.hasPendingFumbleRolls()) {
       action.status = 'pending_apply';
+      attack.status = 'pending_apply';
+    } else if (action.hasPendingFumbleRolls()) {
+      action.status = 'critical_or_fumble_roll';
+      attack.status = 'pending_fumble_roll';
     }
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action.id, action);

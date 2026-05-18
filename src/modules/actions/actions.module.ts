@@ -23,6 +23,7 @@ import { UpdateFumbleRollHandler } from './application/cqrs/handlers/update-fumb
 import { AbsoluteManeuverProcessorService } from './application/services/absolute-maneuver-processor.service';
 import {
   COMBAT_PLUGINS,
+  CombatAttackRollResolverService,
   CombatAttackRollProcessorService,
   CombatContextFactoryService,
   CombatCriticalProcessorService,
@@ -34,7 +35,10 @@ import {
 } from './application/services/combat';
 import { MovementProcessorService } from './application/services/movement-processor.service';
 import { SkillService } from './application/services/skill-service';
+import { ApiAttackTableAdapter } from './infrastructure/api-clients/api.attack-table.adapter';
 import { ApiAttackClientAdapter } from './infrastructure/api-clients/api.attack.adapter';
+import { ApiCriticalTableAdapter } from './infrastructure/api-clients/api.critical-table.adapter';
+import { ApiFumbleTableAdapter } from './infrastructure/api-clients/api.fumble-table.adapter';
 import { ApiManeuverAdapter } from './infrastructure/api-clients/api.maneuver.adapter';
 import { MongoActionRepository } from './infrastructure/db/mongo.action.repository';
 import { KafkaActionEventBusAdapter } from './infrastructure/messaging/kafka.action-event-bus.adapter';
@@ -64,6 +68,7 @@ import { MovementController } from './interfaces/http/movement.controller';
     CombatPluginRegistryService,
     CombatRulesEngineService,
     CombatResolutionService,
+    CombatAttackRollResolverService,
     CombatAttackRollProcessorService,
     CombatTableLookupProcessorService,
     CombatDamageProcessorService,
@@ -92,6 +97,18 @@ import { MovementController } from './interfaces/http/movement.controller';
     {
       provide: 'AttackPort',
       useClass: ApiAttackClientAdapter,
+    },
+    {
+      provide: 'AttackTablePort',
+      useClass: ApiAttackTableAdapter,
+    },
+    {
+      provide: 'CriticalTablePort',
+      useClass: ApiCriticalTableAdapter,
+    },
+    {
+      provide: 'FumbleTablePort',
+      useClass: ApiFumbleTableAdapter,
     },
     {
       provide: 'ManeuverPort',
