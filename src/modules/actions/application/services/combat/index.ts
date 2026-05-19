@@ -13,6 +13,7 @@ export * from './engine/combat-plugin.tokens';
 export * from './engine/combat-processor.service';
 export * from './engine/combat-table-lookup-processor.service';
 export * from './plugins/combat-called-shot.plugin';
+export * from './plugins/combat-cover.plugin';
 export * from './plugins/combat-higher-ground.plugin';
 export * from './plugins/combat-multiple-attacks.plugin';
 export * from './plugins/combat-pace.plugin';

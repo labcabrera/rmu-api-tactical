@@ -3,6 +3,7 @@ import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/va
 import { ValidationError } from '../../../../src/modules/shared/domain/errors';
 import {
   CombatCalledShotPlugin,
+  CombatCoverPlugin,
   CombatHigherGroundPlugin,
   CombatMultipleAttacksPlugin,
   CombatPacePlugin,
@@ -23,7 +24,33 @@ describe('Combat plugins', () => {
 
       await CombatCalledShotPlugin.hooks.prepare![0].apply(ctx);
 
-      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'called-shot')?.value).toBe(-30);
+      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'called-shot')?.value).toBe(30);
+    });
+  });
+
+  describe('CombatCoverPlugin', () => {
+    it('adds the soft cover penalty for melee attacks', async () => {
+      const ctx = createCombatPluginContext({ attackType: 'melee', situationalModifiers: { cover: 'soft_half' } });
+
+      await CombatCoverPlugin.hooks.prepare![0].apply(ctx);
+
+      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'cover')?.value).toBe(-20);
+    });
+
+    it('adds the ranged cover penalty using the ranged-only table', async () => {
+      const ctx = createCombatPluginContext({ attackType: 'ranged', situationalModifiers: { cover: 'soft_half' } });
+
+      await CombatCoverPlugin.hooks.prepare![0].apply(ctx);
+
+      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'cover')?.value).toBe(-40);
+    });
+
+    it('doubles the cover penalty for hard cover', async () => {
+      const ctx = createCombatPluginContext({ attackType: 'ranged', situationalModifiers: { cover: 'hard_full' } });
+
+      await CombatCoverPlugin.hooks.prepare![0].apply(ctx);
+
+      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'cover')?.value).toBe(-200);
     });
   });
 
@@ -43,8 +70,8 @@ describe('Combat plugins', () => {
 
       await CombatMultipleAttacksPlugin.hooks.prepare![0].apply(ctx);
 
-      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'attack-number-penalty')?.value).toBe(-100);
-      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'target-number-penalty')?.value).toBe(-20);
+      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'attack-number')?.value).toBe(-100);
+      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'target-number')?.value).toBe(-20);
     });
   });
 
@@ -70,7 +97,7 @@ describe('Combat plugins', () => {
 
       await CombatPositionalSourcePlugin.hooks.prepare![0].apply(ctx);
 
-      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'positionalSource')?.value).toBe(-70);
+      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'positional-source')?.value).toBe(-70);
     });
   });
 
@@ -80,7 +107,7 @@ describe('Combat plugins', () => {
 
       await CombatPositionalTargetPlugin.hooks.prepare![0].apply(ctx);
 
-      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'positionalTarget')?.value).toBe(15);
+      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'positional-target')?.value).toBe(15);
     });
 
     it('does not add a positional target modifier for none', async () => {
@@ -88,7 +115,7 @@ describe('Combat plugins', () => {
 
       await CombatPositionalTargetPlugin.hooks.prepare![0].apply(ctx);
 
-      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'positionalTarget')).toBeUndefined();
+      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'positional-target')).toBeUndefined();
     });
   });
 
@@ -98,7 +125,7 @@ describe('Combat plugins', () => {
 
       await CombatRestrictedQuartersPlugin.hooks.prepare![0].apply(ctx);
 
-      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'restrictedQuarters')?.value).toBe(-50);
+      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'restricted-quarters')?.value).toBe(-50);
     });
   });
 
@@ -144,8 +171,8 @@ describe('Combat plugins', () => {
 
       await CombatSizeDifferencePlugin.hooks.prepare![0].apply(ctx);
 
-      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'sizeDifferenceDB')?.value).toBe(-10);
-      expect(getModifier(ctx.attackPreparation!.modifiers.criticalModifiers, 'sizeDifference')?.value).toBe(2);
+      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'size-db')?.value).toBe(-10);
+      expect(getModifier(ctx.attackPreparation!.modifiers.criticalModifiers, 'size-difference')?.value).toBe(2);
     });
   });
 
