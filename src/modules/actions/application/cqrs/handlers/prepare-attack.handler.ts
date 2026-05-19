@@ -190,10 +190,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const rollModifiers = CombatModifierBag.from()
       .add('bo', attackModifiers.bo || 0)
       .add('bd', -actorRoundTarget.defense.bd)
-      .add('calledShotPenalty', -(attackModifiers.calledShotPenalty || 0))
       .add('rangePenalty', rangePenalty)
-      .add('attackNumber', this.calculateRepeatedAttackPenalty(ctx.attackNumber))
-      .add('attackTargets', this.calculateMultipleTargetPenalty(ctx.targetsNumber))
       .add('gameLethality', ctx.gameLethality || 0)
       .add('customBonus', attackModifiers.customBonus || 0)
       .toArray();
@@ -261,20 +258,6 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       results: undefined,
       status: 'pending_attack_roll',
     };
-  }
-
-  private calculateRepeatedAttackPenalty(attackNumber: number | undefined): number {
-    if (!attackNumber || attackNumber <= 1) {
-      return 0;
-    }
-    return -(attackNumber - 1) * 10;
-  }
-
-  private calculateMultipleTargetPenalty(targetsNumber: number | undefined): number {
-    if (!targetsNumber || targetsNumber <= 1) {
-      return 0;
-    }
-    return -(targetsNumber - 1) * 10;
   }
 
   private calculateRangePenalty(attack: ActionAttack, sourceActor: ActorRound): number {
