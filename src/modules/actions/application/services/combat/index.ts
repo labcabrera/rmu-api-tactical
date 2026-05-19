@@ -18,6 +18,7 @@ export * from './plugins/combat-higher-ground.plugin';
 export * from './plugins/combat-multiple-attacks.plugin';
 export * from './plugins/combat-pace.plugin';
 export * from './plugins/combat-positional-source.plugin';
+export * from './plugins/combat-positional-target.plugin';
 export * from './plugins/combat-restricted-quarters.plugin';
 export * from './plugins/combat-shield.plugin';
 export * from './plugins/combat-size-difference.plugin';

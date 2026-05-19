@@ -10,7 +10,7 @@ export const CombatHigherGroundPlugin: CombatPlugin = {
       {
         apply: ctx => {
           if (!ctx.attackPreparation?.modifiers.situationalModifiers.higherGround) return ctx;
-          CombatModifierBag.from(ctx.attackPreparation.modifiers.rollModifiers).add('higherGround', 10);
+          CombatModifierBag.from(ctx.attackPreparation.modifiers.rollModifiers).add('higher-ground', 10);
           return ctx;
         },
       },

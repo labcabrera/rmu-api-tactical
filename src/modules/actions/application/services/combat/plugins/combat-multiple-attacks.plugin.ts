@@ -25,11 +25,24 @@ export const CombatMultipleAttacksPlugin: CombatPlugin = {
             return ctx;
           }
 
-          const modifiers = CombatModifierBag.from(ctx.attackPreparation.modifiers.rollModifiers);
-          const attackNumberModifier = calculateAttackNumberModifier(ctx.attackNumber);
-          const targetsModifier = calculateTargetsModifier(ctx.targetsNumber);
+          if (ctx.attackNumber === 1 && ctx.targetsNumber === 1) {
+            return ctx;
+          }
 
-          modifiers.add('attackNumber', attackNumberModifier).add('attackTargets', targetsModifier);
+          const modifiers = CombatModifierBag.from(ctx.attackPreparation.modifiers.rollModifiers);
+
+          const multipleAttackSkill = ctx.sourceSkills?.find(s => s.skillId === 'multiple-attacks')?.bonus || 0;
+
+          const attackNumberPenalty = calculateAttackNumberModifier(ctx.attackNumber);
+          const attackNumberSkill = Math.min(-attackNumberPenalty, multipleAttackSkill);
+
+          const targetNumberPenalty = calculateTargetsModifier(ctx.targetsNumber);
+          const targetNumberSkill = Math.min(targetNumberPenalty, multipleAttackSkill);
+
+          modifiers.add('attack-number-penalty', attackNumberPenalty);
+          modifiers.add('attack-number-skill', attackNumberSkill);
+          modifiers.add('target-number-penalty', targetNumberPenalty);
+          modifiers.add('target-number-skill', targetNumberSkill);
           return ctx;
         },
       },

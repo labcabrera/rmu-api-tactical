@@ -15,7 +15,7 @@ export const CombatCalledShotPlugin: CombatPlugin = {
           }
 
           const penalty = ctx.attack.modifiers.calledShotPenalty || 0;
-          CombatModifierBag.from(ctx.attackPreparation.modifiers.rollModifiers).add('calledShotPenalty', -penalty);
+          CombatModifierBag.from(ctx.attackPreparation.modifiers.rollModifiers).add('called-shot', -penalty);
           return ctx;
         },
       },

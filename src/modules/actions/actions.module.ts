@@ -35,6 +35,7 @@ import {
   CombatPacePlugin,
   CombatPluginRegistryService,
   CombatPositionalSourcePlugin,
+  CombatPositionalTargetPlugin,
   CombatProcessor,
   CombatRestrictedQuartersPlugin,
   CombatShieldPlugin,
@@ -120,6 +121,7 @@ import { MovementController } from './interfaces/http/movement.controller';
       provide: COMBAT_PLUGINS,
       useValue: [
         CombatPositionalSourcePlugin,
+        CombatPositionalTargetPlugin,
         CombatRestrictedQuartersPlugin,
         CombatCalledShotPlugin,
         CombatMultipleAttacksPlugin,

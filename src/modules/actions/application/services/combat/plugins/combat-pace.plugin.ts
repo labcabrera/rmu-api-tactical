@@ -25,7 +25,12 @@ export const CombatPacePlugin: CombatPlugin = {
           }
           const modifier = paceModifiers[pace];
           if (modifier === undefined) return ctx;
+
+          const footworkSkill = ctx.sourceSkills?.find(s => s.skillId === 'footwork')?.bonus || 0;
+          const adjustedModifier = Math.min(-modifier, footworkSkill);
+
           CombatModifierBag.from(ctx.attackPreparation!.modifiers.rollModifiers).add('pace', modifier);
+          CombatModifierBag.from(ctx.attackPreparation!.modifiers.rollModifiers).add('footwork', adjustedModifier);
           return ctx;
         },
       },
