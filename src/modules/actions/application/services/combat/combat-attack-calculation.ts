@@ -16,6 +16,7 @@ export interface CombatAttackRollModifiers {
   attackTargets: number | undefined;
   gameLethality: number | undefined;
   positionalSource: number | undefined;
+  restrictedQuarters: number | undefined;
   customBonus: number | undefined;
 }
 

@@ -5,9 +5,10 @@ import type { GameRepository } from '../../../../games/application/ports/game.re
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
+import { ActionAttack } from '../../../domain/value-objects/action-attack.vo';
+import { KeyValueModifier } from '../../../domain/value-objects/key-value-modifier.vo';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
-import { CombatResolutionService } from '../../services/combat';
 import { DeclareParryCommand } from '../commands/declare-parry.command';
 
 @CommandHandler(DeclareParryCommand)
@@ -19,7 +20,6 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
-    private readonly combatResolutionService: CombatResolutionService,
   ) {}
 
   async execute(command: DeclareParryCommand): Promise<Action> {
@@ -52,7 +52,7 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     // Set up parry values in attacks
     action.applyParrysToAttacks();
 
-    attacks.forEach(attack => this.combatResolutionService.refreshAttackCalculation(attack));
+    attacks.forEach(attack => this.refreshAttackCalculation(attack));
 
     // Update action and publish events
     action.status = 'pending_attack_roll';
@@ -69,5 +69,20 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
       actorIds.add(attack.modifiers.targetId!);
     });
     return Array.from(actorIds);
+  }
+
+  private refreshAttackCalculation(attack: ActionAttack): void {
+    if (!attack.calculated) {
+      return;
+    }
+
+    const parry = attack.modifiers.parry || 0;
+    const modifiers = attack.calculated.rollModifiers.filter(modifier => modifier.key !== 'parry');
+    if (parry > 0) {
+      modifiers.push(new KeyValueModifier('parry', -parry));
+    }
+
+    attack.calculated.rollModifiers = modifiers;
+    attack.calculated.rollTotal = modifiers.reduce((sum, modifier) => sum + modifier.value, 0);
   }
 }

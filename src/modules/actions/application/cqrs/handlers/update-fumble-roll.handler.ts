@@ -8,7 +8,7 @@ import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import type { FumbleTablePort } from '../../ports/fumble-table.port';
-import { CombatRulesEngineService } from '../../services/combat';
+import { CombatProcessor } from '../../services/combat';
 import { UpdateFumbleRollCommand } from '../commands/update-fumble-roll.command';
 
 @CommandHandler(UpdateFumbleRollCommand)
@@ -21,7 +21,7 @@ export class UpdateFumbleRollHandler implements ICommandHandler<UpdateFumbleRoll
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('FumbleTablePort') private readonly fumbleTablePort: FumbleTablePort,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
-    private readonly rulesEngine: CombatRulesEngineService,
+    private readonly combatProcessor: CombatProcessor,
   ) {}
 
   async execute(command: UpdateFumbleRollCommand): Promise<Action> {
@@ -45,7 +45,7 @@ export class UpdateFumbleRollHandler implements ICommandHandler<UpdateFumbleRoll
       throw new ValidationError(`Attack ${command.attackName} not found on actor ${action.actorId}`);
     }
 
-    let ctx = await this.rulesEngine.runHook('combat.beforeFumble', {
+    const ctx = await this.combatProcessor.runPhase('fumbleRoll', {
       action,
       attack,
       fumbleRoll: command.fumbleRoll,
@@ -59,8 +59,6 @@ export class UpdateFumbleRollHandler implements ICommandHandler<UpdateFumbleRoll
       fumbleTable: sourceAttack.fumbleTable,
       roll: ctx.fumbleRoll!,
     });
-
-    ctx = await this.rulesEngine.runHook('combat.afterFumble', ctx);
 
     if (!action.hasPendingCriticalRolls() && !action.hasPendingFumbleRolls()) {
       action.status = 'pending_apply';

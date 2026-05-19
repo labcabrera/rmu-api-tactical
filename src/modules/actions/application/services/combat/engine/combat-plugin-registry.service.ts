@@ -1,5 +1,5 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
-import type { CombatHook, CombatHookName } from '../combat-hooks';
+import type { CombatHook, CombatPhase } from '../combat-phase';
 import { CombatPlugin } from '../combat-plugin';
 import type { CombatPluginProvider } from './combat-plugin.tokens';
 import { COMBAT_PLUGINS } from './combat-plugin.tokens';
@@ -20,9 +20,9 @@ export class CombatPluginRegistryService {
     return Array.from(this.plugins.values());
   }
 
-  getHooks(hookName: CombatHookName): Array<CombatHook & { plugin: CombatPlugin }> {
+  getPhaseHooks(phase: CombatPhase): Array<CombatHook & { plugin: CombatPlugin }> {
     return this.getPlugins()
-      .flatMap(plugin => (plugin.hooks[hookName] || []).map(hook => ({ ...hook, plugin })))
+      .flatMap(plugin => (plugin.hooks[phase] || []).map(hook => ({ ...hook, plugin })))
       .sort((left, right) => (right.priority || 0) - (left.priority || 0));
   }
 }

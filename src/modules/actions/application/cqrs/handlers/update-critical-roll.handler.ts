@@ -7,7 +7,7 @@ import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import type { CriticalTablePort } from '../../ports/critical-table.port';
-import { CombatRulesEngineService } from '../../services/combat';
+import { CombatProcessor } from '../../services/combat';
 import { UpdateCriticalRollCommand } from '../commands/update-critical-roll.command';
 
 @CommandHandler(UpdateCriticalRollCommand)
@@ -19,7 +19,7 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
     @Inject('CriticalTablePort') private readonly criticalTablePort: CriticalTablePort,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
-    private readonly rulesEngine: CombatRulesEngineService,
+    private readonly combatProcessor: CombatProcessor,
   ) {}
 
   async execute(command: UpdateCriticalRollCommand): Promise<Action> {
@@ -36,7 +36,7 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
     action.checkValidCriticalRollDeclaration(command.attackName, command.criticalKey, rollAdjusted);
     const attack = action.getAttackByName(command.attackName);
 
-    let ctx = await this.rulesEngine.runHook('combat.beforeCritical', {
+    const ctx = await this.combatProcessor.runPhase('criticalRoll', {
       action,
       attack,
       criticalKey: command.criticalKey,
@@ -59,8 +59,6 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
       location: attack.calculated?.location,
     });
     critical.status = 'completed';
-
-    ctx = await this.rulesEngine.runHook('combat.afterCritical', ctx);
 
     if (!action.hasPendingCriticalRolls() && !action.hasPendingFumbleRolls()) {
       action.status = 'pending_apply';

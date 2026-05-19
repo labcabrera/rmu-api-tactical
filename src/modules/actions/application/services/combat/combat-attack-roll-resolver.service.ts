@@ -10,7 +10,7 @@ import { AttackLocation } from '../../../domain/value-objects/attack-location.vo
 import { Critical } from '../../../domain/value-objects/critical.vo';
 import type { AttackTablePort } from '../../ports/attack-table.port';
 import { CombatContext } from './combat-context';
-import { CombatRulesEngineService } from './plugins/combat-rules-engine.service';
+import { CombatProcessor } from './engine/combat-processor.service';
 
 export interface ResolveAttackRollInput {
   action: Action;
@@ -47,7 +47,7 @@ export class CombatAttackRollResolverService {
   ];
 
   constructor(
-    private readonly rulesEngine: CombatRulesEngineService,
+    private readonly combatProcessor: CombatProcessor,
     @Inject('AttackTablePort') private readonly attackTablePort: AttackTablePort,
   ) {}
 
@@ -64,10 +64,7 @@ export class CombatAttackRollResolverService {
       trace: [],
     };
 
-    ctx = await this.rulesEngine.runHook('combat.beforeResolve', ctx);
-
-    ctx = await this.rulesEngine.runHook('combat.beforeAttackRoll', ctx);
-    ctx = await this.rulesEngine.runHook('combat.afterAttackRoll', ctx);
+    ctx = await this.combatProcessor.runPhase('attackRoll', ctx);
     ctx.rollTotal = this.calculateRollTotal(ctx);
 
     ctx.location = ctx.attack!.calculated!.requiredLocationRoll ? this.getLocation(ctx.locationRoll!) : undefined;
@@ -76,32 +73,24 @@ export class CombatAttackRollResolverService {
     //TODO
     const armor = ctx.targetActor?.defense.at || 1;
 
-    ctx = await this.rulesEngine.runHook('combat.beforeTableLookup', ctx);
     ctx.attackTableEntry = await this.attackTablePort.lookup({
       attackTable: ctx.sourceAttack!.attackTable,
       attackSize: ctx.sourceAttack!.attackSize,
-      roll: ctx.rollTotal!,
+      roll: ctx.rollTotal,
       armor: armor,
       location: ctx.location,
     });
-    ctx = await this.rulesEngine.runHook('combat.afterTableLookup', ctx);
 
-    ctx = await this.rulesEngine.runHook('combat.beforeDamage', ctx);
     this.applyAttackResult(ctx);
-    ctx = await this.rulesEngine.runHook('combat.afterDamage', ctx);
 
-    ctx = await this.rulesEngine.runHook('combat.beforeCritical', ctx);
     this.prepareCriticalRolls(ctx);
-    ctx = await this.rulesEngine.runHook('combat.afterCritical', ctx);
 
-    ctx = await this.rulesEngine.runHook('combat.beforeFumble', ctx);
     this.prepareFumbleRoll(ctx);
-    ctx = await this.rulesEngine.runHook('combat.afterFumble', ctx);
 
     ctx.attack!.status = this.calculateAttackStatus(ctx.attack!);
     ctx.action.status = this.calculateActionStatus(ctx.action);
 
-    return this.rulesEngine.runHook('combat.finalize', ctx);
+    return ctx;
   }
 
   private getSourceAttack(sourceActor: ActorRound, attackName: string): ActorRoundAttack {

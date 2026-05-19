@@ -29,9 +29,8 @@ import {
   CombatCriticalProcessorService,
   CombatDamageProcessorService,
   CombatPositionalSourcePlugin,
+  CombatProcessor,
   CombatPluginRegistryService,
-  CombatResolutionService,
-  CombatRulesEngineService,
   CombatTableLookupProcessorService,
 } from './application/services/combat';
 import { MovementProcessorService } from './application/services/movement-processor.service';
@@ -66,8 +65,7 @@ import { MovementController } from './interfaces/http/movement.controller';
     AbsoluteManeuverProcessorService,
     CombatContextFactoryService,
     CombatPluginRegistryService,
-    CombatRulesEngineService,
-    CombatResolutionService,
+    CombatProcessor,
     CombatAttackRollResolverService,
     CombatAttackRollProcessorService,
     CombatTableLookupProcessorService,
@@ -115,6 +113,6 @@ import { MovementController } from './interfaces/http/movement.controller';
       useValue: [CombatPositionalSourcePlugin],
     },
   ],
-  exports: ['ActionRepository', CombatPluginRegistryService, CombatRulesEngineService, CombatResolutionService],
+  exports: ['ActionRepository', CombatPluginRegistryService, CombatProcessor],
 })
 export class ActionsModule {}

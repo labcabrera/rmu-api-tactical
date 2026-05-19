@@ -1,7 +1,11 @@
-# compiled output
 /dist
 /node_modules
 /build
+AGENTS.md
+
+specs
+.agents
+.specify
 
 # Logs
 logs
