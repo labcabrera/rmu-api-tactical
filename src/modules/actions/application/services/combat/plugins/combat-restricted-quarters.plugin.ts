@@ -24,7 +24,7 @@ export const CombatRestrictedQuartersPlugin: CombatPlugin = {
           }
           const modifier = restrictedQuartersModifiers[restrictedQuarters] || 0;
           if (modifier !== 0) {
-            CombatModifierBag.from(ctx.attackPreparation!.modifiers.rollModifiers).add('restrictedQuarters', modifier);
+            CombatModifierBag.from(ctx.attackPreparation!.modifiers.rollModifiers).add('restricted-quarters', modifier);
           }
           return ctx;
         },

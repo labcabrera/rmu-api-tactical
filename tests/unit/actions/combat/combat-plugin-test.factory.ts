@@ -3,6 +3,7 @@ import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/va
 import { Action } from '../../../../src/modules/actions/domain/aggregates/action.aggregate';
 import {
   ActionAttackModifiers,
+  AttackType,
   CalledShot,
   Cover,
   Dodge,
@@ -19,6 +20,7 @@ import {
 import { CombatContext } from '../../../../src/modules/actions/application/services/combat/combat-context';
 
 export interface CombatPluginContextOptions {
+  attackType?: AttackType;
   attackNumber?: number;
   targetsNumber?: number;
   calledShot?: CalledShot;
@@ -37,6 +39,7 @@ export function createCombatPluginContext(options: CombatPluginContextOptions = 
   const attack = createAttack({
     calledShot: options.calledShot,
     calledShotPenalty: options.calledShotPenalty,
+    attackType: options.attackType,
     pace: options.pace,
     targetId: targetActor.actorId,
   });
@@ -92,7 +95,7 @@ function createAction(actorId: string, attack: ActionAttack): Action {
     gameId: 'game-1',
     actorId,
     round: 1,
-    actionType: 'melee_attack',
+    actionType: attack.type === 'melee' ? 'melee_attack' : 'ranged_attack',
     freeAction: false,
     phaseStart: 1,
     phaseEnd: null,
@@ -110,10 +113,16 @@ function createAction(actorId: string, attack: ActionAttack): Action {
   });
 }
 
-function createAttack(options: { targetId: string; calledShot?: CalledShot; calledShotPenalty?: number; pace?: string }): ActionAttack {
+function createAttack(options: {
+  targetId: string;
+  attackType?: AttackType;
+  calledShot?: CalledShot;
+  calledShotPenalty?: number;
+  pace?: string;
+}): ActionAttack {
   return new ActionAttack(
     'Longsword',
-    'melee',
+    options.attackType ?? 'melee',
     new ActionAttackModifiers(
       options.targetId,
       75,

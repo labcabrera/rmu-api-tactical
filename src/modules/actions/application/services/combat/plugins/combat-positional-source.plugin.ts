@@ -22,7 +22,7 @@ export const CombatPositionalSourcePlugin: CombatPlugin = {
           }
           const modifier = positionalSourceModifiers[positionalSource] || 0;
           if (modifier !== 0) {
-            CombatModifierBag.from(ctx.attackPreparation!.modifiers.rollModifiers).add('positionalSource', modifier);
+            CombatModifierBag.from(ctx.attackPreparation!.modifiers.rollModifiers).add('positional-source', modifier);
           }
           return ctx;
         },

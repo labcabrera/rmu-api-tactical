@@ -5,13 +5,14 @@ import {
   CombatCalledShotPlugin,
   CombatHigherGroundPlugin,
   CombatMultipleAttacksPlugin,
-  CombatOffHandPlugin,
   CombatPacePlugin,
   CombatPositionalSourcePlugin,
   CombatPositionalTargetPlugin,
+  CombatPronePlugin,
   CombatRestrictedQuartersPlugin,
   CombatShieldPlugin,
   CombatSizeDifferencePlugin,
+  CombatStunPlugin,
 } from '../../../../src/modules/actions/application/services/combat';
 import { createCombatPluginContext, getModifier } from './combat-plugin-test.factory';
 
@@ -22,7 +23,7 @@ describe('Combat plugins', () => {
 
       await CombatCalledShotPlugin.hooks.prepare![0].apply(ctx);
 
-      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'calledShotPenalty')?.value).toBe(-30);
+      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'called-shot')?.value).toBe(-30);
     });
   });
 
@@ -32,7 +33,7 @@ describe('Combat plugins', () => {
 
       await CombatHigherGroundPlugin.hooks.prepare![0].apply(ctx);
 
-      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'higherGround')?.value).toBe(10);
+      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'higher-ground')?.value).toBe(10);
     });
   });
 
@@ -42,29 +43,8 @@ describe('Combat plugins', () => {
 
       await CombatMultipleAttacksPlugin.hooks.prepare![0].apply(ctx);
 
-      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'attackNumber')?.value).toBe(-100);
-      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'attackTargets')?.value).toBe(-20);
-    });
-  });
-
-  describe('CombatOffHandPlugin', () => {
-    it('applies the off-hand penalty when the source is not ambidextrous', async () => {
-      const ctx = createCombatPluginContext({ situationalModifiers: { offHand: true } });
-
-      await CombatOffHandPlugin.hooks.prepare![0].apply(ctx);
-
-      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'offHand')?.value).toBe(-20);
-    });
-
-    it('does not apply the off-hand penalty to an ambidextrous source', async () => {
-      const ctx = createCombatPluginContext({
-        sourceTraits: [{ id: 'ambidextrous' }],
-        situationalModifiers: { offHand: true },
-      });
-
-      await CombatOffHandPlugin.hooks.prepare![0].apply(ctx);
-
-      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'offHand')).toBeUndefined();
+      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'attack-number-penalty')?.value).toBe(-100);
+      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'target-number-penalty')?.value).toBe(-20);
     });
   });
 
@@ -122,6 +102,32 @@ describe('Combat plugins', () => {
     });
   });
 
+  describe('CombatPronePlugin', () => {
+    it('adds the prone source penalty when the attacker is prone', async () => {
+      const ctx = createCombatPluginContext({ situationalModifiers: { sourceStatus: ['prone'] } });
+
+      await CombatPronePlugin.hooks.prepare![0].apply(ctx);
+
+      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'prone-source')?.value).toBe(-50);
+    });
+
+    it('adds the prone target bonus for melee attacks', async () => {
+      const ctx = createCombatPluginContext({ attackType: 'melee', situationalModifiers: { targetStatus: ['prone'] } });
+
+      await CombatPronePlugin.hooks.prepare![0].apply(ctx);
+
+      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'prone-target')?.value).toBe(30);
+    });
+
+    it('adds the prone target penalty for ranged attacks', async () => {
+      const ctx = createCombatPluginContext({ attackType: 'ranged', situationalModifiers: { targetStatus: ['prone'] } });
+
+      await CombatPronePlugin.hooks.prepare![0].apply(ctx);
+
+      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'prone-target')?.value).toBe(-30);
+    });
+  });
+
   describe('CombatShieldPlugin', () => {
     it('adds the defender shield db penalty when blocks remain', async () => {
       const ctx = createCombatPluginContext({ shield: new ActorRoundShield(25, 2, 0) });
@@ -140,6 +146,24 @@ describe('Combat plugins', () => {
 
       expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'sizeDifferenceDB')?.value).toBe(-10);
       expect(getModifier(ctx.attackPreparation!.modifiers.criticalModifiers, 'sizeDifference')?.value).toBe(2);
+    });
+  });
+
+  describe('CombatStunPlugin', () => {
+    it('adds the stunned foe bonus when the target is stunned and not surprised', async () => {
+      const ctx = createCombatPluginContext({ situationalModifiers: { targetStatus: ['stunned'] } });
+
+      await CombatStunPlugin.hooks.prepare![0].apply(ctx);
+
+      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'stunned-foe')?.value).toBe(20);
+    });
+
+    it('does not add the stunned foe bonus when the target is surprised', async () => {
+      const ctx = createCombatPluginContext({ situationalModifiers: { targetStatus: ['stunned', 'surprised'] } });
+
+      await CombatStunPlugin.hooks.prepare![0].apply(ctx);
+
+      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'stunned-foe')).toBeUndefined();
     });
   });
 });

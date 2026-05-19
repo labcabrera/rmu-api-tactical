@@ -15,10 +15,9 @@ export const CombatSizeDifferencePlugin: CombatPlugin = {
           }
 
           if (sizeDifference > 0) {
-            CombatModifierBag.from(ctx.attackPreparation.modifiers.rollModifiers).add('sizeDifferenceDB', -(sizeDifference * 5));
+            CombatModifierBag.from(ctx.attackPreparation.modifiers.rollModifiers).add('size-db', -(sizeDifference * 5));
           }
-          CombatModifierBag.from(ctx.attackPreparation.modifiers.criticalModifiers).add('sizeDifference', sizeDifference);
-
+          CombatModifierBag.from(ctx.attackPreparation.modifiers.criticalModifiers).add('size-difference', sizeDifference);
           return ctx;
         },
       },

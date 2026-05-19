@@ -39,9 +39,9 @@ export const CombatMultipleAttacksPlugin: CombatPlugin = {
           const targetNumberPenalty = calculateTargetsModifier(ctx.targetsNumber);
           const targetNumberSkill = Math.min(targetNumberPenalty, multipleAttackSkill);
 
-          modifiers.add('attack-number-penalty', attackNumberPenalty);
+          modifiers.add('attack-number', attackNumberPenalty);
           modifiers.add('attack-number-skill', attackNumberSkill);
-          modifiers.add('target-number-penalty', targetNumberPenalty);
+          modifiers.add('target-number', targetNumberPenalty);
           modifiers.add('target-number-skill', targetNumberSkill);
           return ctx;
         },

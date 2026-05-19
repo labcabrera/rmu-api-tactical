@@ -22,7 +22,7 @@ export const CombatPositionalTargetPlugin: CombatPlugin = {
           }
 
           const modifier = positionalTargetModifiers[positionalTarget] || 0;
-          CombatModifierBag.from(ctx.attackPreparation!.modifiers.rollModifiers).add('positionalTarget', modifier);
+          CombatModifierBag.from(ctx.attackPreparation!.modifiers.rollModifiers).add('positional-target', modifier);
           return ctx;
         },
       },
