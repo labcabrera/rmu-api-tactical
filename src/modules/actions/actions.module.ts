@@ -28,6 +28,7 @@ import {
   CombatContextFactoryService,
   CombatCriticalProcessorService,
   CombatDamageProcessorService,
+  CombatPositionalSourcePlugin,
   CombatPluginRegistryService,
   CombatResolutionService,
   CombatRulesEngineService,
@@ -111,7 +112,7 @@ import { MovementController } from './interfaces/http/movement.controller';
     },
     {
       provide: COMBAT_PLUGINS,
-      useValue: [],
+      useValue: [CombatPositionalSourcePlugin],
     },
   ],
   exports: ['ActionRepository', CombatPluginRegistryService, CombatRulesEngineService, CombatResolutionService],

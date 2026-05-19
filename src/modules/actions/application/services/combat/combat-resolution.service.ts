@@ -129,6 +129,7 @@ export class CombatResolutionService {
       attackNumber: ctx.attackNumber,
       attackTargets: ctx.targetsNumber,
       gameLethality: ctx.gameLethality,
+      positionalSource: undefined,
       customBonus: attackModifiers.customBonus,
     } as CombatAttackRollModifiers;
 
@@ -204,6 +205,7 @@ export class CombatResolutionService {
       new KeyValueModifier('attackNumber', this.calculateRepeatedAttackPenalty(modifiers.attackNumber)),
       new KeyValueModifier('attackTargets', this.calculateMultipleTargetPenalty(modifiers.attackTargets)),
       new KeyValueModifier('gameLethality', modifiers.gameLethality || 0),
+      new KeyValueModifier('positionalSource', modifiers.positionalSource || 0),
       new KeyValueModifier('customBonus', modifiers.customBonus || 0),
     ].filter(modifier => modifier.value !== 0);
   }

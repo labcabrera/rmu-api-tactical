@@ -6,6 +6,7 @@ export * from './combat-plugin';
 export * from './combat-resolution.service';
 export * from './plugins/combat-plugin-registry.service';
 export * from './plugins/combat-plugin.tokens';
+export * from './plugins/combat-positional-source.plugin';
 export * from './plugins/combat-rules-engine.service';
 export * from './processors/combat-attack-roll-processor.service';
 export * from './processors/combat-context-factory.service';
