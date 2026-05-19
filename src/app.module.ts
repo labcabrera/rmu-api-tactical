@@ -27,7 +27,7 @@ import { StrategicModule } from './modules/strategic/strategic.module';
         RMU_KAFKA_DEFAULT_PARTITIONS: Joi.number().integer().min(1).default(1),
         RMU_API_CORE_URI: Joi.string().uri().required(),
         RMU_API_ITEMS_URI: Joi.string().uri().required(),
-        RMU_API_ATTACK_URI: Joi.string().uri().required(),
+        RMU_API_ATTACK_TABLES_URI: Joi.string().uri().required(),
         RMU_API_STRATEGIC_URI: Joi.string().uri().required(),
       }),
     }),

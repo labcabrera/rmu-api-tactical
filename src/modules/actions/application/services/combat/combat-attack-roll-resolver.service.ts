@@ -3,8 +3,8 @@ import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-rou
 import { ActorRoundAttack } from '../../../../actor-rounds/domain/value-objets/actor-round-attack.vo';
 import { ValidationError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/aggregates/action.aggregate';
-import { ActionAttack, ActionAttackResult } from '../../../domain/value-objects/action-attack.vo';
 import { ActionAttackRoll } from '../../../domain/value-objects/action-attack-roll.vo';
+import { ActionAttack, ActionAttackResult } from '../../../domain/value-objects/action-attack.vo';
 import { ActionStatus } from '../../../domain/value-objects/action-status.vo';
 import { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
 import { Critical } from '../../../domain/value-objects/critical.vo';
@@ -73,19 +73,15 @@ export class CombatAttackRollResolverService {
     ctx.location = ctx.attack!.calculated!.requiredLocationRoll ? this.getLocation(ctx.locationRoll!) : undefined;
     ctx.attack!.calculated!.location = ctx.location;
 
+    //TODO
+    const armor = ctx.targetActor?.defense.at || 1;
+
     ctx = await this.rulesEngine.runHook('combat.beforeTableLookup', ctx);
     ctx.attackTableEntry = await this.attackTablePort.lookup({
       attackTable: ctx.sourceAttack!.attackTable,
-      attackType: ctx.attack!.type,
       attackSize: ctx.sourceAttack!.attackSize,
       roll: ctx.rollTotal!,
-      armor: {
-        at: ctx.targetActor!.defense.at,
-        headAt: ctx.targetActor!.defense.headAt,
-        bodyAt: ctx.targetActor!.defense.bodyAt,
-        armsAt: ctx.targetActor!.defense.armsAt,
-        legsAt: ctx.targetActor!.defense.legsAt,
-      },
+      armor: armor,
       location: ctx.location,
     });
     ctx = await this.rulesEngine.runHook('combat.afterTableLookup', ctx);

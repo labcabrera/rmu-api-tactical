@@ -8,18 +8,18 @@ import { AttackTableEntry } from '../../domain/value-objects/action-attack.vo';
 
 @Injectable()
 export class ApiAttackTableAdapter implements AttackTablePort {
-  private readonly apiCoreUri: string;
+  private readonly apiAttackTablesUri: string;
 
   constructor(
     private readonly tokenService: TokenService,
     configService: ConfigService,
   ) {
-    this.apiCoreUri = configService.get('RMU_API_CORE_URI') as string;
+    this.apiAttackTablesUri = configService.get('RMU_API_ATTACK_TABLES_URI') as string;
   }
 
   async lookup(request: AttackTableLookupRequest): Promise<AttackTableEntry> {
     const token = await this.tokenService.getToken();
-    const uri = `${this.apiCoreUri}/attack-tables/lookup`;
+    const uri = `${this.apiAttackTablesUri}/attack-tables/lookup`;
     try {
       const response = await axios.post<AttackTableEntry>(uri, request, {
         headers: {
