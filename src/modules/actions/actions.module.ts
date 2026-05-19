@@ -23,16 +23,17 @@ import { UpdateFumbleRollHandler } from './application/cqrs/handlers/update-fumb
 import { AbsoluteManeuverProcessorService } from './application/services/absolute-maneuver-processor.service';
 import {
   COMBAT_PLUGINS,
-  CombatAttackRollResolverService,
   CombatAttackRollProcessorService,
+  CombatAttackRollResolverService,
   CombatContextFactoryService,
   CombatCriticalProcessorService,
   CombatDamageProcessorService,
+  CombatPluginRegistryService,
   CombatPositionalSourcePlugin,
   CombatProcessor,
-  CombatPluginRegistryService,
   CombatTableLookupProcessorService,
 } from './application/services/combat';
+import { CombatRestrictedQuartersPlugin } from './application/services/combat/plugins/combat-restricted-quarters.plugin';
 import { MovementProcessorService } from './application/services/movement-processor.service';
 import { SkillService } from './application/services/skill-service';
 import { ApiAttackTableAdapter } from './infrastructure/api-clients/api.attack-table.adapter';
@@ -110,7 +111,7 @@ import { MovementController } from './interfaces/http/movement.controller';
     },
     {
       provide: COMBAT_PLUGINS,
-      useValue: [CombatPositionalSourcePlugin],
+      useValue: [CombatPositionalSourcePlugin, CombatRestrictedQuartersPlugin],
     },
   ],
   exports: ['ActionRepository', CombatPluginRegistryService, CombatProcessor],

@@ -1,10 +1,11 @@
-import { CalledShot } from '../../../domain/value-objects/action-attack-modifiers.vo';
-
-export type CoverType = 'none' | 'soft_partial' | 'soft_half' | 'soft_full' | 'hard_partial' | 'hard_half' | 'hard_full';
-export type RestrictedQuartersType = 'none' | 'close' | 'cramped' | 'tight' | 'confined';
-export type PositionalSourceType = 'none' | 'to_flank' | 'to_rear';
-export type PositionalTargetType = 'none' | 'flank' | 'rear';
-export type DodgeType = 'none' | 'passive' | 'partial' | 'full';
+import {
+  CalledShot,
+  Cover,
+  Dodge,
+  PositionalSource,
+  PositionalTarget,
+  RestrictedQuarters,
+} from '../../../domain/value-objects/action-attack-modifiers.vo';
 
 export class PrepareAttackCommand {
   constructor(
@@ -29,11 +30,11 @@ export class PrepareAttackCommandModifiers {
     public bo: number,
     public calledShot: CalledShot | undefined,
     public calledShotPenalty: number | undefined,
-    public positionalSource: string | undefined,
-    public positionalTarget: string | undefined,
-    public restrictedQuarters: string | undefined,
-    public cover: string | undefined,
-    public dodge: string | undefined,
+    public positionalSource: PositionalSource | undefined,
+    public positionalTarget: PositionalTarget | undefined,
+    public restrictedQuarters: RestrictedQuarters | undefined,
+    public cover: Cover | undefined,
+    public dodge: Dodge | undefined,
     public disabledDB: boolean | undefined,
     public disabledShield: boolean | undefined,
     public disabledParry: boolean | undefined,

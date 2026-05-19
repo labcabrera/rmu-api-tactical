@@ -1,31 +1,21 @@
+import {
+  Cover,
+  Dodge,
+  PositionalSource,
+  PositionalTarget,
+  RestrictedQuarters,
+} from '../../../domain/value-objects/action-attack-modifiers.vo';
 import { ActionAttackResult } from '../../../domain/value-objects/action-attack.vo';
 import { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
 import { AttackStatus } from '../../../domain/value-objects/attack-status.vo';
-
-export interface CombatAttackRollModifiers {
-  bo: number | undefined;
-  bd: number;
-  calledShot?: string;
-  calledShotPenalty: number | undefined;
-  injuryPenalty: number;
-  fatiguePenalty: number;
-  rangePenalty: number | undefined;
-  shield: number | undefined;
-  parry: number | undefined;
-  attackNumber: number | undefined;
-  attackTargets: number | undefined;
-  gameLethality: number | undefined;
-  positionalSource: number | undefined;
-  restrictedQuarters: number | undefined;
-  customBonus: number | undefined;
-}
+import { KeyValueModifier } from '../../../domain/value-objects/key-value-modifier.vo';
 
 export interface CombatAttackSituationalModifiers {
-  cover: string;
-  restrictedQuarters: string;
-  positionalSource: string;
-  positionalTarget: string;
-  dodge: string;
+  cover: Cover;
+  restrictedQuarters: RestrictedQuarters;
+  positionalSource: PositionalSource;
+  positionalTarget: PositionalTarget;
+  dodge: Dodge;
   disabledDB: boolean;
   disabledShield: boolean;
   disabledParry: boolean;
@@ -64,7 +54,7 @@ export interface CombatAttackPreparationModifiers {
   actionPoints: number;
   fumble: number;
   calledShot?: string;
-  rollModifiers: CombatAttackRollModifiers;
+  rollModifiers: KeyValueModifier[];
   situationalModifiers: CombatAttackSituationalModifiers;
   features: CombatAttackFeature[];
   sourceSkills: CombatAttackSourceSkill[];

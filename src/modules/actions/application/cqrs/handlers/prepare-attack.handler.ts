@@ -17,7 +17,6 @@ import type { ActionRepository } from '../../ports/action.repository';
 import type {
   CombatAttackCalculatedResult,
   CombatAttackPreparation,
-  CombatAttackRollModifiers,
   CombatAttackSituationalModifiers,
   CombatAttackSourceSkill,
   CombatContext,
@@ -177,22 +176,20 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const defenderSize = 2;
     const sizeDifference = attackSize - defenderSize;
 
-    const rollModifiers = {
-      bo: attackModifiers.bo,
-      bd: actorRoundTarget.defense.bd,
-      calledShot: attackModifiers.calledShot,
-      calledShotPenalty: attackModifiers.calledShotPenalty,
-      injuryPenalty: 0,
-      fatiguePenalty: 0,
-      rangePenalty,
-      shield,
-      parry: 0,
-      attackNumber: ctx.attackNumber,
-      attackTargets: ctx.targetsNumber,
-      gameLethality: ctx.gameLethality,
-      positionalSource: undefined,
-      customBonus: attackModifiers.customBonus,
-    } as CombatAttackRollModifiers;
+    const rollModifiers = [
+      new KeyValueModifier('bo', attackModifiers.bo || 0),
+      new KeyValueModifier('bd', -actorRoundTarget.defense.bd),
+      new KeyValueModifier('calledShotPenalty', -(attackModifiers.calledShotPenalty || 0)),
+      new KeyValueModifier('injuryPenalty', 0),
+      new KeyValueModifier('fatiguePenalty', 0),
+      new KeyValueModifier('rangePenalty', rangePenalty),
+      new KeyValueModifier('shield', -shield),
+      new KeyValueModifier('parry', 0),
+      new KeyValueModifier('attackNumber', this.calculateRepeatedAttackPenalty(ctx.attackNumber)),
+      new KeyValueModifier('attackTargets', this.calculateMultipleTargetPenalty(ctx.targetsNumber)),
+      new KeyValueModifier('gameLethality', ctx.gameLethality || 0),
+      new KeyValueModifier('customBonus', attackModifiers.customBonus || 0),
+    ].filter(modifier => modifier.value !== 0);
 
     const situationalModifiers = {
       cover: attackModifiers.cover || 'none',
@@ -241,7 +238,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
 
   private calculatePreparedAttack(ctx: CombatContext): CombatAttackCalculatedResult {
     const preparation = ctx.attackPreparation!;
-    const rollModifiers = this.mapRollModifiers(preparation.modifiers.rollModifiers);
+    const rollModifiers = preparation.modifiers.rollModifiers;
 
     return {
       calculated: {
@@ -251,24 +248,6 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       results: undefined,
       status: 'pending_attack_roll',
     };
-  }
-
-  private mapRollModifiers(modifiers: CombatAttackRollModifiers): KeyValueModifier[] {
-    return [
-      new KeyValueModifier('bo', modifiers.bo || 0),
-      new KeyValueModifier('bd', -modifiers.bd),
-      new KeyValueModifier('calledShotPenalty', -(modifiers.calledShotPenalty || 0)),
-      new KeyValueModifier('injuryPenalty', -modifiers.injuryPenalty),
-      new KeyValueModifier('fatiguePenalty', -modifiers.fatiguePenalty),
-      new KeyValueModifier('rangePenalty', modifiers.rangePenalty || 0),
-      new KeyValueModifier('shield', -(modifiers.shield || 0)),
-      new KeyValueModifier('parry', -(modifiers.parry || 0)),
-      new KeyValueModifier('attackNumber', this.calculateRepeatedAttackPenalty(modifiers.attackNumber)),
-      new KeyValueModifier('attackTargets', this.calculateMultipleTargetPenalty(modifiers.attackTargets)),
-      new KeyValueModifier('gameLethality', modifiers.gameLethality || 0),
-      new KeyValueModifier('positionalSource', modifiers.positionalSource || 0),
-      new KeyValueModifier('customBonus', modifiers.customBonus || 0),
-    ].filter(modifier => modifier.value !== 0);
   }
 
   private calculateRollTotal(modifiers: KeyValueModifier[]): number {

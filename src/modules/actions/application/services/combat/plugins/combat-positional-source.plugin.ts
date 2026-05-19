@@ -1,6 +1,9 @@
+import { PositionalSource } from '../../../../domain/value-objects/action-attack-modifiers.vo';
+import { KeyValueModifier } from '../../../../domain/value-objects/key-value-modifier.vo';
 import { CombatPlugin } from '../combat-plugin';
 
-const positionalSourceModifiers: Record<string, number> = {
+const positionalSourceModifiers: Record<PositionalSource, number> = {
+  none: 0,
   to_flank: -30,
   to_rear: -70,
 };
@@ -17,7 +20,10 @@ export const CombatPositionalSourcePlugin: CombatPlugin = {
           if (!positionalSource || positionalSource === 'none') {
             return ctx;
           }
-          ctx.attackPreparation!.modifiers.rollModifiers.positionalSource = positionalSourceModifiers[positionalSource] || 0;
+          const modifier = positionalSourceModifiers[positionalSource] || 0;
+          if (modifier !== 0) {
+            ctx.attackPreparation!.modifiers.rollModifiers.push(new KeyValueModifier('positionalSource', modifier));
+          }
           return ctx;
         },
       },

@@ -1,6 +1,9 @@
+import { RestrictedQuarters } from '../../../../domain/value-objects/action-attack-modifiers.vo';
+import { KeyValueModifier } from '../../../../domain/value-objects/key-value-modifier.vo';
 import { CombatPlugin } from '../combat-plugin';
 
-const restrictedQuartersModifiers: Record<string, number> = {
+const restrictedQuartersModifiers: Record<RestrictedQuarters, number> = {
+  none: 0,
   close: -25,
   cramped: -50,
   tight: -75,
@@ -19,7 +22,10 @@ export const CombatRestrictedQuartersPlugin: CombatPlugin = {
           if (!restrictedQuarters || restrictedQuarters === 'none') {
             return ctx;
           }
-          ctx.attackPreparation!.modifiers.rollModifiers.restrictedQuarters = restrictedQuartersModifiers[restrictedQuarters] || 0;
+          const modifier = restrictedQuartersModifiers[restrictedQuarters] || 0;
+          if (modifier !== 0) {
+            ctx.attackPreparation!.modifiers.rollModifiers.push(new KeyValueModifier('restrictedQuarters', modifier));
+          }
           return ctx;
         },
       },

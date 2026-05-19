@@ -1,5 +1,10 @@
 export type AttackType = 'melee' | 'ranged' | 'thrown';
 export type CalledShot = 'none' | 'head' | 'chest' | 'abdomen' | 'arms' | 'legs';
+export type PositionalSource = 'none' | 'to_flank' | 'to_rear';
+export type PositionalTarget = 'none' | 'flank' | 'rear';
+export type RestrictedQuarters = 'none' | 'close' | 'cramped' | 'tight' | 'confined';
+export type Cover = 'none' | 'soft_partial' | 'soft_half' | 'soft_full' | 'hard_partial' | 'hard_half' | 'hard_full';
+export type Dodge = 'none' | 'passive' | 'partial' | 'full';
 
 export class ActionAttackModifiers {
   constructor(
@@ -8,7 +13,7 @@ export class ActionAttackModifiers {
     public parry: number | undefined,
     public calledShot: CalledShot | undefined,
     public calledShotPenalty: number | undefined,
-    public positionalSource: string | undefined,
+    public positionalSource: PositionalSource | undefined,
     public positionalTarget: string | undefined,
     public restrictedQuarters: string | undefined,
     public cover: string | undefined,
