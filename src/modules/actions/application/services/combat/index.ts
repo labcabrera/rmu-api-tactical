@@ -11,5 +11,6 @@ export * from './engine/combat-plugin-registry.service';
 export * from './engine/combat-plugin.tokens';
 export * from './engine/combat-processor.service';
 export * from './engine/combat-table-lookup-processor.service';
+export * from './plugins/combat-off-hand.plugin';
 export * from './plugins/combat-positional-source.plugin';
 export * from './plugins/combat-size-difference.plugin';

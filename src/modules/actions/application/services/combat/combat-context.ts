@@ -3,7 +3,12 @@ import type { ActorRound } from '../../../../actor-rounds/domain/aggregates/acto
 import type { ActorRoundAttack } from '../../../../actor-rounds/domain/value-objets/actor-round-attack.vo';
 import type { ActionAttack, AttackTableEntry } from '../../../domain/value-objects/action-attack.vo';
 import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
-import type { CombatAttackCalculatedResult, CombatAttackPreparation, CombatAttackSourceSkill } from './combat-attack-calculation';
+import type {
+  CombatAttackCalculatedResult,
+  CombatAttackPreparation,
+  CombatAttackSourceSkill,
+  CombatAttackSourceTrait,
+} from './combat-attack-calculation';
 
 export interface CombatTraceEntry {
   source: string;
@@ -23,6 +28,7 @@ export interface CombatContext {
   sourceAttack?: ActorRoundAttack;
   actors?: ActorRound[];
   sourceSkills?: CombatAttackSourceSkill[];
+  sourceTraits?: CombatAttackSourceTrait[];
   attackNumber?: number;
   targetsNumber?: number;
   gameLethality?: number;
@@ -40,6 +46,7 @@ export interface CombatPrepareAttackInput {
   attack: ActionAttack;
   actors: ActorRound[];
   sourceSkills: CombatAttackSourceSkill[];
+  sourceTraits: CombatAttackSourceTrait[];
   attackNumber: number;
   targetsNumber: number;
   gameLethality: number;

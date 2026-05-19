@@ -4,7 +4,7 @@ import type { ActorRoundRepository } from '../../../../actor-rounds/application/
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../../shared/domain/errors';
-import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
+import type { Character, CharacterPort } from '../../../../strategic/application/ports/character.port';
 import { StrategicGameApiClient } from '../../../../strategic/infrastructure/api-clients/api.strategic-game.adapter';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
@@ -19,6 +19,7 @@ import type {
   CombatAttackPreparation,
   CombatAttackSituationalModifiers,
   CombatAttackSourceSkill,
+  CombatAttackSourceTrait,
   CombatContext,
 } from '../../services/combat';
 import { CombatProcessor } from '../../services/combat';
@@ -60,7 +61,10 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const sourceActorRound = actors.find(a => a.actorId === action.actorId)!;
     const actionAttacks = command.attacks.map(attack => this.mapAttacks(attack, action, sourceActorRound));
 
-    const skills = await this.getSourceSkills(action.actorId, actors);
+    const sourceActor = actors.find(a => a.actorId === action.actorId);
+    const sourceCharacter = await this.characterClient.findById(sourceActor?.actorId || '');
+    const skills = this.mapSourceSkills(sourceCharacter);
+    const traits = this.mapSourceTraits(sourceCharacter);
     const gameLethality = strategicGame.options?.lethality || 0;
     const attackNumber = command.attacks.length;
     const targets: Set<string> = new Set();
@@ -74,6 +78,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
           attack,
           actors,
           sourceSkills: skills,
+          sourceTraits: traits,
           attackNumber,
           targetsNumber,
           gameLethality,
@@ -104,6 +109,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     attack: ActionAttack;
     actors: ActorRound[];
     sourceSkills: CombatAttackSourceSkill[];
+    sourceTraits: CombatAttackSourceTrait[];
     attackNumber: number;
     targetsNumber: number;
     gameLethality: number;
@@ -113,6 +119,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       attack: input.attack,
       actors: input.actors,
       sourceSkills: input.sourceSkills,
+      sourceTraits: input.sourceTraits,
       attackNumber: input.attackNumber,
       targetsNumber: input.targetsNumber,
       gameLethality: input.gameLethality,
@@ -141,15 +148,16 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     return Array.from(new Set([...targetIds, ...protectors, action.actorId]));
   }
 
-  private async getSourceSkills(sourceActorId: string, actors: ActorRound[]): Promise<CombatAttackSourceSkill[]> {
-    const actor = actors.find(a => a.actorId === sourceActorId);
-    //TODO NPCs
-    const character = await this.characterClient.findById(actor?.actorId || '');
+  private mapSourceSkills(character: Character | undefined): CombatAttackSourceSkill[] {
     return (
       character?.skills
         .filter(skill => this.isCombatSkill(skill.skillId))
         .map(skill => ({ skillId: skill.skillId, bonus: skill.totalBonus })) || []
     );
+  }
+
+  private mapSourceTraits(character: Character | undefined): CombatAttackSourceTrait[] {
+    return character?.traits?.map(trait => ({ id: trait.id })) || [];
   }
 
   private isCombatSkill(skillId: string): boolean {

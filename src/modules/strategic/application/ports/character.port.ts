@@ -22,6 +22,7 @@ export interface Character {
   hp: CharacterHP;
   initiative: CharacterInitiative;
   skills: CharacterSkill[];
+  traits?: CharacterTrait[];
   items: CharacterItem[];
   equipment: CharacterEquipment;
   attacks: CharacterAttack[];
@@ -72,6 +73,10 @@ export interface CharacterSkill {
   skillId: string;
   specialization: string | null;
   totalBonus: number;
+}
+
+export interface CharacterTrait {
+  id: string;
 }
 
 export interface CharacterItem {

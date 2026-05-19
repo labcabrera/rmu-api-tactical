@@ -37,6 +37,10 @@ export interface CombatAttackSourceSkill {
   bonus: number;
 }
 
+export interface CombatAttackSourceTrait {
+  id: string;
+}
+
 export interface CombatAttackArmor {
   at: number | null;
   headAt: number | null;
