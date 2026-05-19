@@ -66,6 +66,7 @@ export interface AttackModifiers {
   armor: AttackArmor;
   actionPoints: number;
   fumble: number;
+  calledShot?: string;
   rollModifiers: AttackRollModifiers;
   situationalModifiers: AttackSituationalModifiers;
   features: AttackFeature[];
