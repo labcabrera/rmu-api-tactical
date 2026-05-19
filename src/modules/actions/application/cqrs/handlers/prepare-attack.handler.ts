@@ -12,7 +12,7 @@ import { ActionAttackModifiers } from '../../../domain/value-objects/action-atta
 import { ActionAttack } from '../../../domain/value-objects/action-attack.vo';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
-import type { AttackSourceSkill } from '../../ports/attack.port';
+import type { CombatAttackSourceSkill } from '../../services/combat';
 import { CombatResolutionService } from '../../services/combat';
 import { PrepareAttackCommand, PrepareAttackCommandItem } from '../commands/prepare-attack.command';
 
@@ -97,7 +97,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     return Array.from(new Set([...targetIds, ...protectors, action.actorId]));
   }
 
-  private async getSourceSkills(sourceActorId: string, actors: ActorRound[]): Promise<AttackSourceSkill[]> {
+  private async getSourceSkills(sourceActorId: string, actors: ActorRound[]): Promise<CombatAttackSourceSkill[]> {
     const actor = actors.find(a => a.actorId === sourceActorId);
     //TODO NPCs
     const character = await this.characterClient.findById(actor?.actorId || '');

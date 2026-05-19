@@ -36,7 +36,6 @@ import {
 import { MovementProcessorService } from './application/services/movement-processor.service';
 import { SkillService } from './application/services/skill-service';
 import { ApiAttackTableAdapter } from './infrastructure/api-clients/api.attack-table.adapter';
-import { ApiAttackClientAdapter } from './infrastructure/api-clients/api.attack.adapter';
 import { ApiCriticalTableAdapter } from './infrastructure/api-clients/api.critical-table.adapter';
 import { ApiFumbleTableAdapter } from './infrastructure/api-clients/api.fumble-table.adapter';
 import { ApiManeuverAdapter } from './infrastructure/api-clients/api.maneuver.adapter';
@@ -93,10 +92,6 @@ import { MovementController } from './interfaces/http/movement.controller';
     {
       provide: 'ActionEventBus',
       useClass: KafkaActionEventBusAdapter,
-    },
-    {
-      provide: 'AttackPort',
-      useClass: ApiAttackClientAdapter,
     },
     {
       provide: 'AttackTablePort',

@@ -17,7 +17,6 @@ import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import { ActionAttack } from '../../../domain/value-objects/action-attack.vo';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
-import type { AttackPort } from '../../ports/attack.port';
 import { ApplyAttackCommand } from '../commands/apply-attack.command';
 
 @CommandHandler(ApplyAttackCommand)
@@ -29,7 +28,6 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('StrategicGameClient') private readonly strategicGamePort: StrategicGameApiClient,
-    @Inject('AttackPort') private readonly attackPort: AttackPort,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
     private readonly commandBus: CommandBus,
   ) {}

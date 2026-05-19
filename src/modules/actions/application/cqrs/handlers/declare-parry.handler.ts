@@ -3,12 +3,11 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
-import type { AttackPort } from '../../ports/attack.port';
+import { CombatResolutionService } from '../../services/combat';
 import { DeclareParryCommand } from '../commands/declare-parry.command';
 
 @CommandHandler(DeclareParryCommand)
@@ -19,9 +18,8 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('CharacterClient') private readonly characterClient: CharacterPort,
-    @Inject('AttackPort') private readonly attackPort: AttackPort,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
+    private readonly combatResolutionService: CombatResolutionService,
   ) {}
 
   async execute(command: DeclareParryCommand): Promise<Action> {
@@ -54,14 +52,7 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     // Set up parry values in attacks
     action.applyParrysToAttacks();
 
-    // Update attack total parry and sent to attack port
-    await Promise.all(
-      attacks.map(async attack => {
-        const updatedAttack = await this.attackPort.updateParry(attack.externalAttackId!, attack.modifiers.parry!);
-        attack.calculated!.rollModifiers = updatedAttack.calculated.rollModifiers;
-        attack.calculated!.rollTotal = updatedAttack.calculated.rollTotal;
-      }),
-    );
+    attacks.forEach(attack => this.combatResolutionService.refreshAttackCalculation(attack));
 
     // Update action and publish events
     action.status = 'pending_attack_roll';

@@ -1,10 +1,15 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
 import { UnprocessableEntityError } from '../../../../shared/domain/errors';
 import { ActionAttackCalculated } from '../../../domain/value-objects/action-attack-calculated.vo';
 import { ActionAttack } from '../../../domain/value-objects/action-attack.vo';
-import type { AttackPort } from '../../ports/attack.port';
-import { AttackCreationRequest, AttackRollModifiers, AttackSituationalModifiers } from '../../ports/attack.port';
+import { KeyValueModifier } from '../../../domain/value-objects/key-value-modifier.vo';
+import {
+  CombatAttackCalculatedResult,
+  CombatAttackPreparation,
+  CombatAttackRollModifiers,
+  CombatAttackSituationalModifiers,
+} from './combat-attack-calculation';
 import { CombatContext, CombatPrepareAttackInput, CombatResolutionInput } from './combat-context';
 import { CombatRulesEngineService } from './plugins/combat-rules-engine.service';
 import { CombatAttackRollProcessorService } from './processors/combat-attack-roll-processor.service';
@@ -16,7 +21,6 @@ import { CombatTableLookupProcessorService } from './processors/combat-table-loo
 @Injectable()
 export class CombatResolutionService {
   constructor(
-    @Inject('AttackPort') private readonly attackClient: AttackPort,
     private readonly contextFactory: CombatContextFactoryService,
     private readonly rulesEngine: CombatRulesEngineService,
     private readonly attackRollProcessor: CombatAttackRollProcessorService,
@@ -62,16 +66,14 @@ export class CombatResolutionService {
     };
 
     ctx = await this.rulesEngine.runHook('combat.beforePrepare', ctx);
-    ctx.attackRequest = this.mapAttackToPortModel(ctx);
+    ctx.attackPreparation = this.mapAttackPreparation(ctx);
     ctx = await this.rulesEngine.runHook('combat.afterPrepare', ctx);
 
-    const attackRequest = ctx.attackRequest!;
-    ctx.attackResponse = await this.attackClient.prepareAttack(attackRequest);
-    ctx.attack!.externalAttackId = ctx.attackResponse.id;
-    ctx.attack!.status = ctx.attackResponse.status;
+    ctx.attackCalculation = this.calculatePreparedAttack(ctx);
+    ctx.attack!.status = ctx.attackCalculation.status;
     ctx.attack!.calculated = new ActionAttackCalculated(
-      ctx.attackResponse.calculated.rollModifiers,
-      ctx.attackResponse.calculated.rollTotal,
+      ctx.attackCalculation.calculated.rollModifiers,
+      ctx.attackCalculation.calculated.rollTotal,
       undefined,
       this.requiresLocationRoll(ctx),
     );
@@ -79,7 +81,22 @@ export class CombatResolutionService {
     return ctx;
   }
 
-  private mapAttackToPortModel(ctx: CombatContext): AttackCreationRequest {
+  refreshAttackCalculation(attack: ActionAttack): void {
+    if (!attack.calculated) {
+      return;
+    }
+
+    const parry = attack.modifiers.parry || 0;
+    const modifiers = attack.calculated.rollModifiers.filter(modifier => modifier.key !== 'parry');
+    if (parry > 0) {
+      modifiers.push(new KeyValueModifier('parry', -parry));
+    }
+
+    attack.calculated.rollModifiers = modifiers;
+    attack.calculated.rollTotal = this.calculateRollTotal(modifiers);
+  }
+
+  private mapAttackPreparation(ctx: CombatContext): CombatAttackPreparation {
     const attack = ctx.attack!;
     const action = ctx.action;
     const attackModifiers = attack.modifiers;
@@ -113,7 +130,7 @@ export class CombatResolutionService {
       attackTargets: ctx.targetsNumber,
       gameLethality: ctx.gameLethality,
       customBonus: attackModifiers.customBonus,
-    } as AttackRollModifiers;
+    } as CombatAttackRollModifiers;
 
     const situationalModifiers = {
       cover: attackModifiers.cover || 'none',
@@ -130,7 +147,7 @@ export class CombatResolutionService {
       higherGround: attackModifiers.higherGround || false,
       sourceStatus: this.mapActorSourceRoundEffects(actorRoundSource, attack),
       targetStatus: this.mapActorTargetRoundEffects(actorRoundTarget, attack),
-    } as AttackSituationalModifiers;
+    } as CombatAttackSituationalModifiers;
 
     return {
       gameId: action.gameId,
@@ -158,6 +175,55 @@ export class CombatResolutionService {
         sourceSkills: ctx.sourceSkills || [],
       },
     };
+  }
+
+  private calculatePreparedAttack(ctx: CombatContext): CombatAttackCalculatedResult {
+    const preparation = ctx.attackPreparation!;
+    const rollModifiers = this.mapRollModifiers(preparation.modifiers.rollModifiers);
+
+    return {
+      calculated: {
+        rollModifiers,
+        rollTotal: this.calculateRollTotal(rollModifiers),
+      },
+      results: undefined,
+      status: 'pending_attack_roll',
+    };
+  }
+
+  private mapRollModifiers(modifiers: CombatAttackRollModifiers): KeyValueModifier[] {
+    return [
+      new KeyValueModifier('bo', modifiers.bo || 0),
+      new KeyValueModifier('bd', -modifiers.bd),
+      new KeyValueModifier('calledShotPenalty', -(modifiers.calledShotPenalty || 0)),
+      new KeyValueModifier('injuryPenalty', -modifiers.injuryPenalty),
+      new KeyValueModifier('fatiguePenalty', -modifiers.fatiguePenalty),
+      new KeyValueModifier('rangePenalty', modifiers.rangePenalty || 0),
+      new KeyValueModifier('shield', -(modifiers.shield || 0)),
+      new KeyValueModifier('parry', -(modifiers.parry || 0)),
+      new KeyValueModifier('attackNumber', this.calculateRepeatedAttackPenalty(modifiers.attackNumber)),
+      new KeyValueModifier('attackTargets', this.calculateMultipleTargetPenalty(modifiers.attackTargets)),
+      new KeyValueModifier('gameLethality', modifiers.gameLethality || 0),
+      new KeyValueModifier('customBonus', modifiers.customBonus || 0),
+    ].filter(modifier => modifier.value !== 0);
+  }
+
+  private calculateRollTotal(modifiers: KeyValueModifier[]): number {
+    return modifiers.reduce((sum, modifier) => sum + modifier.value, 0);
+  }
+
+  private calculateRepeatedAttackPenalty(attackNumber: number | undefined): number {
+    if (!attackNumber || attackNumber <= 1) {
+      return 0;
+    }
+    return -(attackNumber - 1) * 10;
+  }
+
+  private calculateMultipleTargetPenalty(targetsNumber: number | undefined): number {
+    if (!targetsNumber || targetsNumber <= 1) {
+      return 0;
+    }
+    return -(targetsNumber - 1) * 10;
   }
 
   private calculateRangePenalty(attack: ActionAttack, sourceActor: ActorRound): number {

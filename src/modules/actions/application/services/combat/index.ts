@@ -1,3 +1,4 @@
+export * from './combat-attack-calculation';
 export * from './combat-context';
 export * from './combat-attack-roll-resolver.service';
 export * from './combat-hooks';
