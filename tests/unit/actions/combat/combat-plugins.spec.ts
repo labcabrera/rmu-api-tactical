@@ -14,6 +14,7 @@ import {
   CombatShieldPlugin,
   CombatSizeDifferencePlugin,
   CombatStunPlugin,
+  CombatSurprisedPlugin,
 } from '../../../../src/modules/actions/application/services/combat';
 import { createCombatPluginContext, getModifier } from './combat-plugin-test.factory';
 
@@ -191,6 +192,16 @@ describe('Combat plugins', () => {
       await CombatStunPlugin.hooks.prepare![0].apply(ctx);
 
       expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'stunned-foe')).toBeUndefined();
+    });
+  });
+
+  describe('CombatSurprisedPlugin', () => {
+    it('adds the surprised foe bonus when the target is surprised', async () => {
+      const ctx = createCombatPluginContext({ situationalModifiers: { targetStatus: ['surprised'] } });
+
+      await CombatSurprisedPlugin.hooks.prepare![0].apply(ctx);
+
+      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'surprised-foe')?.value).toBe(25);
     });
   });
 });

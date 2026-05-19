@@ -24,3 +24,4 @@ export * from './plugins/combat-restricted-quarters.plugin';
 export * from './plugins/combat-shield.plugin';
 export * from './plugins/combat-size-difference.plugin';
 export * from './plugins/combat-stun.plugin';
+export * from './plugins/combat-surprised.plugin';

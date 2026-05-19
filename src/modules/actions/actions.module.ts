@@ -42,6 +42,7 @@ import {
   CombatShieldPlugin,
   CombatSizeDifferencePlugin,
   CombatStunPlugin,
+  CombatSurprisedPlugin,
   CombatTableLookupProcessorService,
 } from './application/services/combat';
 import { MovementProcessorService } from './application/services/movement-processor.service';
@@ -134,6 +135,7 @@ import { MovementController } from './interfaces/http/movement.controller';
         CombatPacePlugin,
         CombatHigherGroundPlugin,
         CombatStunPlugin,
+        CombatSurprisedPlugin,
       ],
     },
   ],
