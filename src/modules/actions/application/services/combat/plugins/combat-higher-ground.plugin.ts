@@ -1,4 +1,4 @@
-import { KeyValueModifier } from '../../../../domain/value-objects/key-value-modifier.vo';
+import { CombatModifierBag } from '../combat-modifier-bag';
 import { CombatPlugin } from '../combat-plugin';
 
 export const CombatHigherGroundPlugin: CombatPlugin = {
@@ -10,7 +10,7 @@ export const CombatHigherGroundPlugin: CombatPlugin = {
       {
         apply: ctx => {
           if (!ctx.attackPreparation?.modifiers.situationalModifiers.higherGround) return ctx;
-          ctx.attackPreparation!.modifiers.rollModifiers.push(new KeyValueModifier('higherGround', 10));
+          CombatModifierBag.from(ctx.attackPreparation.modifiers.rollModifiers).add('higherGround', 10);
           return ctx;
         },
       },

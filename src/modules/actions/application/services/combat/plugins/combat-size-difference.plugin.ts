@@ -1,4 +1,4 @@
-import { KeyValueModifier } from '../../../../domain/value-objects/key-value-modifier.vo';
+import { CombatModifierBag } from '../combat-modifier-bag';
 import { CombatPlugin } from '../combat-plugin';
 
 export const CombatSizeDifferencePlugin: CombatPlugin = {
@@ -15,9 +15,9 @@ export const CombatSizeDifferencePlugin: CombatPlugin = {
           }
 
           if (sizeDifference > 0) {
-            ctx.attackPreparation.modifiers.rollModifiers.push(new KeyValueModifier('sizeDifferenceDB', -(sizeDifference * 5)));
+            CombatModifierBag.from(ctx.attackPreparation.modifiers.rollModifiers).add('sizeDifferenceDB', -(sizeDifference * 5));
           }
-          ctx.attackPreparation.criticalAdjustment = (ctx.attackPreparation.criticalAdjustment || 0) + sizeDifference;
+          CombatModifierBag.from(ctx.attackPreparation.modifiers.criticalModifiers).add('sizeDifference', sizeDifference);
 
           return ctx;
         },

@@ -28,14 +28,17 @@ import {
   CombatContextFactoryService,
   CombatCriticalProcessorService,
   CombatDamageProcessorService,
+  CombatHigherGroundPlugin,
   CombatOffHandPlugin,
+  CombatPacePlugin,
   CombatPluginRegistryService,
   CombatPositionalSourcePlugin,
   CombatProcessor,
+  CombatRestrictedQuartersPlugin,
+  CombatShieldPlugin,
   CombatSizeDifferencePlugin,
   CombatTableLookupProcessorService,
 } from './application/services/combat';
-import { CombatRestrictedQuartersPlugin } from './application/services/combat/plugins/combat-restricted-quarters.plugin';
 import { MovementProcessorService } from './application/services/movement-processor.service';
 import { SkillService } from './application/services/skill-service';
 import { ApiAttackTableAdapter } from './infrastructure/api-clients/api.attack-table.adapter';
@@ -113,7 +116,15 @@ import { MovementController } from './interfaces/http/movement.controller';
     },
     {
       provide: COMBAT_PLUGINS,
-      useValue: [CombatPositionalSourcePlugin, CombatRestrictedQuartersPlugin, CombatSizeDifferencePlugin, CombatOffHandPlugin],
+      useValue: [
+        CombatPositionalSourcePlugin,
+        CombatRestrictedQuartersPlugin,
+        CombatSizeDifferencePlugin,
+        CombatOffHandPlugin,
+        CombatShieldPlugin,
+        CombatPacePlugin,
+        CombatHigherGroundPlugin,
+      ],
     },
   ],
   exports: ['ActionRepository', CombatPluginRegistryService, CombatProcessor],

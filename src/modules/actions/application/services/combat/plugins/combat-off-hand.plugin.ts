@@ -1,4 +1,4 @@
-import { KeyValueModifier } from '../../../../domain/value-objects/key-value-modifier.vo';
+import { CombatModifierBag } from '../combat-modifier-bag';
 import { CombatPlugin } from '../combat-plugin';
 
 const AMBIDEXTROUS_TRAIT_ID = 'ambidextrous';
@@ -17,7 +17,7 @@ export const CombatOffHandPlugin: CombatPlugin = {
             return ctx;
           }
 
-          ctx.attackPreparation!.modifiers.rollModifiers.push(new KeyValueModifier('offHand', -20));
+          CombatModifierBag.from(ctx.attackPreparation!.modifiers.rollModifiers).add('offHand', -20);
           return ctx;
         },
       },

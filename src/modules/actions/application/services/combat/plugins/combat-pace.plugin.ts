@@ -1,5 +1,5 @@
 import { ValidationError } from '../../../../../shared/domain/errors';
-import { KeyValueModifier } from '../../../../domain/value-objects/key-value-modifier.vo';
+import { CombatModifierBag } from '../combat-modifier-bag';
 import { CombatPlugin } from '../combat-plugin';
 
 const paceModifiers: Record<string, number> = {
@@ -25,7 +25,7 @@ export const CombatPacePlugin: CombatPlugin = {
           }
           const modifier = paceModifiers[pace];
           if (modifier === undefined) return ctx;
-          ctx.attackPreparation!.modifiers.rollModifiers.push(new KeyValueModifier('pace', modifier));
+          CombatModifierBag.from(ctx.attackPreparation!.modifiers.rollModifiers).add('pace', modifier);
           return ctx;
         },
       },

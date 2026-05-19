@@ -1,4 +1,4 @@
-import { KeyValueModifier } from '../../../../domain/value-objects/key-value-modifier.vo';
+import { CombatModifierBag } from '../combat-modifier-bag';
 import { CombatPlugin } from '../combat-plugin';
 
 export const CombatShieldPlugin: CombatPlugin = {
@@ -21,7 +21,7 @@ export const CombatShieldPlugin: CombatPlugin = {
             return ctx;
           }
           const modifier = -shield.db;
-          ctx.attackPreparation!.modifiers.rollModifiers.push(new KeyValueModifier('shield', modifier));
+          CombatModifierBag.from(ctx.attackPreparation!.modifiers.rollModifiers).add('shield', modifier);
           return ctx;
         },
       },

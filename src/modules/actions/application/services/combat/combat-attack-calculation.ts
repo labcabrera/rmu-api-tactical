@@ -27,11 +27,6 @@ export interface CombatAttackSituationalModifiers {
   targetStatus: string[];
 }
 
-export interface CombatAttackFeature {
-  key: string;
-  value: string;
-}
-
 export interface CombatAttackSourceSkill {
   skillId: string;
   bonus: number;
@@ -59,8 +54,8 @@ export interface CombatAttackPreparationModifiers {
   fumble: number;
   calledShot?: string;
   rollModifiers: KeyValueModifier[];
+  criticalModifiers: KeyValueModifier[];
   situationalModifiers: CombatAttackSituationalModifiers;
-  features: CombatAttackFeature[];
   sourceSkills: CombatAttackSourceSkill[];
 }
 
@@ -76,7 +71,8 @@ export interface CombatAttackPreparation {
 export interface CombatAttackCalculatedResult {
   id?: string;
   calculated: {
-    rollModifiers: Array<{ key: string; value: number }>;
+    rollModifiers: KeyValueModifier[];
+    criticalModifiers: KeyValueModifier[];
     rollTotal: number;
     criticalAdjustment: number | undefined;
   };

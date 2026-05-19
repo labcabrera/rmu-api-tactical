@@ -10,6 +10,9 @@ export class ActionAttackCalculated {
   @Prop({ type: [Modifier], required: true })
   public rollModifiers: Modifier[];
 
+  @Prop({ type: [Modifier], required: false })
+  public criticalModifiers: Modifier[] | undefined;
+
   @Prop({ type: Number, required: true })
   public rollTotal: number;
 

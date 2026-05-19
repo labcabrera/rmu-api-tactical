@@ -1,5 +1,6 @@
 export * from './combat-attack-calculation';
 export * from './combat-context';
+export * from './combat-modifier-bag';
 export * from './combat-attack-roll-resolver.service';
 export * from './combat-phase';
 export * from './combat-plugin';
@@ -12,5 +13,9 @@ export * from './engine/combat-plugin.tokens';
 export * from './engine/combat-processor.service';
 export * from './engine/combat-table-lookup-processor.service';
 export * from './plugins/combat-off-hand.plugin';
+export * from './plugins/combat-higher-ground.plugin';
+export * from './plugins/combat-pace.plugin';
 export * from './plugins/combat-positional-source.plugin';
+export * from './plugins/combat-restricted-quarters.plugin';
+export * from './plugins/combat-shield.plugin';
 export * from './plugins/combat-size-difference.plugin';

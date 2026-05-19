@@ -22,7 +22,7 @@ import type {
   CombatAttackSourceTrait,
   CombatContext,
 } from '../../services/combat';
-import { CombatProcessor } from '../../services/combat';
+import { CombatModifierBag, CombatProcessor } from '../../services/combat';
 import { PrepareAttackCommand, PrepareAttackCommandItem } from '../commands/prepare-attack.command';
 
 @CommandHandler(PrepareAttackCommand)
@@ -123,6 +123,8 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       attackNumber: input.attackNumber,
       targetsNumber: input.targetsNumber,
       gameLethality: input.gameLethality,
+      sourceActor: input.actors.find(a => a.actorId === input.action.actorId),
+      targetActor: input.actors.find(a => a.actorId === input.attack.modifiers.targetId),
       trace: [],
     };
 
@@ -137,6 +139,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       undefined,
       this.requiresLocationRoll(ctx),
       ctx.attackCalculation.calculated.criticalAdjustment,
+      ctx.attackCalculation.calculated.criticalModifiers,
     );
 
     return ctx;
@@ -179,26 +182,22 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const actionPoints = action.freeAction ? (isMeleeAttack ? 4 : 3) : action.actionPoints!;
     const offHand = attack.modifiers.offHand || attack.attackName.toLowerCase().includes('off-hand');
     const rangePenalty = this.calculateRangePenalty(attack, actorRoundSource);
-    const shield = this.getShieldBonus(actorRoundTarget, attackModifiers.disabledShield || false);
 
     const attackSize = actorRoundSource.size + this.getChargeSpeedSizeAdjustment(attackModifiers.chargeSpeed || 'none');
     const defenderSize = actorRoundTarget.size;
     const sizeDifference = attackSize - defenderSize;
 
-    const rollModifiers = [
-      new KeyValueModifier('bo', attackModifiers.bo || 0),
-      new KeyValueModifier('bd', -actorRoundTarget.defense.bd),
-      new KeyValueModifier('calledShotPenalty', -(attackModifiers.calledShotPenalty || 0)),
-      new KeyValueModifier('injuryPenalty', 0),
-      new KeyValueModifier('fatiguePenalty', 0),
-      new KeyValueModifier('rangePenalty', rangePenalty),
-      new KeyValueModifier('shield', -shield),
-      new KeyValueModifier('parry', 0),
-      new KeyValueModifier('attackNumber', this.calculateRepeatedAttackPenalty(ctx.attackNumber)),
-      new KeyValueModifier('attackTargets', this.calculateMultipleTargetPenalty(ctx.targetsNumber)),
-      new KeyValueModifier('gameLethality', ctx.gameLethality || 0),
-      new KeyValueModifier('customBonus', attackModifiers.customBonus || 0),
-    ].filter(modifier => modifier.value !== 0);
+    const rollModifiers = CombatModifierBag.from()
+      .add('bo', attackModifiers.bo || 0)
+      .add('bd', -actorRoundTarget.defense.bd)
+      .add('calledShotPenalty', -(attackModifiers.calledShotPenalty || 0))
+      .add('rangePenalty', rangePenalty)
+      .add('attackNumber', this.calculateRepeatedAttackPenalty(ctx.attackNumber))
+      .add('attackTargets', this.calculateMultipleTargetPenalty(ctx.targetsNumber))
+      .add('gameLethality', ctx.gameLethality || 0)
+      .add('customBonus', attackModifiers.customBonus || 0)
+      .toArray();
+    const criticalModifiers: KeyValueModifier[] = [];
 
     const situationalModifiers = {
       cover: attackModifiers.cover || 'none',
@@ -239,8 +238,8 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
           legsAt: actorRoundTarget.defense.legsAt,
         },
         rollModifiers,
+        criticalModifiers,
         situationalModifiers,
-        features: [],
         sourceSkills: ctx.sourceSkills || [],
       },
     };
@@ -249,20 +248,19 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
   private calculatePreparedAttack(ctx: CombatContext): CombatAttackCalculatedResult {
     const preparation = ctx.attackPreparation!;
     const rollModifiers = preparation.modifiers.rollModifiers;
+    const criticalModifiers = preparation.modifiers.criticalModifiers;
+    const criticalAdjustment = CombatModifierBag.from(criticalModifiers).sum() + (preparation.criticalAdjustment || 0);
 
     return {
       calculated: {
         rollModifiers,
-        rollTotal: this.calculateRollTotal(rollModifiers),
-        criticalAdjustment: ctx.attackPreparation?.criticalAdjustment,
+        criticalModifiers,
+        rollTotal: CombatModifierBag.from(rollModifiers).sum(),
+        criticalAdjustment: criticalAdjustment || undefined,
       },
       results: undefined,
       status: 'pending_attack_roll',
     };
-  }
-
-  private calculateRollTotal(modifiers: KeyValueModifier[]): number {
-    return modifiers.reduce((sum, modifier) => sum + modifier.value, 0);
   }
 
   private calculateRepeatedAttackPenalty(attackNumber: number | undefined): number {
@@ -289,13 +287,6 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       throw new UnprocessableEntityError(`Attack ${attack.attackName} not found on actor`);
     }
     return sourceAttack.calculateRangeBonus(attack.modifiers.range);
-  }
-
-  private getShieldBonus(targetActor: ActorRound, disabledShield: boolean): number {
-    if (disabledShield || !targetActor.defense.shield) return 0;
-    const shield = targetActor.defense.shield;
-    if (shield.currentBlocks >= shield.blockCount) return 0;
-    return shield.db;
   }
 
   private requiresLocationRoll(ctx: CombatContext): boolean {

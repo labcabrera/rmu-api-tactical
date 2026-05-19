@@ -7,7 +7,7 @@ import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import type { CriticalTablePort } from '../../ports/critical-table.port';
-import { CombatProcessor } from '../../services/combat';
+import { CombatModifierBag, CombatProcessor } from '../../services/combat';
 import { UpdateCriticalRollCommand } from '../commands/update-critical-roll.command';
 
 @CommandHandler(UpdateCriticalRollCommand)
@@ -32,7 +32,8 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
     if (!game) throw new NotFoundError('Game', action.gameId);
 
     const attack = action.getAttackByName(command.attackName);
-    const criticalAdjustment = attack.calculated?.criticalAdjustment || 0;
+    const criticalAdjustment =
+      CombatModifierBag.from(attack.calculated?.criticalModifiers).sum() || attack.calculated?.criticalAdjustment || 0;
     const rollAdjusted = Math.min(Math.max(command.roll + criticalAdjustment, 1), 100);
 
     action.checkValidCriticalRollDeclaration(command.attackName, command.criticalKey, rollAdjusted);
