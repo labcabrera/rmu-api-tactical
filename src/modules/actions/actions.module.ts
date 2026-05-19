@@ -31,6 +31,7 @@ import {
   CombatPluginRegistryService,
   CombatPositionalSourcePlugin,
   CombatProcessor,
+  CombatSizeDifferencePlugin,
   CombatTableLookupProcessorService,
 } from './application/services/combat';
 import { CombatRestrictedQuartersPlugin } from './application/services/combat/plugins/combat-restricted-quarters.plugin';
@@ -111,7 +112,7 @@ import { MovementController } from './interfaces/http/movement.controller';
     },
     {
       provide: COMBAT_PLUGINS,
-      useValue: [CombatPositionalSourcePlugin, CombatRestrictedQuartersPlugin],
+      useValue: [CombatPositionalSourcePlugin, CombatRestrictedQuartersPlugin, CombatSizeDifferencePlugin],
     },
   ],
   exports: ['ActionRepository', CombatPluginRegistryService, CombatProcessor],

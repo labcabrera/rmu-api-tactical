@@ -66,6 +66,7 @@ export interface CombatAttackPreparation {
   sourceId: string;
   targetId: string;
   modifiers: CombatAttackPreparationModifiers;
+  criticalAdjustment: number | undefined;
 }
 
 export interface CombatAttackCalculatedResult {
@@ -73,6 +74,7 @@ export interface CombatAttackCalculatedResult {
   calculated: {
     rollModifiers: Array<{ key: string; value: number }>;
     rollTotal: number;
+    criticalAdjustment: number | undefined;
   };
   results: ActionAttackResult | undefined;
   status: AttackStatus;

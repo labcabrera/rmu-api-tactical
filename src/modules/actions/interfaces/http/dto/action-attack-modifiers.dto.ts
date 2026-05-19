@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActionAttackModifiers, CalledShot } from '../../../domain/value-objects/action-attack-modifiers.vo';
+import { ActionAttackModifiers, CalledShot, ChargeSpeed } from '../../../domain/value-objects/action-attack-modifiers.vo';
 
 export class ActionAttackModifiersDto {
   @ApiProperty({ description: 'Target actor round identifier', required: false, example: 'actor-round-003' })
@@ -82,6 +82,9 @@ export class ActionAttackModifiersDto {
   @ApiProperty({ description: 'Custom bonus to apply to the attack', required: false, example: 5 })
   public customBonus: number | undefined;
 
+  @ApiProperty({ description: 'Charge speed applied to attack size', required: false, enum: ['none', 'jog', 'spring'], example: 'none' })
+  public chargeSpeed: ChargeSpeed | undefined;
+
   static fromEntity(entity: ActionAttackModifiers): ActionAttackModifiersDto {
     const dto = new ActionAttackModifiersDto();
     dto.targetId = entity.targetId;
@@ -109,6 +112,7 @@ export class ActionAttackModifiersDto {
     dto.ambush = entity.ambush;
     dto.range = entity.range;
     dto.customBonus = entity.customBonus;
+    dto.chargeSpeed = entity.chargeSpeed;
     return dto;
   }
 }

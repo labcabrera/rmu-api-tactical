@@ -5,6 +5,7 @@ export type PositionalTarget = 'none' | 'flank' | 'rear';
 export type RestrictedQuarters = 'none' | 'close' | 'cramped' | 'tight' | 'confined';
 export type Cover = 'none' | 'soft_partial' | 'soft_half' | 'soft_full' | 'hard_partial' | 'hard_half' | 'hard_full';
 export type Dodge = 'none' | 'passive' | 'partial' | 'full';
+export type ChargeSpeed = 'none' | 'jog' | 'spring';
 
 export class ActionAttackModifiers {
   constructor(
@@ -33,5 +34,6 @@ export class ActionAttackModifiers {
     public ambush: boolean | undefined,
     public range: number | undefined,
     public customBonus: number | undefined,
+    public chargeSpeed: ChargeSpeed | undefined,
   ) {}
 }

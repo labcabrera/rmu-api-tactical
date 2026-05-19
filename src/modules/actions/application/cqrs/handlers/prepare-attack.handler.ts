@@ -129,6 +129,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       ctx.attackCalculation.calculated.rollTotal,
       undefined,
       this.requiresLocationRoll(ctx),
+      ctx.attackCalculation.calculated.criticalAdjustment,
     );
 
     return ctx;
@@ -172,8 +173,8 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const rangePenalty = this.calculateRangePenalty(attack, actorRoundSource);
     const shield = this.getShieldBonus(actorRoundTarget, attackModifiers.disabledShield || false);
 
-    const attackSize = 2;
-    const defenderSize = 2;
+    const attackSize = actorRoundSource.size + this.getChargeSpeedSizeAdjustment(attackModifiers.chargeSpeed || 'none');
+    const defenderSize = actorRoundTarget.size;
     const sizeDifference = attackSize - defenderSize;
 
     const rollModifiers = [
@@ -213,6 +214,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       actionId: action.id,
       sourceId: action.actorId,
       targetId: attackModifiers.targetId!,
+      criticalAdjustment: undefined,
       modifiers: {
         attackType: attack.type,
         attackTable: attackInfo.attackTable,
@@ -244,6 +246,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       calculated: {
         rollModifiers,
         rollTotal: this.calculateRollTotal(rollModifiers),
+        criticalAdjustment: ctx.attackPreparation?.criticalAdjustment,
       },
       results: undefined,
       status: 'pending_attack_roll',
@@ -349,6 +352,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       commandAttack.modifiers.ambush,
       commandAttack.modifiers.range,
       commandAttack.modifiers.customBonus,
+      commandAttack.modifiers.chargeSpeed || 'none',
     );
     return new ActionAttack(
       commandAttack.attackName,
@@ -361,5 +365,16 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       'pending_attack_roll',
       commandAttack.protectors,
     );
+  }
+
+  private getChargeSpeedSizeAdjustment(chargeSpeed: 'none' | 'jog' | 'spring'): number {
+    switch (chargeSpeed) {
+      case 'jog':
+        return 1;
+      case 'spring':
+        return 2;
+      default:
+        return 0;
+    }
   }
 }

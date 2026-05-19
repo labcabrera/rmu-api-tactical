@@ -1,5 +1,6 @@
 import {
   CalledShot,
+  ChargeSpeed,
   Cover,
   Dodge,
   PositionalSource,
@@ -50,6 +51,7 @@ export class PrepareAttackCommandModifiers {
     public ambush: boolean | undefined,
     public range: number | undefined,
     public customBonus: number | undefined,
+    public chargeSpeed: ChargeSpeed | undefined,
   ) {}
 }
 

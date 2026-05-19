@@ -31,10 +31,11 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
     const game = await this.gameRepository.findById(action.gameId);
     if (!game) throw new NotFoundError('Game', action.gameId);
 
-    const rollAdjusted = Math.min(Math.max(command.roll, 1), 100);
+    const attack = action.getAttackByName(command.attackName);
+    const criticalAdjustment = attack.calculated?.criticalAdjustment || 0;
+    const rollAdjusted = Math.min(Math.max(command.roll + criticalAdjustment, 1), 100);
 
     action.checkValidCriticalRollDeclaration(command.attackName, command.criticalKey, rollAdjusted);
-    const attack = action.getAttackByName(command.attackName);
 
     const ctx = await this.combatProcessor.runPhase('criticalRoll', {
       action,

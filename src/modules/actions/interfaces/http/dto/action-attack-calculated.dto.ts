@@ -15,12 +15,16 @@ export class ActionAttackCalculatedDto {
   @ApiProperty({ description: 'The location hit by the attack', required: false })
   location: AttackLocation | undefined;
 
+  @ApiProperty({ description: 'Adjustment applied to critical rolls', required: false, example: 1 })
+  criticalAdjustment: number | undefined;
+
   static fromEntity(entity: ActionAttackCalculatedDto): ActionAttackCalculatedDto {
     const dto = new ActionAttackCalculatedDto();
     dto.rollModifiers = entity.rollModifiers ? entity.rollModifiers.map(mod => KeyValueModifierDto.fromEntity(mod)) : [];
     dto.rollTotal = entity.rollTotal;
     dto.location = entity.location;
     dto.requiredLocationRoll = entity.requiredLocationRoll;
+    dto.criticalAdjustment = entity.criticalAdjustment;
     return dto;
   }
 }

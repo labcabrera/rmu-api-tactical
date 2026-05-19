@@ -3,6 +3,7 @@ import { IsArray, IsBoolean, IsNotEmpty, IsNumber, IsObject, IsOptional, IsStrin
 import { PrepareAttackCommandItem, PrepareAttackCommandModifiers } from '../../../application/cqrs/commands/prepare-attack.command';
 import {
   CalledShot,
+  ChargeSpeed,
   Cover,
   Dodge,
   PositionalSource,
@@ -159,6 +160,11 @@ export class PrepareAttackModifiersDto {
   @IsNumber()
   customBonus: number | undefined;
 
+  @ApiProperty({ description: 'Charge speed applied to attack size', required: false, enum: ['none', 'jog', 'spring'], example: 'none' })
+  @IsOptional()
+  @IsString()
+  chargeSpeed: ChargeSpeed | undefined;
+
   static toCommand(dto: PrepareAttackModifiersDto): PrepareAttackCommandModifiers {
     return new PrepareAttackCommandModifiers(
       dto.targetId,
@@ -185,6 +191,7 @@ export class PrepareAttackModifiersDto {
       dto.ambush,
       dto.range,
       dto.customBonus,
+      dto.chargeSpeed,
     );
   }
 }

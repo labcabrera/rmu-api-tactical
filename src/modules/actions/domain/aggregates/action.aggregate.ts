@@ -167,6 +167,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
           proneTarget: false,
           offHand: attackName === 'offHand' ? true : false,
           ambush: false,
+          chargeSpeed: 'none',
         },
         status: 'pending_attack_roll',
       } as ActionAttack;
