@@ -66,7 +66,7 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
       action.status = 'pending_apply';
       attack.status = 'pending_apply';
     } else if (action.hasPendingFumbleRolls()) {
-      action.status = 'critical_or_fumble_roll';
+      action.status = 'pending_roll';
       attack.status = 'pending_fumble_roll';
     }
     action.updatedAt = new Date();

@@ -153,10 +153,10 @@ export class CombatAttackRollResolverService {
 
   private calculateActionStatus(action: Action): ActionStatus {
     if (action.hasPendingAttackRolls()) {
-      return 'pending_attack_roll';
+      return 'pending_roll';
     }
     if (action.attacks?.some(attack => attack.status === 'pending_critical_roll' || attack.status === 'pending_fumble_roll')) {
-      return 'critical_or_fumble_roll';
+      return 'pending_roll';
     }
     return 'pending_apply';
   }
