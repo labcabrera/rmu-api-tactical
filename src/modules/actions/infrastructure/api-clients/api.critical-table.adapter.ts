@@ -4,7 +4,7 @@ import axios from 'axios';
 import { TokenService } from '../../../auth/token.service';
 import { handleAxiosError } from '../../../shared/infrastructure/api-rest/axios.error.adapter';
 import { CriticalTableLookupRequest, CriticalTablePort } from '../../application/ports/critical-table.port';
-import { CriticalResult } from '../../domain/value-objects/action-attack.vo';
+import { CriticalResult } from '../../domain/value-objects/critical-result.vo';
 
 @Injectable()
 export class ApiCriticalTableAdapter implements CriticalTablePort {

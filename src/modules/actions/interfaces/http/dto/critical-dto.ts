@@ -60,8 +60,8 @@ export class CriticalDto {
     dto.adjustedRoll = entity.adjustedRoll;
     dto.result = entity.result
       ? {
-          text: entity.result.text,
-          damage: entity.result.damage,
+          text: entity.result.message,
+          damage: entity.result.dmg,
           location: entity.result.location,
           effects: entity.result.effects
             ? entity.result.effects.map(effect => ({

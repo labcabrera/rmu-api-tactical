@@ -1,4 +1,4 @@
-import { CriticalResult } from './action-attack.vo';
+import { CriticalResult } from './critical-result.vo';
 
 export class Critical {
   constructor(

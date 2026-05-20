@@ -65,10 +65,10 @@ export class CriticalEffect {
 @Schema({ _id: false })
 export class CriticalResult {
   @Prop({ type: String, required: true })
-  public text: string;
+  public message: string;
 
   @Prop({ type: Number, required: true })
-  public damage: number;
+  public dmg: number;
 
   @Prop({ type: String, required: true })
   public location: string;

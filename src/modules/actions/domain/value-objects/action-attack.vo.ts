@@ -2,6 +2,7 @@ import { ActionAttackCalculated } from './action-attack-calculated.vo';
 import { ActionAttackModifiers, AttackType } from './action-attack-modifiers.vo';
 import { ActionAttackRoll } from './action-attack-roll.vo';
 import { AttackStatus } from './attack-status.vo';
+import { CriticalEffect } from './critical-result.vo';
 import { Critical } from './critical.vo';
 
 export class ActionAttack {
@@ -32,15 +33,6 @@ export class AttackTableEntry {
   ) {}
 }
 
-export class CriticalResult {
-  constructor(
-    public text: string,
-    public damage: number,
-    public location: string,
-    public effects: CriticalEffect[],
-  ) {}
-}
-
 export class Fumble {
   constructor(
     public status: string,
@@ -56,15 +48,5 @@ export class ActionAttackResult {
     public attackTableEntry: AttackTableEntry | undefined,
     public criticals: Critical[] | undefined,
     public fumble: Fumble | undefined,
-  ) {}
-}
-
-export class CriticalEffect {
-  constructor(
-    public status: string,
-    public rounds: number | undefined,
-    public value: number | undefined,
-    public delay: number | undefined,
-    public condition: string | undefined,
   ) {}
 }
