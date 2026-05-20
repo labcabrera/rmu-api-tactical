@@ -7,7 +7,7 @@ export const CombatBreakagePlugin: CombatPlugin = {
   name: 'Combat Breakage Plugin',
   version: '1.0.0',
   hooks: {
-    attackRoll: [
+    beforeAttackRoll: [
       {
         apply: ctx => {
           if (!ctx.attack?.calculated || !BREAKAGE_ROLLS.has(ctx.attackRoll || 0)) {

@@ -64,7 +64,7 @@ export class CombatAttackRollResolverService {
       trace: [],
     };
 
-    ctx = await this.combatProcessor.runPhase('attackRoll', ctx);
+    ctx = await this.combatProcessor.runPhase('beforeAttackRoll', ctx);
     ctx.rollTotal = this.calculateRollTotal(ctx);
 
     ctx.location = ctx.attack!.calculated!.requiredLocationRoll ? this.getLocation(ctx.locationRoll!) : undefined;
@@ -89,6 +89,8 @@ export class CombatAttackRollResolverService {
 
     ctx.attack!.status = this.calculateAttackStatus(ctx.attack!);
     ctx.action.status = this.calculateActionStatus(ctx.action);
+
+    ctx = await this.combatProcessor.runPhase('afterAttackRoll', ctx);
 
     return ctx;
   }

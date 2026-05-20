@@ -1,6 +1,6 @@
 import { CombatContext } from './combat-context';
 
-export type CombatPhase = 'prepare' | 'attackRoll' | 'criticalRoll' | 'fumbleRoll';
+export type CombatPhase = 'prepare' | 'beforeAttackRoll' | 'afterAttackRoll' | 'criticalRoll' | 'fumbleRoll';
 
 export interface CombatHook<TContext extends CombatContext = CombatContext> {
   priority?: number;

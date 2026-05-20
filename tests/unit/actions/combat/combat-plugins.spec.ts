@@ -27,7 +27,7 @@ describe('Combat plugins', () => {
       ctx.attackRoll = attackRoll;
       ctx.attack!.calculated = new ActionAttackCalculated([], 0, undefined, false);
 
-      await CombatBreakagePlugin.hooks.attackRoll![0].apply(ctx);
+      await CombatBreakagePlugin.hooks.beforeAttackRoll![0].apply(ctx);
 
       expect(ctx.attack!.calculated.breakageRoll).toBe(true);
     });
@@ -37,7 +37,7 @@ describe('Combat plugins', () => {
       ctx.attackRoll = 34;
       ctx.attack!.calculated = new ActionAttackCalculated([], 0, undefined, false);
 
-      await CombatBreakagePlugin.hooks.attackRoll![0].apply(ctx);
+      await CombatBreakagePlugin.hooks.beforeAttackRoll![0].apply(ctx);
 
       expect(ctx.attack!.calculated.breakageRoll).toBeUndefined();
     });
