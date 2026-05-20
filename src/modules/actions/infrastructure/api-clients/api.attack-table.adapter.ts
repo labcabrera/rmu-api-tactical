@@ -19,9 +19,9 @@ export class ApiAttackTableAdapter implements AttackTablePort {
 
   async lookup(request: AttackTableLookupRequest): Promise<AttackTableEntry> {
     const token = await this.tokenService.getToken();
-    const uri = `${this.apiAttackTablesUri}/attack-tables/lookup`;
+    const uri = `${this.apiAttackTablesUri}/attack-tables/${request.attackTable}/medium/${request.armor}/${request.roll}`;
     try {
-      const response = await axios.post<AttackTableEntry>(uri, request, {
+      const response = await axios.get<AttackTableEntry>(uri, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

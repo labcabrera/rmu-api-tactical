@@ -22,6 +22,9 @@ export class ActionAttackCalculatedDto {
   @ApiProperty({ description: 'Adjustment applied to critical rolls', required: false, example: 1 })
   criticalAdjustment: number | undefined;
 
+  @ApiProperty({ description: 'Whether a breakage roll is required', required: false, example: true })
+  breakageRoll: boolean | undefined;
+
   static fromEntity(entity: ActionAttackCalculated): ActionAttackCalculatedDto {
     const dto = new ActionAttackCalculatedDto();
     dto.rollModifiers = entity.rollModifiers ? entity.rollModifiers.map(mod => KeyValueModifierDto.fromEntity(mod)) : [];
@@ -30,6 +33,7 @@ export class ActionAttackCalculatedDto {
     dto.location = entity.location;
     dto.requiredLocationRoll = entity.requiredLocationRoll;
     dto.criticalAdjustment = entity.criticalAdjustment;
+    dto.breakageRoll = entity.breakageRoll;
     return dto;
   }
 }

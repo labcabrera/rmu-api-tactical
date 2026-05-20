@@ -9,5 +9,6 @@ export class ActionAttackCalculated {
     public requiredLocationRoll: boolean,
     public criticalAdjustment: number | undefined = undefined,
     public criticalModifiers?: KeyValueModifier[],
+    public breakageRoll?: boolean,
   ) {}
 }

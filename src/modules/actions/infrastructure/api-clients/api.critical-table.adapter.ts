@@ -8,20 +8,20 @@ import { CriticalResult } from '../../domain/value-objects/action-attack.vo';
 
 @Injectable()
 export class ApiCriticalTableAdapter implements CriticalTablePort {
-  private readonly apiCoreUri: string;
+  private readonly apiAttackTablesUri: string;
 
   constructor(
     private readonly tokenService: TokenService,
     configService: ConfigService,
   ) {
-    this.apiCoreUri = configService.get('RMU_API_CORE_URI') as string;
+    this.apiAttackTablesUri = configService.get('RMU_API_ATTACK_TABLES_URI') as string;
   }
 
   async lookup(request: CriticalTableLookupRequest): Promise<CriticalResult> {
     const token = await this.tokenService.getToken();
-    const uri = `${this.apiCoreUri}/critical-tables/lookup`;
+    const uri = `${this.apiAttackTablesUri}/critical-tables/${request.criticalType}/${request.criticalSeverity}/${request.roll}`;
     try {
-      const response = await axios.post<CriticalResult>(uri, request, {
+      const response = await axios.get<CriticalResult>(uri, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

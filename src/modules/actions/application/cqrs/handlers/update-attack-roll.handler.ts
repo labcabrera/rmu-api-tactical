@@ -51,12 +51,6 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
 
     action.updatedAt = new Date();
 
-    if (this.requiredBreakage(command.roll)) {
-      sourceActor.addAttackBreakageAlert(attack.attackName);
-      await this.actorRoundRepository.update(sourceActor.id, sourceActor);
-      //TODO propagate change event
-    }
-
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
     return updated;
@@ -77,9 +71,5 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
       throw new ValidationError(`Location roll is required for attack ${command.attackName}`);
     }
     action.checkValidRollDeclaration();
-  }
-
-  private requiredBreakage(roll: number): boolean {
-    return roll === 33 || roll === 77;
   }
 }

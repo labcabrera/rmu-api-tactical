@@ -24,6 +24,9 @@ export class ActionAttackCalculated {
 
   @Prop({ type: Number, required: false })
   public criticalAdjustment: number | undefined;
+
+  @Prop({ type: Boolean, required: false })
+  public breakageRoll: boolean | undefined;
 }
 
 @Schema({ _id: false })

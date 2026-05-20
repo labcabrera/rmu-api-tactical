@@ -56,6 +56,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     await Promise.all(substractBoCommands.map(cmd => this.commandBus.execute(cmd)));
 
     const sourceActor = actors.find(a => a.actorId === action.actorId)!;
+    await this.processAttackBreakageAlerts(action, game.round);
 
     const updateCommands = new Map<string, AddEffectsCommand>();
     actionAttacks.forEach(actionAttack => {
@@ -95,6 +96,21 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       }
     });
     return substractBoCommands;
+  }
+
+  private async processAttackBreakageAlerts(action: Action, round: number): Promise<void> {
+    const attacksWithBreakage = action.attacks?.filter(attack => attack.calculated?.breakageRoll) || [];
+    if (attacksWithBreakage.length === 0) {
+      return;
+    }
+
+    const sourceActor = await this.actorRoundRepository.findByActorIdAndRound(action.actorId, round);
+    if (!sourceActor) {
+      throw new UnprocessableEntityError('Actor not found');
+    }
+
+    attacksWithBreakage.forEach(attack => sourceActor.addAttackBreakageAlert(attack.attackName));
+    await this.actorRoundRepository.update(sourceActor.id, sourceActor);
   }
 
   private async processDeclareActorParry(action: Action, userId: string, roles: string[]): Promise<void> {

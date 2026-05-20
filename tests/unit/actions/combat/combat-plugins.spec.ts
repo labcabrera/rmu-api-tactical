@@ -1,7 +1,9 @@
 import { describe, expect, it } from '@jest/globals';
 import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-shield.vo';
+import { ActionAttackCalculated } from '../../../../src/modules/actions/domain/value-objects/action-attack-calculated.vo';
 import { ValidationError } from '../../../../src/modules/shared/domain/errors';
 import {
+  CombatBreakagePlugin,
   CombatCalledShotPlugin,
   CombatCoverPlugin,
   CombatHigherGroundPlugin,
@@ -19,6 +21,28 @@ import {
 import { createCombatPluginContext, getModifier } from './combat-plugin-test.factory';
 
 describe('Combat plugins', () => {
+  describe('CombatBreakagePlugin', () => {
+    it.each([33, 77])('marks breakage roll when the attack roll is %i', async attackRoll => {
+      const ctx = createCombatPluginContext();
+      ctx.attackRoll = attackRoll;
+      ctx.attack!.calculated = new ActionAttackCalculated([], 0, undefined, false);
+
+      await CombatBreakagePlugin.hooks.attackRoll![0].apply(ctx);
+
+      expect(ctx.attack!.calculated.breakageRoll).toBe(true);
+    });
+
+    it('does not mark breakage roll for other attack rolls', async () => {
+      const ctx = createCombatPluginContext();
+      ctx.attackRoll = 34;
+      ctx.attack!.calculated = new ActionAttackCalculated([], 0, undefined, false);
+
+      await CombatBreakagePlugin.hooks.attackRoll![0].apply(ctx);
+
+      expect(ctx.attack!.calculated.breakageRoll).toBeUndefined();
+    });
+  });
+
   describe('CombatCalledShotPlugin', () => {
     it('applies the declared called shot penalty', async () => {
       const ctx = createCombatPluginContext({ calledShot: 'head', calledShotPenalty: 30 });
