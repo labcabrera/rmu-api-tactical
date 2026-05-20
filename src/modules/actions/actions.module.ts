@@ -23,6 +23,7 @@ import { UpdateFumbleRollHandler } from './application/cqrs/handlers/update-fumb
 import { AbsoluteManeuverProcessorService } from './application/services/absolute-maneuver-processor.service';
 import {
   COMBAT_PLUGINS,
+  CombatActionPointsPlugin,
   CombatAttackRollProcessorService,
   CombatAttackRollResolverService,
   CombatBreakagePlugin,
@@ -124,6 +125,7 @@ import { MovementController } from './interfaces/http/movement.controller';
     {
       provide: COMBAT_PLUGINS,
       useValue: [
+        CombatActionPointsPlugin,
         CombatPositionalSourcePlugin,
         CombatPositionalTargetPlugin,
         CombatPronePlugin,

@@ -21,6 +21,8 @@ import { CombatContext } from '../../../../src/modules/actions/application/servi
 
 export interface CombatPluginContextOptions {
   attackType?: AttackType;
+  actionPoints?: number;
+  freeAction?: boolean;
   attackNumber?: number;
   targetsNumber?: number;
   calledShot?: CalledShot;
@@ -45,7 +47,7 @@ export function createCombatPluginContext(options: CombatPluginContextOptions = 
   });
 
   return {
-    action: createAction(sourceActor.actorId, attack),
+    action: createAction(sourceActor.actorId, attack, options.freeAction),
     attack,
     actors: [sourceActor, targetActor],
     sourceActor,
@@ -53,7 +55,7 @@ export function createCombatPluginContext(options: CombatPluginContextOptions = 
     attackNumber: options.attackNumber ?? 1,
     targetsNumber: options.targetsNumber ?? 1,
     sourceTraits: options.sourceTraits ?? [],
-    attackPreparation: createAttackPreparation(sourceActor, targetActor, attack, options.situationalModifiers),
+    attackPreparation: createAttackPreparation(sourceActor, targetActor, attack, options.situationalModifiers, options.actionPoints),
     trace: [],
   };
 }
@@ -89,14 +91,14 @@ export function createDefender(options: { size?: number; shield?: ActorRoundShie
   } as unknown as ActorRound;
 }
 
-function createAction(actorId: string, attack: ActionAttack): Action {
+function createAction(actorId: string, attack: ActionAttack, freeAction = false): Action {
   return Action.fromProps({
     id: 'action-1',
     gameId: 'game-1',
     actorId,
     round: 1,
     actionType: attack.type === 'melee' ? 'melee_attack' : 'ranged_attack',
-    freeAction: false,
+    freeAction,
     phaseStart: 1,
     phaseEnd: null,
     status: 'declared',
@@ -165,6 +167,7 @@ function createAttackPreparation(
   targetActor: ActorRound,
   attack: ActionAttack,
   situationalModifiers: Partial<CombatAttackSituationalModifiers> = {},
+  actionPoints = 4,
 ): CombatAttackPreparation {
   const sizeDifference = sourceActor.size - targetActor.size;
 
@@ -186,7 +189,7 @@ function createAttackPreparation(
         armsAt: 1,
         legsAt: 1,
       },
-      actionPoints: 4,
+      actionPoints,
       fumble: 5,
       calledShot: attack.modifiers.calledShot,
       rollModifiers: [],

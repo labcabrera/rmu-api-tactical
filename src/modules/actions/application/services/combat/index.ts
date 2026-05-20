@@ -12,6 +12,7 @@ export * from './engine/combat-plugin-registry.service';
 export * from './engine/combat-plugin.tokens';
 export * from './engine/combat-processor.service';
 export * from './engine/combat-table-lookup-processor.service';
+export * from './plugins/combat-action-points.plugin';
 export * from './plugins/combat-breakage.plugin';
 export * from './plugins/combat-called-shot.plugin';
 export * from './plugins/combat-cover.plugin';

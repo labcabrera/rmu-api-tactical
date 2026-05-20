@@ -3,6 +3,7 @@ import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/va
 import { ActionAttackCalculated } from '../../../../src/modules/actions/domain/value-objects/action-attack-calculated.vo';
 import { ValidationError } from '../../../../src/modules/shared/domain/errors';
 import {
+  CombatActionPointsPlugin,
   CombatBreakagePlugin,
   CombatCalledShotPlugin,
   CombatCoverPlugin,
@@ -21,6 +22,32 @@ import {
 import { createCombatPluginContext, getModifier } from './combat-plugin-test.factory';
 
 describe('Combat plugins', () => {
+  describe('CombatActionPointsPlugin', () => {
+    it('applies -25 for each missing melee action point', async () => {
+      const ctx = createCombatPluginContext({ attackType: 'melee', actionPoints: 2 });
+
+      await CombatActionPointsPlugin.hooks.prepare![0].apply(ctx);
+
+      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'action-points')?.value).toBe(-50);
+    });
+
+    it('applies -25 for each missing ranged action point', async () => {
+      const ctx = createCombatPluginContext({ attackType: 'ranged', actionPoints: 2 });
+
+      await CombatActionPointsPlugin.hooks.prepare![0].apply(ctx);
+
+      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'action-points')?.value).toBe(-25);
+    });
+
+    it('does not apply action point penalties to free actions', async () => {
+      const ctx = createCombatPluginContext({ attackType: 'melee', actionPoints: 1, freeAction: true });
+
+      await CombatActionPointsPlugin.hooks.prepare![0].apply(ctx);
+
+      expect(getModifier(ctx.attackPreparation!.modifiers.rollModifiers, 'action-points')).toBeUndefined();
+    });
+  });
+
   describe('CombatBreakagePlugin', () => {
     it.each([33, 77])('marks breakage roll when the attack roll is %i', async attackRoll => {
       const ctx = createCombatPluginContext();
