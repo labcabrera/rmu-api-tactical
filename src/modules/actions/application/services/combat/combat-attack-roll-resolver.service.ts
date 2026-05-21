@@ -70,6 +70,16 @@ export class CombatAttackRollResolverService {
     ctx.location = ctx.attack!.calculated!.requiredLocationRoll ? this.getLocation(ctx.locationRoll!) : undefined;
     ctx.attack!.calculated!.location = ctx.location;
 
+    if (this.isFumble(ctx)) {
+      this.applyFumbleResult(ctx);
+      ctx.attack!.status = this.calculateAttackStatus(ctx.attack!);
+      ctx.action.status = this.calculateActionStatus(ctx.action);
+
+      ctx = await this.combatProcessor.runPhase('afterAttackRoll', ctx);
+
+      return ctx;
+    }
+
     //TODO
     const armor = ctx.targetActor?.defense.at || 1;
 
@@ -84,8 +94,6 @@ export class CombatAttackRollResolverService {
     this.applyAttackResult(ctx);
 
     this.prepareCriticalRolls(ctx);
-
-    this.prepareFumbleRoll(ctx);
 
     ctx.attack!.status = this.calculateAttackStatus(ctx.attack!);
     ctx.action.status = this.calculateActionStatus(ctx.action);
@@ -109,10 +117,26 @@ export class CombatAttackRollResolverService {
     return (ctx.attackRoll || 0) + modifierTotal;
   }
 
+  private isFumble(ctx: CombatContext): boolean {
+    return (ctx.attackRoll || 0) <= ctx.sourceAttack!.fumble;
+  }
+
   private applyAttackResult(ctx: CombatContext): void {
     ctx.attack!.roll = new ActionAttackRoll(ctx.attackRoll!, ctx.locationRoll, undefined, undefined);
     ctx.attack!.calculated!.rollTotal = ctx.rollTotal!;
     ctx.attack!.results = new ActionAttackResult(ctx.attackTableEntry, undefined, undefined);
+  }
+
+  private applyFumbleResult(ctx: CombatContext): void {
+    ctx.attack!.roll = new ActionAttackRoll(ctx.attackRoll!, ctx.locationRoll, undefined, undefined);
+    ctx.attack!.calculated!.rollTotal = ctx.rollTotal!;
+    ctx.attack!.results = new ActionAttackResult(undefined, undefined, {
+      status: 'pending_roll',
+      text: undefined,
+      additionalDamageText: undefined,
+      damage: undefined,
+      effects: undefined,
+    });
   }
 
   private prepareCriticalRolls(ctx: CombatContext): void {
@@ -125,20 +149,6 @@ export class CombatAttackRollResolverService {
     const critical = new Critical(key, 'pending_roll', entry.criticalType, entry.criticalSeverity, undefined, undefined);
     ctx.attack!.results!.criticals = [critical];
     ctx.attack!.roll!.criticalRolls = new Map<string, number | undefined>([[key, undefined]]);
-  }
-
-  private prepareFumbleRoll(ctx: CombatContext): void {
-    if ((ctx.attackRoll || 0) > ctx.sourceAttack!.fumble) {
-      return;
-    }
-
-    ctx.attack!.results!.fumble = {
-      status: 'pending_roll',
-      text: undefined,
-      additionalDamageText: undefined,
-      damage: undefined,
-      effects: undefined,
-    };
   }
 
   private calculateAttackStatus(attack: ActionAttack): ActionAttack['status'] {
