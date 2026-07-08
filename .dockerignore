@@ -1,0 +1,31 @@
+.git/
+.gitignore
+.dockerignore
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+db-seed/.env
+docker-run.env
+docker-run.env.*
+!docker-run.env.example
+
+# Dependencies, build outputs and test artifacts
+node_modules/
+dist/
+coverage/
+out/
+.cache/
+.npm/
+*.tsbuildinfo
+
+# Local tooling and editor metadata
+.agents/
+.codex/
+.vscode/
+
+# Deployment and local helper scripts
+docker-*.sh*
+k8s/
