@@ -12,7 +12,7 @@ export class ApiNpcAdapter implements NpcPort {
     private readonly tokenService: TokenService,
     configService: ConfigService,
   ) {
-    this.baseUri = configService.get('RMU_API_NPC_URI') as string;
+    this.baseUri = configService.get('RMU_API_NPCS_URI') as string;
   }
 
   async findById(id: string): Promise<Npc | undefined> {
