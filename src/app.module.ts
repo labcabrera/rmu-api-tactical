@@ -29,6 +29,7 @@ import { StrategicModule } from './modules/strategic/strategic.module';
         RMU_API_ITEMS_URI: Joi.string().uri().required(),
         RMU_API_ATTACK_URI: Joi.string().uri().required(),
         RMU_API_STRATEGIC_URI: Joi.string().uri().required(),
+        RMU_API_NPCS_URI: Joi.string().uri().required(),
       }),
     }),
     MongooseModule.forRootAsync({
