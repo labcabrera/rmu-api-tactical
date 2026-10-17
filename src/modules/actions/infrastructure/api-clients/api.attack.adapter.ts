@@ -112,10 +112,14 @@ export class ApiAttackClientAdapter implements AttackPort {
   async deleteAttack(actionId: string): Promise<void> {
     const token = await this.tokenService.getToken();
     const uri = `${this.apiCoreUri}/attacks/${actionId}`;
-    await axios.delete(uri, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    try {
+      await axios.delete(uri, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    } catch (err) {
+      throw handleAxiosError(err, uri);
+    }
   }
 }
