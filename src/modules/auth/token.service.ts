@@ -6,6 +6,7 @@ import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
 
 import { handleAxiosError } from '../shared/infrastructure/api-rest/axios.error.adapter';
+import { currentRequestToken } from './request-token.context';
 
 @Injectable()
 export class TokenService {
@@ -16,7 +17,12 @@ export class TokenService {
   private token: string | null = null;
   private expiresAt = 0;
 
+  // Token for calls to the other RMU APIs: the caller's own token while handling an HTTP request (see
+  // RequestTokenInterceptor), so permissions are checked for that user; the service account's token
+  // (client credentials) otherwise, for example in Kafka consumers.
   async getToken(): Promise<string> {
+    const userToken = currentRequestToken();
+    if (userToken) return userToken;
     const now = Date.now();
     if (this.token && now < this.expiresAt) return this.token;
 

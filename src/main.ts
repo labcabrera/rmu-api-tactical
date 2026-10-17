@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { RequestTokenInterceptor } from './modules/auth/request-token.context';
 import { DomainExceptionFilter } from './modules/shared/interfaces/http/domain-exception.filter';
 
 function configureOpenApi(app: INestApplication<any>) {
@@ -109,6 +110,7 @@ async function bootstrap() {
   });
 
   app.useGlobalFilters(new DomainExceptionFilter());
+  app.useGlobalInterceptors(new RequestTokenInterceptor());
   await app.listen(app.get(ConfigService).get<string>('PORT') || 3003);
   await app.startAllMicroservices();
 }
