@@ -27,8 +27,8 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
     return this.findByRsql(rsql, 0, actorIds.length).then(page => page.content);
   }
 
-  async findByActorIdAndRound(characterId: string, round: number): Promise<ActorRound | null> {
-    return this.model.findOne({ actorId: characterId, round }).then(readed => (readed ? this.mapToEntity(readed) : null));
+  async findByActorIdAndRound(gameId: string, actorId: string, round: number): Promise<ActorRound | null> {
+    return this.model.findOne({ gameId, actorId, round }).then(readed => (readed ? this.mapToEntity(readed) : null));
   }
 
   async deleteByGameId(gameId: string): Promise<void> {

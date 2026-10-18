@@ -13,7 +13,7 @@ export class UpkeepActorRoundHandler implements ICommandHandler<UpkeepActorRound
 
   async execute(command: UpkeepActorRoundCommand): Promise<ActorRound> {
     this.logger.debug(`Execute << ${JSON.stringify(command)}`);
-    const actorRound = await this.actorRoundRepository.findByActorIdAndRound(command.actorRoundId, command.round);
+    const actorRound = await this.actorRoundRepository.findByActorIdAndRound(command.gameId, command.actorRoundId, command.round);
     if (!actorRound) {
       throw new NotFoundError('Actor round', command.actorRoundId);
     }

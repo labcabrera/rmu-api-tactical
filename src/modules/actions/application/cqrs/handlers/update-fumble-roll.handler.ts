@@ -1,12 +1,14 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
-import { NotFoundError } from '../../../../shared/domain/errors';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
-import type { AttackPort } from '../../ports/attack.port';
+import type { FumbleTablePort } from '../../ports/fumble-table.port';
+import { CombatProcessor } from '../../services/combat';
 import { UpdateFumbleRollCommand } from '../commands/update-fumble-roll.command';
 
 @CommandHandler(UpdateFumbleRollCommand)
@@ -16,8 +18,10 @@ export class UpdateFumbleRollHandler implements ICommandHandler<UpdateFumbleRoll
   constructor(
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('AttackPort') private readonly attackPort: AttackPort,
+    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject('FumbleTablePort') private readonly fumbleTablePort: FumbleTablePort,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
+    private readonly combatProcessor: CombatProcessor,
   ) {}
 
   async execute(command: UpdateFumbleRollCommand): Promise<Action> {
@@ -30,15 +34,37 @@ export class UpdateFumbleRollHandler implements ICommandHandler<UpdateFumbleRoll
     if (!game) throw new NotFoundError('Game', action.gameId);
 
     const attack = action.getAttackByName(command.attackName);
-    attack.roll!.fumbleRoll = command.fumbleRoll;
-    const attackResponse = await this.attackPort.updateFumbleRoll(attack.externalAttackId!, command.fumbleRoll);
-    attack.results = attackResponse.results;
-    if (!action.hasPendingCriticalRolls() && !action.hasPendingFumbleRolls()) {
-      action.status = 'pending_apply';
+    if (!attack.results?.fumble) {
+      throw new ValidationError(`Attack ${command.attackName} has no pending fumble`);
     }
+
+    const sourceActor = await this.actorRoundRepository.findByActorIdAndRound(action.gameId, action.actorId, action.round);
+    if (!sourceActor) throw new NotFoundError('ActorRound', action.actorId);
+    const sourceAttack = sourceActor.attacks?.find(a => a.attackName === command.attackName);
+    if (!sourceAttack) {
+      throw new ValidationError(`Attack ${command.attackName} not found on actor ${action.actorId}`);
+    }
+
+    const ctx = await this.combatProcessor.runPhase('fumbleRoll', {
+      action,
+      attack,
+      fumbleRoll: command.fumbleRoll,
+      sourceActor,
+      sourceAttack,
+      trace: [],
+    });
+
+    // The raw roll is stored; the adapter clamps the one looked up to the table range.
+    attack.roll!.fumbleRoll = command.fumbleRoll;
+    attack.results.fumble = await this.fumbleTablePort.lookup({
+      fumbleTable: sourceAttack.fumbleTable,
+      roll: ctx.fumbleRoll ?? command.fumbleRoll,
+    });
+    action.refreshAttackStatuses();
+
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
-    return action;
+    return updated;
   }
 }

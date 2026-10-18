@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { TokenService } from '../../../auth/token.service';
 import { Npc, NpcPort } from '../../application/ports/npc.port';
+import { handleAxiosError } from '../../../shared/infrastructure/api-rest/axios.error.adapter';
 
 @Injectable()
 export class ApiNpcAdapter implements NpcPort {
@@ -28,9 +29,8 @@ export class ApiNpcAdapter implements NpcPort {
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 404) {
         return undefined;
-      } else {
-        throw err;
       }
+      throw handleAxiosError(err, uri);
     }
   }
 }

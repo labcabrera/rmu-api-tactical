@@ -23,7 +23,10 @@ export class ActionAttackResultsDto {
   @ApiProperty({ description: 'List of criticals', type: [CriticalDto], required: false })
   criticals: CriticalDto[] | undefined;
 
-  @ApiProperty({ description: 'Fumble information', required: false })
+  @ApiProperty({
+    description: 'Fumble: `{status, text, additionalDamageText, damage, effects}`, status `pending_roll` until the fumble roll',
+    required: false,
+  })
   fumble:
     | {
         status: string;

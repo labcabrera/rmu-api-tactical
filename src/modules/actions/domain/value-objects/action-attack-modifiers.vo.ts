@@ -1,5 +1,24 @@
 export type AttackType = 'melee' | 'ranged' | 'thrown';
 export type CalledShot = 'none' | 'head' | 'chest' | 'abdomen' | 'arms' | 'legs';
+export type PositionalSource = 'none' | 'to_flank' | 'to_rear';
+export type PositionalTarget = 'none' | 'flank' | 'rear';
+export type RestrictedQuarters = 'none' | 'close' | 'cramped' | 'tight' | 'confined';
+export type Cover = 'none' | 'soft_partial' | 'soft_half' | 'soft_full' | 'hard_partial' | 'hard_half' | 'hard_full';
+export type Dodge = 'none' | 'passive' | 'partial' | 'full';
+export type ChargeSpeed = 'none' | 'jog' | 'sprint';
+
+/** `spring` was the original (misspelt) value: still accepted as input and in stored actions. */
+export const normalizeChargeSpeed = (value: string | undefined | null): ChargeSpeed => {
+  switch (value) {
+    case 'jog':
+      return 'jog';
+    case 'sprint':
+    case 'spring':
+      return 'sprint';
+    default:
+      return 'none';
+  }
+};
 
 export class ActionAttackModifiers {
   constructor(
@@ -8,7 +27,7 @@ export class ActionAttackModifiers {
     public parry: number | undefined,
     public calledShot: CalledShot | undefined,
     public calledShotPenalty: number | undefined,
-    public positionalSource: string | undefined,
+    public positionalSource: PositionalSource | undefined,
     public positionalTarget: string | undefined,
     public restrictedQuarters: string | undefined,
     public cover: string | undefined,
@@ -28,5 +47,6 @@ export class ActionAttackModifiers {
     public ambush: boolean | undefined,
     public range: number | undefined,
     public customBonus: number | undefined,
+    public chargeSpeed: ChargeSpeed | undefined,
   ) {}
 }

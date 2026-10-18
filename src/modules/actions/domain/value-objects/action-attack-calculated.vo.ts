@@ -7,5 +7,8 @@ export class ActionAttackCalculated {
     public rollTotal: number,
     public location: AttackLocation | undefined,
     public requiredLocationRoll: boolean,
+    public criticalAdjustment: number | undefined = undefined,
+    public criticalModifiers?: KeyValueModifier[],
+    public breakageRoll?: boolean,
   ) {}
 }

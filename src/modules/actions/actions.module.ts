@@ -22,19 +22,17 @@ import { UpdateCriticalRollHandler } from './application/cqrs/handlers/update-cr
 import { UpdateFumbleRollHandler } from './application/cqrs/handlers/update-fumble-roll.handler';
 import { AbsoluteManeuverProcessorService } from './application/services/absolute-maneuver-processor.service';
 import {
+  COMBAT_PLUGIN_LIST,
   COMBAT_PLUGINS,
-  CombatAttackRollProcessorService,
-  CombatContextFactoryService,
-  CombatCriticalProcessorService,
-  CombatDamageProcessorService,
+  CombatAttackRollResolverService,
   CombatPluginRegistryService,
-  CombatResolutionService,
-  CombatRulesEngineService,
-  CombatTableLookupProcessorService,
+  CombatProcessor,
 } from './application/services/combat';
 import { MovementProcessorService } from './application/services/movement-processor.service';
 import { SkillService } from './application/services/skill-service';
-import { ApiAttackClientAdapter } from './infrastructure/api-clients/api.attack.adapter';
+import { ApiAttackTableAdapter } from './infrastructure/api-clients/api.attack-table.adapter';
+import { ApiCriticalTableAdapter } from './infrastructure/api-clients/api.critical-table.adapter';
+import { ApiFumbleTableAdapter } from './infrastructure/api-clients/api.fumble-table.adapter';
 import { ApiManeuverAdapter } from './infrastructure/api-clients/api.maneuver.adapter';
 import { MongoActionRepository } from './infrastructure/db/mongo.action.repository';
 import { KafkaActionEventBusAdapter } from './infrastructure/messaging/kafka.action-event-bus.adapter';
@@ -60,14 +58,9 @@ import { MovementController } from './interfaces/http/movement.controller';
   providers: [
     MovementProcessorService,
     AbsoluteManeuverProcessorService,
-    CombatContextFactoryService,
     CombatPluginRegistryService,
-    CombatRulesEngineService,
-    CombatResolutionService,
-    CombatAttackRollProcessorService,
-    CombatTableLookupProcessorService,
-    CombatDamageProcessorService,
-    CombatCriticalProcessorService,
+    CombatProcessor,
+    CombatAttackRollResolverService,
     GetActionQueryHandler,
     GetActionsQueryHandler,
     CreateActionHandler,
@@ -90,8 +83,16 @@ import { MovementController } from './interfaces/http/movement.controller';
       useClass: KafkaActionEventBusAdapter,
     },
     {
-      provide: 'AttackPort',
-      useClass: ApiAttackClientAdapter,
+      provide: 'AttackTablePort',
+      useClass: ApiAttackTableAdapter,
+    },
+    {
+      provide: 'CriticalTablePort',
+      useClass: ApiCriticalTableAdapter,
+    },
+    {
+      provide: 'FumbleTablePort',
+      useClass: ApiFumbleTableAdapter,
     },
     {
       provide: 'ManeuverPort',
@@ -99,9 +100,9 @@ import { MovementController } from './interfaces/http/movement.controller';
     },
     {
       provide: COMBAT_PLUGINS,
-      useValue: [],
+      useValue: COMBAT_PLUGIN_LIST,
     },
   ],
-  exports: ['ActionRepository', CombatPluginRegistryService, CombatRulesEngineService, CombatResolutionService],
+  exports: ['ActionRepository', CombatPluginRegistryService, CombatProcessor],
 })
 export class ActionsModule {}

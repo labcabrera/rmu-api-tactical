@@ -13,7 +13,7 @@ export class DeclareActorParryHandler implements ICommandHandler<DeclareActorPar
 
   async execute(command: DeclareActorParryCommand): Promise<ActorRound> {
     this.logger.debug(`Execute << ${JSON.stringify(command)}`);
-    const actorRound = await this.actorRoundRepository.findByActorIdAndRound(command.actorId, command.round);
+    const actorRound = await this.actorRoundRepository.findByActorIdAndRound(command.gameId, command.actorId, command.round);
     if (!actorRound) {
       throw new UnprocessableEntityError(`Unable to find actor round for actor ${command.actorId} and round ${command.round}`);
     }

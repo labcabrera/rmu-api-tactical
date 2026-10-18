@@ -15,7 +15,11 @@ export class ActionDto {
   @ApiProperty({ description: 'Game identifier', example: 'game-456' })
   gameId: string;
 
-  @ApiProperty({ description: 'Action status', example: 'declared' })
+  @ApiProperty({
+    description: 'Action status. An attack action is `pending_roll` while any of its attacks waits for a roll',
+    enum: ['declared', 'prepared', 'parry', 'pending_roll', 'pending_apply', 'completed'],
+    example: 'declared',
+  })
   status: ActionStatus;
 
   @ApiProperty({ description: 'Character identifier', example: 'character-789' })

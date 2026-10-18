@@ -1,0 +1,4540 @@
+[
+  {
+    "id": "melee-shield-parry",
+    "description": "Melee against a target with shield and parry.",
+    "input": {
+      "attackType": "melee",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 90,
+      "bd": 15,
+      "shield": 20,
+      "parry": 25,
+      "actionPoints": 4,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "none",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 3,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 70,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "melee",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 90
+        },
+        {
+          "key": "bd",
+          "value": -15
+        },
+        {
+          "key": "shield",
+          "value": -20
+        },
+        {
+          "key": "parry",
+          "value": -25
+        }
+      ],
+      "prepareRollTotal": 30,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 70
+        },
+        {
+          "key": "bo",
+          "value": 90
+        },
+        {
+          "key": "bd",
+          "value": -15
+        },
+        {
+          "key": "shield",
+          "value": -20
+        },
+        {
+          "key": "parry",
+          "value": -25
+        }
+      ],
+      "rollTotal": 100,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 3,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 100,
+        "at": 3
+      },
+      "tableRoll": 100,
+      "tableEntry": {
+        "text": "fake-100-3",
+        "damage": 9,
+        "criticalType": "S",
+        "criticalSeverity": "B"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 9,
+      "damage": 9,
+      "criticalType": "S",
+      "criticalSeverityBase": "B",
+      "criticalSeverity": "B",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "s_b_1",
+          "type": "S",
+          "severity": "B",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "s_b_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "bd",
+      "shield",
+      "parry"
+    ],
+    "notes": [],
+    "deviations": []
+  },
+  {
+    "id": "melee-disabled-defenses",
+    "description": "DB, shield and parry all disabled although they have values.",
+    "input": {
+      "attackType": "melee",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 60,
+      "bd": 30,
+      "shield": 20,
+      "parry": 15,
+      "actionPoints": 4,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "none",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": true,
+      "disabledShield": true,
+      "disabledParry": true,
+      "sizeDifference": 0,
+      "skills": [],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 4,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 55,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "melee",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 60
+        }
+      ],
+      "prepareRollTotal": 60,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 55
+        },
+        {
+          "key": "bo",
+          "value": 60
+        }
+      ],
+      "rollTotal": 115,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 4,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 115,
+        "at": 4
+      },
+      "tableRoll": 115,
+      "tableEntry": {
+        "text": "fake-115-4",
+        "damage": 12,
+        "criticalType": "P",
+        "criticalSeverity": "D"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 12,
+      "damage": 12,
+      "criticalType": "P",
+      "criticalSeverityBase": "D",
+      "criticalSeverity": "D",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "p_d_1",
+          "type": "P",
+          "severity": "D",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "p_d_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo"
+    ],
+    "notes": [],
+    "deviations": []
+  },
+  {
+    "id": "melee-two-ap-pace-footwork",
+    "description": "Melee with 2 AP (-50) and a pace penalty partly offset by footwork.",
+    "input": {
+      "attackType": "melee",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 100,
+      "bd": 10,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 2,
+      "rangePenalty": 0,
+      "pacePenalty": -50,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "none",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [
+        {
+          "skillId": "footwork",
+          "bonus": 20
+        }
+      ],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 5,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 80,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "melee",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 100
+        },
+        {
+          "key": "pace-penalty",
+          "value": -50
+        },
+        {
+          "key": "pace-penalty-skill-footwork",
+          "value": 20
+        },
+        {
+          "key": "action-points",
+          "value": -50
+        },
+        {
+          "key": "bd",
+          "value": -10
+        }
+      ],
+      "prepareRollTotal": 10,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 80
+        },
+        {
+          "key": "bo",
+          "value": 100
+        },
+        {
+          "key": "pace-penalty",
+          "value": -50
+        },
+        {
+          "key": "pace-penalty-skill-footwork",
+          "value": 20
+        },
+        {
+          "key": "action-points",
+          "value": -50
+        },
+        {
+          "key": "bd",
+          "value": -10
+        }
+      ],
+      "rollTotal": 90,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 5,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 90,
+        "at": 5
+      },
+      "tableRoll": 90,
+      "tableEntry": {
+        "text": "fake-90-5",
+        "damage": 6,
+        "criticalType": "S",
+        "criticalSeverity": "A"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 6,
+      "damage": 6,
+      "criticalType": "S",
+      "criticalSeverityBase": "A",
+      "criticalSeverity": "A",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "s_a_1",
+          "type": "S",
+          "severity": "A",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "s_a_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "pace-penalty",
+      "pace-penalty-skill-footwork",
+      "action-points",
+      "bd"
+    ],
+    "notes": [],
+    "deviations": [
+      {
+        "decision": "D2",
+        "key": "pace-penalty",
+        "note": "Python passes the pace penalty through (footwork offset in melee only). Tactical computes pace -25/-50/-75 for every attack type, with footwork."
+      }
+    ]
+  },
+  {
+    "id": "ranged-two-ap-range-pace",
+    "description": "Ranged attack with 2 AP (-25), range penalty and a pace penalty with footwork (no offset outside melee).",
+    "input": {
+      "attackType": "ranged",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 70,
+      "bd": 10,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 2,
+      "rangePenalty": -15,
+      "pacePenalty": -25,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "none",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [
+        {
+          "skillId": "footwork",
+          "bonus": 30
+        }
+      ],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 5,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 90,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "ranged",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 70
+        },
+        {
+          "key": "pace-penalty",
+          "value": -25
+        },
+        {
+          "key": "range-penalty",
+          "value": -15
+        },
+        {
+          "key": "action-points",
+          "value": -25
+        },
+        {
+          "key": "bd",
+          "value": -10
+        }
+      ],
+      "prepareRollTotal": -5,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 90
+        },
+        {
+          "key": "bo",
+          "value": 70
+        },
+        {
+          "key": "pace-penalty",
+          "value": -25
+        },
+        {
+          "key": "range-penalty",
+          "value": -15
+        },
+        {
+          "key": "action-points",
+          "value": -25
+        },
+        {
+          "key": "bd",
+          "value": -10
+        }
+      ],
+      "rollTotal": 85,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 5,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 85,
+        "at": 5
+      },
+      "tableRoll": 85,
+      "tableEntry": {
+        "text": "fake-85-5",
+        "damage": 5,
+        "criticalType": "S",
+        "criticalSeverity": "A"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 5,
+      "damage": 5,
+      "criticalType": "S",
+      "criticalSeverityBase": "A",
+      "criticalSeverity": "A",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "s_a_1",
+          "type": "S",
+          "severity": "A",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "s_a_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "pace-penalty",
+      "range-penalty",
+      "action-points",
+      "bd"
+    ],
+    "notes": [],
+    "deviations": [
+      {
+        "decision": "D2",
+        "key": "pace-penalty",
+        "note": "Python passes the pace penalty through (footwork offset in melee only). Tactical computes pace -25/-50/-75 for every attack type, with footwork."
+      }
+    ]
+  },
+  {
+    "id": "ranged-four-ap-bonus",
+    "description": "Ranged attack declared with 4 AP: Python yields +25 action points.",
+    "input": {
+      "attackType": "ranged",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 60,
+      "bd": 10,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 4,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "none",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 5,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 60,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "ranged",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 60
+        },
+        {
+          "key": "action-points",
+          "value": 25
+        },
+        {
+          "key": "bd",
+          "value": -10
+        }
+      ],
+      "prepareRollTotal": 75,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 60
+        },
+        {
+          "key": "bo",
+          "value": 60
+        },
+        {
+          "key": "action-points",
+          "value": 25
+        },
+        {
+          "key": "bd",
+          "value": -10
+        }
+      ],
+      "rollTotal": 135,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 5,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 135,
+        "at": 5
+      },
+      "tableRoll": 135,
+      "tableEntry": {
+        "text": "fake-135-5",
+        "damage": 17,
+        "criticalType": "S",
+        "criticalSeverity": "F"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 17,
+      "damage": 17,
+      "criticalType": "S",
+      "criticalSeverityBase": "F",
+      "criticalSeverity": "F",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "s_e_1",
+          "type": "S",
+          "severity": "E",
+          "adjustment": 0
+        },
+        {
+          "key": "s_a_2",
+          "type": "S",
+          "severity": "A",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "s_e_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "action-points",
+      "bd"
+    ],
+    "notes": [],
+    "deviations": [
+      {
+        "decision": "D2",
+        "key": "action-points",
+        "note": "Python gives a positive bonus when AP exceed the base (4 melee / 3 ranged); tactical clamps the penalty at 0."
+      }
+    ]
+  },
+  {
+    "id": "thrown-in-melee",
+    "description": "Thrown attack while engaged in melee: range penalty and range-in-melee.",
+    "input": {
+      "attackType": "thrown",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 75,
+      "bd": 10,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 3,
+      "rangePenalty": -10,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [
+        "melee"
+      ],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "none",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 5,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 85,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "ranged",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 75
+        },
+        {
+          "key": "range-penalty",
+          "value": -10
+        },
+        {
+          "key": "bd",
+          "value": -10
+        },
+        {
+          "key": "range-in-melee",
+          "value": -20
+        }
+      ],
+      "prepareRollTotal": 35,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 85
+        },
+        {
+          "key": "bo",
+          "value": 75
+        },
+        {
+          "key": "range-penalty",
+          "value": -10
+        },
+        {
+          "key": "bd",
+          "value": -10
+        },
+        {
+          "key": "range-in-melee",
+          "value": -20
+        }
+      ],
+      "rollTotal": 120,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 5,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 120,
+        "at": 5
+      },
+      "tableRoll": 120,
+      "tableEntry": {
+        "text": "fake-120-5",
+        "damage": 13,
+        "criticalType": "S",
+        "criticalSeverity": "D"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 13,
+      "damage": 13,
+      "criticalType": "S",
+      "criticalSeverityBase": "D",
+      "criticalSeverity": "D",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "s_d_1",
+          "type": "S",
+          "severity": "D",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "s_d_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "range-penalty",
+      "bd",
+      "range-in-melee"
+    ],
+    "notes": [],
+    "deviations": [
+      {
+        "decision": "D2",
+        "key": "attack-type",
+        "note": "Python has no 'thrown' type (its DTO rejects it). The fixture feeds it as 'ranged'."
+      }
+    ]
+  },
+  {
+    "id": "rq-cramped-skill-capped",
+    "description": "Cramped restricted quarters (-50); a skill of 80 is capped at 50.",
+    "input": {
+      "attackType": "melee",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 100,
+      "bd": 20,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 4,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "cramped",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [
+        {
+          "skillId": "restricted-quarters",
+          "bonus": 80
+        }
+      ],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 5,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 60,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "melee",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 100
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "restricted-quarters",
+          "value": -50
+        },
+        {
+          "key": "restricted-quarters-skill-restricted-quarters",
+          "value": 50
+        }
+      ],
+      "prepareRollTotal": 80,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 60
+        },
+        {
+          "key": "bo",
+          "value": 100
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "restricted-quarters",
+          "value": -50
+        },
+        {
+          "key": "restricted-quarters-skill-restricted-quarters",
+          "value": 50
+        }
+      ],
+      "rollTotal": 140,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 5,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 140,
+        "at": 5
+      },
+      "tableRoll": 140,
+      "tableEntry": {
+        "text": "fake-140-5",
+        "damage": 18,
+        "criticalType": "S",
+        "criticalSeverity": "F"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 18,
+      "damage": 18,
+      "criticalType": "S",
+      "criticalSeverityBase": "F",
+      "criticalSeverity": "F",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "s_e_1",
+          "type": "S",
+          "severity": "E",
+          "adjustment": 0
+        },
+        {
+          "key": "s_a_2",
+          "type": "S",
+          "severity": "A",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "s_e_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "bd",
+      "restricted-quarters",
+      "restricted-quarters-skill-restricted-quarters"
+    ],
+    "notes": [],
+    "deviations": []
+  },
+  {
+    "id": "rq-confined-negative-skill",
+    "description": "Confined restricted quarters (-100) with a negative skill bonus.",
+    "input": {
+      "attackType": "melee",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 150,
+      "bd": 20,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 4,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "confined",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [
+        {
+          "skillId": "restricted-quarters",
+          "bonus": -15
+        }
+      ],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 5,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 90,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "melee",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 150
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "restricted-quarters",
+          "value": -100
+        },
+        {
+          "key": "restricted-quarters-skill-restricted-quarters",
+          "value": -15
+        }
+      ],
+      "prepareRollTotal": 15,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 90
+        },
+        {
+          "key": "bo",
+          "value": 150
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "restricted-quarters",
+          "value": -100
+        },
+        {
+          "key": "restricted-quarters-skill-restricted-quarters",
+          "value": -15
+        }
+      ],
+      "rollTotal": 105,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 5,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 105,
+        "at": 5
+      },
+      "tableRoll": 105,
+      "tableEntry": {
+        "text": "fake-105-5",
+        "damage": 10,
+        "criticalType": "S",
+        "criticalSeverity": "C"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 10,
+      "damage": 10,
+      "criticalType": "S",
+      "criticalSeverityBase": "C",
+      "criticalSeverity": "C",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "s_c_1",
+          "type": "S",
+          "severity": "C",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "s_c_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "bd",
+      "restricted-quarters",
+      "restricted-quarters-skill-restricted-quarters"
+    ],
+    "notes": [
+      "min(|penalty|, skill) with a negative skill returns the skill itself, so the offset adds a further -15."
+    ],
+    "deviations": []
+  },
+  {
+    "id": "melee-positional-flank",
+    "description": "Melee attacker moving to the flank (-30, reverse-strike 20) against a flanked target (+15).",
+    "input": {
+      "attackType": "melee",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 80,
+      "bd": 20,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 4,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "none",
+      "positionalSource": "to_flank",
+      "positionalTarget": "flank",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [
+        {
+          "skillId": "reverse-strike",
+          "bonus": 20
+        }
+      ],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 5,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 70,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "melee",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 80
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "positional-source",
+          "value": -30
+        },
+        {
+          "key": "positional-source-skill-reverse-strike",
+          "value": 20
+        },
+        {
+          "key": "positional-target",
+          "value": 15
+        }
+      ],
+      "prepareRollTotal": 65,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 70
+        },
+        {
+          "key": "bo",
+          "value": 80
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "positional-source",
+          "value": -30
+        },
+        {
+          "key": "positional-source-skill-reverse-strike",
+          "value": 20
+        },
+        {
+          "key": "positional-target",
+          "value": 15
+        }
+      ],
+      "rollTotal": 135,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 5,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 135,
+        "at": 5
+      },
+      "tableRoll": 135,
+      "tableEntry": {
+        "text": "fake-135-5",
+        "damage": 17,
+        "criticalType": "S",
+        "criticalSeverity": "F"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 17,
+      "damage": 17,
+      "criticalType": "S",
+      "criticalSeverityBase": "F",
+      "criticalSeverity": "F",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "s_e_1",
+          "type": "S",
+          "severity": "E",
+          "adjustment": 0
+        },
+        {
+          "key": "s_a_2",
+          "type": "S",
+          "severity": "A",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "s_e_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "bd",
+      "positional-source",
+      "positional-source-skill-reverse-strike",
+      "positional-target"
+    ],
+    "notes": [],
+    "deviations": []
+  },
+  {
+    "id": "melee-positional-rear",
+    "description": "Melee to the rear (-70, reverse-strike 100 capped at 70) against the target's rear (+35).",
+    "input": {
+      "attackType": "melee",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 90,
+      "bd": 20,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 4,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "none",
+      "positionalSource": "to_rear",
+      "positionalTarget": "rear",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [
+        {
+          "skillId": "reverse-strike",
+          "bonus": 100
+        }
+      ],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 3,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 88,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "melee",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 90
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "positional-source",
+          "value": -70
+        },
+        {
+          "key": "positional-source-skill-reverse-strike",
+          "value": 70
+        },
+        {
+          "key": "positional-target",
+          "value": 35
+        }
+      ],
+      "prepareRollTotal": 105,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 88
+        },
+        {
+          "key": "bo",
+          "value": 90
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "positional-source",
+          "value": -70
+        },
+        {
+          "key": "positional-source-skill-reverse-strike",
+          "value": 70
+        },
+        {
+          "key": "positional-target",
+          "value": 35
+        }
+      ],
+      "rollTotal": 193,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 3,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 193,
+        "at": 3
+      },
+      "tableRoll": 175,
+      "tableEntry": {
+        "text": "fake-175-3",
+        "damage": 28,
+        "criticalType": "S",
+        "criticalSeverity": "J"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 28,
+      "damage": 28,
+      "criticalType": "S",
+      "criticalSeverityBase": "J",
+      "criticalSeverity": "J",
+      "criticalModifiers": [
+        {
+          "key": "absolute-hit",
+          "value": 4
+        }
+      ],
+      "criticalTotal": 4,
+      "absoluteHit": 4,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "s_j_1",
+          "type": "S",
+          "severity": "J",
+          "adjustment": 4
+        },
+        {
+          "key": "s_c_2",
+          "type": "S",
+          "severity": "C",
+          "adjustment": 4
+        },
+        {
+          "key": "s_b_3",
+          "type": "S",
+          "severity": "B",
+          "adjustment": 4
+        }
+      ],
+      "criticalRollExample": {
+        "key": "s_j_1",
+        "roll": 50,
+        "adjustedRoll": 54
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "bd",
+      "positional-source",
+      "positional-source-skill-reverse-strike",
+      "positional-target"
+    ],
+    "notes": [],
+    "deviations": []
+  },
+  {
+    "id": "ranged-positional-ignored-rq-tight",
+    "description": "Positional source and target are melee only: ignored on a ranged attack. Tight restricted quarters (-75) without skill still applies.",
+    "input": {
+      "attackType": "ranged",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 150,
+      "bd": 20,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 3,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "tight",
+      "positionalSource": "to_rear",
+      "positionalTarget": "rear",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [
+        {
+          "skillId": "reverse-strike",
+          "bonus": 50
+        }
+      ],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 5,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 60,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "ranged",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 150
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "restricted-quarters",
+          "value": -75
+        }
+      ],
+      "prepareRollTotal": 55,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 60
+        },
+        {
+          "key": "bo",
+          "value": 150
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "restricted-quarters",
+          "value": -75
+        }
+      ],
+      "rollTotal": 115,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 5,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 115,
+        "at": 5
+      },
+      "tableRoll": 115,
+      "tableEntry": {
+        "text": "fake-115-5",
+        "damage": 12,
+        "criticalType": "S",
+        "criticalSeverity": "D"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 12,
+      "damage": 12,
+      "criticalType": "S",
+      "criticalSeverityBase": "D",
+      "criticalSeverity": "D",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "s_d_1",
+          "type": "S",
+          "severity": "D",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "s_d_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "bd",
+      "restricted-quarters"
+    ],
+    "notes": [],
+    "deviations": []
+  },
+  {
+    "id": "melee-cover-soft-half-negative-lethality",
+    "description": "Melee against soft half cover (-20); a negative lethality is dropped (only > 0 counts) and a custom bonus is added.",
+    "input": {
+      "attackType": "melee",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 80,
+      "bd": 20,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 4,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "soft_half",
+      "restrictedQuarters": "none",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": -10,
+      "customBonus": 15,
+      "armor": {
+        "at": 5,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 70,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "melee",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 80
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "cover",
+          "value": -20
+        },
+        {
+          "key": "custom-bonus",
+          "value": 15
+        }
+      ],
+      "prepareRollTotal": 55,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 70
+        },
+        {
+          "key": "bo",
+          "value": 80
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "cover",
+          "value": -20
+        },
+        {
+          "key": "custom-bonus",
+          "value": 15
+        }
+      ],
+      "rollTotal": 125,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 5,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 125,
+        "at": 5
+      },
+      "tableRoll": 125,
+      "tableEntry": {
+        "text": "fake-125-5",
+        "damage": 15,
+        "criticalType": "S",
+        "criticalSeverity": "E"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 15,
+      "damage": 15,
+      "criticalType": "S",
+      "criticalSeverityBase": "E",
+      "criticalSeverity": "E",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "s_e_1",
+          "type": "S",
+          "severity": "E",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "s_e_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "bd",
+      "cover",
+      "custom-bonus"
+    ],
+    "notes": [],
+    "deviations": []
+  },
+  {
+    "id": "ranged-cover-hard-full-clamp-low",
+    "description": "Ranged against hard full cover (-200): the total is negative and the table roll clamps to 1.",
+    "input": {
+      "attackType": "ranged",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 50,
+      "bd": 30,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 3,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "hard_full",
+      "restrictedQuarters": "none",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 5,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 40,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "ranged",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 50
+        },
+        {
+          "key": "bd",
+          "value": -30
+        },
+        {
+          "key": "cover",
+          "value": -200
+        }
+      ],
+      "prepareRollTotal": -180,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 40
+        },
+        {
+          "key": "bo",
+          "value": 50
+        },
+        {
+          "key": "bd",
+          "value": -30
+        },
+        {
+          "key": "cover",
+          "value": -200
+        }
+      ],
+      "rollTotal": -140,
+      "status": "pending_apply",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 5,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": -140,
+        "at": 5
+      },
+      "tableRoll": 1,
+      "tableEntry": {
+        "text": "fake-1-5",
+        "damage": 0,
+        "criticalType": null,
+        "criticalSeverity": null
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 0,
+      "damage": 0,
+      "criticalType": null,
+      "criticalSeverityBase": null,
+      "criticalSeverity": null,
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [],
+      "criticalRollExample": null
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "bd",
+      "cover"
+    ],
+    "notes": [],
+    "deviations": []
+  },
+  {
+    "id": "melee-statuses",
+    "description": "Melee: prone attacker, target stunned, surprised and prone.",
+    "input": {
+      "attackType": "melee",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 70,
+      "bd": 20,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 4,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [
+        "prone"
+      ],
+      "targetStatuses": [
+        "stunned",
+        "surprised",
+        "prone"
+      ],
+      "cover": "none",
+      "restrictedQuarters": "none",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 6,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 60,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "melee",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 70
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "prone-source",
+          "value": -50
+        },
+        {
+          "key": "stunned-target",
+          "value": 20
+        },
+        {
+          "key": "surprised-target",
+          "value": 25
+        },
+        {
+          "key": "prone-target",
+          "value": 30
+        }
+      ],
+      "prepareRollTotal": 75,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 60
+        },
+        {
+          "key": "bo",
+          "value": 70
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "prone-source",
+          "value": -50
+        },
+        {
+          "key": "stunned-target",
+          "value": 20
+        },
+        {
+          "key": "surprised-target",
+          "value": 25
+        },
+        {
+          "key": "prone-target",
+          "value": 30
+        }
+      ],
+      "rollTotal": 135,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 6,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 135,
+        "at": 6
+      },
+      "tableRoll": 135,
+      "tableEntry": {
+        "text": "fake-135-6",
+        "damage": 17,
+        "criticalType": "P",
+        "criticalSeverity": "E"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 17,
+      "damage": 17,
+      "criticalType": "P",
+      "criticalSeverityBase": "E",
+      "criticalSeverity": "E",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "p_e_1",
+          "type": "P",
+          "severity": "E",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "p_e_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "bd",
+      "prone-source",
+      "stunned-target",
+      "surprised-target",
+      "prone-target"
+    ],
+    "notes": [
+      "Python accepts stunned and surprised together; tactical drops stunned when surprised is set."
+    ],
+    "deviations": []
+  },
+  {
+    "id": "ranged-prone-target-hard-partial-cover",
+    "description": "Ranged: prone attacker, prone target (-30 outside melee) and hard partial cover (-40).",
+    "input": {
+      "attackType": "ranged",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 150,
+      "bd": 20,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 3,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [
+        "prone"
+      ],
+      "targetStatuses": [
+        "prone"
+      ],
+      "cover": "hard_partial",
+      "restrictedQuarters": "none",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 5,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 80,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "ranged",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 150
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "prone-source",
+          "value": -50
+        },
+        {
+          "key": "prone-target",
+          "value": -30
+        },
+        {
+          "key": "cover",
+          "value": -40
+        }
+      ],
+      "prepareRollTotal": 10,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 80
+        },
+        {
+          "key": "bo",
+          "value": 150
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "prone-source",
+          "value": -50
+        },
+        {
+          "key": "prone-target",
+          "value": -30
+        },
+        {
+          "key": "cover",
+          "value": -40
+        }
+      ],
+      "rollTotal": 90,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 5,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 90,
+        "at": 5
+      },
+      "tableRoll": 90,
+      "tableEntry": {
+        "text": "fake-90-5",
+        "damage": 6,
+        "criticalType": "S",
+        "criticalSeverity": "A"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 6,
+      "damage": 6,
+      "criticalType": "S",
+      "criticalSeverityBase": "A",
+      "criticalSeverity": "A",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "s_a_1",
+          "type": "S",
+          "severity": "A",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "s_a_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "bd",
+      "prone-source",
+      "prone-target",
+      "cover"
+    ],
+    "notes": [],
+    "deviations": []
+  },
+  {
+    "id": "melee-off-hand-rq-close-engaged",
+    "description": "Off-hand weapon without ambidexterity (-20), close restricted quarters (-25) with skill 10, and the 'melee' source status (no range-in-melee for melee).",
+    "input": {
+      "attackType": "melee",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 100,
+      "bd": 20,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 4,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [
+        "melee"
+      ],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "close",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": true,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [
+        {
+          "skillId": "restricted-quarters",
+          "bonus": 10
+        }
+      ],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 5,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 70,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "melee",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 100
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "restricted-quarters",
+          "value": -25
+        },
+        {
+          "key": "restricted-quarters-skill-restricted-quarters",
+          "value": 10
+        },
+        {
+          "key": "off-hand-weapon",
+          "value": -20
+        }
+      ],
+      "prepareRollTotal": 45,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 70
+        },
+        {
+          "key": "bo",
+          "value": 100
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "restricted-quarters",
+          "value": -25
+        },
+        {
+          "key": "restricted-quarters-skill-restricted-quarters",
+          "value": 10
+        },
+        {
+          "key": "off-hand-weapon",
+          "value": -20
+        }
+      ],
+      "rollTotal": 115,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 5,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 115,
+        "at": 5
+      },
+      "tableRoll": 115,
+      "tableEntry": {
+        "text": "fake-115-5",
+        "damage": 12,
+        "criticalType": "S",
+        "criticalSeverity": "D"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 12,
+      "damage": 12,
+      "criticalType": "S",
+      "criticalSeverityBase": "D",
+      "criticalSeverity": "D",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "s_d_1",
+          "type": "S",
+          "severity": "D",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "s_d_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "bd",
+      "restricted-quarters",
+      "restricted-quarters-skill-restricted-quarters",
+      "off-hand-weapon"
+    ],
+    "notes": [],
+    "deviations": []
+  },
+  {
+    "id": "melee-off-hand-ambidextrous-two-handed",
+    "description": "Off-hand with the ambidextrous status (+20) and the two-handed weapon flag (+10).",
+    "input": {
+      "attackType": "melee",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 80,
+      "bd": 20,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 4,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [
+        "ambidextrous"
+      ],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "none",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": true,
+      "twoHandedWeapon": true,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 5,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 75,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "melee",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 80
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "off-hand-weapon",
+          "value": -20
+        },
+        {
+          "key": "ambidextrous",
+          "value": 20
+        },
+        {
+          "key": "two-handed-weapon",
+          "value": 10
+        }
+      ],
+      "prepareRollTotal": 70,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 75
+        },
+        {
+          "key": "bo",
+          "value": 80
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "off-hand-weapon",
+          "value": -20
+        },
+        {
+          "key": "ambidextrous",
+          "value": 20
+        },
+        {
+          "key": "two-handed-weapon",
+          "value": 10
+        }
+      ],
+      "rollTotal": 145,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 5,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 145,
+        "at": 5
+      },
+      "tableRoll": 145,
+      "tableEntry": {
+        "text": "fake-145-5",
+        "damage": 20,
+        "criticalType": "S",
+        "criticalSeverity": "G"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 20,
+      "damage": 20,
+      "criticalType": "S",
+      "criticalSeverityBase": "G",
+      "criticalSeverity": "G",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "s_e_1",
+          "type": "S",
+          "severity": "E",
+          "adjustment": 0
+        },
+        {
+          "key": "s_b_2",
+          "type": "S",
+          "severity": "B",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "s_e_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "bd",
+      "off-hand-weapon",
+      "ambidextrous",
+      "two-handed-weapon"
+    ],
+    "notes": [
+      "Tactical always sends twoHandedWeapon=false and derives offHand from the attack name.",
+      "Ambidexterity is read from the source statuses, not from a talent."
+    ],
+    "deviations": []
+  },
+  {
+    "id": "called-shot-head-default-penalty",
+    "description": "Called shot to the head with no penalty given (defaults to -25) and called-shot skill 10; AT taken from headAt.",
+    "input": {
+      "attackType": "melee",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 100,
+      "bd": 20,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 4,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "none",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "head",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [
+        {
+          "skillId": "called-shot",
+          "bonus": 10
+        }
+      ],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": null,
+        "headAt": 2,
+        "bodyAt": 8,
+        "armsAt": 6,
+        "legsAt": 6
+      },
+      "roll": 85,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "melee",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 100
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "called-shot",
+          "value": -25
+        },
+        {
+          "key": "called-shot-skill-called-shot",
+          "value": 10
+        }
+      ],
+      "prepareRollTotal": 65,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 85
+        },
+        {
+          "key": "bo",
+          "value": 100
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "called-shot",
+          "value": -25
+        },
+        {
+          "key": "called-shot-skill-called-shot",
+          "value": 10
+        }
+      ],
+      "rollTotal": 150,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "head",
+      "effectiveAt": 2,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 150,
+        "at": 2
+      },
+      "tableRoll": 150,
+      "tableEntry": {
+        "text": "fake-150-2",
+        "damage": 22,
+        "criticalType": "P",
+        "criticalSeverity": "G"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 22,
+      "damage": 22,
+      "criticalType": "P",
+      "criticalSeverityBase": "G",
+      "criticalSeverity": "G",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "p_e_1",
+          "type": "P",
+          "severity": "E",
+          "adjustment": 0
+        },
+        {
+          "key": "p_b_2",
+          "type": "P",
+          "severity": "B",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "p_e_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "bd",
+      "called-shot",
+      "called-shot-skill-called-shot"
+    ],
+    "notes": [],
+    "deviations": []
+  },
+  {
+    "id": "called-shot-legs-global-at",
+    "description": "Ranged called shot to the legs with -40 and skill 60 (capped at 40); a global AT wins over legsAt.",
+    "input": {
+      "attackType": "ranged",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 90,
+      "bd": 20,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 3,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "none",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "legs",
+      "calledShotPenalty": -40,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [
+        {
+          "skillId": "called-shot",
+          "bonus": 60
+        }
+      ],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 7,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": 2
+      },
+      "roll": 90,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "ranged",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 90
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "called-shot",
+          "value": -40
+        },
+        {
+          "key": "called-shot-skill-called-shot",
+          "value": 40
+        }
+      ],
+      "prepareRollTotal": 70,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 90
+        },
+        {
+          "key": "bo",
+          "value": 90
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "called-shot",
+          "value": -40
+        },
+        {
+          "key": "called-shot-skill-called-shot",
+          "value": 40
+        }
+      ],
+      "rollTotal": 160,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "legs",
+      "effectiveAt": 7,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 160,
+        "at": 7
+      },
+      "tableRoll": 160,
+      "tableEntry": {
+        "text": "fake-160-7",
+        "damage": 23,
+        "criticalType": "S",
+        "criticalSeverity": "H"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 23,
+      "damage": 23,
+      "criticalType": "S",
+      "criticalSeverityBase": "H",
+      "criticalSeverity": "H",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "s_e_1",
+          "type": "S",
+          "severity": "E",
+          "adjustment": 0
+        },
+        {
+          "key": "s_c_2",
+          "type": "S",
+          "severity": "C",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "s_e_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "bd",
+      "called-shot",
+      "called-shot-skill-called-shot"
+    ],
+    "notes": [],
+    "deviations": []
+  },
+  {
+    "id": "location-arms-at",
+    "description": "No global AT: the hit location 'arms' selects armsAt.",
+    "input": {
+      "attackType": "melee",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 100,
+      "bd": 20,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 4,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "none",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": null,
+        "headAt": 2,
+        "bodyAt": 8,
+        "armsAt": 4,
+        "legsAt": 6
+      },
+      "roll": 72,
+      "location": "arms",
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "melee",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 100
+        },
+        {
+          "key": "bd",
+          "value": -20
+        }
+      ],
+      "prepareRollTotal": 80,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 72
+        },
+        {
+          "key": "bo",
+          "value": 100
+        },
+        {
+          "key": "bd",
+          "value": -20
+        }
+      ],
+      "rollTotal": 152,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "arms",
+      "effectiveAt": 4,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 152,
+        "at": 4
+      },
+      "tableRoll": 152,
+      "tableEntry": {
+        "text": "fake-152-4",
+        "damage": 22,
+        "criticalType": "P",
+        "criticalSeverity": "G"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 22,
+      "damage": 22,
+      "criticalType": "P",
+      "criticalSeverityBase": "G",
+      "criticalSeverity": "G",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "p_e_1",
+          "type": "P",
+          "severity": "E",
+          "adjustment": 0
+        },
+        {
+          "key": "p_b_2",
+          "type": "P",
+          "severity": "B",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "p_e_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "bd"
+    ],
+    "notes": [],
+    "deviations": []
+  },
+  {
+    "id": "location-chest-at-missing",
+    "description": "No global AT and the tactical location 'chest': Python has no match and passes AT null.",
+    "input": {
+      "attackType": "melee",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 100,
+      "bd": 20,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 4,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "none",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": null,
+        "headAt": 2,
+        "bodyAt": 8,
+        "armsAt": 4,
+        "legsAt": 6
+      },
+      "roll": 72,
+      "location": "chest",
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "melee",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 100
+        },
+        {
+          "key": "bd",
+          "value": -20
+        }
+      ],
+      "prepareRollTotal": 80,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 72
+        },
+        {
+          "key": "bo",
+          "value": 100
+        },
+        {
+          "key": "bd",
+          "value": -20
+        }
+      ],
+      "rollTotal": 152,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "chest",
+      "effectiveAt": null,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 152,
+        "at": null
+      },
+      "tableRoll": 152,
+      "tableEntry": {
+        "text": "fake-152-1",
+        "damage": 22,
+        "criticalType": "S",
+        "criticalSeverity": "H"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 22,
+      "damage": 22,
+      "criticalType": "S",
+      "criticalSeverityBase": "H",
+      "criticalSeverity": "H",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "s_e_1",
+          "type": "S",
+          "severity": "E",
+          "adjustment": 0
+        },
+        {
+          "key": "s_c_2",
+          "type": "S",
+          "severity": "C",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "s_e_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "bd"
+    ],
+    "notes": [
+      "Python matches body/head/arms/legs only; tactical locations are head/chest/abdomen/arms/legs. chest/abdomen give at=None (fake uses 1)."
+    ],
+    "deviations": []
+  },
+  {
+    "id": "multiple-attacks-targets-skill",
+    "description": "Two attacks on two targets with multiple-attacks 30: both penalties offset separately.",
+    "input": {
+      "attackType": "melee",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 150,
+      "bd": 20,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 4,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "none",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [
+        {
+          "skillId": "multiple-attacks",
+          "bonus": 30
+        }
+      ],
+      "attackNumber": 2,
+      "attackTargets": 2,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 5,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 75,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "melee",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 150
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "attack-number",
+          "value": -75
+        },
+        {
+          "key": "attack-number-skill-multiple-attacks",
+          "value": 30
+        },
+        {
+          "key": "attack-targets",
+          "value": -20
+        },
+        {
+          "key": "attack-targets-skill-multiple-attacks",
+          "value": 20
+        }
+      ],
+      "prepareRollTotal": 85,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 75
+        },
+        {
+          "key": "bo",
+          "value": 150
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "attack-number",
+          "value": -75
+        },
+        {
+          "key": "attack-number-skill-multiple-attacks",
+          "value": 30
+        },
+        {
+          "key": "attack-targets",
+          "value": -20
+        },
+        {
+          "key": "attack-targets-skill-multiple-attacks",
+          "value": 20
+        }
+      ],
+      "rollTotal": 160,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 5,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 160,
+        "at": 5
+      },
+      "tableRoll": 160,
+      "tableEntry": {
+        "text": "fake-160-5",
+        "damage": 23,
+        "criticalType": "S",
+        "criticalSeverity": "H"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 23,
+      "damage": 23,
+      "criticalType": "S",
+      "criticalSeverityBase": "H",
+      "criticalSeverity": "H",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "s_e_1",
+          "type": "S",
+          "severity": "E",
+          "adjustment": 0
+        },
+        {
+          "key": "s_c_2",
+          "type": "S",
+          "severity": "C",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "s_e_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "bd",
+      "attack-number",
+      "attack-number-skill-multiple-attacks",
+      "attack-targets",
+      "attack-targets-skill-multiple-attacks"
+    ],
+    "notes": [
+      "The same skill offsets attack-number and attack-targets, each capped on its own."
+    ],
+    "deviations": []
+  },
+  {
+    "id": "multiple-attacks-three-no-skill-size-positive",
+    "description": "Three attacks on three targets, no skill (-100 and -40); size difference +1 adds no roll modifier, only the unused critical-severity entry; severity I splits into E, C and A.",
+    "input": {
+      "attackType": "melee",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 220,
+      "bd": 10,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 4,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "none",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 1,
+      "skills": [],
+      "attackNumber": 3,
+      "attackTargets": 3,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 1,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 95,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "melee",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 220
+        },
+        {
+          "key": "bd",
+          "value": -10
+        },
+        {
+          "key": "attack-number",
+          "value": -100
+        },
+        {
+          "key": "attack-targets",
+          "value": -40
+        }
+      ],
+      "prepareRollTotal": 70,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 95
+        },
+        {
+          "key": "bo",
+          "value": 220
+        },
+        {
+          "key": "bd",
+          "value": -10
+        },
+        {
+          "key": "attack-number",
+          "value": -100
+        },
+        {
+          "key": "attack-targets",
+          "value": -40
+        }
+      ],
+      "rollTotal": 165,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 1,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 165,
+        "at": 1
+      },
+      "tableRoll": 165,
+      "tableEntry": {
+        "text": "fake-165-1",
+        "damage": 26,
+        "criticalType": "S",
+        "criticalSeverity": "I"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 26,
+      "damage": 26,
+      "criticalType": "S",
+      "criticalSeverityBase": "I",
+      "criticalSeverity": "I",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [
+        {
+          "key": "size-difference",
+          "value": 1
+        }
+      ],
+      "criticalSeverityTotal": 1,
+      "criticals": [
+        {
+          "key": "s_e_1",
+          "type": "S",
+          "severity": "E",
+          "adjustment": 0
+        },
+        {
+          "key": "s_c_2",
+          "type": "S",
+          "severity": "C",
+          "adjustment": 0
+        },
+        {
+          "key": "s_a_3",
+          "type": "S",
+          "severity": "A",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "s_e_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "bd",
+      "attack-number",
+      "attack-targets"
+    ],
+    "notes": [],
+    "deviations": [
+      {
+        "decision": "D2/D3",
+        "key": "size-bonus",
+        "note": "Python: size-bonus = diff*5 only when diff < 0, plus an unused critical-severity entry. Tactical uses the real size difference as size-db and adjusts the critical roll."
+      }
+    ]
+  },
+  {
+    "id": "misc-bonuses-higher-ground",
+    "description": "Higher ground (+10, with a higher-ground skill), lethality, custom bonus, injury and fatigue.",
+    "input": {
+      "attackType": "melee",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 80,
+      "bd": 20,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 4,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": -10,
+      "fatiguePenalty": -5,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "none",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": true,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [
+        {
+          "skillId": "higher-ground",
+          "bonus": 5
+        }
+      ],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 10,
+      "customBonus": -5,
+      "armor": {
+        "at": 5,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 70,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "melee",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 80
+        },
+        {
+          "key": "injury-penalty",
+          "value": -10
+        },
+        {
+          "key": "fatigue-penalty",
+          "value": -5
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "higher-ground",
+          "value": 10
+        },
+        {
+          "key": "higher-ground-skill-higher-ground",
+          "value": 5
+        },
+        {
+          "key": "game-lethality",
+          "value": 10
+        },
+        {
+          "key": "custom-bonus",
+          "value": -5
+        }
+      ],
+      "prepareRollTotal": 65,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 70
+        },
+        {
+          "key": "bo",
+          "value": 80
+        },
+        {
+          "key": "injury-penalty",
+          "value": -10
+        },
+        {
+          "key": "fatigue-penalty",
+          "value": -5
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "higher-ground",
+          "value": 10
+        },
+        {
+          "key": "higher-ground-skill-higher-ground",
+          "value": 5
+        },
+        {
+          "key": "game-lethality",
+          "value": 10
+        },
+        {
+          "key": "custom-bonus",
+          "value": -5
+        }
+      ],
+      "rollTotal": 135,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 5,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 135,
+        "at": 5
+      },
+      "tableRoll": 135,
+      "tableEntry": {
+        "text": "fake-135-5",
+        "damage": 17,
+        "criticalType": "S",
+        "criticalSeverity": "F"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 17,
+      "damage": 17,
+      "criticalType": "S",
+      "criticalSeverityBase": "F",
+      "criticalSeverity": "F",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "s_e_1",
+          "type": "S",
+          "severity": "E",
+          "adjustment": 0
+        },
+        {
+          "key": "s_a_2",
+          "type": "S",
+          "severity": "A",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "s_e_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "injury-penalty",
+      "fatigue-penalty",
+      "bd",
+      "higher-ground",
+      "higher-ground-skill-higher-ground",
+      "game-lethality",
+      "custom-bonus"
+    ],
+    "notes": [
+      "The skill offset on a positive bonus adds min(10, skill) on top. 'higher-ground' is not in tactical's combat skill list, so tactical never sends it."
+    ],
+    "deviations": []
+  },
+  {
+    "id": "size-difference-negative",
+    "description": "Size difference -2: size-bonus -10 and a size-difference critical-severity entry.",
+    "input": {
+      "attackType": "melee",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 100,
+      "bd": 20,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 4,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "none",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": -2,
+      "skills": [],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 5,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 75,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "melee",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 100
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "size-bonus",
+          "value": -10
+        }
+      ],
+      "prepareRollTotal": 70,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 75
+        },
+        {
+          "key": "bo",
+          "value": 100
+        },
+        {
+          "key": "bd",
+          "value": -20
+        },
+        {
+          "key": "size-bonus",
+          "value": -10
+        }
+      ],
+      "rollTotal": 145,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 5,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 145,
+        "at": 5
+      },
+      "tableRoll": 145,
+      "tableEntry": {
+        "text": "fake-145-5",
+        "damage": 20,
+        "criticalType": "S",
+        "criticalSeverity": "G"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 20,
+      "damage": 20,
+      "criticalType": "S",
+      "criticalSeverityBase": "G",
+      "criticalSeverity": "G",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [
+        {
+          "key": "size-difference",
+          "value": -2
+        }
+      ],
+      "criticalSeverityTotal": -2,
+      "criticals": [
+        {
+          "key": "s_e_1",
+          "type": "S",
+          "severity": "E",
+          "adjustment": 0
+        },
+        {
+          "key": "s_b_2",
+          "type": "S",
+          "severity": "B",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "s_e_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "bd",
+      "size-bonus"
+    ],
+    "notes": [
+      "criticalSeverityModifiers is computed but never used to change the severity."
+    ],
+    "deviations": [
+      {
+        "decision": "D2/D3",
+        "key": "size-bonus",
+        "note": "Python: size-bonus = diff*5 only when diff < 0, plus an unused critical-severity entry. Tactical uses the real size difference as size-db and adjusts the critical roll."
+      }
+    ]
+  },
+  {
+    "id": "absolute-hit-j-critical",
+    "description": "Total above 175: absolute hit ceil((t-175)/5), table roll clamps to 175, J critical splits in three, critical roll clamps to 100.",
+    "input": {
+      "attackType": "melee",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 2,
+      "bo": 160,
+      "bd": 5,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 4,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "none",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 1,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 45,
+      "location": null,
+      "criticalRoll": 98
+    },
+    "pythonAttackType": "melee",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 160
+        },
+        {
+          "key": "bd",
+          "value": -5
+        }
+      ],
+      "prepareRollTotal": 155,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 45
+        },
+        {
+          "key": "bo",
+          "value": 160
+        },
+        {
+          "key": "bd",
+          "value": -5
+        }
+      ],
+      "rollTotal": 200,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 1,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 200,
+        "at": 1
+      },
+      "tableRoll": 175,
+      "tableEntry": {
+        "text": "fake-175-1",
+        "damage": 28,
+        "criticalType": "S",
+        "criticalSeverity": "J"
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 28,
+      "damage": 28,
+      "criticalType": "S",
+      "criticalSeverityBase": "J",
+      "criticalSeverity": "J",
+      "criticalModifiers": [
+        {
+          "key": "absolute-hit",
+          "value": 5
+        }
+      ],
+      "criticalTotal": 5,
+      "absoluteHit": 5,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "s_j_1",
+          "type": "S",
+          "severity": "J",
+          "adjustment": 5
+        },
+        {
+          "key": "s_c_2",
+          "type": "S",
+          "severity": "C",
+          "adjustment": 5
+        },
+        {
+          "key": "s_b_3",
+          "type": "S",
+          "severity": "B",
+          "adjustment": 5
+        }
+      ],
+      "criticalRollExample": {
+        "key": "s_j_1",
+        "roll": 98,
+        "adjustedRoll": 100
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "bd"
+    ],
+    "notes": [],
+    "deviations": []
+  },
+  {
+    "id": "attack-size-large-shift-to-f",
+    "description": "Attack size +1: damage x1.5 (rounded up) and severity E shifts to F, split into E and A.",
+    "input": {
+      "attackType": "melee",
+      "attackTable": "fake-table",
+      "attackSize": 1,
+      "fumble": 2,
+      "bo": 100,
+      "bd": 10,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 4,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "none",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 3,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 35,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "melee",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 100
+        },
+        {
+          "key": "bd",
+          "value": -10
+        }
+      ],
+      "prepareRollTotal": 90,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 35
+        },
+        {
+          "key": "bo",
+          "value": 100
+        },
+        {
+          "key": "bd",
+          "value": -10
+        }
+      ],
+      "rollTotal": 125,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 3,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 1,
+        "roll": 125,
+        "at": 3
+      },
+      "tableRoll": 125,
+      "tableEntry": {
+        "text": "fake-125-3",
+        "damage": 15,
+        "criticalType": "S",
+        "criticalSeverity": "E"
+      },
+      "hitSizeMultiplier": 1.5,
+      "criticalSizeModifier": 1,
+      "damageBase": 15,
+      "damage": 23,
+      "criticalType": "S",
+      "criticalSeverityBase": "E",
+      "criticalSeverity": "F",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "s_e_1",
+          "type": "S",
+          "severity": "E",
+          "adjustment": 0
+        },
+        {
+          "key": "s_a_2",
+          "type": "S",
+          "severity": "A",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "s_e_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "bd"
+    ],
+    "notes": [],
+    "deviations": []
+  },
+  {
+    "id": "attack-size-small-shift-to-z",
+    "description": "Attack size -1: damage x0.5 (rounded up) and severity A shifts down to Z.",
+    "input": {
+      "attackType": "melee",
+      "attackTable": "fake-table",
+      "attackSize": -1,
+      "fumble": 2,
+      "bo": 68,
+      "bd": 10,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 4,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "none",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 3,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 33,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "melee",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 68
+        },
+        {
+          "key": "bd",
+          "value": -10
+        }
+      ],
+      "prepareRollTotal": 58,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 33
+        },
+        {
+          "key": "bo",
+          "value": 68
+        },
+        {
+          "key": "bd",
+          "value": -10
+        }
+      ],
+      "rollTotal": 91,
+      "status": "pending_critical_roll",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 3,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": -1,
+        "roll": 91,
+        "at": 3
+      },
+      "tableRoll": 91,
+      "tableEntry": {
+        "text": "fake-91-3",
+        "damage": 7,
+        "criticalType": "S",
+        "criticalSeverity": "A"
+      },
+      "hitSizeMultiplier": 0.5,
+      "criticalSizeModifier": -1,
+      "damageBase": 7,
+      "damage": 4,
+      "criticalType": "S",
+      "criticalSeverityBase": "A",
+      "criticalSeverity": "Z",
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [
+        {
+          "key": "s_z_1",
+          "type": "S",
+          "severity": "Z",
+          "adjustment": 0
+        }
+      ],
+      "criticalRollExample": {
+        "key": "s_z_1",
+        "roll": 50,
+        "adjustedRoll": 50
+      }
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "bd"
+    ],
+    "notes": [],
+    "deviations": []
+  },
+  {
+    "id": "fumble",
+    "description": "Roll within the fumble range: fumble, no table lookup, despite a high OB.",
+    "input": {
+      "attackType": "melee",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 3,
+      "bo": 200,
+      "bd": 20,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 4,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "none",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 5,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 3,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "melee",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 200
+        },
+        {
+          "key": "bd",
+          "value": -20
+        }
+      ],
+      "prepareRollTotal": 180,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 3
+        },
+        {
+          "key": "bo",
+          "value": 200
+        },
+        {
+          "key": "bd",
+          "value": -20
+        }
+      ],
+      "rollTotal": 183,
+      "status": "pending_fumble_roll",
+      "fumble": true,
+      "effectiveLocation": "none",
+      "effectiveAt": 5,
+      "tableCall": null,
+      "tableRoll": null,
+      "tableEntry": null,
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": null,
+      "damage": null,
+      "criticalType": null,
+      "criticalSeverityBase": null,
+      "criticalSeverity": null,
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [],
+      "criticalRollExample": null
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "bd"
+    ],
+    "notes": [],
+    "deviations": []
+  },
+  {
+    "id": "no-fumble-just-above-range",
+    "description": "Roll one above the fumble range: normal resolution with no critical.",
+    "input": {
+      "attackType": "melee",
+      "attackTable": "fake-table",
+      "attackSize": 0,
+      "fumble": 3,
+      "bo": 40,
+      "bd": 30,
+      "shield": 0,
+      "parry": 0,
+      "actionPoints": 4,
+      "rangePenalty": 0,
+      "pacePenalty": 0,
+      "injuryPenalty": 0,
+      "fatiguePenalty": 0,
+      "sourceStatuses": [],
+      "targetStatuses": [],
+      "cover": "none",
+      "restrictedQuarters": "none",
+      "positionalSource": "none",
+      "positionalTarget": "none",
+      "dodge": "none",
+      "calledShot": "none",
+      "calledShotPenalty": 0,
+      "offHand": false,
+      "twoHandedWeapon": false,
+      "higherGround": false,
+      "disabledDB": false,
+      "disabledShield": false,
+      "disabledParry": false,
+      "sizeDifference": 0,
+      "skills": [],
+      "attackNumber": 1,
+      "attackTargets": 1,
+      "lethality": 0,
+      "customBonus": 0,
+      "armor": {
+        "at": 5,
+        "headAt": null,
+        "bodyAt": null,
+        "armsAt": null,
+        "legsAt": null
+      },
+      "roll": 4,
+      "location": null,
+      "criticalRoll": 50
+    },
+    "pythonAttackType": "melee",
+    "expected": {
+      "prepareRollModifiers": [
+        {
+          "key": "bo",
+          "value": 40
+        },
+        {
+          "key": "bd",
+          "value": -30
+        }
+      ],
+      "prepareRollTotal": 10,
+      "rollModifiers": [
+        {
+          "key": "roll",
+          "value": 4
+        },
+        {
+          "key": "bo",
+          "value": 40
+        },
+        {
+          "key": "bd",
+          "value": -30
+        }
+      ],
+      "rollTotal": 14,
+      "status": "pending_apply",
+      "fumble": false,
+      "effectiveLocation": "none",
+      "effectiveAt": 5,
+      "tableCall": {
+        "attackTable": "fake-table",
+        "size": 0,
+        "roll": 14,
+        "at": 5
+      },
+      "tableRoll": 14,
+      "tableEntry": {
+        "text": "fake-14-5",
+        "damage": 0,
+        "criticalType": null,
+        "criticalSeverity": null
+      },
+      "hitSizeMultiplier": 1.0,
+      "criticalSizeModifier": 0,
+      "damageBase": 0,
+      "damage": 0,
+      "criticalType": null,
+      "criticalSeverityBase": null,
+      "criticalSeverity": null,
+      "criticalModifiers": [],
+      "criticalTotal": 0,
+      "absoluteHit": 0,
+      "criticalSeverityModifiers": [],
+      "criticalSeverityTotal": 0,
+      "criticals": [],
+      "criticalRollExample": null
+    },
+    "pythonKeys": [
+      "roll",
+      "bo",
+      "bd"
+    ],
+    "notes": [],
+    "deviations": []
+  }
+]

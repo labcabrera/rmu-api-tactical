@@ -4,22 +4,31 @@ import type { ActorRoundRepository } from '../../../../actor-rounds/application/
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../../shared/domain/errors';
-import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
+import type { Character, CharacterPort } from '../../../../strategic/application/ports/character.port';
 import { StrategicGameApiClient } from '../../../../strategic/infrastructure/api-clients/api.strategic-game.adapter';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import { ActionAttackCalculated } from '../../../domain/value-objects/action-attack-calculated.vo';
-import { ActionAttackModifiers } from '../../../domain/value-objects/action-attack-modifiers.vo';
+import {
+  ActionAttackModifiers,
+  Cover,
+  Dodge,
+  normalizeChargeSpeed,
+  PositionalTarget,
+  RestrictedQuarters,
+} from '../../../domain/value-objects/action-attack-modifiers.vo';
 import { ActionAttack } from '../../../domain/value-objects/action-attack.vo';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import type {
-  AttackCreationRequest,
-  AttackPort,
-  AttackRollModifiers,
-  AttackSituationalModifiers,
-  AttackSourceSkill,
-} from '../../ports/attack.port';
+  CombatAttackCalculatedResult,
+  CombatAttackPreparation,
+  CombatAttackSituationalModifiers,
+  CombatAttackSourceSkill,
+  CombatAttackSourceTrait,
+  CombatContext,
+} from '../../services/combat';
+import { COMBAT_SKILL_IDS, CombatModifierBag, CombatProcessor, sizeDifference } from '../../services/combat';
 import { PrepareAttackCommand, PrepareAttackCommandItem } from '../commands/prepare-attack.command';
 
 @CommandHandler(PrepareAttackCommand)
@@ -32,8 +41,8 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
     @Inject('CharacterClient') private readonly characterClient: CharacterPort,
     @Inject('StrategicGameClient') private readonly strategicGameClient: StrategicGameApiClient,
-    @Inject('AttackPort') private readonly attackClient: AttackPort,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
+    private readonly combatProcessor: CombatProcessor,
   ) {}
 
   async execute(command: PrepareAttackCommand): Promise<Action> {
@@ -58,7 +67,10 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const sourceActorRound = actors.find(a => a.actorId === action.actorId)!;
     const actionAttacks = command.attacks.map(attack => this.mapAttacks(attack, action, sourceActorRound));
 
-    const skills = await this.getSourceSkills(action.actorId, actors);
+    const sourceActor = actors.find(a => a.actorId === action.actorId);
+    const sourceCharacter = await this.characterClient.findById(sourceActor?.actorId || '');
+    const skills = this.mapSourceSkills(sourceCharacter);
+    const traits = this.mapSourceTraits(sourceCharacter);
     const gameLethality = strategicGame.options?.lethality || 0;
     const attackNumber = command.attacks.length;
     const targets: Set<string> = new Set();
@@ -66,7 +78,18 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const targetsNumber = targets.size;
 
     await Promise.all(
-      actionAttacks.map(attack => this.processAttackPort(attack, action, actors, skills, attackNumber, targetsNumber, gameLethality)),
+      actionAttacks.map(attack =>
+        this.prepareAttack({
+          action,
+          attack,
+          actors,
+          sourceSkills: skills,
+          sourceTraits: traits,
+          attackNumber,
+          targetsNumber,
+          gameLethality,
+        }),
+      ),
     );
     action.attacks = actionAttacks;
     //TODO read actions
@@ -79,12 +102,55 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
 
     //TODO check effects and intermediate actions
     action.actionPoints = game.getActionPhase() - action.phaseStart + 1;
-    action.status = action.parries?.length && action.parries.length > 0 ? 'parry' : 'pending_attack_roll';
+    action.markPrepared();
 
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
     return updated;
+  }
+
+  private async prepareAttack(input: {
+    action: Action;
+    attack: ActionAttack;
+    actors: ActorRound[];
+    sourceSkills: CombatAttackSourceSkill[];
+    sourceTraits: CombatAttackSourceTrait[];
+    attackNumber: number;
+    targetsNumber: number;
+    gameLethality: number;
+  }): Promise<CombatContext> {
+    let ctx: CombatContext = {
+      action: input.action,
+      attack: input.attack,
+      actors: input.actors,
+      sourceSkills: input.sourceSkills,
+      sourceTraits: input.sourceTraits,
+      attackNumber: input.attackNumber,
+      targetsNumber: input.targetsNumber,
+      gameLethality: input.gameLethality,
+      sourceActor: input.actors.find(a => a.actorId === input.action.actorId),
+      targetActor: input.actors.find(a => a.actorId === input.attack.modifiers.targetId),
+      trace: [],
+    };
+    ctx.sourceAttack = ctx.sourceActor?.attacks?.find(a => a.attackName === input.attack.attackName);
+    if (!ctx.sourceActor || !ctx.targetActor || !ctx.sourceAttack) throw new UnprocessableEntityError('Attack not found on actor');
+
+    ctx.attackPreparation = this.mapAttackPreparation(ctx);
+    ctx = await this.combatProcessor.runPhase('prepare', ctx);
+
+    ctx.attackCalculation = this.calculatePreparedAttack(ctx);
+    ctx.attack!.status = ctx.attackCalculation.status;
+    ctx.attack!.calculated = new ActionAttackCalculated(
+      ctx.attackCalculation.calculated.rollModifiers,
+      ctx.attackCalculation.calculated.rollTotal,
+      undefined,
+      this.requiresLocationRoll(ctx),
+      ctx.attackCalculation.calculated.criticalAdjustment,
+      ctx.attackCalculation.calculated.criticalModifiers,
+    );
+
+    return ctx;
   }
 
   private getActorIds(action: Action, command: PrepareAttackCommand): string[] {
@@ -93,126 +159,68 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     return Array.from(new Set([...targetIds, ...protectors, action.actorId]));
   }
 
-  private async processAttackPort(
-    attack: ActionAttack,
-    action: Action,
-    actors: ActorRound[],
-    skills: AttackSourceSkill[],
-    attackNumber: number,
-    targetsNumber: number,
-    gameLethality: number,
-  ): Promise<void> {
-    const request = this.mapAttackToPortModel(attack, action, actors, skills, attackNumber, targetsNumber, gameLethality);
-
-    const portResponse = await this.attackClient.prepareAttack(request);
-    attack.externalAttackId = portResponse.id;
-    attack.status = portResponse.status;
-
-    let requiredLocationRoll = false;
-    if (!ActionAttack.isCalledShot(attack)) {
-      const target = actors.find(a => a.actorId === attack.modifiers.targetId)!;
-      if (!target.defense.at) {
-        requiredLocationRoll = true;
-      }
-    }
-
-    attack.calculated = new ActionAttackCalculated(
-      portResponse.calculated.rollModifiers,
-      portResponse.calculated.rollTotal,
-      undefined,
-      requiredLocationRoll,
+  private mapSourceSkills(character: Character | undefined): CombatAttackSourceSkill[] {
+    return (
+      character?.skills
+        .filter(skill => this.isCombatSkill(skill.skillId))
+        .map(skill => ({ skillId: skill.skillId, bonus: skill.totalBonus })) || []
     );
   }
 
-  private mapAttackToPortModel(
-    attack: ActionAttack,
-    action: Action,
-    actors: ActorRound[],
-    skills: AttackSourceSkill[],
-    attackNumber: number,
-    targetsNumber: number,
-    gameLethality: number,
-  ): AttackCreationRequest {
+  private mapSourceTraits(character: Character | undefined): CombatAttackSourceTrait[] {
+    return character?.traits?.map(trait => ({ id: trait.id })) || [];
+  }
+
+  private isCombatSkill(skillId: string): boolean {
+    return COMBAT_SKILL_IDS.includes(skillId);
+  }
+
+  /** The data the prepare plugins read. The modifier lists start empty: every modifier comes from a plugin. */
+  private mapAttackPreparation(ctx: CombatContext): CombatAttackPreparation {
+    const attack = ctx.attack!;
+    const action = ctx.action;
     const attackModifiers = attack.modifiers;
-    const actorRoundSource = actors.find(a => a.actorId === action.actorId)!;
-    const actorRoundTarget = actors.find(a => a.actorId === attackModifiers.targetId)!;
+    const actorRoundSource = ctx.sourceActor!;
+    const actorRoundTarget = ctx.targetActor!;
+    const attackInfo = ctx.sourceAttack!;
 
-    const isMeleeAttack = attack.type === 'melee';
+    const actionPoints = action.freeAction ? (attack.type === 'melee' ? 4 : 3) : action.actionPoints!;
 
-    const attackInfo = actorRoundSource?.attacks?.find(a => a.attackName === attack.attackName);
-    if (!attackInfo) throw new UnprocessableEntityError('Attack not found on actor');
-
-    //TODO MAP
-    const actionPoints = action.freeAction ? (isMeleeAttack ? 4 : 3) : action.actionPoints!;
-    const offHand = attack.attackName.toLowerCase().includes('off-hand');
-    let rangePenalty = 0;
-    const twoHandedWeapon = false;
-    const attackFeatures = [];
-    const injuryPenalty = 0;
-    const fatiguePenalty = 0;
-
-    const shield = this.getShieldBonus(actorRoundTarget, attackModifiers.disabledShield || false);
-    // Declared later
-    const parry = 0;
-
-    if (!isMeleeAttack && attackModifiers.range !== undefined) {
-      const rangedAttack = actorRoundSource.attacks?.find(a => a.attackName === attack.attackName);
-      if (!rangedAttack) {
-        throw new UnprocessableEntityError(`Attack ${attack.attackName} not found on actor`);
-      }
-      rangePenalty = rangedAttack.calculateRangeBonus(attackModifiers.range);
-    }
-
-    //TODO
-    const attackSize = 2;
-    const defenderSize = 2;
-    const sizeDifference = attackSize - defenderSize;
-
-    const rollModifiers = {
-      bo: attackModifiers.bo,
-      bd: actorRoundTarget.defense.bd,
-      calledShot: attackModifiers.calledShot,
-      calledShotPenalty: attackModifiers.calledShotPenalty,
-      injuryPenalty: injuryPenalty,
-      fatiguePenalty: fatiguePenalty,
-      rangePenalty: rangePenalty,
-      shield: shield,
-      parry: parry,
-      attackNumber: attackNumber,
-      attackTargets: targetsNumber,
-      gameLethality: gameLethality,
-      customBonus: attackModifiers.customBonus,
-    } as AttackRollModifiers;
-
-    const situationalModifiers = {
-      cover: attackModifiers.cover || 'none',
-      restrictedQuarters: attackModifiers.restrictedQuarters || 'none',
+    const situationalModifiers: CombatAttackSituationalModifiers = {
+      cover: (attackModifiers.cover || 'none') as Cover,
+      restrictedQuarters: (attackModifiers.restrictedQuarters || 'none') as RestrictedQuarters,
       positionalSource: attackModifiers.positionalSource || 'none',
-      positionalTarget: attackModifiers.positionalTarget || 'none',
-      dodge: attackModifiers.dodge || 'none',
+      positionalTarget: (attackModifiers.positionalTarget || 'none') as PositionalTarget,
+      dodge: (attackModifiers.dodge || 'none') as Dodge,
       disabledDB: attackModifiers.disabledDB || false,
       disabledShield: attackModifiers.disabledShield || false,
       disabledParry: attackModifiers.disabledParry || false,
-      sizeDifference: sizeDifference,
-      offHand: offHand,
-      twoHandedWeapon: twoHandedWeapon,
+      sizeDifference: sizeDifference(ctx),
+      twoHandedWeapon: false,
       higherGround: attackModifiers.higherGround || false,
-      sourceStatus: this.mapActorSourceRoundEffects(actorRoundSource, attack),
-      targetStatus: this.mapActorTargetRoundEffects(actorRoundTarget, attack),
-    } as AttackSituationalModifiers;
+      sourceStatus: this.mapEffectStatuses(actorRoundSource),
+      targetStatus: this.mapEffectStatuses(actorRoundTarget),
+    };
 
-    const request = {
+    return {
       gameId: action.gameId,
       actionId: action.id,
       sourceId: action.actorId,
       targetId: attackModifiers.targetId!,
+      criticalAdjustment: undefined,
       modifiers: {
         attackType: attack.type,
+        bo: attackModifiers.bo || 0,
+        bd: actorRoundTarget.defense.bd || 0,
+        range: attackModifiers.range,
+        pace: attackModifiers.pace,
+        calledShotPenalty: attackModifiers.calledShotPenalty || 0,
+        customBonus: attackModifiers.customBonus || 0,
         attackTable: attackInfo.attackTable,
         attackSize: attackInfo.attackSize,
         fumbleTable: attackInfo.fumbleTable,
         fumble: attackInfo.fumble,
-        actionPoints: actionPoints,
+        actionPoints,
         calledShot: attackModifiers.calledShot,
         armor: {
           at: actorRoundTarget.defense.at,
@@ -221,64 +229,44 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
           armsAt: actorRoundTarget.defense.armsAt,
           legsAt: actorRoundTarget.defense.legsAt,
         },
-        rollModifiers: rollModifiers,
-        situationalModifiers: situationalModifiers,
-        features: attackFeatures,
-        sourceSkills: skills,
+        rollModifiers: [],
+        criticalModifiers: [],
+        situationalModifiers,
+        sourceSkills: ctx.sourceSkills || [],
       },
     };
-    return request;
   }
 
-  private async getSourceSkills(sourceActorId: string, actors: ActorRound[]): Promise<AttackSourceSkill[]> {
-    const actor = actors.find(a => a.actorId === sourceActorId);
-    //TODO NPCs
-    const character = await this.characterClient.findById(actor?.actorId || '');
-    return (
-      character?.skills
-        .filter(skill => this.isCombatSkill(skill.skillId))
-        .map(skill => ({ skillId: skill.skillId, bonus: skill.totalBonus })) || []
-    );
+  private calculatePreparedAttack(ctx: CombatContext): CombatAttackCalculatedResult {
+    const preparation = ctx.attackPreparation!;
+    const rollModifiers = preparation.modifiers.rollModifiers;
+    const criticalModifiers = preparation.modifiers.criticalModifiers;
+    const criticalAdjustment = CombatModifierBag.from(criticalModifiers).sum() + (preparation.criticalAdjustment || 0);
+
+    return {
+      calculated: {
+        rollModifiers,
+        criticalModifiers,
+        rollTotal: CombatModifierBag.from(rollModifiers).sum(),
+        criticalAdjustment: criticalAdjustment || undefined,
+      },
+      results: undefined,
+      status: 'pending_attack_roll',
+    };
   }
 
-  private isCombatSkill(skillId: string): boolean {
-    const combatSkills = ['multiple-attacks', 'reverse-strike', 'footwork', 'restricted-quarters', 'called-shot'];
-    return combatSkills.includes(skillId);
-  }
-
-  private getShieldBonus(targetActor: ActorRound, disabledShield: boolean): number {
-    if (disabledShield || !targetActor.defense.shield) return 0;
-    const shield = targetActor.defense.shield;
-    if (shield.currentBlocks >= shield.blockCount) return 0;
-    return shield.db;
-  }
-
-  private getAttackSize(size: number): number {
-    switch (size) {
-      case -1:
-        return -1;
-      case 0:
-        return 0;
-      case 1:
-        return 1;
-      default:
-        throw new UnprocessableEntityError('Invalid size value');
+  private requiresLocationRoll(ctx: CombatContext): boolean {
+    if (ActionAttack.isCalledShot(ctx.attack!)) {
+      return false;
     }
+
+    const target = ctx.actors!.find(a => a.actorId === ctx.attack!.modifiers.targetId)!;
+    return !target.defense.at;
   }
 
-  private mapActorSourceRoundEffects(actorRound: ActorRound, attack: ActionAttack): string[] {
-    const effects = actorRound.effects?.map(effect => effect.status) || [];
-    if (attack.modifiers.proneSource) effects.push('prone');
-    if (attack.modifiers.attackerInMelee) effects.push('melee');
-    return effects;
-  }
-
-  private mapActorTargetRoundEffects(actorRound: ActorRound, attack: ActionAttack): string[] {
-    const effects = actorRound.effects?.map(effect => effect.status) || [];
-    if (attack.modifiers.proneTarget) effects.push('prone');
-    if (attack.modifiers.surprisedFoe) effects.push('surprised');
-    if (attack.modifiers.stunnedFoe) effects.push('stunned');
-    return effects;
+  /** Statuses of the actor's active effects; the statuses declared in the attack modifiers are read by the plugins. */
+  private mapEffectStatuses(actorRound: ActorRound): string[] {
+    return actorRound.effects?.map(effect => effect.status) || [];
   }
 
   private mapAttacks(commandAttack: PrepareAttackCommandItem, action: Action, source: ActorRound): ActionAttack {
@@ -319,12 +307,12 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       commandAttack.modifiers.ambush,
       commandAttack.modifiers.range,
       commandAttack.modifiers.customBonus,
+      normalizeChargeSpeed(commandAttack.modifiers.chargeSpeed),
     );
     return new ActionAttack(
       commandAttack.attackName,
       attack.type,
       modifiers,
-      undefined,
       undefined,
       undefined,
       undefined,

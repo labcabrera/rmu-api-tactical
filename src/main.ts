@@ -1,9 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { RequestTokenInterceptor } from './modules/auth/request-token.context';
 import { DomainExceptionFilter } from './modules/shared/interfaces/http/domain-exception.filter';
 
 function configureOpenApi(app: INestApplication<any>) {
@@ -70,7 +73,6 @@ function configureOpenApi(app: INestApplication<any>) {
   ) as typeof document.paths;
 
   app.use('/api-spec', (req, res) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     res.json(document);
   });
 }
@@ -109,6 +111,7 @@ async function bootstrap() {
   });
 
   app.useGlobalFilters(new DomainExceptionFilter());
+  app.useGlobalInterceptors(new RequestTokenInterceptor());
   await app.listen(app.get(ConfigService).get<string>('PORT') || 3003);
   await app.startAllMicroservices();
 }

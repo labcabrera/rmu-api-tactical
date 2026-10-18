@@ -1,5 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import type { CalledShot } from '../../../domain/value-objects/action-attack-modifiers.vo';
+import type { CalledShot, ChargeSpeed, PositionalSource } from '../../../domain/value-objects/action-attack-modifiers.vo';
 
 @Schema({ _id: false })
 export class ActionAttackModifiers {
@@ -19,7 +19,7 @@ export class ActionAttackModifiers {
   public calledShotPenalty: number | undefined;
 
   @Prop({ type: String, required: false })
-  public positionalSource: string | undefined;
+  public positionalSource: PositionalSource | undefined;
 
   @Prop({ type: String, required: false })
   public positionalTarget: string | undefined;
@@ -77,4 +77,7 @@ export class ActionAttackModifiers {
 
   @Prop({ type: Number, required: false })
   public customBonus: number | undefined;
+
+  @Prop({ type: String, required: false })
+  public chargeSpeed: ChargeSpeed | undefined;
 }

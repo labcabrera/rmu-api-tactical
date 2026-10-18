@@ -17,7 +17,6 @@ import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import { ActionAttack } from '../../../domain/value-objects/action-attack.vo';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
-import type { AttackPort } from '../../ports/attack.port';
 import { ApplyAttackCommand } from '../commands/apply-attack.command';
 
 @CommandHandler(ApplyAttackCommand)
@@ -29,7 +28,6 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('StrategicGameClient') private readonly strategicGamePort: StrategicGameApiClient,
-    @Inject('AttackPort') private readonly attackPort: AttackPort,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
     private readonly commandBus: CommandBus,
   ) {}
@@ -75,7 +73,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
 
     action.updatedAt = new Date();
     action.phaseEnd = game.getActionPhase();
-    action.status = 'completed';
+    action.completeAttacks();
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
     return updated;
@@ -104,7 +102,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       return;
     }
     for (const parry of action.parries.filter(p => p.parry > 0)) {
-      const command = DeclareActorParryCommand.fromParry(action.actorId, action.round, parry, userId, roles);
+      const command = DeclareActorParryCommand.fromParry(action.gameId, action.actorId, action.round, parry, userId, roles);
       await this.commandBus.execute(command);
     }
   }
@@ -159,14 +157,16 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       const effect = new ActorRoundEffect(randomUUID(), e.status, e.value, e.rounds);
       effects.push(effect);
     });
-    if (effects.length === 0) {
+    const dmg = fumble.damage || 0;
+    if (dmg === 0 && effects.length === 0) {
       return;
     }
     if (updateCommands.has(actor.id)) {
       const cmd = updateCommands.get(actor.id)!;
+      cmd.dmg += dmg;
       cmd.effects.push(...effects);
     } else {
-      const cmd = new AddEffectsCommand(actor.id, 0, effects, undefined, userId, roles);
+      const cmd = new AddEffectsCommand(actor.id, dmg, effects, undefined, userId, roles);
       updateCommands.set(actor.id, cmd);
     }
   }
@@ -181,7 +181,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     const multiplier = strategicGame.options?.fatigueMultiplier ?? 1;
     action.processFatigue(multiplier);
     if (action.fatigue) {
-      const command = new AddFatigueCommand(undefined, action.actorId, round, action.fatigue, userId, roles);
+      const command = new AddFatigueCommand(undefined, action.gameId, action.actorId, round, action.fatigue, userId, roles);
       await this.commandBus.execute(command);
     }
   }

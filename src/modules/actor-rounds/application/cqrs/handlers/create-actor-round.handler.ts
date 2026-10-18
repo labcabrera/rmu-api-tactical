@@ -30,7 +30,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
       return await this.buildFromTemplate(gameId, actor, round);
     }
     // character could be added in a later round
-    const prev = await this.actorRoundRepository.findByActorIdAndRound(actor.id, round - 1);
+    const prev = await this.actorRoundRepository.findByActorIdAndRound(gameId, actor.id, round - 1);
     if (prev) {
       return ActorRound.createFromPrevious(prev);
     }

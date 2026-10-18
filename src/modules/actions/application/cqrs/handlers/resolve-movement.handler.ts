@@ -37,7 +37,7 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
 
     this.validate(command, action);
     const [actorRound, strategicGame] = await Promise.all([
-      this.actorRoundRepository.findByActorIdAndRound(action.actorId, action.round),
+      this.actorRoundRepository.findByActorIdAndRound(action.gameId, action.actorId, action.round),
       this.strategicGameClient.findById(game.strategicGameId),
     ]);
     if (!actorRound) throw new NotFoundError('ActorRound', `${action.actorId} - ${action.round}`);

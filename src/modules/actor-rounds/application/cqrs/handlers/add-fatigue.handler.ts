@@ -17,8 +17,8 @@ export class AddFatigueHandler implements ICommandHandler<AddFatigueCommand, Act
     let actorRound: ActorRound | null = null;
     if (command.actorRoundId) {
       actorRound = await this.actorRoundRepository.findById(command.actorRoundId);
-    } else if (command.actorId && command.round !== undefined) {
-      actorRound = await this.actorRoundRepository.findByActorIdAndRound(command.actorId, command.round);
+    } else if (command.gameId && command.actorId && command.round !== undefined) {
+      actorRound = await this.actorRoundRepository.findByActorIdAndRound(command.gameId, command.actorId, command.round);
     }
 
     if (!actorRound) throw new UnprocessableEntityError(`Actor round not found`);

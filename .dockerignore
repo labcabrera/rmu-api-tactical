@@ -7,6 +7,7 @@
 .env.*
 !.env.example
 !.env.*.example
+db-seed/.env
 docker-run.env
 docker-run.env.*
 !docker-run.env.example
@@ -18,6 +19,7 @@ coverage/
 out/
 .cache/
 .npm/
+*.tsbuildinfo
 
 # Tests are not part of the image. A tests/ folder in the build context is also compiled by
 # `nest build` and moves the output to dist/src/main.js, so the image could not start.

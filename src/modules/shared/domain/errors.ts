@@ -68,8 +68,8 @@ export class InvalidSearchExpression extends DomainError {
 }
 
 export class BadGatewayError extends DomainError {
-  constructor(message: string) {
-    super(message, 502);
+  constructor(message: string, errorCode: string = 'bad_gateway') {
+    super(message, 502, errorCode);
     this.name = 'BadGatewayError';
     Object.setPrototypeOf(this, BadGatewayError.prototype);
   }

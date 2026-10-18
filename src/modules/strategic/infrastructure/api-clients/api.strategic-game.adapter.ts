@@ -4,6 +4,7 @@ import axios from 'axios';
 
 import { TokenService } from '../../../auth/token.service';
 import { StrategicGame, StrategicGamePort } from '../../application/ports/strategic-game.port';
+import { handleAxiosError } from '../../../shared/infrastructure/api-rest/axios.error.adapter';
 
 @Injectable()
 export class StrategicGameApiClient implements StrategicGamePort {
@@ -29,9 +30,8 @@ export class StrategicGameApiClient implements StrategicGamePort {
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 404) {
         return null;
-      } else {
-        throw err;
       }
+      throw handleAxiosError(err, uri);
     }
   }
 }

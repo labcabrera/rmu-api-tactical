@@ -1,15 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsIn, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
+import { PrepareAttackCommandItem, PrepareAttackCommandModifiers } from '../../../application/cqrs/commands/prepare-attack.command';
 import {
-  CoverType,
-  DodgeType,
-  PositionalSourceType,
-  PositionalTargetType,
-  PrepareAttackCommandItem,
-  PrepareAttackCommandModifiers,
-  RestrictedQuartersType,
-} from '../../../application/cqrs/commands/prepare-attack.command';
-import { CalledShot } from '../../../domain/value-objects/action-attack-modifiers.vo';
+  CalledShot,
+  ChargeSpeed,
+  Cover,
+  Dodge,
+  normalizeChargeSpeed,
+  PositionalSource,
+  PositionalTarget,
+  RestrictedQuarters,
+} from '../../../domain/value-objects/action-attack-modifiers.vo';
 
 export class PrepareAttackModifiersDto {
   @ApiProperty({ description: 'Target actor round identifier', example: 'actor-round-003' })
@@ -24,14 +25,14 @@ export class PrepareAttackModifiersDto {
   @ApiProperty({
     description: 'Called shot location, if any',
     required: false,
-    enum: ['none', 'head', 'body', 'arms', 'legs'],
+    enum: ['none', 'head', 'chest', 'abdomen', 'arms', 'legs'],
     example: 'none',
   })
   @IsOptional()
   @IsString()
   calledShot: CalledShot | undefined;
 
-  @ApiProperty({ description: 'Penalty for the called shot, if any', required: false, example: 0 })
+  @ApiProperty({ description: 'Penalty for the called shot (negative); -25 when not given', required: false, example: -25 })
   @IsOptional()
   @IsNumber()
   calledShotPenalty: number;
@@ -43,7 +44,7 @@ export class PrepareAttackModifiersDto {
   })
   @IsOptional()
   @IsString()
-  positionalSource: PositionalSourceType | undefined;
+  positionalSource: PositionalSource | undefined;
 
   @ApiProperty({
     description: 'Positional disadvantage the target has',
@@ -53,7 +54,7 @@ export class PrepareAttackModifiersDto {
   })
   @IsOptional()
   @IsString()
-  positionalTarget: PositionalTargetType | undefined;
+  positionalTarget: PositionalTarget | undefined;
 
   @ApiProperty({
     description: 'Type of restricted quarters the attacker is in',
@@ -63,7 +64,7 @@ export class PrepareAttackModifiersDto {
   })
   @IsOptional()
   @IsString()
-  restrictedQuarters: RestrictedQuartersType | undefined;
+  restrictedQuarters: RestrictedQuarters | undefined;
 
   @ApiProperty({
     description: 'Type of cover the target has',
@@ -73,7 +74,7 @@ export class PrepareAttackModifiersDto {
   })
   @IsOptional()
   @IsString()
-  cover: CoverType | undefined;
+  cover: Cover | undefined;
 
   @ApiProperty({
     description: 'Type of dodge the target is performing',
@@ -83,7 +84,7 @@ export class PrepareAttackModifiersDto {
   })
   @IsOptional()
   @IsString()
-  dodge: DodgeType | undefined;
+  dodge: Dodge | undefined;
 
   @ApiProperty({ description: 'Whether attacker is in melee (close) range', required: false, example: false })
   @IsOptional()
@@ -160,6 +161,16 @@ export class PrepareAttackModifiersDto {
   @IsNumber()
   customBonus: number | undefined;
 
+  @ApiProperty({
+    description: 'Charge speed, added to the attacker size (`spring` is accepted as an alias of `sprint`)',
+    required: false,
+    enum: ['none', 'jog', 'sprint'],
+    example: 'none',
+  })
+  @IsOptional()
+  @IsIn(['none', 'jog', 'sprint', 'spring'])
+  chargeSpeed: ChargeSpeed | 'spring' | undefined;
+
   static toCommand(dto: PrepareAttackModifiersDto): PrepareAttackCommandModifiers {
     return new PrepareAttackCommandModifiers(
       dto.targetId,
@@ -186,6 +197,7 @@ export class PrepareAttackModifiersDto {
       dto.ambush,
       dto.range,
       dto.customBonus,
+      dto.chargeSpeed === undefined ? undefined : normalizeChargeSpeed(dto.chargeSpeed),
     );
   }
 }

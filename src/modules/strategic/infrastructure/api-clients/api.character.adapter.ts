@@ -4,6 +4,7 @@ import axios from 'axios';
 
 import { TokenService } from '../../../auth/token.service';
 import { Character, CharacterPort } from '../../application/ports/character.port';
+import { handleAxiosError } from '../../../shared/infrastructure/api-rest/axios.error.adapter';
 
 @Injectable()
 export class CharacterApiClient implements CharacterPort {
@@ -29,20 +30,23 @@ export class CharacterApiClient implements CharacterPort {
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 404) {
         return undefined;
-      } else {
-        throw err;
       }
+      throw handleAxiosError(err, uri);
     }
   }
 
   async findByGameId(gameId: string): Promise<Character[]> {
     const token = await this.tokenService.getToken();
     const uri = `${this.baseUri}/characters?q=gameId==${gameId}&page=0&size=1000`;
-    const response = await axios.get(uri, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    return response.data as Character[];
+    try {
+      const response = await axios.get(uri, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data as Character[];
+    } catch (err) {
+      throw handleAxiosError(err, uri);
+    }
   }
 }

@@ -15,7 +15,7 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "lint": "eslint \"{src,apps,libs,test,tests}/**/*.ts\" --fix",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
@@ -94,7 +94,8 @@
     "rootDir": ".",
     "testMatch": [
       "<rootDir>/src/**/*.spec.ts",
-      "<rootDir>/test/**/*.spec.ts"
+      "<rootDir>/test/**/*.spec.ts",
+      "<rootDir>/tests/**/*.spec.ts"
     ],
     "testPathIgnorePatterns": [
       "<rootDir>/test/.*\\.e2e-spec\\.ts$"
@@ -124,9 +125,6 @@
     "moduleNameMapper": {
       "^src/(.*)$": "<rootDir>/src/$1"
     },
-    "setupFilesAfterEnv": [
-      "<rootDir>/test/setup.ts"
-    ],
     "testTimeout": 30000,
     "verbose": true
   }

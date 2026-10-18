@@ -10,6 +10,9 @@ export class ActionAttackCalculated {
   @Prop({ type: [Modifier], required: true })
   public rollModifiers: Modifier[];
 
+  @Prop({ type: [Modifier], required: false })
+  public criticalModifiers: Modifier[] | undefined;
+
   @Prop({ type: Number, required: true })
   public rollTotal: number;
 
@@ -18,6 +21,12 @@ export class ActionAttackCalculated {
 
   @Prop({ type: Boolean, required: true })
   public requiredLocationRoll: boolean;
+
+  @Prop({ type: Number, required: false })
+  public criticalAdjustment: number | undefined;
+
+  @Prop({ type: Boolean, required: false })
+  public breakageRoll: boolean | undefined;
 }
 
 @Schema({ _id: false })
@@ -154,8 +163,9 @@ export class ActionAttack {
   @Prop({ type: ActionAttackResult, required: false })
   public results: ActionAttackResult | undefined;
 
+  /** Id of the attack in rmu-api-attack, no longer used: kept so that older actions still load. */
   @Prop({ type: String, required: false })
-  public externalAttackId: string | undefined;
+  public externalAttackId?: string;
 
   @Prop({ type: String, required: true })
   public status: AttackStatus;
