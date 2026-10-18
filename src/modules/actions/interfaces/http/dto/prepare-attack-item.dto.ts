@@ -1,11 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsIn, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
 import { PrepareAttackCommandItem, PrepareAttackCommandModifiers } from '../../../application/cqrs/commands/prepare-attack.command';
 import {
   CalledShot,
   ChargeSpeed,
   Cover,
   Dodge,
+  normalizeChargeSpeed,
   PositionalSource,
   PositionalTarget,
   RestrictedQuarters,
@@ -24,14 +25,14 @@ export class PrepareAttackModifiersDto {
   @ApiProperty({
     description: 'Called shot location, if any',
     required: false,
-    enum: ['none', 'head', 'body', 'arms', 'legs'],
+    enum: ['none', 'head', 'chest', 'abdomen', 'arms', 'legs'],
     example: 'none',
   })
   @IsOptional()
   @IsString()
   calledShot: CalledShot | undefined;
 
-  @ApiProperty({ description: 'Penalty for the called shot, if any', required: false, example: 0 })
+  @ApiProperty({ description: 'Penalty for the called shot (negative); -25 when not given', required: false, example: -25 })
   @IsOptional()
   @IsNumber()
   calledShotPenalty: number;
@@ -160,10 +161,15 @@ export class PrepareAttackModifiersDto {
   @IsNumber()
   customBonus: number | undefined;
 
-  @ApiProperty({ description: 'Charge speed applied to attack size', required: false, enum: ['none', 'jog', 'spring'], example: 'none' })
+  @ApiProperty({
+    description: 'Charge speed, added to the attacker size (`spring` is accepted as an alias of `sprint`)',
+    required: false,
+    enum: ['none', 'jog', 'sprint'],
+    example: 'none',
+  })
   @IsOptional()
-  @IsString()
-  chargeSpeed: ChargeSpeed | undefined;
+  @IsIn(['none', 'jog', 'sprint', 'spring'])
+  chargeSpeed: ChargeSpeed | 'spring' | undefined;
 
   static toCommand(dto: PrepareAttackModifiersDto): PrepareAttackCommandModifiers {
     return new PrepareAttackCommandModifiers(
@@ -191,7 +197,7 @@ export class PrepareAttackModifiersDto {
       dto.ambush,
       dto.range,
       dto.customBonus,
-      dto.chargeSpeed,
+      dto.chargeSpeed === undefined ? undefined : normalizeChargeSpeed(dto.chargeSpeed),
     );
   }
 }

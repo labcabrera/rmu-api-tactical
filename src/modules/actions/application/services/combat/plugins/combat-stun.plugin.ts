@@ -1,22 +1,14 @@
-import { CombatModifierBag } from '../combat-modifier-bag';
+import { isPreparing, rollModifiers, targetHasStatus } from '../combat-modifiers';
 import { CombatPlugin } from '../combat-plugin';
 
 export const CombatStunPlugin: CombatPlugin = {
-  id: 'combat-stun',
-  name: 'Combat Stun Plugin',
-  version: '1.0.0',
+  id: 'stunned-target',
+  group: 'defense',
   hooks: {
     prepare: [
       {
-        apply: ctx => {
-          const targetStatus = ctx.attackPreparation?.modifiers.situationalModifiers.targetStatus || [];
-          if (!targetStatus.includes('stunned') || targetStatus.includes('surprised')) {
-            return ctx;
-          }
-
-          CombatModifierBag.from(ctx.attackPreparation!.modifiers.rollModifiers).add('stunned-foe', 20);
-          return ctx;
-        },
+        condition: ctx => isPreparing(ctx) && (targetHasStatus(ctx, 'stunned') || !!ctx.attack?.modifiers.stunnedFoe),
+        apply: ctx => void rollModifiers(ctx).add('stunned-target', 20),
       },
     ],
   },

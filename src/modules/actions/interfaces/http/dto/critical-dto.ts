@@ -36,7 +36,7 @@ export class CriticalDto {
   @ApiProperty({ description: 'Critical key', example: 's_b_1' })
   key: string;
 
-  @ApiProperty({ description: 'Critical status', example: 'applied' })
+  @ApiProperty({ description: 'Critical status', enum: ['pending_roll', 'completed'], example: 'pending_roll' })
   status: string;
 
   @ApiProperty({ description: 'Critical type', example: 'S' })
@@ -45,7 +45,7 @@ export class CriticalDto {
   @ApiProperty({ description: 'Critical severity', example: 'A' })
   criticalSeverity: string;
 
-  @ApiProperty({ description: 'Adjusted roll', example: 10 })
+  @ApiProperty({ description: 'Roll looked up: the roll plus the critical adjustment, clamped to 1..100', example: 10 })
   adjustedRoll: number | undefined;
 
   @ApiProperty({ description: 'Critical result', type: CriticalResultDto, required: false })
@@ -60,8 +60,8 @@ export class CriticalDto {
     dto.adjustedRoll = entity.adjustedRoll;
     dto.result = entity.result
       ? {
-          text: entity.result.message,
-          damage: entity.result.dmg,
+          text: entity.result.text,
+          damage: entity.result.damage,
           location: entity.result.location,
           effects: entity.result.effects
             ? entity.result.effects.map(effect => ({

@@ -1,5 +1,5 @@
 import { PositionalSource } from '../../../../domain/value-objects/action-attack-modifiers.vo';
-import { CombatModifierBag } from '../combat-modifier-bag';
+import { isMelee, isPreparing, preparation, rollModifiers, sourceSkill } from '../combat-modifiers';
 import { CombatPlugin } from '../combat-plugin';
 
 const positionalSourceModifiers: Record<PositionalSource, number> = {
@@ -9,22 +9,15 @@ const positionalSourceModifiers: Record<PositionalSource, number> = {
 };
 
 export const CombatPositionalSourcePlugin: CombatPlugin = {
-  id: 'combat-positional-source',
-  name: 'Combat Positional Source Plugin',
-  version: '1.0.0',
+  id: 'positional-source',
+  group: 'situation',
   hooks: {
     prepare: [
       {
+        condition: ctx => isPreparing(ctx) && isMelee(ctx) && preparation(ctx).situationalModifiers.positionalSource !== 'none',
         apply: ctx => {
-          const positionalSource = ctx.attackPreparation?.modifiers.situationalModifiers.positionalSource;
-          if (!positionalSource || positionalSource === 'none') {
-            return ctx;
-          }
-          const modifier = positionalSourceModifiers[positionalSource] || 0;
-          if (modifier !== 0) {
-            CombatModifierBag.from(ctx.attackPreparation!.modifiers.rollModifiers).add('positional-source', modifier);
-          }
-          return ctx;
+          const penalty = positionalSourceModifiers[preparation(ctx).situationalModifiers.positionalSource] || 0;
+          rollModifiers(ctx).addWithSkill('positional-source', penalty, sourceSkill(ctx, 'reverse-strike'));
         },
       },
     ],

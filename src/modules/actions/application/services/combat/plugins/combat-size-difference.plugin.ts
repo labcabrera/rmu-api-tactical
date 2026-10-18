@@ -1,24 +1,22 @@
-import { CombatModifierBag } from '../combat-modifier-bag';
+import { isPreparing, preparation, rollModifiers } from '../combat-modifiers';
 import { CombatPlugin } from '../combat-plugin';
 
+const ROLL_PER_SIZE = 5;
+
+/**
+ * A larger attacker (with its charge) than the target finds it harder to hit: −5 per size. A smaller or equal
+ * one gets nothing (the Python calculator's `size-bonus` instead penalised a smaller attacker). The effect on
+ * damage and critical severity is applied with the attack's own size, in the `attack-size` plugin.
+ */
 export const CombatSizeDifferencePlugin: CombatPlugin = {
-  id: 'combat-size-difference',
-  name: 'Combat Size Difference Plugin',
-  version: '1.0.0',
+  id: 'size-difference',
+  group: 'situation',
   hooks: {
     prepare: [
       {
+        condition: ctx => isPreparing(ctx) && (preparation(ctx).situationalModifiers.sizeDifference || 0) > 0,
         apply: ctx => {
-          const sizeDifference = ctx.attackPreparation?.modifiers.situationalModifiers.sizeDifference || 0;
-          if (!ctx.attackPreparation || sizeDifference === 0) {
-            return ctx;
-          }
-
-          if (sizeDifference > 0) {
-            CombatModifierBag.from(ctx.attackPreparation.modifiers.rollModifiers).add('size-db', -(sizeDifference * 5));
-          }
-          CombatModifierBag.from(ctx.attackPreparation.modifiers.criticalModifiers).add('size-difference', sizeDifference);
-          return ctx;
+          rollModifiers(ctx).add('size-difference', -preparation(ctx).situationalModifiers.sizeDifference * ROLL_PER_SIZE);
         },
       },
     ],

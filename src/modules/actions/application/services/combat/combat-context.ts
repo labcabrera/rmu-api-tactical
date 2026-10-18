@@ -9,6 +9,7 @@ import type {
   CombatAttackSourceSkill,
   CombatAttackSourceTrait,
 } from './combat-attack-calculation';
+import type { CombatModifierOrigin } from './combat-modifier-bag';
 
 export interface CombatTraceEntry {
   source: string;
@@ -33,11 +34,18 @@ export interface CombatContext {
   targetsNumber?: number;
   gameLethality?: number;
   attackPreparation?: CombatAttackPreparation;
+  /** Armour type the attack table is looked up with (the target's, or the one of the location hit). */
+  armorType?: number | null;
   attackTableEntry?: AttackTableEntry;
+  /** Critical severities the table entry turns into, one critical each (an F..J result becomes several). */
+  criticalSeverities?: string[];
   attackCalculation?: CombatAttackCalculatedResult;
   criticalKey?: string;
   criticalRoll?: number;
   fumbleRoll?: number;
+  /** Plugin whose hook is running; set by the processor so the modifiers it adds carry their origin. */
+  plugin?: CombatModifierOrigin;
+  /** Plugins applied, in order, with the phase. */
   trace: CombatTraceEntry[];
 }
 

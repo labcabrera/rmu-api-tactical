@@ -65,10 +65,10 @@ export class CriticalEffect {
 @Schema({ _id: false })
 export class CriticalResult {
   @Prop({ type: String, required: true })
-  public message: string;
+  public text: string;
 
   @Prop({ type: Number, required: true })
-  public dmg: number;
+  public damage: number;
 
   @Prop({ type: String, required: true })
   public location: string;
@@ -163,8 +163,9 @@ export class ActionAttack {
   @Prop({ type: ActionAttackResult, required: false })
   public results: ActionAttackResult | undefined;
 
+  /** Id of the attack in rmu-api-attack, no longer used: kept so that older actions still load. */
   @Prop({ type: String, required: false })
-  public externalAttackId: string | undefined;
+  public externalAttackId?: string;
 
   @Prop({ type: String, required: true })
   public status: AttackStatus;

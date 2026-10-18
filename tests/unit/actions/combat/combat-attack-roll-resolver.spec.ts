@@ -1,42 +1,170 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { ActorRoundAttack } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-attack.vo';
-import type { AttackTablePort } from '../../../../src/modules/actions/application/ports/attack-table.port';
-import { CombatAttackRollResolverService } from '../../../../src/modules/actions/application/services/combat';
-import type { CombatContext } from '../../../../src/modules/actions/application/services/combat/combat-context';
-import type { CombatProcessor } from '../../../../src/modules/actions/application/services/combat/engine/combat-processor.service';
+import type { AttackTableLookupRequest, AttackTablePort } from '../../../../src/modules/actions/application/ports/attack-table.port';
+import {
+  COMBAT_PLUGIN_LIST,
+  CombatAttackRollResolverService,
+  CombatPluginRegistryService,
+  CombatProcessor,
+} from '../../../../src/modules/actions/application/services/combat';
 import { ActionAttackCalculated } from '../../../../src/modules/actions/domain/value-objects/action-attack-calculated.vo';
-import { createCombatPluginContext } from './combat-plugin-test.factory';
+import { AttackTableEntry } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo';
+import { KeyValueModifier } from '../../../../src/modules/actions/domain/value-objects/key-value-modifier.vo';
+import { createCombatPluginContext, CombatPluginContextOptions } from './combat-plugin-test.factory';
 
-describe('CombatAttackRollResolverService', () => {
-  it('marks fumble rolls as pending without looking up the attack table', async () => {
-    const ctx = createCombatPluginContext();
-    ctx.attack!.calculated = new ActionAttackCalculated([], 0, undefined, false);
-    ctx.sourceActor!.attacks = [
-      new ActorRoundAttack('Longsword', [], 75, 75, 'melee', 'slash', 'melee', 1, 5, false, null, null),
-    ];
-
-    const combatProcessor = {
-      runPhase: jest.fn(async (_phase: string, context: CombatContext) => context),
-    } as unknown as CombatProcessor;
-    const attackTablePort = {
-      lookup: jest.fn(),
-    } as unknown as AttackTablePort;
-    const resolver = new CombatAttackRollResolverService(combatProcessor, attackTablePort);
-
-    await resolver.resolve({
+const setup = (entry: AttackTableEntry, options: CombatPluginContextOptions & { requiredLocationRoll?: boolean } = {}) => {
+  const ctx = createCombatPluginContext(options);
+  ctx.attack!.calculated = new ActionAttackCalculated(
+    [new KeyValueModifier('bo', 80, 'offense', 'offensive-bonus'), new KeyValueModifier('bd', -20, 'defense', 'defensive-bonus')],
+    60,
+    undefined,
+    options.requiredLocationRoll ?? false,
+    undefined,
+    [],
+  );
+  const lookup = jest.fn((request: AttackTableLookupRequest) => {
+    void request;
+    return Promise.resolve(new AttackTableEntry(entry.text, entry.damage, entry.criticalType, entry.criticalSeverity));
+  });
+  const processor = new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST));
+  const resolver = new CombatAttackRollResolverService(processor, { lookup } as AttackTablePort);
+  const resolve = (roll: number, locationRoll?: number) =>
+    resolver.resolve({
       action: ctx.action,
       attack: ctx.attack!,
       sourceActor: ctx.sourceActor!,
       targetActor: ctx.targetActor!,
-      roll: 5,
-      locationRoll: undefined,
+      roll,
+      locationRoll,
+    });
+  return { ctx, attack: ctx.attack!, action: ctx.action, lookup, resolve };
+};
+
+describe('CombatAttackRollResolverService', () => {
+  it('adds the roll to the prepared modifiers and looks the total up with the target armour', async () => {
+    const { attack, action, lookup, resolve } = setup(new AttackTableEntry('8', 8, undefined, undefined), { defense: { at: 4 } });
+
+    await resolve(50);
+
+    expect(lookup).toHaveBeenCalledWith(expect.objectContaining({ attackTable: 'arming-sword', roll: 110, armor: 4 }));
+    expect(attack.roll?.roll).toBe(50);
+    expect(attack.calculated?.rollTotal).toBe(110);
+    expect(attack.results?.attackTableEntry?.damage).toBe(8);
+    expect(attack.results?.criticals).toBeUndefined();
+    expect(attack.status).toBe('pending_apply');
+    expect(action.status).toBe('pending_apply');
+  });
+
+  it('passes totals out of the table range unchanged: the adapter clamps them', async () => {
+    const { lookup, resolve } = setup(new AttackTableEntry('0', 0, undefined, undefined));
+
+    await resolve(150);
+
+    expect(lookup).toHaveBeenCalledWith(expect.objectContaining({ roll: 210 }));
+  });
+
+  it('uses the armour of the location rolled', async () => {
+    const { attack, lookup, resolve } = setup(new AttackTableEntry('8', 8, undefined, undefined), {
+      requiredLocationRoll: true,
+      defense: { at: null, headAt: 2, bodyAt: 6, armsAt: 3, legsAt: 4 },
     });
 
-    expect(attackTablePort.lookup).not.toHaveBeenCalled();
-    expect(ctx.attack!.roll?.roll).toBe(5);
-    expect(ctx.attack!.results?.attackTableEntry).toBeUndefined();
-    expect(ctx.attack!.results?.fumble?.status).toBe('pending_roll');
-    expect(ctx.attack!.status).toBe('pending_fumble_roll');
-    expect(ctx.action.status).toBe('pending_roll');
+    await resolve(50, 3);
+
+    expect(attack.calculated?.location).toBe('chest');
+    expect(lookup).toHaveBeenCalledWith(expect.objectContaining({ armor: 6, location: 'chest' }));
+  });
+
+  it('uses the armour of a called location', async () => {
+    const { attack, lookup, resolve } = setup(new AttackTableEntry('8', 8, undefined, undefined), {
+      calledShot: 'head',
+      defense: { at: null, headAt: 2, bodyAt: 6, armsAt: 3, legsAt: 4 },
+    });
+
+    await resolve(50);
+
+    expect(attack.calculated?.location).toBe('head');
+    expect(lookup).toHaveBeenCalledWith(expect.objectContaining({ armor: 2 }));
+  });
+
+  it('creates one pending critical for an A..E result', async () => {
+    const { attack, action, resolve } = setup(new AttackTableEntry('12CS', 12, 'S', 'C'));
+
+    await resolve(50);
+
+    expect(attack.results?.criticals?.map(critical => [critical.key, critical.criticalSeverity, critical.status])).toEqual([
+      ['s_c_1', 'C', 'pending_roll'],
+    ]);
+    expect(Array.from(attack.roll!.criticalRolls!.entries())).toEqual([['s_c_1', undefined]]);
+    expect(attack.status).toBe('pending_critical_roll');
+    expect(action.status).toBe('pending_roll');
+  });
+
+  it('splits an F..J result into several criticals', async () => {
+    const { attack, resolve } = setup(new AttackTableEntry('25IK', 25, 'K', 'I'));
+
+    await resolve(50);
+
+    expect(attack.results?.criticals?.map(critical => critical.key)).toEqual(['k_e_1', 'k_c_2', 'k_a_3']);
+  });
+
+  it('applies the attack size to the damage and the severity before splitting the criticals', async () => {
+    const { attack, resolve } = setup(new AttackTableEntry('10ES', 10, 'S', 'E'), { attackSize: 1 });
+
+    await resolve(50);
+
+    expect(attack.results?.attackTableEntry).toMatchObject({ damage: 15, criticalSeverity: 'F' });
+    expect(attack.results?.criticals?.map(critical => critical.criticalSeverity)).toEqual(['E', 'A']);
+  });
+
+  it('adds the absolute hit to the critical modifiers and the critical adjustment', async () => {
+    const { attack, resolve } = setup(new AttackTableEntry('30EK', 30, 'K', 'E'));
+    attack.calculated!.criticalModifiers = [new KeyValueModifier('size-difference', 1, 'situation', 'size-difference')];
+
+    await resolve(130);
+
+    expect(attack.calculated?.rollTotal).toBe(190);
+    expect(attack.calculated?.criticalModifiers?.map(modifier => [modifier.key, modifier.value])).toEqual([
+      ['size-difference', 1],
+      ['absolute-hit', 3],
+    ]);
+    expect(attack.calculated?.criticalAdjustment).toBe(4);
+  });
+
+  it('replaces the results of a previous roll', async () => {
+    const { attack, resolve } = setup(new AttackTableEntry('30EK', 30, 'K', 'E'));
+
+    await resolve(130);
+    await resolve(77);
+
+    expect(attack.calculated?.criticalModifiers).toEqual([]);
+    expect(attack.calculated?.criticalAdjustment).toBeUndefined();
+    expect(attack.calculated?.breakageRoll).toBe(true);
+    expect(attack.calculated?.rollTotal).toBe(137);
+  });
+
+  it('marks a fumble as pending without looking up the attack table', async () => {
+    const { attack, action, lookup, resolve } = setup(new AttackTableEntry('8', 8, undefined, undefined), { fumble: 4 });
+
+    await resolve(4);
+
+    expect(lookup).not.toHaveBeenCalled();
+    expect(attack.roll?.roll).toBe(4);
+    expect(attack.results?.attackTableEntry).toBeUndefined();
+    expect(attack.results?.fumble?.status).toBe('pending_roll');
+    expect(attack.status).toBe('pending_fumble_roll');
+    expect(action.status).toBe('pending_roll');
+  });
+
+  it('keeps the action pending while another attack has not been rolled', async () => {
+    const { ctx, action, resolve } = setup(new AttackTableEntry('8', 8, undefined, undefined));
+    const other = createCombatPluginContext().attack!;
+    other.attackName = 'offHand';
+    action.attacks = [ctx.attack!, other];
+
+    await resolve(50);
+
+    expect(ctx.attack!.status).toBe('pending_apply');
+    expect(other.status).toBe('pending_attack_roll');
+    expect(action.status).toBe('pending_roll');
   });
 });

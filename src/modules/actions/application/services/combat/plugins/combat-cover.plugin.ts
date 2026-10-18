@@ -1,5 +1,4 @@
-import { Cover } from '../../../../domain/value-objects/action-attack-modifiers.vo';
-import { CombatModifierBag } from '../combat-modifier-bag';
+import { isMelee, isPreparing, preparation, rollModifiers } from '../combat-modifiers';
 import { CombatPlugin } from '../combat-plugin';
 
 type CoverLevel = 'partial' | 'half' | 'full';
@@ -17,29 +16,18 @@ const rangedCoverModifiers: Record<CoverLevel, number> = {
 };
 
 export const CombatCoverPlugin: CombatPlugin = {
-  id: 'combat-cover',
-  name: 'Combat Cover Plugin',
-  version: '1.0.0',
+  id: 'cover',
+  group: 'situation',
   hooks: {
     prepare: [
       {
+        condition: ctx => isPreparing(ctx) && preparation(ctx).situationalModifiers.cover !== 'none',
         apply: ctx => {
-          const cover = ctx.attackPreparation?.modifiers.situationalModifiers.cover;
-          if (!ctx.attackPreparation || !cover || cover === 'none') {
-            return ctx;
-          }
-
-          const modifier = calculateCoverModifier(cover, ctx.attackPreparation.modifiers.attackType);
-          CombatModifierBag.from(ctx.attackPreparation.modifiers.rollModifiers).add('cover', modifier);
-          return ctx;
+          const [hardness, level] = preparation(ctx).situationalModifiers.cover.split('_') as ['soft' | 'hard', CoverLevel];
+          const base = (isMelee(ctx) ? meleeCoverModifiers : rangedCoverModifiers)[level] || 0;
+          rollModifiers(ctx).add('cover', hardness === 'hard' ? base * 2 : base);
         },
       },
     ],
   },
 };
-
-function calculateCoverModifier(cover: Cover, attackType: string): number {
-  const [hardness, level] = cover.split('_') as ['soft' | 'hard', CoverLevel];
-  const baseModifier = attackType === 'ranged' || attackType === 'thrown' ? rangedCoverModifiers[level] : meleeCoverModifiers[level];
-  return hardness === 'hard' ? baseModifier * 2 : baseModifier;
-}

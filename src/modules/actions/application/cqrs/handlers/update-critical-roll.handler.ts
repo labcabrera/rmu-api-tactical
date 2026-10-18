@@ -7,8 +7,11 @@ import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import type { CriticalTablePort } from '../../ports/critical-table.port';
-import { CombatModifierBag, CombatProcessor } from '../../services/combat';
+import { CombatProcessor } from '../../services/combat';
 import { UpdateCriticalRollCommand } from '../commands/update-critical-roll.command';
+
+const MIN_CRITICAL_ROLL = 1;
+const MAX_CRITICAL_ROLL = 100;
 
 @CommandHandler(UpdateCriticalRollCommand)
 export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCriticalRollCommand, Action> {
@@ -31,47 +34,40 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
     const game = await this.gameRepository.findById(action.gameId);
     if (!game) throw new NotFoundError('Game', action.gameId);
 
+    action.checkValidCriticalRollDeclaration(command.attackName, command.criticalKey, command.roll);
     const attack = action.getAttackByName(command.attackName);
-    const criticalAdjustment =
-      CombatModifierBag.from(attack.calculated?.criticalModifiers).sum() || attack.calculated?.criticalAdjustment || 0;
-    const rollAdjusted = Math.min(Math.max(command.roll + criticalAdjustment, 1), 100);
-
-    action.checkValidCriticalRollDeclaration(command.attackName, command.criticalKey, rollAdjusted);
-
-    const ctx = await this.combatProcessor.runPhase('criticalRoll', {
-      action,
-      attack,
-      criticalKey: command.criticalKey,
-      criticalRoll: rollAdjusted,
-      location: attack.calculated?.location,
-      trace: [],
-    });
-
-    attack.roll!.criticalRolls!.set(command.criticalKey, ctx.criticalRoll);
     const critical = attack.results?.criticals?.find(c => c.key === command.criticalKey);
     if (!critical) {
       throw new ValidationError(`Critical ${command.criticalKey} not found in attack ${command.attackName}`);
     }
 
-    critical.adjustedRoll = ctx.criticalRoll;
+    const ctx = await this.combatProcessor.runPhase('criticalRoll', {
+      action,
+      attack,
+      criticalKey: command.criticalKey,
+      criticalRoll: command.roll,
+      location: attack.calculated?.location,
+      trace: [],
+    });
+    const adjustedRoll = Math.min(Math.max(ctx.criticalRoll ?? command.roll, MIN_CRITICAL_ROLL), MAX_CRITICAL_ROLL);
+
+    const criticalRolls = attack.roll!.criticalRolls;
+    attack.roll!.criticalRolls = criticalRolls instanceof Map ? criticalRolls : new Map(Object.entries(criticalRolls || {}));
+    // The raw roll is stored; the adjusted one goes in the critical.
+    attack.roll!.criticalRolls.set(command.criticalKey, command.roll);
+    critical.adjustedRoll = adjustedRoll;
     critical.result = await this.criticalTablePort.lookup({
       criticalType: critical.criticalType,
       criticalSeverity: critical.criticalSeverity,
-      roll: ctx.criticalRoll!,
-      location: attack.calculated?.location,
+      roll: adjustedRoll,
+      location: ctx.location,
     });
     critical.status = 'completed';
+    action.refreshAttackStatuses();
 
-    if (!action.hasPendingCriticalRolls() && !action.hasPendingFumbleRolls()) {
-      action.status = 'pending_apply';
-      attack.status = 'pending_apply';
-    } else if (action.hasPendingFumbleRolls()) {
-      action.status = 'pending_roll';
-      attack.status = 'pending_fumble_roll';
-    }
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
-    return action;
+    return updated;
   }
 }

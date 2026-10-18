@@ -1,22 +1,14 @@
-import { CombatModifierBag } from '../combat-modifier-bag';
+import { isPreparing, rollModifiers, targetHasStatus } from '../combat-modifiers';
 import { CombatPlugin } from '../combat-plugin';
 
 export const CombatSurprisedPlugin: CombatPlugin = {
-  id: 'combat-surprised',
-  name: 'Combat Surprised Plugin',
-  version: '1.0.0',
+  id: 'surprised-target',
+  group: 'defense',
   hooks: {
     prepare: [
       {
-        apply: ctx => {
-          const targetStatus = ctx.attackPreparation?.modifiers.situationalModifiers.targetStatus || [];
-          if (!targetStatus.includes('surprised')) {
-            return ctx;
-          }
-
-          CombatModifierBag.from(ctx.attackPreparation!.modifiers.rollModifiers).add('surprised-foe', 25);
-          return ctx;
-        },
+        condition: ctx => isPreparing(ctx) && (targetHasStatus(ctx, 'surprised') || !!ctx.attack?.modifiers.surprisedFoe),
+        apply: ctx => void rollModifiers(ctx).add('surprised-target', 25),
       },
     ],
   },

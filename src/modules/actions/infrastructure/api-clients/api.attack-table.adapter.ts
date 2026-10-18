@@ -6,6 +6,20 @@ import { handleAxiosError } from '../../../shared/infrastructure/api-rest/axios.
 import { AttackTableLookupRequest, AttackTablePort } from '../../application/ports/attack-table.port';
 import { AttackTableEntry } from '../../domain/value-objects/action-attack.vo';
 
+const MIN_ROLL = 1;
+const MAX_ROLL = 175;
+const MIN_ARMOR = 1;
+const MAX_ARMOR = 10;
+
+const clamp = (value: number, min: number, max: number): number => Math.min(Math.max(Math.trunc(value), min), max);
+
+interface AttackTableResponse {
+  text: string;
+  damage: number | null;
+  criticalType: string | null;
+  criticalSeverity: string | null;
+}
+
 @Injectable()
 export class ApiAttackTableAdapter implements AttackTablePort {
   private readonly apiAttackTablesUri: string;
@@ -19,14 +33,18 @@ export class ApiAttackTableAdapter implements AttackTablePort {
 
   async lookup(request: AttackTableLookupRequest): Promise<AttackTableEntry> {
     const token = await this.tokenService.getToken();
-    const uri = `${this.apiAttackTablesUri}/attack-tables/${request.attackTable}/medium/${request.armor}/${request.roll}`;
+    const armor = clamp(request.armor || MIN_ARMOR, MIN_ARMOR, MAX_ARMOR);
+    const roll = clamp(request.roll, MIN_ROLL, MAX_ROLL);
+    // The size is applied by the attack-size combat plugin: the table is always read as medium.
+    const uri = `${this.apiAttackTablesUri}/attack-tables/${request.attackTable}/medium/${armor}/${roll}`;
     try {
-      const response = await axios.get<AttackTableEntry>(uri, {
+      const response = await axios.get<AttackTableResponse>(uri, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      return response.data;
+      const data = response.data;
+      return new AttackTableEntry(data.text, data.damage || 0, data.criticalType || undefined, data.criticalSeverity || undefined);
     } catch (err: unknown) {
       throw handleAxiosError(err, uri);
     }

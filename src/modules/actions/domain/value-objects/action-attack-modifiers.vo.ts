@@ -5,7 +5,20 @@ export type PositionalTarget = 'none' | 'flank' | 'rear';
 export type RestrictedQuarters = 'none' | 'close' | 'cramped' | 'tight' | 'confined';
 export type Cover = 'none' | 'soft_partial' | 'soft_half' | 'soft_full' | 'hard_partial' | 'hard_half' | 'hard_full';
 export type Dodge = 'none' | 'passive' | 'partial' | 'full';
-export type ChargeSpeed = 'none' | 'jog' | 'spring';
+export type ChargeSpeed = 'none' | 'jog' | 'sprint';
+
+/** `spring` was the original (misspelt) value: still accepted as input and in stored actions. */
+export const normalizeChargeSpeed = (value: string | undefined | null): ChargeSpeed => {
+  switch (value) {
+    case 'jog':
+      return 'jog';
+    case 'sprint':
+    case 'spring':
+      return 'sprint';
+    default:
+      return 'none';
+  }
+};
 
 export class ActionAttackModifiers {
   constructor(

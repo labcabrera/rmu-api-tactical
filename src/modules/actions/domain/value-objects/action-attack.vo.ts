@@ -13,7 +13,6 @@ export class ActionAttack {
     public roll: ActionAttackRoll | undefined,
     public calculated: ActionAttackCalculated | undefined,
     public results: ActionAttackResult | undefined,
-    public externalAttackId: string | undefined,
     public status: AttackStatus,
     public protectors: string[] | null,
   ) {}
@@ -21,6 +20,26 @@ export class ActionAttack {
   //TODO make non static
   static isCalledShot(attack: ActionAttack): boolean {
     return attack.modifiers.calledShot !== undefined && attack.modifiers.calledShot !== 'none';
+  }
+
+  /**
+   * What the attack is waiting for, derived from its rolls and results. Static because the attacks loaded from
+   * Mongo are plain objects.
+   */
+  static calculateStatus(attack: ActionAttack): AttackStatus {
+    if (attack.status === 'completed') {
+      return 'completed';
+    }
+    if (!attack.roll?.roll) {
+      return 'pending_attack_roll';
+    }
+    if (attack.results?.fumble && !attack.roll.fumbleRoll) {
+      return 'pending_fumble_roll';
+    }
+    if (attack.results?.criticals?.some(critical => !critical.result)) {
+      return 'pending_critical_roll';
+    }
+    return 'pending_apply';
   }
 }
 

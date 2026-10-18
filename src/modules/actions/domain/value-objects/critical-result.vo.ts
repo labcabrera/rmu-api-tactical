@@ -10,8 +10,8 @@ export class CriticalEffect {
 
 export class CriticalResult {
   constructor(
-    public message: string,
-    public dmg: number,
+    public text: string,
+    public damage: number,
     public location: string,
     public effects: CriticalEffect[],
   ) {}

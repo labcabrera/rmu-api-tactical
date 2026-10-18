@@ -1,72 +1,27 @@
-import { CombatModifierBag } from '../combat-modifier-bag';
+import { isPreparing, rollModifiers, sourceSkill } from '../combat-modifiers';
 import { CombatPlugin } from '../combat-plugin';
 
-const attackCountModifiers = new Map<number, number>([
-  [2, -75],
-  [3, -100],
-  [4, -125],
-  [5, -150],
-]);
-
-const ADDITIONAL_ATTACK_STEP = -25;
-const ADDITIONAL_FOE_MODIFIER = -20;
-const LAST_DEFINED_ATTACK_COUNT = 5;
-const LAST_DEFINED_ATTACK_MODIFIER = -150;
+const SECOND_ATTACK_PENALTY = -75;
+const ADDITIONAL_ATTACK_PENALTY = -25;
+const ADDITIONAL_TARGET_PENALTY = -20;
 
 export const CombatMultipleAttacksPlugin: CombatPlugin = {
-  id: 'combat-multiple-attacks',
-  name: 'Combat Multiple Attacks Plugin',
-  version: '1.0.0',
+  id: 'multiple-attacks',
+  group: 'offense',
   hooks: {
     prepare: [
       {
+        condition: ctx => isPreparing(ctx) && ((ctx.attackNumber || 1) > 1 || (ctx.targetsNumber || 1) > 1),
         apply: ctx => {
-          if (!ctx.attackPreparation) {
-            return ctx;
-          }
-
-          if (ctx.attackNumber === 1 && ctx.targetsNumber === 1) {
-            return ctx;
-          }
-
-          const modifiers = CombatModifierBag.from(ctx.attackPreparation.modifiers.rollModifiers);
-
-          const multipleAttackSkill = ctx.sourceSkills?.find(s => s.skillId === 'multiple-attacks')?.bonus || 0;
-
-          const attackNumberPenalty = calculateAttackNumberModifier(ctx.attackNumber);
-          const attackNumberSkill = Math.min(-attackNumberPenalty, multipleAttackSkill);
-
-          const targetNumberPenalty = calculateTargetsModifier(ctx.targetsNumber);
-          const targetNumberSkill = Math.min(targetNumberPenalty, multipleAttackSkill);
-
-          modifiers.add('attack-number', attackNumberPenalty);
-          modifiers.add('attack-number-skill', attackNumberSkill);
-          modifiers.add('target-number', targetNumberPenalty);
-          modifiers.add('target-number-skill', targetNumberSkill);
-          return ctx;
+          const attacks = ctx.attackNumber || 1;
+          const targets = ctx.targetsNumber || 1;
+          // The skill offsets each penalty on its own, as in the Python calculator.
+          const skill = sourceSkill(ctx, 'multiple-attacks');
+          const attackPenalty = attacks > 1 ? SECOND_ATTACK_PENALTY + (attacks - 2) * ADDITIONAL_ATTACK_PENALTY : 0;
+          const targetPenalty = (targets - 1) * ADDITIONAL_TARGET_PENALTY;
+          rollModifiers(ctx).addWithSkill('attack-number', attackPenalty, skill).addWithSkill('attack-targets', targetPenalty, skill);
         },
       },
     ],
   },
 };
-
-function calculateAttackNumberModifier(attackNumber: number | undefined): number {
-  if (!attackNumber || attackNumber <= 1) {
-    return 0;
-  }
-
-  const tableModifier = attackCountModifiers.get(attackNumber);
-  if (tableModifier !== undefined) {
-    return tableModifier;
-  }
-
-  return LAST_DEFINED_ATTACK_MODIFIER + (attackNumber - LAST_DEFINED_ATTACK_COUNT) * ADDITIONAL_ATTACK_STEP;
-}
-
-function calculateTargetsModifier(targetsNumber: number | undefined): number {
-  if (!targetsNumber || targetsNumber <= 1) {
-    return 0;
-  }
-
-  return (targetsNumber - 1) * ADDITIONAL_FOE_MODIFIER;
-}

@@ -1,5 +1,5 @@
 import { PositionalTarget } from '../../../../domain/value-objects/action-attack-modifiers.vo';
-import { CombatModifierBag } from '../combat-modifier-bag';
+import { isMelee, isPreparing, preparation, rollModifiers } from '../combat-modifiers';
 import { CombatPlugin } from '../combat-plugin';
 
 const positionalTargetModifiers: Record<PositionalTarget, number> = {
@@ -9,22 +9,17 @@ const positionalTargetModifiers: Record<PositionalTarget, number> = {
 };
 
 export const CombatPositionalTargetPlugin: CombatPlugin = {
-  id: 'combat-positional-target',
-  name: 'Combat Positional Target Plugin',
-  version: '1.0.0',
+  id: 'positional-target',
+  group: 'situation',
   hooks: {
     prepare: [
       {
-        apply: ctx => {
-          const positionalTarget = ctx.attackPreparation?.modifiers.situationalModifiers.positionalTarget;
-          if (!positionalTarget || positionalTarget === 'none') {
-            return ctx;
-          }
-
-          const modifier = positionalTargetModifiers[positionalTarget] || 0;
-          CombatModifierBag.from(ctx.attackPreparation!.modifiers.rollModifiers).add('positional-target', modifier);
-          return ctx;
-        },
+        condition: ctx => isPreparing(ctx) && isMelee(ctx) && preparation(ctx).situationalModifiers.positionalTarget !== 'none',
+        apply: ctx =>
+          void rollModifiers(ctx).add(
+            'positional-target',
+            positionalTargetModifiers[preparation(ctx).situationalModifiers.positionalTarget] || 0,
+          ),
       },
     ],
   },

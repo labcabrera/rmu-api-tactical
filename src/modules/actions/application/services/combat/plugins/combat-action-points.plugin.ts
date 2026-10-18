@@ -1,31 +1,22 @@
-import { CombatModifierBag } from '../combat-modifier-bag';
+import { isMelee, isPreparing, preparation, rollModifiers } from '../combat-modifiers';
 import { CombatPlugin } from '../combat-plugin';
 
 const ACTION_POINT_PENALTY = -25;
-const REQUIRED_ACTION_POINTS: Record<string, number> = {
-  melee: 4,
-  ranged: 3,
-  thrown: 3,
-};
+const MELEE_ACTION_POINTS = 4;
+const RANGED_ACTION_POINTS = 3;
 
 export const CombatActionPointsPlugin: CombatPlugin = {
-  id: 'combat-action-points',
-  name: 'Combat Action Points Plugin',
-  version: '1.0.0',
+  id: 'action-points',
+  group: 'offense',
   hooks: {
     prepare: [
       {
+        condition: ctx => isPreparing(ctx) && !ctx.action.freeAction,
         apply: ctx => {
-          if (!ctx.attackPreparation || ctx.action.freeAction) {
-            return ctx;
-          }
-
-          const { attackType, actionPoints, rollModifiers } = ctx.attackPreparation.modifiers;
-          const requiredActionPoints = REQUIRED_ACTION_POINTS[attackType] || 0;
-          const missingActionPoints = Math.max(requiredActionPoints - actionPoints, 0);
-
-          CombatModifierBag.from(rollModifiers).add('action-points', missingActionPoints * ACTION_POINT_PENALTY);
-          return ctx;
+          const required = isMelee(ctx) ? MELEE_ACTION_POINTS : RANGED_ACTION_POINTS;
+          // Clamped at 0: spending more points than required gives no bonus (Python allowed it).
+          const missing = Math.max(required - preparation(ctx).actionPoints, 0);
+          rollModifiers(ctx).add('action-points', missing * ACTION_POINT_PENALTY);
         },
       },
     ],

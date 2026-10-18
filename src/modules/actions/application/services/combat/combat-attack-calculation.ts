@@ -20,7 +20,6 @@ export interface CombatAttackSituationalModifiers {
   disabledShield: boolean;
   disabledParry: boolean;
   sizeDifference: number;
-  offHand: boolean;
   twoHandedWeapon: boolean;
   higherGround: boolean;
   sourceStatus: string[];
@@ -44,8 +43,21 @@ export interface CombatAttackArmor {
   legsAt: number | null;
 }
 
+/**
+ * Everything the prepare plugins read: what was declared for the attack, the target's defence and the derived
+ * situation. The handler only fills it; the plugins turn it into modifiers.
+ */
 export interface CombatAttackPreparationModifiers {
   attackType: string;
+  /** Offensive bonus used. */
+  bo: number;
+  /** Target's defensive bonus. */
+  bd: number;
+  /** Distance to the target (ranged and thrown attacks). */
+  range: number | undefined;
+  pace: string | undefined;
+  calledShotPenalty: number;
+  customBonus: number;
   attackTable: string;
   attackSize: number;
   fumbleTable: string;

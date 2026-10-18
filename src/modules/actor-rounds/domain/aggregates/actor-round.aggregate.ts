@@ -100,6 +100,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       new Date(),
       null,
     );
+    actorRound.calculateCurrentBo();
     actorRound.apply(new ActorRoundCreatedEvent(actorRound));
     return actorRound;
   }
@@ -136,7 +137,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   }
 
   static fromProps(props: ActorRoundProps): ActorRound {
-    return new ActorRound(
+    const actorRound = new ActorRound(
       props.id,
       props.gameId,
       props.round,
@@ -164,6 +165,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       props.createdAt,
       props.updatedAt,
     );
+    // Derived: recomputed so that values stored with the penalties folded in are corrected.
+    actorRound.calculateCurrentBo();
+    return actorRound;
   }
 
   static createFromPrevious(previous: ActorRound): ActorRound {
@@ -337,7 +341,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
 
   private applyPenalties() {
     this.applyHpPenalty();
-    this.applyStunPenalty();
+    // Being stunned has no penalty: drop the zero entries older rounds stored for it.
+    this.penalty.modifiers = this.penalty.modifiers.filter(m => m.source !== 'stunned');
   }
 
   private applyHpPenalty() {
@@ -356,29 +361,37 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     }
   }
 
-  private applyStunPenalty() {
-    const stunPenalty = 0;
-    //TODO filter with delay effects
-    const effectiveStunEffect = this.effects.find(e => e.status === 'stunned');
-    this.penalty.modifiers = this.penalty.modifiers.filter(m => m.source !== 'stunned');
-    if (effectiveStunEffect) {
-      this.penalty.addModifier('stunned', stunPenalty);
-    }
-  }
-
+  /**
+   * OB left to spend this round: the base OB less the OB already used in attacks and parries. Penalties are not
+   * in it; the combat plugins apply them to the roll, and they cap the parry (`getAvailableParry`).
+   */
   private calculateCurrentBo() {
-    const penaltySum = this.getPenaltySum();
-    this.attacks.forEach(a => this.calculateAttackCurrentBo(a, penaltySum));
+    this.attacks.forEach(attack => {
+      attack.currentBo = attack.baseBo;
+      this.usedBo.forEach(u => (attack.currentBo -= u.usedBo));
+      this.parries.forEach(p => (attack.currentBo -= p));
+    });
   }
 
-  private calculateAttackCurrentBo(attack: ActorRoundAttack, penalty: number) {
-    attack.currentBo = attack.baseBo + penalty;
-    this.usedBo.forEach(u => (attack.currentBo -= u.usedBo));
-    this.parries.forEach(p => (attack.currentBo -= p));
-  }
-
-  private getPenaltySum(): number {
+  /** Sum of the penalties (negative). */
+  getPenaltySum(): number {
     return this.penalty.modifiers.reduce((sum, m) => sum + m.value, 0);
+  }
+
+  /** Penalties by source, the zero ones left out. */
+  getPenaltiesBySource(): Array<{ source: ActorRoundPenaltySource; value: number }> {
+    const bySource = new Map<ActorRoundPenaltySource, number>();
+    this.penalty.modifiers.forEach(m => bySource.set(m.source, (bySource.get(m.source) || 0) + m.value));
+    return [...bySource.entries()].filter(([, value]) => value !== 0).map(([source, value]) => ({ source, value }));
+  }
+
+  /** Most it can parry with its melee attacks: the OB left, with the penalties applied. */
+  getAvailableParry(): number {
+    const penalty = this.getPenaltySum();
+    return this.attacks
+      .filter(a => a.type === 'melee')
+      .map(a => a.currentBo + penalty)
+      .reduce((max, value) => Math.max(max, value), 0);
   }
 
   getCurrentBo(attackName: string): number {

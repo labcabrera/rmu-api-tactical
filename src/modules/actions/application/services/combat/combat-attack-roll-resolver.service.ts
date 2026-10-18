@@ -4,12 +4,12 @@ import { ActorRoundAttack } from '../../../../actor-rounds/domain/value-objets/a
 import { ValidationError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionAttackRoll } from '../../../domain/value-objects/action-attack-roll.vo';
-import { ActionAttack, ActionAttackResult } from '../../../domain/value-objects/action-attack.vo';
-import { ActionStatus } from '../../../domain/value-objects/action-status.vo';
+import { ActionAttack, ActionAttackResult, Fumble } from '../../../domain/value-objects/action-attack.vo';
 import { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
 import { Critical } from '../../../domain/value-objects/critical.vo';
 import type { AttackTablePort } from '../../ports/attack-table.port';
 import { CombatContext } from './combat-context';
+import { CombatModifierBag } from './combat-modifier-bag';
 import { CombatProcessor } from './engine/combat-processor.service';
 
 export interface ResolveAttackRollInput {
@@ -51,56 +51,62 @@ export class CombatAttackRollResolverService {
     @Inject('AttackTablePort') private readonly attackTablePort: AttackTablePort,
   ) {}
 
+  /**
+   * Resolves an attack roll: runs `beforeAttackRoll`, adds the roll to the prepared modifiers, detects the fumble
+   * or looks the total up in the attack table, runs `afterAttackRoll` and creates the criticals the context holds.
+   * The rules (armour by location, absolute hit, size, critical expansion...) are plugins.
+   */
   async resolve(input: ResolveAttackRollInput): Promise<CombatContext> {
-    const sourceAttack = this.getSourceAttack(input.sourceActor, input.attack.attackName);
+    const attack = input.attack;
+    const calculated = attack.calculated!;
     let ctx: CombatContext = {
       action: input.action,
-      attack: input.attack,
+      attack,
       attackRoll: input.roll,
       locationRoll: input.locationRoll,
       sourceActor: input.sourceActor,
       targetActor: input.targetActor,
-      sourceAttack,
+      sourceAttack: this.getSourceAttack(input.sourceActor, attack.attackName),
+      location: calculated.requiredLocationRoll && input.locationRoll ? this.getLocation(input.locationRoll) : undefined,
+      armorType: input.targetActor.defense.at,
       trace: [],
     };
+    this.resetPreviousRoll(ctx);
 
     ctx = await this.combatProcessor.runPhase('beforeAttackRoll', ctx);
-    ctx.rollTotal = this.calculateRollTotal(ctx);
-
-    ctx.location = ctx.attack!.calculated!.requiredLocationRoll ? this.getLocation(ctx.locationRoll!) : undefined;
-    ctx.attack!.calculated!.location = ctx.location;
+    ctx.rollTotal = ctx.attackRoll! + CombatModifierBag.from(calculated.rollModifiers).sum();
+    calculated.location = ctx.location;
+    calculated.rollTotal = ctx.rollTotal;
+    attack.roll = new ActionAttackRoll(ctx.attackRoll!, ctx.locationRoll, undefined, undefined);
 
     if (this.isFumble(ctx)) {
-      this.applyFumbleResult(ctx);
-      ctx.attack!.status = this.calculateAttackStatus(ctx.attack!);
-      ctx.action.status = this.calculateActionStatus(ctx.action);
-
-      ctx = await this.combatProcessor.runPhase('afterAttackRoll', ctx);
-
-      return ctx;
+      attack.results = new ActionAttackResult(undefined, undefined, new Fumble('pending_roll', undefined, undefined, undefined, undefined));
+    } else {
+      ctx.attackTableEntry = await this.attackTablePort.lookup({
+        attackTable: ctx.sourceAttack!.attackTable,
+        attackSize: ctx.sourceAttack!.attackSize,
+        roll: ctx.rollTotal,
+        armor: ctx.armorType ?? undefined,
+        location: ctx.location,
+      });
+      attack.results = new ActionAttackResult(ctx.attackTableEntry, undefined, undefined);
     }
 
-    //TODO
-    const armor = ctx.targetActor?.defense.at || 1;
-
-    ctx.attackTableEntry = await this.attackTablePort.lookup({
-      attackTable: ctx.sourceAttack!.attackTable,
-      attackSize: ctx.sourceAttack!.attackSize,
-      roll: ctx.rollTotal,
-      armor: armor,
-      location: ctx.location,
-    });
-
-    this.applyAttackResult(ctx);
-
-    this.prepareCriticalRolls(ctx);
-
-    ctx.attack!.status = this.calculateAttackStatus(ctx.attack!);
-    ctx.action.status = this.calculateActionStatus(ctx.action);
-
     ctx = await this.combatProcessor.runPhase('afterAttackRoll', ctx);
+    this.createCriticals(ctx);
+    calculated.criticalAdjustment = CombatModifierBag.from(calculated.criticalModifiers).sum() || undefined;
+    ctx.action.refreshAttackStatuses();
 
     return ctx;
+  }
+
+  /** A new roll replaces the previous one: its results and what the roll phases added. */
+  private resetPreviousRoll(ctx: CombatContext): void {
+    const calculated = ctx.attack!.calculated!;
+    calculated.breakageRoll = undefined;
+    calculated.criticalModifiers = (calculated.criticalModifiers || []).filter(modifier => modifier.group !== 'resolution');
+    ctx.attack!.results = undefined;
+    ctx.attack!.status = 'pending_attack_roll';
   }
 
   private getSourceAttack(sourceActor: ActorRound, attackName: string): ActorRoundAttack {
@@ -111,64 +117,29 @@ export class CombatAttackRollResolverService {
     return attack;
   }
 
-  private calculateRollTotal(ctx: CombatContext): number {
-    const modifiers = ctx.attack?.calculated?.rollModifiers || [];
-    const modifierTotal = modifiers.reduce((sum, modifier) => sum + modifier.value, 0);
-    return (ctx.attackRoll || 0) + modifierTotal;
-  }
-
   private isFumble(ctx: CombatContext): boolean {
-    return (ctx.attackRoll || 0) <= ctx.sourceAttack!.fumble;
+    const fumble = ctx.sourceAttack!.fumble || 0;
+    return fumble > 0 && ctx.attackRoll! <= fumble;
   }
 
-  private applyAttackResult(ctx: CombatContext): void {
-    ctx.attack!.roll = new ActionAttackRoll(ctx.attackRoll!, ctx.locationRoll, undefined, undefined);
-    ctx.attack!.calculated!.rollTotal = ctx.rollTotal!;
-    ctx.attack!.results = new ActionAttackResult(ctx.attackTableEntry, undefined, undefined);
-  }
-
-  private applyFumbleResult(ctx: CombatContext): void {
-    ctx.attack!.roll = new ActionAttackRoll(ctx.attackRoll!, ctx.locationRoll, undefined, undefined);
-    ctx.attack!.calculated!.rollTotal = ctx.rollTotal!;
-    ctx.attack!.results = new ActionAttackResult(undefined, undefined, {
-      status: 'pending_roll',
-      text: undefined,
-      additionalDamageText: undefined,
-      damage: undefined,
-      effects: undefined,
-    });
-  }
-
-  private prepareCriticalRolls(ctx: CombatContext): void {
-    const entry = ctx.attackTableEntry;
-    if (!entry?.criticalType || !entry.criticalSeverity) {
+  private createCriticals(ctx: CombatContext): void {
+    const criticalType = ctx.attackTableEntry?.criticalType;
+    if (!criticalType || !ctx.criticalSeverities?.length) {
       return;
     }
-
-    const key = `${entry.criticalType.toLowerCase()}_${entry.criticalSeverity.toLowerCase()}_1`;
-    const critical = new Critical(key, 'pending_roll', entry.criticalType, entry.criticalSeverity, undefined, undefined);
-    ctx.attack!.results!.criticals = [critical];
-    ctx.attack!.roll!.criticalRolls = new Map<string, number | undefined>([[key, undefined]]);
-  }
-
-  private calculateAttackStatus(attack: ActionAttack): ActionAttack['status'] {
-    if (attack.roll?.criticalRolls && Array.from(attack.roll.criticalRolls.values()).some(value => value === undefined)) {
-      return 'pending_critical_roll';
-    }
-    if (attack.results?.fumble && !attack.roll?.fumbleRoll) {
-      return 'pending_fumble_roll';
-    }
-    return 'pending_apply';
-  }
-
-  private calculateActionStatus(action: Action): ActionStatus {
-    if (action.hasPendingAttackRolls()) {
-      return 'pending_roll';
-    }
-    if (action.attacks?.some(attack => attack.status === 'pending_critical_roll' || attack.status === 'pending_fumble_roll')) {
-      return 'pending_roll';
-    }
-    return 'pending_apply';
+    const criticals = ctx.criticalSeverities.map(
+      (severity, index) =>
+        new Critical(
+          `${criticalType}_${severity}_${index + 1}`.toLowerCase(),
+          'pending_roll',
+          criticalType,
+          severity,
+          undefined,
+          undefined,
+        ),
+    );
+    ctx.attack!.results!.criticals = criticals;
+    ctx.attack!.roll!.criticalRolls = new Map(criticals.map(critical => [critical.key, undefined]));
   }
 
   private getLocation(locationRoll: number): AttackLocation | undefined {

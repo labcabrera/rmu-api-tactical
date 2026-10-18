@@ -4,6 +4,7 @@ import { ValidationError } from '../../../../shared/domain/errors';
 export class AddFatigueCommand extends AuthenticatedCommand {
   constructor(
     public readonly actorRoundId: string | undefined,
+    public readonly gameId: string | undefined,
     public readonly actorId: string | undefined,
     public readonly round: number | undefined,
     public readonly fatigue: number,
@@ -12,12 +13,12 @@ export class AddFatigueCommand extends AuthenticatedCommand {
   ) {
     super(userId, roles);
     if (actorRoundId) {
-      if (actorId || round) {
-        throw new ValidationError('If actorRoundId is provided, actorId and round must be undefined');
+      if (gameId || actorId || round) {
+        throw new ValidationError('If actorRoundId is provided, gameId, actorId and round must be undefined');
       }
     } else {
-      if (actorId === undefined || round === undefined) {
-        throw new ValidationError('If actorRoundId is not provided, both actorId and round must be defined');
+      if (gameId === undefined || actorId === undefined || round === undefined) {
+        throw new ValidationError('If actorRoundId is not provided, gameId, actorId and round must be defined');
       }
     }
   }

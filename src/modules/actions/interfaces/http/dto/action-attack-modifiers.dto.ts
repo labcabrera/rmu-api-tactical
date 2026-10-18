@@ -1,5 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActionAttackModifiers, CalledShot, ChargeSpeed } from '../../../domain/value-objects/action-attack-modifiers.vo';
+import {
+  ActionAttackModifiers,
+  CalledShot,
+  ChargeSpeed,
+  normalizeChargeSpeed,
+} from '../../../domain/value-objects/action-attack-modifiers.vo';
 
 export class ActionAttackModifiersDto {
   @ApiProperty({ description: 'Target actor round identifier', required: false, example: 'actor-round-003' })
@@ -14,7 +19,7 @@ export class ActionAttackModifiersDto {
   @ApiProperty({
     description: 'Called shot location, if any',
     required: false,
-    enum: ['none', 'head', 'body', 'arms', 'legs'],
+    enum: ['none', 'head', 'chest', 'abdomen', 'arms', 'legs'],
     example: 'none',
   })
   public calledShot: CalledShot | undefined;
@@ -82,7 +87,7 @@ export class ActionAttackModifiersDto {
   @ApiProperty({ description: 'Custom bonus to apply to the attack', required: false, example: 5 })
   public customBonus: number | undefined;
 
-  @ApiProperty({ description: 'Charge speed applied to attack size', required: false, enum: ['none', 'jog', 'spring'], example: 'none' })
+  @ApiProperty({ description: 'Charge speed applied to attack size', required: false, enum: ['none', 'jog', 'sprint'], example: 'none' })
   public chargeSpeed: ChargeSpeed | undefined;
 
   static fromEntity(entity: ActionAttackModifiers): ActionAttackModifiersDto {
@@ -112,7 +117,7 @@ export class ActionAttackModifiersDto {
     dto.ambush = entity.ambush;
     dto.range = entity.range;
     dto.customBonus = entity.customBonus;
-    dto.chargeSpeed = entity.chargeSpeed;
+    dto.chargeSpeed = entity.chargeSpeed ? normalizeChargeSpeed(entity.chargeSpeed) : undefined;
     return dto;
   }
 }

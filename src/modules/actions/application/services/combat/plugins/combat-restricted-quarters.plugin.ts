@@ -1,5 +1,5 @@
 import { RestrictedQuarters } from '../../../../domain/value-objects/action-attack-modifiers.vo';
-import { CombatModifierBag } from '../combat-modifier-bag';
+import { isPreparing, preparation, rollModifiers, sourceSkill } from '../combat-modifiers';
 import { CombatPlugin } from '../combat-plugin';
 
 const restrictedQuartersModifiers: Record<RestrictedQuarters, number> = {
@@ -11,22 +11,15 @@ const restrictedQuartersModifiers: Record<RestrictedQuarters, number> = {
 };
 
 export const CombatRestrictedQuartersPlugin: CombatPlugin = {
-  id: 'combat-restricted-quarters',
-  name: 'Combat Restricted Quarters Plugin',
-  version: '1.0.0',
+  id: 'restricted-quarters',
+  group: 'situation',
   hooks: {
     prepare: [
       {
+        condition: ctx => isPreparing(ctx) && preparation(ctx).situationalModifiers.restrictedQuarters !== 'none',
         apply: ctx => {
-          const restrictedQuarters = ctx.attackPreparation?.modifiers.situationalModifiers.restrictedQuarters;
-          if (!restrictedQuarters || restrictedQuarters === 'none') {
-            return ctx;
-          }
-          const modifier = restrictedQuartersModifiers[restrictedQuarters] || 0;
-          if (modifier !== 0) {
-            CombatModifierBag.from(ctx.attackPreparation!.modifiers.rollModifiers).add('restricted-quarters', modifier);
-          }
-          return ctx;
+          const penalty = restrictedQuartersModifiers[preparation(ctx).situationalModifiers.restrictedQuarters] || 0;
+          rollModifiers(ctx).addWithSkill('restricted-quarters', penalty, sourceSkill(ctx, 'restricted-quarters'));
         },
       },
     ],

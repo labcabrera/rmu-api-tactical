@@ -55,11 +55,15 @@ export class ApiManeuverAdapter implements ManeuverPort {
   async endurance(roll: number): Promise<EnduranceManeuverResult> {
     const token = await this.tokenService.getToken();
     const uri = `${this.apiCoreUri}/maneuvers/endurance?roll=${roll}`;
-    const response = await axios.get(uri, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    return response.data as EnduranceManeuverResult;
+    try {
+      const response = await axios.get(uri, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data as EnduranceManeuverResult;
+    } catch (err) {
+      throw handleAxiosError(err, uri);
+    }
   }
 }

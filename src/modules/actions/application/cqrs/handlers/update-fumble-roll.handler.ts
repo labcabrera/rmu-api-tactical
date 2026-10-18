@@ -38,7 +38,7 @@ export class UpdateFumbleRollHandler implements ICommandHandler<UpdateFumbleRoll
       throw new ValidationError(`Attack ${command.attackName} has no pending fumble`);
     }
 
-    const sourceActor = await this.actorRoundRepository.findByActorIdAndRound(action.actorId, action.round);
+    const sourceActor = await this.actorRoundRepository.findByActorIdAndRound(action.gameId, action.actorId, action.round);
     if (!sourceActor) throw new NotFoundError('ActorRound', action.actorId);
     const sourceAttack = sourceActor.attacks?.find(a => a.attackName === command.attackName);
     if (!sourceAttack) {
@@ -54,22 +54,17 @@ export class UpdateFumbleRollHandler implements ICommandHandler<UpdateFumbleRoll
       trace: [],
     });
 
-    attack.roll!.fumbleRoll = ctx.fumbleRoll;
+    // The raw roll is stored; the adapter clamps the one looked up to the table range.
+    attack.roll!.fumbleRoll = command.fumbleRoll;
     attack.results.fumble = await this.fumbleTablePort.lookup({
       fumbleTable: sourceAttack.fumbleTable,
-      roll: ctx.fumbleRoll!,
+      roll: ctx.fumbleRoll ?? command.fumbleRoll,
     });
+    action.refreshAttackStatuses();
 
-    if (!action.hasPendingCriticalRolls() && !action.hasPendingFumbleRolls()) {
-      action.status = 'pending_apply';
-      attack.status = 'pending_apply';
-    } else if (action.hasPendingCriticalRolls()) {
-      action.status = 'pending_roll';
-      attack.status = 'pending_critical_roll';
-    }
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
-    return action;
+    return updated;
   }
 }

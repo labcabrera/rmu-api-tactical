@@ -194,8 +194,8 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
       // Parries
       const attackTarget = actorRounds.find(t => t.actorId === attack.modifiers.targetId)!;
       if (this.hasDeclaredMeleeAttack(attackTarget, actions)) {
-        const availableBo: number[] = attackTarget.attacks.filter(a => a.type === 'melee' && a.currentBo > 0).map(a => a.currentBo);
-        const maxBo = Math.max(...availableBo);
+        // The penalties of the defender cap its parry.
+        const maxBo = attackTarget.getAvailableParry();
         if (maxBo > 0) {
           this.parries?.push(new ActionParry(randomUUID(), attackTarget.actorId, attackTarget.actorId, 'parry', maxBo, 0));
         }
@@ -209,10 +209,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
         } else if (!this.hasDeclaredMeleeAttack(protector, actions)) {
           continue;
         }
-        const maxBo = protector.attacks
-          .filter(a => a.type === 'melee' && a.currentBo > 0)
-          .map(a => a.currentBo)
-          .reduce((a, b) => Math.max(a, b), 0);
+        const maxBo = protector.getAvailableParry();
         const protectValue = Math.min(protectSkill, maxBo);
         this.parries?.push(new ActionParry(randomUUID(), protector.actorId, attackTarget.actorId, 'protect', protectValue, 0));
       }
@@ -239,9 +236,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
       throw new ValidationError('Action is not an attack');
     }
     if (!this.attacks || this.attacks.length === 0) throw new ValidationError('Action has no attacks declared');
-    return this.attacks
-      .filter(attack => attack.roll && attack.roll.criticalRolls && attack.roll.criticalRolls.size > 0)
-      .some(attack => Array.from(attack.roll!.criticalRolls!.values()).some(v => v === undefined));
+    return this.attacks.some(attack => attack.results?.criticals?.some(critical => !critical.result));
   }
 
   hasPendingFumbleRolls(): boolean {
@@ -250,6 +245,35 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     }
     if (!this.attacks || this.attacks.length === 0) throw new ValidationError('Action has no attacks declared');
     return this.attacks.some(attack => attack.results?.fumble && !attack.roll?.fumbleRoll);
+  }
+
+  /** Prepared attacks wait for the parries, when there are any to declare, and then for their rolls. */
+  markPrepared(): void {
+    this.status = this.parries && this.parries.length > 0 ? 'parry' : 'pending_roll';
+  }
+
+  /**
+   * Recomputes the status of every attack and derives the action's: `pending_roll` while any attack waits for a
+   * roll (attack, critical or fumble), `completed` when all are applied, `pending_apply` otherwise.
+   */
+  refreshAttackStatuses(): void {
+    if (!this.attacks || this.attacks.length === 0) {
+      return;
+    }
+    this.attacks.forEach(attack => (attack.status = ActionAttack.calculateStatus(attack)));
+    const statuses = this.attacks.map(attack => attack.status);
+    if (statuses.every(status => status === 'completed')) {
+      this.status = 'completed';
+    } else if (statuses.some(status => status !== 'pending_apply' && status !== 'completed')) {
+      this.status = 'pending_roll';
+    } else {
+      this.status = 'pending_apply';
+    }
+  }
+
+  completeAttacks(): void {
+    this.attacks?.forEach(attack => (attack.status = 'completed'));
+    this.status = 'completed';
   }
 
   getAttackByName(attackName: string): ActionAttack {
@@ -277,7 +301,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     if (!attack.roll || !attack.roll.roll) {
       throw new ValidationError(`Main roll not found in attack ${attackName} of action ${this.id}`);
     }
-    if (!attack.roll.criticalRolls || !attack.roll.criticalRolls.has(criticalKey)) {
+    if (!attack.results?.criticals?.some(critical => critical.key === criticalKey)) {
       throw new ValidationError(`Critical ${criticalKey} not found in attack ${attackName} of action ${this.id}`);
     }
   }

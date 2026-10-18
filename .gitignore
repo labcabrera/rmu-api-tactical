@@ -1,11 +1,7 @@
+# compiled output
 /dist
 /node_modules
 /build
-AGENTS.md
-
-specs
-.agents
-.specify
 
 # Logs
 logs
@@ -64,3 +60,6 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 .vscode/
 ./out/
 .scannerwork/
+
+# TypeScript incremental build info
+*.tsbuildinfo

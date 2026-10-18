@@ -34,12 +34,13 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     this.validateCommand(command, action);
 
     const attack = action.attacks!.find(a => a.attackName === command.attackName)!;
-    const targetActor = await this.actorRoundRepository.findByActorIdAndRound(attack.modifiers.targetId!, action.round);
+    const targetActor = await this.actorRoundRepository.findByActorIdAndRound(action.gameId, attack.modifiers.targetId!, action.round);
     if (!targetActor) throw new NotFoundError('ActorRound', attack.modifiers.targetId!);
 
-    const sourceActor = await this.actorRoundRepository.findByActorIdAndRound(action.actorId, action.round);
+    const sourceActor = await this.actorRoundRepository.findByActorIdAndRound(action.gameId, action.actorId, action.round);
     if (!sourceActor) throw new NotFoundError('ActorRound', action.actorId);
 
+    const previousBreakage = !!attack.calculated?.breakageRoll;
     await this.combatAttackRollResolver.resolve({
       action,
       attack,
@@ -48,6 +49,12 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
       roll: command.roll,
       locationRoll: command.locationRoll,
     });
+
+    // Raised when the roll is resolved; a repeated roll does not raise it again.
+    if (attack.calculated?.breakageRoll && !previousBreakage) {
+      sourceActor.addAttackBreakageAlert(attack.attackName);
+      await this.actorRoundRepository.update(sourceActor.id, sourceActor);
+    }
 
     action.updatedAt = new Date();
 

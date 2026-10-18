@@ -56,7 +56,6 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     await Promise.all(substractBoCommands.map(cmd => this.commandBus.execute(cmd)));
 
     const sourceActor = actors.find(a => a.actorId === action.actorId)!;
-    await this.processAttackBreakageAlerts(action, game.round);
 
     const updateCommands = new Map<string, AddEffectsCommand>();
     actionAttacks.forEach(actionAttack => {
@@ -74,7 +73,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
 
     action.updatedAt = new Date();
     action.phaseEnd = game.getActionPhase();
-    action.status = 'completed';
+    action.completeAttacks();
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
     return updated;
@@ -98,27 +97,12 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     return substractBoCommands;
   }
 
-  private async processAttackBreakageAlerts(action: Action, round: number): Promise<void> {
-    const attacksWithBreakage = action.attacks?.filter(attack => attack.calculated?.breakageRoll) || [];
-    if (attacksWithBreakage.length === 0) {
-      return;
-    }
-
-    const sourceActor = await this.actorRoundRepository.findByActorIdAndRound(action.actorId, round);
-    if (!sourceActor) {
-      throw new UnprocessableEntityError('Actor not found');
-    }
-
-    attacksWithBreakage.forEach(attack => sourceActor.addAttackBreakageAlert(attack.attackName));
-    await this.actorRoundRepository.update(sourceActor.id, sourceActor);
-  }
-
   private async processDeclareActorParry(action: Action, userId: string, roles: string[]): Promise<void> {
     if (!action.parries || action.parries.length === 0) {
       return;
     }
     for (const parry of action.parries.filter(p => p.parry > 0)) {
-      const command = DeclareActorParryCommand.fromParry(action.actorId, action.round, parry, userId, roles);
+      const command = DeclareActorParryCommand.fromParry(action.gameId, action.actorId, action.round, parry, userId, roles);
       await this.commandBus.execute(command);
     }
   }
@@ -138,7 +122,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     dmg += actionAttack.results?.attackTableEntry?.damage || 0;
     const criticalEffects: ActorRoundEffect[] = [];
     actionAttack.results?.criticals?.forEach(cr => {
-      dmg += cr.result?.dmg || 0;
+      dmg += cr.result?.damage || 0;
       cr.result?.effects?.forEach(e => {
         const effect = new ActorRoundEffect(randomUUID(), e.status, e.value, e.rounds);
         criticalEffects.push(effect);
@@ -173,14 +157,16 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       const effect = new ActorRoundEffect(randomUUID(), e.status, e.value, e.rounds);
       effects.push(effect);
     });
-    if (effects.length === 0) {
+    const dmg = fumble.damage || 0;
+    if (dmg === 0 && effects.length === 0) {
       return;
     }
     if (updateCommands.has(actor.id)) {
       const cmd = updateCommands.get(actor.id)!;
+      cmd.dmg += dmg;
       cmd.effects.push(...effects);
     } else {
-      const cmd = new AddEffectsCommand(actor.id, 0, effects, undefined, userId, roles);
+      const cmd = new AddEffectsCommand(actor.id, dmg, effects, undefined, userId, roles);
       updateCommands.set(actor.id, cmd);
     }
   }
@@ -195,7 +181,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     const multiplier = strategicGame.options?.fatigueMultiplier ?? 1;
     action.processFatigue(multiplier);
     if (action.fatigue) {
-      const command = new AddFatigueCommand(undefined, action.actorId, round, action.fatigue, userId, roles);
+      const command = new AddFatigueCommand(undefined, action.gameId, action.actorId, round, action.fatigue, userId, roles);
       await this.commandBus.execute(command);
     }
   }

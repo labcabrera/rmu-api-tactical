@@ -8,7 +8,7 @@ export class ActionAttackRollDto {
   @ApiProperty({ description: 'Numeric roll value for location determination', required: false, example: 12 })
   locationRoll: number | undefined;
 
-  @ApiProperty({ description: 'The critical rolls', example: { s_c_1: 42 }, required: false })
+  @ApiProperty({ description: 'The critical rolls as rolled, by critical key', example: { s_c_1: 42 }, required: false })
   criticalRolls: Map<string, number | undefined> | undefined;
 
   @ApiProperty({ description: 'The fumble roll value if required', required: false, example: 3 })

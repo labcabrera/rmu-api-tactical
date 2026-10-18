@@ -4,6 +4,7 @@ import { ParryType } from '../../../../actions/domain/value-objects/parry-type';
 export class DeclareActorParryCommand {
   constructor(
     public readonly id: string,
+    public readonly gameId: string,
     /** Actor who is parrying or protecting*/
     public readonly actorId: string,
     public readonly targetActorId: string,
@@ -15,9 +16,10 @@ export class DeclareActorParryCommand {
     public readonly roles: string[],
   ) {}
 
-  static fromParry(sourceActorId: string, round: number, parry: ActionParry, userId: string, roles: string[]) {
+  static fromParry(gameId: string, sourceActorId: string, round: number, parry: ActionParry, userId: string, roles: string[]) {
     return new DeclareActorParryCommand(
       parry.id,
+      gameId,
       parry.actorId,
       parry.targetActorId,
       sourceActorId,

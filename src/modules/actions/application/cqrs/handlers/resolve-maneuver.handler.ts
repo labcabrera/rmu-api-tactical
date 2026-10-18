@@ -39,7 +39,7 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
 
     this.validate(command, action);
     const [actorRound, character, strategicGame] = await Promise.all([
-      this.actorRoundRepository.findByActorIdAndRound(action.actorId, action.round),
+      this.actorRoundRepository.findByActorIdAndRound(action.gameId, action.actorId, action.round),
       this.characterClient.findById(action.actorId),
       this.strategicGameClient.findById(game.strategicGameId),
     ]);

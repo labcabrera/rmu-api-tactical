@@ -4,7 +4,35 @@ import axios from 'axios';
 import { TokenService } from '../../../auth/token.service';
 import { handleAxiosError } from '../../../shared/infrastructure/api-rest/axios.error.adapter';
 import { CriticalTableLookupRequest, CriticalTablePort } from '../../application/ports/critical-table.port';
-import { CriticalResult } from '../../domain/value-objects/critical-result.vo';
+import { AttackLocation } from '../../domain/value-objects/attack-location.vo';
+import { CriticalEffect, CriticalResult } from '../../domain/value-objects/critical-result.vo';
+
+interface CriticalTableEffect {
+  status: string;
+  rounds?: number;
+  value?: number;
+  delay?: number;
+  condition?: string;
+}
+
+interface CriticalTableResponse {
+  message: string;
+  dmg: number;
+  location: string | null;
+  effects?: CriticalTableEffect[];
+}
+
+/** The critical tables name the limbs in singular. */
+const TABLE_LOCATIONS: Record<AttackLocation, string> = {
+  head: 'head',
+  chest: 'chest',
+  abdomen: 'abdomen',
+  arms: 'arm',
+  legs: 'leg',
+};
+
+const MIN_ROLL = 1;
+const MAX_ROLL = 100;
 
 @Injectable()
 export class ApiCriticalTableAdapter implements CriticalTablePort {
@@ -19,16 +47,24 @@ export class ApiCriticalTableAdapter implements CriticalTablePort {
 
   async lookup(request: CriticalTableLookupRequest): Promise<CriticalResult> {
     const token = await this.tokenService.getToken();
-    const uri = `${this.apiAttackTablesUri}/critical-tables/${request.criticalType}/${request.criticalSeverity}/${request.roll}`;
+    const roll = Math.min(Math.max(Math.trunc(request.roll), MIN_ROLL), MAX_ROLL);
+    const location = request.location ? TABLE_LOCATIONS[request.location] : undefined;
+    const query = location ? `?location=${location}` : '';
+    const uri = `${this.apiAttackTablesUri}/critical-tables/${request.criticalType}/${request.criticalSeverity}/${roll}${query}`;
     try {
-      const response = await axios.get<CriticalResult>(uri, {
+      const response = await axios.get<CriticalTableResponse>(uri, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      return response.data;
+      return this.mapResult(response.data);
     } catch (err: unknown) {
       throw handleAxiosError(err, uri);
     }
+  }
+
+  private mapResult(data: CriticalTableResponse): CriticalResult {
+    const effects = (data.effects || []).map(e => new CriticalEffect(e.status, e.rounds, e.value, e.delay, e.condition));
+    return new CriticalResult(data.message || '', data.dmg || 0, data.location || '', effects);
   }
 }

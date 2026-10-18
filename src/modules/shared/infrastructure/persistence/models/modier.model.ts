@@ -1,4 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
+import type { ModifierGroup } from '../../../../actions/domain/value-objects/key-value-modifier.vo';
 
 @Schema({ _id: false })
 export class Modifier {
@@ -7,4 +8,10 @@ export class Modifier {
 
   @Prop({ type: Number, required: true })
   public value: number;
+
+  @Prop({ type: String, required: false })
+  public group?: ModifierGroup;
+
+  @Prop({ type: String, required: false })
+  public source?: string;
 }
