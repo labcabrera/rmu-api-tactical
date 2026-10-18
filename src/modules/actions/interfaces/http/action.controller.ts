@@ -6,6 +6,7 @@ import { ApiBody, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiResponse,
 import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
 import { Page } from '../../../shared/domain/entities/page.entity';
 import { ErrorDto, PagedQueryDto } from '../../../shared/interfaces/http/dto';
+import { CompleteActionCommand } from '../../application/cqrs/commands/complete-action.command';
 import { CreateActionCommand } from '../../application/cqrs/commands/create-action.command';
 import { DeleteActionCommand } from '../../application/cqrs/commands/delete-action.command';
 import { UpdateActionCommand } from '../../application/cqrs/commands/update-action.command';
@@ -13,6 +14,7 @@ import { GetActionQuery } from '../../application/cqrs/queries/get-action.query'
 import { GetActionsQuery } from '../../application/cqrs/queries/get-actions.query';
 import { Action } from '../../domain/aggregates/action.aggregate';
 import { ActionDto, ActionPageDto } from './dto/action.dto';
+import { CompleteActionDto } from './dto/complete-action.dto';
 import { CreateActionDto } from './dto/create-action.dto';
 import { UpdateActionDto } from './dto/update-action.dto';
 
@@ -87,5 +89,18 @@ export class ActionController {
     const user = req.user!;
     const command = new DeleteActionCommand(id, user.id as string, user.roles as string[]);
     await this.commandBus.execute(command);
+  }
+
+  @Patch(':id/complete')
+  @ApiBody({ type: CompleteActionDto })
+  @ApiOperation({ operationId: 'completeAction', summary: 'Complete an action without rolls (stand up, dodge, draw and load, other)' })
+  @ApiOkResponse({ type: ActionDto, description: 'Success' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
+  async complete(@Param('id') id: string, @Body() dto: CompleteActionDto, @Request() req) {
+    const user = req.user!;
+    const command = CompleteActionDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<CompleteActionCommand, Action>(command);
+    return ActionDto.fromEntity(entity);
   }
 }
