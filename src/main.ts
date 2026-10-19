@@ -19,8 +19,8 @@ function configureOpenApi(app: INestApplication<any>) {
         type: 'oauth2',
         flows: {
           authorizationCode: {
-            authorizationUrl: 'http://localhost:8090/realms/rmu-local/protocol/openid-connect/auth',
-            tokenUrl: 'http://localhost:8090/realms/rmu-local/protocol/openid-connect/token',
+            authorizationUrl: 'http://localhost/sso/realms/rmu/protocol/openid-connect/auth',
+            tokenUrl: 'http://localhost/sso/realms/rmu/protocol/openid-connect/token',
             scopes: {
               read: 'Read',
               write: 'Write',

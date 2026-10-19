@@ -17,6 +17,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         jwksRequestsPerMinute: 5,
         jwksUri: configService.get<string>('RMU_IAM_JWK_URI')!,
       }),
+      issuer: configService.get<string>('RMU_IAM_ISSUER_URI')!,
+      audience: configService.get<string>('RMU_IAM_AUDIENCE')!,
       algorithms: ['RS256'],
     });
   }
