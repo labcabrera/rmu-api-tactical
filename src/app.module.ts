@@ -19,6 +19,8 @@ import { StrategicModule } from './modules/strategic/strategic.module';
         PORT: Joi.number().positive().default(3001),
         RMU_MONGO_TACTICAL_URI: Joi.string().required(),
         RMU_IAM_JWK_URI: Joi.string().uri().required(),
+        RMU_IAM_ISSUER_URI: Joi.string().uri().required(),
+        RMU_IAM_AUDIENCE: Joi.string().required(),
         RMU_IAM_TOKEN_URI: Joi.string().uri().required(),
         RMU_IAM_CLIENT_ID: Joi.string().required(),
         RMU_IAM_CLIENT_SECRET: Joi.string().required(),
