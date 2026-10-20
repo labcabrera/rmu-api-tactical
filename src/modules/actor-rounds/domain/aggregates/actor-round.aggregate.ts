@@ -1,10 +1,11 @@
 import { randomUUID } from 'crypto';
 import { AttackLocation } from '../../../actions/domain/value-objects/attack-location.vo';
 import { BaseAggregateRoot } from '../../../shared/domain/aggregates/base-aggregate';
-import { UnprocessableEntityError } from '../../../shared/domain/errors';
+import { UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors';
 import { ActorRoundCreatedEvent } from '../events/actor-round.events';
 import { ActorRoundAlert } from '../value-objets/actor-round-alert.vo';
 import { ActorRoundAttack } from '../value-objets/actor-round-attack.vo';
+import { ActorRoundDefenseMode, DefenseLevel } from '../value-objets/actor-round-defense-mode.vo';
 import { ActorRoundDefense } from '../value-objets/actor-round-defense.vo';
 import { ActorRoundEffect } from '../value-objets/actor-round-effect.vo';
 import { ActorRoundFatigue } from '../value-objets/actor-round-fatigue.vo';
@@ -13,9 +14,20 @@ import { ActorRoundInitiative } from '../value-objets/actor-round-initiative.vo'
 import { ActorRoundMovement } from '../value-objets/actor-round-movement.vo';
 import { ActorRoundPenaltySource } from '../value-objets/actor-round-penalty-source.vo';
 import { ActorRoundPenalty } from '../value-objets/actor-round-penalty.vo';
+import { ActorRoundPhaseLog } from '../value-objets/actor-round-phase-log.vo';
+import { ActorRoundShield } from '../value-objets/actor-round-shield.vo';
 import { ActorRoundUsedBo } from '../value-objets/actor-round-used-bo.vo';
 import { ActorType } from '../value-objets/actor-type.vo';
 import { ActorRoundProps } from './actor-round-props';
+
+/** When an effect lands: the phase (see `ActorRoundEffect.appliedPhase`) and the AP the actor had spent in the round. */
+export interface EffectApplication {
+  phase: number;
+  spentAp: number;
+}
+
+/** Action points lost by a surprised actor when the effect has no value (§8.3 Surprise). */
+const DEFAULT_SURPRISE_LOST_AP = 2;
 
 export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   private constructor(
@@ -41,6 +53,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     public parries: number[],
     public effects: ActorRoundEffect[],
     public alerts: ActorRoundAlert[],
+    public defenseMode: ActorRoundDefenseMode,
+    public phaseLog: ActorRoundPhaseLog[],
     public imageUrl: string | undefined,
     public owner: string,
     public readonly createdAt: Date,
@@ -95,6 +109,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       [],
       effects,
       alerts,
+      ActorRoundDefenseMode.none(),
+      [],
       imageUrl,
       owner,
       new Date(),
@@ -160,6 +176,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       props.parries,
       props.effects,
       props.alerts,
+      props.defenseMode ?? ActorRoundDefenseMode.none(),
+      props.phaseLog ?? [],
       props.imageUrl,
       props.owner,
       props.createdAt,
@@ -167,6 +185,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     );
     // Derived: recomputed so that values stored with the penalties folded in are corrected.
     actorRound.calculateCurrentBo();
+    // Derived too: actor rounds stored with older hit point or stun penalties read with the current ones.
+    actorRound.applyPenalties();
     return actorRound;
   }
 
@@ -210,12 +230,14 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       hp,
       fatigue,
       penalty,
-      defense,
+      ActorRound.resetShieldBlocks(defense),
       attacks,
       [],
       [],
       effects,
       alerts,
+      ActorRoundDefenseMode.none(),
+      [],
       imageUrl,
       owner,
       new Date(),
@@ -226,21 +248,59 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     return actorRound;
   }
 
-  applyAttackResults(dmg: number | undefined, effects: ActorRoundEffect[] | undefined, location: AttackLocation | undefined) {
+  private static resetShieldBlocks(defense: ActorRoundDefense): ActorRoundDefense {
+    if (!defense.shield) {
+      return defense;
+    }
+    const shield = new ActorRoundShield(defense.shield.db, defense.shield.blockCount, 0);
+    return new ActorRoundDefense(
+      defense.bd,
+      defense.at,
+      defense.headAt,
+      defense.bodyAt,
+      defense.armsAt,
+      defense.legsAt,
+      shield,
+      defense.protect,
+    );
+  }
+
+  /**
+   * Applies the hits and the effects of an attack (or of the game master). `application` stamps the effects with the
+   * round, phase and AP spent, which decide whether the upkeep of this round shortens them; without it they lose a
+   * round in every upkeep.
+   */
+  applyAttackResults(
+    dmg: number | undefined,
+    effects: ActorRoundEffect[] | undefined,
+    location: AttackLocation | undefined,
+    application?: EffectApplication,
+  ) {
     if (dmg) {
       this.hp.current -= dmg;
     }
     if (effects) {
       effects.forEach(effect => {
+        if (application) {
+          effect.appliedRound = this.round;
+          effect.appliedPhase = application.phase;
+          effect.spentApBefore = application.spentAp;
+        }
         this.addEffect(effect, 'critical', location);
       });
     }
-    if (this.hp.current < -this.hp.max) {
+    if (this.isBeyondDeathThreshold()) {
       this.addEffect(new ActorRoundEffect(randomUUID(), 'dead', undefined, undefined), undefined, undefined);
     } else if (this.hp.current < 1) {
       this.addEffect(new ActorRoundEffect(randomUUID(), 'unconcious', undefined, undefined), undefined, undefined);
     }
     this.applyPenalties();
+  }
+
+  /** §9.8 Hits: dead when the hits below zero exceed the Body Development bonus (`max` for older actor rounds). */
+  private isBeyondDeathThreshold(): boolean {
+    const threshold = this.hp.deathThreshold ?? this.hp.max;
+    return this.hp.current < -threshold;
   }
 
   private addEffect(
@@ -259,12 +319,22 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       this.addCriticalBreakageAlert(location);
       return;
     }
-    //TODO required used action points to calculate stunning effects
-    if (effect.status === 'stunned') {
-      effect.rounds! += 1;
-    }
     if (this.isDead() && effect.status === 'dying') {
       return;
+    }
+    if (effect.status === 'surprised') {
+      this.normalizeSurprise(effect);
+    }
+    if (ActorRoundEffect.isRoundBound(effect)) {
+      effect.rounds = 1;
+    }
+    // §9.8 Stun: stuns of the same severity add up their rounds. The merged one keeps the stamp of the first.
+    if (effect.status === 'stunned') {
+      const sameValue = this.effects.find(e => e.status === 'stunned' && e.value === effect.value);
+      if (sameValue) {
+        sameValue.rounds = (sameValue.rounds ?? 0) + (effect.rounds ?? 0);
+        return;
+      }
     }
     const existing = this.effects.filter(e => e.status === effect.status);
     const isUnique = ActorRoundEffect.isUnique(effect);
@@ -283,8 +353,17 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     this.effects.push(effect);
   }
 
+  private normalizeSurprise(effect: ActorRoundEffect): void {
+    const lost = effect.value ?? DEFAULT_SURPRISE_LOST_AP;
+    if (lost < 1 || lost > DEFAULT_SURPRISE_LOST_AP) {
+      throw new ValidationError(`A surprised actor loses 1 or 2 action points, not ${lost}`);
+    }
+    effect.value = lost;
+  }
+
   deleteEffect(effectId: string) {
     this.effects = this.effects.filter(e => e.id !== effectId);
+    this.applyPenalties();
   }
 
   declareParry(parry: number): void {
@@ -319,19 +398,23 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     }
   }
 
+  /**
+   * §8.3 Upkeep Phase: bleeding, then the effects' durations. An unconscious actor stays unconscious: it only dies
+   * when bleeding takes it beyond its death threshold or a dying effect runs out.
+   */
   applyUpkeep() {
     if (this.effects.length === 0) {
       return;
     }
     const totalBleeding = this.effects.filter(e => e.status === 'bleeding').reduce((sum, e) => sum + (e.value ?? 0), 0);
     this.hp.current -= totalBleeding;
-    if (this.effects.some(e => e.status === 'dying' && e.rounds && e.rounds <= 1)) {
+    this.getEffectsLosingARound().forEach(e => (e.rounds! -= 1));
+    if (this.effects.some(e => e.status === 'dying' && e.rounds !== undefined && e.rounds !== null && e.rounds <= 0)) {
       this.addEffect(new ActorRoundEffect(randomUUID(), 'dead', undefined, undefined), undefined, undefined);
     }
-    this.effects.filter(e => e.rounds !== undefined && e.rounds !== null).forEach(e => (e.rounds! -= 1));
     this.effects = this.effects.filter(e => e.rounds === undefined || e.rounds === null || e.rounds > 0);
-    if (this.hp.current < 1) {
-      this.applyAttackResults(0, [new ActorRoundEffect(randomUUID(), 'dead', undefined, undefined)], undefined);
+    if (this.isBeyondDeathThreshold()) {
+      this.addEffect(new ActorRoundEffect(randomUUID(), 'dead', undefined, undefined), undefined, undefined);
     }
     if (this.isDead()) {
       this.effects = this.effects.filter(e => e.status !== 'dying');
@@ -339,21 +422,58 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     this.applyPenalties();
   }
 
-  private applyPenalties() {
-    this.applyHpPenalty();
-    // Being stunned has no penalty: drop the zero entries older rounds stored for it.
-    this.penalty.modifiers = this.penalty.modifiers.filter(m => m.source !== 'stunned');
+  /**
+   * Effects whose duration goes down in this upkeep (§8.3 Upkeep): every timed effect except the stuns, of which only
+   * the most severe loses a round (§9.8 Stun). An effect applied in this round only loses one if the actor had spent
+   * fewer than 2 AP before it; applied later in the round, it keeps its rounds until the next upkeep. Surprise states
+   * always end with their round.
+   */
+  private getEffectsLosingARound(): ActorRoundEffect[] {
+    const timed = this.effects.filter(e => e.rounds !== undefined && e.rounds !== null);
+    const worstStun = this.getWorstStun();
+    return timed
+      .filter(e => e.status !== 'stunned' || e === worstStun)
+      .filter(e => ActorRoundEffect.isRoundBound(e) || !this.isAppliedThisRoundLate(e));
   }
 
+  private isAppliedThisRoundLate(effect: ActorRoundEffect): boolean {
+    if (effect.appliedRound === undefined || effect.appliedRound === null) {
+      return false;
+    }
+    return effect.appliedRound === this.round && (effect.spentApBefore ?? 0) >= 2;
+  }
+
+  /** The active stun with the highest penalty. */
+  private getWorstStun(): ActorRoundEffect | undefined {
+    return this.effects
+      .filter(e => e.status === 'stunned')
+      .reduce<ActorRoundEffect | undefined>((worst, e) => (!worst || (e.value ?? 0) < (worst.value ?? 0) ? e : worst), undefined);
+  }
+
+  private applyPenalties() {
+    this.applyHpPenalty();
+    this.applyStunPenalty();
+  }
+
+  /** §9.8 Stun: the penalty of the most severe active stun, to every action. */
+  private applyStunPenalty() {
+    this.penalty.modifiers = this.penalty.modifiers.filter(m => m.source !== 'stunned');
+    const stunPenalty = Math.min(0, this.getWorstStun()?.value ?? 0);
+    if (stunPenalty !== 0) {
+      this.penalty.addModifier('stunned', stunPenalty);
+    }
+  }
+
+  /** Table 9-8b: same thresholds by hits lost (over 25 %, 50 % and 75 %), penalties of -10, -20 and -30. */
   private applyHpPenalty() {
     const hpPercent = this.hp.current / this.hp.max;
     let hpPenalty = 0;
     if (hpPercent < 0.25) {
-      hpPenalty = -75;
+      hpPenalty = -30;
     } else if (hpPercent < 0.5) {
-      hpPenalty = -50;
+      hpPenalty = -20;
     } else if (hpPercent < 0.75) {
-      hpPenalty = -25;
+      hpPenalty = -10;
     }
     this.penalty.modifiers = this.penalty.modifiers.filter(m => m.source !== 'hp');
     if (hpPenalty !== 0) {
@@ -406,6 +526,99 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     return this.effects.some(e => e.status === 'dead');
   }
 
+  hasEffect(status: string): boolean {
+    return this.effects.some(e => e.status === status);
+  }
+
+  /**
+   * §8.3 Initiative Phase: 2d10 plus the base, less 1 per -10 of the penalties to all actions, rounded toward zero
+   * (-75 gives -7). A flatfooted actor does not roll initiative.
+   */
+  declareInitiative(roll: number): void {
+    if (this.hasEffect('flatfooted')) {
+      throw new ValidationError('A flatfooted actor does not roll initiative');
+    }
+    const penalty = Math.trunc(this.getPenaltySum() / 10) || 0;
+    this.initiative.penalty = penalty;
+    this.initiative.roll = roll;
+    this.initiative.total = (this.initiative.base || 0) + penalty + roll;
+  }
+
+  /**
+   * Action points lost this round (§8.3 Surprise): all of them when flatfooted, the surprise effect's value (2, or 1
+   * after a successful Perception) when surprised.
+   */
+  getLostActionPoints(): number {
+    if (this.hasEffect('flatfooted')) {
+      return this.actionPoints;
+    }
+    const surprised = this.effects.find(e => e.status === 'surprised');
+    if (!surprised) {
+      return 0;
+    }
+    return Math.min(this.actionPoints, surprised.value ?? DEFAULT_SURPRISE_LOST_AP);
+  }
+
+  /**
+   * Action points spent in the round before `phase`, from the phase log, plus `spentInPhase` (the actions already
+   * completed in that phase, which the log does not hold yet).
+   */
+  getSpentAp(phase: number, spentInPhase = 0): number {
+    const logged = this.phaseLog.filter(entry => entry.phase < phase).reduce((sum, entry) => sum + entry.spentAp, 0);
+    return logged + spentInPhase;
+  }
+
+  /** Records the action points spent in an action phase that ends, replacing an earlier entry of that phase. */
+  logPhase(phase: number, spentAp: number): void {
+    const totalSpentAp = this.getSpentAp(phase) + spentAp;
+    this.phaseLog = this.phaseLog.filter(entry => entry.phase !== phase);
+    this.phaseLog.push(new ActorRoundPhaseLog(phase, spentAp, totalSpentAp));
+    this.phaseLog.sort((a, b) => a.phase - b.phase);
+  }
+
+  hasShieldBlocksLeft(): boolean {
+    const shield = this.defense.shield;
+    return !!shield && shield.currentBlocks < shield.blockCount;
+  }
+
+  /** Counts an attack blocked with the shield this round (§9.6 Shields). */
+  useShieldBlock(): void {
+    if (!this.defense.shield) {
+      throw new UnprocessableEntityError('The actor has no shield');
+    }
+    if (!this.hasShieldBlocksLeft()) {
+      throw new UnprocessableEntityError(`The shield already blocked ${this.defense.shield.blockCount} attacks this round`);
+    }
+    this.defense.shield.currentBlocks += 1;
+  }
+
+  /**
+   * Declares the passive or partial dodge and block of the round; an undefined one is kept. A full one is only set by
+   * `setFullDefense`.
+   */
+  setDefenseMode(dodge: DefenseLevel | undefined, block: DefenseLevel | undefined): void {
+    const newDodge = dodge ?? this.defenseMode.dodge;
+    const newBlock = block ?? this.defenseMode.block;
+    if ((newDodge === 'full' && this.defenseMode.dodge !== 'full') || (newBlock === 'full' && this.defenseMode.block !== 'full')) {
+      throw new ValidationError('A full dodge or block is declared with a 4 AP dodge action');
+    }
+    if (newBlock !== 'none' && !this.defense.shield) {
+      throw new ValidationError('The actor has no shield to block with');
+    }
+    this.defenseMode = ActorRoundDefenseMode.of(newDodge, newBlock);
+  }
+
+  /** Full dodge or block (§9.6): the whole round spent on it, set when a 4 AP dodge action completes. */
+  setFullDefense(defenseType: 'dodge' | 'block'): void {
+    if (defenseType === 'block' && !this.defense.shield) {
+      throw new ValidationError('The actor has no shield to block with');
+    }
+    this.defenseMode =
+      defenseType === 'dodge'
+        ? ActorRoundDefenseMode.of('full', this.defenseMode.block === 'full' ? 'none' : this.defenseMode.block)
+        : ActorRoundDefenseMode.of(this.defenseMode.dodge === 'full' ? 'none' : this.defenseMode.dodge, 'full');
+  }
+
   addAttackBreakageAlert(attackName: string) {
     this.alerts.push(ActorRoundAlert.buildBreakageFromAttack(attackName));
   }
@@ -439,6 +652,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       parries: this.parries,
       effects: this.effects,
       alerts: this.alerts,
+      defenseMode: this.defenseMode,
+      phaseLog: this.phaseLog,
       imageUrl: this.imageUrl,
       owner: this.owner,
       createdAt: this.createdAt,

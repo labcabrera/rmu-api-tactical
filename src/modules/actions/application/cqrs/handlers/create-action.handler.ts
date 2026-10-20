@@ -33,7 +33,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     const round = game.round;
     const [actorRound, roundActions] = await Promise.all([this.readActorRound(command, round), this.readActions(command, round)]);
 
-    this.validateActorRoundAndActions(actorRound, roundActions);
+    Action.checkDeclaration(actorRound, roundActions, command.phaseStart, command.freeAction, game.getActionPhase());
     const maneuver = this.mapManeuver(command);
     const action = Action.create(
       command.gameId,
@@ -93,13 +93,6 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       default:
         break;
     }
-  }
-
-  private validateActorRoundAndActions(actorRound: ActorRound, actions: Action[]): void {
-    if (actions.length === 0) {
-      return;
-    }
-    //TODO check collisions)
   }
 
   private mapManeuver(command: CreateActionCommand): ActionManeuver | null {

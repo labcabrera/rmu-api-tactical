@@ -16,6 +16,7 @@ import { ActorRoundShield } from '../../domain/value-objets/actor-round-shield.v
 
 const DEFAULT_ACTION_POINTS = 4;
 const ACTOR_SIZES: Record<string, number> = { medium: 0, small: -1, big: 1 };
+const BODY_DEVELOPMENT_SKILL_ID = 'body-development';
 
 @Injectable()
 export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapperPort {
@@ -46,7 +47,7 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
       movement,
       new ActorRoundInitiative(character.initiative.totalBonus, 0, undefined, undefined),
       DEFAULT_ACTION_POINTS,
-      new ActorRoundHP(character.hp.max, character.hp.current),
+      new ActorRoundHP(character.hp.max, character.hp.current, this.getDeathThreshold(character)),
       ActorRoundFatigue.empty(),
       ActorRoundPenalty.empty(),
       new ActorRoundDefense(
@@ -67,6 +68,11 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
     );
   }
 
+  /** §9.8 Hits: the Body Development bonus. Undefined when the character has not the skill, falling back to `max`. */
+  private getDeathThreshold(character: Character): number | undefined {
+    return character.skills?.find(skill => skill.skillId === BODY_DEVELOPMENT_SKILL_ID)?.totalBonus;
+  }
+
   private mapAttacksFromCharacter(character: Character): ActorRoundAttack[] {
     return character.attacks.map(attack => {
       return new ActorRoundAttack(
@@ -82,6 +88,8 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
         false,
         attack.meleeRange,
         attack.ranges,
+        attack.twoHanded ?? false,
+        attack.weaponCategory ?? 'standard',
       );
     });
   }

@@ -1,4 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
+import type { WeaponCategory } from '../../../domain/value-objets/actor-round-attack.vo';
 
 @Schema({ _id: false })
 export class BoModifiers {
@@ -61,4 +62,10 @@ export class ActorRoundAttack {
 
   @Prop({ type: [AttackRange], required: false })
   ranges: AttackRange[] | null;
+
+  @Prop({ type: Boolean, required: false, default: false })
+  twoHanded: boolean;
+
+  @Prop({ type: String, required: false, default: 'standard' })
+  weaponCategory: WeaponCategory;
 }

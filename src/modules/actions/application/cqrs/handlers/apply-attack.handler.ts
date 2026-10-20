@@ -6,7 +6,7 @@ import { AddFatigueCommand } from '../../../../actor-rounds/application/cqrs/com
 import { DeclareActorParryCommand } from '../../../../actor-rounds/application/cqrs/commands/declare-actor-parry.command';
 import { SubstractBoCommand } from '../../../../actor-rounds/application/cqrs/commands/substract-bo.command';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
-import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
+import { ActorRound, EffectApplication } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
 import { ActorRoundEffect } from '../../../../actor-rounds/domain/value-objets/actor-round-effect.vo';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, UnprocessableEntityError } from '../../../../shared/domain/errors';
@@ -56,11 +56,12 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     await Promise.all(substractBoCommands.map(cmd => this.commandBus.execute(cmd)));
 
     const sourceActor = actors.find(a => a.actorId === action.actorId)!;
+    const applications = await this.readEffectApplications(action, actors, game.round, game.getActionPhase());
 
     const updateCommands = new Map<string, AddEffectsCommand>();
     actionAttacks.forEach(actionAttack => {
-      this.processTargetEffects(actionAttack, actors, updateCommands, command.userId, command.roles);
-      this.processSourceEffects(actionAttack, sourceActor, updateCommands, command.userId, command.roles);
+      this.processTargetEffects(actionAttack, actors, applications, updateCommands, command.userId, command.roles);
+      this.processSourceEffects(actionAttack, sourceActor, applications, updateCommands, command.userId, command.roles);
     });
 
     // Apply all effects and damages sinchronously to avoid multiple updates
@@ -68,6 +69,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       await this.commandBus.execute<AddEffectsCommand, void>(cmd);
     }
 
+    await this.useShieldBlocks(action, actors);
     await this.processDeclareActorParry(action, command.userId, command.roles);
     await this.processFatigue(action, game.round, strategicGame, command.userId, command.roles);
 
@@ -77,6 +79,30 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
     return updated;
+  }
+
+  /**
+   * When the effects land on each actor: the current phase and the AP spent in the round, from the phase log plus the
+   * actions completed in this phase. The attacker has spent the AP of the attack being applied.
+   */
+  private async readEffectApplications(
+    action: Action,
+    actors: ActorRound[],
+    round: number,
+    phase: number,
+  ): Promise<Map<string, EffectApplication>> {
+    const rsql = `gameId==${action.gameId};round==${round};actorId=in=(${actors.map(a => a.actorId).join(',')})`;
+    const roundActions = (await this.actionRepository.findByRsql(rsql, 0, 1000)).content;
+    const applications = new Map<string, EffectApplication>();
+    actors.forEach(actor => {
+      const actorActions = roundActions.filter(a => a.actorId === actor.actorId && a.id !== action.id);
+      let spentInPhase = Action.completedApInPhase(actorActions, phase);
+      if (actor.actorId === action.actorId && !action.freeAction) {
+        spentInPhase = 1;
+      }
+      applications.set(actor.id, { phase, spentAp: actor.getSpentAp(phase, spentInPhase) });
+    });
+    return applications;
   }
 
   private processAttackSourceSubstractBo(action: Action, actors: ActorRound[], userId: string, roles: string[]): SubstractBoCommand[] {
@@ -97,11 +123,39 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     return substractBoCommands;
   }
 
+  /**
+   * Spends a shield block of the target for each attack its shield covered (§9.6 Shields). The actor round is read
+   * again, since the effects of this attack were already saved. A block already spent by an attack applied in the
+   * meantime is not spent twice.
+   */
+  private async useShieldBlocks(action: Action, actors: ActorRound[]): Promise<void> {
+    const blocks = new Map<string, number>();
+    action.attacks
+      ?.filter(attack => attack.calculated?.rollModifiers.some(modifier => modifier.key === 'shield' || modifier.key === 'shield-block'))
+      .forEach(attack => blocks.set(attack.modifiers.targetId!, (blocks.get(attack.modifiers.targetId!) || 0) + 1));
+    for (const [targetId, count] of blocks) {
+      const id = actors.find(a => a.actorId === targetId)?.id;
+      const target = id ? await this.actorRoundRepository.findById(id) : null;
+      if (!target) {
+        continue;
+      }
+      for (let i = 0; i < count; i++) {
+        if (!target.hasShieldBlocksLeft()) {
+          this.logger.warn(`Shield of ${targetId} has no blocks left for action ${action.id}`);
+          break;
+        }
+        target.useShieldBlock();
+      }
+      await this.actorRoundRepository.update(target.id, target);
+    }
+  }
+
   private async processDeclareActorParry(action: Action, userId: string, roles: string[]): Promise<void> {
     if (!action.parries || action.parries.length === 0) {
       return;
     }
-    for (const parry of action.parries.filter(p => p.parry > 0)) {
+    // A parry carried over from an earlier action against this foe was already paid.
+    for (const parry of action.parries.filter(p => p.parry > 0 && !p.carriedOver)) {
       const command = DeclareActorParryCommand.fromParry(action.gameId, action.actorId, action.round, parry, userId, roles);
       await this.commandBus.execute(command);
     }
@@ -110,6 +164,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
   private processTargetEffects(
     actionAttack: ActionAttack,
     actors: ActorRound[],
+    applications: Map<string, EffectApplication>,
     updateCommands: Map<string, AddEffectsCommand>,
     userId: string,
     roles: string[],
@@ -136,7 +191,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       cmd.dmg += dmg || 0;
       cmd.effects.push(...criticalEffects);
     } else {
-      const cmd = new AddEffectsCommand(target.id, dmg, criticalEffects, undefined, userId, roles);
+      const cmd = new AddEffectsCommand(target.id, dmg, criticalEffects, undefined, userId, roles, applications.get(target.id));
       updateCommands.set(target.id, cmd);
     }
   }
@@ -144,6 +199,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
   private processSourceEffects(
     actionAttack: ActionAttack,
     actor: ActorRound,
+    applications: Map<string, EffectApplication>,
     updateCommands: Map<string, AddEffectsCommand>,
     userId: string,
     roles: string[],
@@ -166,7 +222,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       cmd.dmg += dmg;
       cmd.effects.push(...effects);
     } else {
-      const cmd = new AddEffectsCommand(actor.id, dmg, effects, undefined, userId, roles);
+      const cmd = new AddEffectsCommand(actor.id, dmg, effects, undefined, userId, roles, applications.get(actor.id));
       updateCommands.set(actor.id, cmd);
     }
   }

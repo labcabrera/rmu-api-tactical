@@ -4,6 +4,7 @@ import { ActorRound } from '../../../domain/aggregates/actor-round.aggregate';
 import { ActorRoundEffect } from '../../../domain/value-objets/actor-round-effect.vo';
 import { ActorRoundAlertDto } from './actor-round-alert.dto';
 import { ActorRoundAttackDto } from './actor-round-attack.dto';
+import { ActorRoundDefenseModeDto } from './actor-round-defense-mode.dto';
 import { ActorRoundDefenseDto } from './actor-round-defense.dto';
 import { ActorRoundFatigueDto } from './actor-round-fatigue.dto';
 import { ActorRoundHPDto } from './actor-round-hp.dto';
@@ -11,6 +12,7 @@ import { ActorRoundInitiativeDto } from './actor-round-initiative.dto';
 import { ActorRoundMovementDto } from './actor-round-movement.dto';
 import { ActorRoundParryDto } from './actor-round-parry.dto';
 import { ActorRoundPenaltyDto } from './actor-round-penalty.dto';
+import { ActorRoundPhaseLogDto } from './actor-round-phase-log.dto';
 
 export class ActorRoundDto {
   @ApiProperty({ description: 'Actor Round identifier', example: 'actor-round-123' })
@@ -61,6 +63,12 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Defense information' })
   defense: ActorRoundDefenseDto;
 
+  @ApiProperty({ description: 'Dodge and shield block declared this round', type: ActorRoundDefenseModeDto })
+  defenseMode: ActorRoundDefenseModeDto;
+
+  @ApiProperty({ description: 'Action points spent in each action phase that has ended', type: [ActorRoundPhaseLogDto], isArray: true })
+  phaseLog: ActorRoundPhaseLogDto[];
+
   @ApiProperty({ description: 'Attacks', type: [ActorRoundAttackDto], isArray: true })
   attacks: ActorRoundAttackDto[];
 
@@ -97,6 +105,8 @@ export class ActorRoundDto {
     dto.hp = ActorRoundHPDto.fromEntity(entity.hp);
     dto.fatigue = ActorRoundFatigueDto.fromEntity(entity.fatigue);
     dto.defense = ActorRoundDefenseDto.fromEntity(entity.defense);
+    dto.defenseMode = ActorRoundDefenseModeDto.fromEntity(entity.defenseMode);
+    dto.phaseLog = entity.phaseLog.map(entry => ActorRoundPhaseLogDto.fromEntity(entry));
     dto.attacks = entity.attacks.map(a => ActorRoundAttackDto.fromEntity(a));
     dto.parries = entity.parries;
     dto.penalty = ActorRoundPenaltyDto.fromEntity(entity.penalty);

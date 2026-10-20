@@ -47,7 +47,6 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
       sourceActor,
       targetActor,
       roll: command.roll,
-      locationRoll: command.locationRoll,
     });
 
     // Raised when the roll is resolved; a repeated roll does not raise it again.
@@ -73,9 +72,6 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     }
     if (!attack.calculated) {
       throw new ValidationError(`Attack ${command.attackName} has no calculated data`);
-    }
-    if (attack.calculated.requiredLocationRoll && !command.locationRoll) {
-      throw new ValidationError(`Location roll is required for attack ${command.attackName}`);
     }
     action.checkValidRollDeclaration();
   }

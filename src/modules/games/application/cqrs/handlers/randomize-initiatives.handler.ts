@@ -27,7 +27,10 @@ export class RandomizeInitiativesHandler implements ICommandHandler<RandomizeIni
     if (!game) {
       throw new NotFoundError('Game', gameId);
     }
-    const pendingActors = (await this.actorRoundRepository.findWithUndefinedInitiativeRoll(game.id, game.round)).filter(ar => !ar.isDead());
+    // Flatfooted actors don't roll initiative (§8.3 Surprise); the penalties are applied when it is declared.
+    const pendingActors = (await this.actorRoundRepository.findWithUndefinedInitiativeRoll(game.id, game.round)).filter(
+      ar => !ar.isDead() && !ar.hasEffect('flatfooted'),
+    );
     const commands = pendingActors.map(ar => {
       const random = this.random() + this.random();
       return new DeclareInitiativeCommand(ar.id, random, command.userId, command.roles);

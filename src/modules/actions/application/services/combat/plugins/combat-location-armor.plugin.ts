@@ -25,7 +25,8 @@ const armorByLocation = (armor: Omit<CombatAttackArmor, 'at'>, location: string 
 
 /**
  * A called shot hits the location called. A target without a single armour type is looked up with the armour of
- * the location hit (rolled, or called).
+ * the called location, or with its torso armour (`bodyAt`) when the shot is not called (§9.7 Called Shots): no
+ * location is rolled.
  */
 export const CombatLocationArmorPlugin: CombatPlugin = {
   id: 'location-armor',
@@ -41,7 +42,7 @@ export const CombatLocationArmorPlugin: CombatPlugin = {
           }
           const defense = ctx.targetActor!.defense;
           if (!defense.at) {
-            ctx.armorType = armorByLocation(defense, ctx.location ?? calledShot);
+            ctx.armorType = calledShot ? armorByLocation(defense, ctx.location ?? calledShot) : defense.bodyAt;
           }
         },
       },

@@ -13,6 +13,8 @@ import { CombatCriticalExpansionPlugin } from './combat-critical-expansion.plugi
 import { CombatActorPenaltiesPlugin } from './combat-actor-penalties.plugin';
 import { CombatCustomBonusPlugin } from './combat-custom-bonus.plugin';
 import { CombatDefensiveBonusPlugin } from './combat-defensive-bonus.plugin';
+import { CombatDodgePlugin } from './combat-dodge.plugin';
+import { CombatFlatfootedTargetPlugin } from './combat-flatfooted-target.plugin';
 import { CombatGameLethalityPlugin } from './combat-game-lethality.plugin';
 import { CombatHigherGroundPlugin } from './combat-higher-ground.plugin';
 import { CombatLocationArmorPlugin } from './combat-location-armor.plugin';
@@ -31,16 +33,19 @@ import { CombatShieldPlugin } from './combat-shield.plugin';
 import { CombatSizeDifferencePlugin } from './combat-size-difference.plugin';
 import { CombatStunPlugin } from './combat-stun.plugin';
 import { CombatSurprisedPlugin } from './combat-surprised.plugin';
+import { CombatTwoHandedWeaponPlugin } from './combat-two-handed-weapon.plugin';
 
 export const COMBAT_PLUGIN_LIST: CombatPlugin[] = [
   // prepare
   CombatOffensiveBonusPlugin,
+  CombatTwoHandedWeaponPlugin,
   CombatActorPenaltiesPlugin,
   CombatPacePlugin,
   CombatRangePlugin,
   CombatActionPointsPlugin,
   CombatDefensiveBonusPlugin,
   CombatShieldPlugin,
+  CombatDodgePlugin,
   // parry
   CombatParryPlugin,
   // prepare
@@ -48,6 +53,7 @@ export const COMBAT_PLUGIN_LIST: CombatPlugin[] = [
   CombatProneSourcePlugin,
   CombatStunPlugin,
   CombatSurprisedPlugin,
+  CombatFlatfootedTargetPlugin,
   CombatProneTargetPlugin,
   CombatPositionalSourcePlugin,
   CombatPositionalTargetPlugin,
@@ -66,7 +72,7 @@ export const COMBAT_PLUGIN_LIST: CombatPlugin[] = [
   CombatAbsoluteHitPlugin,
   CombatAttackSizePlugin,
   CombatCriticalExpansionPlugin,
-  // criticalRoll
+  // prepare (ambush) and criticalRoll
   CombatCriticalAdjustmentPlugin,
 ];
 
@@ -81,6 +87,8 @@ export * from './combat-critical-adjustment.plugin';
 export * from './combat-critical-expansion.plugin';
 export * from './combat-custom-bonus.plugin';
 export * from './combat-defensive-bonus.plugin';
+export * from './combat-dodge.plugin';
+export * from './combat-flatfooted-target.plugin';
 export * from './combat-game-lethality.plugin';
 export * from './combat-higher-ground.plugin';
 export * from './combat-location-armor.plugin';
@@ -99,3 +107,4 @@ export * from './combat-shield.plugin';
 export * from './combat-size-difference.plugin';
 export * from './combat-stun.plugin';
 export * from './combat-surprised.plugin';
+export * from './combat-two-handed-weapon.plugin';

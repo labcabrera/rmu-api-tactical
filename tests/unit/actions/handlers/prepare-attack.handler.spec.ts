@@ -17,8 +17,19 @@ import type { GameRepository } from '../../../../src/modules/games/application/p
 import type { CharacterPort } from '../../../../src/modules/strategic/application/ports/character.port';
 import type { StrategicGameApiClient } from '../../../../src/modules/strategic/infrastructure/api-clients/api.strategic-game.adapter';
 import { createCombatPluginContext, CombatPluginContextOptions } from '../combat/combat-plugin-test.factory';
+import { ActorRoundAttack } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-attack.vo';
+import { ActorRoundDefenseMode } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-defense-mode.vo';
+import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-shield.vo';
 
-const setup = (options: CombatPluginContextOptions = {}) => {
+const SOURCE_SKILLS = [
+  { skillId: 'restricted-quarters', totalBonus: 20 },
+  { skillId: 'climbing', totalBonus: 40 },
+];
+
+const setup = (
+  options: CombatPluginContextOptions = {},
+  targetSkills: Array<{ skillId: string; totalBonus: number; ranks?: number }> = [],
+) => {
   const ctx = createCombatPluginContext(options);
   const action = ctx.action;
   const actionRepository = {
@@ -32,14 +43,8 @@ const setup = (options: CombatPluginContextOptions = {}) => {
     findByGameAndRoundAndActors: jest.fn(() => Promise.resolve(ctx.actors)),
   } as unknown as ActorRoundRepository;
   const characterClient = {
-    findById: jest.fn(() =>
-      Promise.resolve({
-        skills: [
-          { skillId: 'restricted-quarters', totalBonus: 20 },
-          { skillId: 'climbing', totalBonus: 40 },
-        ],
-        traits: [],
-      }),
+    findById: jest.fn((id: string) =>
+      Promise.resolve({ skills: id === ctx.sourceActor!.actorId ? SOURCE_SKILLS : targetSkills, traits: [] }),
     ),
   } as unknown as CharacterPort;
   const strategicGameClient = {
@@ -55,22 +60,20 @@ const setup = (options: CombatPluginContextOptions = {}) => {
     actionEventBus,
     new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST)),
   );
-  const execute = (modifiers: Partial<PrepareAttackCommandModifiers>) =>
+  const execute = (modifiers: Partial<PrepareAttackCommandModifiers>, attackNames = ['Longsword']) =>
     handler.execute(
       new PrepareAttackCommand(
         'action-1',
-        [
-          {
-            attackName: 'Longsword',
-            modifiers: { targetId: 'defender-1', bo: 60, ...modifiers } as PrepareAttackCommandModifiers,
-            protectors: null,
-          },
-        ],
+        attackNames.map(attackName => ({
+          attackName,
+          modifiers: { targetId: 'defender-1', bo: 60, ...modifiers } as PrepareAttackCommandModifiers,
+          protectors: null,
+        })),
         'user',
         [],
       ),
     );
-  return { ctx, execute };
+  return { ctx, execute, actionRepository };
 };
 
 describe('PrepareAttackHandler', () => {
@@ -96,16 +99,81 @@ describe('PrepareAttackHandler', () => {
     expect(action.status).toBe('pending_roll');
   });
 
-  it('adds the charge speed to the attacker size, accepting `spring` for `sprint`', async () => {
+  it('accepts `spring` for `sprint`; the charge does not change the DB by size (§9.4)', async () => {
     const { execute } = setup();
 
     const action = await execute({ chargeSpeed: 'spring' as never, disabledDB: true });
 
     const attack = action.attacks![0];
     expect(attack.modifiers.chargeSpeed).toBe('sprint');
-    expect(attack.calculated!.rollModifiers.find(modifier => modifier.key === 'size-difference')?.value).toBe(-10);
+    expect(attack.calculated!.rollModifiers.find(modifier => modifier.key === 'size-difference')).toBeUndefined();
     expect(attack.calculated!.rollModifiers.find(modifier => modifier.key === 'bd')).toBeUndefined();
     expect(attack.calculated!.criticalModifiers).toEqual([]);
     expect(attack.calculated!.criticalAdjustment).toBeUndefined();
+  });
+
+  const values = (action: Action, index = 0) =>
+    Object.fromEntries(action.attacks![index].calculated!.rollModifiers.map(modifier => [modifier.key, modifier.value]));
+
+  it("reads the target's dodge from its defence mode and its Running skill from its sheet", async () => {
+    const { execute } = setup({ defenseMode: ActorRoundDefenseMode.of('full', 'none') }, [
+      { skillId: 'running', totalBonus: 40, ranks: 8 },
+    ]);
+
+    const action = await execute({});
+
+    expect(values(action).dodge).toBe(-40);
+  });
+
+  it('covers only the first of two attacks with a one-block shield', async () => {
+    const { ctx, execute } = setup({ shield: new ActorRoundShield(20, 1, 0) });
+    ctx.sourceActor!.attacks.push(
+      Object.assign(new ActorRoundAttack('', [], 0, 0, 'melee', '', '', 0, 0, false, null, null), ctx.sourceAttack, {
+        attackName: 'offHand',
+      }),
+    );
+
+    const action = await execute({}, ['Longsword', 'offHand']);
+
+    expect(values(action, 0).shield).toBe(-20);
+    expect(values(action, 1).shield).toBeUndefined();
+  });
+
+  it('applies the flatfooted target from its effects and the two-handed weapon from the sheet', async () => {
+    const { ctx, execute } = setup({ twoHanded: true, shield: new ActorRoundShield(20, 1, 0) });
+    ctx.targetActor!.effects.push({ id: 'e-1', status: 'flatfooted', value: undefined, rounds: 1 });
+
+    const action = await execute({});
+
+    expect(values(action)).toEqual({
+      bo: 60,
+      'two-handed-weapon': 10,
+      'action-points': -25,
+      'flatfooted-target': 25,
+      'flatfooted-rear': 35,
+      'game-lethality': 5,
+    });
+    expect(action.attacks![0].calculated!.location).toBeUndefined();
+  });
+
+  it('offers a parry only to a target whose last action is a melee attack', async () => {
+    const { ctx, actionRepository, execute } = setup();
+    ctx.targetActor!.attacks = [
+      new ActorRoundAttack('mainHand', [], 50, 50, 'melee', 'arming-sword', 'melee-one-hand', 0, 3, false, null, null),
+    ];
+    const defenderAction = {
+      id: 'a-2',
+      actorId: 'defender-1',
+      actionType: 'melee_attack',
+      phaseStart: 1,
+      phaseEnd: null,
+      freeAction: false,
+    };
+    (actionRepository.findByRsql as jest.Mock).mockImplementation(() => Promise.resolve({ content: [defenderAction] }));
+
+    const action = await execute({});
+
+    expect(action.parries).toEqual([expect.objectContaining({ actorId: 'defender-1', parryType: 'parry' })]);
+    expect(action.status).toBe('parry');
   });
 });

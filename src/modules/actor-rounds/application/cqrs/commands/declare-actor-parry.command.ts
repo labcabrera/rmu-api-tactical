@@ -16,7 +16,9 @@ export class DeclareActorParryCommand {
     public readonly roles: string[],
   ) {}
 
+  /** The OB the parry spends: the parry, plus the protect penalty when protecting with any amount (Table 9-7c). */
   static fromParry(gameId: string, sourceActorId: string, round: number, parry: ActionParry, userId: string, roles: string[]) {
+    const spent = parry.parry > 0 ? parry.parry - (parry.penalty || 0) : 0;
     return new DeclareActorParryCommand(
       parry.id,
       gameId,
@@ -25,7 +27,7 @@ export class DeclareActorParryCommand {
       sourceActorId,
       round,
       parry.parryType,
-      parry.parry,
+      spent,
       userId,
       roles,
     );

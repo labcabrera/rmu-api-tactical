@@ -1,5 +1,10 @@
 import { ActorRound } from '../../../../src/modules/actor-rounds/domain/aggregates/actor-round.aggregate';
-import { ActorRoundAttack, AttackRange } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-attack.vo';
+import {
+  ActorRoundAttack,
+  AttackRange,
+  WeaponCategory,
+} from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-attack.vo';
+import { ActorRoundDefenseMode } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-defense-mode.vo';
 import { ActorRoundPenalty } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-penalty.vo';
 import { ActorRoundPenaltyModifier } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-penalty-modifier.vo';
 import { ActorRoundPenaltySource } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-penalty-source.vo';
@@ -10,7 +15,6 @@ import {
   AttackType,
   CalledShot,
   Cover,
-  Dodge,
   PositionalSource,
   PositionalTarget,
   RestrictedQuarters,
@@ -51,6 +55,18 @@ export interface CombatPluginContextOptions {
   parry?: number;
   sourceSkills?: CombatAttackSourceSkill[];
   sourceTraits?: Array<{ id: string }>;
+  targetSkills?: CombatAttackSourceSkill[];
+  /** Target's declared dodge and block. */
+  defenseMode?: ActorRoundDefenseMode;
+  /** Target's armour and encumbrance penalty. */
+  targetMovementPenalty?: number;
+  targetPenalties?: Array<{ source: ActorRoundPenaltySource; value: number }>;
+  /** Source attack: wielded with both hands, and its weapon category. */
+  twoHanded?: boolean;
+  weaponCategory?: WeaponCategory;
+  /** The other attacks of the action, after the source's (for katas). */
+  otherAttacks?: ActorRoundAttack[];
+  reservedShieldBlocks?: number;
   sourceSize?: number;
   targetSize?: number;
   /** Penalties in the attacker's actor round. */
@@ -81,9 +97,18 @@ export function createCombatPluginContext(options: CombatPluginContextOptions = 
     false,
     null,
     options.ranges ?? null,
+    options.twoHanded ?? false,
+    options.weaponCategory ?? 'standard',
   );
   const sourceActor = createAttacker({ size: options.sourceSize, attacks: [sourceAttack], penalties: options.sourcePenalties });
-  const targetActor = createDefender({ size: options.targetSize, shield: options.shield, defense: options.defense });
+  const targetActor = createDefender({
+    size: options.targetSize,
+    shield: options.shield,
+    defense: options.defense,
+    defenseMode: options.defenseMode,
+    movementPenalty: options.targetMovementPenalty,
+    penalties: options.targetPenalties,
+  });
   const attack = createAttack({ ...options, attackType, targetId: targetActor.actorId });
 
   return {
@@ -98,6 +123,9 @@ export function createCombatPluginContext(options: CombatPluginContextOptions = 
     gameLethality: options.gameLethality ?? 0,
     sourceSkills: options.sourceSkills ?? [],
     sourceTraits: options.sourceTraits ?? [],
+    targetSkills: options.targetSkills ?? [],
+    kataAttacks: [sourceAttack, ...(options.otherAttacks ?? [])],
+    reservedShieldBlocks: options.reservedShieldBlocks ?? 0,
     attackPreparation: createAttackPreparation(sourceActor, targetActor, attack, options),
     trace: [],
   };
@@ -148,11 +176,20 @@ export function createAttacker(
 }
 
 export function createDefender(
-  options: { size?: number; shield?: ActorRoundShield | null; defense?: CombatDefenseOptions } = {},
+  options: {
+    size?: number;
+    shield?: ActorRoundShield | null;
+    defense?: CombatDefenseOptions;
+    defenseMode?: ActorRoundDefenseMode;
+    movementPenalty?: number;
+    penalties?: Array<{ source: ActorRoundPenaltySource; value: number }>;
+  } = {},
 ): ActorRound {
   return actorRound({
     actorId: 'defender-1',
     size: options.size ?? 0,
+    defenseMode: options.defenseMode ?? ActorRoundDefenseMode.none(),
+    movement: { bmr: 20, penalty: options.movementPenalty ?? 0, maxPace: 'dash', baseDifficulty: 'm' },
     defense: {
       bd: 25,
       at: 1,
@@ -165,7 +202,7 @@ export function createDefender(
       ...options.defense,
     },
     attacks: [],
-    penalty: penaltyOf(),
+    penalty: penaltyOf(options.penalties),
     effects: [],
     alerts: [],
   });
@@ -202,7 +239,6 @@ function createAttack(options: CombatPluginContextOptions & { targetId: string; 
     options.parry ?? 0,
     options.calledShot ?? 'none',
     options.calledShotPenalty ?? 0,
-    'none',
     'none',
     'none',
     'none',
@@ -269,12 +305,10 @@ function createAttackPreparation(
         restrictedQuarters: 'none' as RestrictedQuarters,
         positionalSource: 'none' as PositionalSource,
         positionalTarget: 'none' as PositionalTarget,
-        dodge: 'none' as Dodge,
         disabledDB: false,
         disabledShield: false,
         disabledParry: false,
         sizeDifference: sourceActor.size - targetActor.size,
-        twoHandedWeapon: false,
         higherGround: false,
         sourceStatus: [],
         targetStatus: [],

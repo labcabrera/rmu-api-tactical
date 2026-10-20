@@ -1,4 +1,4 @@
-import { ActorRoundAttack } from '../../../domain/value-objets/actor-round-attack.vo';
+import { ActorRoundAttack, WeaponCategory } from '../../../domain/value-objets/actor-round-attack.vo';
 import { BoModifiers } from '../../../infrastructure/persistence/models/actor-round-attack.model';
 import { AttackRangeDto } from './attack-range.dto';
 
@@ -30,6 +30,8 @@ export class ActorRoundAttackDto {
   fumble: number;
   canThrow: boolean;
   ranges: AttackRangeDto[] | undefined;
+  twoHanded: boolean;
+  weaponCategory: WeaponCategory;
 
   static fromEntity(entity: ActorRoundAttack): ActorRoundAttackDto {
     const dto = new ActorRoundAttackDto();
@@ -43,6 +45,8 @@ export class ActorRoundAttackDto {
     dto.attackSize = entity.attackSize;
     dto.fumble = entity.fumble;
     dto.canThrow = entity.canThrow;
+    dto.twoHanded = entity.twoHanded ?? false;
+    dto.weaponCategory = entity.weaponCategory ?? 'standard';
     dto.ranges = entity.ranges && entity.ranges.length > 0 ? entity.ranges.map(r => AttackRangeDto.fromEntity(r)) : undefined;
     return dto;
   }

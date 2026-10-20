@@ -21,7 +21,6 @@ export interface CombatContext {
   action: Action;
   attack?: ActionAttack;
   attackRoll?: number;
-  locationRoll?: number;
   rollTotal?: number;
   location?: AttackLocation;
   sourceActor?: ActorRound;
@@ -30,6 +29,12 @@ export interface CombatContext {
   actors?: ActorRound[];
   sourceSkills?: CombatAttackSourceSkill[];
   sourceTraits?: CombatAttackSourceTrait[];
+  /** Combat skills of the target (dodging, blocking): empty when it has no character sheet. */
+  targetSkills?: CombatAttackSourceSkill[];
+  /** The source's attacks used in the action, in order: the first is the primary one unless another is `mainHand`. */
+  kataAttacks?: ActorRoundAttack[];
+  /** Shield blocks of the target already taken by earlier attacks of this action (§9.6 Shields). */
+  reservedShieldBlocks?: number;
   attackNumber?: number;
   targetsNumber?: number;
   gameLethality?: number;
@@ -55,6 +60,9 @@ export interface CombatPrepareAttackInput {
   actors: ActorRound[];
   sourceSkills: CombatAttackSourceSkill[];
   sourceTraits: CombatAttackSourceTrait[];
+  targetSkills: CombatAttackSourceSkill[];
+  kataAttacks: ActorRoundAttack[];
+  reservedShieldBlocks: number;
   attackNumber: number;
   targetsNumber: number;
   gameLethality: number;
@@ -64,7 +72,6 @@ export interface CombatResolutionInput {
   action: Action;
   attack?: ActionAttack;
   attackRoll?: number;
-  locationRoll?: number;
   criticalKey?: string;
   criticalRoll?: number;
   fumbleRoll?: number;

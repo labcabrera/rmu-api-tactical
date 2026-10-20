@@ -1,6 +1,6 @@
 import { Prop, Schema } from '@nestjs/mongoose';
 import { Modifier } from '../../../../shared/infrastructure/persistence/models/modier.model';
-import type { AttackType } from '../../../domain/value-objects/action-attack-modifiers.vo';
+import type { AttackType, ProtectPosition } from '../../../domain/value-objects/action-attack-modifiers.vo';
 import { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
 import type { AttackStatus } from '../../../domain/value-objects/attack-status.vo';
 import { ActionAttackModifiers } from './action-attack-modifiers.model';
@@ -18,9 +18,6 @@ export class ActionAttackCalculated {
 
   @Prop({ type: String, required: false })
   public location: AttackLocation | undefined;
-
-  @Prop({ type: Boolean, required: true })
-  public requiredLocationRoll: boolean;
 
   @Prop({ type: Number, required: false })
   public criticalAdjustment: number | undefined;
@@ -81,9 +78,6 @@ export class CriticalResult {
 export class ActionAttackRoll {
   @Prop({ type: Number, required: true })
   public roll: number;
-
-  @Prop({ type: Number, required: false })
-  public locationRoll: number | undefined;
 
   @Prop({ type: Map, of: Number, default: {} })
   public criticalRolls: Map<string, number | undefined> | undefined;
@@ -172,4 +166,7 @@ export class ActionAttack {
 
   @Prop({ type: [String], required: false })
   public protectors: string[] | null;
+
+  @Prop({ type: Object, required: false })
+  public protectorPositions?: Record<string, ProtectPosition>;
 }

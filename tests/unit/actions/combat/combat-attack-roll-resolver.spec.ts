@@ -11,13 +11,12 @@ import { AttackTableEntry } from '../../../../src/modules/actions/domain/value-o
 import { KeyValueModifier } from '../../../../src/modules/actions/domain/value-objects/key-value-modifier.vo';
 import { createCombatPluginContext, CombatPluginContextOptions } from './combat-plugin-test.factory';
 
-const setup = (entry: AttackTableEntry, options: CombatPluginContextOptions & { requiredLocationRoll?: boolean } = {}) => {
+const setup = (entry: AttackTableEntry, options: CombatPluginContextOptions = {}) => {
   const ctx = createCombatPluginContext(options);
   ctx.attack!.calculated = new ActionAttackCalculated(
     [new KeyValueModifier('bo', 80, 'offense', 'offensive-bonus'), new KeyValueModifier('bd', -20, 'defense', 'defensive-bonus')],
     60,
     undefined,
-    options.requiredLocationRoll ?? false,
     undefined,
     [],
   );
@@ -27,14 +26,13 @@ const setup = (entry: AttackTableEntry, options: CombatPluginContextOptions & { 
   });
   const processor = new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST));
   const resolver = new CombatAttackRollResolverService(processor, { lookup } as AttackTablePort);
-  const resolve = (roll: number, locationRoll?: number) =>
+  const resolve = (roll: number) =>
     resolver.resolve({
       action: ctx.action,
       attack: ctx.attack!,
       sourceActor: ctx.sourceActor!,
       targetActor: ctx.targetActor!,
       roll,
-      locationRoll,
     });
   return { ctx, attack: ctx.attack!, action: ctx.action, lookup, resolve };
 };
@@ -62,16 +60,15 @@ describe('CombatAttackRollResolverService', () => {
     expect(lookup).toHaveBeenCalledWith(expect.objectContaining({ roll: 210 }));
   });
 
-  it('uses the armour of the location rolled', async () => {
+  it('uses the torso armour of a target with mixed armour without a called shot, rolling no location (§9.7)', async () => {
     const { attack, lookup, resolve } = setup(new AttackTableEntry('8', 8, undefined, undefined), {
-      requiredLocationRoll: true,
       defense: { at: null, headAt: 2, bodyAt: 6, armsAt: 3, legsAt: 4 },
     });
 
-    await resolve(50, 3);
+    await resolve(50);
 
-    expect(attack.calculated?.location).toBe('chest');
-    expect(lookup).toHaveBeenCalledWith(expect.objectContaining({ armor: 6, location: 'chest' }));
+    expect(attack.calculated?.location).toBeUndefined();
+    expect(lookup).toHaveBeenCalledWith(expect.objectContaining({ armor: 6, location: undefined }));
   });
 
   it('uses the armour of a called location', async () => {
@@ -107,12 +104,12 @@ describe('CombatAttackRollResolverService', () => {
     expect(attack.results?.criticals?.map(critical => critical.key)).toEqual(['k_e_1', 'k_c_2', 'k_a_3']);
   });
 
-  it('applies the attack size to the damage and the severity before splitting the criticals', async () => {
+  it('applies the attack size to the severity, not to the damage, before splitting the criticals', async () => {
     const { attack, resolve } = setup(new AttackTableEntry('10ES', 10, 'S', 'E'), { attackSize: 1 });
 
     await resolve(50);
 
-    expect(attack.results?.attackTableEntry).toMatchObject({ damage: 15, criticalSeverity: 'F' });
+    expect(attack.results?.attackTableEntry).toMatchObject({ damage: 10, criticalSeverity: 'F' });
     expect(attack.results?.criticals?.map(critical => critical.criticalSeverity)).toEqual(['E', 'A']);
   });
 

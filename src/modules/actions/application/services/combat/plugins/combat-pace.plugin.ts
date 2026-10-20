@@ -24,8 +24,8 @@ export const CombatPacePlugin: CombatPlugin = {
             throw new ValidationError(`Cannot perform attack at pace '${pace}'`);
           }
           const penalty = paceModifiers[pace] || 0;
-          // Footwork only offsets the pace penalty of melee attacks.
-          const footwork = isMelee(ctx) ? sourceSkill(ctx, 'footwork') : 0;
+          // Footwork offsets the pace penalty of melee and thrown attacks (§8.2), not of fired ones.
+          const footwork = isMelee(ctx) || ctx.attack?.type === 'thrown' ? sourceSkill(ctx, 'footwork') : 0;
           rollModifiers(ctx).addWithSkill('pace-penalty', penalty, footwork);
         },
       },

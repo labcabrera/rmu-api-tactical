@@ -6,8 +6,10 @@ import { RsqlParser } from '../../../shared/infrastructure/db/rsql-parser';
 import { ActorRoundRepository } from '../../application/ports/actor-round.repository';
 import { ActorRound } from '../../domain/aggregates/actor-round.aggregate';
 import { ActorRoundAttack } from '../../domain/value-objets/actor-round-attack.vo';
+import { ActorRoundDefenseMode } from '../../domain/value-objets/actor-round-defense-mode.vo';
 import { ActorRoundPenaltyModifier } from '../../domain/value-objets/actor-round-penalty-modifier.vo';
 import { ActorRoundPenalty } from '../../domain/value-objets/actor-round-penalty.vo';
+import { ActorRoundPhaseLog } from '../../domain/value-objets/actor-round-phase-log.vo';
 import { ActorRoundDocument, ActorRoundModel } from '../persistence/models/actor-round.model';
 
 @Injectable()
@@ -64,6 +66,8 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
           e.canThrow,
           e.meleeRange,
           e.ranges,
+          e.twoHanded ?? false,
+          e.weaponCategory ?? 'standard',
         ),
     );
     return ActorRound.fromProps({
@@ -89,6 +93,10 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       parries: doc.parries,
       effects: doc.effects,
       alerts: doc.alerts,
+      defenseMode: doc.defenseMode
+        ? new ActorRoundDefenseMode(doc.defenseMode.dodge ?? 'none', doc.defenseMode.block ?? 'none')
+        : ActorRoundDefenseMode.none(),
+      phaseLog: (doc.phaseLog || []).map(entry => new ActorRoundPhaseLog(entry.phase, entry.spentAp, entry.totalSpentAp)),
       imageUrl: doc.imageUrl,
       owner: doc.owner,
       createdAt: doc.createdAt,
