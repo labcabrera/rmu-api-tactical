@@ -4,12 +4,23 @@ import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.
 import { UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors';
 import { DomainEvent } from '../../../shared/domain/events/domain-event';
 import { ActionCreatedEvent } from '../events/action-events';
+import { ProtectPosition } from '../value-objects/action-attack-modifiers.vo';
 import { ActionParry } from '../value-objects/action-attack-parry.vo';
 import { ActionAttack } from '../value-objects/action-attack.vo';
 import { ActionManeuver } from '../value-objects/action-maneuver.vo';
 import { ActionMovement } from '../value-objects/action-movement.vo';
 import { ActionStatus } from '../value-objects/action-status.vo';
 import { ActionType } from '../value-objects/action-type.vo';
+
+/** Action points of a round (§8.3). */
+const MAX_ACTION_POINTS = 4;
+
+/** Table 9-7c: OB penalty of a protector by where it stands. */
+const PROTECT_PENALTIES: Record<ProtectPosition, number> = {
+  protector_between: -25,
+  defender_between: -100,
+  other: -50,
+};
 
 export interface ActionProps {
   id: string;
@@ -135,6 +146,66 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     }
   }
 
+  /** The action spends an AP in the phase: it is not free, it started and it was not over before the phase. */
+  spendsApInPhase(phase: number): boolean {
+    if (this.freeAction || this.phaseStart > phase) {
+      return false;
+    }
+    return this.phaseEnd === null || this.phaseEnd === undefined || this.phaseEnd >= phase;
+  }
+
+  /**
+   * AP an actor spent in an action phase, from its actions of the round: 1 when an action spans the phase (an action
+   * still in progress counts), 0 otherwise. One action phase gives one AP (§8.3 Action Phases).
+   */
+  static spentApInPhase(actions: Action[], phase: number): number {
+    return actions.some(action => action.spendsApInPhase(phase)) ? 1 : 0;
+  }
+
+  /** As `spentApInPhase`, counting only the actions already completed in the phase. */
+  static completedApInPhase(actions: Action[], phase: number): number {
+    return actions.some(action => action.status === 'completed' && action.phaseEnd === phase && action.spendsApInPhase(phase)) ? 1 : 0;
+  }
+
+  /**
+   * Checks a new action of an actor against its round (§8.1, §8.3, Table 8-1): a flatfooted actor declares nothing;
+   * the phases a surprised actor lost are blocked; an action cannot start in a phase another one of the actor still
+   * holds, nor go over the AP left; only the first instantaneous action of the round is free (the next one costs 1 AP).
+   */
+  static checkDeclaration(actorRound: ActorRound, actions: Action[], phaseStart: number, freeAction: boolean, currentPhase: number): void {
+    if (actorRound.hasEffect('flatfooted')) {
+      throw new ValidationError('A flatfooted actor cannot declare actions this round', 'err-action-flatfooted');
+    }
+    const maxPhase = actorRound.actionPoints || MAX_ACTION_POINTS;
+    if (!Number.isInteger(phaseStart) || phaseStart < 1 || phaseStart > maxPhase) {
+      throw new ValidationError(`An action starts in a phase from 1 to ${maxPhase}`, 'err-action-invalid-phase');
+    }
+    const lost = actorRound.getLostActionPoints();
+    if (phaseStart <= lost) {
+      throw new ValidationError(`A surprised actor loses the first ${lost} action points of the round`, 'err-action-surprised-phase');
+    }
+    if (freeAction) {
+      if (actions.some(action => action.freeAction)) {
+        throw new ValidationError('Only the first instantaneous action of the round is free', 'err-action-free-limit');
+      }
+      return;
+    }
+    const held = actions.filter(action => !action.freeAction);
+    if (held.some(action => phaseStart >= action.phaseStart && phaseStart <= (action.phaseEnd ?? maxPhase))) {
+      throw new ValidationError(`Phase ${phaseStart} is already taken by another action of the actor`, 'err-action-phase-overlap');
+    }
+    const spent = held.reduce((sum, action) => sum + action.heldActionPoints(currentPhase), 0);
+    if (spent + 1 > maxPhase - lost) {
+      throw new ValidationError(`The actor has no action points left this round`, 'err-action-points-exceeded');
+    }
+  }
+
+  /** AP the action holds: the phases it spans, up to the current one while it is in progress. */
+  private heldActionPoints(currentPhase: number): number {
+    const end = this.phaseEnd ?? Math.max(currentPhase, this.phaseStart);
+    return Math.max(0, end - this.phaseStart + 1);
+  }
+
   addAttacks(attackNames: string[] | undefined) {
     if (!attackNames || attackNames.length === 0) {
       return;
@@ -154,7 +225,6 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
           positionalTarget: 'none',
           restrictedQuarters: 'none',
           cover: 'none',
-          dodge: 'none',
           disabledDB: false,
           disabledShield: false,
           disabledParry: false,
@@ -182,7 +252,13 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     attack.modifiers.bo = currentBo;
   }
 
-  processParryOptions(actorRounds: ActorRound[], actions: Action[]) {
+  /**
+   * Parry and protect options of the action's melee attacks, one per defender and per protector of each target.
+   * A defender who already parried this attacker in an earlier action of the round keeps that parry, fixed and
+   * already paid (§9.6 Parrying). A protector gives OB less the Table 9-7c penalty for its position, offset by its
+   * Protect skill without turning into a bonus; it can protect without the skill (§9.7 Protecting Others).
+   */
+  processParryOptions(actorRounds: ActorRound[], actions: Action[], phase: number) {
     if (!this.attacks || this.attacks.length === 0) {
       return;
     }
@@ -191,36 +267,77 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
       if (attack.type !== 'melee') {
         continue;
       }
-      // Parries
       const attackTarget = actorRounds.find(t => t.actorId === attack.modifiers.targetId)!;
-      if (this.hasDeclaredMeleeAttack(attackTarget, actions)) {
-        // The penalties of the defender cap its parry.
-        const maxBo = attackTarget.getAvailableParry();
-        if (maxBo > 0) {
-          this.parries?.push(new ActionParry(randomUUID(), attackTarget.actorId, attackTarget.actorId, 'parry', maxBo, 0));
+      const hasParry = this.parries.some(p => p.actorId === attackTarget.actorId && p.parryType === 'parry');
+      if (!hasParry && Action.canParry(attackTarget.actorId, actions, phase)) {
+        const carried = this.findCarriedOverParry(attackTarget.actorId, actions);
+        if (carried > 0) {
+          this.parries.push(
+            new ActionParry(
+              randomUUID(),
+              attackTarget.actorId,
+              attackTarget.actorId,
+              'parry',
+              carried,
+              carried,
+              undefined,
+              undefined,
+              true,
+            ),
+          );
+        } else {
+          // The penalties of the defender cap its parry.
+          const maxBo = attackTarget.getAvailableParry();
+          if (maxBo > 0) {
+            this.parries.push(new ActionParry(randomUUID(), attackTarget.actorId, attackTarget.actorId, 'parry', maxBo, 0));
+          }
         }
       }
-      // Protectors
       for (const protectorId of attack.protectors || []) {
         const protector = actorRounds.find(t => t.actorId === protectorId)!;
-        const protectSkill = protector.defense.protect || 0;
-        if (protectSkill < 1) {
-          continue;
-        } else if (!this.hasDeclaredMeleeAttack(protector, actions)) {
+        const duplicated = this.parries.some(
+          p => p.actorId === protectorId && p.targetActorId === attackTarget.actorId && p.parryType === 'protect',
+        );
+        if (duplicated || !Action.canParry(protector.actorId, actions, phase)) {
           continue;
         }
-        const maxBo = protector.getAvailableParry();
-        const protectValue = Math.min(protectSkill, maxBo);
-        this.parries?.push(new ActionParry(randomUUID(), protector.actorId, attackTarget.actorId, 'protect', protectValue, 0));
+        const position = attack.protectorPositions?.[protectorId] ?? 'other';
+        const penalty = Action.protectPenalty(position, protector.defense.protect || 0);
+        const protectValue = Math.max(0, protector.getAvailableParry() + penalty);
+        if (protectValue > 0) {
+          this.parries.push(
+            new ActionParry(randomUUID(), protector.actorId, attackTarget.actorId, 'protect', protectValue, 0, penalty, position),
+          );
+        }
       }
     }
   }
 
-  hasDeclaredMeleeAttack(actorRound: ActorRound, actions: Action[]): boolean {
+  /** Table 9-7c penalty by the protector's position, offset by its Protect skill but never a bonus. */
+  static protectPenalty(position: ProtectPosition, protectSkill: number): number {
+    return Math.min(0, PROTECT_PENALTIES[position] + protectSkill);
+  }
+
+  /**
+   * The actor can parry in this phase (§9.6 Parrying, §8.3): the last action it spent AP on, up to this phase, is a
+   * melee attack, still in progress or completed. Movement does not interrupt the melee, and free actions spend no
+   * AP.
+   */
+  static canParry(actorId: string, actions: Action[], phase: number): boolean {
+    const lastPhase = (action: Action) => Math.min(action.phaseEnd ?? phase, phase);
+    const last = actions
+      .filter(a => a.actorId === actorId && !a.freeAction && a.actionType !== 'movement' && a.phaseStart <= phase)
+      .sort((a, b) => lastPhase(b) - lastPhase(a) || b.phaseStart - a.phaseStart)[0];
+    return last?.actionType === 'melee_attack';
+  }
+
+  /** OB the defender already gave to parry this attacker in an earlier, applied action of the round (0 if none). */
+  private findCarriedOverParry(defenderId: string, actions: Action[]): number {
     return actions
-      .filter(e => e.actorId === actorRound.actorId)
-      .sort((a, b) => a.phaseStart - b.phaseStart)
-      .some(a => a.actionType === 'melee_attack');
+      .filter(a => a.id !== this.id && a.actorId === this.actorId && a.round === this.round && a.status === 'completed')
+      .flatMap(a => a.parries || [])
+      .filter(p => p.actorId === defenderId && p.targetActorId === defenderId && p.parryType === 'parry')
+      .reduce((max, p) => Math.max(max, p.parry || 0), 0);
   }
 
   hasPendingAttackRolls(): boolean {

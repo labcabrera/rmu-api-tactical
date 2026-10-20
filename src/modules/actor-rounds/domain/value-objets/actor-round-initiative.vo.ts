@@ -4,5 +4,7 @@ export class ActorRoundInitiative {
     public penalty: number,
     public roll: number | undefined,
     public total: number | undefined,
+    /** Strike Reflex bonus declared with the roll, already in `total`. */
+    public strikeReflex?: number,
   ) {}
 }

@@ -1,5 +1,5 @@
 import { PositionalTarget } from '../../../../domain/value-objects/action-attack-modifiers.vo';
-import { isMelee, isPreparing, preparation, rollModifiers } from '../combat-modifiers';
+import { isMelee, isPreparing, preparation, rollModifiers, targetIsFlatfooted } from '../combat-modifiers';
 import { CombatPlugin } from '../combat-plugin';
 
 const positionalTargetModifiers: Record<PositionalTarget, number> = {
@@ -8,13 +8,15 @@ const positionalTargetModifiers: Record<PositionalTarget, number> = {
   rear: 35,
 };
 
+/** Flank and rear bonuses in melee. Against a flatfooted target the `flatfooted-target` plugin gives the rear bonus. */
 export const CombatPositionalTargetPlugin: CombatPlugin = {
   id: 'positional-target',
   group: 'situation',
   hooks: {
     prepare: [
       {
-        condition: ctx => isPreparing(ctx) && isMelee(ctx) && preparation(ctx).situationalModifiers.positionalTarget !== 'none',
+        condition: ctx =>
+          isPreparing(ctx) && isMelee(ctx) && preparation(ctx).situationalModifiers.positionalTarget !== 'none' && !targetIsFlatfooted(ctx),
         apply: ctx =>
           void rollModifiers(ctx).add(
             'positional-target',

@@ -1,4 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
+import type { ProtectPosition } from '../../../domain/value-objects/action-attack-modifiers.vo';
 import type { ParryType } from '../../../domain/value-objects/parry-type';
 
 @Schema({ _id: false })
@@ -23,4 +24,13 @@ export class ActionParry {
 
   @Prop({ type: Number, required: true })
   parry: number;
+
+  @Prop({ type: Number, required: false })
+  penalty?: number;
+
+  @Prop({ type: String, required: false })
+  protectPosition?: ProtectPosition;
+
+  @Prop({ type: Boolean, required: false })
+  carriedOver?: boolean;
 }

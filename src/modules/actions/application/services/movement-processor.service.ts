@@ -15,8 +15,12 @@ export class MovementProcessorService {
     ['jog', 0.5],
     ['run', 0.75],
     ['sprint', 1],
-    ['dash', 1],
+    // Table 5-3: a dash covers 1.25 × BMR per phase.
+    ['dash', 1.25],
   ]);
+
+  /** Paces from slowest to fastest, to check the actor's maximum pace. */
+  private static readonly paceOrder: string[] = ['creep', 'walk', 'jog', 'run', 'sprint', 'dash'];
 
   constructor(
     @Inject('ManeuverPort') private readonly maneuverPort: ManeuverPort,
@@ -29,6 +33,7 @@ export class MovementProcessorService {
     } else if (!action.actionPoints) {
       throw new Error('Action does not have action points data');
     }
+    this.checkMaxPace(action.movement.modifiers.pace, actorRound.movement.maxPace);
     let percent = 100;
     let critical: string | null = null;
     let message: string | null = null;
@@ -77,6 +82,14 @@ export class MovementProcessorService {
       critical: critical,
       description: message || `Movement completed at ${percent}%`,
     };
+  }
+
+  /** Table 5-3: the encumbrance or the creature caps the pace. An unknown maximum (older actor rounds) is not checked. */
+  private checkMaxPace(pace: string, maxPace: string | undefined): void {
+    const max = MovementProcessorService.paceOrder.indexOf(maxPace || '');
+    if (max >= 0 && MovementProcessorService.paceOrder.indexOf(pace) > max) {
+      throw new ValidationError(`Pace ${pace} is above the actor's maximum pace ${maxPace}`, 'err-pace-above-max');
+    }
   }
 
   private getPaceMultiplier(pace: string): number {

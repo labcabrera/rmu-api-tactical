@@ -13,6 +13,7 @@ export class AddEffectDto {
   @IsString()
   status: string;
 
+  /** For `surprised`, the action points lost: 2, or 1 after a successful Perception (2 when missing). */
   @IsOptional()
   @IsNumber()
   value: number | undefined;

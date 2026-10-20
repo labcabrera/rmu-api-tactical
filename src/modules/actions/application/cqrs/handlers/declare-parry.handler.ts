@@ -47,20 +47,27 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
       if (!parry) {
         throw new ValidationError(`Parry ${parryItem.parryId} not found`);
       }
+      // A parry carried over from an earlier action against this foe is fixed: its OB is already spent.
+      if (parry.carriedOver) {
+        return;
+      }
       if (parryItem.parry < 0 || parryItem.parry > parry.parryAvailable) {
         throw new ValidationError(`Parry must be between 0 and ${parry.parryAvailable}`);
       }
       parry.parry = parryItem.parry;
     });
 
-    // The parries of one actor share its available parry.
+    // The parries of one actor share its available parry; protecting also spends the protect penalty.
     const byActor = new Map<string, { total: number; available: number }>();
-    action.parries?.forEach(parry => {
-      const entry = byActor.get(parry.actorId) || { total: 0, available: parry.parryAvailable };
-      entry.total += parry.parry || 0;
-      entry.available = Math.max(entry.available, parry.parryAvailable);
-      byActor.set(parry.actorId, entry);
-    });
+    action.parries
+      ?.filter(parry => !parry.carriedOver)
+      .forEach(parry => {
+        const penalty = -(parry.penalty || 0);
+        const entry = byActor.get(parry.actorId) || { total: 0, available: 0 };
+        entry.total += (parry.parry || 0) + (parry.parry > 0 ? penalty : 0);
+        entry.available = Math.max(entry.available, parry.parryAvailable + penalty);
+        byActor.set(parry.actorId, entry);
+      });
     byActor.forEach(({ total, available }) => {
       if (total > available) throw new ValidationError(`Parries add up to ${total}, above the ${available} available`);
     });

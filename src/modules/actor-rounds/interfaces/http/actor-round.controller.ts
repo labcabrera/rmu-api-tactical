@@ -8,11 +8,13 @@ import { Page } from '../../../shared/domain/entities/page.entity';
 import { ErrorDto, PagedQueryDto } from '../../../shared/interfaces/http/dto';
 import { AddEffectsCommand } from '../../application/cqrs/commands/add-effects.command';
 import { AddFatigueCommand } from '../../application/cqrs/commands/add-fatigue.command';
+import { DeclareDefenseModeCommand } from '../../application/cqrs/commands/declare-defense-mode.command';
 import { DeclareInitiativeCommand } from '../../application/cqrs/commands/declare-initiative.command';
 import { DeleteEffectCommand } from '../../application/cqrs/commands/delete-effect.command';
 import { GetActorRoundQuery } from '../../application/cqrs/queries/get-actor-round.query';
 import { GetActorsRoundsQuery } from '../../application/cqrs/queries/get-actor-rounds.query';
 import { ActorRound } from '../../domain/aggregates/actor-round.aggregate';
+import { DeclareDefenseModeDto } from './dto/actor-round-defense-mode.dto';
 import { ActorRoundDto, CharacterRoundPageDto } from './dto/actor-round.dto';
 import { AddEffectDto } from './dto/add-effect.dto';
 import { AddFatigueAccumulatorDto } from './dto/add-fatigue-accumulator.dto';
@@ -65,6 +67,18 @@ export class ActorRoundController {
     const user = req.user!;
     const command = DeclareInitiativeDto.toCommand(id, dto, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<DeclareInitiativeCommand, ActorRound>(command);
+    return ActorRoundDto.fromEntity(entity);
+  }
+
+  @Patch(':id/defense-mode')
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
+  @ApiOperation({ operationId: 'declareDefenseMode', summary: 'Declare the dodge and shield block of the round' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiNotFoundResponse({ description: 'Actor round not found', type: ErrorDto })
+  async declareDefenseMode(@Param('id') id: string, @Body() dto: DeclareDefenseModeDto, @Request() req) {
+    const user = req.user!;
+    const command = DeclareDefenseModeDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<DeclareDefenseModeCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
   }
 

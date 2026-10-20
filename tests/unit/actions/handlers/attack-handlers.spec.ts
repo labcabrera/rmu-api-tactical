@@ -55,11 +55,11 @@ const repositories = (action: Action, actors = createCombatPluginContext().actor
 const rolledContext = (criticals: Critical[], fumble?: Fumble) => {
   const ctx = createCombatPluginContext();
   const attack = ctx.attack!;
-  attack.calculated = new ActionAttackCalculated([new KeyValueModifier('bo', 75)], 120, 'arms', true, undefined, [
+  attack.calculated = new ActionAttackCalculated([new KeyValueModifier('bo', 75)], 120, 'arms', undefined, [
     new KeyValueModifier('size-difference', 1, 'situation', 'size-difference'),
     new KeyValueModifier('absolute-hit', 2, 'resolution', 'absolute-hit'),
   ]);
-  attack.roll = new ActionAttackRoll(45, 12, new Map(criticals.map(critical => [critical.key, undefined])), undefined);
+  attack.roll = new ActionAttackRoll(45, new Map(criticals.map(critical => [critical.key, undefined])), undefined);
   attack.results = new ActionAttackResult(new AttackTableEntry('20FS', 20, 'S', 'F'), criticals, fumble);
   attack.status = fumble ? 'pending_fumble_roll' : 'pending_critical_roll';
   ctx.action.status = 'pending_roll';
@@ -82,6 +82,7 @@ describe('UpdateCriticalRollHandler', () => {
       { lookup } as CriticalTablePort,
       repos.actionEventBus,
       processor(),
+      repos.actorRoundRepository,
     );
     const execute = (key: string, roll: number) =>
       handler.execute(new UpdateCriticalRollCommand('action-1', 'Longsword', key, roll, 'user', []));
@@ -89,16 +90,42 @@ describe('UpdateCriticalRollHandler', () => {
   };
 
   it('stores the raw roll and looks up the roll adjusted by the critical modifiers, at the location hit', async () => {
+    const { ctx, lookup, execute } = setup([pendingCritical('s_c_1', 'C')]);
+
+    await execute('s_c_1', 50);
+
+    const attack = ctx.attack!;
+    expect(lookup).toHaveBeenCalledWith({ criticalType: 'S', criticalSeverity: 'C', roll: 53, location: 'arms' });
+    expect(attack.roll!.criticalRolls!.get('s_c_1')).toBe(50);
+    expect(attack.results!.criticals![0]).toMatchObject({ adjustedRoll: 53, status: 'completed', result: { damage: 4 } });
+  });
+
+  it('resolves every critical of the attack with the first roll and the same location (§9.8)', async () => {
     const { ctx, lookup, execute } = setup([pendingCritical('s_e_1', 'E'), pendingCritical('s_a_2', 'A')]);
+    ctx.attack!.calculated!.location = undefined;
 
     await execute('s_e_1', 50);
 
     const attack = ctx.attack!;
-    expect(lookup).toHaveBeenCalledWith({ criticalType: 'S', criticalSeverity: 'E', roll: 53, location: 'arms' });
-    expect(attack.roll!.criticalRolls!.get('s_e_1')).toBe(50);
-    expect(attack.results!.criticals![0]).toMatchObject({ adjustedRoll: 53, status: 'completed', result: { damage: 4 } });
-    expect(attack.status).toBe('pending_critical_roll');
-    expect(ctx.action.status).toBe('pending_roll');
+    expect(lookup.mock.calls.map(([request]) => request)).toEqual([
+      { criticalType: 'S', criticalSeverity: 'E', roll: 53, location: undefined },
+      // The first result hit an arm: the second critical hits it too.
+      { criticalType: 'S', criticalSeverity: 'A', roll: 53, location: 'arms' },
+    ]);
+    expect(Array.from(attack.roll!.criticalRolls!.entries())).toEqual([
+      ['s_e_1', 50],
+      ['s_a_2', 50],
+    ]);
+    expect(attack.results!.criticals!.map(critical => critical.status)).toEqual(['completed', 'completed']);
+    expect(attack.status).toBe('pending_apply');
+  });
+
+  it('accepts the shared roll again and rejects a different one for another critical', async () => {
+    const { execute } = setup([pendingCritical('s_e_1', 'E'), pendingCritical('s_a_2', 'A')]);
+    await execute('s_e_1', 50);
+
+    await expect(execute('s_a_2', 50)).resolves.toBeDefined();
+    await expect(execute('s_a_2', 70)).rejects.toMatchObject({ errorCode: 'err-critical-roll-mismatch' });
   });
 
   it('clamps the adjusted roll to 1..100 and moves the attack to pending_apply after the last critical', async () => {
@@ -172,12 +199,7 @@ describe('UpdateFumbleRollHandler', () => {
 describe('DeclareParryHandler', () => {
   it('runs the parry phase on each attack and recomputes the total', async () => {
     const ctx = createCombatPluginContext();
-    ctx.attack!.calculated = new ActionAttackCalculated(
-      [new KeyValueModifier('bo', 75), new KeyValueModifier('bd', -25)],
-      50,
-      undefined,
-      false,
-    );
+    ctx.attack!.calculated = new ActionAttackCalculated([new KeyValueModifier('bo', 75), new KeyValueModifier('bd', -25)], 50, undefined);
     ctx.action.parries = [new ActionParry('parry-1', 'defender-1', 'defender-1', 'parry', 40, 0)];
     ctx.action.status = 'parry';
     const repos = repositories(ctx.action, ctx.actors);
@@ -202,7 +224,7 @@ describe('DeclareParryHandler', () => {
 
   it('adds no parry when the attack disables it', async () => {
     const ctx = createCombatPluginContext({ modifiers: { disabledParry: true } });
-    ctx.attack!.calculated = new ActionAttackCalculated([new KeyValueModifier('bo', 75)], 75, undefined, false);
+    ctx.attack!.calculated = new ActionAttackCalculated([new KeyValueModifier('bo', 75)], 75, undefined);
     ctx.action.parries = [new ActionParry('parry-1', 'defender-1', 'defender-1', 'parry', 40, 0)];
     const repos = repositories(ctx.action, ctx.actors);
     const handler = new DeclareParryHandler(
@@ -220,7 +242,7 @@ describe('DeclareParryHandler', () => {
 
   it('rejects a parry above the one available', async () => {
     const ctx = createCombatPluginContext();
-    ctx.attack!.calculated = new ActionAttackCalculated([new KeyValueModifier('bo', 75)], 75, undefined, false);
+    ctx.attack!.calculated = new ActionAttackCalculated([new KeyValueModifier('bo', 75)], 75, undefined);
     ctx.action.parries = [new ActionParry('parry-1', 'defender-1', 'defender-1', 'parry', 5, 0)];
     ctx.action.status = 'parry';
     const repos = repositories(ctx.action, ctx.actors);
@@ -238,10 +260,51 @@ describe('DeclareParryHandler', () => {
   });
 });
 
+describe('DeclareParryHandler carried over and protect parries', () => {
+  const declare = (parries: ActionParry[], items: DeclareParryItem[]) => {
+    const ctx = createCombatPluginContext();
+    ctx.attack!.calculated = new ActionAttackCalculated([new KeyValueModifier('bo', 75)], 75, undefined);
+    ctx.action.parries = parries;
+    ctx.action.status = 'parry';
+    const repos = repositories(ctx.action, ctx.actors);
+    const handler = new DeclareParryHandler(
+      repos.gameRepository,
+      repos.actorRoundRepository,
+      repos.actionRepository,
+      repos.actionEventBus,
+      processor(),
+    );
+    return handler.execute(new DeclareParryCommand('action-1', items, 'user', [])).then(() => ctx);
+  };
+
+  it('keeps a carried over parry whatever is declared, and counts it against the attack (§9.6)', async () => {
+    const ctx = await declare(
+      [new ActionParry('parry-1', 'defender-1', 'defender-1', 'parry', 30, 30, undefined, undefined, true)],
+      [new DeclareParryItem('parry-1', 0)],
+    );
+
+    expect(ctx.action.parries![0].parry).toBe(30);
+    expect(ctx.attack!.calculated!.rollTotal).toBe(45);
+  });
+
+  it("counts the protect penalty in the protector's OB when it protects and its own parry", async () => {
+    // 100 OB: 75 available to protect at -25; protecting with 40 and parrying with 40 spends 105.
+    const parries = [
+      new ActionParry('parry-1', 'helper', 'helper', 'parry', 100, 0),
+      new ActionParry('protect-1', 'helper', 'defender-1', 'protect', 75, 0, -25, 'other'),
+    ];
+
+    await expect(declare(parries, [new DeclareParryItem('parry-1', 40), new DeclareParryItem('protect-1', 40)])).rejects.toThrow(
+      'Parries add up to 105, above the 100 available',
+    );
+    await expect(declare(parries, [new DeclareParryItem('parry-1', 35), new DeclareParryItem('protect-1', 40)])).resolves.toBeDefined();
+  });
+});
+
 describe('DeclareParryHandler shared parry', () => {
   it('rejects parries of one actor that add up above its available parry', async () => {
     const ctx = createCombatPluginContext();
-    ctx.attack!.calculated = new ActionAttackCalculated([new KeyValueModifier('bo', 75)], 75, undefined, false);
+    ctx.attack!.calculated = new ActionAttackCalculated([new KeyValueModifier('bo', 75)], 75, undefined);
     ctx.action.parries = [
       new ActionParry('parry-1', 'defender-1', 'defender-1', 'parry', 10, 0),
       new ActionParry('parry-2', 'defender-1', 'defender-1', 'parry', 10, 0),
@@ -272,7 +335,7 @@ describe('Action parry options', () => {
     defender.penalty = new ActorRoundPenalty([new ActorRoundPenaltyModifier('p1', 'hp', -50)]);
     const defenderAttack = { actorId: defender.actorId, actionType: 'melee_attack', phaseStart: 1 } as unknown as Action;
 
-    ctx.action.processParryOptions([ctx.sourceActor!, defender], [defenderAttack]);
+    ctx.action.processParryOptions([ctx.sourceActor!, defender], [defenderAttack], 1);
 
     expect(ctx.action.parries!.map(parry => [parry.actorId, parry.parryAvailable])).toEqual([[defender.actorId, 30]]);
   });
@@ -281,7 +344,7 @@ describe('Action parry options', () => {
 describe('UpdateAttackRollHandler', () => {
   const setup = () => {
     const ctx = createCombatPluginContext();
-    ctx.attack!.calculated = new ActionAttackCalculated([new KeyValueModifier('bo', 75)], 75, undefined, false, undefined, []);
+    ctx.attack!.calculated = new ActionAttackCalculated([new KeyValueModifier('bo', 75)], 75, undefined, undefined, []);
     const repos = repositories(ctx.action, ctx.actors);
     const lookup = jest.fn(() => Promise.resolve(new AttackTableEntry('9', 9, undefined, undefined)));
     const resolver = new CombatAttackRollResolverService(processor(), { lookup } as unknown as AttackTablePort);
@@ -292,7 +355,7 @@ describe('UpdateAttackRollHandler', () => {
       repos.actionEventBus,
       resolver,
     );
-    const execute = (roll: number) => handler.execute(new UpdateAttackRollCommand('action-1', 'Longsword', roll, undefined, 'user', []));
+    const execute = (roll: number) => handler.execute(new UpdateAttackRollCommand('action-1', 'Longsword', roll, 'user', []));
     return { ctx, repos, execute };
   };
 

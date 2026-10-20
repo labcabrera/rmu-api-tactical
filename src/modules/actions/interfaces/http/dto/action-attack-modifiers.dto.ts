@@ -39,9 +39,6 @@ export class ActionAttackModifiersDto {
   @ApiProperty({ description: 'Type of cover the target has', required: false, example: 'none' })
   public cover: string | undefined;
 
-  @ApiProperty({ description: 'Type of dodge the target is performing', required: false, example: 'none' })
-  public dodge: string | undefined;
-
   @ApiProperty({ description: 'Whether the attack disables defensive bonus', required: false, example: false })
   public disabledDB: boolean | undefined;
 
@@ -101,7 +98,6 @@ export class ActionAttackModifiersDto {
     dto.positionalTarget = entity.positionalTarget;
     dto.restrictedQuarters = entity.restrictedQuarters;
     dto.cover = entity.cover;
-    dto.dodge = entity.dodge;
     dto.attackerInMelee = entity.attackerInMelee;
     dto.disabledDB = entity.disabledDB;
     dto.disabledShield = entity.disabledShield;

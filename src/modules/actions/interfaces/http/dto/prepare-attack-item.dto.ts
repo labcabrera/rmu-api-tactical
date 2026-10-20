@@ -1,14 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsBoolean, IsIn, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
 import { PrepareAttackCommandItem, PrepareAttackCommandModifiers } from '../../../application/cqrs/commands/prepare-attack.command';
+import { ValidationError } from '../../../../shared/domain/errors';
 import {
   CalledShot,
   ChargeSpeed,
   Cover,
-  Dodge,
   normalizeChargeSpeed,
   PositionalSource,
   PositionalTarget,
+  PROTECT_POSITIONS,
+  ProtectPosition,
   RestrictedQuarters,
 } from '../../../domain/value-objects/action-attack-modifiers.vo';
 
@@ -76,16 +78,6 @@ export class PrepareAttackModifiersDto {
   @IsString()
   cover: Cover | undefined;
 
-  @ApiProperty({
-    description: 'Type of dodge the target is performing',
-    required: false,
-    enum: ['none', 'passive', 'partial', 'full'],
-    example: 'none',
-  })
-  @IsOptional()
-  @IsString()
-  dodge: Dodge | undefined;
-
   @ApiProperty({ description: 'Whether attacker is in melee (close) range', required: false, example: false })
   @IsOptional()
   @IsBoolean()
@@ -111,7 +103,11 @@ export class PrepareAttackModifiersDto {
   @IsString()
   pace: string | undefined;
 
-  @ApiProperty({ description: 'Whether parry is restricted for this attack', required: false, example: false })
+  @ApiProperty({
+    description: 'Restricted parry (§9.6): the defender is unarmed against a weapon, or the attacker is invisible or incorporeal',
+    required: false,
+    example: false,
+  })
   @IsOptional()
   @IsBoolean()
   restrictedParry: boolean | undefined;
@@ -146,7 +142,7 @@ export class PrepareAttackModifiersDto {
   @IsBoolean()
   offHand: boolean | undefined;
 
-  @ApiProperty({ description: 'Whether the attack is an ambush', required: false, example: false })
+  @ApiProperty({ description: "Ambush: the attacker's Ambush ranks add to the critical rolls", required: false, example: false })
   @IsOptional()
   @IsBoolean()
   ambush: boolean | undefined;
@@ -181,7 +177,6 @@ export class PrepareAttackModifiersDto {
       dto.positionalTarget,
       dto.restrictedQuarters,
       dto.cover,
-      dto.dodge,
       dto.disabledDB,
       dto.disabledShield,
       dto.disabledParry,
@@ -219,7 +214,26 @@ export class PrepareAttackItemDto {
   @IsString({ each: true })
   protectors: string[] | null;
 
+  @ApiProperty({
+    description: 'Position of each protector (Table 9-7c), by protector identifier; `other` when not given',
+    required: false,
+    example: { 'actor-round-002': 'protector_between' },
+  })
+  @IsOptional()
+  @IsObject()
+  protectorPositions: Record<string, ProtectPosition> | undefined;
+
   static toCommand(attack: PrepareAttackItemDto): PrepareAttackCommandItem {
-    return new PrepareAttackCommandItem(attack.attackName, PrepareAttackModifiersDto.toCommand(attack.modifiers), attack.protectors);
+    Object.entries(attack.protectorPositions || {}).forEach(([protectorId, position]) => {
+      if (!PROTECT_POSITIONS.includes(position)) {
+        throw new ValidationError(`Invalid protect position ${position} for ${protectorId}`, 'err-invalid-protect-position');
+      }
+    });
+    return new PrepareAttackCommandItem(
+      attack.attackName,
+      PrepareAttackModifiersDto.toCommand(attack.modifiers),
+      attack.protectors,
+      attack.protectorPositions,
+    );
   }
 }

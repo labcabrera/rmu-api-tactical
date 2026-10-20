@@ -5,7 +5,6 @@ import { ValidationError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionAttackRoll } from '../../../domain/value-objects/action-attack-roll.vo';
 import { ActionAttack, ActionAttackResult, Fumble } from '../../../domain/value-objects/action-attack.vo';
-import { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
 import { Critical } from '../../../domain/value-objects/critical.vo';
 import type { AttackTablePort } from '../../ports/attack-table.port';
 import { CombatContext } from './combat-context';
@@ -18,34 +17,10 @@ export interface ResolveAttackRollInput {
   sourceActor: ActorRound;
   targetActor: ActorRound;
   roll: number;
-  locationRoll: number | undefined;
 }
 
 @Injectable()
 export class CombatAttackRollResolverService {
-  private readonly locationMap: Array<{ range: [number, number]; location: AttackLocation }> = [
-    { range: [1, 1], location: 'head' },
-    { range: [2, 3], location: 'chest' },
-    { range: [4, 5], location: 'abdomen' },
-    { range: [6, 10], location: 'legs' },
-    { range: [11, 15], location: 'arms' },
-    { range: [16, 20], location: 'head' },
-    { range: [21, 25], location: 'chest' },
-    { range: [26, 35], location: 'abdomen' },
-    { range: [36, 45], location: 'legs' },
-    { range: [46, 55], location: 'arms' },
-    { range: [56, 65], location: 'arms' },
-    { range: [66, 66], location: 'abdomen' },
-    { range: [67, 75], location: 'legs' },
-    { range: [76, 80], location: 'chest' },
-    { range: [81, 85], location: 'head' },
-    { range: [86, 90], location: 'arms' },
-    { range: [91, 95], location: 'legs' },
-    { range: [96, 97], location: 'abdomen' },
-    { range: [98, 99], location: 'chest' },
-    { range: [100, 100], location: 'head' },
-  ];
-
   constructor(
     private readonly combatProcessor: CombatProcessor,
     @Inject('AttackTablePort') private readonly attackTablePort: AttackTablePort,
@@ -63,11 +38,11 @@ export class CombatAttackRollResolverService {
       action: input.action,
       attack,
       attackRoll: input.roll,
-      locationRoll: input.locationRoll,
       sourceActor: input.sourceActor,
       targetActor: input.targetActor,
+      sourceTraits: input.sourceActor.traits || [],
+      targetTraits: input.targetActor.traits || [],
       sourceAttack: this.getSourceAttack(input.sourceActor, attack.attackName),
-      location: calculated.requiredLocationRoll && input.locationRoll ? this.getLocation(input.locationRoll) : undefined,
       armorType: input.targetActor.defense.at,
       trace: [],
     };
@@ -77,7 +52,7 @@ export class CombatAttackRollResolverService {
     ctx.rollTotal = ctx.attackRoll! + CombatModifierBag.from(calculated.rollModifiers).sum();
     calculated.location = ctx.location;
     calculated.rollTotal = ctx.rollTotal;
-    attack.roll = new ActionAttackRoll(ctx.attackRoll!, ctx.locationRoll, undefined, undefined);
+    attack.roll = new ActionAttackRoll(ctx.attackRoll!, undefined, undefined);
 
     if (this.isFumble(ctx)) {
       attack.results = new ActionAttackResult(undefined, undefined, new Fumble('pending_roll', undefined, undefined, undefined, undefined));
@@ -117,8 +92,9 @@ export class CombatAttackRollResolverService {
     return attack;
   }
 
+  /** The fumble range computed when preparing (with the target's Foiler); the weapon's for older actions. */
   private isFumble(ctx: CombatContext): boolean {
-    const fumble = ctx.sourceAttack!.fumble || 0;
+    const fumble = ctx.attack?.calculated?.fumble ?? (ctx.sourceAttack!.fumble || 0);
     return fumble > 0 && ctx.attackRoll! <= fumble;
   }
 
@@ -140,16 +116,5 @@ export class CombatAttackRollResolverService {
     );
     ctx.attack!.results!.criticals = criticals;
     ctx.attack!.roll!.criticalRolls = new Map(criticals.map(critical => [critical.key, undefined]));
-  }
-
-  private getLocation(locationRoll: number): AttackLocation | undefined {
-    for (const entry of this.locationMap) {
-      const [min, max] = entry.range;
-      if (locationRoll >= min && locationRoll <= max) {
-        return entry.location;
-      }
-    }
-
-    return undefined;
   }
 }

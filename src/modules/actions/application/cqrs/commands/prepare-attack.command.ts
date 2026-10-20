@@ -2,9 +2,9 @@ import {
   CalledShot,
   ChargeSpeed,
   Cover,
-  Dodge,
   PositionalSource,
   PositionalTarget,
+  ProtectPosition,
   RestrictedQuarters,
 } from '../../../domain/value-objects/action-attack-modifiers.vo';
 
@@ -22,6 +22,7 @@ export class PrepareAttackCommandItem {
     public attackName: string,
     public modifiers: PrepareAttackCommandModifiers,
     public protectors: string[] | null,
+    public protectorPositions?: Record<string, ProtectPosition>,
   ) {}
 }
 
@@ -35,7 +36,6 @@ export class PrepareAttackCommandModifiers {
     public positionalTarget: PositionalTarget | undefined,
     public restrictedQuarters: RestrictedQuarters | undefined,
     public cover: Cover | undefined,
-    public dodge: Dodge | undefined,
     public disabledDB: boolean | undefined,
     public disabledShield: boolean | undefined,
     public disabledParry: boolean | undefined,

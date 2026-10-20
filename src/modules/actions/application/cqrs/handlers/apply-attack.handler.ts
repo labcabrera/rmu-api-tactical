@@ -6,8 +6,15 @@ import { AddFatigueCommand } from '../../../../actor-rounds/application/cqrs/com
 import { DeclareActorParryCommand } from '../../../../actor-rounds/application/cqrs/commands/declare-actor-parry.command';
 import { SubstractBoCommand } from '../../../../actor-rounds/application/cqrs/commands/substract-bo.command';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
-import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
-import { ActorRoundEffect } from '../../../../actor-rounds/domain/value-objets/actor-round-effect.vo';
+import { ActorRound, EffectApplication } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
+import { ActorRoundEffect, NON_VIOLENT, PRESSING_ADVANTAGE } from '../../../../actor-rounds/domain/value-objets/actor-round-effect.vo';
+import {
+  ActorRoundTrait,
+  NON_VIOLENT_TRAIT,
+  PRESSING_THE_ADVANTAGE,
+  RAPID_BLEEDER,
+  SLOW_BLEEDER,
+} from '../../../../actor-rounds/domain/value-objets/actor-round-trait.vo';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, UnprocessableEntityError } from '../../../../shared/domain/errors';
 import { StrategicGame } from '../../../../strategic/application/ports/strategic-game.port';
@@ -18,6 +25,12 @@ import { ActionAttack } from '../../../domain/value-objects/action-attack.vo';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import { ApplyAttackCommand } from '../commands/apply-attack.command';
+
+/** OB bonus per tier of Pressing the Advantage. */
+const PRESSING_BONUS_PER_TIER = 10;
+
+/** Penalty per tier of Non-violent. */
+const NON_VIOLENT_PENALTY_PER_TIER = -20;
 
 @CommandHandler(ApplyAttackCommand)
 export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, Action> {
@@ -56,18 +69,21 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     await Promise.all(substractBoCommands.map(cmd => this.commandBus.execute(cmd)));
 
     const sourceActor = actors.find(a => a.actorId === action.actorId)!;
+    const applications = await this.readEffectApplications(action, actors, game.round, game.getActionPhase());
 
     const updateCommands = new Map<string, AddEffectsCommand>();
     actionAttacks.forEach(actionAttack => {
-      this.processTargetEffects(actionAttack, actors, updateCommands, command.userId, command.roles);
-      this.processSourceEffects(actionAttack, sourceActor, updateCommands, command.userId, command.roles);
+      this.processTargetEffects(actionAttack, actors, applications, updateCommands, command.userId, command.roles);
+      this.processSourceEffects(actionAttack, sourceActor, applications, updateCommands, command.userId, command.roles);
     });
+    this.processSourceTalents(action, sourceActor, game.round, applications, updateCommands, command.userId, command.roles);
 
     // Apply all effects and damages sinchronously to avoid multiple updates
     for (const cmd of updateCommands.values()) {
       await this.commandBus.execute<AddEffectsCommand, void>(cmd);
     }
 
+    await this.useShieldBlocks(action, actors);
     await this.processDeclareActorParry(action, command.userId, command.roles);
     await this.processFatigue(action, game.round, strategicGame, command.userId, command.roles);
 
@@ -77,6 +93,30 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
     return updated;
+  }
+
+  /**
+   * When the effects land on each actor: the current phase and the AP spent in the round, from the phase log plus the
+   * actions completed in this phase. The attacker has spent the AP of the attack being applied.
+   */
+  private async readEffectApplications(
+    action: Action,
+    actors: ActorRound[],
+    round: number,
+    phase: number,
+  ): Promise<Map<string, EffectApplication>> {
+    const rsql = `gameId==${action.gameId};round==${round};actorId=in=(${actors.map(a => a.actorId).join(',')})`;
+    const roundActions = (await this.actionRepository.findByRsql(rsql, 0, 1000)).content;
+    const applications = new Map<string, EffectApplication>();
+    actors.forEach(actor => {
+      const actorActions = roundActions.filter(a => a.actorId === actor.actorId && a.id !== action.id);
+      let spentInPhase = Action.completedApInPhase(actorActions, phase);
+      if (actor.actorId === action.actorId && !action.freeAction) {
+        spentInPhase = 1;
+      }
+      applications.set(actor.id, { phase, spentAp: actor.getSpentAp(phase, spentInPhase) });
+    });
+    return applications;
   }
 
   private processAttackSourceSubstractBo(action: Action, actors: ActorRound[], userId: string, roles: string[]): SubstractBoCommand[] {
@@ -97,11 +137,39 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     return substractBoCommands;
   }
 
+  /**
+   * Spends a shield block of the target for each attack its shield covered (§9.6 Shields). The actor round is read
+   * again, since the effects of this attack were already saved. A block already spent by an attack applied in the
+   * meantime is not spent twice.
+   */
+  private async useShieldBlocks(action: Action, actors: ActorRound[]): Promise<void> {
+    const blocks = new Map<string, number>();
+    action.attacks
+      ?.filter(attack => attack.calculated?.rollModifiers.some(modifier => modifier.key === 'shield' || modifier.key === 'shield-block'))
+      .forEach(attack => blocks.set(attack.modifiers.targetId!, (blocks.get(attack.modifiers.targetId!) || 0) + 1));
+    for (const [targetId, count] of blocks) {
+      const id = actors.find(a => a.actorId === targetId)?.id;
+      const target = id ? await this.actorRoundRepository.findById(id) : null;
+      if (!target) {
+        continue;
+      }
+      for (let i = 0; i < count; i++) {
+        if (!target.hasShieldBlocksLeft()) {
+          this.logger.warn(`Shield of ${targetId} has no blocks left for action ${action.id}`);
+          break;
+        }
+        target.useShieldBlock();
+      }
+      await this.actorRoundRepository.update(target.id, target);
+    }
+  }
+
   private async processDeclareActorParry(action: Action, userId: string, roles: string[]): Promise<void> {
     if (!action.parries || action.parries.length === 0) {
       return;
     }
-    for (const parry of action.parries.filter(p => p.parry > 0)) {
+    // A parry carried over from an earlier action against this foe was already paid.
+    for (const parry of action.parries.filter(p => p.parry > 0 && !p.carriedOver)) {
       const command = DeclareActorParryCommand.fromParry(action.gameId, action.actorId, action.round, parry, userId, roles);
       await this.commandBus.execute(command);
     }
@@ -110,6 +178,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
   private processTargetEffects(
     actionAttack: ActionAttack,
     actors: ActorRound[],
+    applications: Map<string, EffectApplication>,
     updateCommands: Map<string, AddEffectsCommand>,
     userId: string,
     roles: string[],
@@ -121,10 +190,19 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     let dmg = 0;
     dmg += actionAttack.results?.attackTableEntry?.damage || 0;
     const criticalEffects: ActorRoundEffect[] = [];
+    // Slow and Rapid Bleeder: each new bleeding wound bleeds one less or one more per tier.
+    const bleedingShift = ActorRoundTrait.tierOf(target.traits, RAPID_BLEEDER) - ActorRoundTrait.tierOf(target.traits, SLOW_BLEEDER);
     actionAttack.results?.criticals?.forEach(cr => {
       dmg += cr.result?.damage || 0;
       cr.result?.effects?.forEach(e => {
-        const effect = new ActorRoundEffect(randomUUID(), e.status, e.value, e.rounds);
+        let value = e.value;
+        if (e.status === 'bleeding' && bleedingShift !== 0) {
+          value = (value ?? 0) + bleedingShift;
+          if (value <= 0) {
+            return;
+          }
+        }
+        const effect = new ActorRoundEffect(randomUUID(), e.status, value, e.rounds);
         criticalEffects.push(effect);
       });
     });
@@ -136,7 +214,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       cmd.dmg += dmg || 0;
       cmd.effects.push(...criticalEffects);
     } else {
-      const cmd = new AddEffectsCommand(target.id, dmg, criticalEffects, undefined, userId, roles);
+      const cmd = new AddEffectsCommand(target.id, dmg, criticalEffects, undefined, userId, roles, applications.get(target.id));
       updateCommands.set(target.id, cmd);
     }
   }
@@ -144,6 +222,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
   private processSourceEffects(
     actionAttack: ActionAttack,
     actor: ActorRound,
+    applications: Map<string, EffectApplication>,
     updateCommands: Map<string, AddEffectsCommand>,
     userId: string,
     roles: string[],
@@ -166,7 +245,67 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       cmd.dmg += dmg;
       cmd.effects.push(...effects);
     } else {
-      const cmd = new AddEffectsCommand(actor.id, dmg, effects, undefined, userId, roles);
+      const cmd = new AddEffectsCommand(actor.id, dmg, effects, undefined, userId, roles, applications.get(actor.id));
+      updateCommands.set(actor.id, cmd);
+    }
+  }
+
+  /**
+   * Effects of the attacker's talents once its attacks are applied. A `pressing-advantage` against a foe of this
+   * action is used up; inflicting a critical with a melee attack gives a new one (Pressing the Advantage) and a penalty
+   * for the next round (Non-violent).
+   */
+  private processSourceTalents(
+    action: Action,
+    actor: ActorRound,
+    round: number,
+    applications: Map<string, EffectApplication>,
+    updateCommands: Map<string, AddEffectsCommand>,
+    userId: string,
+    roles: string[],
+  ) {
+    const targetIds = new Set((action.attacks || []).map(attack => attack.modifiers.targetId));
+    const consumed = (actor.effects || [])
+      .filter(effect => effect.status === PRESSING_ADVANTAGE && !!effect.targetActorId && targetIds.has(effect.targetActorId))
+      .map(effect => effect.id);
+    const effects: ActorRoundEffect[] = [];
+    const inflicting = (action.attacks || []).filter(attack => (attack.results?.criticals?.length || 0) > 0);
+    const pressing = inflicting
+      .filter(attack => attack.type === 'melee')
+      .map(attack => {
+        const skillId = actor.attacks?.find(a => a.attackName === attack.attackName)?.skillId;
+        const tier = ActorRoundTrait.tierForSkill(actor.traits, PRESSING_THE_ADVANTAGE, skillId);
+        return { targetId: attack.modifiers.targetId, tier };
+      })
+      .filter(entry => entry.tier > 0)
+      .pop();
+    if (pressing) {
+      effects.push(
+        new ActorRoundEffect(
+          randomUUID(),
+          PRESSING_ADVANTAGE,
+          PRESSING_BONUS_PER_TIER * pressing.tier,
+          undefined,
+          round,
+          undefined,
+          undefined,
+          pressing.targetId,
+        ),
+      );
+    }
+    const nonViolent = ActorRoundTrait.tierOf(actor.traits, NON_VIOLENT_TRAIT);
+    if (nonViolent > 0 && inflicting.length > 0) {
+      effects.push(new ActorRoundEffect(randomUUID(), NON_VIOLENT, NON_VIOLENT_PENALTY_PER_TIER * nonViolent, undefined, round));
+    }
+    if (effects.length === 0 && consumed.length === 0) {
+      return;
+    }
+    const existing = updateCommands.get(actor.id);
+    if (existing) {
+      existing.effects.push(...effects);
+      existing.consumedEffectIds.push(...consumed);
+    } else {
+      const cmd = new AddEffectsCommand(actor.id, 0, effects, undefined, userId, roles, applications.get(actor.id), consumed);
       updateCommands.set(actor.id, cmd);
     }
   }

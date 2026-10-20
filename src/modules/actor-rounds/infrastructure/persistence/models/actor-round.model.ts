@@ -8,7 +8,13 @@ import { ActorRoundInitiative } from './actor-round-initiative.model';
 import { ActorRoundMovement } from './actor-round-movement.model';
 import { ActorRoundPenalty } from './actor-round-penalty.model';
 import { ActorRoundUsedBo } from './actor-round-used-bo.model';
-import { ActorRoundEffect, ActorRoundFatigue } from './actor-round.models-childs';
+import {
+  ActorRoundDefenseMode,
+  ActorRoundEffect,
+  ActorRoundFatigue,
+  ActorRoundPhaseLog,
+  ActorRoundTrait,
+} from './actor-round.models-childs';
 
 export type ActorRoundDocument = ActorRoundModel & Document;
 
@@ -79,6 +85,15 @@ export class ActorRoundModel {
 
   @Prop({ type: [ActorRoundAlert], required: true })
   alerts: ActorRoundAlert[];
+
+  @Prop({ type: [ActorRoundTrait], required: false, default: [] })
+  traits?: ActorRoundTrait[];
+
+  @Prop({ type: ActorRoundDefenseMode, required: false })
+  defenseMode?: ActorRoundDefenseMode;
+
+  @Prop({ type: [ActorRoundPhaseLog], required: false, default: [] })
+  phaseLog?: ActorRoundPhaseLog[];
 
   @Prop({ type: String, required: false })
   imageUrl: string | undefined;

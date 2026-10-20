@@ -1,10 +1,5 @@
-import {
-  Cover,
-  Dodge,
-  PositionalSource,
-  PositionalTarget,
-  RestrictedQuarters,
-} from '../../../domain/value-objects/action-attack-modifiers.vo';
+import type { ActorRoundTrait } from '../../../../actor-rounds/domain/value-objets/actor-round-trait.vo';
+import { Cover, PositionalSource, PositionalTarget, RestrictedQuarters } from '../../../domain/value-objects/action-attack-modifiers.vo';
 import { ActionAttackResult } from '../../../domain/value-objects/action-attack.vo';
 import { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
 import { AttackStatus } from '../../../domain/value-objects/attack-status.vo';
@@ -15,25 +10,25 @@ export interface CombatAttackSituationalModifiers {
   restrictedQuarters: RestrictedQuarters;
   positionalSource: PositionalSource;
   positionalTarget: PositionalTarget;
-  dodge: Dodge;
   disabledDB: boolean;
   disabledShield: boolean;
   disabledParry: boolean;
+  /** Sizes the attack (without the charge) is above the target, negative when it is smaller (§9.4). */
   sizeDifference: number;
-  twoHandedWeapon: boolean;
   higherGround: boolean;
   sourceStatus: string[];
   targetStatus: string[];
 }
 
+/** A combat skill of an actor from its character sheet: total bonus and ranks (0 for older sheets). */
 export interface CombatAttackSourceSkill {
   skillId: string;
   bonus: number;
+  ranks?: number;
 }
 
-export interface CombatAttackSourceTrait {
-  id: string;
-}
+/** A trait of an actor, from its actor round. */
+export type CombatAttackSourceTrait = ActorRoundTrait;
 
 export interface CombatAttackArmor {
   at: number | null;
@@ -63,6 +58,7 @@ export interface CombatAttackPreparationModifiers {
   fumbleTable: string;
   armor: CombatAttackArmor;
   actionPoints: number;
+  /** Fumble range of the attack: the weapon's, which the target's Foiler widens. */
   fumble: number;
   calledShot?: string;
   rollModifiers: KeyValueModifier[];
@@ -87,6 +83,7 @@ export interface CombatAttackCalculatedResult {
     criticalModifiers: KeyValueModifier[];
     rollTotal: number;
     criticalAdjustment: number | undefined;
+    fumble?: number;
   };
   results: ActionAttackResult | undefined;
   status: AttackStatus;

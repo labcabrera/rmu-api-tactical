@@ -11,6 +11,7 @@ import { AddEffectsHandler } from './application/cqrs/handlers/add-effects.handl
 import { AddFatigueHandler } from './application/cqrs/handlers/add-fatigue.handler';
 import { CreateActorRoundHandler } from './application/cqrs/handlers/create-actor-round.handler';
 import { DeclareActorParryHandler } from './application/cqrs/handlers/declare-actor-parry.handler';
+import { DeclareDefenseModeHandler } from './application/cqrs/handlers/declare-defense-mode.handler';
 import { DeleteEffectHandler } from './application/cqrs/handlers/delete-effect.handler';
 import { GetActorRoundHandler } from './application/cqrs/handlers/get-actor-round.query.handler';
 import { GetActorRoundsHandler } from './application/cqrs/handlers/get-actor-rounds.query.handler';
@@ -44,6 +45,7 @@ import { ActorRoundController } from './interfaces/http/actor-round.controller';
     UpkeepActorRoundHandler,
     SubstractBoHandler,
     DeclareActorParryHandler,
+    DeclareDefenseModeHandler,
     AddFatigueHandler,
     {
       provide: 'ActorRoundRepository',

@@ -197,6 +197,23 @@ export class Game extends BaseAggregateRoot<GameProps> {
     this.updatedAt = new Date();
   }
 
+  /** The action phase number (1-4) of a game phase, undefined outside the action phases. */
+  static toActionPhase(phase: GamePhase): number | undefined {
+    const match = /^phase_(\d)$/.exec(phase);
+    return match ? parseInt(match[1]) : undefined;
+  }
+
+  /**
+   * Phase number stamped on the effects applied now: 0 before the action phases, 1-4 in them and 5 in the upkeep
+   * (see `ActorRoundEffect.appliedPhase`).
+   */
+  getEffectPhase(): number {
+    if (this.phase === 'upkeep') {
+      return 5;
+    }
+    return Game.toActionPhase(this.phase) ?? 0;
+  }
+
   getActionPhase(): number {
     this.checkValidActionManagement();
     return parseInt(this.phase.replace('phase_', ''));

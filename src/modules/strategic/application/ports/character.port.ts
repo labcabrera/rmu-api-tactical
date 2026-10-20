@@ -1,4 +1,4 @@
-import { AttackRange } from '../../../actor-rounds/domain/value-objets/actor-round-attack.vo';
+import { AttackRange, WeaponCategory } from '../../../actor-rounds/domain/value-objets/actor-round-attack.vo';
 import { ActorRoundFaction } from '../../../actor-rounds/domain/value-objets/actor-round-faction.vo';
 import { ActorRoundShield } from '../../../actor-rounds/domain/value-objets/actor-round-shield.vo';
 
@@ -73,10 +73,20 @@ export interface CharacterSkill {
   skillId: string;
   specialization: string | null;
   totalBonus: number;
+  /** Missing in older characters: 0. */
+  ranks?: number;
 }
 
 export interface CharacterTrait {
-  id: string;
+  traitId: string;
+  traitName?: string;
+  isTalent?: boolean;
+  /** Missing for traits without tiers: 1. */
+  tier?: number | null;
+  cost?: number;
+  /** Skill (`skillId` or `skillId@specialization`), weapon type, stat or realm the trait was taken for. */
+  specialization?: string | null;
+  source?: 'character' | 'race';
 }
 
 export interface CharacterItem {
@@ -126,4 +136,12 @@ export interface CharacterAttack {
   meleeRange: number | null;
   ranges: CharacterAttackRange[] | null;
   fumbleTable: string;
+  /** Missing in older characters: false. */
+  twoHanded?: boolean;
+  /** Missing in older characters: `standard`. */
+  weaponCategory?: WeaponCategory;
+  /** The weapon is made for another size; its -20 is already in `bo`. Missing in older characters: false. */
+  wrongSize?: boolean;
+  /** Skill of the weapon (`melee-weapon@blade`, `shield`...). Missing in older characters. */
+  skillId?: string | null;
 }

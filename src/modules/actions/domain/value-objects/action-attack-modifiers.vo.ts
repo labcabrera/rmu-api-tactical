@@ -4,8 +4,10 @@ export type PositionalSource = 'none' | 'to_flank' | 'to_rear';
 export type PositionalTarget = 'none' | 'flank' | 'rear';
 export type RestrictedQuarters = 'none' | 'close' | 'cramped' | 'tight' | 'confined';
 export type Cover = 'none' | 'soft_partial' | 'soft_half' | 'soft_full' | 'hard_partial' | 'hard_half' | 'hard_full';
-export type Dodge = 'none' | 'passive' | 'partial' | 'full';
 export type ChargeSpeed = 'none' | 'jog' | 'sprint';
+/** Where a protector stands (Table 9-7c): between attacker and defender, behind the defender, or anywhere else. */
+export type ProtectPosition = 'protector_between' | 'defender_between' | 'other';
+export const PROTECT_POSITIONS: ProtectPosition[] = ['protector_between', 'defender_between', 'other'];
 
 /** `spring` was the original (misspelt) value: still accepted as input and in stored actions. */
 export const normalizeChargeSpeed = (value: string | undefined | null): ChargeSpeed => {
@@ -31,7 +33,6 @@ export class ActionAttackModifiers {
     public positionalTarget: string | undefined,
     public restrictedQuarters: string | undefined,
     public cover: string | undefined,
-    public dodge: string | undefined,
     public disabledDB: boolean | undefined,
     public disabledShield: boolean | undefined,
     public disabledParry: boolean | undefined,

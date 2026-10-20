@@ -1,5 +1,5 @@
 import { ActionAttackCalculated } from './action-attack-calculated.vo';
-import { ActionAttackModifiers, AttackType } from './action-attack-modifiers.vo';
+import { ActionAttackModifiers, AttackType, ProtectPosition } from './action-attack-modifiers.vo';
 import { ActionAttackRoll } from './action-attack-roll.vo';
 import { AttackStatus } from './attack-status.vo';
 import { CriticalEffect } from './critical-result.vo';
@@ -15,6 +15,8 @@ export class ActionAttack {
     public results: ActionAttackResult | undefined,
     public status: AttackStatus,
     public protectors: string[] | null,
+    /** Position of each protector, by actor id (Table 9-7c); `other` when not given. */
+    public protectorPositions?: Record<string, ProtectPosition>,
   ) {}
 
   //TODO make non static

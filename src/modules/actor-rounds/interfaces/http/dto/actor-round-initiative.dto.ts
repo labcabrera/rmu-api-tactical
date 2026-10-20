@@ -17,12 +17,17 @@ export class ActorRoundInitiativeDto {
   @IsOptional()
   total: number | undefined;
 
+  @ApiProperty({ description: 'Strike Reflex bonus declared with the roll, already in the total', required: false, example: 20 })
+  @IsOptional()
+  strikeReflex?: number;
+
   static fromEntity(model: ActorRoundInitiative): ActorRoundInitiativeDto {
     const dto = new ActorRoundInitiativeDto();
     dto.base = model.base;
     dto.penalty = model.penalty;
     dto.roll = model.roll;
     dto.total = model.total;
+    dto.strikeReflex = model.strikeReflex;
     return dto;
   }
 }

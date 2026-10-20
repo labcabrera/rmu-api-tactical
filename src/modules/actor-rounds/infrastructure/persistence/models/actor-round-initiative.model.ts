@@ -13,4 +13,7 @@ export class ActorRoundInitiative {
 
   @Prop({ type: Number, required: false })
   total: number | undefined;
+
+  @Prop({ type: Number, required: false })
+  strikeReflex?: number;
 }

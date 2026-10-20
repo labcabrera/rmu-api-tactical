@@ -12,7 +12,6 @@ import { ActionAttackCalculated } from '../../../domain/value-objects/action-att
 import {
   ActionAttackModifiers,
   Cover,
-  Dodge,
   normalizeChargeSpeed,
   PositionalTarget,
   RestrictedQuarters,
@@ -25,8 +24,8 @@ import type {
   CombatAttackPreparation,
   CombatAttackSituationalModifiers,
   CombatAttackSourceSkill,
-  CombatAttackSourceTrait,
   CombatContext,
+  CombatPrepareAttackInput,
 } from '../../services/combat';
 import { COMBAT_SKILL_IDS, CombatModifierBag, CombatProcessor, sizeDifference } from '../../services/combat';
 import { PrepareAttackCommand, PrepareAttackCommandItem } from '../commands/prepare-attack.command';
@@ -67,38 +66,45 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const sourceActorRound = actors.find(a => a.actorId === action.actorId)!;
     const actionAttacks = command.attacks.map(attack => this.mapAttacks(attack, action, sourceActorRound));
 
-    const sourceActor = actors.find(a => a.actorId === action.actorId);
-    const sourceCharacter = await this.characterClient.findById(sourceActor?.actorId || '');
-    const skills = this.mapSourceSkills(sourceCharacter);
-    const traits = this.mapSourceTraits(sourceCharacter);
+    const characters = await this.readCharacters(actors, action.actorId);
+    const sourceCharacter = characters.get(action.actorId);
+    const skills = this.mapSkills(sourceCharacter);
     const gameLethality = strategicGame.options?.lethality || 0;
     const attackNumber = command.attacks.length;
     const targets: Set<string> = new Set();
     command.attacks.forEach(a => targets.add(a.modifiers.targetId));
     const targetsNumber = targets.size;
-
-    await Promise.all(
-      actionAttacks.map(attack =>
-        this.prepareAttack({
-          action,
-          attack,
-          actors,
-          sourceSkills: skills,
-          sourceTraits: traits,
-          attackNumber,
-          targetsNumber,
-          gameLethality,
-        }),
-      ),
-    );
-    action.attacks = actionAttacks;
-    //TODO read actions
-    const targetActions = await this.actionRepository
+    const kataAttacks = actionAttacks.map(attack => sourceActorRound.attacks.find(a => a.attackName === attack.attackName)!);
+    const roundActions = await this.actionRepository
       .findByRsql(`gameId==${action.gameId};round==${game.round};actorId=in=(${Array.from(actorRoundIds).join(',')})`, 0, 1000)
       .then(res => res.content);
 
+    // One after the other: an attack covered by the target's shield takes one of its blocks for the next ones.
+    const reservedShieldBlocks = new Map<string, number>();
+    for (const [index, attack] of actionAttacks.entries()) {
+      const targetId = attack.modifiers.targetId!;
+      const ctx = await this.prepareAttack({
+        action,
+        attack,
+        actors,
+        sourceSkills: skills,
+        targetSkills: this.mapSkills(characters.get(targetId)),
+        roundActions,
+        earlierAttacks: actionAttacks.slice(0, index),
+        kataAttacks,
+        reservedShieldBlocks: reservedShieldBlocks.get(targetId) || 0,
+        attackNumber,
+        targetsNumber,
+        gameLethality,
+      });
+      if (ctx.attack!.calculated!.rollModifiers.some(modifier => modifier.key === 'shield' || modifier.key === 'shield-block')) {
+        reservedShieldBlocks.set(targetId, (reservedShieldBlocks.get(targetId) || 0) + 1);
+      }
+    }
+    action.attacks = actionAttacks;
+
     const targetActors = actors.filter(a => a.actorId !== action.actorId);
-    action.processParryOptions(targetActors, targetActions);
+    action.processParryOptions(targetActors, roundActions, game.getActionPhase());
 
     //TODO check effects and intermediate actions
     action.actionPoints = game.getActionPhase() - action.phaseStart + 1;
@@ -110,22 +116,17 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     return updated;
   }
 
-  private async prepareAttack(input: {
-    action: Action;
-    attack: ActionAttack;
-    actors: ActorRound[];
-    sourceSkills: CombatAttackSourceSkill[];
-    sourceTraits: CombatAttackSourceTrait[];
-    attackNumber: number;
-    targetsNumber: number;
-    gameLethality: number;
-  }): Promise<CombatContext> {
+  private async prepareAttack(input: CombatPrepareAttackInput): Promise<CombatContext> {
     let ctx: CombatContext = {
       action: input.action,
       attack: input.attack,
       actors: input.actors,
       sourceSkills: input.sourceSkills,
-      sourceTraits: input.sourceTraits,
+      targetSkills: input.targetSkills,
+      roundActions: input.roundActions,
+      earlierAttacks: input.earlierAttacks,
+      kataAttacks: input.kataAttacks,
+      reservedShieldBlocks: input.reservedShieldBlocks,
       attackNumber: input.attackNumber,
       targetsNumber: input.targetsNumber,
       gameLethality: input.gameLethality,
@@ -135,6 +136,8 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     };
     ctx.sourceAttack = ctx.sourceActor?.attacks?.find(a => a.attackName === input.attack.attackName);
     if (!ctx.sourceActor || !ctx.targetActor || !ctx.sourceAttack) throw new UnprocessableEntityError('Attack not found on actor');
+    ctx.sourceTraits = ctx.sourceActor.traits || [];
+    ctx.targetTraits = ctx.targetActor.traits || [];
 
     ctx.attackPreparation = this.mapAttackPreparation(ctx);
     ctx = await this.combatProcessor.runPhase('prepare', ctx);
@@ -145,9 +148,10 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       ctx.attackCalculation.calculated.rollModifiers,
       ctx.attackCalculation.calculated.rollTotal,
       undefined,
-      this.requiresLocationRoll(ctx),
       ctx.attackCalculation.calculated.criticalAdjustment,
       ctx.attackCalculation.calculated.criticalModifiers,
+      undefined,
+      ctx.attackCalculation.calculated.fumble,
     );
 
     return ctx;
@@ -159,16 +163,25 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     return Array.from(new Set([...targetIds, ...protectors, action.actorId]));
   }
 
-  private mapSourceSkills(character: Character | undefined): CombatAttackSourceSkill[] {
-    return (
-      character?.skills
-        .filter(skill => this.isCombatSkill(skill.skillId))
-        .map(skill => ({ skillId: skill.skillId, bonus: skill.totalBonus })) || []
-    );
+  /**
+   * Character sheets of the actors with one (NPCs have none), by actor id: the source's skills, and the
+   * targets' defensive skills. The source's is always read.
+   */
+  private async readCharacters(actors: ActorRound[], sourceId: string): Promise<Map<string, Character>> {
+    const characters = new Map<string, Character>();
+    const ids = actors.filter(actor => actor.actorId === sourceId || actor.actorType !== 'npc').map(actor => actor.actorId);
+    const found = await Promise.all(ids.map(id => this.characterClient.findById(id)));
+    found.forEach((character, index) => character && characters.set(ids[index], character));
+    return characters;
   }
 
-  private mapSourceTraits(character: Character | undefined): CombatAttackSourceTrait[] {
-    return character?.traits?.map(trait => ({ id: trait.id })) || [];
+  /** Combat skills of a sheet, with their ranks (0 for older sheets). */
+  private mapSkills(character: Character | undefined): CombatAttackSourceSkill[] {
+    return (
+      character?.skills
+        ?.filter(skill => this.isCombatSkill(skill.skillId))
+        .map(skill => ({ skillId: skill.skillId, bonus: skill.totalBonus, ranks: skill.ranks ?? 0 })) || []
+    );
   }
 
   private isCombatSkill(skillId: string): boolean {
@@ -191,12 +204,10 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       restrictedQuarters: (attackModifiers.restrictedQuarters || 'none') as RestrictedQuarters,
       positionalSource: attackModifiers.positionalSource || 'none',
       positionalTarget: (attackModifiers.positionalTarget || 'none') as PositionalTarget,
-      dodge: (attackModifiers.dodge || 'none') as Dodge,
       disabledDB: attackModifiers.disabledDB || false,
       disabledShield: attackModifiers.disabledShield || false,
       disabledParry: attackModifiers.disabledParry || false,
       sizeDifference: sizeDifference(ctx),
-      twoHandedWeapon: false,
       higherGround: attackModifiers.higherGround || false,
       sourceStatus: this.mapEffectStatuses(actorRoundSource),
       targetStatus: this.mapEffectStatuses(actorRoundTarget),
@@ -249,19 +260,11 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
         criticalModifiers,
         rollTotal: CombatModifierBag.from(rollModifiers).sum(),
         criticalAdjustment: criticalAdjustment || undefined,
+        fumble: preparation.modifiers.fumble,
       },
       results: undefined,
       status: 'pending_attack_roll',
     };
-  }
-
-  private requiresLocationRoll(ctx: CombatContext): boolean {
-    if (ActionAttack.isCalledShot(ctx.attack!)) {
-      return false;
-    }
-
-    const target = ctx.actors!.find(a => a.actorId === ctx.attack!.modifiers.targetId)!;
-    return !target.defense.at;
   }
 
   /** Statuses of the actor's active effects; the statuses declared in the attack modifiers are read by the plugins. */
@@ -278,9 +281,9 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       throw new ValidationError(`BO cannot be higher than current BO (${attack.currentBo})`);
     }
     const parry = 0;
+    // A foe can be surprised and stunned at once (§9.5): both bonuses apply.
     const surprisedFoe = commandAttack.modifiers.surprisedFoe || false;
-    // Stun cannot be applied if surprised is applied
-    const stunnedFoe = (!surprisedFoe && commandAttack.modifiers.stunnedFoe) || false;
+    const stunnedFoe = commandAttack.modifiers.stunnedFoe || false;
     const modifiers = new ActionAttackModifiers(
       commandAttack.modifiers.targetId,
       commandAttack.modifiers.bo,
@@ -291,7 +294,6 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       commandAttack.modifiers.positionalTarget || 'none',
       commandAttack.modifiers.restrictedQuarters || 'none',
       commandAttack.modifiers.cover || 'none',
-      commandAttack.modifiers.dodge || 'none',
       commandAttack.modifiers.disabledDB,
       commandAttack.modifiers.disabledShield,
       commandAttack.modifiers.disabledParry,
@@ -318,6 +320,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       undefined,
       'pending_attack_roll',
       commandAttack.protectors,
+      commandAttack.protectorPositions,
     );
   }
 }

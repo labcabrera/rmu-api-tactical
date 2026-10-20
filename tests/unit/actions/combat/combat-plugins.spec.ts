@@ -1,4 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
+import { ActorRoundAttack } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-attack.vo';
+import { ActorRoundDefenseMode } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-defense-mode.vo';
 import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-shield.vo';
 import { ActionAttackCalculated } from '../../../../src/modules/actions/domain/value-objects/action-attack-calculated.vo';
 import { AttackTableEntry } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo';
@@ -17,6 +19,8 @@ import {
   CombatCriticalExpansionPlugin,
   CombatCustomBonusPlugin,
   CombatDefensiveBonusPlugin,
+  CombatDodgePlugin,
+  CombatFlatfootedTargetPlugin,
   CombatGameLethalityPlugin,
   CombatHigherGroundPlugin,
   CombatLocationArmorPlugin,
@@ -35,6 +39,8 @@ import {
   CombatSizeDifferencePlugin,
   CombatStunPlugin,
   CombatSurprisedPlugin,
+  CombatTwoHandedWeaponPlugin,
+  sizeDifference,
 } from '../../../../src/modules/actions/application/services/combat';
 import { CombatContext } from '../../../../src/modules/actions/application/services/combat/combat-context';
 import { createCombatPluginContext, getModifier, rollModifierValues, runPluginHook } from './combat-plugin-test.factory';
@@ -44,12 +50,18 @@ const prepare = async (plugin: Parameters<typeof runPluginHook>[0], ctx: CombatC
   return { applied, modifiers: rollModifierValues(ctx) };
 };
 
-const skill = (skillId: string, bonus: number) => [{ skillId, bonus }];
+const skill = (skillId: string, bonus: number, ranks = 0) => [{ skillId, bonus, ranks }];
+
+const flatfooted = { situationalModifiers: { targetStatus: ['flatfooted'] } };
+
+/** Another attack of the action, for katas. */
+const otherAttack = (attackName: string, weaponCategory: ActorRoundAttack['weaponCategory']) =>
+  new ActorRoundAttack(attackName, [], 60, 60, 'melee', 'dagger', 'melee-one-hand', 0, 2, false, null, null, false, weaponCategory);
 
 /** A context after the prepare phase: the attack holds the calculated modifiers and no preparation. */
 const preparedContext = (...args: Parameters<typeof createCombatPluginContext>): CombatContext => {
   const ctx = createCombatPluginContext(...args);
-  ctx.attack!.calculated = new ActionAttackCalculated([new KeyValueModifier('bo', 75)], 75, undefined, false, undefined, []);
+  ctx.attack!.calculated = new ActionAttackCalculated([new KeyValueModifier('bo', 75)], 75, undefined, undefined, []);
   ctx.attackPreparation = undefined;
   return ctx;
 };
@@ -110,6 +122,62 @@ describe('Combat plugins', () => {
       expect((await prepare(CombatShieldPlugin, ctx)).modifiers).toEqual({ shield: -25 });
     });
 
+    it('adds the Shield ranks of a passive block, up to +50 with the shield DB (§9.6, Anika)', async () => {
+      const anika = createCombatPluginContext({
+        shield: new ActorRoundShield(25, 3, 0),
+        defenseMode: ActorRoundDefenseMode.of('none', 'passive'),
+        targetSkills: skill('shield', 78, 15),
+      });
+      const capped = createCombatPluginContext({
+        shield: new ActorRoundShield(25, 3, 0),
+        defenseMode: ActorRoundDefenseMode.of('none', 'passive'),
+        targetSkills: skill('shield', 90, 40),
+      });
+
+      expect((await prepare(CombatShieldPlugin, anika)).modifiers).toEqual({ shield: -25, 'shield-block': -15 });
+      expect((await prepare(CombatShieldPlugin, capped)).modifiers).toEqual({ shield: -25, 'shield-block': -25 });
+    });
+
+    it('adds half the Shield skill when partial and all of it when full, less the injury penalties', async () => {
+      const partial = createCombatPluginContext({
+        shield: new ActorRoundShield(25, 3, 0),
+        defenseMode: ActorRoundDefenseMode.of('none', 'partial'),
+        targetSkills: skill('shield', 78, 15),
+        targetPenalties: [{ source: 'hp', value: -10 }],
+      });
+      const full = createCombatPluginContext({
+        shield: new ActorRoundShield(25, 3, 0),
+        defenseMode: ActorRoundDefenseMode.of('none', 'full'),
+        targetSkills: skill('shield', 78, 15),
+      });
+
+      expect((await prepare(CombatShieldPlugin, partial)).modifiers).toEqual({ shield: -25, 'shield-block': -29 });
+      // Anika's full block: +25 + 78 = +103.
+      expect((await prepare(CombatShieldPlugin, full)).modifiers).toEqual({ shield: -25, 'shield-block': -78 });
+    });
+
+    it('covers the first attack of the round with one block and not the second', async () => {
+      const first = createCombatPluginContext({ shield: new ActorRoundShield(20, 1, 0) });
+      const second = createCombatPluginContext({ shield: new ActorRoundShield(20, 1, 1) });
+      const sameAction = createCombatPluginContext({ shield: new ActorRoundShield(20, 1, 0), reservedShieldBlocks: 1 });
+
+      expect((await prepare(CombatShieldPlugin, first)).modifiers).toEqual({ shield: -20 });
+      expect((await prepare(CombatShieldPlugin, second)).applied).toBe(false);
+      expect((await prepare(CombatShieldPlugin, sameAction)).applied).toBe(false);
+    });
+
+    it.each(['flank', 'rear'] as const)('does not cover an attack from the %s', async positionalTarget => {
+      const ctx = createCombatPluginContext({ shield: new ActorRoundShield(20, 2, 0), situationalModifiers: { positionalTarget } });
+
+      expect((await prepare(CombatShieldPlugin, ctx)).applied).toBe(false);
+    });
+
+    it('does not cover a flatfooted target', async () => {
+      const ctx = createCombatPluginContext({ shield: new ActorRoundShield(20, 2, 0), ...flatfooted });
+
+      expect((await prepare(CombatShieldPlugin, ctx)).applied).toBe(false);
+    });
+
     it('is skipped with no blocks left, no shield or the shield disabled', async () => {
       expect((await prepare(CombatShieldPlugin, createCombatPluginContext({ shield: new ActorRoundShield(25, 2, 2) }))).applied).toBe(
         false,
@@ -120,6 +188,97 @@ describe('Combat plugins', () => {
         situationalModifiers: { disabledShield: true },
       });
       expect((await prepare(CombatShieldPlugin, disabled)).applied).toBe(false);
+    });
+  });
+
+  describe('dodge', () => {
+    const dodging = (dodge: 'passive' | 'partial' | 'full', options: Parameters<typeof createCombatPluginContext>[0] = {}) =>
+      createCombatPluginContext({
+        defenseMode: ActorRoundDefenseMode.of(dodge, 'none'),
+        targetSkills: skill('running', 40, 8),
+        ...options,
+      });
+
+    it('adds the Running ranks when passive, up to +50', async () => {
+      const capped = dodging('passive', { targetSkills: skill('running', 90, 60) });
+
+      expect((await prepare(CombatDodgePlugin, dodging('passive'))).modifiers).toEqual({ dodge: -8 });
+      expect((await prepare(CombatDodgePlugin, capped)).modifiers).toEqual({ dodge: -50 });
+    });
+
+    it('adds half the skill when partial and all of it when full, less armour, encumbrance and injuries', async () => {
+      const options = { targetMovementPenalty: -5, targetPenalties: [{ source: 'hp' as const, value: -10 }] };
+
+      expect((await prepare(CombatDodgePlugin, dodging('partial', options))).modifiers).toEqual({ dodge: -5 });
+      expect((await prepare(CombatDodgePlugin, dodging('full', options))).modifiers).toEqual({ dodge: -25 });
+    });
+
+    it('takes only the armour and encumbrance penalty off a passive dodge, never below 0', async () => {
+      const passive = dodging('passive', { targetMovementPenalty: -5, targetPenalties: [{ source: 'hp', value: -30 }] });
+      const nullified = dodging('passive', { targetMovementPenalty: -15 });
+
+      expect((await prepare(CombatDodgePlugin, passive)).modifiers).toEqual({ dodge: -3 });
+      expect((await prepare(CombatDodgePlugin, nullified)).modifiers).toEqual({});
+    });
+
+    it.each(['ranged', 'thrown'] as const)('halves the dodge against %s attacks after the penalties', async attackType => {
+      const ctx = dodging('full', { attackType, targetMovementPenalty: -5 });
+
+      expect((await prepare(CombatDodgePlugin, ctx)).modifiers).toEqual({ dodge: -17 });
+    });
+
+    it('is skipped without a dodge or for a flatfooted target', async () => {
+      expect((await prepare(CombatDodgePlugin, createCombatPluginContext())).applied).toBe(false);
+      expect((await prepare(CombatDodgePlugin, dodging('full', flatfooted))).applied).toBe(false);
+    });
+  });
+
+  describe('two-handed-weapon', () => {
+    it('adds +10 to a melee attack with a two-handed weapon', async () => {
+      const ctx = createCombatPluginContext({ twoHanded: true });
+
+      expect((await prepare(CombatTwoHandedWeaponPlugin, ctx)).modifiers).toEqual({ 'two-handed-weapon': 10 });
+      expect(CombatTwoHandedWeaponPlugin.group).toBe('offense');
+    });
+
+    it('is skipped for one-handed and for ranged attacks', async () => {
+      expect((await prepare(CombatTwoHandedWeaponPlugin, createCombatPluginContext())).applied).toBe(false);
+      expect(
+        (await prepare(CombatTwoHandedWeaponPlugin, createCombatPluginContext({ attackType: 'ranged', twoHanded: true }))).applied,
+      ).toBe(false);
+    });
+  });
+
+  describe('flatfooted-target', () => {
+    it('adds the surprise and the rear bonus in melee, whatever the declared position (§9.5)', async () => {
+      const ctx = createCombatPluginContext({
+        situationalModifiers: { targetStatus: ['flatfooted'], positionalTarget: 'flank' },
+        modifiers: { surprisedFoe: true },
+      });
+
+      for (const plugin of [
+        CombatFlatfootedTargetPlugin,
+        CombatSurprisedPlugin,
+        CombatPositionalTargetPlugin,
+        CombatDefensiveBonusPlugin,
+      ]) {
+        await prepare(plugin, ctx);
+      }
+
+      // +60, without the Quickness DB, and the declared flank and surprise are not counted again.
+      expect(rollModifierValues(ctx)).toEqual({ 'flatfooted-target': 25, 'flatfooted-rear': 35 });
+    });
+
+    it('adds only the surprise bonus to a ranged attack', async () => {
+      const ctx = createCombatPluginContext({ attackType: 'ranged', ...flatfooted });
+
+      expect((await prepare(CombatFlatfootedTargetPlugin, ctx)).modifiers).toEqual({ 'flatfooted-target': 25 });
+    });
+
+    it('is skipped for a target that is not flatfooted', async () => {
+      expect((await prepare(CombatFlatfootedTargetPlugin, createCombatPluginContext({ modifiers: { surprisedFoe: true } }))).applied).toBe(
+        false,
+      );
     });
   });
 
@@ -198,6 +357,12 @@ describe('Combat plugins', () => {
       const ctx = createCombatPluginContext({ pace: 'jog', sourceSkills: skill('footwork', 20) });
 
       expect((await prepare(CombatPacePlugin, ctx)).modifiers).toEqual({ 'pace-penalty': -50, 'pace-penalty-skill': 20 });
+    });
+
+    it('applies footwork to thrown attacks (§8.2)', async () => {
+      const ctx = createCombatPluginContext({ attackType: 'thrown', pace: 'walk', sourceSkills: skill('footwork', 20) });
+
+      expect((await prepare(CombatPacePlugin, ctx)).modifiers).toEqual({ 'pace-penalty': -25, 'pace-penalty-skill': 20 });
     });
 
     it('ignores footwork for ranged attacks', async () => {
@@ -425,6 +590,16 @@ describe('Combat plugins', () => {
       expect(ctx.attackPreparation!.modifiers.criticalModifiers).toEqual([]);
     });
 
+    it('compares the combatants sizes, without the charge or the weapon size (§9.4)', () => {
+      const charging = createCombatPluginContext({ attackSize: 0, modifiers: { chargeSpeed: 'sprint' } });
+      const halfling = createCombatPluginContext({ sourceSize: 0, targetSize: -1 });
+      const bigWeapon = createCombatPluginContext({ attackSize: 1, sourceSize: 0 });
+
+      expect(sizeDifference(charging)).toBe(0);
+      expect(sizeDifference(halfling)).toBe(1);
+      expect(sizeDifference(bigWeapon)).toBe(0);
+    });
+
     it('is skipped when the attacker is smaller', async () => {
       expect((await prepare(CombatSizeDifferencePlugin, createCombatPluginContext({ sourceSize: 0, targetSize: 2 }))).applied).toBe(false);
     });
@@ -459,14 +634,60 @@ describe('Combat plugins', () => {
       expect((await prepare(CombatMultipleAttacksPlugin, ctx)).modifiers).toEqual({ 'attack-number': -100, 'attack-targets': -20 });
     });
 
-    it('offsets each penalty with the multiple-attacks skill', async () => {
-      const ctx = createCombatPluginContext({ attackNumber: 2, targetsNumber: 3, sourceSkills: skill('multiple-attacks', 30) });
+    it('offsets the sum of the penalties once with the skill: Kulahren gets -36 (§9.7)', async () => {
+      // Dagger and rapier against two foes, Multiple Attacks +59.
+      const ctx = createCombatPluginContext({
+        attackNumber: 2,
+        targetsNumber: 2,
+        sourceSkills: skill('multiple-attacks', 59),
+        otherAttacks: [otherAttack('offHand', 'standard')],
+      });
+
+      const { modifiers } = await prepare(CombatMultipleAttacksPlugin, ctx);
+
+      expect(modifiers).toEqual({ 'attack-number': -75, 'attack-targets': -20, 'multiple-attacks-skill': 59 });
+      expect(Object.values(modifiers).reduce((sum, value) => sum + value, 0)).toBe(-36);
+    });
+
+    it('adds the light weapon bonuses before the skill: Thyrzia gets -35 (§9.9)', async () => {
+      // Light mace and hand axe on one foe, Multiple Attacks +20: -75 + 10 + 10 + 20.
+      const ctx = createCombatPluginContext({
+        attackNumber: 2,
+        weaponCategory: 'light',
+        sourceSkills: skill('multiple-attacks', 20),
+        otherAttacks: [otherAttack('offHand', 'light')],
+      });
 
       expect((await prepare(CombatMultipleAttacksPlugin, ctx)).modifiers).toEqual({
         'attack-number': -75,
-        'attack-number-skill': 30,
-        'attack-targets': -40,
-        'attack-targets-skill': 30,
+        'light-weapon': 20,
+        'multiple-attacks-skill': 20,
+      });
+    });
+
+    it('gives +20 for an off-hand dagger or natural weapon, only if every extra attack qualifies', async () => {
+      const dagger = createCombatPluginContext({ attackNumber: 2, otherAttacks: [otherAttack('offHand', 'dagger')] });
+      const mixed = createCombatPluginContext({
+        attackNumber: 3,
+        otherAttacks: [otherAttack('offHand', 'dagger'), otherAttack('kick', 'standard')],
+      });
+
+      expect((await prepare(CombatMultipleAttacksPlugin, dagger)).modifiers).toEqual({ 'attack-number': -75, 'light-weapon': 20 });
+      expect((await prepare(CombatMultipleAttacksPlugin, mixed)).modifiers).toEqual({ 'attack-number': -100 });
+    });
+
+    it('never turns the penalties into a bonus', async () => {
+      const ctx = createCombatPluginContext({
+        attackNumber: 2,
+        weaponCategory: 'dagger',
+        sourceSkills: skill('multiple-attacks', 80),
+        otherAttacks: [otherAttack('offHand', 'natural')],
+      });
+
+      expect((await prepare(CombatMultipleAttacksPlugin, ctx)).modifiers).toEqual({
+        'attack-number': -75,
+        'light-weapon': 30,
+        'multiple-attacks-skill': 45,
       });
     });
 
@@ -496,6 +717,17 @@ describe('Combat plugins', () => {
 
       expect(rollModifierValues(ctx)).toEqual({ bo: 75, parry: -20 });
       expect(getModifier(ctx.attack!.calculated!.rollModifiers, 'parry')).toMatchObject({ source: 'parry', group: 'defense' });
+    });
+
+    it('gives 1 DB per 2 OB, rounded up, for a restricted parry (§9.6, Xavier)', async () => {
+      const xavier = preparedContext({ parry: 80, modifiers: { restrictedParry: true } });
+      const odd = preparedContext({ parry: 15, modifiers: { restrictedParry: true } });
+
+      await runPluginHook(CombatParryPlugin, 'parry', xavier);
+      await runPluginHook(CombatParryPlugin, 'parry', odd);
+
+      expect(rollModifierValues(xavier)).toEqual({ bo: 75, 'restricted-parry': -40 });
+      expect(rollModifierValues(odd)).toEqual({ bo: 75, 'restricted-parry': -8 });
     });
 
     it('is skipped when the parry is disabled', async () => {
@@ -533,12 +765,20 @@ describe('Combat plugins', () => {
       ['abdomen', 5],
       ['arms', 3],
       ['legs', 4],
-    ] as const)('uses the armour of the %s when the target has armour per location', async (location, armorType) => {
-      const ctx = preparedContext({ defense: perLocation });
-      ctx.location = location;
+    ] as const)('uses the armour of a called %s when the target has armour per location', async (calledShot, armorType) => {
+      const ctx = preparedContext({ calledShot, defense: perLocation });
 
       expect(await runPluginHook(CombatLocationArmorPlugin, 'beforeAttackRoll', ctx)).toBe(true);
+      expect(ctx.location).toBe(calledShot);
       expect(ctx.armorType).toBe(armorType);
+    });
+
+    it('uses the torso armour without a called shot, and no location (§9.7)', async () => {
+      const ctx = preparedContext({ defense: perLocation });
+
+      expect(await runPluginHook(CombatLocationArmorPlugin, 'beforeAttackRoll', ctx)).toBe(true);
+      expect(ctx.location).toBeUndefined();
+      expect(ctx.armorType).toBe(5);
     });
 
     it('hits the called location and uses its armour', async () => {
@@ -590,22 +830,22 @@ describe('Combat plugins', () => {
   });
 
   describe('attack-size', () => {
-    it('scales the damage by 50% per size and shifts the severity', async () => {
+    it('shifts the severity one step per size and leaves the damage (spec 007, decision 1)', async () => {
       const ctx = preparedContext({ attackSize: 1 });
       ctx.attackTableEntry = new AttackTableEntry('7BS', 7, 'S', 'B');
 
       await runPluginHook(CombatAttackSizePlugin, 'afterAttackRoll', ctx);
 
-      expect(ctx.attackTableEntry).toMatchObject({ damage: 11, criticalSeverity: 'C' });
+      expect(ctx.attackTableEntry).toMatchObject({ damage: 7, criticalSeverity: 'C' });
     });
 
-    it('halves the damage and lowers the severity of a smaller attack, down to Z', async () => {
+    it('lowers the severity of a smaller attack, down to Z', async () => {
       const ctx = preparedContext({ attackSize: -1 });
       ctx.attackTableEntry = new AttackTableEntry('5AS', 5, 'S', 'A');
 
       await runPluginHook(CombatAttackSizePlugin, 'afterAttackRoll', ctx);
 
-      expect(ctx.attackTableEntry).toMatchObject({ damage: 3, criticalSeverity: 'Z' });
+      expect(ctx.attackTableEntry).toMatchObject({ damage: 5, criticalSeverity: 'Z' });
     });
 
     it('caps the severity at J', async () => {
@@ -617,7 +857,7 @@ describe('Combat plugins', () => {
       expect(ctx.attackTableEntry.criticalSeverity).toBe('J');
     });
 
-    it('counts the attacker size once and stacks the charge on it', async () => {
+    it('stacks the charge on the attack size for the severity, never for the damage', async () => {
       // A big attacker (attack size 1, from its sheet) against a medium target, without and with a jog charge.
       const still = preparedContext({ attackSize: 1, sourceSize: 1, targetSize: 0 });
       still.attackTableEntry = new AttackTableEntry('10BS', 10, 'S', 'B');
@@ -627,17 +867,17 @@ describe('Combat plugins', () => {
       await runPluginHook(CombatAttackSizePlugin, 'afterAttackRoll', still);
       await runPluginHook(CombatAttackSizePlugin, 'afterAttackRoll', charging);
 
-      expect(still.attackTableEntry).toMatchObject({ damage: 15, criticalSeverity: 'C' });
-      expect(charging.attackTableEntry).toMatchObject({ damage: 20, criticalSeverity: 'D' });
+      expect(still.attackTableEntry).toMatchObject({ damage: 10, criticalSeverity: 'C' });
+      expect(charging.attackTableEntry).toMatchObject({ damage: 10, criticalSeverity: 'D' });
     });
 
-    it('takes the target size off', async () => {
+    it('takes the target size off (human against halfling: C becomes D)', async () => {
       const ctx = preparedContext({ attackSize: 0, targetSize: -1 });
-      ctx.attackTableEntry = new AttackTableEntry('7BS', 7, 'S', 'B');
+      ctx.attackTableEntry = new AttackTableEntry('11CS', 11, 'S', 'C');
 
       await runPluginHook(CombatAttackSizePlugin, 'afterAttackRoll', ctx);
 
-      expect(ctx.attackTableEntry).toMatchObject({ damage: 11, criticalSeverity: 'C' });
+      expect(ctx.attackTableEntry).toMatchObject({ damage: 11, criticalSeverity: 'D' });
     });
 
     it('cancels a big attack against a big target', async () => {
@@ -647,11 +887,14 @@ describe('Combat plugins', () => {
       expect(await runPluginHook(CombatAttackSizePlugin, 'afterAttackRoll', ctx)).toBe(false);
     });
 
-    it('is skipped for medium attacks', async () => {
-      const ctx = preparedContext({ attackSize: 0 });
-      ctx.attackTableEntry = new AttackTableEntry('7BS', 7, 'S', 'B');
+    it('is skipped for medium attacks and for hits without critical', async () => {
+      const medium = preparedContext({ attackSize: 0 });
+      medium.attackTableEntry = new AttackTableEntry('7BS', 7, 'S', 'B');
+      const noCritical = preparedContext({ attackSize: 1 });
+      noCritical.attackTableEntry = new AttackTableEntry('7', 7, undefined, undefined);
 
-      expect(await runPluginHook(CombatAttackSizePlugin, 'afterAttackRoll', ctx)).toBe(false);
+      expect(await runPluginHook(CombatAttackSizePlugin, 'afterAttackRoll', medium)).toBe(false);
+      expect(await runPluginHook(CombatAttackSizePlugin, 'afterAttackRoll', noCritical)).toBe(false);
     });
   });
 
@@ -696,6 +939,18 @@ describe('Combat plugins', () => {
       await runPluginHook(CombatCriticalAdjustmentPlugin, 'criticalRoll', ctx);
 
       expect(ctx.criticalRoll).toBe(53);
+    });
+
+    it("adds the attacker's Ambush ranks to the critical modifiers of an ambush (§9.8)", async () => {
+      const ctx = createCombatPluginContext({ modifiers: { ambush: true }, sourceSkills: skill('ambush', 30, 4) });
+
+      expect(await runPluginHook(CombatCriticalAdjustmentPlugin, 'prepare', ctx)).toBe(true);
+      expect(getModifier(ctx.attackPreparation!.modifiers.criticalModifiers, 'ambush')).toMatchObject({
+        value: 4,
+        group: 'critical',
+        source: 'critical-adjustment',
+      });
+      expect(await runPluginHook(CombatCriticalAdjustmentPlugin, 'prepare', createCombatPluginContext())).toBe(false);
     });
 
     it('leaves the roll when there are no critical modifiers', async () => {

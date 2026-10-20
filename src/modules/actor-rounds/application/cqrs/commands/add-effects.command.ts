@@ -1,5 +1,6 @@
 import { AttackLocation } from '../../../../actions/domain/value-objects/attack-location.vo';
 import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command';
+import type { EffectApplication } from '../../../domain/aggregates/actor-round.aggregate';
 import { ActorRoundEffect } from '../../../domain/value-objets/actor-round-effect.vo';
 
 /**
@@ -13,6 +14,10 @@ export class AddEffectsCommand extends AuthenticatedCommand {
     public readonly location: AttackLocation | undefined,
     userId: string,
     roles: string[],
+    /** When the effects land. Without it, the handler takes the game's current phase and the actor's phase log. */
+    public readonly application?: EffectApplication,
+    /** Effects of the actor used up, removed before the new ones are added. */
+    public readonly consumedEffectIds: string[] = [],
   ) {
     super(userId, roles);
   }

@@ -30,9 +30,6 @@ export class ActionAttackModifiers {
   @Prop({ type: String, required: false })
   public cover: string | undefined;
 
-  @Prop({ type: String, required: false })
-  public dodge: string | undefined;
-
   @Prop({ type: Boolean, required: false })
   public disabledDB: boolean | undefined;
 

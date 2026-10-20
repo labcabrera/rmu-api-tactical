@@ -2,7 +2,8 @@
 // calculator in rmu-api-attack produces (tests/fixtures/attack-regression, see its README). Each case runs the real
 // `prepare` (and `parry`) phase with COMBAT_PLUGIN_LIST, then the real resolver with a fake attack table that
 // follows the README rule. Intended deviations (spec D2/D3) are declared per case in the fixture and asserted here
-// as deviations; differences that are not declared there are pinned in UNDECLARED_DIFFERENCES below.
+// as deviations; differences that are not declared there are pinned in UNDECLARED_DIFFERENCES below, and the rules
+// spec 007 corrected in SPEC_007_DIFFERENCES.
 import { describe, expect, it, jest } from '@jest/globals';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -22,7 +23,6 @@ import type {
   AttackType,
   CalledShot,
   Cover,
-  Dodge,
   PositionalSource,
   PositionalTarget,
   RestrictedQuarters,
@@ -80,7 +80,7 @@ interface CaseInput {
   restrictedQuarters: RestrictedQuarters;
   positionalSource: PositionalSource;
   positionalTarget: PositionalTarget;
-  dodge: Dodge;
+  dodge: string;
   calledShot: CalledShot;
   calledShotPenalty: number;
   offHand: boolean;
@@ -164,8 +164,6 @@ const PYTHON_CRITICAL_SPLIT: Record<string, string[]> = {
 const MIN_CRITICAL_ROLL = 1;
 const MAX_CRITICAL_ROLL = 100;
 const PACE_BY_PENALTY: Record<number, string> = { [-25]: 'walk', [-50]: 'jog', [-75]: 'run' };
-/** A location roll that the resolver's location table turns into each location. */
-const LOCATION_ROLLS: Record<string, number> = { head: 1, chest: 2, abdomen: 4, legs: 6, arms: 11 };
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
@@ -193,8 +191,10 @@ interface Expectation {
   at: number | null;
   /** Critical split by severity (Python's by default). */
   criticalSplit: Record<string, string[]>;
-  /** Sizes damage and severity are scaled by (Python: the attack size only). */
+  /** Sizes the critical severity is shifted by (Python: the attack size only). */
   sizeSteps: number;
+  /** Sizes the damage is scaled by: none since spec 007 (Python: the attack size). */
+  damageSteps: number;
 }
 
 interface Resolution {
@@ -246,7 +246,7 @@ const resolution = (c: RegressionCase, exp: Expectation): Resolution => {
     };
   }
   const entry = fakeTable(rawTotal, exp.at);
-  const damage = Math.ceil(entry.damage * (1 + exp.sizeSteps * 0.5));
+  const damage = Math.ceil(entry.damage * (1 + exp.damageSteps * 0.5));
   const baseIndex = entry.criticalSeverity ? SEVERITIES.indexOf(entry.criticalSeverity) : -1;
   const severity = baseIndex >= 0 ? SEVERITIES[clamp(baseIndex + exp.sizeSteps, 0, SEVERITIES.length - 1)] : null;
   const type = entry.criticalType ?? null;
@@ -320,7 +320,7 @@ const actionPointPenalty = (input: CaseInput) => Math.max((input.attackType === 
 
 const tacticalPace = (input: CaseInput): Mod[] => {
   const penalty = input.pacePenalty;
-  const footwork = input.attackType === 'melee' ? (input.skills.find(s => s.skillId === 'footwork')?.bonus ?? 0) : 0;
+  const footwork = input.attackType !== 'ranged' ? (input.skills.find(s => s.skillId === 'footwork')?.bonus ?? 0) : 0;
   const offset = penalty < 0 && footwork > 0 ? Math.min(-penalty, footwork) : 0;
   return [{ key: 'pace-penalty', value: penalty }, ...(offset ? [{ key: 'pace-penalty-skill', value: offset }] : [])];
 };
@@ -344,7 +344,7 @@ const DEVIATION_RULES: Record<string, DeviationRule> = {
     },
   },
   // D2: tactical computes the pace penalty from the declared pace (walk/jog/run) for every attack type, with the
-  // footwork offset in melee only; Python received the penalty already computed.
+  // footwork offset in melee and thrown attacks (spec 007); Python received the penalty already computed.
   'pace-penalty': {
     adjust: (c, exp) => {
       exp.rollModifiers = [...removeKeys(exp.rollModifiers, 'pace-penalty', 'pace-penalty-skill'), ...tacticalPace(c.input)];
@@ -356,8 +356,8 @@ const DEVIATION_RULES: Record<string, DeviationRule> = {
       expect(asMultiset(pace)).toEqual(asMultiset(tacticalPace(c.input)));
     },
   },
-  // D3: the real size difference. −5 per size on the roll only for a larger attacker (Python added
-  // `size-bonus = diff*5` only for a smaller one), and one size more or less of damage and severity per size.
+  // D3: the real size difference. −5 per size on the roll only for a larger attack (Python added
+  // `size-bonus = diff*5` only for a smaller one), and one severity step more or less per size.
   'size-bonus': {
     adjust: (c, exp) => {
       const diff = c.input.sizeDifference;
@@ -405,6 +405,12 @@ const UNDECLARED_DIFFERENCES: Record<string, { note: string; adjust: (c: Regress
       exp.rollModifiers = removeKeys(exp.rollModifiers, 'off-hand-weapon', 'ambidextrous');
     },
   },
+  'melee-off-hand-ambidextrous-two-handed': {
+    note: 'off-hand penalty comes in the strategic OB',
+    adjust: (_c, exp) => {
+      exp.rollModifiers = removeKeys(exp.rollModifiers, 'off-hand-weapon', 'ambidextrous');
+    },
+  },
   // Python only matched `body`, so chest/abdomen had no armour (the fake used 1); tactical reads bodyAt.
   'location-chest-at-missing': {
     note: 'chest uses bodyAt in tactical',
@@ -428,6 +434,36 @@ const UNDECLARED_DIFFERENCES: Record<string, { note: string; adjust: (c: Regress
 };
 
 // ---------------------------------------------------------------------------------------------------------------
+// Rules spec 007 aligned with Core Law, where the Python calculator did not follow it.
+// ---------------------------------------------------------------------------------------------------------------
+
+const SPEC_007_DIFFERENCES: Record<string, { note: string; adjust: (c: RegressionCase, exp: Expectation) => void }> = {
+  // §9.7: without a called shot a target with mixed armour is hit with its torso armour; no location is rolled.
+  'location-arms-at': {
+    note: 'torso armour without a called shot',
+    adjust: (c, exp) => {
+      exp.at = c.input.armor.bodyAt;
+    },
+  },
+  'location-chest-at-missing': {
+    note: 'torso armour without a called shot',
+    adjust: (c, exp) => {
+      exp.at = c.input.armor.bodyAt;
+    },
+  },
+  // §9.7 Katas: the skill offsets the sum of the penalties once (Python offset each one).
+  'multiple-attacks-targets-skill': {
+    note: 'multiple attacks skill offsets the total once',
+    adjust: (_c, exp) => {
+      exp.rollModifiers = [
+        ...removeKeys(exp.rollModifiers, 'attack-number-skill', 'attack-targets-skill'),
+        { key: 'multiple-attacks-skill', value: 30 },
+      ];
+    },
+  },
+};
+
+// ---------------------------------------------------------------------------------------------------------------
 // Cases tactical cannot express
 // ---------------------------------------------------------------------------------------------------------------
 
@@ -435,7 +471,6 @@ const unexpressibleReason = (input: CaseInput): string | undefined => {
   const reasons: string[] = [];
   if (input.injuryPenalty) reasons.push('injury penalty');
   if (input.fatiguePenalty) reasons.push('fatigue penalty');
-  if (input.twoHandedWeapon) reasons.push('two-handed weapon (tactical always sends false)');
   input.skills
     .filter(skill => !COMBAT_SKILL_IDS.includes(skill.skillId))
     .forEach(skill => reasons.push(`skill '${skill.skillId}' (not a tactical combat skill)`));
@@ -470,6 +505,7 @@ const prepare = async (input: CaseInput): Promise<PreparedAttack> => {
     // Only the skills the prepare handler loads from the character sheet.
     sourceSkills: input.skills.filter(skill => COMBAT_SKILL_IDS.includes(skill.skillId)),
     shield: input.shield ? new ActorRoundShield(input.shield, 1, 0) : null,
+    twoHanded: input.twoHandedWeapon,
     defense: { bd: input.bd, ...input.armor },
     attackSize: input.attackSize,
     fumble: input.fumble,
@@ -485,12 +521,10 @@ const prepare = async (input: CaseInput): Promise<PreparedAttack> => {
       restrictedQuarters: input.restrictedQuarters,
       positionalSource: input.positionalSource,
       positionalTarget: input.positionalTarget,
-      dodge: input.dodge,
       disabledDB: input.disabledDB,
       disabledShield: input.disabledShield,
       disabledParry: input.disabledParry,
       sizeDifference: input.sizeDifference,
-      twoHandedWeapon: false,
       higherGround: input.higherGround,
       sourceStatus: input.sourceStatuses,
       targetStatus: input.targetStatuses,
@@ -507,7 +541,6 @@ const prepare = async (input: CaseInput): Promise<PreparedAttack> => {
     preparation.rollModifiers,
     CombatModifierBag.from(preparation.rollModifiers).sum(),
     undefined,
-    !ActionAttack.isCalledShot(attack) && !prepared.targetActor!.defense.at,
     criticalAdjustment || undefined,
     preparation.criticalModifiers,
   );
@@ -537,7 +570,6 @@ const resolve = async (input: CaseInput, prepared: PreparedAttack) => {
     sourceActor: ctx.sourceActor!,
     targetActor: ctx.targetActor!,
     roll: input.roll,
-    locationRoll: input.location ? LOCATION_ROLLS[input.location] : undefined,
   });
   return lookup;
 };
@@ -556,6 +588,20 @@ const adjustCriticalRoll = async (prepared: PreparedAttack, criticalKey: string,
   return clamp(result.criticalRoll ?? roll, MIN_CRITICAL_ROLL, MAX_CRITICAL_ROLL);
 };
 
+/** What the Python calculator did where spec 007 now follows the rules: the expectation fields to check its model. */
+const pythonRules = (c: RegressionCase): Partial<Expectation> => ({
+  damageSteps: c.input.attackSize,
+  ...(SPEC_007_DIFFERENCES[c.id]
+    ? {
+        at: c.expected.effectiveAt,
+        rollModifiers: c.expected.prepareRollModifiers.map(modifier => ({
+          key: normalizeKey(modifier.key, c.input),
+          value: modifier.value,
+        })),
+      }
+    : {}),
+});
+
 const expectationOf = (c: RegressionCase): Expectation => {
   const exp: Expectation = {
     rollModifiers: c.expected.prepareRollModifiers.map(modifier => ({ key: normalizeKey(modifier.key, c.input), value: modifier.value })),
@@ -563,9 +609,11 @@ const expectationOf = (c: RegressionCase): Expectation => {
     at: c.expected.effectiveAt,
     criticalSplit: PYTHON_CRITICAL_SPLIT,
     sizeSteps: c.input.attackSize,
+    damageSteps: 0,
   };
   c.deviations.forEach(deviation => DEVIATION_RULES[deviation.key].adjust(c, exp));
   UNDECLARED_DIFFERENCES[c.id]?.adjust(c, exp);
+  SPEC_007_DIFFERENCES[c.id]?.adjust(c, exp);
   return exp;
 };
 
@@ -579,12 +627,14 @@ describe('attack regression against the Python calculator (spec 003)', () => {
     const keys = new Set(CASES.flatMap(c => c.deviations.map(deviation => deviation.key)));
     keys.forEach(key => expect(Object.keys(DEVIATION_RULES)).toContain(key));
     Object.keys(UNDECLARED_DIFFERENCES).forEach(id => expect(CASES.map(c => c.id)).toContain(id));
+    Object.keys(SPEC_007_DIFFERENCES).forEach(id => expect(CASES.map(c => c.id)).toContain(id));
   });
 
   it('models the Python output with the fake table rule (checks the model the cases rely on)', () => {
     CASES.filter(c => !c.deviations.length && !UNDECLARED_DIFFERENCES[c.id] && !unexpressibleReason(c.input)).forEach(c => {
       const python = pythonResolution(c);
-      const model = resolution(c, expectationOf(c));
+      // The model with the Python rules, before the spec 007 differences.
+      const model = resolution(c, { ...expectationOf(c), ...pythonRules(c) });
       expect({ id: c.id, ...model }).toEqual({ id: c.id, ...python });
     });
   });
@@ -597,7 +647,7 @@ describe('attack regression against the Python calculator (spec 003)', () => {
     }
 
     const deviations = c.deviations.map(deviation => deviation.key);
-    const undeclared = UNDECLARED_DIFFERENCES[c.id]?.note;
+    const undeclared = UNDECLARED_DIFFERENCES[c.id]?.note ?? SPEC_007_DIFFERENCES[c.id]?.note;
     const label = [
       deviations.length ? `deviations: ${deviations.join(', ')}` : '',
       undeclared ? `undeclared difference: ${undeclared}` : '',
@@ -662,7 +712,8 @@ describe('attack regression against the Python calculator (spec 003)', () => {
         exp.at === c.expected.effectiveAt &&
         !exp.prepareCriticalModifiers.length &&
         exp.criticalSplit === PYTHON_CRITICAL_SPLIT &&
-        exp.sizeSteps === c.input.attackSize;
+        exp.sizeSteps === c.input.attackSize &&
+        (exp.damageSteps === c.input.attackSize || c.expected.damage === c.expected.damageBase);
       if (sameAsPython) {
         // Parity: no difference at all with the recorded Python output.
         expect(model).toEqual(pythonResolution(c));

@@ -8,8 +8,11 @@ import type { Action } from '../../../../src/modules/actions/domain/aggregates/a
 import { DeleteEffectCommand } from '../../../../src/modules/actor-rounds/application/cqrs/commands/delete-effect.command';
 import type { ActorRoundRepository } from '../../../../src/modules/actor-rounds/application/ports/actor-round.repository';
 import type { GameRepository } from '../../../../src/modules/games/application/ports/game.repository';
+import { ActorRound } from '../../../../src/modules/actor-rounds/domain/aggregates/actor-round.aggregate';
+import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-shield.vo';
+import type { CharacterPort } from '../../../../src/modules/strategic/application/ports/character.port';
 
-const setup = (actionType: string, extra: Partial<Action> = {}) => {
+const setup = (actionType: string, extra: Partial<Action> = {}, options: { acrobaticsRanks?: number; shield?: boolean } = {}) => {
   const action = {
     id: 'action-1',
     gameId: 'game-1',
@@ -30,24 +33,30 @@ const setup = (actionType: string, extra: Partial<Action> = {}) => {
   const gameRepository = {
     findById: jest.fn(() => Promise.resolve({ id: 'game-1', getActionPhase: () => 3 })),
   } as unknown as GameRepository;
+  const actorRound = Object.assign(ActorRound.empty(), {
+    id: 'ar-1',
+    effects: [
+      { id: 'e-1', status: 'prone' },
+      { id: 'e-2', status: 'stunned' },
+    ],
+    defense: { shield: options.shield ? new ActorRoundShield(20, 2, 0) : null },
+  });
+  const updateActorRound = jest.fn(() => Promise.resolve());
   const actorRoundRepository = {
-    findByActorIdAndRound: jest.fn(() =>
-      Promise.resolve({
-        id: 'ar-1',
-        effects: [
-          { id: 'e-1', status: 'prone' },
-          { id: 'e-2', status: 'stunned' },
-        ],
-      }),
-    ),
+    findByActorIdAndRound: jest.fn(() => Promise.resolve(actorRound)),
+    update: updateActorRound,
   } as unknown as ActorRoundRepository;
+  const characterClient = {
+    findById: jest.fn(() => Promise.resolve({ skills: [{ skillId: 'acrobatics', totalBonus: 30, ranks: options.acrobaticsRanks ?? 0 }] })),
+  } as unknown as CharacterPort;
   const publish = jest.fn(() => Promise.resolve());
   const execute = jest.fn(() => Promise.resolve());
   const eventBus = { publish } as unknown as ActionEventBusPort;
   const commandBus = { execute } as unknown as CommandBus;
-  const handler = new CompleteActionHandler(gameRepository, actorRoundRepository, actionRepository, eventBus, commandBus);
-  const run = (note?: string) => handler.execute(new CompleteActionCommand('action-1', note, 'user-1', []));
-  return { run, publish, execute };
+  const handler = new CompleteActionHandler(gameRepository, actorRoundRepository, actionRepository, eventBus, characterClient, commandBus);
+  const run = (note?: string, defenseType?: 'dodge' | 'block') =>
+    handler.execute(new CompleteActionCommand('action-1', note, 'user-1', [], defenseType));
+  return { run, publish, execute, actorRound, updateActorRound };
 };
 
 describe('CompleteActionHandler', () => {
@@ -71,6 +80,33 @@ describe('CompleteActionHandler', () => {
     await run();
     expect(execute).toHaveBeenCalledTimes(1);
     expect(execute).toHaveBeenCalledWith(new DeleteEffectCommand('ar-1', 'e-1', 'user-1', []));
+  });
+
+  it('rejects standing up with fewer than 2 AP, or 1 with Acrobatics ranks (Table 8-1)', async () => {
+    await expect(setup('stand_up', { phaseStart: 3 } as Partial<Action>).run()).rejects.toMatchObject({
+      errorCode: 'err-stand-up-action-points',
+    });
+    await expect(setup('stand_up', { freeAction: true } as Partial<Action>).run()).rejects.toThrow('takes 2 action points');
+    const acrobat = await setup('stand_up', { phaseStart: 3 } as Partial<Action>, { acrobaticsRanks: 2 }).run();
+    expect(acrobat.actionPoints).toBe(1);
+  });
+
+  it('takes the 4 phases of the round with a dodge and sets the full dodge or block (§9.6)', async () => {
+    const dodge = setup('dodge', { phaseStart: 1 } as Partial<Action>);
+    const result = await dodge.run();
+    expect(result).toMatchObject({ phaseEnd: 4, actionPoints: 4, status: 'completed' });
+    expect(dodge.actorRound.defenseMode).toEqual({ dodge: 'full', block: 'none' });
+    expect(dodge.updateActorRound).toHaveBeenCalled();
+
+    const block = setup('dodge', { phaseStart: 1 } as Partial<Action>, { shield: true });
+    await block.run(undefined, 'block');
+    expect(block.actorRound.defenseMode).toEqual({ dodge: 'none', block: 'full' });
+  });
+
+  it('rejects a dodge that cannot take the 4 AP, and a defence type on other actions', async () => {
+    await expect(setup('dodge').run()).rejects.toMatchObject({ errorCode: 'err-full-defense-action-points' });
+    await expect(setup('dodge', { phaseStart: 1 } as Partial<Action>).run(undefined, 'block')).rejects.toThrow('no shield');
+    await expect(setup('other').run(undefined, 'dodge')).rejects.toThrow('only declared for dodge actions');
   });
 
   it('rejects actions that need a resolution and completed actions', async () => {

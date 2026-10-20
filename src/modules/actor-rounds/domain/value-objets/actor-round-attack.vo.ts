@@ -1,3 +1,6 @@
+/** Weapon kind for the light weapon bonuses of multiple attacks (Table 9-7b). */
+export type WeaponCategory = 'standard' | 'light' | 'dagger' | 'natural';
+
 export class ActorRoundAttack {
   attackName: string;
   boModifiers: BoModifiers[];
@@ -13,6 +16,11 @@ export class ActorRoundAttack {
   canThrow: boolean;
   meleeRange: number | null;
   ranges: AttackRange[] | null;
+  /** The weapon is wielded with both hands (§9.5). */
+  twoHanded: boolean;
+  weaponCategory: WeaponCategory;
+  /** Skill of the weapon (`melee-weapon@blade`, `shield`...), null for attacks stored before it existed. */
+  skillId: string | null;
 
   constructor(
     attackName: string,
@@ -27,6 +35,9 @@ export class ActorRoundAttack {
     canThrow: boolean,
     meleeRange: number | null,
     ranges: AttackRange[] | null,
+    twoHanded = false,
+    weaponCategory: WeaponCategory = 'standard',
+    skillId: string | null = null,
   ) {
     this.attackName = attackName;
     this.boModifiers = boModifiers;
@@ -40,6 +51,9 @@ export class ActorRoundAttack {
     this.canThrow = canThrow;
     this.meleeRange = meleeRange;
     this.ranges = ranges;
+    this.twoHanded = twoHanded;
+    this.weaponCategory = weaponCategory;
+    this.skillId = skillId;
   }
 
   calculateRangeBonus(range: number): number {

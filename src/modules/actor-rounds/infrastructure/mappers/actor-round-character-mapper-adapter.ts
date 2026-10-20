@@ -13,9 +13,11 @@ import { ActorRoundInitiative } from '../../domain/value-objets/actor-round-init
 import { ActorRoundMovement } from '../../domain/value-objets/actor-round-movement.vo';
 import { ActorRoundPenalty } from '../../domain/value-objets/actor-round-penalty.vo';
 import { ActorRoundShield } from '../../domain/value-objets/actor-round-shield.vo';
+import { ActorRoundTrait } from '../../domain/value-objets/actor-round-trait.vo';
 
 const DEFAULT_ACTION_POINTS = 4;
 const ACTOR_SIZES: Record<string, number> = { medium: 0, small: -1, big: 1 };
+const BODY_DEVELOPMENT_SKILL_ID = 'body-development';
 
 @Injectable()
 export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapperPort {
@@ -46,7 +48,7 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
       movement,
       new ActorRoundInitiative(character.initiative.totalBonus, 0, undefined, undefined),
       DEFAULT_ACTION_POINTS,
-      new ActorRoundHP(character.hp.max, character.hp.current),
+      new ActorRoundHP(character.hp.max, character.hp.current, this.getDeathThreshold(character)),
       ActorRoundFatigue.empty(),
       ActorRoundPenalty.empty(),
       new ActorRoundDefense(
@@ -64,7 +66,20 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
       [] as ActorRoundAlert[],
       character.imageUrl,
       character.owner,
+      this.mapTraits(character),
     );
+  }
+
+  /** Traits without an id (older sheets) are left out. */
+  private mapTraits(character: Character): ActorRoundTrait[] {
+    return (character.traits || [])
+      .filter(trait => !!trait.traitId)
+      .map(trait => new ActorRoundTrait(trait.traitId, trait.tier || 1, trait.specialization || null));
+  }
+
+  /** §9.8 Hits: the Body Development bonus. Undefined when the character has not the skill, falling back to `max`. */
+  private getDeathThreshold(character: Character): number | undefined {
+    return character.skills?.find(skill => skill.skillId === BODY_DEVELOPMENT_SKILL_ID)?.totalBonus;
   }
 
   private mapAttacksFromCharacter(character: Character): ActorRoundAttack[] {
@@ -82,6 +97,9 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
         false,
         attack.meleeRange,
         attack.ranges,
+        attack.twoHanded ?? false,
+        attack.weaponCategory ?? 'standard',
+        attack.skillId || null,
       );
     });
   }
