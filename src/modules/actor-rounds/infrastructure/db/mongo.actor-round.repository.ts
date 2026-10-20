@@ -10,6 +10,7 @@ import { ActorRoundDefenseMode } from '../../domain/value-objets/actor-round-def
 import { ActorRoundPenaltyModifier } from '../../domain/value-objets/actor-round-penalty-modifier.vo';
 import { ActorRoundPenalty } from '../../domain/value-objets/actor-round-penalty.vo';
 import { ActorRoundPhaseLog } from '../../domain/value-objets/actor-round-phase-log.vo';
+import { ActorRoundTrait } from '../../domain/value-objets/actor-round-trait.vo';
 import { ActorRoundDocument, ActorRoundModel } from '../persistence/models/actor-round.model';
 
 @Injectable()
@@ -68,6 +69,7 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
           e.ranges,
           e.twoHanded ?? false,
           e.weaponCategory ?? 'standard',
+          e.skillId ?? null,
         ),
     );
     return ActorRound.fromProps({
@@ -92,6 +94,7 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       usedBo: doc.usedBo,
       parries: doc.parries,
       effects: doc.effects,
+      traits: (doc.traits || []).map(trait => new ActorRoundTrait(trait.traitId, trait.tier || 1, trait.specialization ?? null)),
       alerts: doc.alerts,
       defenseMode: doc.defenseMode
         ? new ActorRoundDefenseMode(doc.defenseMode.dodge ?? 'none', doc.defenseMode.block ?? 'none')

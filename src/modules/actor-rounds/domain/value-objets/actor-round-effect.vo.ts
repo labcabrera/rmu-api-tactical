@@ -1,3 +1,9 @@
+/** Bonus of the attacker against the foe it inflicted a critical on (Pressing the Advantage). */
+export const PRESSING_ADVANTAGE = 'pressing-advantage';
+
+/** Penalty to all actions in the round after inflicting a critical (Non-violent). */
+export const NON_VIOLENT = 'non-violent';
+
 export class ActorRoundEffect {
   constructor(
     public readonly id: string,
@@ -10,6 +16,8 @@ export class ActorRoundEffect {
     public appliedPhase?: number,
     /** Action points the actor had spent in the round before the effect (§8.3 Upkeep). */
     public spentApBefore?: number,
+    /** Actor the effect refers to, such as the foe of a `pressing-advantage`. */
+    public targetActorId?: string,
   ) {}
 
   static isUnique(effect: ActorRoundEffect): boolean {

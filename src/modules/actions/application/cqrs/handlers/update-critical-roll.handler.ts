@@ -1,5 +1,7 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/aggregates/action.aggregate';
@@ -32,6 +34,7 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
     @Inject('CriticalTablePort') private readonly criticalTablePort: CriticalTablePort,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
     private readonly combatProcessor: CombatProcessor,
+    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
   ) {}
 
   async execute(command: UpdateCriticalRollCommand): Promise<Action> {
@@ -61,10 +64,15 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
       );
     }
     let location = attack.calculated?.location;
+    const { sourceActor, targetActor } = await this.readActors(action, attack.modifiers.targetId);
     for (const each of attack.results.criticals) {
       const ctx = await this.combatProcessor.runPhase('criticalRoll', {
         action,
         attack,
+        sourceActor,
+        targetActor,
+        sourceTraits: sourceActor?.traits || [],
+        targetTraits: targetActor?.traits || [],
         criticalKey: each.key,
         criticalRoll: command.roll,
         location,
@@ -88,5 +96,17 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
     return updated;
+  }
+
+  /** Actor rounds of the attacker and the target, for the rules that read their traits or effects. */
+  private async readActors(
+    action: Action,
+    targetId: string | undefined,
+  ): Promise<{ sourceActor: ActorRound | undefined; targetActor: ActorRound | undefined }> {
+    const [sourceActor, targetActor] = await Promise.all([
+      this.actorRoundRepository.findByActorIdAndRound(action.gameId, action.actorId, action.round),
+      targetId ? this.actorRoundRepository.findByActorIdAndRound(action.gameId, targetId, action.round) : Promise.resolve(null),
+    ]);
+    return { sourceActor: sourceActor ?? undefined, targetActor: targetActor ?? undefined };
   }
 }

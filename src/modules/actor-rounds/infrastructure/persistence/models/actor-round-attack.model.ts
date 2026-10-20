@@ -68,4 +68,7 @@ export class ActorRoundAttack {
 
   @Prop({ type: String, required: false, default: 'standard' })
   weaponCategory: WeaponCategory;
+
+  @Prop({ type: String, required: false })
+  skillId: string | null;
 }

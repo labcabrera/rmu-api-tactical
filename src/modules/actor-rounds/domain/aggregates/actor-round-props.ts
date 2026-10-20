@@ -9,6 +9,7 @@ import { ActorRoundInitiative } from '../value-objets/actor-round-initiative.vo'
 import { ActorRoundMovement } from '../value-objets/actor-round-movement.vo';
 import { ActorRoundPenalty } from '../value-objets/actor-round-penalty.vo';
 import { ActorRoundPhaseLog } from '../value-objets/actor-round-phase-log.vo';
+import { ActorRoundTrait } from '../value-objets/actor-round-trait.vo';
 import { ActorRoundUsedBo } from '../value-objets/actor-round-used-bo.vo';
 import { ActorType } from '../value-objets/actor-type.vo';
 
@@ -37,6 +38,8 @@ export interface ActorRoundProps {
   parries: number[];
   effects: ActorRoundEffect[];
   alerts: ActorRoundAlert[];
+  /** Missing in actor rounds stored before it existed: none. */
+  traits?: ActorRoundTrait[];
   /** Missing in actor rounds stored before it existed: empty. */
   phaseLog?: ActorRoundPhaseLog[];
   imageUrl: string | undefined;

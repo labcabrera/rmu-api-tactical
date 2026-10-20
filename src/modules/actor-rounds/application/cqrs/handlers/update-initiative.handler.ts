@@ -20,7 +20,7 @@ export class DeclareInitiativeCommandHandler implements ICommandHandler<DeclareI
     if (!characterRound) {
       throw new NotFoundError('Character round', command.actorRoundId);
     }
-    characterRound.declareInitiative(command.initiativeRoll);
+    characterRound.declareInitiative(command.initiativeRoll, command.strikeReflex);
     const updatedCharacterRound = await this.characterRoundRepository.update(command.actorRoundId, characterRound);
     return updatedCharacterRound;
   }

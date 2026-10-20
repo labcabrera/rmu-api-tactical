@@ -13,6 +13,7 @@ import { ActorRoundMovementDto } from './actor-round-movement.dto';
 import { ActorRoundParryDto } from './actor-round-parry.dto';
 import { ActorRoundPenaltyDto } from './actor-round-penalty.dto';
 import { ActorRoundPhaseLogDto } from './actor-round-phase-log.dto';
+import { ActorRoundTraitDto } from './actor-round-trait.dto';
 
 export class ActorRoundDto {
   @ApiProperty({ description: 'Actor Round identifier', example: 'actor-round-123' })
@@ -84,6 +85,9 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Alerts', type: [ActorRoundAlertDto], isArray: true })
   alerts: ActorRoundAlertDto[];
 
+  @ApiProperty({ description: 'Talents and flaws of the actor, from its character sheet', type: [ActorRoundTraitDto], isArray: true })
+  traits: ActorRoundTraitDto[];
+
   @ApiProperty({ description: 'Image URL of the actor', example: 'foo/bar/image.png', required: false })
   imageUrl?: string | undefined;
 
@@ -112,6 +116,7 @@ export class ActorRoundDto {
     dto.penalty = ActorRoundPenaltyDto.fromEntity(entity.penalty);
     dto.effects = entity.effects;
     dto.alerts = entity.alerts.map(a => ActorRoundAlertDto.fromEntity(a));
+    dto.traits = (entity.traits || []).map(t => ActorRoundTraitDto.fromEntity(t));
     dto.imageUrl = entity.imageUrl;
     return dto;
   }

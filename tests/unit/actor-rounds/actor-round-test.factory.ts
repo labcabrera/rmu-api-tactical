@@ -8,6 +8,7 @@ import { ActorRoundInitiative } from '../../../src/modules/actor-rounds/domain/v
 import { ActorRoundPenaltyModifier } from '../../../src/modules/actor-rounds/domain/value-objets/actor-round-penalty-modifier.vo';
 import { ActorRoundPenalty } from '../../../src/modules/actor-rounds/domain/value-objets/actor-round-penalty.vo';
 import { ActorRoundShield } from '../../../src/modules/actor-rounds/domain/value-objets/actor-round-shield.vo';
+import { ActorRoundTrait } from '../../../src/modules/actor-rounds/domain/value-objets/actor-round-trait.vo';
 
 export const attack = (attackName: string, baseBo: number, currentBo = baseBo, type: 'melee' | 'ranged' = 'melee') =>
   new ActorRoundAttack(attackName, [], baseBo, currentBo, type, 'arming-sword', 'melee-one-hand', 0, 3, false, null, null);
@@ -24,6 +25,7 @@ export interface LoadOptions {
   effects?: ActorRoundEffect[];
   initiativeBase?: number;
   shield?: ActorRoundShield | null;
+  traits?: ActorRoundTrait[];
 }
 
 /** An actor round as the repository loads it. */
@@ -46,6 +48,7 @@ export const load = (options: LoadOptions = {}): ActorRound => {
     parries: options.parries ?? [],
     effects: options.effects ?? [],
     alerts: [],
+    traits: options.traits ?? [],
   });
 };
 

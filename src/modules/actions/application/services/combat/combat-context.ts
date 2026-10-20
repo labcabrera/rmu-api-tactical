@@ -28,7 +28,13 @@ export interface CombatContext {
   sourceAttack?: ActorRoundAttack;
   actors?: ActorRound[];
   sourceSkills?: CombatAttackSourceSkill[];
+  /** Traits of the source and of the target, from their actor rounds. */
   sourceTraits?: CombatAttackSourceTrait[];
+  targetTraits?: CombatAttackSourceTrait[];
+  /** Actions of the round of the actors in the attack (the target's declared melee attacks, for Foiler). */
+  roundActions?: Action[];
+  /** Attacks of the action prepared before this one. */
+  earlierAttacks?: ActionAttack[];
   /** Combat skills of the target (dodging, blocking): empty when it has no character sheet. */
   targetSkills?: CombatAttackSourceSkill[];
   /** The source's attacks used in the action, in order: the first is the primary one unless another is `mainHand`. */
@@ -59,8 +65,9 @@ export interface CombatPrepareAttackInput {
   attack: ActionAttack;
   actors: ActorRound[];
   sourceSkills: CombatAttackSourceSkill[];
-  sourceTraits: CombatAttackSourceTrait[];
   targetSkills: CombatAttackSourceSkill[];
+  roundActions: Action[];
+  earlierAttacks: ActionAttack[];
   kataAttacks: ActorRoundAttack[];
   reservedShieldBlocks: number;
   attackNumber: number;

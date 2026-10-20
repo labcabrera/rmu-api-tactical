@@ -24,6 +24,9 @@ export class ActionAttackCalculated {
 
   @Prop({ type: Boolean, required: false })
   public breakageRoll: boolean | undefined;
+
+  @Prop({ type: Number, required: false })
+  public fumble: number | undefined;
 }
 
 @Schema({ _id: false })

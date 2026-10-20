@@ -32,6 +32,8 @@ export class ActorRoundAttackDto {
   ranges: AttackRangeDto[] | undefined;
   twoHanded: boolean;
   weaponCategory: WeaponCategory;
+  /** Skill of the weapon, such as `melee-weapon@blade`; null for older actor rounds. */
+  skillId: string | null;
 
   static fromEntity(entity: ActorRoundAttack): ActorRoundAttackDto {
     const dto = new ActorRoundAttackDto();
@@ -47,6 +49,7 @@ export class ActorRoundAttackDto {
     dto.canThrow = entity.canThrow;
     dto.twoHanded = entity.twoHanded ?? false;
     dto.weaponCategory = entity.weaponCategory ?? 'standard';
+    dto.skillId = entity.skillId ?? null;
     dto.ranges = entity.ranges && entity.ranges.length > 0 ? entity.ranges.map(r => AttackRangeDto.fromEntity(r)) : undefined;
     return dto;
   }

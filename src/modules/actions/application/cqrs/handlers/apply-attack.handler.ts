@@ -7,7 +7,14 @@ import { DeclareActorParryCommand } from '../../../../actor-rounds/application/c
 import { SubstractBoCommand } from '../../../../actor-rounds/application/cqrs/commands/substract-bo.command';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
 import { ActorRound, EffectApplication } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
-import { ActorRoundEffect } from '../../../../actor-rounds/domain/value-objets/actor-round-effect.vo';
+import { ActorRoundEffect, NON_VIOLENT, PRESSING_ADVANTAGE } from '../../../../actor-rounds/domain/value-objets/actor-round-effect.vo';
+import {
+  ActorRoundTrait,
+  NON_VIOLENT_TRAIT,
+  PRESSING_THE_ADVANTAGE,
+  RAPID_BLEEDER,
+  SLOW_BLEEDER,
+} from '../../../../actor-rounds/domain/value-objets/actor-round-trait.vo';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, UnprocessableEntityError } from '../../../../shared/domain/errors';
 import { StrategicGame } from '../../../../strategic/application/ports/strategic-game.port';
@@ -18,6 +25,12 @@ import { ActionAttack } from '../../../domain/value-objects/action-attack.vo';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import { ApplyAttackCommand } from '../commands/apply-attack.command';
+
+/** OB bonus per tier of Pressing the Advantage. */
+const PRESSING_BONUS_PER_TIER = 10;
+
+/** Penalty per tier of Non-violent. */
+const NON_VIOLENT_PENALTY_PER_TIER = -20;
 
 @CommandHandler(ApplyAttackCommand)
 export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, Action> {
@@ -63,6 +76,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       this.processTargetEffects(actionAttack, actors, applications, updateCommands, command.userId, command.roles);
       this.processSourceEffects(actionAttack, sourceActor, applications, updateCommands, command.userId, command.roles);
     });
+    this.processSourceTalents(action, sourceActor, game.round, applications, updateCommands, command.userId, command.roles);
 
     // Apply all effects and damages sinchronously to avoid multiple updates
     for (const cmd of updateCommands.values()) {
@@ -176,10 +190,19 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     let dmg = 0;
     dmg += actionAttack.results?.attackTableEntry?.damage || 0;
     const criticalEffects: ActorRoundEffect[] = [];
+    // Slow and Rapid Bleeder: each new bleeding wound bleeds one less or one more per tier.
+    const bleedingShift = ActorRoundTrait.tierOf(target.traits, RAPID_BLEEDER) - ActorRoundTrait.tierOf(target.traits, SLOW_BLEEDER);
     actionAttack.results?.criticals?.forEach(cr => {
       dmg += cr.result?.damage || 0;
       cr.result?.effects?.forEach(e => {
-        const effect = new ActorRoundEffect(randomUUID(), e.status, e.value, e.rounds);
+        let value = e.value;
+        if (e.status === 'bleeding' && bleedingShift !== 0) {
+          value = (value ?? 0) + bleedingShift;
+          if (value <= 0) {
+            return;
+          }
+        }
+        const effect = new ActorRoundEffect(randomUUID(), e.status, value, e.rounds);
         criticalEffects.push(effect);
       });
     });
@@ -223,6 +246,66 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       cmd.effects.push(...effects);
     } else {
       const cmd = new AddEffectsCommand(actor.id, dmg, effects, undefined, userId, roles, applications.get(actor.id));
+      updateCommands.set(actor.id, cmd);
+    }
+  }
+
+  /**
+   * Effects of the attacker's talents once its attacks are applied. A `pressing-advantage` against a foe of this
+   * action is used up; inflicting a critical with a melee attack gives a new one (Pressing the Advantage) and a penalty
+   * for the next round (Non-violent).
+   */
+  private processSourceTalents(
+    action: Action,
+    actor: ActorRound,
+    round: number,
+    applications: Map<string, EffectApplication>,
+    updateCommands: Map<string, AddEffectsCommand>,
+    userId: string,
+    roles: string[],
+  ) {
+    const targetIds = new Set((action.attacks || []).map(attack => attack.modifiers.targetId));
+    const consumed = (actor.effects || [])
+      .filter(effect => effect.status === PRESSING_ADVANTAGE && !!effect.targetActorId && targetIds.has(effect.targetActorId))
+      .map(effect => effect.id);
+    const effects: ActorRoundEffect[] = [];
+    const inflicting = (action.attacks || []).filter(attack => (attack.results?.criticals?.length || 0) > 0);
+    const pressing = inflicting
+      .filter(attack => attack.type === 'melee')
+      .map(attack => {
+        const skillId = actor.attacks?.find(a => a.attackName === attack.attackName)?.skillId;
+        const tier = ActorRoundTrait.tierForSkill(actor.traits, PRESSING_THE_ADVANTAGE, skillId);
+        return { targetId: attack.modifiers.targetId, tier };
+      })
+      .filter(entry => entry.tier > 0)
+      .pop();
+    if (pressing) {
+      effects.push(
+        new ActorRoundEffect(
+          randomUUID(),
+          PRESSING_ADVANTAGE,
+          PRESSING_BONUS_PER_TIER * pressing.tier,
+          undefined,
+          round,
+          undefined,
+          undefined,
+          pressing.targetId,
+        ),
+      );
+    }
+    const nonViolent = ActorRoundTrait.tierOf(actor.traits, NON_VIOLENT_TRAIT);
+    if (nonViolent > 0 && inflicting.length > 0) {
+      effects.push(new ActorRoundEffect(randomUUID(), NON_VIOLENT, NON_VIOLENT_PENALTY_PER_TIER * nonViolent, undefined, round));
+    }
+    if (effects.length === 0 && consumed.length === 0) {
+      return;
+    }
+    const existing = updateCommands.get(actor.id);
+    if (existing) {
+      existing.effects.push(...effects);
+      existing.consumedEffectIds.push(...consumed);
+    } else {
+      const cmd = new AddEffectsCommand(actor.id, 0, effects, undefined, userId, roles, applications.get(actor.id), consumed);
       updateCommands.set(actor.id, cmd);
     }
   }

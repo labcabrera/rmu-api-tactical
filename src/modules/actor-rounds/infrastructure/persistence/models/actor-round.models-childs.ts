@@ -43,6 +43,21 @@ export class ActorRoundEffect {
 
   @Prop({ type: Number, required: false })
   spentApBefore?: number;
+
+  @Prop({ type: String, required: false })
+  targetActorId?: string;
+}
+
+@Schema({ _id: false })
+export class ActorRoundTrait {
+  @Prop({ type: String, required: true })
+  traitId: string;
+
+  @Prop({ type: Number, required: true, default: 1 })
+  tier: number;
+
+  @Prop({ type: String, required: false })
+  specialization: string | null;
 }
 
 @Schema({ _id: false })

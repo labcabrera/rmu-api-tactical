@@ -10,5 +10,7 @@ export class ActionAttackCalculated {
     public criticalAdjustment: number | undefined = undefined,
     public criticalModifiers?: KeyValueModifier[],
     public breakageRoll?: boolean,
+    /** Fumble range used when rolling: the weapon's, widened by the target's Foiler. Missing in older actions. */
+    public fumble?: number,
   ) {}
 }

@@ -24,7 +24,6 @@ import type {
   CombatAttackPreparation,
   CombatAttackSituationalModifiers,
   CombatAttackSourceSkill,
-  CombatAttackSourceTrait,
   CombatContext,
   CombatPrepareAttackInput,
 } from '../../services/combat';
@@ -70,25 +69,28 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const characters = await this.readCharacters(actors, action.actorId);
     const sourceCharacter = characters.get(action.actorId);
     const skills = this.mapSkills(sourceCharacter);
-    const traits = this.mapSourceTraits(sourceCharacter);
     const gameLethality = strategicGame.options?.lethality || 0;
     const attackNumber = command.attacks.length;
     const targets: Set<string> = new Set();
     command.attacks.forEach(a => targets.add(a.modifiers.targetId));
     const targetsNumber = targets.size;
     const kataAttacks = actionAttacks.map(attack => sourceActorRound.attacks.find(a => a.attackName === attack.attackName)!);
+    const roundActions = await this.actionRepository
+      .findByRsql(`gameId==${action.gameId};round==${game.round};actorId=in=(${Array.from(actorRoundIds).join(',')})`, 0, 1000)
+      .then(res => res.content);
 
     // One after the other: an attack covered by the target's shield takes one of its blocks for the next ones.
     const reservedShieldBlocks = new Map<string, number>();
-    for (const attack of actionAttacks) {
+    for (const [index, attack] of actionAttacks.entries()) {
       const targetId = attack.modifiers.targetId!;
       const ctx = await this.prepareAttack({
         action,
         attack,
         actors,
         sourceSkills: skills,
-        sourceTraits: traits,
         targetSkills: this.mapSkills(characters.get(targetId)),
+        roundActions,
+        earlierAttacks: actionAttacks.slice(0, index),
         kataAttacks,
         reservedShieldBlocks: reservedShieldBlocks.get(targetId) || 0,
         attackNumber,
@@ -100,13 +102,9 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       }
     }
     action.attacks = actionAttacks;
-    //TODO read actions
-    const targetActions = await this.actionRepository
-      .findByRsql(`gameId==${action.gameId};round==${game.round};actorId=in=(${Array.from(actorRoundIds).join(',')})`, 0, 1000)
-      .then(res => res.content);
 
     const targetActors = actors.filter(a => a.actorId !== action.actorId);
-    action.processParryOptions(targetActors, targetActions, game.getActionPhase());
+    action.processParryOptions(targetActors, roundActions, game.getActionPhase());
 
     //TODO check effects and intermediate actions
     action.actionPoints = game.getActionPhase() - action.phaseStart + 1;
@@ -124,8 +122,9 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       attack: input.attack,
       actors: input.actors,
       sourceSkills: input.sourceSkills,
-      sourceTraits: input.sourceTraits,
       targetSkills: input.targetSkills,
+      roundActions: input.roundActions,
+      earlierAttacks: input.earlierAttacks,
       kataAttacks: input.kataAttacks,
       reservedShieldBlocks: input.reservedShieldBlocks,
       attackNumber: input.attackNumber,
@@ -137,6 +136,8 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     };
     ctx.sourceAttack = ctx.sourceActor?.attacks?.find(a => a.attackName === input.attack.attackName);
     if (!ctx.sourceActor || !ctx.targetActor || !ctx.sourceAttack) throw new UnprocessableEntityError('Attack not found on actor');
+    ctx.sourceTraits = ctx.sourceActor.traits || [];
+    ctx.targetTraits = ctx.targetActor.traits || [];
 
     ctx.attackPreparation = this.mapAttackPreparation(ctx);
     ctx = await this.combatProcessor.runPhase('prepare', ctx);
@@ -149,6 +150,8 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       undefined,
       ctx.attackCalculation.calculated.criticalAdjustment,
       ctx.attackCalculation.calculated.criticalModifiers,
+      undefined,
+      ctx.attackCalculation.calculated.fumble,
     );
 
     return ctx;
@@ -161,7 +164,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
   }
 
   /**
-   * Character sheets of the actors with one (NPCs have none), by actor id: the source's skills and traits, and the
+   * Character sheets of the actors with one (NPCs have none), by actor id: the source's skills, and the
    * targets' defensive skills. The source's is always read.
    */
   private async readCharacters(actors: ActorRound[], sourceId: string): Promise<Map<string, Character>> {
@@ -179,10 +182,6 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
         ?.filter(skill => this.isCombatSkill(skill.skillId))
         .map(skill => ({ skillId: skill.skillId, bonus: skill.totalBonus, ranks: skill.ranks ?? 0 })) || []
     );
-  }
-
-  private mapSourceTraits(character: Character | undefined): CombatAttackSourceTrait[] {
-    return character?.traits?.map(trait => ({ id: trait.id })) || [];
   }
 
   private isCombatSkill(skillId: string): boolean {
@@ -261,6 +260,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
         criticalModifiers,
         rollTotal: CombatModifierBag.from(rollModifiers).sum(),
         criticalAdjustment: criticalAdjustment || undefined,
+        fumble: preparation.modifiers.fumble,
       },
       results: undefined,
       status: 'pending_attack_roll',

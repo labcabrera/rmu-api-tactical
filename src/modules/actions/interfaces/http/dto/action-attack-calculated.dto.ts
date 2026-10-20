@@ -26,6 +26,13 @@ export class ActionAttackCalculatedDto {
   @ApiProperty({ description: 'Whether the attack roll requires a breakage roll', required: false, example: true })
   breakageRoll: boolean | undefined;
 
+  @ApiProperty({
+    description: "Fumble range of the attack roll: the weapon's, widened by the target's Foiler",
+    required: false,
+    example: 4,
+  })
+  fumble: number | undefined;
+
   static fromEntity(entity: ActionAttackCalculated): ActionAttackCalculatedDto {
     const dto = new ActionAttackCalculatedDto();
     dto.rollModifiers = entity.rollModifiers ? entity.rollModifiers.map(mod => KeyValueModifierDto.fromEntity(mod)) : [];
@@ -34,6 +41,7 @@ export class ActionAttackCalculatedDto {
     dto.location = entity.location;
     dto.criticalAdjustment = entity.criticalAdjustment;
     dto.breakageRoll = entity.breakageRoll;
+    dto.fumble = entity.fumble;
     return dto;
   }
 }

@@ -2,6 +2,7 @@ import { CombatContext } from './combat-context';
 import { CombatAttackPreparationModifiers, CombatAttackSourceSkill } from './combat-attack-calculation';
 import { CombatModifierBag } from './combat-modifier-bag';
 import { normalizeChargeSpeed } from '../../../domain/value-objects/action-attack-modifiers.vo';
+import { ActorRoundTrait, LIGHT_BONED } from '../../../../actor-rounds/domain/value-objets/actor-round-trait.vo';
 
 /**
  * Roll modifiers of the attack being processed, stamped with the running plugin. While preparing they are the
@@ -43,8 +44,28 @@ export const sizeDifference = (ctx: CombatContext): number => {
   if (!ctx.sourceActor || !ctx.targetActor) {
     return 0;
   }
-  return (ctx.sourceActor.size || 0) - (ctx.targetActor.size || 0);
+  return (ctx.sourceActor.size || 0) - targetEffectiveSize(ctx);
 };
+
+/** Size of the target against attacks: a Light-boned target counts one size smaller per tier. */
+export const targetEffectiveSize = (ctx: CombatContext): number => (ctx.targetActor?.size || 0) - targetTraitTier(ctx, LIGHT_BONED);
+
+const sourceTraits = (ctx: CombatContext) => ctx.sourceTraits ?? ctx.sourceActor?.traits;
+const targetTraits = (ctx: CombatContext) => ctx.targetTraits ?? ctx.targetActor?.traits;
+
+/** Tier of one of the source's traits (0 when it does not have it). */
+export const sourceTraitTier = (ctx: CombatContext, traitId: string): number => ActorRoundTrait.tierOf(sourceTraits(ctx), traitId);
+
+/** Tier of one of the target's traits (0 when it does not have it). */
+export const targetTraitTier = (ctx: CombatContext, traitId: string): number => ActorRoundTrait.tierOf(targetTraits(ctx), traitId);
+
+/** Tier of one of the source's traits that applies to attacks with the weapon skill `skillId`. */
+export const sourceTraitTierForSkill = (ctx: CombatContext, traitId: string, skillId: string | null | undefined): number =>
+  ActorRoundTrait.tierForSkill(sourceTraits(ctx), traitId, skillId);
+
+/** Tier of one of the target's traits that applies to attacks with the weapon skill `skillId`. */
+export const targetTraitTierForSkill = (ctx: CombatContext, traitId: string, skillId: string | null | undefined): number =>
+  ActorRoundTrait.tierForSkill(targetTraits(ctx), traitId, skillId);
 
 const findSkill = (skills: CombatAttackSourceSkill[] | undefined, skillId: string) => skills?.find(skill => skill.skillId === skillId);
 

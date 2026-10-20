@@ -7,7 +7,7 @@ import { ActorRoundAlert } from '../value-objets/actor-round-alert.vo';
 import { ActorRoundAttack } from '../value-objets/actor-round-attack.vo';
 import { ActorRoundDefenseMode, DefenseLevel } from '../value-objets/actor-round-defense-mode.vo';
 import { ActorRoundDefense } from '../value-objets/actor-round-defense.vo';
-import { ActorRoundEffect } from '../value-objets/actor-round-effect.vo';
+import { ActorRoundEffect, NON_VIOLENT, PRESSING_ADVANTAGE } from '../value-objets/actor-round-effect.vo';
 import { ActorRoundFatigue } from '../value-objets/actor-round-fatigue.vo';
 import { ActorRoundHP } from '../value-objets/actor-round-hp.vo';
 import { ActorRoundInitiative } from '../value-objets/actor-round-initiative.vo';
@@ -16,6 +16,7 @@ import { ActorRoundPenaltySource } from '../value-objets/actor-round-penalty-sou
 import { ActorRoundPenalty } from '../value-objets/actor-round-penalty.vo';
 import { ActorRoundPhaseLog } from '../value-objets/actor-round-phase-log.vo';
 import { ActorRoundShield } from '../value-objets/actor-round-shield.vo';
+import { ActorRoundTrait, STRIKE_REFLEX } from '../value-objets/actor-round-trait.vo';
 import { ActorRoundUsedBo } from '../value-objets/actor-round-used-bo.vo';
 import { ActorType } from '../value-objets/actor-type.vo';
 import { ActorRoundProps } from './actor-round-props';
@@ -28,6 +29,9 @@ export interface EffectApplication {
 
 /** Action points lost by a surprised actor when the effect has no value (§8.3 Surprise). */
 const DEFAULT_SURPRISE_LOST_AP = 2;
+
+/** Initiative bonus of an actor with Strike Reflex when the game master declares it. */
+const STRIKE_REFLEX_BONUS = 20;
 
 export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   private constructor(
@@ -55,6 +59,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     public alerts: ActorRoundAlert[],
     public defenseMode: ActorRoundDefenseMode,
     public phaseLog: ActorRoundPhaseLog[],
+    public traits: ActorRoundTrait[],
     public imageUrl: string | undefined,
     public owner: string,
     public readonly createdAt: Date,
@@ -85,6 +90,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     alerts: ActorRoundAlert[],
     imageUrl: string | undefined,
     owner: string,
+    traits: ActorRoundTrait[] = [],
   ): ActorRound {
     const actorRound = new ActorRound(
       randomUUID(),
@@ -111,6 +117,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       alerts,
       ActorRoundDefenseMode.none(),
       [],
+      traits,
       imageUrl,
       owner,
       new Date(),
@@ -178,6 +185,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       props.alerts,
       props.defenseMode ?? ActorRoundDefenseMode.none(),
       props.phaseLog ?? [],
+      props.traits ?? [],
       props.imageUrl,
       props.owner,
       props.createdAt,
@@ -210,6 +218,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       attacks,
       effects,
       alerts,
+      traits,
       imageUrl,
       owner,
     } = previous;
@@ -229,7 +238,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       4,
       hp,
       fatigue,
-      penalty,
+      new ActorRoundPenalty([...penalty.modifiers]),
       ActorRound.resetShieldBlocks(defense),
       attacks,
       [],
@@ -238,12 +247,15 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       alerts,
       ActorRoundDefenseMode.none(),
       [],
+      traits,
       imageUrl,
       owner,
       new Date(),
       null,
     );
     actorRound.calculateCurrentBo();
+    // A penalty that starts in the new round (non-violent) is counted from its first moment.
+    actorRound.applyPenalties();
     actorRound.apply(new ActorRoundCreatedEvent(actorRound));
     return actorRound;
   }
@@ -328,6 +340,18 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     if (ActorRoundEffect.isRoundBound(effect)) {
       effect.rounds = 1;
     }
+    // Only the last one counts: it is against the last foe hit.
+    if (effect.status === PRESSING_ADVANTAGE) {
+      this.effects = this.effects.filter(e => e.status !== PRESSING_ADVANTAGE);
+    }
+    // Several in the same round give one penalty, the most severe.
+    if (effect.status === NON_VIOLENT) {
+      const sameRound = this.effects.find(e => e.status === NON_VIOLENT && e.appliedRound === effect.appliedRound);
+      if (sameRound) {
+        sameRound.value = Math.min(sameRound.value ?? 0, effect.value ?? 0);
+        return;
+      }
+    }
     // §9.8 Stun: stuns of the same severity add up their rounds. The merged one keeps the stamp of the first.
     if (effect.status === 'stunned') {
       const sameValue = this.effects.find(e => e.status === 'stunned' && e.value === effect.value);
@@ -363,6 +387,15 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
 
   deleteEffect(effectId: string) {
     this.effects = this.effects.filter(e => e.id !== effectId);
+    this.applyPenalties();
+  }
+
+  /** Removes the effects used up by an action, such as a `pressing-advantage` once its attack is applied. */
+  consumeEffects(effectIds: string[]): void {
+    if (effectIds.length === 0) {
+      return;
+    }
+    this.effects = this.effects.filter(e => !effectIds.includes(e.id));
     this.applyPenalties();
   }
 
@@ -419,7 +452,13 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     if (this.isDead()) {
       this.effects = this.effects.filter(e => e.status !== 'dying');
     }
+    // A non-violent penalty lasts the round after the one it was gained in.
+    this.effects = this.effects.filter(e => e.status !== NON_VIOLENT || !this.isFromEarlierRound(e));
     this.applyPenalties();
+  }
+
+  private isFromEarlierRound(effect: ActorRoundEffect): boolean {
+    return effect.appliedRound !== undefined && effect.appliedRound !== null && effect.appliedRound < this.round;
   }
 
   /**
@@ -453,6 +492,18 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   private applyPenalties() {
     this.applyHpPenalty();
     this.applyStunPenalty();
+    this.applyNonViolentPenalty();
+  }
+
+  /** Non-violent: the penalty gained by inflicting a critical counts in the following round only. */
+  private applyNonViolentPenalty() {
+    this.penalty.modifiers = this.penalty.modifiers.filter(m => m.source !== NON_VIOLENT);
+    const value = this.effects
+      .filter(e => e.status === NON_VIOLENT && this.isFromEarlierRound(e))
+      .reduce((sum, e) => sum + Math.min(0, e.value ?? 0), 0);
+    if (value !== 0) {
+      this.penalty.addModifier(NON_VIOLENT, value);
+    }
   }
 
   /** §9.8 Stun: the penalty of the most severe active stun, to every action. */
@@ -534,14 +585,24 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    * §8.3 Initiative Phase: 2d10 plus the base, less 1 per -10 of the penalties to all actions, rounded toward zero
    * (-75 gives -7). A flatfooted actor does not roll initiative.
    */
-  declareInitiative(roll: number): void {
+  declareInitiative(roll: number, strikeReflex = false): void {
     if (this.hasEffect('flatfooted')) {
       throw new ValidationError('A flatfooted actor does not roll initiative');
     }
+    if (strikeReflex && ActorRoundTrait.tierOf(this.traits, STRIKE_REFLEX) === 0) {
+      throw new ValidationError('The actor has not the Strike Reflex talent', 'err-strike-reflex-without-trait');
+    }
     const penalty = Math.trunc(this.getPenaltySum() / 10) || 0;
+    const strikeReflexBonus = strikeReflex ? STRIKE_REFLEX_BONUS : 0;
     this.initiative.penalty = penalty;
     this.initiative.roll = roll;
-    this.initiative.total = (this.initiative.base || 0) + penalty + roll;
+    this.initiative.strikeReflex = strikeReflexBonus || undefined;
+    this.initiative.total = (this.initiative.base || 0) + penalty + strikeReflexBonus + roll;
+  }
+
+  /** Tier of one of the actor's traits, 0 when it does not have it. */
+  traitTier(traitId: string): number {
+    return ActorRoundTrait.tierOf(this.traits, traitId);
   }
 
   /**
@@ -654,6 +715,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       alerts: this.alerts,
       defenseMode: this.defenseMode,
       phaseLog: this.phaseLog,
+      traits: this.traits,
       imageUrl: this.imageUrl,
       owner: this.owner,
       createdAt: this.createdAt,

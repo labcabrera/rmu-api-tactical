@@ -4,6 +4,8 @@ import {
   AttackRange,
   WeaponCategory,
 } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-attack.vo';
+import { ActorRoundEffect } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-effect.vo';
+import { ActorRoundTrait } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-trait.vo';
 import { ActorRoundDefenseMode } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-defense-mode.vo';
 import { ActorRoundPenalty } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-penalty.vo';
 import { ActorRoundPenaltyModifier } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-penalty-modifier.vo';
@@ -54,7 +56,18 @@ export interface CombatPluginContextOptions {
   gameLethality?: number;
   parry?: number;
   sourceSkills?: CombatAttackSourceSkill[];
-  sourceTraits?: Array<{ id: string }>;
+  /** Traits in the actor rounds of the attacker and of the defender. */
+  sourceTraits?: ActorRoundTrait[];
+  targetTraits?: ActorRoundTrait[];
+  /** Weapon skill of the source attack, such as `melee-weapon@blade`. */
+  skillId?: string | null;
+  /** Effects in the actor rounds. */
+  sourceEffects?: ActorRoundEffect[];
+  targetEffects?: ActorRoundEffect[];
+  /** Attacks of the defender's actor round. */
+  targetAttacks?: ActorRoundAttack[];
+  /** Actions of the round (the defender's declared attacks). */
+  roundActions?: Action[];
   targetSkills?: CombatAttackSourceSkill[];
   /** Target's declared dodge and block. */
   defenseMode?: ActorRoundDefenseMode;
@@ -99,9 +112,19 @@ export function createCombatPluginContext(options: CombatPluginContextOptions = 
     options.ranges ?? null,
     options.twoHanded ?? false,
     options.weaponCategory ?? 'standard',
+    options.skillId ?? null,
   );
-  const sourceActor = createAttacker({ size: options.sourceSize, attacks: [sourceAttack], penalties: options.sourcePenalties });
+  const sourceActor = createAttacker({
+    size: options.sourceSize,
+    attacks: [sourceAttack],
+    penalties: options.sourcePenalties,
+    traits: options.sourceTraits,
+    effects: options.sourceEffects,
+  });
   const targetActor = createDefender({
+    traits: options.targetTraits,
+    effects: options.targetEffects,
+    attacks: options.targetAttacks,
     size: options.targetSize,
     shield: options.shield,
     defense: options.defense,
@@ -123,6 +146,9 @@ export function createCombatPluginContext(options: CombatPluginContextOptions = 
     gameLethality: options.gameLethality ?? 0,
     sourceSkills: options.sourceSkills ?? [],
     sourceTraits: options.sourceTraits ?? [],
+    targetTraits: options.targetTraits ?? [],
+    roundActions: options.roundActions ?? [],
+    earlierAttacks: [],
     targetSkills: options.targetSkills ?? [],
     kataAttacks: [sourceAttack, ...(options.otherAttacks ?? [])],
     reservedShieldBlocks: options.reservedShieldBlocks ?? 0,
@@ -161,7 +187,13 @@ const penaltyOf = (penalties: Array<{ source: ActorRoundPenaltySource; value: nu
   new ActorRoundPenalty(penalties.map(({ source, value }, index) => new ActorRoundPenaltyModifier(`penalty-${index}`, source, value)));
 
 export function createAttacker(
-  options: { size?: number; attacks?: ActorRoundAttack[]; penalties?: Array<{ source: ActorRoundPenaltySource; value: number }> } = {},
+  options: {
+    size?: number;
+    attacks?: ActorRoundAttack[];
+    penalties?: Array<{ source: ActorRoundPenaltySource; value: number }>;
+    traits?: ActorRoundTrait[];
+    effects?: ActorRoundEffect[];
+  } = {},
 ): ActorRound {
   return actorRound({
     id: 'attacker-round-1',
@@ -170,8 +202,9 @@ export function createAttacker(
     defense: { bd: 0, shield: null },
     attacks: options.attacks ?? [],
     penalty: penaltyOf(options.penalties),
-    effects: [],
+    effects: options.effects ?? [],
     alerts: [],
+    traits: options.traits ?? [],
   });
 }
 
@@ -183,6 +216,9 @@ export function createDefender(
     defenseMode?: ActorRoundDefenseMode;
     movementPenalty?: number;
     penalties?: Array<{ source: ActorRoundPenaltySource; value: number }>;
+    traits?: ActorRoundTrait[];
+    effects?: ActorRoundEffect[];
+    attacks?: ActorRoundAttack[];
   } = {},
 ): ActorRound {
   return actorRound({
@@ -201,10 +237,11 @@ export function createDefender(
       protect: 0,
       ...options.defense,
     },
-    attacks: [],
+    attacks: options.attacks ?? [],
     penalty: penaltyOf(options.penalties),
-    effects: [],
+    effects: options.effects ?? [],
     alerts: [],
+    traits: options.traits ?? [],
   });
 }
 

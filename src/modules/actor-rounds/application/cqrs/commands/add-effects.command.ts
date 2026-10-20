@@ -16,6 +16,8 @@ export class AddEffectsCommand extends AuthenticatedCommand {
     roles: string[],
     /** When the effects land. Without it, the handler takes the game's current phase and the actor's phase log. */
     public readonly application?: EffectApplication,
+    /** Effects of the actor used up, removed before the new ones are added. */
+    public readonly consumedEffectIds: string[] = [],
   ) {
     super(userId, roles);
   }

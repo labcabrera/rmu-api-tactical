@@ -40,6 +40,8 @@ export class CombatAttackRollResolverService {
       attackRoll: input.roll,
       sourceActor: input.sourceActor,
       targetActor: input.targetActor,
+      sourceTraits: input.sourceActor.traits || [],
+      targetTraits: input.targetActor.traits || [],
       sourceAttack: this.getSourceAttack(input.sourceActor, attack.attackName),
       armorType: input.targetActor.defense.at,
       trace: [],
@@ -90,8 +92,9 @@ export class CombatAttackRollResolverService {
     return attack;
   }
 
+  /** The fumble range computed when preparing (with the target's Foiler); the weapon's for older actions. */
   private isFumble(ctx: CombatContext): boolean {
-    const fumble = ctx.sourceAttack!.fumble || 0;
+    const fumble = ctx.attack?.calculated?.fumble ?? (ctx.sourceAttack!.fumble || 0);
     return fumble > 0 && ctx.attackRoll! <= fumble;
   }
 

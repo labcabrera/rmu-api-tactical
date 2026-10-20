@@ -13,6 +13,7 @@ import { ActorRoundInitiative } from '../../domain/value-objets/actor-round-init
 import { ActorRoundMovement } from '../../domain/value-objets/actor-round-movement.vo';
 import { ActorRoundPenalty } from '../../domain/value-objets/actor-round-penalty.vo';
 import { ActorRoundShield } from '../../domain/value-objets/actor-round-shield.vo';
+import { ActorRoundTrait } from '../../domain/value-objets/actor-round-trait.vo';
 
 const DEFAULT_ACTION_POINTS = 4;
 const ACTOR_SIZES: Record<string, number> = { medium: 0, small: -1, big: 1 };
@@ -65,7 +66,15 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
       [] as ActorRoundAlert[],
       character.imageUrl,
       character.owner,
+      this.mapTraits(character),
     );
+  }
+
+  /** Traits without an id (older sheets) are left out. */
+  private mapTraits(character: Character): ActorRoundTrait[] {
+    return (character.traits || [])
+      .filter(trait => !!trait.traitId)
+      .map(trait => new ActorRoundTrait(trait.traitId, trait.tier || 1, trait.specialization || null));
   }
 
   /** §9.8 Hits: the Body Development bonus. Undefined when the character has not the skill, falling back to `max`. */
@@ -90,6 +99,7 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
         attack.ranges,
         attack.twoHanded ?? false,
         attack.weaponCategory ?? 'standard',
+        attack.skillId || null,
       );
     });
   }

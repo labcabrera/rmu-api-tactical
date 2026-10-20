@@ -14,6 +14,13 @@ import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/va
 import type { GameRepository } from '../../../../src/modules/games/application/ports/game.repository';
 import type { StrategicGameApiClient } from '../../../../src/modules/strategic/infrastructure/api-clients/api.strategic-game.adapter';
 import { load } from '../../actor-rounds/actor-round-test.factory';
+import { AddEffectsCommand } from '../../../../src/modules/actor-rounds/application/cqrs/commands/add-effects.command';
+import { ActorRoundAttack } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-attack.vo';
+import { ActorRoundEffect } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-effect.vo';
+import { ActorRoundTrait } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-trait.vo';
+import { ActionAttackResult, AttackTableEntry } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo';
+import { Critical } from '../../../../src/modules/actions/domain/value-objects/critical.vo';
+import { CriticalEffect, CriticalResult } from '../../../../src/modules/actions/domain/value-objects/critical-result.vo';
 
 const appliedAttack = (attackName: string, modifiers: KeyValueModifier[]) =>
   ({
@@ -25,9 +32,43 @@ const appliedAttack = (attackName: string, modifiers: KeyValueModifier[]) =>
     protectors: null,
   }) as unknown as ActionAttack;
 
-const setup = (attacks: ActionAttack[], parries: ActionParry[] = [], blocks: [number, number] = [1, 0]) => {
-  const source = Object.assign(load(), { actorId: 'attacker' });
-  const target = Object.assign(load({ shield: new ActorRoundShield(20, ...blocks) }), { actorId: 'defender' });
+interface TalentOptions {
+  sourceTraits?: ActorRoundTrait[];
+  targetTraits?: ActorRoundTrait[];
+  sourceEffects?: ActorRoundEffect[];
+}
+
+const setup = (attacks: ActionAttack[], parries: ActionParry[] = [], blocks: [number, number] = [1, 0], talents: TalentOptions = {}) => {
+  const source = Object.assign(
+    load({
+      traits: talents.sourceTraits,
+      effects: talents.sourceEffects,
+      attacks: [
+        new ActorRoundAttack(
+          'mainHand',
+          [],
+          60,
+          60,
+          'melee',
+          'arming-sword',
+          'melee-one-hand',
+          0,
+          3,
+          false,
+          1,
+          null,
+          false,
+          'standard',
+          'melee-weapon@blade',
+        ),
+      ],
+    }),
+    { id: 'attacker-round', actorId: 'attacker' },
+  );
+  const target = Object.assign(load({ shield: new ActorRoundShield(20, ...blocks), traits: talents.targetTraits }), {
+    id: 'defender-round',
+    actorId: 'defender',
+  });
   const action = Action.fromProps({
     id: 'action-1',
     gameId: 'game-1',
@@ -74,8 +115,33 @@ const setup = (attacks: ActionAttack[], parries: ActionParry[] = [], blocks: [nu
     { execute } as unknown as CommandBus,
   );
   const run = () => handler.execute(new ApplyAttackCommand('action-1', 'user', []));
-  return { run, target, update, execute };
+  /** Effects commands sent to each actor round, by actor round id. */
+  const effectCommands = () =>
+    new Map(
+      execute.mock.calls
+        .map(([command]) => command)
+        .filter((command): command is AddEffectsCommand => command instanceof AddEffectsCommand)
+        .map(command => [command.actorRoundId, command]),
+    );
+  return { run, source, target, update, execute, effectCommands };
 };
+
+/** A melee attack applied with one critical and its effects. */
+const criticalAttack = (effects: CriticalEffect[], targetId = 'defender') =>
+  ({
+    ...appliedAttack('mainHand', []),
+    modifiers: { targetId, bo: 0 },
+    results: new ActionAttackResult(
+      new AttackTableEntry('10BS', 10, 'S', 'B'),
+      [new Critical('s_b_1', 'completed', 'S', 'B', 50, new CriticalResult('Hit.', 3, 'arm', effects))],
+      undefined,
+    ),
+  }) as unknown as ActionAttack;
+
+const bleeding = (value: number) => ({ status: 'bleeding', value, rounds: undefined }) as unknown as CriticalEffect;
+
+const pressingEffect = (targetActorId: string) =>
+  new ActorRoundEffect('pressing-1', 'pressing-advantage', 10, undefined, 1, undefined, undefined, targetActorId);
 
 describe('ApplyAttackHandler', () => {
   it('spends a shield block for each attack the shield covered (§9.6 Shields)', async () => {
@@ -111,5 +177,111 @@ describe('ApplyAttackHandler', () => {
       .map(([command]) => command)
       .filter((command): command is DeclareActorParryCommand => command instanceof DeclareActorParryCommand);
     expect(declared.map(command => [command.actorId, command.parry])).toEqual([['helper', 35]]);
+  });
+
+  describe('talents', () => {
+    it('lowers each new bleeding of a Slow Bleeder by its tier, dropping the ones left at 0', async () => {
+      const { run, effectCommands } = setup([criticalAttack([bleeding(1), bleeding(3)])], [], [1, 0], {
+        targetTraits: [new ActorRoundTrait('slow-bleeder', 1, null)],
+      });
+
+      await run();
+
+      expect(
+        effectCommands()
+          .get('defender-round')!
+          .effects.map(e => [e.status, e.value]),
+      ).toEqual([['bleeding', 2]]);
+    });
+
+    it('raises each new bleeding of a Rapid Bleeder by its tier', async () => {
+      const { run, effectCommands } = setup(
+        [criticalAttack([bleeding(1), { status: 'stunned', value: -25, rounds: 1 } as CriticalEffect])],
+        [],
+        [1, 0],
+        {
+          targetTraits: [new ActorRoundTrait('rapid-bleeder', 2, null)],
+        },
+      );
+
+      await run();
+
+      expect(
+        effectCommands()
+          .get('defender-round')!
+          .effects.map(e => [e.status, e.value]),
+      ).toEqual([
+        ['bleeding', 3],
+        ['stunned', -25],
+      ]);
+    });
+
+    it('gives Pressing the Advantage against the foe after inflicting a critical with a matching weapon', async () => {
+      const { run, effectCommands } = setup([criticalAttack([])], [], [1, 0], {
+        sourceTraits: [new ActorRoundTrait('pressing-the-advantage', 2, 'blade')],
+      });
+
+      await run();
+
+      const command = effectCommands().get('attacker-round')!;
+      expect(command.effects.map(e => [e.status, e.value, e.targetActorId])).toEqual([['pressing-advantage', 20, 'defender']]);
+      expect(command.consumedEffectIds).toEqual([]);
+    });
+
+    it('does not give it for another weapon type or without a critical', async () => {
+      const other = setup([criticalAttack([])], [], [1, 0], { sourceTraits: [new ActorRoundTrait('pressing-the-advantage', 1, 'hafted')] });
+      await other.run();
+      expect(other.effectCommands().get('attacker-round')).toBeUndefined();
+
+      const noCritical = setup([appliedAttack('mainHand', [])], [], [1, 0], {
+        sourceTraits: [new ActorRoundTrait('pressing-the-advantage', 1, null)],
+      });
+      await noCritical.run();
+      expect(noCritical.effectCommands().get('attacker-round')).toBeUndefined();
+    });
+
+    it('uses up the Pressing the Advantage of an attack against that foe', async () => {
+      const { run, effectCommands } = setup([appliedAttack('mainHand', [])], [], [1, 0], { sourceEffects: [pressingEffect('defender')] });
+
+      await run();
+
+      const command = effectCommands().get('attacker-round')!;
+      expect(command.consumedEffectIds).toEqual(['pressing-1']);
+      expect(command.effects).toEqual([]);
+    });
+
+    it('keeps the Pressing the Advantage against another foe', async () => {
+      const { run, effectCommands } = setup([appliedAttack('mainHand', [])], [], [1, 0], { sourceEffects: [pressingEffect('orc-2')] });
+
+      await run();
+
+      expect(effectCommands().get('attacker-round')).toBeUndefined();
+    });
+
+    it('gives a Non-violent attacker a penalty stamped with the round of the critical', async () => {
+      const { run, effectCommands } = setup([criticalAttack([])], [], [1, 0], {
+        sourceTraits: [new ActorRoundTrait('non-violent', 2, null)],
+      });
+
+      await run();
+
+      const effects = effectCommands().get('attacker-round')!.effects;
+      expect(effects.map(e => [e.status, e.value, e.rounds, e.appliedRound])).toEqual([['non-violent', -40, undefined, 1]]);
+    });
+
+    it('uses up the effect and applies the penalty in the next round only, through the actor round', async () => {
+      const { run, source, effectCommands } = setup([criticalAttack([])], [], [1, 0], {
+        sourceTraits: [new ActorRoundTrait('non-violent', 1, null)],
+        sourceEffects: [pressingEffect('defender')],
+      });
+      await run();
+      const command = effectCommands().get('attacker-round')!;
+
+      source.consumeEffects(command.consumedEffectIds);
+      source.applyAttackResults(command.dmg, command.effects, undefined, command.application);
+
+      expect(source.effects.map(e => e.status)).toEqual(['non-violent']);
+      expect(source.getPenaltiesBySource()).toEqual([]);
+    });
   });
 });

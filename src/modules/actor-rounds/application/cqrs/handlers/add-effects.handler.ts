@@ -21,6 +21,7 @@ export class AddEffectsHandler implements ICommandHandler<AddEffectsCommand, Act
     const actorRound = await this.actorRoundRepository.findById(command.actorRoundId);
     if (!actorRound) throw new NotFoundError('Actor round', command.actorRoundId);
 
+    actorRound.consumeEffects(command.consumedEffectIds || []);
     const application = command.application ?? (await this.readApplication(actorRound, command));
     actorRound.applyAttackResults(command.dmg, command.effects, command.location, application);
     const updated = await this.actorRoundRepository.update(actorRound.id, actorRound);

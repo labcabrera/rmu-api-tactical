@@ -82,6 +82,7 @@ describe('UpdateCriticalRollHandler', () => {
       { lookup } as CriticalTablePort,
       repos.actionEventBus,
       processor(),
+      repos.actorRoundRepository,
     );
     const execute = (key: string, roll: number) =>
       handler.execute(new UpdateCriticalRollCommand('action-1', 'Longsword', key, roll, 'user', []));

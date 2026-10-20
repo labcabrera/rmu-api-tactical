@@ -1,4 +1,4 @@
-import { chargeSizeAdjustment } from '../combat-modifiers';
+import { chargeSizeAdjustment, targetEffectiveSize } from '../combat-modifiers';
 import { CombatContext } from '../combat-context';
 import { CombatPlugin } from '../combat-plugin';
 
@@ -7,10 +7,10 @@ const SEVERITIES = ['Z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
 /**
  * Steps the critical severity moves (Table 9-4b): the attack's size adjustment from the strategic sheet already
  * holds the attacker's own size (0 for a medium weapon in a medium hand); the charge stacks on it and the target's
- * size is taken off.
+ * size is taken off (one less per tier of Light-boned).
  */
 const sizeSteps = (ctx: CombatContext): number =>
-  (ctx.sourceAttack?.attackSize || 0) + chargeSizeAdjustment(ctx.attack?.modifiers.chargeSpeed) - (ctx.targetActor?.size || 0);
+  (ctx.sourceAttack?.attackSize || 0) + chargeSizeAdjustment(ctx.attack?.modifiers.chargeSpeed) - targetEffectiveSize(ctx);
 
 /**
  * Shifts the critical severity one step per size (§9.4). The hits are not scaled: the optional Hits Adjustment Due

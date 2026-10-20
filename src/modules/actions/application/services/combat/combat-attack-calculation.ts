@@ -1,3 +1,4 @@
+import type { ActorRoundTrait } from '../../../../actor-rounds/domain/value-objets/actor-round-trait.vo';
 import { Cover, PositionalSource, PositionalTarget, RestrictedQuarters } from '../../../domain/value-objects/action-attack-modifiers.vo';
 import { ActionAttackResult } from '../../../domain/value-objects/action-attack.vo';
 import { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
@@ -26,9 +27,8 @@ export interface CombatAttackSourceSkill {
   ranks?: number;
 }
 
-export interface CombatAttackSourceTrait {
-  id: string;
-}
+/** A trait of an actor, from its actor round. */
+export type CombatAttackSourceTrait = ActorRoundTrait;
 
 export interface CombatAttackArmor {
   at: number | null;
@@ -58,6 +58,7 @@ export interface CombatAttackPreparationModifiers {
   fumbleTable: string;
   armor: CombatAttackArmor;
   actionPoints: number;
+  /** Fumble range of the attack: the weapon's, which the target's Foiler widens. */
   fumble: number;
   calledShot?: string;
   rollModifiers: KeyValueModifier[];
@@ -82,6 +83,7 @@ export interface CombatAttackCalculatedResult {
     criticalModifiers: KeyValueModifier[];
     rollTotal: number;
     criticalAdjustment: number | undefined;
+    fumble?: number;
   };
   results: ActionAttackResult | undefined;
   status: AttackStatus;

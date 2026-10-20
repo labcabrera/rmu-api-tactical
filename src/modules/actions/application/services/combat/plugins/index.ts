@@ -15,6 +15,7 @@ import { CombatCustomBonusPlugin } from './combat-custom-bonus.plugin';
 import { CombatDefensiveBonusPlugin } from './combat-defensive-bonus.plugin';
 import { CombatDodgePlugin } from './combat-dodge.plugin';
 import { CombatFlatfootedTargetPlugin } from './combat-flatfooted-target.plugin';
+import { CombatFoilerPlugin } from './combat-foiler.plugin';
 import { CombatGameLethalityPlugin } from './combat-game-lethality.plugin';
 import { CombatHigherGroundPlugin } from './combat-higher-ground.plugin';
 import { CombatLocationArmorPlugin } from './combat-location-armor.plugin';
@@ -22,6 +23,7 @@ import { CombatMultipleAttacksPlugin } from './combat-multiple-attacks.plugin';
 import { CombatOffensiveBonusPlugin } from './combat-offensive-bonus.plugin';
 import { CombatPacePlugin } from './combat-pace.plugin';
 import { CombatParryPlugin } from './combat-parry.plugin';
+import { CombatPressingAdvantagePlugin } from './combat-pressing-advantage.plugin';
 import { CombatPositionalSourcePlugin } from './combat-positional-source.plugin';
 import { CombatPositionalTargetPlugin } from './combat-positional-target.plugin';
 import { CombatProneSourcePlugin } from './combat-prone-source.plugin';
@@ -41,6 +43,7 @@ export const COMBAT_PLUGIN_LIST: CombatPlugin[] = [
   CombatTwoHandedWeaponPlugin,
   CombatActorPenaltiesPlugin,
   CombatPacePlugin,
+  CombatPressingAdvantagePlugin,
   CombatRangePlugin,
   CombatActionPointsPlugin,
   CombatDefensiveBonusPlugin,
@@ -65,6 +68,7 @@ export const COMBAT_PLUGIN_LIST: CombatPlugin[] = [
   CombatHigherGroundPlugin,
   CombatGameLethalityPlugin,
   CombatCustomBonusPlugin,
+  CombatFoilerPlugin,
   // beforeAttackRoll
   CombatLocationArmorPlugin,
   CombatBreakagePlugin,
@@ -89,6 +93,7 @@ export * from './combat-custom-bonus.plugin';
 export * from './combat-defensive-bonus.plugin';
 export * from './combat-dodge.plugin';
 export * from './combat-flatfooted-target.plugin';
+export * from './combat-foiler.plugin';
 export * from './combat-game-lethality.plugin';
 export * from './combat-higher-ground.plugin';
 export * from './combat-location-armor.plugin';
@@ -97,6 +102,7 @@ export * from './combat-offensive-bonus.plugin';
 export * from './combat-pace.plugin';
 export * from './combat-parry.plugin';
 export * from './combat-positional-source.plugin';
+export * from './combat-pressing-advantage.plugin';
 export * from './combat-positional-target.plugin';
 export * from './combat-prone-source.plugin';
 export * from './combat-prone-target.plugin';
