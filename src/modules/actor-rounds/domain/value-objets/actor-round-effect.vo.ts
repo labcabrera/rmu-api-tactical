@@ -1,3 +1,5 @@
+import type { InjurySource } from './injury.vo';
+
 /** Bonus of the attacker against the foe it inflicted a critical on (Pressing the Advantage). */
 export const PRESSING_ADVANTAGE = 'pressing-advantage';
 
@@ -24,6 +26,18 @@ export const DISTRACTION = 'distraction';
 export const AP_CAP = 'ap-cap';
 /** AP added (positive `value`) or taken (negative `value`) by the game master. */
 export const MANUAL_AP = 'manual';
+
+/** Out of the fight until its hits are over 0 again, or the game master ends it (§9.8 Hits). */
+export const UNCONSCIOUS = 'unconscious';
+export const DEAD = 'dead';
+/** Dies when its rounds run out unless stabilized (spec 013, §3). */
+export const DYING = 'dying';
+/** Critical states that keep the actor from acting (enriched critical data). */
+export const INCAPACITATED = 'incapacitated';
+export const PARALYZED = 'paralyzed';
+/** Statuses of the critical data that become injuries instead of effects (spec 013, §3). */
+export const PENALTY = 'penalty';
+export const BLEEDING = 'bleeding';
 
 export const AP_EFFECT_STATUSES = [
   SURPRISED,
@@ -53,12 +67,14 @@ export class ActorRoundEffect {
     public spentApBefore?: number,
     /** Actor the effect refers to, such as the foe of a `pressing-advantage`. */
     public targetActorId?: string,
+    /** Where the effect comes from: the critical or fumble, or the strategic condition it was copied from. */
+    public source?: InjurySource,
   ) {}
 
   static isUnique(effect: ActorRoundEffect): boolean {
     switch (effect.status) {
-      case 'dead':
-      case 'unconcious':
+      case DEAD:
+      case UNCONSCIOUS:
       case 'surprised':
       case 'flatfooted':
         return true;

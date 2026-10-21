@@ -5,6 +5,7 @@ import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-rou
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../../shared/domain/errors';
 import type { Character, CharacterPort } from '../../../../strategic/application/ports/character.port';
+import { lethalityOf } from '../../../../strategic/application/ports/strategic-game.port';
 import { StrategicGameApiClient } from '../../../../strategic/infrastructure/api-clients/api.strategic-game.adapter';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
@@ -72,7 +73,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const characters = await this.readCharacters(actors, action.actorId);
     const sourceCharacter = characters.get(action.actorId);
     const skills = this.mapSkills(sourceCharacter);
-    const gameLethality = strategicGame.options?.lethality || 0;
+    const gameLethality = lethalityOf(strategicGame);
     const attackNumber = command.attacks.length;
     const targets: Set<string> = new Set();
     command.attacks.forEach(a => targets.add(a.modifiers.targetId));

@@ -1,6 +1,7 @@
 import { AttackRange, WeaponCategory } from '../../../actor-rounds/domain/value-objets/actor-round-attack.vo';
 import { ActorRoundFaction } from '../../../actor-rounds/domain/value-objets/actor-round-faction.vo';
 import { ActorRoundShield } from '../../../actor-rounds/domain/value-objets/actor-round-shield.vo';
+import type { CharacterCondition, Injury } from '../../../actor-rounds/domain/value-objets/injury.vo';
 
 export type AttackType = 'melee' | 'ranged';
 
@@ -26,6 +27,12 @@ export interface Character {
   items: CharacterItem[];
   equipment: CharacterEquipment;
   attacks: CharacterAttack[];
+  /** Spec 013: missing in strategic versions before it. */
+  injuries?: Injury[];
+  /** Spec 013: missing in strategic versions before it. */
+  conditions?: CharacterCondition[];
+  /** `dead` once a tactical game killed it (spec 013); missing in older versions. */
+  status?: string;
   imageUrl: string | undefined;
   owner: string;
 }
@@ -145,3 +152,10 @@ export interface CharacterAttack {
   /** Skill of the weapon (`melee-weapon@blade`, `shield`...). Missing in older characters. */
   skillId?: string | null;
 }
+
+/** Conditions that keep a character out of a tactical game (spec 013, §3). */
+const NOT_ABLE_CONDITIONS = ['permanent-unconscious', 'dead'];
+
+/** The character is dead or permanently unconscious, and cannot take part in a tactical game. */
+export const isCharacterNotAble = (character: Character): boolean =>
+  character.status === 'dead' || (character.conditions || []).some(c => !c.resolvedAt && NOT_ABLE_CONDITIONS.includes(c.status));

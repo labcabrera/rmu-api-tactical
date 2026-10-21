@@ -4,6 +4,7 @@ import { PaginationDto } from '../../../../shared/interfaces/http/dto';
 import { Game } from '../../../domain/aggregates/game.aggregate';
 import type { GamePhase } from '../../../domain/value-objects/game-phase.vo';
 import type { GameStatus } from '../../../domain/value-objects/game-status.vo';
+import { TacticalGameOutcomeDto } from './tactical-game-outcome.dto';
 import { ActorDto } from './actor.dto';
 import { GameEnvironmentDto } from './game-environment.dto';
 
@@ -51,6 +52,9 @@ export class GameDto {
   @ApiProperty({ description: 'Owner of the game', example: 'user-123' })
   owner: string;
 
+  @ApiProperty({ description: 'Outcome of a finished game (spec 013)', type: () => TacticalGameOutcomeDto, required: false })
+  outcome?: TacticalGameOutcomeDto;
+
   static fromEntity(entity: Game) {
     const dto = new GameDto();
     dto.id = entity.id;
@@ -65,6 +69,7 @@ export class GameDto {
     dto.description = entity.description;
     dto.imageUrl = entity.imageUrl;
     dto.owner = entity.owner;
+    dto.outcome = entity.outcome ? TacticalGameOutcomeDto.fromEntity(entity.outcome) : undefined;
     return dto;
   }
 }

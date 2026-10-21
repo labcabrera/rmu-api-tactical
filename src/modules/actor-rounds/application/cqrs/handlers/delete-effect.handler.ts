@@ -1,3 +1,4 @@
+import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { NotFoundError } from '../../../../shared/domain/errors';
@@ -9,13 +10,17 @@ import { DeleteEffectCommand } from '../commands/delete-effect.command';
 export class DeleteEffectHandler implements ICommandHandler<DeleteEffectCommand, ActorRound> {
   private readonly logger = new Logger(DeleteEffectHandler.name);
 
-  constructor(@Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository) {}
+  constructor(
+    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject('GameRepository') private readonly gameRepository: GameRepository,
+  ) {}
 
   async execute(command: DeleteEffectCommand): Promise<ActorRound> {
     this.logger.debug(`Execute << ${JSON.stringify(command)}`);
 
     const actorRound = await this.actorRoundRepository.findById(command.actorRoundId);
     if (!actorRound) throw new NotFoundError('Actor round', command.actorRoundId);
+    (await this.gameRepository.findById(actorRound.gameId))?.checkNotFinished();
 
     actorRound.deleteEffect(command.effectId);
     const updated = await this.actorRoundRepository.update(actorRound.id, actorRound);

@@ -7,11 +7,13 @@ import { ActorRoundRepository } from '../../application/ports/actor-round.reposi
 import { ActorRound } from '../../domain/aggregates/actor-round.aggregate';
 import { ActorRoundAttack } from '../../domain/value-objets/actor-round-attack.vo';
 import { ActorRoundDefenseMode } from '../../domain/value-objets/actor-round-defense-mode.vo';
+import { ActorRoundEffect } from '../../domain/value-objets/actor-round-effect.vo';
 import { ActorRoundPenaltyModifier } from '../../domain/value-objets/actor-round-penalty-modifier.vo';
 import { ActorRoundPenalty } from '../../domain/value-objets/actor-round-penalty.vo';
 import { ActorRoundPhaseLog } from '../../domain/value-objets/actor-round-phase-log.vo';
 import { ActorRoundTrait } from '../../domain/value-objets/actor-round-trait.vo';
 import { ApLedgerEntry, ApLedgerKind } from '../../domain/value-objets/ap-ledger-entry.vo';
+import { HpLogEntry, HpLogKind } from '../../domain/value-objets/hp-log-entry.vo';
 import { ActorRoundDocument, ActorRoundModel } from '../persistence/models/actor-round.model';
 
 @Injectable()
@@ -35,6 +37,11 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
     return this.model.findOne({ gameId, actorId, round }).then(readed => (readed ? this.mapToEntity(readed) : null));
   }
 
+  async findByGameId(gameId: string): Promise<ActorRound[]> {
+    const docs = await this.model.find({ gameId }).sort({ round: 1 });
+    return docs.map(doc => this.mapToEntity(doc));
+  }
+
   async deleteByGameId(gameId: string): Promise<void> {
     return this.model.deleteMany({ gameId }).then(() => undefined);
   }
@@ -47,6 +54,16 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
         $or: [{ 'initiative.roll': { $exists: false } }, { 'initiative.roll': null }],
       })
       .then(docs => docs.map(doc => this.mapToEntity(doc)));
+  }
+
+  private static toHpLogEntry(entry: NonNullable<ActorRoundDocument['hpLog']>[number]): HpLogEntry {
+    const mapped: HpLogEntry = { id: entry.id, round: entry.round, amount: entry.amount, kind: entry.kind as HpLogKind, at: entry.at };
+    (['phase', 'actionId', 'attackerId', 'attackerName', 'injuryId', 'criticalKey'] as const).forEach(key => {
+      if (entry[key] !== undefined && entry[key] !== null) {
+        (mapped as unknown as Record<string, unknown>)[key] = entry[key];
+      }
+    });
+    return mapped;
   }
 
   protected mapToEntity(doc: ActorRoundDocument): ActorRound {
@@ -94,7 +111,20 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       attacks: attacks,
       usedBo: doc.usedBo,
       parries: doc.parries,
-      effects: doc.effects,
+      effects: (doc.effects || []).map(
+        e =>
+          new ActorRoundEffect(
+            e.id,
+            e.status,
+            e.value ?? undefined,
+            e.rounds ?? undefined,
+            e.appliedRound,
+            e.appliedPhase,
+            e.spentApBefore,
+            e.targetActorId,
+            e.source,
+          ),
+      ),
       traits: (doc.traits || []).map(trait => new ActorRoundTrait(trait.traitId, trait.tier || 1, trait.specialization ?? null)),
       alerts: doc.alerts,
       defenseMode: doc.defenseMode
@@ -104,6 +134,12 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       apLedger: (doc.apLedger || []).map(
         entry => new ApLedgerEntry(entry.phase, entry.actionId ?? undefined, entry.ap, entry.kind as ApLedgerKind),
       ),
+      injuries: (doc.injuries || []).map(injury => ({ ...injury, treatments: injury.treatments || [] })),
+      hpLog: (doc.hpLog || []).map(entry => MongoActorRoundRepository.toHpLogEntry(entry)),
+      characterId: doc.characterId,
+      snapshot: doc.snapshot
+        ? { hp: doc.snapshot.hp, injuryIds: [...(doc.snapshot.injuryIds || [])], conditionIds: [...(doc.snapshot.conditionIds || [])] }
+        : undefined,
       imageUrl: doc.imageUrl,
       owner: doc.owner,
       createdAt: doc.createdAt,

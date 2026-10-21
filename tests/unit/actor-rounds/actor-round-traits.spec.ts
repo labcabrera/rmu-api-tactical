@@ -213,3 +213,46 @@ describe('Strike Reflex', () => {
     expect(DeclareInitiativeDto.toCommand('ar-1', new DeclareInitiativeDto(12), 'user', []).strikeReflex).toBe(false);
   });
 });
+
+describe('ActorRoundCharacterMapperAdapter injuries and conditions (spec 013, §3)', () => {
+  const mapper = new ActorRoundCharacterMapperAdapter();
+  const source = { kind: 'critical' as const, tacticalGameId: 'other-game' };
+  const injury = (id: string, status: 'active' | 'healed', penalty: number) => ({
+    id,
+    type: 'bone' as const,
+    severity: 'medium' as const,
+    penalty,
+    initialPenalty: penalty,
+    source,
+    treatments: [],
+    status,
+    createdAt: '2026-10-01T00:00:00.000Z',
+  });
+
+  it('copies the injuries not healed (same uuid) and the unresolved unconsciousness, with a snapshot', () => {
+    const round = mapper.toActorRound(
+      'game-1',
+      1,
+      character({
+        hp: { max: 50, current: 20 },
+        injuries: [injury('broken-leg', 'active', -30), injury('old-cut', 'healed', -5)],
+        conditions: [
+          { id: 'ko', status: 'unconscious', source, createdAt: '2026-10-01' },
+          { id: 'woke', status: 'unconscious', source, createdAt: '2026-10-01', resolvedAt: '2026-10-02' },
+        ],
+      }),
+    );
+
+    expect(round.injuries.map(i => i.id)).toEqual(['broken-leg']);
+    expect(round.getPenaltiesBySource()).toContainEqual({ source: 'injury', value: -30 });
+    expect(round.effects.map(e => [e.id, e.status])).toEqual([['ko', 'unconscious']]);
+    expect(round.characterId).toBe('character-1');
+    expect(round.snapshot).toEqual({ hp: 20, injuryIds: ['broken-leg'], conditionIds: ['ko'] });
+  });
+
+  it.each(['dead', 'permanent-unconscious'] as const)('rejects a %s character', status => {
+    expect(() =>
+      mapper.toActorRound('game-1', 1, character({ conditions: [{ id: 'c', status, source, createdAt: '2026-10-01' }] })),
+    ).toThrow(expect.objectContaining({ errorCode: 'err-character-not-able' }));
+  });
+});

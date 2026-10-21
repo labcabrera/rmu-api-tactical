@@ -17,6 +17,9 @@ export interface ActorRoundRepository {
 
   update(characterRoundId: string, data: Partial<ActorRound>): Promise<ActorRound>;
 
+  /** Every actor round of a game, all rounds (spec 013: the outcome of a finished game). */
+  findByGameId(gameId: string): Promise<ActorRound[]>;
+
   deleteByGameId(gameId: string): Promise<void>;
 
   findWithUndefinedInitiativeRoll(gameId: string, round: number): Promise<ActorRound[]>;

@@ -31,6 +31,7 @@ export class StartPhaseHandler implements ICommandHandler<StartPhaseCommand, Gam
     if (!game) {
       throw new NotFoundError('Game', gameId);
     }
+    game.checkNotFinished();
     // Dead and flatfooted actors don't roll initiative.
     const pendingActors = (await this.actorRoundRepository.findWithUndefinedInitiativeRoll(game.id, game.round)).filter(
       ar => !ar.isDead() && !ar.hasEffect('flatfooted'),

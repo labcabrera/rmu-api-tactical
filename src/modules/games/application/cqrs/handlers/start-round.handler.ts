@@ -37,6 +37,7 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
     const { gameId } = command;
     const game = await this.gameRepository.findById(gameId);
     if (!game) throw new NotFoundError('Game', gameId);
+    game.checkNotFinished();
 
     //TODO make saga
     if (game.round > 0) {

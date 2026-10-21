@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Body, Controller, Delete, Get, Logger, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Logger, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
@@ -8,6 +8,13 @@ import { Page } from '../../../shared/domain/entities/page.entity';
 import { ErrorDto, PagedQueryDto } from '../../../shared/interfaces/http/dto';
 import { AddEffectsCommand } from '../../application/cqrs/commands/add-effects.command';
 import { AddFatigueCommand } from '../../application/cqrs/commands/add-fatigue.command';
+import { AdjustHpCommand } from '../../application/cqrs/commands/adjust-hp.command';
+import { DeleteInjuryCommand } from '../../application/cqrs/commands/delete-injury.command';
+import { StabilizeEffectCommand } from '../../application/cqrs/commands/stabilize-effect.command';
+import { TreatInjuryCommand } from '../../application/cqrs/commands/treat-injury.command';
+import { UpdateInjuryCommand } from '../../application/cqrs/commands/update-injury.command';
+import type { StabilizeEffectResult } from '../../application/cqrs/handlers/stabilize-effect.handler';
+import type { TreatInjuryResult } from '../../application/cqrs/handlers/treat-injury.handler';
 import { DeclareDefenseModeCommand } from '../../application/cqrs/commands/declare-defense-mode.command';
 import { DeclareInitiativeCommand } from '../../application/cqrs/commands/declare-initiative.command';
 import { DeleteEffectCommand } from '../../application/cqrs/commands/delete-effect.command';
@@ -22,6 +29,7 @@ import { AddFatigueAccumulatorDto } from './dto/add-fatigue-accumulator.dto';
 import { AddHpDto } from './dto/add-hp.dto';
 import { DeclareInitiativeDto } from './dto/declare-initiative.dto';
 import { ResolveEnduranceCheckDto } from './dto/resolve-endurance-check.dto';
+import { MedicalResultDto, MedicalRollDto, TreatInjuryDto, UpdateInjuryDto } from './dto/treat-injury.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('v1/actor-rounds')
@@ -86,13 +94,13 @@ export class ActorRoundController {
 
   @Patch(':id/hp')
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
-  @ApiOperation({ operationId: 'addHp', summary: 'Add or subtract HP' })
+  @ApiOperation({ operationId: 'addHp', summary: 'Take (dmg > 0) or heal (dmg < 0) hits, up to the maximum' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiNotFoundResponse({ description: 'Actor round not found', type: ErrorDto })
   async addHp(@Param('id') id: string, @Body() dto: AddHpDto, @Request() req) {
     const user = req.user!;
-    const command = new AddEffectsCommand(id, dto.dmg, [], undefined, user.id as string, user.roles as string[]);
-    const entity = await this.commandBus.execute<AddEffectsCommand, ActorRound>(command);
+    const command = new AdjustHpCommand(id, dto.dmg, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<AdjustHpCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
   }
 
@@ -142,5 +150,72 @@ export class ActorRoundController {
     const command = new DeleteEffectCommand(id, effectId, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<DeleteEffectCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
+  }
+
+  @Post(':id/injuries/:injuryId/treatments')
+  @HttpCode(200)
+  @ApiOkResponse({ type: MedicalResultDto, description: 'Success' })
+  @ApiOperation({ operationId: 'treatInjury', summary: 'Treat an injury with a Medicine roll of a healer (spec 013)' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiNotFoundResponse({ description: 'Actor round or injury not found', type: ErrorDto })
+  async treatInjury(@Param('id') id: string, @Param('injuryId') injuryId: string, @Body() dto: TreatInjuryDto, @Request() req) {
+    const user = req.user!;
+    const command = new TreatInjuryCommand(
+      id,
+      injuryId,
+      dto.procedure,
+      { healerActorId: dto.healerActorId, healer: dto.healer },
+      dto.roll,
+      dto.difficulty,
+      user.id as string,
+      user.roles as string[],
+    );
+    const result = await this.commandBus.execute<TreatInjuryCommand, TreatInjuryResult>(command);
+    return MedicalResultDto.fromTreatment(result);
+  }
+
+  @Patch(':id/injuries/:injuryId')
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
+  @ApiOperation({ operationId: 'updateInjury', summary: 'Edit an injury (game master)' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiNotFoundResponse({ description: 'Actor round or injury not found', type: ErrorDto })
+  async updateInjury(@Param('id') id: string, @Param('injuryId') injuryId: string, @Body() dto: UpdateInjuryDto, @Request() req) {
+    const user = req.user!;
+    const command = new UpdateInjuryCommand(id, injuryId, { ...dto }, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<UpdateInjuryCommand, ActorRound>(command);
+    return ActorRoundDto.fromEntity(entity);
+  }
+
+  @Delete(':id/injuries/:injuryId')
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
+  @ApiOperation({ operationId: 'deleteInjury', summary: 'Remove an injury (game master)' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiNotFoundResponse({ description: 'Actor round or injury not found', type: ErrorDto })
+  async deleteInjury(@Param('id') id: string, @Param('injuryId') injuryId: string, @Request() req) {
+    const user = req.user!;
+    const command = new DeleteInjuryCommand(id, injuryId, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<DeleteInjuryCommand, ActorRound>(command);
+    return ActorRoundDto.fromEntity(entity);
+  }
+
+  @Post(':id/effects/:effectId/stabilize')
+  @HttpCode(200)
+  @ApiOkResponse({ type: MedicalResultDto, description: 'Success' })
+  @ApiOperation({ operationId: 'stabilizeEffect', summary: 'Stabilize a dying actor with a Medicine roll (spec 013)' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiNotFoundResponse({ description: 'Actor round or effect not found', type: ErrorDto })
+  async stabilize(@Param('id') id: string, @Param('effectId') effectId: string, @Body() dto: MedicalRollDto, @Request() req) {
+    const user = req.user!;
+    const command = new StabilizeEffectCommand(
+      id,
+      effectId,
+      { healerActorId: dto.healerActorId, healer: dto.healer },
+      dto.roll,
+      dto.difficulty,
+      user.id as string,
+      user.roles as string[],
+    );
+    const result = await this.commandBus.execute<StabilizeEffectCommand, StabilizeEffectResult>(command);
+    return MedicalResultDto.fromStabilize(result);
   }
 }

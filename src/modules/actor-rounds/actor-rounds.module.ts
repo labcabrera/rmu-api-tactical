@@ -9,6 +9,8 @@ import { SharedModule } from '../shared/shared.module';
 import { StrategicModule } from '../strategic/strategic.module';
 import { AddEffectsHandler } from './application/cqrs/handlers/add-effects.handler';
 import { AddFatigueHandler } from './application/cqrs/handlers/add-fatigue.handler';
+import { AdjustHpHandler } from './application/cqrs/handlers/adjust-hp.handler';
+import { DeleteInjuryHandler, UpdateInjuryHandler } from './application/cqrs/handlers/update-injury.handler';
 import { CreateActorRoundHandler } from './application/cqrs/handlers/create-actor-round.handler';
 import { DeclareActorParryHandler } from './application/cqrs/handlers/declare-actor-parry.handler';
 import { DeclareDefenseModeHandler } from './application/cqrs/handlers/declare-defense-mode.handler';
@@ -47,6 +49,9 @@ import { ActorRoundController } from './interfaces/http/actor-round.controller';
     DeclareActorParryHandler,
     DeclareDefenseModeHandler,
     AddFatigueHandler,
+    AdjustHpHandler,
+    UpdateInjuryHandler,
+    DeleteInjuryHandler,
     {
       provide: 'ActorRoundRepository',
       useClass: MongoActorRoundRepository,

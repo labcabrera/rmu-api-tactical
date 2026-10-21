@@ -32,6 +32,7 @@ export class UpdateFumbleRollHandler implements ICommandHandler<UpdateFumbleRoll
 
     const game = await this.gameRepository.findById(action.gameId);
     if (!game) throw new NotFoundError('Game', action.gameId);
+    game.checkNotFinished();
 
     const attack = action.getAttackByName(command.attackName);
     if (!attack.results?.fumble) {

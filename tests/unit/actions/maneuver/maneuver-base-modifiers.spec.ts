@@ -41,7 +41,7 @@ describe('ManeuverBaseModifiersService', () => {
     expect(result.base).toEqual(
       expect.arrayContaining([
         { key: 'penalty-hp', value: -20, source: 'actor-round' },
-        { key: 'penalty-critical', value: -15, source: 'actor-round' },
+        { key: 'penalty-injury', value: -15, source: 'actor-round' },
       ]),
     );
   });

@@ -1,3 +1,4 @@
+import type { GameRepository } from '../../../src/modules/games/application/ports/game.repository';
 import { describe, expect, it, jest } from '@jest/globals';
 import type { EnduranceManeuverResult, ManeuverPort } from '../../../src/modules/actions/application/ports/maneuver.port';
 import { ResolveEnduranceCheckCommand } from '../../../src/modules/actor-rounds/application/cqrs/commands/resolve-endurance-check.command';
@@ -35,12 +36,26 @@ describe('ActorRound fatigue (§5.5)', () => {
     expect(fatiguePenalty(round)).toBe(-20);
   });
 
-  it('caps the fatigue at -50: the rest becomes an injury, taken as hits', () => {
+  it('caps the fatigue at -50: the rest becomes an injury of unknown type with a fatigue source (spec 013)', () => {
     const round = load({ hp: [100, 100] });
     round.applyEnduranceResult(45, 0);
-    round.applyEnduranceResult(10, 0);
+    round.applyEnduranceResult(10, 0, undefined, 'Moria');
     expect(fatiguePenalty(round)).toBe(-50);
-    expect(round.hp.current).toBe(95);
+    expect(round.hp.current).toBe(100);
+    expect(round.injuries).toEqual([
+      expect.objectContaining({
+        type: 'unknown',
+        penalty: -5,
+        severity: 'light',
+        source: expect.objectContaining({ kind: 'fatigue', tacticalGameName: 'Moria' }),
+      }),
+    ]);
+    expect(round.getPenaltiesBySource()).toContainEqual({ source: 'injury', value: -5 });
+
+    round.applyEnduranceResult(10, 0);
+
+    expect(round.injuries).toHaveLength(1);
+    expect(round.injuries[0].penalty).toBe(-15);
   });
 
   it('keeps the fatigue penalty when it is read again from the repository', () => {
@@ -79,7 +94,8 @@ describe('ResolveEnduranceCheckHandler', () => {
       Promise.resolve({ result: 'failure', message: 'Tired', bonus: 0, ...endurance }),
     );
     const maneuverPort = { endurance: enduranceFn } as unknown as ManeuverPort;
-    const handler = new ResolveEnduranceCheckHandler(actorRoundRepository, maneuverPort);
+    const gameRepository = { findById: jest.fn(() => Promise.resolve(null)) } as unknown as GameRepository;
+    const handler = new ResolveEnduranceCheckHandler(actorRoundRepository, maneuverPort, gameRepository);
     return { handler, alert, enduranceFn };
   };
 

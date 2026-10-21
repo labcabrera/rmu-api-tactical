@@ -5,7 +5,7 @@ import { TokenService } from '../../../auth/token.service';
 import { handleAxiosError } from '../../../shared/infrastructure/api-rest/axios.error.adapter';
 import { CriticalTableLookupRequest, CriticalTablePort } from '../../application/ports/critical-table.port';
 import { AttackLocation } from '../../domain/value-objects/attack-location.vo';
-import { CriticalEffect, CriticalResult } from '../../domain/value-objects/critical-result.vo';
+import { CriticalEffect, CriticalInjury, CriticalResult } from '../../domain/value-objects/critical-result.vo';
 
 interface CriticalTableEffect {
   status: string;
@@ -13,6 +13,7 @@ interface CriticalTableEffect {
   value?: number;
   delay?: number;
   condition?: string;
+  applyTo?: 'source' | 'target';
 }
 
 interface CriticalTableResponse {
@@ -20,6 +21,8 @@ interface CriticalTableResponse {
   dmg: number;
   location: string | null;
   effects?: CriticalTableEffect[];
+  /** Spec 013, §2: present in the enriched tables. */
+  injury?: CriticalInjury | null;
 }
 
 /** The critical tables name the limbs in singular. */
@@ -64,7 +67,8 @@ export class ApiCriticalTableAdapter implements CriticalTablePort {
   }
 
   private mapResult(data: CriticalTableResponse): CriticalResult {
-    const effects = (data.effects || []).map(e => new CriticalEffect(e.status, e.rounds, e.value, e.delay, e.condition));
-    return new CriticalResult(data.message || '', data.dmg || 0, data.location || '', effects);
+    const effects = (data.effects || []).map(e => new CriticalEffect(e.status, e.rounds, e.value, e.delay, e.condition, e.applyTo));
+    const injury = data.injury?.type ? { type: data.injury.type, secondary: data.injury.secondary, flags: data.injury.flags } : undefined;
+    return new CriticalResult(data.message || '', data.dmg || 0, data.location || '', effects, injury);
   }
 }

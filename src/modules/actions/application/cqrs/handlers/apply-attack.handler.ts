@@ -15,16 +15,36 @@ import {
   RAPID_BLEEDER,
   SLOW_BLEEDER,
 } from '../../../../actor-rounds/domain/value-objets/actor-round-trait.vo';
+import { CriticalInjuryFactory } from '../../../../actor-rounds/domain/services/critical-injury.factory';
+import type { HpChange } from '../../../../actor-rounds/domain/value-objets/hp-log-entry.vo';
+import { InjurySource, sideOfRoll } from '../../../../actor-rounds/domain/value-objets/injury.vo';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
+import { Game } from '../../../../games/domain/aggregates/game.aggregate';
 import { NotFoundError, UnprocessableEntityError } from '../../../../shared/domain/errors';
 import { StrategicGame } from '../../../../strategic/application/ports/strategic-game.port';
 import { StrategicGameApiClient } from '../../../../strategic/infrastructure/api-clients/api.strategic-game.adapter';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
 import { ActionAttack } from '../../../domain/value-objects/action-attack.vo';
+import { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import { ApplyAttackCommand } from '../commands/apply-attack.command';
+
+/** Location of a critical table result (limbs in singular) as an attack location. */
+const toAttackLocation = (location: string | undefined | null): AttackLocation | undefined => {
+  const value = location === 'arm' ? 'arms' : location === 'leg' ? 'legs' : location;
+  return (['head', 'chest', 'abdomen', 'arms', 'legs'] as AttackLocation[]).find(candidate => candidate === value);
+};
+
+/** What the injuries and effects of an attack need to know of where they come from (spec 013, §3). */
+interface AttackOrigin {
+  game: Game;
+  action: Action;
+  sourceActor: ActorRound;
+}
+
+const HEAL = 'heal';
 
 /** OB bonus per tier of Pressing the Advantage. */
 const PRESSING_BONUS_PER_TIER = 10;
@@ -72,9 +92,10 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     const applications = await this.readEffectApplications(action, actors, game.round, game.getActionPhase());
 
     const updateCommands = new Map<string, AddEffectsCommand>();
+    const origin: AttackOrigin = { game, action, sourceActor };
     actionAttacks.forEach(actionAttack => {
-      this.processTargetEffects(actionAttack, actors, applications, updateCommands, command.userId, command.roles);
-      this.processSourceEffects(actionAttack, sourceActor, applications, updateCommands, command.userId, command.roles);
+      this.processTargetEffects(actionAttack, actors, origin, applications, updateCommands, command.userId, command.roles);
+      this.processSourceEffects(actionAttack, origin, applications, updateCommands, command.userId, command.roles);
     });
     this.processSourceTalents(action, sourceActor, game.round, applications, updateCommands, command.userId, command.roles);
 
@@ -176,9 +197,42 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     }
   }
 
+  /** The source of the injuries and effects of an attack. */
+  private sourceOf(origin: AttackOrigin, kind: 'critical' | 'fumble', criticalKey?: string): InjurySource {
+    const source: InjurySource = {
+      kind,
+      tacticalGameId: origin.game.id,
+      tacticalGameName: origin.game.name,
+      actionId: origin.action.id,
+      round: origin.game.round,
+      attackerId: origin.sourceActor.actorId,
+      attackerName: origin.sourceActor.actorName,
+    };
+    if (criticalKey) {
+      source.criticalKey = criticalKey;
+    }
+    return source;
+  }
+
+  /** What the hits log of an actor round keeps of the attack a change of hits comes from (spec 013, §1.1). */
+  private hpOrigin(origin: AttackOrigin, withAttacker: boolean): Pick<HpChange, 'actionId' | 'attackerId' | 'attackerName'> {
+    if (!withAttacker) {
+      return { actionId: origin.action.id };
+    }
+    return { actionId: origin.action.id, attackerId: origin.sourceActor.actorId, attackerName: origin.sourceActor.actorName };
+  }
+
+  /**
+   * Spec 013, §3: each critical with penalty or bleeding is an injury of the target (Slow and Rapid Bleeder: each new
+   * bleeding wound bleeds one less or one more per tier); its other effects keep its source. The effects that fall on
+   * the attacker (`applyTo: source`, a critical that heals it) go to the attacker. The location of the critical goes
+   * with the effects, for the breakage alerts. The hits are logged by origin (spec 013, §1.1): the attack table damage
+   * and each critical apart, and the healing of the attacker as a treatment.
+   */
   private processTargetEffects(
     actionAttack: ActionAttack,
     actors: ActorRound[],
+    origin: AttackOrigin,
     applications: Map<string, EffectApplication>,
     updateCommands: Map<string, AddEffectsCommand>,
     userId: string,
@@ -189,40 +243,78 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       throw new UnprocessableEntityError('Actor not found');
     }
     let dmg = 0;
+    let sourceHeal = 0;
     dmg += actionAttack.results?.attackTableEntry?.damage || 0;
+    const hpChanges: HpChange[] = [{ kind: 'attack', amount: -dmg, ...this.hpOrigin(origin, true) }];
+    const sourceHeals: HpChange[] = [];
     const criticalEffects: ActorRoundEffect[] = [];
-    // Slow and Rapid Bleeder: each new bleeding wound bleeds one less or one more per tier.
+    const injuries: AddEffectsCommand['injuries'] = [];
     const bleedingShift = ActorRoundTrait.tierOf(target.traits, RAPID_BLEEDER) - ActorRoundTrait.tierOf(target.traits, SLOW_BLEEDER);
+    const side = sideOfRoll(actionAttack.roll?.roll);
+    let location: AttackLocation | undefined = actionAttack.calculated?.location;
     actionAttack.results?.criticals?.forEach(cr => {
-      dmg += cr.result?.damage || 0;
-      cr.result?.effects?.forEach(e => {
-        let value = e.value;
-        if (e.status === 'bleeding' && bleedingShift !== 0) {
-          value = (value ?? 0) + bleedingShift;
-          if (value <= 0) {
-            return;
-          }
-        }
-        const effect = new ActorRoundEffect(randomUUID(), e.status, value, e.rounds);
-        criticalEffects.push(effect);
+      const criticalDmg = cr.result?.damage || 0;
+      dmg += criticalDmg;
+      location = location ?? toAttackLocation(cr.result?.location);
+      const criticalKey = `${cr.criticalType}-${cr.criticalSeverity}-${cr.adjustedRoll ?? ''}`;
+      const source = this.sourceOf(origin, 'critical', criticalKey);
+      hpChanges.push({ kind: 'critical', amount: -criticalDmg, criticalKey, ...this.hpOrigin(origin, true) });
+      const toSource = (cr.result?.effects || []).filter(e => e.applyTo === 'source');
+      const heal = toSource.filter(e => e.status === HEAL).reduce((sum, e) => sum + Math.max(0, e.value ?? 0), 0);
+      sourceHeal += heal;
+      sourceHeals.push({ kind: 'treatment', amount: heal, criticalKey, ...this.hpOrigin(origin, false) });
+      const built = CriticalInjuryFactory.build({
+        effects: (cr.result?.effects || []).filter(e => e.applyTo !== 'source'),
+        criticalType: cr.criticalType,
+        location: cr.result?.location,
+        side,
+        injury: cr.result?.injury,
+        bleedingShift,
+        source,
       });
+      injuries.push(...built.injuries);
+      built.effects.forEach(e =>
+        criticalEffects.push(
+          new ActorRoundEffect(randomUUID(), e.status, e.value, e.rounds, undefined, undefined, undefined, undefined, source),
+        ),
+      );
     });
-    if (dmg === 0 && criticalEffects.length === 0) {
+    if (sourceHeal > 0) {
+      const sourceCmd = this.commandFor(origin.sourceActor, applications, updateCommands, userId, roles);
+      sourceCmd.heal += sourceHeal;
+      sourceCmd.hpChanges.push(...sourceHeals.filter(change => change.amount > 0));
+    }
+    if (dmg === 0 && criticalEffects.length === 0 && injuries.length === 0) {
       return;
     }
-    if (updateCommands.has(target.id)) {
-      const cmd = updateCommands.get(target.id)!;
-      cmd.dmg += dmg || 0;
-      cmd.effects.push(...criticalEffects);
-    } else {
-      const cmd = new AddEffectsCommand(target.id, dmg, criticalEffects, undefined, userId, roles, applications.get(target.id));
-      updateCommands.set(target.id, cmd);
-    }
+    const cmd = this.commandFor(target, applications, updateCommands, userId, roles);
+    cmd.dmg += dmg || 0;
+    cmd.hpChanges.push(...hpChanges.filter(change => change.amount !== 0));
+    cmd.effects.push(...criticalEffects);
+    cmd.injuries.push(...injuries);
+    cmd.location = cmd.location ?? location;
   }
 
+  /** The effects command of an actor round, created the first time. */
+  private commandFor(
+    actor: ActorRound,
+    applications: Map<string, EffectApplication>,
+    updateCommands: Map<string, AddEffectsCommand>,
+    userId: string,
+    roles: string[],
+  ): AddEffectsCommand {
+    let cmd = updateCommands.get(actor.id);
+    if (!cmd) {
+      cmd = new AddEffectsCommand(actor.id, 0, [], undefined, userId, roles, applications.get(actor.id));
+      updateCommands.set(actor.id, cmd);
+    }
+    return cmd;
+  }
+
+  /** A fumble: its penalty and bleeding are an injury of the attacker (spec 013, §3), the rest effects. */
   private processSourceEffects(
     actionAttack: ActionAttack,
-    actor: ActorRound,
+    origin: AttackOrigin,
     applications: Map<string, EffectApplication>,
     updateCommands: Map<string, AddEffectsCommand>,
     userId: string,
@@ -231,24 +323,30 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     if (!actionAttack.results?.fumble) {
       return;
     }
+    const actor = origin.sourceActor;
     const fumble = actionAttack.results.fumble;
-    const effects: ActorRoundEffect[] = [];
-    fumble.effects?.forEach(e => {
-      const effect = new ActorRoundEffect(randomUUID(), e.status, e.value, e.rounds);
-      effects.push(effect);
+    const source = this.sourceOf(origin, 'fumble');
+    const bleedingShift = ActorRoundTrait.tierOf(actor.traits, RAPID_BLEEDER) - ActorRoundTrait.tierOf(actor.traits, SLOW_BLEEDER);
+    const built = CriticalInjuryFactory.build({
+      effects: fumble.effects || [],
+      side: sideOfRoll(actionAttack.roll?.roll),
+      bleedingShift,
+      source,
     });
+    const effects = built.effects.map(
+      e => new ActorRoundEffect(randomUUID(), e.status, e.value, e.rounds, undefined, undefined, undefined, undefined, source),
+    );
     const dmg = fumble.damage || 0;
-    if (dmg === 0 && effects.length === 0) {
+    if (dmg === 0 && effects.length === 0 && built.injuries.length === 0) {
       return;
     }
-    if (updateCommands.has(actor.id)) {
-      const cmd = updateCommands.get(actor.id)!;
-      cmd.dmg += dmg;
-      cmd.effects.push(...effects);
-    } else {
-      const cmd = new AddEffectsCommand(actor.id, dmg, effects, undefined, userId, roles, applications.get(actor.id));
-      updateCommands.set(actor.id, cmd);
+    const cmd = this.commandFor(actor, applications, updateCommands, userId, roles);
+    cmd.dmg += dmg;
+    if (dmg !== 0) {
+      cmd.hpChanges.push({ kind: 'fumble', amount: -dmg, ...this.hpOrigin(origin, false) });
     }
+    cmd.effects.push(...effects);
+    cmd.injuries.push(...built.injuries);
   }
 
   /**
@@ -301,14 +399,9 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     if (effects.length === 0 && consumed.length === 0) {
       return;
     }
-    const existing = updateCommands.get(actor.id);
-    if (existing) {
-      existing.effects.push(...effects);
-      existing.consumedEffectIds.push(...consumed);
-    } else {
-      const cmd = new AddEffectsCommand(actor.id, 0, effects, undefined, userId, roles, applications.get(actor.id), consumed);
-      updateCommands.set(actor.id, cmd);
-    }
+    const cmd = this.commandFor(actor, applications, updateCommands, userId, roles);
+    cmd.effects.push(...effects);
+    cmd.consumedEffectIds.push(...consumed);
   }
 
   private async processFatigue(

@@ -1,5 +1,6 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
@@ -15,6 +16,7 @@ export class UpdateActionHandler implements ICommandHandler<UpdateActionCommand,
 
   constructor(
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
+    @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
     private readonly apStateService: ActionApStateService,
   ) {}
@@ -23,6 +25,7 @@ export class UpdateActionHandler implements ICommandHandler<UpdateActionCommand,
     this.logger.log(`Execute << ${JSON.stringify(command)}`);
     const action = await this.actionRepository.findById(command.actionId);
     if (!action) throw new NotFoundError('Action', command.actionId);
+    (await this.gameRepository.findById(action.gameId))?.checkNotFinished();
     if (command.description !== undefined) {
       action.description = command.description;
     }

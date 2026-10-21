@@ -13,21 +13,21 @@ describe('ActorRound hits and death (§9.8 Hits)', () => {
   it('leaves an unconscious actor unconscious in the upkeep', () => {
     const round = load({ hp: [50, 10] });
     round.applyAttackResults(20, [], undefined);
-    expect(statuses(round)).toEqual(['unconcious']);
+    expect(statuses(round)).toEqual(['unconscious']);
 
     round.applyUpkeep();
 
     expect(round.isDead()).toBe(false);
-    expect(statuses(round)).toEqual(['unconcious']);
+    expect(statuses(round)).toEqual(['unconscious']);
   });
 
   it('kills a dying actor when its rounds run out, and drops the dying effect', () => {
-    const round = load({ hp: [50, -5], effects: [effect('unconcious'), effect('dying', undefined, 1)] });
+    const round = load({ hp: [50, -5], effects: [effect('unconscious'), effect('dying', undefined, 1)] });
 
     round.applyUpkeep();
 
     expect(round.isDead()).toBe(true);
-    expect(statuses(round)).toEqual(['unconcious', 'dead']);
+    expect(statuses(round)).toEqual(['unconscious', 'dead']);
   });
 
   it('keeps a dying actor alive while it has rounds left', () => {
@@ -63,7 +63,7 @@ describe('ActorRound hits and death (§9.8 Hits)', () => {
   });
 
   it('dies in the upkeep when bleeding takes it beyond the threshold', () => {
-    const round = load({ hp: [80, -18, 20], effects: [effect('unconcious'), effect('bleeding', 3)] });
+    const round = load({ hp: [80, -18, 20], effects: [effect('unconscious'), effect('bleeding', 3)] });
 
     round.applyUpkeep();
 

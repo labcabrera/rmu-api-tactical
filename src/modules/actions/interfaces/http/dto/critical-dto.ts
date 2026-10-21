@@ -16,6 +16,9 @@ export class CriticalEffectDto {
 
   @ApiProperty({ description: 'Effect condition', example: 'stunned' })
   condition: string | undefined;
+
+  @ApiProperty({ description: 'source: falls on the attacker', required: false, enum: ['source', 'target'] })
+  applyTo?: 'source' | 'target';
 }
 
 export class CriticalResultDto {
@@ -30,6 +33,9 @@ export class CriticalResultDto {
 
   @ApiProperty({ description: 'List of effects', type: [CriticalEffectDto], required: false })
   effects: CriticalEffectDto[];
+
+  @ApiProperty({ description: 'Injury data of the entry (spec 013): type, secondary types and flags', required: false, type: Object })
+  injury?: { type: string; secondary?: string[]; flags?: string[] };
 }
 
 export class CriticalDto {
@@ -70,8 +76,10 @@ export class CriticalDto {
                 value: effect.value,
                 delay: effect.delay,
                 condition: effect.condition,
+                applyTo: effect.applyTo,
               }))
             : [],
+          injury: entity.result.injury,
         }
       : undefined;
     return dto;

@@ -1,3 +1,4 @@
+import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import type { ManeuverPort } from '../../../../actions/application/ports/maneuver.port';
@@ -8,7 +9,7 @@ import { ResolveEnduranceCheckCommand } from '../commands/resolve-endurance-chec
 
 /**
  * Endurance roll (§5.5, Table 5-5, M6): the result's fatigue goes into the actor's fatigue penalty, which every
- * action then takes as the `fatigue` penalty source, and its hits are taken. The +5 of an absolute success to the
+ * action then takes as the `fatigue` penalty source, and its hits are taken. Fatigue beyond -50 is an injury (spec 013). The +5 of an absolute success to the
  * next action is not modelled: it is in the result message for the game master.
  */
 @CommandHandler(ResolveEnduranceCheckCommand)
@@ -18,6 +19,7 @@ export class ResolveEnduranceCheckHandler implements ICommandHandler<ResolveEndu
   constructor(
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('ManeuverPort') private readonly maneuverPort: ManeuverPort,
+    @Inject('GameRepository') private readonly gameRepository: GameRepository,
   ) {}
 
   async execute(command: ResolveEnduranceCheckCommand): Promise<ActorRound> {
@@ -25,6 +27,8 @@ export class ResolveEnduranceCheckHandler implements ICommandHandler<ResolveEndu
 
     const actorRound = await this.actorRoundRepository.findById(command.roundActorId);
     if (!actorRound) throw new NotFoundError('ActorRound', command.roundActorId);
+    const game = await this.gameRepository.findById(actorRound.gameId);
+    game?.checkNotFinished();
 
     if (command.alertId && !actorRound.alerts.some(a => a.id === command.alertId)) {
       throw new ValidationError(`Alert ${command.alertId} not found in the actor round`);
@@ -37,7 +41,8 @@ export class ResolveEnduranceCheckHandler implements ICommandHandler<ResolveEndu
     const result = await this.maneuverPort.endurance(command.roll + modifiers);
     this.logger.debug(`Endurance check result: ${JSON.stringify(result)}`);
 
-    actorRound.applyEnduranceResult(result.fatigue || 0, result.hitPoints || 0, command.alertId);
+    const phase = game && game.round === actorRound.round ? game.getEffectPhase() : undefined;
+    actorRound.applyEnduranceResult(result.fatigue || 0, result.hitPoints || 0, command.alertId, game?.name, phase);
     return this.actorRoundRepository.update(actorRound.id, actorRound);
   }
 }

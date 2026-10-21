@@ -1,11 +1,19 @@
 import { randomUUID } from 'crypto';
 import { BaseAggregateRoot } from '../../../shared/domain/aggregates/base-aggregate';
-import { NotModifiedError, ValidationError } from '../../../shared/domain/errors';
-import { GameCreatedEvent, GamePhaseStartedEvent, GameRoundStartedEvent, GameUpdatedEvent } from '../events/game.events';
+import { ConflictError, NotModifiedError, ValidationError } from '../../../shared/domain/errors';
+import {
+  GameAppliedEvent,
+  GameCreatedEvent,
+  GameFinishedEvent,
+  GamePhaseStartedEvent,
+  GameRoundStartedEvent,
+  GameUpdatedEvent,
+} from '../events/game.events';
 import { Actor } from '../value-objects/actor.vo';
 import { GameEnvironment } from '../value-objects/game-environment.vo';
 import { GamePhase } from '../value-objects/game-phase.vo';
 import { GameStatus } from '../value-objects/game-status.vo';
+import { TacticalGameOutcome, TacticalGameOutcomeCharacter } from '../value-objects/tactical-game-outcome.vo';
 import { GameProps } from './game.props';
 
 export class Game extends BaseAggregateRoot<GameProps> {
@@ -35,6 +43,9 @@ export class Game extends BaseAggregateRoot<GameProps> {
   ) {
     super(id);
   }
+
+  /** Set when the game is finished (spec 013, §3). */
+  public outcome: TacticalGameOutcome | undefined;
 
   static create(
     strategicGameId: string,
@@ -67,7 +78,7 @@ export class Game extends BaseAggregateRoot<GameProps> {
   }
 
   static fromProps(props: GameProps) {
-    return new Game(
+    const game = new Game(
       props.id,
       props.strategicGameId,
       props.name,
@@ -83,6 +94,61 @@ export class Game extends BaseAggregateRoot<GameProps> {
       props.createdAt,
       props.updatedAt,
     );
+    game.outcome = props.outcome;
+    return game;
+  }
+
+  isFinished(): boolean {
+    return this.status === 'finished';
+  }
+
+  /** A finished game only takes reads and `apply` (spec 013, §3). */
+  checkNotFinished(): void {
+    if (this.isFinished()) {
+      throw new ConflictError(`Game ${this.id} is finished`, 'err-game-finished');
+    }
+  }
+
+  /** Finishes the game with its outcome (spec 013, §3). Only a game in progress can be finished. */
+  finish(outcome: TacticalGameOutcome): void {
+    this.checkNotFinished();
+    if (this.status !== 'in_progress') {
+      throw new ValidationError(`Game ${this.id} is not in progress`, 'err-game-not-in-progress');
+    }
+    this.status = 'finished';
+    this.outcome = outcome;
+    this.updatedAt = new Date();
+    this.apply(new GameFinishedEvent(this));
+  }
+
+  /** The characters of the outcome not applied to the strategic model yet. */
+  pendingOutcomeCharacters(): TacticalGameOutcomeCharacter[] {
+    if (!this.isFinished() || !this.outcome) {
+      throw new ValidationError(`Game ${this.id} is not finished`, 'err-game-not-finished');
+    }
+    if (this.outcome.appliedAt) {
+      throw new ConflictError(`The outcome of game ${this.id} is already applied`, 'err-outcome-already-applied');
+    }
+    return this.outcome.characters.filter(character => !character.appliedAt);
+  }
+
+  /** Records the result of applying a character; the outcome is applied once every character is. */
+  markOutcomeApplied(actorId: string, error?: string): void {
+    const character = this.outcome?.characters.find(each => each.actorId === actorId);
+    if (!character) {
+      return;
+    }
+    if (error) {
+      character.error = error;
+    } else {
+      character.appliedAt = new Date().toISOString();
+      delete character.error;
+    }
+    if (this.outcome!.characters.every(each => !!each.appliedAt)) {
+      this.outcome!.appliedAt = new Date().toISOString();
+      this.apply(new GameAppliedEvent(this));
+    }
+    this.updatedAt = new Date();
   }
 
   update(
@@ -117,6 +183,7 @@ export class Game extends BaseAggregateRoot<GameProps> {
   }
 
   addFactions(factions: string[]) {
+    this.checkNotFinished();
     if (factions.length === 0) {
       throw new ValidationError(`No factions provided`);
     }
@@ -131,6 +198,7 @@ export class Game extends BaseAggregateRoot<GameProps> {
   }
 
   deleteFactions(factions: string[]) {
+    this.checkNotFinished();
     if (this.status !== 'created') {
       throw new ValidationError(`Cannot delete factions from a game that is not in 'created' status`);
     }
@@ -149,6 +217,7 @@ export class Game extends BaseAggregateRoot<GameProps> {
   }
 
   addActors(actors: Actor[]) {
+    this.checkNotFinished();
     if (actors.length === 0) {
       throw new ValidationError(`No actors provided`);
     }
@@ -166,6 +235,7 @@ export class Game extends BaseAggregateRoot<GameProps> {
   }
 
   deleteActors(ids: string[]) {
+    this.checkNotFinished();
     if (this.status !== 'created') {
       throw new ValidationError(`Cannot delete actors from a game that is not in 'created' status`);
     }
@@ -181,6 +251,7 @@ export class Game extends BaseAggregateRoot<GameProps> {
   }
 
   startRound() {
+    this.checkNotFinished();
     this.status = 'in_progress';
     this.phase = 'declare_initiative';
     this.round += 1;
@@ -189,6 +260,7 @@ export class Game extends BaseAggregateRoot<GameProps> {
   }
 
   startPhase() {
+    this.checkNotFinished();
     if (!Game.phaseTransitions.has(this.phase)) {
       throw new ValidationError(`Cannot start next phase from phase ${this.phase}`);
     }
@@ -220,6 +292,7 @@ export class Game extends BaseAggregateRoot<GameProps> {
   }
 
   checkValidActionManagement() {
+    this.checkNotFinished();
     if (this.status !== 'in_progress') {
       throw new ValidationError('Game is not in progress');
     }
@@ -242,6 +315,7 @@ export class Game extends BaseAggregateRoot<GameProps> {
       description: this.description,
       imageUrl: this.imageUrl,
       owner: this.owner,
+      outcome: this.outcome,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };

@@ -27,6 +27,7 @@ export class RandomizeInitiativesHandler implements ICommandHandler<RandomizeIni
     if (!game) {
       throw new NotFoundError('Game', gameId);
     }
+    game.checkNotFinished();
     // Flatfooted actors don't roll initiative (§8.3 Surprise); the penalties are applied when it is declared.
     const pendingActors = (await this.actorRoundRepository.findWithUndefinedInitiativeRoll(game.id, game.round)).filter(
       ar => !ar.isDead() && !ar.hasEffect('flatfooted'),

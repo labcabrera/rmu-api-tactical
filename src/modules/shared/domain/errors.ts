@@ -3,6 +3,8 @@ export class DomainError extends Error {
     message: string,
     public readonly statusCode: number = 500,
     public readonly errorCode: string = 'undefined_error',
+    /** Extra data for the client, such as the actors an error refers to. */
+    public readonly details?: unknown,
   ) {
     super(message);
     this.name = 'DomainError';
@@ -20,8 +22,8 @@ export class NotFoundError extends DomainError {
 export class UnprocessableEntityError extends DomainError {
   public readonly status: number = 422;
 
-  constructor(message: string) {
-    super(message, 422);
+  constructor(message: string, errorCode: string = 'undefined_error', details?: unknown) {
+    super(message, 422, errorCode, details);
     this.name = 'UnprocessableEntityError';
     Object.setPrototypeOf(this, UnprocessableEntityError.prototype);
   }
@@ -40,8 +42,8 @@ export class NotModifiedError extends DomainError {
 export class ConflictError extends DomainError {
   public readonly status: number = 409;
 
-  constructor(message: string) {
-    super(message, 409);
+  constructor(message: string, errorCode: string = 'undefined_error', details?: unknown) {
+    super(message, 409, errorCode, details);
     this.name = 'ConflictError';
     Object.setPrototypeOf(this, ConflictError.prototype);
   }
@@ -50,8 +52,8 @@ export class ConflictError extends DomainError {
 export class ValidationError extends DomainError {
   public readonly status: number = 400;
 
-  constructor(message: string, errorCode: string = 'validation_error') {
-    super(message, 400, errorCode);
+  constructor(message: string, errorCode: string = 'validation_error', details?: unknown) {
+    super(message, 400, errorCode, details);
     this.name = 'ValidationError';
     Object.setPrototypeOf(this, ValidationError.prototype);
   }

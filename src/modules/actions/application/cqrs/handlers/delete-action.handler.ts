@@ -1,6 +1,7 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
+import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError } from '../../../../shared/domain/errors';
 import { ActionDeletedEvent } from '../../../domain/events/action-events';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
@@ -14,6 +15,7 @@ export class DeleteActionHandler implements ICommandHandler<DeleteActionCommand>
 
   constructor(
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
+    @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
   ) {}
@@ -23,6 +25,7 @@ export class DeleteActionHandler implements ICommandHandler<DeleteActionCommand>
 
     const action = await this.actionRepository.findById(command.actionId);
     if (!action) throw new NotFoundError('Action', command.actionId);
+    (await this.gameRepository.findById(action.gameId))?.checkNotFinished();
 
     await this.actionRepository.deleteById(command.actionId);
     const actorRound = await this.actorRoundRepository.findByActorIdAndRound(action.gameId, action.actorId, action.round);

@@ -60,6 +60,9 @@ export class CriticalEffect {
 
   @Prop({ type: String, required: false })
   public condition: string | undefined;
+
+  @Prop({ type: String, required: false })
+  public applyTo?: 'source' | 'target';
 }
 
 @Schema({ _id: false })
@@ -75,6 +78,10 @@ export class CriticalResult {
 
   @Prop({ type: [CriticalEffect], required: true })
   public effects: CriticalEffect[];
+
+  /** Spec 013, §2: injury data of the critical entry. */
+  @Prop({ type: Object, required: false })
+  public injury?: { type: string; secondary?: string[]; flags?: string[] };
 }
 
 @Schema({ _id: false })

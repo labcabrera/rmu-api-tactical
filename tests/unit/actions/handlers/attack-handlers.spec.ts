@@ -40,7 +40,9 @@ const repositories = (action: Action, actors = createCombatPluginContext().actor
     findById: jest.fn(() => Promise.resolve(action)),
     update: jest.fn((_id: string, updated: Action) => Promise.resolve(updated)),
   } as unknown as ActionRepository;
-  const gameRepository = { findById: jest.fn(() => Promise.resolve({ id: 'game-1', round: 1 })) } as unknown as GameRepository;
+  const gameRepository = {
+    findById: jest.fn(() => Promise.resolve({ id: 'game-1', round: 1, checkNotFinished: () => undefined })),
+  } as unknown as GameRepository;
   const actorRoundUpdate = jest.fn(() => Promise.resolve());
   const actorRoundRepository = {
     findByActorIdAndRound: jest.fn((_gameId: string, actorId: string) => Promise.resolve(actors.find(actor => actor.actorId === actorId))),

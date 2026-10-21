@@ -2,6 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import type { GamePhase } from '../../../domain/value-objects/game-phase.vo';
 import type { GameStatus } from '../../../domain/value-objects/game-status.vo';
+import type { TacticalGameOutcome } from '../../../domain/value-objects/tactical-game-outcome.vo';
 import { Actor, GameEnvironment } from './game.model-childs';
 
 export type GameDocument = GameModel & Document;
@@ -43,6 +44,10 @@ export class GameModel {
 
   @Prop({ required: true })
   owner: string;
+
+  /** Spec 013: set when the game is finished. */
+  @Prop({ type: Object, required: false })
+  outcome?: TacticalGameOutcome;
 
   @Prop({ required: true })
   createdAt: Date;
