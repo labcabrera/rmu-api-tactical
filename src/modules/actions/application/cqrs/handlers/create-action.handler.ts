@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
@@ -6,14 +5,23 @@ import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-rou
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { Game } from '../../../../games/domain/aggregates/game.aggregate';
 import { ValidationError } from '../../../../shared/domain/errors';
+import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
 import { Action } from '../../../domain/aggregates/action.aggregate';
+import { ActionUpdatedEvent } from '../../../domain/events/action-events';
+import { ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo';
 import { ActionManeuver } from '../../../domain/value-objects/action-maneuver.vo';
+import { ActionResolution } from '../../../domain/value-objects/action-resolution.vo';
+import type { ManeuverActionPoints } from '../../../domain/value-objects/maneuver-profile.vo';
 import { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import type { SkillCatalogPort } from '../../ports/skill-catalog.port';
 import { CreateActionCommand } from '../commands/create-action.command';
 
+/**
+ * Declares an action (spec 011, §2): it records its AP in the ledger of the actor round and closes as `interrupted`
+ * the open action it replaces. A forced action (§6) takes no AP and starts in the current phase.
+ */
 @CommandHandler(CreateActionCommand)
 export class CreateActionHandler implements ICommandHandler<CreateActionCommand, Action> {
   private readonly logger = new Logger(CreateActionCommand.name);
@@ -24,6 +32,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
     @Inject('SkillCatalogPort') private readonly skillCatalog: SkillCatalogPort,
+    @Inject('CharacterClient') private readonly characterClient: CharacterPort,
   ) {}
 
   async execute(command: CreateActionCommand): Promise<Action> {
@@ -32,26 +41,52 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
 
     const game = await this.readGame(command);
     this.checkDeclareActionAllowed(game);
+    const currentPhase = game.getActionPhase();
 
     const round = game.round;
-    const [actorRound, roundActions] = await Promise.all([this.readActorRound(command, round), this.readActions(command, round)]);
+    const [actorRound, roundActions] = await Promise.all([this.readActorRound(command, round), this.readRoundActions(command, round)]);
+    const actorActions = roundActions.filter(action => action.actorId === command.actorId);
 
-    Action.checkDeclaration(actorRound, roundActions, command.phaseStart, command.freeAction, game.getActionPhase());
-    const maneuver = await this.mapManeuver(command);
+    const plan = Action.checkDeclaration(
+      actorRound,
+      actorActions,
+      { actionType: command.actionType, phaseStart: command.phaseStart, freeAction: command.freeAction, forced: command.forced?.reason },
+      currentPhase,
+      roundActions,
+    );
+    const { maneuver, apRange: maneuverRange } = await this.mapManeuver(command);
+    const apRange = maneuverRange ?? (await this.standUpRange(command));
+    const resolution = command.forced ? ActionResolution.forced(command.forced.reason, command.forced.note) : ActionResolution.normal();
     const action = Action.create(
       command.gameId,
       command.actorId,
       round,
       command.actionType,
       command.freeAction,
-      command.phaseStart,
+      command.forced ? currentPhase : command.phaseStart,
       maneuver,
       command.description,
       command.userId,
+      resolution,
+      apRange,
     );
+    action.applyDeclaration(actorRound, plan, currentPhase);
+    if (command.forced) {
+      this.logger.log(`Action ${action.id} of ${command.actorId} forced: ${command.forced.reason} ${command.forced.note ?? ''}`);
+    }
+
     const saved = await this.actionRepository.save(action);
-    const events = action.getUncommittedEvents();
-    events.forEach(event => this.actionEventBus.publish(event));
+    if (plan.spend || plan.interrupted.length > 0) {
+      await this.actorRoundRepository.update(actorRound.id, actorRound);
+    }
+    for (const interrupted of plan.interrupted) {
+      const updated = await this.actionRepository.update(interrupted.id, interrupted);
+      await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
+    }
+    for (const event of action.getUncommittedEvents()) {
+      await this.actionEventBus.publish(event);
+    }
+    saved.refreshApState(actorRound, currentPhase);
     return saved;
   }
 
@@ -72,9 +107,10 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     return actorRounds.content[0];
   }
 
-  private async readActions(command: CreateActionCommand, round: number): Promise<Action[]> {
-    const rsql = `gameId==${command.gameId};actorId==${command.actorId};round==${round}`;
-    const actions = await this.actionRepository.findByRsql(rsql, 0, 100);
+  /** Every action of the round: the actor's, and the foes' attacks with the actor's parries. */
+  private async readRoundActions(command: CreateActionCommand, round: number): Promise<Action[]> {
+    const rsql = `gameId==${command.gameId};round==${round}`;
+    const actions = await this.actionRepository.findByRsql(rsql, 0, 1000);
     return actions.content;
   }
 
@@ -98,14 +134,19 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     }
   }
 
-  private async mapManeuver(command: CreateActionCommand): Promise<ActionManeuver | null> {
+  /** The maneuver of the action, and the AP range of its skill's profile (Table 8-1). */
+  private async mapManeuver(
+    command: CreateActionCommand,
+  ): Promise<{ maneuver: ActionManeuver | null; apRange: ManeuverActionPoints | null }> {
     if (command.actionType !== 'maneuver') {
-      return null;
+      return { maneuver: null, apRange: null };
     }
     const declared = command.maneuver!;
     const continued = declared.continuesActionId ? await this.readContinuedManeuver(command) : null;
-    const maneuverType = continued ? 'percent' : declared.maneuverType || (await this.defaultManeuverType(declared.skillId));
-    return {
+    const skill = await this.skillCatalog.findSkill(declared.skillId);
+    const maneuverType: ManeuverType = continued ? 'percent' : declared.maneuverType || skill?.maneuver?.defaultType || 'absolute';
+    const range = skill?.maneuver?.actionPoints;
+    const maneuver: ActionManeuver = {
       modifiers: {
         skillId: declared.skillId,
         specialization: declared.specialization ?? continued?.maneuver?.modifiers.specialization ?? null,
@@ -118,11 +159,18 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       progress: maneuverType === 'percent' ? (continued?.maneuver?.progress ?? 0) : undefined,
       continuesActionId: continued?.id,
     };
+    return { maneuver, apRange: range ? { min: range.min, max: range.max } : null };
   }
 
-  private async defaultManeuverType(skillId: string): Promise<ManeuverType> {
-    const skill = await this.skillCatalog.findSkill(skillId);
-    return skill?.maneuver?.defaultType || 'absolute';
+  /** Standing up takes 1 AP to an actor with Acrobatics ranks (Table 8-1, §9.8 Prone). */
+  private async standUpRange(command: CreateActionCommand): Promise<ManeuverActionPoints | null> {
+    if (command.actionType !== 'stand_up') {
+      return null;
+    }
+    const character = await this.characterClient.findById(command.actorId);
+    const acrobatics = character?.skills?.find(skill => skill.skillId === 'acrobatics')?.ranks || 0;
+    const profile = ActionApProfile.forAction('stand_up', { acrobatics: acrobatics > 0 });
+    return { min: profile.min, max: profile.max };
   }
 
   /**

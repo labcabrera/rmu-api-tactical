@@ -6,5 +6,7 @@ export class ActorRoundInitiative {
     public total: number | undefined,
     /** Strike Reflex bonus declared with the roll, already in `total`. */
     public strikeReflex?: number,
+    /** Reflexes effect bonus (+10, +15 or +20) declared with the roll, already in `total`. */
+    public reflexes?: number,
   ) {}
 }

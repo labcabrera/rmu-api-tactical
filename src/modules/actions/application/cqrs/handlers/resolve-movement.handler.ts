@@ -43,7 +43,8 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     if (!actorRound) throw new NotFoundError('ActorRound', `${action.actorId} - ${action.round}`);
     if (!strategicGame) throw new NotFoundError('StrategicGame', game.strategicGameId);
 
-    const currentPhase = game.phase.replace('phase_', '') as unknown as number;
+    const currentPhase = game.getActionPhase();
+    action.checkResolvable(actorRound, currentPhase);
     await this.processAction(command, action, actorRound, strategicGame, currentPhase);
     const updated = await this.actionRepository.update(action.id, action);
     let actorRoundModified = false;
@@ -61,6 +62,7 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
       await this.actorRoundRepository.update(actorRound.id, actorRound);
     }
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
+    updated.refreshApState(actorRound, currentPhase);
     return updated;
   }
 
@@ -72,17 +74,17 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     currentPhase: number,
   ): Promise<void> {
     action.description = command.description;
-    action.phaseEnd = currentPhase;
-    action.actionPoints = action.phaseEnd - action.phaseStart + 1;
+    // AP from the ledger (spec 011, §9). An instantaneous movement takes none, but covers the phases it spans.
+    action.actionPoints = action.apOf(actorRound, currentPhase);
+    const distanceActionPoints = action.freeAction ? Math.max(1, currentPhase - action.phaseStart + 1) : action.actionPoints;
     action.movement = this.buildActionMovement(command);
     const fatigueMultiplier = strategicGame.options?.fatigueMultiplier ?? 1;
-    await this.movementProcessorService.process(command.roll, action, actorRound);
+    await this.movementProcessorService.process(command.roll, action, actorRound, distanceActionPoints);
     action.processFatigue(fatigueMultiplier);
     const scale = strategicGame.options?.boardScaleMultiplier || 1;
     action.movement.calculated.distanceAdjusted = action.movement.calculated.distance * scale;
     this.roundResults(action);
-    action.status = 'completed';
-    action.updatedAt = new Date();
+    action.close(actorRound, currentPhase);
   }
 
   private buildActionMovement(command: ResolveMovementCommand): ActionMovement {

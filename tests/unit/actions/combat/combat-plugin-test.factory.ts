@@ -181,7 +181,7 @@ export function rollModifierValues(ctx: CombatContext): Record<string, number> {
 
 /** Actor rounds with the aggregate's methods but only the fields the combat rules read. */
 const actorRound = (fields: Record<string, unknown>): ActorRound =>
-  Object.assign(Object.create(ActorRound.prototype) as ActorRound, fields);
+  Object.assign(Object.create(ActorRound.prototype) as ActorRound, { apLedger: [], apModifiers: [], apCapacity: [1, 1, 1, 1] }, fields);
 
 const penaltyOf = (penalties: Array<{ source: ActorRoundPenaltySource; value: number }> = []) =>
   new ActorRoundPenalty(penalties.map(({ source, value }, index) => new ActorRoundPenaltyModifier(`penalty-${index}`, source, value)));

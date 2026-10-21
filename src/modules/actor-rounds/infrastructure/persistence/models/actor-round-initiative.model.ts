@@ -16,4 +16,7 @@ export class ActorRoundInitiative {
 
   @Prop({ type: Number, required: false })
   strikeReflex?: number;
+
+  @Prop({ type: Number, required: false })
+  reflexes?: number;
 }

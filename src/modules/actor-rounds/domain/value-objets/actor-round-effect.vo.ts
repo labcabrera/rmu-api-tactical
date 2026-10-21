@@ -4,6 +4,41 @@ export const PRESSING_ADVANTAGE = 'pressing-advantage';
 /** Penalty to all actions in the round after inflicting a critical (Non-violent). */
 export const NON_VIOLENT = 'non-violent';
 
+/** Effects that change the action points of the round (spec 011, §1). */
+export const SURPRISED = 'surprised';
+export const FLATFOOTED = 'flatfooted';
+/** Loses 1 AP (or its value) in the phase it is applied in; removed in the upkeep once applied (§8.3). */
+export const STAGGERED = 'staggered';
+/** Haste and speed: `value` extra AP (1-4). */
+export const HASTE = 'haste';
+export const SPEED = 'speed';
+/** Reflexes: `value` extra AP (1-3) and +10/+15/+20 to the initiative. */
+export const REFLEXES = 'reflexes';
+/** Adrenal speed: `value` extra AP (2 or 4), only in the round it is applied in. */
+export const ADRENAL_SPEED = 'adrenal-speed';
+/** Hold Kind: loses `value` AP (3 when missing) from the first phase. */
+export const HOLD = 'hold';
+/** Mind distraction: loses `value` AP (1-3) from the first phase. */
+export const DISTRACTION = 'distraction';
+/** At most `value` AP in the round (Collapse Lung: 2). */
+export const AP_CAP = 'ap-cap';
+/** AP added (positive `value`) or taken (negative `value`) by the game master. */
+export const MANUAL_AP = 'manual';
+
+export const AP_EFFECT_STATUSES = [
+  SURPRISED,
+  FLATFOOTED,
+  STAGGERED,
+  HASTE,
+  SPEED,
+  REFLEXES,
+  ADRENAL_SPEED,
+  HOLD,
+  DISTRACTION,
+  AP_CAP,
+  MANUAL_AP,
+];
+
 export class ActorRoundEffect {
   constructor(
     public readonly id: string,

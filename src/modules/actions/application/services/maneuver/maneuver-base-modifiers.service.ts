@@ -3,6 +3,7 @@ import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-rou
 import { ValidationError } from '../../../../shared/domain/errors';
 import { Character } from '../../../../strategic/application/ports/character.port';
 import { Action } from '../../../domain/aggregates/action.aggregate';
+import { AP_PENALTY_PER_MISSING, ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo';
 import { SkillManeuverProfile } from '../../../domain/value-objects/maneuver-profile.vo';
 import { Pace } from '../../../domain/value-objects/pace.vo';
 
@@ -10,7 +11,7 @@ import { Pace } from '../../../domain/value-objects/pace.vo';
 export const UNSKILLED_BONUS = -25;
 
 /** §8.1: penalty per action point below the maximum of the action's range. */
-export const ACTION_POINT_PENALTY = -25;
+export const ACTION_POINT_PENALTY = AP_PENALTY_PER_MISSING;
 
 /** Table 5-3: penalty of the pace to the other actions of the round. */
 const PACE_PENALTIES: Record<string, number> = {
@@ -139,12 +140,12 @@ export class ManeuverBaseModifiersService {
     base.push({ key: 'pace', value: PACE_PENALTIES[pace] ?? 0, source: 'movement' });
   }
 
-  /** §8.1: -25 per AP below the maximum of the profile's range. */
+  /** §8.1: -25 per AP below the maximum of the profile's range (no penalty when the skill has no AP range). */
   private addActionPointsPenalty(base: ManeuverBaseModifier[], profile: SkillManeuverProfile, actionPoints: number | null): void {
     if (!profile.actionPoints || actionPoints === null || actionPoints === undefined) {
       return;
     }
-    const shortfall = Math.max(0, profile.actionPoints.max - actionPoints);
-    base.push({ key: 'action-points', value: shortfall * ACTION_POINT_PENALTY, source: 'action' });
+    const apProfile = ActionApProfile.forManeuver(profile.actionPoints);
+    base.push({ key: 'action-points', value: apProfile.penaltyFor(actionPoints), source: 'action' });
   }
 }

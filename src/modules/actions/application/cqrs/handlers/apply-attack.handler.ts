@@ -87,11 +87,12 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     await this.processDeclareActorParry(action, command.userId, command.roles);
     await this.processFatigue(action, game.round, strategicGame, command.userId, command.roles);
 
-    action.updatedAt = new Date();
-    action.phaseEnd = game.getActionPhase();
+    // The AP and the last phase of the attack come from the ledger (spec 011, §9).
     action.completeAttacks();
+    action.close(sourceActor, game.getActionPhase());
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
+    updated.refreshApState(sourceActor, game.getActionPhase());
     return updated;
   }
 
@@ -111,7 +112,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     actors.forEach(actor => {
       const actorActions = roundActions.filter(a => a.actorId === actor.actorId && a.id !== action.id);
       let spentInPhase = Action.completedApInPhase(actorActions, phase);
-      if (actor.actorId === action.actorId && !action.freeAction) {
+      if (actor.actorId === action.actorId && !action.freeAction && (action.actionPoints ?? 0) > 0) {
         spentInPhase = 1;
       }
       applications.set(actor.id, { phase, spentAp: actor.getSpentAp(phase, spentInPhase) });

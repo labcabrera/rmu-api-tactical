@@ -9,6 +9,7 @@ import { ErrorDto, PagedQueryDto } from '../../../shared/interfaces/http/dto';
 import { CompleteActionCommand } from '../../application/cqrs/commands/complete-action.command';
 import { CreateActionCommand } from '../../application/cqrs/commands/create-action.command';
 import { DeleteActionCommand } from '../../application/cqrs/commands/delete-action.command';
+import { ManageActionPointsCommand } from '../../application/cqrs/commands/manage-action-points.command';
 import { UpdateActionCommand } from '../../application/cqrs/commands/update-action.command';
 import { GetActionQuery } from '../../application/cqrs/queries/get-action.query';
 import { GetActionsQuery } from '../../application/cqrs/queries/get-actions.query';
@@ -16,6 +17,7 @@ import { Action } from '../../domain/aggregates/action.aggregate';
 import { ActionDto, ActionPageDto } from './dto/action.dto';
 import { CompleteActionDto } from './dto/complete-action.dto';
 import { CreateActionDto } from './dto/create-action.dto';
+import { ForceResolutionDto } from './dto/force-action.dto';
 import { UpdateActionDto } from './dto/update-action.dto';
 
 @UseGuards(JwtAuthGuard)
@@ -101,6 +103,43 @@ export class ActionController {
     const user = req.user!;
     const command = CompleteActionDto.toCommand(id, dto, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<CompleteActionCommand, Action>(command);
+    return ActionDto.fromEntity(entity);
+  }
+
+  @Patch(':id/spend-ap')
+  @ApiOperation({ operationId: 'spendActionPoint', summary: 'Spend one more AP of the current phase on an open action' })
+  @ApiOkResponse({ type: ActionDto, description: 'Success' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiResponse({ status: 400, description: 'No AP left in the phase, or the action is not open', type: ErrorDto })
+  async spendActionPoint(@Param('id') id: string, @Request() req) {
+    const user = req.user!;
+    const command = new ManageActionPointsCommand(id, 'spend-ap', user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<ManageActionPointsCommand, Action>(command);
+    return ActionDto.fromEntity(entity);
+  }
+
+  @Patch(':id/hold')
+  @ApiOperation({ operationId: 'holdAction', summary: 'Hold an action that has its maximum AP, to trigger it later' })
+  @ApiOkResponse({ type: ActionDto, description: 'Success' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiResponse({ status: 400, description: 'The action is not open or has fewer AP than its maximum', type: ErrorDto })
+  async hold(@Param('id') id: string, @Request() req) {
+    const user = req.user!;
+    const command = new ManageActionPointsCommand(id, 'hold', user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<ManageActionPointsCommand, Action>(command);
+    return ActionDto.fromEntity(entity);
+  }
+
+  @Patch(':id/force')
+  @ApiBody({ type: ForceResolutionDto })
+  @ApiOperation({ operationId: 'forceAction', summary: 'Resolve an open action out of turn (withdrawal, pass-through, effect, gm)' })
+  @ApiOkResponse({ type: ActionDto, description: 'Success' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
+  async force(@Param('id') id: string, @Body() dto: ForceResolutionDto, @Request() req) {
+    const user = req.user!;
+    const command = ForceResolutionDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<ManageActionPointsCommand, Action>(command);
     return ActionDto.fromEntity(entity);
   }
 }

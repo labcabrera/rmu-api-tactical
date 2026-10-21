@@ -57,13 +57,16 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     if (!strategicGame) throw new NotFoundError('StrategicGame', game.strategicGameId);
 
     game.checkValidActionManagement();
-    action.setActionPoints(game.getActionPhase());
+    const currentPhase = game.getActionPhase();
 
     const actorRoundIds = this.getActorIds(action, command);
     const actors = await this.actorRoundRepository.findByGameAndRoundAndActors(game.id, game.round, actorRoundIds);
     if (actorRoundIds.length !== actors.length) throw new UnprocessableEntityError('Missing actors in the current round');
 
     const sourceActorRound = actors.find(a => a.actorId === action.actorId)!;
+    // The AP of the attack come from the ledger; below the minimum it cannot be prepared unless forced (spec 011, §4).
+    action.checkResolvable(sourceActorRound, currentPhase);
+    action.actionPoints = action.apOf(sourceActorRound, currentPhase);
     const actionAttacks = command.attacks.map(attack => this.mapAttacks(attack, action, sourceActorRound));
 
     const characters = await this.readCharacters(actors, action.actorId);
@@ -104,15 +107,13 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     action.attacks = actionAttacks;
 
     const targetActors = actors.filter(a => a.actorId !== action.actorId);
-    action.processParryOptions(targetActors, roundActions, game.getActionPhase());
-
-    //TODO check effects and intermediate actions
-    action.actionPoints = game.getActionPhase() - action.phaseStart + 1;
+    action.processParryOptions(targetActors, roundActions, currentPhase);
     action.markPrepared();
 
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
+    updated.refreshApState(sourceActorRound, currentPhase);
     return updated;
   }
 
@@ -197,7 +198,8 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const actorRoundTarget = ctx.targetActor!;
     const attackInfo = ctx.sourceAttack!;
 
-    const actionPoints = action.freeAction ? (attack.type === 'melee' ? 4 : 3) : action.actionPoints!;
+    // From the ledger: a legacy free attack has its full AP and an attack forced by an effect takes no AP penalty.
+    const actionPoints = action.actionPoints ?? 0;
 
     const situationalModifiers: CombatAttackSituationalModifiers = {
       cover: (attackModifiers.cover || 'none') as Cover,

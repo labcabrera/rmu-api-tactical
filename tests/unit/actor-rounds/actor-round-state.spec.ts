@@ -47,17 +47,17 @@ describe('ActorRound surprise (§8.3 Surprise)', () => {
     surprised.applyAttackResults(0, [effect('surprised')], undefined, { phase: 0, spentAp: 0 });
     perceptive.applyAttackResults(0, [effect('surprised', 1)], undefined, { phase: 0, spentAp: 0 });
 
-    expect(surprised.getLostActionPoints()).toBe(2);
+    expect(surprised.apCapacity).toEqual([0, 0, 1, 1]);
     expect(surprised.effects[0]).toMatchObject({ value: 2, rounds: 1 });
-    expect(perceptive.getLostActionPoints()).toBe(1);
-    expect(load({}).getLostActionPoints()).toBe(0);
+    expect(perceptive.apCapacity).toEqual([0, 1, 1, 1]);
+    expect(load({}).apCapacity).toEqual([1, 1, 1, 1]);
   });
 
   it('loses every AP when flatfooted', () => {
     const round = load({});
     round.applyAttackResults(0, [effect('flatfooted')], undefined, { phase: 0, spentAp: 0 });
 
-    expect(round.getLostActionPoints()).toBe(4);
+    expect(round.apCapacity).toEqual([0, 0, 0, 0]);
   });
 
   it('rejects a surprise that loses other than 1 or 2 AP', () => {

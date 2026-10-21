@@ -21,6 +21,10 @@ export class ActorRoundInitiativeDto {
   @IsOptional()
   strikeReflex?: number;
 
+  @ApiProperty({ description: 'Reflexes effect bonus declared with the roll, already in the total', required: false, example: 15 })
+  @IsOptional()
+  reflexes?: number;
+
   static fromEntity(model: ActorRoundInitiative): ActorRoundInitiativeDto {
     const dto = new ActorRoundInitiativeDto();
     dto.base = model.base;
@@ -28,6 +32,7 @@ export class ActorRoundInitiativeDto {
     dto.roll = model.roll;
     dto.total = model.total;
     dto.strikeReflex = model.strikeReflex;
+    dto.reflexes = model.reflexes;
     return dto;
   }
 }

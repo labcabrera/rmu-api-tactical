@@ -228,7 +228,7 @@ describe('Combat talents', () => {
         round: 1,
         strategicGameId: 'sg-1',
         checkValidActionManagement: () => undefined,
-        getActionPhase: () => 1,
+        getActionPhase: () => 2, // a melee attack needs 2 AP to be prepared (spec 011)
       };
       const handler = new PrepareAttackHandler(
         { findById: jest.fn(() => Promise.resolve(game)) } as unknown as GameRepository,

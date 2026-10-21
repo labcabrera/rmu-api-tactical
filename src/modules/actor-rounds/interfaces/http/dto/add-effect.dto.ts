@@ -13,7 +13,12 @@ export class AddEffectDto {
   @IsString()
   status: string;
 
-  /** For `surprised`, the action points lost: 2, or 1 after a successful Perception (2 when missing). */
+  /**
+   * For `surprised`, the action points lost: 2, or 1 after a successful Perception (2 when missing). For the AP effects
+   * (spec 011): `staggered` AP lost in the phase (1 when missing), `haste`/`speed` extra AP (1-4), `reflexes` (1-3),
+   * `adrenal-speed` (2 or 4), `hold` AP lost (3 when missing), `distraction` (1-3), `ap-cap` the most AP of the round,
+   * `manual` AP added (positive) or taken (negative).
+   */
   @IsOptional()
   @IsNumber()
   value: number | undefined;

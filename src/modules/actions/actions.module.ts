@@ -16,6 +16,8 @@ import { DeleteActionHandler } from './application/cqrs/handlers/delete-action.h
 import { GetActionQueryHandler } from './application/cqrs/handlers/get-action.handler';
 import { GetActionsQueryHandler } from './application/cqrs/handlers/get-actions.handler';
 import { GetManeuverModifiersHandler } from './application/cqrs/handlers/get-maneuver-modifiers.handler';
+import { ManageActionPointsHandler } from './application/cqrs/handlers/manage-action-points.handler';
+import { UpdateActionHandler } from './application/cqrs/handlers/update-action.handler';
 import { PrepareAttackHandler } from './application/cqrs/handlers/prepare-attack.handler';
 import { CompleteActionHandler } from './application/cqrs/handlers/complete-action.handler';
 import { ResolveManeuverHandler } from './application/cqrs/handlers/resolve-maneuver.handler';
@@ -30,6 +32,7 @@ import {
   CombatPluginRegistryService,
   CombatProcessor,
 } from './application/services/combat';
+import { ActionApStateService } from './application/services/action-ap-state.service';
 import { MovementProcessorService } from './application/services/movement-processor.service';
 import { ManeuverBaseModifiersService } from './application/services/maneuver/maneuver-base-modifiers.service';
 import { ManeuverContextService } from './application/services/maneuver/maneuver-context.service';
@@ -60,6 +63,7 @@ import { MovementController } from './interfaces/http/movement.controller';
   ],
   controllers: [ActionController, AttackController, MovementController, ManeuverController],
   providers: [
+    ActionApStateService,
     MovementProcessorService,
     ManeuverBaseModifiersService,
     ManeuverContextService,
@@ -70,6 +74,8 @@ import { MovementController } from './interfaces/http/movement.controller';
     GetActionsQueryHandler,
     GetManeuverModifiersHandler,
     CreateActionHandler,
+    UpdateActionHandler,
+    ManageActionPointsHandler,
     DeleteActionHandler,
     ResolveMovementHandler,
     ResolveManeuverHandler,

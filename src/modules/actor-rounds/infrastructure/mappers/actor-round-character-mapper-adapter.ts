@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ValidationError } from '../../../shared/domain/errors';
 import { Character } from '../../../strategic/application/ports/character.port';
 import { ActorRoundCharacterMapperPort } from '../../application/ports/actor-round-character-mapper-port';
-import { ActorRound } from '../../domain/aggregates/actor-round.aggregate';
+import { ActorRound, BASE_ACTION_POINTS } from '../../domain/aggregates/actor-round.aggregate';
 import { ActorRoundAlert } from '../../domain/value-objets/actor-round-alert.vo';
 import { ActorRoundAttack } from '../../domain/value-objets/actor-round-attack.vo';
 import { ActorRoundDefense } from '../../domain/value-objets/actor-round-defense.vo';
@@ -15,7 +15,6 @@ import { ActorRoundPenalty } from '../../domain/value-objets/actor-round-penalty
 import { ActorRoundShield } from '../../domain/value-objets/actor-round-shield.vo';
 import { ActorRoundTrait } from '../../domain/value-objets/actor-round-trait.vo';
 
-const DEFAULT_ACTION_POINTS = 4;
 const ACTOR_SIZES: Record<string, number> = { medium: 0, small: -1, big: 1 };
 const BODY_DEVELOPMENT_SKILL_ID = 'body-development';
 
@@ -47,7 +46,7 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
       character.faction.id,
       movement,
       new ActorRoundInitiative(character.initiative.totalBonus, 0, undefined, undefined),
-      DEFAULT_ACTION_POINTS,
+      BASE_ACTION_POINTS,
       new ActorRoundHP(character.hp.max, character.hp.current, this.getDeathThreshold(character)),
       ActorRoundFatigue.empty(),
       ActorRoundPenalty.empty(),

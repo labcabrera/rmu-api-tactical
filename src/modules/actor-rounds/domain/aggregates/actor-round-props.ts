@@ -12,6 +12,8 @@ import { ActorRoundPhaseLog } from '../value-objets/actor-round-phase-log.vo';
 import { ActorRoundTrait } from '../value-objets/actor-round-trait.vo';
 import { ActorRoundUsedBo } from '../value-objets/actor-round-used-bo.vo';
 import { ActorType } from '../value-objets/actor-type.vo';
+import { ApLedgerEntry } from '../value-objets/ap-ledger-entry.vo';
+import { ApModifier } from '../value-objets/ap-modifier.vo';
 
 export interface ActorRoundProps {
   id: string;
@@ -42,6 +44,12 @@ export interface ActorRoundProps {
   traits?: ActorRoundTrait[];
   /** Missing in actor rounds stored before it existed: empty. */
   phaseLog?: ActorRoundPhaseLog[];
+  /** Derived from the effects: recomputed when read. */
+  apModifiers?: ApModifier[];
+  /** Derived from the modifiers and the ledger: recomputed when read. */
+  apCapacity?: number[];
+  /** Missing or empty in actor rounds stored before it existed: rebuilt from the phase log. */
+  apLedger?: ApLedgerEntry[];
   imageUrl: string | undefined;
   owner: string;
   createdAt: Date;

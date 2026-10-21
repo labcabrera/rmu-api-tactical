@@ -1,4 +1,5 @@
 import { ActionType } from '../../../domain/value-objects/action-type.vo';
+import type { ForceReason } from '../../../domain/value-objects/action-resolution.vo';
 import { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo';
 
 export class CreateActionCommand {
@@ -9,11 +10,17 @@ export class CreateActionCommand {
     public readonly freeAction: boolean,
     public readonly phaseStart: number,
     public readonly maneuver: CreateActionCommandManeuver | undefined,
-    public readonly attackNames: string[] | undefined,
     public readonly description: string,
     public readonly userId: string,
     public readonly roles: string[],
+    /** A new action forced out of turn (spec 011, §6): an effect or the game master. */
+    public readonly forced?: CreateActionCommandForced,
   ) {}
+}
+
+export class CreateActionCommandForced {
+  reason: ForceReason;
+  note?: string;
 }
 
 export class CreateActionCommandManeuver {
