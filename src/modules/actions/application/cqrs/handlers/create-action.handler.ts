@@ -8,8 +8,10 @@ import { Game } from '../../../../games/domain/aggregates/game.aggregate';
 import { ValidationError } from '../../../../shared/domain/errors';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionManeuver } from '../../../domain/value-objects/action-maneuver.vo';
+import { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
+import type { SkillCatalogPort } from '../../ports/skill-catalog.port';
 import { CreateActionCommand } from '../commands/create-action.command';
 
 @CommandHandler(CreateActionCommand)
@@ -21,6 +23,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
+    @Inject('SkillCatalogPort') private readonly skillCatalog: SkillCatalogPort,
   ) {}
 
   async execute(command: CreateActionCommand): Promise<Action> {
@@ -34,7 +37,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     const [actorRound, roundActions] = await Promise.all([this.readActorRound(command, round), this.readActions(command, round)]);
 
     Action.checkDeclaration(actorRound, roundActions, command.phaseStart, command.freeAction, game.getActionPhase());
-    const maneuver = this.mapManeuver(command);
+    const maneuver = await this.mapManeuver(command);
     const action = Action.create(
       command.gameId,
       command.actorId,
@@ -95,22 +98,61 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     }
   }
 
-  private mapManeuver(command: CreateActionCommand): ActionManeuver | null {
-    switch (command.actionType) {
-      case 'maneuver':
-        return {
-          modifiers: {
-            skillId: command.maneuver!.skillId,
-            maneuverType: command.maneuver!.maneuverType,
-            difficulty: 'm',
-            customBonus: 0,
-            lightModifier: 'none',
-            light: 'no_shadows',
-            armorModifier: false,
-          },
-        };
-      default:
-        return null;
+  private async mapManeuver(command: CreateActionCommand): Promise<ActionManeuver | null> {
+    if (command.actionType !== 'maneuver') {
+      return null;
     }
+    const declared = command.maneuver!;
+    const continued = declared.continuesActionId ? await this.readContinuedManeuver(command) : null;
+    const maneuverType = continued ? 'percent' : declared.maneuverType || (await this.defaultManeuverType(declared.skillId));
+    return {
+      modifiers: {
+        skillId: declared.skillId,
+        specialization: declared.specialization ?? continued?.maneuver?.modifiers.specialization ?? null,
+        maneuverType,
+        difficulty: 'm',
+        customBonus: 0,
+        lightModifier: 'none',
+        light: 'no_shadows',
+      },
+      progress: maneuverType === 'percent' ? (continued?.maneuver?.progress ?? 0) : undefined,
+      continuesActionId: continued?.id,
+    };
+  }
+
+  private async defaultManeuverType(skillId: string): Promise<ManeuverType> {
+    const skill = await this.skillCatalog.findSkill(skillId);
+    return skill?.maneuver?.defaultType || 'absolute';
+  }
+
+  /**
+   * §4.4 of spec 010: a maneuver continues a resolved percent maneuver of the same actor and skill whose task is not
+   * complete yet, and inherits its progress.
+   */
+  private async readContinuedManeuver(command: CreateActionCommand): Promise<Action> {
+    const declared = command.maneuver!;
+    const continued = await this.actionRepository.findById(declared.continuesActionId!);
+    const code = 'err-maneuver-invalid-continuation';
+    if (!continued || continued.actionType !== 'maneuver' || !continued.maneuver) {
+      throw new ValidationError(`Action ${declared.continuesActionId} is not a maneuver to continue`, code);
+    }
+    const modifiers = continued.maneuver.modifiers;
+    if (continued.actorId !== command.actorId || continued.gameId !== command.gameId) {
+      throw new ValidationError('A maneuver can only continue another maneuver of the same actor', code);
+    }
+    if (modifiers.maneuverType !== 'percent') {
+      throw new ValidationError('Only a percent maneuver can be continued', code);
+    }
+    if (declared.maneuverType && declared.maneuverType !== 'percent') {
+      throw new ValidationError('The continuation of a percent maneuver is a percent maneuver', code);
+    }
+    if (continued.status !== 'completed' || continued.maneuver.result?.completed) {
+      throw new ValidationError('Only a resolved percent maneuver whose task is not complete can be continued', code);
+    }
+    const sameSpecialization = !declared.specialization || (modifiers.specialization || null) === declared.specialization;
+    if (modifiers.skillId !== declared.skillId || !sameSpecialization) {
+      throw new ValidationError('The continuation of a maneuver uses the same skill', code);
+    }
+    return continued;
   }
 }

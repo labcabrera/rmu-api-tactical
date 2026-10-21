@@ -21,7 +21,7 @@ export class ResolveMovementRequestDto {
     return new ResolveMovementCommand(
       actionId,
       ActionMovementModifiersDto.toEntity(dto.modifiers),
-      dto.roll?.roll || null,
+      dto.roll?.roll ?? null,
       dto.description,
       userId,
       roles,

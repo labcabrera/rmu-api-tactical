@@ -1,18 +1,26 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
-import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
+import { ActorRoundAlert } from '../../../../actor-rounds/domain/value-objets/actor-round-alert.vo';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import type { Character, CharacterPort } from '../../../../strategic/application/ports/character.port';
-import type { StrategicGamePort } from '../../../../strategic/application/ports/strategic-game.port';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
+import { ActionManeuverResult } from '../../../domain/value-objects/action-maneuver.vo';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import type { ManeuverPort } from '../../ports/maneuver.port';
-import { AbsoluteManeuverProcessorService } from '../../services/absolute-maneuver-processor.service';
+import { ManeuverContext, ManeuverContextService, ManeuverRollCalculation } from '../../services/maneuver/maneuver-context.service';
 import { ResolveManeuverCommand } from '../commands/resolve-maneuver.commands';
+
+/** Unmodified roll of an unusual event (§5.1). */
+const UNUSUAL_EVENT_ROLL = 66;
+
+/** Percent a task needs to be complete (§5.1). */
+const COMPLETED_PERCENT = 100;
+
+/** Critical type of the alert of a moving maneuver gone wrong, as the movement roll uses it. */
+const MOVING_MANEUVER_CRITICAL_TYPE = 'k';
 
 @CommandHandler(ResolveManeuverCommand)
 export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCommand, Action> {
@@ -22,11 +30,9 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('CharacterClient') private readonly characterClient: CharacterPort,
-    @Inject('StrategicGameClient') private readonly strategicGameClient: StrategicGamePort,
     @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
     @Inject('ManeuverPort') private readonly maneuverPort: ManeuverPort,
-    private readonly absoluteManeuverProcessorService: AbsoluteManeuverProcessorService,
+    private readonly maneuverContextService: ManeuverContextService,
   ) {}
 
   async execute(command: ResolveManeuverCommand): Promise<Action> {
@@ -38,54 +44,114 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     if (!game) throw new NotFoundError('Game', action.gameId);
 
     this.validate(command, action);
-    const [actorRound, character, strategicGame] = await Promise.all([
-      this.actorRoundRepository.findByActorIdAndRound(action.gameId, action.actorId, action.round),
-      this.characterClient.findById(action.actorId),
-      this.strategicGameClient.findById(game.strategicGameId),
-    ]);
-    if (!actorRound) throw new NotFoundError('ActorRound', `${action.actorId} - ${action.round}`);
-    if (!character) throw new NotFoundError('Character', action.actorId);
-    if (!strategicGame) throw new NotFoundError('StrategicGame', game.strategicGameId);
+    const currentPhase = parseInt((game.phase || '').replace('phase_', ''));
+    if (Number.isNaN(currentPhase)) {
+      throw new ValidationError(`Phase ${game.phase} does not allow resolving actions`);
+    }
+    action.phaseEnd = currentPhase;
+    action.actionPoints = action.freeAction ? 0 : action.phaseEnd - action.phaseStart + 1;
 
-    const currentPhase = game.phase.replace('phase_', '') as unknown as number;
+    const request = command.request;
+    const context = await this.maneuverContextService.load(action, game, {
+      skillId: request.skillId,
+      specialization: request.specialization,
+      maneuverType: request.maneuverType,
+      actionPoints: action.actionPoints,
+    });
+    const calculation = this.maneuverContextService.calculate(context, request, command.roll.roll);
+    this.updateModifiers(action, command, context, calculation);
+    action.maneuver!.roll = { modifiers: calculation.modifiers, roll: command.roll.roll, totalRoll: calculation.total };
 
-    await this.processAction(command, action, character, actorRound, currentPhase);
+    const alert =
+      context.maneuverType === 'percent'
+        ? await this.resolvePercent(action, context, calculation.total)
+        : await this.resolveAbsolute(action, context, calculation.total, command.roll.unmodified === UNUSUAL_EVENT_ROLL);
+
+    action.status = 'completed';
+    action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action.id, action);
+    if (alert) {
+      context.actorRound.alerts.push(alert);
+      await this.actorRoundRepository.update(context.actorRound.id, context.actorRound);
+    }
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
     return updated;
   }
 
   private validate(command: ResolveManeuverCommand, action: Action): void {
-    if (action.actionType !== 'maneuver') {
+    if (action.actionType !== 'maneuver' || !action.maneuver) {
       throw new ValidationError('Action is not a maneuver action');
     } else if (action.status === 'completed') {
       throw new ValidationError('Action is already completed');
-    } else if (!command.roll || !command.roll.roll) {
+    } else if (!command.roll || typeof command.roll.roll !== 'number' || !Number.isFinite(command.roll.roll)) {
+      // A total of 0 is a valid roll (an absolute failure).
       throw new ValidationError('Required roll value');
     }
   }
 
-  private async processAction(
-    command: ResolveManeuverCommand,
+  private updateModifiers(
     action: Action,
-    character: Character,
-    actorRound: ActorRound,
-    currentPhase: number,
-  ): Promise<void> {
-    action.phaseEnd = currentPhase;
-    action.actionPoints = action.freeAction ? 0 : action.phaseEnd - action.phaseStart + 1;
-    this.mergeModifiers(action, command);
-    this.absoluteManeuverProcessorService.applyModifiers(action, character, actorRound, command.roll.roll);
-    const result = await this.maneuverPort.absolute(action.maneuver!.roll!.totalRoll!);
-    action.maneuver!.result = {
-      result: result.result,
-      message: result.message,
+    command: ResolveManeuverCommand,
+    context: ManeuverContext,
+    calculation: ManeuverRollCalculation,
+  ): void {
+    const request = command.request;
+    action.maneuver!.modifiers = {
+      ...action.maneuver!.modifiers,
+      skillId: context.skill.skillId,
+      specialization: context.skill.specialization,
+      maneuverType: context.maneuverType,
+      difficulty: request.difficulty || action.maneuver!.modifiers.difficulty || 'm',
+      light: request.light,
+      lightModifier: calculation.lightUsage,
+      customBonus: request.customBonus,
+      selections: request.selections,
+      passiveTotal: request.passiveTotal,
+      armorModifier: undefined,
     };
-    action.status = 'completed';
-    action.updatedAt = new Date();
   }
 
-  private mergeModifiers(action: Action, command: ResolveManeuverCommand): void {
-    action.maneuver!.modifiers = { ...action.maneuver!.modifiers, ...command.modifiers };
+  /** Absolute maneuver: the result table of the skill's profile (M3), with the unusual event of an unmodified 66. */
+  private async resolveAbsolute(
+    action: Action,
+    context: ManeuverContext,
+    total: number,
+    unusualEvent: boolean,
+  ): Promise<ActorRoundAlert | null> {
+    const result = await this.maneuverPort.absolute(total, context.profile.resultTable, unusualEvent);
+    action.maneuver!.result = new ActionManeuverResult(
+      result.result,
+      undefined,
+      result.message,
+      result.effects ?? [],
+      undefined,
+      undefined,
+      unusualEvent || undefined,
+    );
+    return null;
+  }
+
+  /**
+   * Percent maneuver (M1, §4.4 of spec 010): the percent adds up to the progress the action inherited; a critical or
+   * a failure to act adds nothing. A critical of a maneuver needing freedom of movement raises an alert, as movement.
+   */
+  private async resolvePercent(action: Action, context: ManeuverContext, total: number): Promise<ActorRoundAlert | null> {
+    const result = await this.maneuverPort.percent(total);
+    const critical = result.critical || null;
+    const gained = critical ? 0 : result.percent || 0;
+    const progress = (action.maneuver!.progress ?? 0) + gained;
+    action.maneuver!.progress = progress;
+    action.maneuver!.result = new ActionManeuverResult(
+      undefined,
+      result.percent,
+      result.message,
+      undefined,
+      critical,
+      progress >= COMPLETED_PERCENT,
+    );
+    if (critical && context.profile.movement) {
+      return ActorRoundAlert.buildCritical(MOVING_MANEUVER_CRITICAL_TYPE, critical);
+    }
+    return null;
   }
 }

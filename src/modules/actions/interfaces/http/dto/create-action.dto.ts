@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsBoolean, IsIn, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { CreateActionCommand } from '../../../application/cqrs/commands/create-action.command';
 import type { ActionType } from '../../../domain/value-objects/action-type.vo';
 import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo';
@@ -27,10 +27,20 @@ export class ActionManeuverCreationDto {
   @IsNotEmpty()
   skillId: string;
 
-  @ApiProperty({ description: 'Maneuver type' })
+  @ApiProperty({ description: 'Maneuver type; the skill profile one when left out', enum: ['absolute', 'percent'], required: false })
+  @IsOptional()
+  @IsIn(['absolute', 'percent'])
+  maneuverType?: ManeuverType;
+
+  @ApiProperty({ description: 'Specialization of the skill', required: false })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  maneuverType: ManeuverType;
+  specialization?: string;
+
+  @ApiProperty({ description: 'Unfinished percent maneuver of the actor that this one continues', required: false })
+  @IsOptional()
+  @IsString()
+  continuesActionId?: string;
 }
 
 export class CreateActionDto {

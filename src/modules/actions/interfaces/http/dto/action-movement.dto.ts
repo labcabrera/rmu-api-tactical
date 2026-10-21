@@ -1,3 +1,4 @@
+import type { LightType } from '../../../domain/value-objects/light-type.vo';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 import { ActionMovement, ActionMovementModifiers, ActionMovementResult } from '../../../domain/value-objects/action-movement.vo';
@@ -40,17 +41,24 @@ export class ActionMovementModifiersDto {
   @IsOptional()
   customBonus: number | null;
 
+  @ApiProperty({ description: 'Light of the environment (Table 5-1), helpful for movement', required: false, example: 'dark' })
+  @IsString()
+  @IsOptional()
+  light?: LightType | null;
+
   static fromEntity(modifiers: ActionMovementModifiers): ActionMovementModifiersDto {
     const dto = new ActionMovementModifiersDto();
     dto.pace = modifiers.pace;
     dto.requiredManeuver = modifiers.requiredManeuver;
     dto.skillId = modifiers.skillId;
     dto.difficulty = modifiers.difficulty;
+    dto.customBonus = modifiers.customBonus;
+    dto.light = modifiers.light ?? null;
     return dto;
   }
 
   static toEntity(dto: ActionMovementModifiersDto): ActionMovementModifiers {
-    return new ActionMovementModifiers(dto.pace, dto.requiredManeuver, dto.skillId, dto.difficulty, dto.customBonus);
+    return new ActionMovementModifiers(dto.pace, dto.requiredManeuver, dto.skillId, dto.difficulty, dto.customBonus, dto.light);
   }
 }
 

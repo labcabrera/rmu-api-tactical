@@ -8,7 +8,6 @@ import { ErrorDto } from '../../../shared/interfaces/http/dto';
 import { ResolveMovementCommand } from '../../application/cqrs/commands/resolve-movement.command';
 import { Action } from '../../domain/aggregates/action.aggregate';
 import { ActionDto } from './dto/action.dto';
-import { PrepareAttackDto } from './dto/prepare-attack.dto';
 import { ResolveMovementRequestDto } from './dto/resolve-movement.dto';
 
 @UseGuards(JwtAuthGuard)
@@ -20,7 +19,7 @@ export class MovementController {
   constructor(private commandBus: CommandBus) {}
 
   @Patch(':id/movement/resolve')
-  @ApiBody({ type: PrepareAttackDto })
+  @ApiBody({ type: ResolveMovementRequestDto })
   @ApiOperation({ operationId: 'resolveMovement', summary: 'Resolve movement' })
   @ApiOkResponse({ type: ActionDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
