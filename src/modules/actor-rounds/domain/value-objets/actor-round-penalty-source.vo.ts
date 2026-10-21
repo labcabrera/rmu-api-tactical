@@ -1,1 +1,1 @@
-export type ActorRoundPenaltySource = 'critical' | 'endurance' | 'stunned' | 'hp' | 'non-violent';
+export type ActorRoundPenaltySource = 'critical' | 'endurance' | 'stunned' | 'hp' | 'non-violent' | 'fatigue';

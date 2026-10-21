@@ -1,11 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.aggregate';
-import { ValidationError } from '../../../shared/domain/errors';
+import { NotFoundError, ValidationError } from '../../../shared/domain/errors';
+import type { CharacterPort } from '../../../strategic/application/ports/character.port';
 import { Action } from '../../domain/aggregates/action.aggregate';
 import { DIFFICULTY_MAP } from '../../domain/value-objects/dificulty.vo';
 import { KeyValueModifier } from '../../domain/value-objects/key-value-modifier.vo';
+import { LIGHT_MAP } from '../../domain/value-objects/light-type.vo';
+import { MOVEMENT_MANEUVER_PROFILE } from '../../domain/value-objects/maneuver-profile.vo';
 import type { ManeuverPort } from '../ports/maneuver.port';
-import { SkillService } from './skill-service';
+import { ManeuverBaseModifiersService } from './maneuver/maneuver-base-modifiers.service';
 
 @Injectable()
 export class MovementProcessorService {
@@ -24,7 +27,8 @@ export class MovementProcessorService {
 
   constructor(
     @Inject('ManeuverPort') private readonly maneuverPort: ManeuverPort,
-    @Inject() private readonly skillService: SkillService,
+    @Inject('CharacterClient') private readonly characterClient: CharacterPort,
+    private readonly baseModifiersService: ManeuverBaseModifiersService,
   ) {}
 
   async process(roll: number | null, action: Action, actorRound: ActorRound): Promise<void> {
@@ -38,26 +42,37 @@ export class MovementProcessorService {
     let critical: string | null = null;
     let message: string | null = null;
     if (action.movement.modifiers.requiredManeuver) {
-      if (!roll) {
-        throw new Error('Roll is required for movement with requiredManeuver');
+      if (roll === null || roll === undefined) {
+        throw new ValidationError('Roll is required for movement with requiredManeuver');
       }
       const skillId = action.movement.modifiers.skillId || 'running';
-      const skillBonus = await this.skillService.getSkillBonus(actorRound, skillId, null);
+      const character = await this.characterClient.findById(actorRound.actorId);
+      if (!character) throw new NotFoundError('Character', actorRound.actorId);
+      // The movement roll takes the base modifiers of any maneuver needing freedom of movement, but not the pace
+      // penalty (§5.3), nor the AP one: its AP give the distance.
+      const { skill, base } = this.baseModifiersService.compute({
+        actorRound,
+        character,
+        profile: MOVEMENT_MANEUVER_PROFILE,
+        skillId,
+        specialization: null,
+        actionPoints: null,
+        pace: null,
+        includePace: false,
+      });
 
-      const modifiers: KeyValueModifier[] = [];
-      const difficultyBonus = DIFFICULTY_MAP.get(action.movement.modifiers.difficulty!)!;
-      if (!difficultyBonus && difficultyBonus !== 0) {
+      const difficultyBonus = DIFFICULTY_MAP.get(action.movement.modifiers.difficulty!);
+      if (difficultyBonus === undefined) {
         throw new ValidationError(`Unknown difficulty: ${action.movement.modifiers.difficulty}`);
       }
-      modifiers.push({ key: skillId, value: skillBonus });
-      modifiers.push({ key: 'difficulty', value: difficultyBonus });
-      modifiers.push({ key: 'movement-penalty', value: actorRound.movement.penalty || 0 });
-      modifiers.push({ key: 'custom-bonus', value: action.movement.modifiers.customBonus || 0 });
-      actorRound.penalty.modifiers.forEach(penalty => {
-        //TODO check if penalty applies to movement from core law
-        modifiers.push(new KeyValueModifier(penalty.source, penalty.value));
-      });
-      modifiers.push({ key: 'roll', value: roll });
+      const modifiers: KeyValueModifier[] = [
+        new KeyValueModifier(skillId, skill.bonus),
+        new KeyValueModifier('difficulty', difficultyBonus),
+        ...base.map(modifier => new KeyValueModifier(modifier.key, modifier.value)),
+        ...this.lightModifier(action.movement.modifiers.light),
+        new KeyValueModifier('custom-bonus', action.movement.modifiers.customBonus || 0),
+        new KeyValueModifier('roll', roll),
+      ];
       const totalRoll = modifiers.reduce((acc, mod) => acc + mod.value, 0);
       action.movement.roll = {
         // modifiers: modifiers.filter((mod) => mod.value !== 0),
@@ -67,7 +82,7 @@ export class MovementProcessorService {
       };
       const maneuverResult = await this.maneuverPort.percent(action.movement.roll.totalRoll!);
       percent = maneuverResult.percent;
-      critical = maneuverResult.critical;
+      critical = maneuverResult.critical ?? null;
       message = maneuverResult.message;
     }
     const bmr = actorRound.movement.bmr;
@@ -82,6 +97,16 @@ export class MovementProcessorService {
       critical: critical,
       description: message || `Movement completed at ${percent}%`,
     };
+  }
+
+  /** Table 5-1: light helps movement maneuvers (the helpful column). */
+  private lightModifier(light: string | null | undefined): KeyValueModifier[] {
+    if (!light) return [];
+    const value = LIGHT_MAP.get(light as never);
+    if (value === undefined) {
+      throw new ValidationError(`Unknown light: ${light}`, 'err-maneuver-invalid-modifier');
+    }
+    return value === 0 ? [] : [new KeyValueModifier('light', value)];
   }
 
   /** Table 5-3: the encumbrance or the creature caps the pace. An unknown maximum (older actor rounds) is not checked. */

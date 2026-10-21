@@ -108,6 +108,7 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
       skillId: command.modifiers.skillId,
       difficulty: command.modifiers.difficulty,
       customBonus: command.modifiers.customBonus,
+      light: command.modifiers.light ?? null,
     };
   }
 
@@ -118,7 +119,7 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
       throw new ValidationError('Action is already completed');
     }
     if (command.modifiers.requiredManeuver === true) {
-      if (!command.roll) {
+      if (command.roll === null || command.roll === undefined) {
         throw new ValidationError('Roll is required for a maneuver');
       }
       if (!command.modifiers.difficulty) {

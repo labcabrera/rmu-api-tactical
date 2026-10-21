@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsNumber, IsOptional, IsString } from 'class-validator';
 import { KeyValueModifierDto } from '../../../../shared/interfaces/http/key-value-modifier.dto';
 import { ResolveEnduranceCheckCommand } from '../../../application/cqrs/commands/resolve-endurance-check.command';
 
@@ -19,14 +19,16 @@ export class ResolveEnduranceCheckDto {
   @IsOptional()
   alertId?: string;
 
-  @ApiProperty({ description: 'Initiative roll (2-20)', required: true, example: 42 })
+  @ApiProperty({ description: 'Endurance roll (open-ended d100)', required: true, example: 42 })
   @IsNumber()
   roll: number;
 
-  @ApiProperty({ description: 'Modifiers applied to the roll', type: [KeyValueModifierDto], required: true })
+  @ApiProperty({ description: 'Modifiers applied to the roll', type: [KeyValueModifierDto], required: false })
+  @IsOptional()
+  @IsArray()
   modifiers: KeyValueModifierDto[];
 
   static toCommand(actorRoundId: string, dto: ResolveEnduranceCheckDto, userId: string, roles: string[]): ResolveEnduranceCheckCommand {
-    return new ResolveEnduranceCheckCommand(actorRoundId, dto.alertId, dto.roll, dto.modifiers, userId, roles);
+    return new ResolveEnduranceCheckCommand(actorRoundId, dto.alertId, dto.roll, dto.modifiers || [], userId, roles);
   }
 }

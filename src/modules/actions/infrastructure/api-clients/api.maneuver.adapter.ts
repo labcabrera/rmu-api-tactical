@@ -37,16 +37,20 @@ export class ApiManeuverAdapter implements ManeuverPort {
     }
   }
 
-  async absolute(roll: number): Promise<AbsoluteManeuverResponse> {
+  async absolute(roll: number, table?: string, unusualEvent?: boolean): Promise<AbsoluteManeuverResponse> {
     const token = await this.tokenService.getToken();
-    const uri = `${this.apiCoreUri}/maneuvers/absolute?roll=${roll}`;
+    const params = new URLSearchParams({ roll: String(roll) });
+    if (table) params.set('table', table);
+    if (unusualEvent) params.set('unusualEvent', 'true');
+    const uri = `${this.apiCoreUri}/maneuvers/absolute?${params.toString()}`;
     try {
       const response = await axios.get<AbsoluteManeuverResponse>(uri, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      return response.data;
+      const data = response.data;
+      return { result: data.result, message: data.message, effects: data.effects ?? [] };
     } catch (err) {
       throw handleAxiosError(err, uri);
     }

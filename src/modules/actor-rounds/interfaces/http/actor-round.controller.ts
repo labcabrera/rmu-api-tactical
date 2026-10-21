@@ -11,6 +11,7 @@ import { AddFatigueCommand } from '../../application/cqrs/commands/add-fatigue.c
 import { DeclareDefenseModeCommand } from '../../application/cqrs/commands/declare-defense-mode.command';
 import { DeclareInitiativeCommand } from '../../application/cqrs/commands/declare-initiative.command';
 import { DeleteEffectCommand } from '../../application/cqrs/commands/delete-effect.command';
+import { ResolveEnduranceCheckCommand } from '../../application/cqrs/commands/resolve-endurance-check.command';
 import { GetActorRoundQuery } from '../../application/cqrs/queries/get-actor-round.query';
 import { GetActorsRoundsQuery } from '../../application/cqrs/queries/get-actor-rounds.query';
 import { ActorRound } from '../../domain/aggregates/actor-round.aggregate';
@@ -20,6 +21,7 @@ import { AddEffectDto } from './dto/add-effect.dto';
 import { AddFatigueAccumulatorDto } from './dto/add-fatigue-accumulator.dto';
 import { AddHpDto } from './dto/add-hp.dto';
 import { DeclareInitiativeDto } from './dto/declare-initiative.dto';
+import { ResolveEnduranceCheckDto } from './dto/resolve-endurance-check.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('v1/actor-rounds')
@@ -103,6 +105,18 @@ export class ActorRoundController {
     const user = req.user!;
     const command = AddFatigueAccumulatorDto.toCommand(id, dto, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<AddFatigueCommand, ActorRound>(command);
+    return ActorRoundDto.fromEntity(entity);
+  }
+
+  @Patch(':id/endurance-check')
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
+  @ApiOperation({ operationId: 'resolveEnduranceCheck', summary: 'Resolve an endurance roll and apply its fatigue and hits' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiNotFoundResponse({ description: 'Actor round not found', type: ErrorDto })
+  async resolveEnduranceCheck(@Param('id') id: string, @Body() dto: ResolveEnduranceCheckDto, @Request() req) {
+    const user = req.user!;
+    const command = ResolveEnduranceCheckDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<ResolveEnduranceCheckCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
   }
 

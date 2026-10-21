@@ -8,7 +8,7 @@ import { ActorRoundAttack } from '../value-objets/actor-round-attack.vo';
 import { ActorRoundDefenseMode, DefenseLevel } from '../value-objets/actor-round-defense-mode.vo';
 import { ActorRoundDefense } from '../value-objets/actor-round-defense.vo';
 import { ActorRoundEffect, NON_VIOLENT, PRESSING_ADVANTAGE } from '../value-objets/actor-round-effect.vo';
-import { ActorRoundFatigue } from '../value-objets/actor-round-fatigue.vo';
+import { ActorRoundFatigue, MAX_FATIGUE_PENALTY } from '../value-objets/actor-round-fatigue.vo';
 import { ActorRoundHP } from '../value-objets/actor-round-hp.vo';
 import { ActorRoundInitiative } from '../value-objets/actor-round-initiative.vo';
 import { ActorRoundMovement } from '../value-objets/actor-round-movement.vo';
@@ -432,6 +432,24 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   }
 
   /**
+   * Applies an endurance roll (§5.5, Table 5-5): `fatigueChange` adds to the fatigue penalty (negative shakes it off)
+   * and `hits` are taken. Fatigue beyond -50 becomes an injury, applied as hits lost. The roll uses up the activity
+   * points that called for it and its alert.
+   */
+  applyEnduranceResult(fatigueChange: number, hits: number, alertId?: string): void {
+    const fatigue = Math.max(0, (this.fatigue.fatigue || 0) + fatigueChange);
+    const injury = Math.max(0, fatigue - MAX_FATIGUE_PENALTY);
+    this.fatigue.fatigue = Math.min(fatigue, MAX_FATIGUE_PENALTY);
+    this.fatigue.accumulator = Math.max(0, (this.fatigue.accumulator || 0) - 100);
+    this.alerts = this.alerts.filter(alert => alert.id !== alertId);
+    if (this.fatigue.accumulator < 100) {
+      this.alerts = this.alerts.filter(alert => alert.type !== 'endurance');
+    }
+    // applyAttackResults checks unconsciousness and death, and recomputes the penalties (the fatigue one included).
+    this.applyAttackResults(Math.max(0, hits) + injury || undefined, undefined, undefined);
+  }
+
+  /**
    * §8.3 Upkeep Phase: bleeding, then the effects' durations. An unconscious actor stays unconscious: it only dies
    * when bleeding takes it beyond its death threshold or a dying effect runs out.
    */
@@ -493,6 +511,16 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     this.applyHpPenalty();
     this.applyStunPenalty();
     this.applyNonViolentPenalty();
+    this.applyFatiguePenalty();
+  }
+
+  /** §5.5: the accumulated fatigue penalty applies to all actions. */
+  private applyFatiguePenalty() {
+    this.penalty.modifiers = this.penalty.modifiers.filter(m => m.source !== 'fatigue');
+    const fatigue = Math.min(this.fatigue?.fatigue || 0, MAX_FATIGUE_PENALTY);
+    if (fatigue > 0) {
+      this.penalty.addModifier('fatigue', -fatigue);
+    }
   }
 
   /** Non-violent: the penalty gained by inflicting a critical counts in the following round only. */

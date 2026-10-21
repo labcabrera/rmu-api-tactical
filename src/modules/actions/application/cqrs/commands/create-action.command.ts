@@ -18,5 +18,9 @@ export class CreateActionCommand {
 
 export class CreateActionCommandManeuver {
   skillId: string;
-  maneuverType: ManeuverType;
+  /** Defaults to the skill's maneuver profile. */
+  maneuverType?: ManeuverType;
+  specialization?: string | null;
+  /** Percent maneuver of an earlier action this one continues (§4.4 of spec 010). */
+  continuesActionId?: string;
 }

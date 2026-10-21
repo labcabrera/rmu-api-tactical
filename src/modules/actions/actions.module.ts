@@ -4,6 +4,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { MongooseModule } from '@nestjs/mongoose';
 import { TerminusModule } from '@nestjs/terminus';
 import { AuthModule } from 'src/modules/auth/auth.module';
+import { ResolveEnduranceCheckHandler } from '../actor-rounds/application/cqrs/handlers/resolve-endurance-check.handler';
 import { ActorsRoundModule } from '../actor-rounds/actor-rounds.module';
 import { GamesModule } from '../games/games.module';
 import { SharedModule } from '../shared/shared.module';
@@ -14,6 +15,7 @@ import { DeclareParryHandler } from './application/cqrs/handlers/declare-parry.h
 import { DeleteActionHandler } from './application/cqrs/handlers/delete-action.handler';
 import { GetActionQueryHandler } from './application/cqrs/handlers/get-action.handler';
 import { GetActionsQueryHandler } from './application/cqrs/handlers/get-actions.handler';
+import { GetManeuverModifiersHandler } from './application/cqrs/handlers/get-maneuver-modifiers.handler';
 import { PrepareAttackHandler } from './application/cqrs/handlers/prepare-attack.handler';
 import { CompleteActionHandler } from './application/cqrs/handlers/complete-action.handler';
 import { ResolveManeuverHandler } from './application/cqrs/handlers/resolve-maneuver.handler';
@@ -21,7 +23,6 @@ import { ResolveMovementHandler } from './application/cqrs/handlers/resolve-move
 import { UpdateAttackRollHandler } from './application/cqrs/handlers/update-attack-roll.handler';
 import { UpdateCriticalRollHandler } from './application/cqrs/handlers/update-critical-roll.handler';
 import { UpdateFumbleRollHandler } from './application/cqrs/handlers/update-fumble-roll.handler';
-import { AbsoluteManeuverProcessorService } from './application/services/absolute-maneuver-processor.service';
 import {
   COMBAT_PLUGIN_LIST,
   COMBAT_PLUGINS,
@@ -30,11 +31,13 @@ import {
   CombatProcessor,
 } from './application/services/combat';
 import { MovementProcessorService } from './application/services/movement-processor.service';
-import { SkillService } from './application/services/skill-service';
+import { ManeuverBaseModifiersService } from './application/services/maneuver/maneuver-base-modifiers.service';
+import { ManeuverContextService } from './application/services/maneuver/maneuver-context.service';
 import { ApiAttackTableAdapter } from './infrastructure/api-clients/api.attack-table.adapter';
 import { ApiCriticalTableAdapter } from './infrastructure/api-clients/api.critical-table.adapter';
 import { ApiFumbleTableAdapter } from './infrastructure/api-clients/api.fumble-table.adapter';
 import { ApiManeuverAdapter } from './infrastructure/api-clients/api.maneuver.adapter';
+import { ApiSkillCatalogAdapter } from './infrastructure/api-clients/api.skill-catalog.adapter';
 import { MongoActionRepository } from './infrastructure/db/mongo.action.repository';
 import { KafkaActionEventBusAdapter } from './infrastructure/messaging/kafka.action-event-bus.adapter';
 import { ActionModel, ActionSchema } from './infrastructure/persistence/models/action.model';
@@ -58,12 +61,14 @@ import { MovementController } from './interfaces/http/movement.controller';
   controllers: [ActionController, AttackController, MovementController, ManeuverController],
   providers: [
     MovementProcessorService,
-    AbsoluteManeuverProcessorService,
+    ManeuverBaseModifiersService,
+    ManeuverContextService,
     CombatPluginRegistryService,
     CombatProcessor,
     CombatAttackRollResolverService,
     GetActionQueryHandler,
     GetActionsQueryHandler,
+    GetManeuverModifiersHandler,
     CreateActionHandler,
     DeleteActionHandler,
     ResolveMovementHandler,
@@ -75,7 +80,8 @@ import { MovementController } from './interfaces/http/movement.controller';
     UpdateCriticalRollHandler,
     UpdateFumbleRollHandler,
     ApplyAttackHandler,
-    SkillService,
+    // Lives in actor-rounds but needs the ManeuverPort of this module.
+    ResolveEnduranceCheckHandler,
     {
       provide: 'ActionRepository',
       useClass: MongoActionRepository,
@@ -99,6 +105,10 @@ import { MovementController } from './interfaces/http/movement.controller';
     {
       provide: 'ManeuverPort',
       useClass: ApiManeuverAdapter,
+    },
+    {
+      provide: 'SkillCatalogPort',
+      useClass: ApiSkillCatalogAdapter,
     },
     {
       provide: COMBAT_PLUGINS,
