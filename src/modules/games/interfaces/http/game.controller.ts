@@ -5,7 +5,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
 import { Page } from '../../../shared/domain/entities/page.entity';
-import { ErrorDto, PagedQueryDto } from '../../../shared/interfaces/http/dto';
+import { ErrorDto } from '../../../shared/interfaces/http/dto';
 import { ApplyGameCommand } from '../../application/cqrs/commands/apply-game.command';
 import { CreateGameCommand } from '../../application/cqrs/commands/create-game.command';
 import { FinishGameCommand } from '../../application/cqrs/commands/finish-game.command';
@@ -22,6 +22,7 @@ import { Game } from '../../domain/aggregates/game.aggregate';
 import { CreateGameDto } from './dto/create-game.dto';
 import { GameDto, GamePageDto } from './dto/game.dto';
 import { AtRiskActorDto, FinishGameDto, FinishPreviewDto, TacticalGameOutcomeCharacterDto } from './dto/tactical-game-outcome.dto';
+import { GamePagedQueryDto } from './dto/game-paged-query.dto';
 import { UpdateGameDto } from './dto/update-game.dto';
 
 @UseGuards(JwtAuthGuard)
@@ -52,10 +53,10 @@ export class GameController {
   @ApiOkResponse({ type: GamePageDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiOperation({ operationId: 'findGames', summary: 'Find games by RSQL' })
-  async find(@Query() dto: PagedQueryDto, @Request() req) {
+  async find(@Query() dto: GamePagedQueryDto, @Request() req) {
     this.logger.debug(`Find games << ${JSON.stringify(dto)}`);
     const user = req.user!;
-    const query = new GetGamesQuery(dto.q, dto.page, dto.size, user.id as string, user.roles as string[]);
+    const query = new GetGamesQuery(dto.q, dto.page, dto.size, user.id as string, user.roles as string[], dto.sort);
     const page = await this.queryBus.execute<GetGamesQuery, Page<Game>>(query);
     const mapped = page.content.map(game => GameDto.fromEntity(game));
     return new Page<GameDto>(mapped, page.pagination.page, page.pagination.size, page.pagination.totalElements);
