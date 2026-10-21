@@ -5,8 +5,12 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
 import { Page } from '../../../shared/domain/entities/page.entity';
-import { ErrorDto, PagedQueryDto } from '../../../shared/interfaces/http/dto';
+import { ErrorDto } from '../../../shared/interfaces/http/dto';
+import { ApplyGameCommand } from '../../application/cqrs/commands/apply-game.command';
 import { CreateGameCommand } from '../../application/cqrs/commands/create-game.command';
+import { FinishGameCommand } from '../../application/cqrs/commands/finish-game.command';
+import { GetFinishPreviewQuery } from '../../application/cqrs/queries/get-finish-preview.query';
+import type { FinishPreview } from '../../domain/services/tactical-game-outcome.calculator';
 import { DeleteGameCommand } from '../../application/cqrs/commands/delete-game.command';
 import { RandomizeInitiativesCommand } from '../../application/cqrs/commands/randomize-intiatives.command';
 import { StartPhaseCommand } from '../../application/cqrs/commands/start-phase.command';
@@ -17,6 +21,8 @@ import { GetGamesQuery } from '../../application/cqrs/queries/get-games.query';
 import { Game } from '../../domain/aggregates/game.aggregate';
 import { CreateGameDto } from './dto/create-game.dto';
 import { GameDto, GamePageDto } from './dto/game.dto';
+import { AtRiskActorDto, FinishGameDto, FinishPreviewDto, TacticalGameOutcomeCharacterDto } from './dto/tactical-game-outcome.dto';
+import { GamePagedQueryDto } from './dto/game-paged-query.dto';
 import { UpdateGameDto } from './dto/update-game.dto';
 
 @UseGuards(JwtAuthGuard)
@@ -47,10 +53,10 @@ export class GameController {
   @ApiOkResponse({ type: GamePageDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiOperation({ operationId: 'findGames', summary: 'Find games by RSQL' })
-  async find(@Query() dto: PagedQueryDto, @Request() req) {
+  async find(@Query() dto: GamePagedQueryDto, @Request() req) {
     this.logger.debug(`Find games << ${JSON.stringify(dto)}`);
     const user = req.user!;
-    const query = new GetGamesQuery(dto.q, dto.page, dto.size, user.id as string, user.roles as string[]);
+    const query = new GetGamesQuery(dto.q, dto.page, dto.size, user.id as string, user.roles as string[], dto.sort);
     const page = await this.queryBus.execute<GetGamesQuery, Page<Game>>(query);
     const mapped = page.content.map(game => GameDto.fromEntity(game));
     return new Page<GameDto>(mapped, page.pagination.page, page.pagination.size, page.pagination.totalElements);
@@ -129,6 +135,52 @@ export class GameController {
     const user = req.user!;
     const command = new RandomizeInitiativesCommand(id, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<RandomizeInitiativesCommand, Game>(command);
+    return GameDto.fromEntity(entity);
+  }
+
+  @Get(':id/finish-preview')
+  @ApiOkResponse({ type: FinishPreviewDto, description: 'Success' })
+  @ApiOperation({ operationId: 'getFinishPreview', summary: 'Outcome the game would finish with, and the characters at risk' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiNotFoundResponse({ description: 'Game not found', type: ErrorDto })
+  async finishPreview(@Param('id') id: string, @Request() req) {
+    const user = req.user!;
+    const preview = await this.queryBus.execute<GetFinishPreviewQuery, FinishPreview>(
+      new GetFinishPreviewQuery(id, user.id as string, user.roles as string[]),
+    );
+    const dto = new FinishPreviewDto();
+    dto.gameId = id;
+    dto.characters = preview.characters.map(character => TacticalGameOutcomeCharacterDto.fromEntity(character));
+    dto.atRisk = preview.atRisk.map(actor => AtRiskActorDto.fromEntity(actor));
+    return dto;
+  }
+
+  @Post(':id/finish')
+  @HttpCode(200)
+  @ApiBody({ type: FinishGameDto })
+  @ApiOperation({ operationId: 'finishGame', summary: 'Finish a game in progress (spec 013)' })
+  @ApiOkResponse({ type: GameDto, description: 'Success' })
+  @ApiResponse({ status: 400, description: 'err-finish-fate-required (details.atRisk), err-game-not-in-progress', type: ErrorDto })
+  @ApiResponse({ status: 409, description: 'err-game-finished', type: ErrorDto })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  async finish(@Param('id') id: string, @Body() dto: FinishGameDto, @Request() req) {
+    const user = req.user!;
+    const command = new FinishGameCommand(id, dto.fates || [], user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<FinishGameCommand, Game>(command);
+    return GameDto.fromEntity(entity);
+  }
+
+  @Post(':id/apply')
+  @HttpCode(200)
+  @ApiOperation({ operationId: 'applyGame', summary: 'Apply the outcome of a finished game to the strategic characters (spec 013)' })
+  @ApiOkResponse({ type: GameDto, description: 'Success: outcome.characters[].appliedAt or error' })
+  @ApiResponse({ status: 400, description: 'err-game-not-finished', type: ErrorDto })
+  @ApiResponse({ status: 409, description: 'err-outcome-already-applied', type: ErrorDto })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  async applyOutcome(@Param('id') id: string, @Request() req) {
+    const user = req.user!;
+    const command = new ApplyGameCommand(id, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<ApplyGameCommand, Game>(command);
     return GameDto.fromEntity(entity);
   }
 }

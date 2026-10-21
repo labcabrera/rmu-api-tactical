@@ -42,6 +42,7 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
 
     const game = await this.gameRepository.findById(action.gameId);
     if (!game) throw new NotFoundError('Game', action.gameId);
+    game.checkNotFinished();
 
     this.validate(command, action);
     const currentPhase = parseInt((game.phase || '').replace('phase_', ''));

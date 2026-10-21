@@ -5,6 +5,9 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { TerminusModule } from '@nestjs/terminus';
 import { AuthModule } from 'src/modules/auth/auth.module';
 import { ResolveEnduranceCheckHandler } from '../actor-rounds/application/cqrs/handlers/resolve-endurance-check.handler';
+import { StabilizeEffectHandler } from '../actor-rounds/application/cqrs/handlers/stabilize-effect.handler';
+import { TreatInjuryHandler } from '../actor-rounds/application/cqrs/handlers/treat-injury.handler';
+import { MedicalRollService } from '../actor-rounds/application/services/medical-roll.service';
 import { ActorsRoundModule } from '../actor-rounds/actor-rounds.module';
 import { GamesModule } from '../games/games.module';
 import { SharedModule } from '../shared/shared.module';
@@ -86,8 +89,11 @@ import { MovementController } from './interfaces/http/movement.controller';
     UpdateCriticalRollHandler,
     UpdateFumbleRollHandler,
     ApplyAttackHandler,
-    // Lives in actor-rounds but needs the ManeuverPort of this module.
+    // Live in actor-rounds but need the ManeuverPort of this module.
     ResolveEnduranceCheckHandler,
+    MedicalRollService,
+    TreatInjuryHandler,
+    StabilizeEffectHandler,
     {
       provide: 'ActionRepository',
       useClass: MongoActionRepository,

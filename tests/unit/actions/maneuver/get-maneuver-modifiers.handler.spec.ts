@@ -24,7 +24,7 @@ describe('GetManeuverModifiersHandler', () => {
     expect(listing.maneuverType).toBe('absolute');
     expect(listing.resultTable).toBe('gymnastic');
     expect(listing.base).toEqual([
-      { key: 'penalty-critical', value: -20, source: 'actor-round' },
+      { key: 'penalty-injury', value: -20, source: 'actor-round' },
       { key: 'armor-maneuver', value: -30, source: 'equipment' },
       { key: 'encumbrance', value: -10, source: 'equipment' },
       { key: 'pace', value: -25, source: 'movement' },

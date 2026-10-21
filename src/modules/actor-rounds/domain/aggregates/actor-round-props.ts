@@ -14,6 +14,15 @@ import { ActorRoundUsedBo } from '../value-objets/actor-round-used-bo.vo';
 import { ActorType } from '../value-objets/actor-type.vo';
 import { ApLedgerEntry } from '../value-objets/ap-ledger-entry.vo';
 import { ApModifier } from '../value-objets/ap-modifier.vo';
+import { HpLogEntry } from '../value-objets/hp-log-entry.vo';
+import { Injury } from '../value-objets/injury.vo';
+
+/** What the actor brought into the game, taken when round 1 is built from its character (spec 013, §3). */
+export interface ActorRoundSnapshot {
+  hp: number;
+  injuryIds: string[];
+  conditionIds: string[];
+}
 
 export interface ActorRoundProps {
   id: string;
@@ -50,6 +59,14 @@ export interface ActorRoundProps {
   apCapacity?: number[];
   /** Missing or empty in actor rounds stored before it existed: rebuilt from the phase log. */
   apLedger?: ApLedgerEntry[];
+  /** Missing in actor rounds stored before spec 013: none (legacy bleeding effects and critical penalties are read as injuries). */
+  injuries?: Injury[];
+  /** Changes of the hits in this round (spec 013, §1.1). Missing in actor rounds stored before it existed: empty. */
+  hpLog?: HpLogEntry[];
+  /** Strategic character of a character actor. */
+  characterId?: string;
+  /** Only in the actor round built from the character (round 1, or the round it joined in). */
+  snapshot?: ActorRoundSnapshot;
   imageUrl: string | undefined;
   owner: string;
   createdAt: Date;

@@ -40,7 +40,7 @@ describe('ResolveManeuverHandler', () => {
       roll: 80,
       'wall-scaling': 40,
       difficulty: -10,
-      'penalty-critical': -5,
+      'penalty-injury': -5,
       'armor-maneuver': -30,
       encumbrance: -10,
       'custom-bonus': 7,

@@ -30,6 +30,7 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
 
     const game = await this.gameRepository.findById(action.gameId);
     if (!game) throw new NotFoundError('Game', action.gameId);
+    game.checkNotFinished();
 
     const attacks = action.attacks!;
     action.checkValidParryDeclaration();

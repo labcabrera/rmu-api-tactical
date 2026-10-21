@@ -5,5 +5,6 @@ export class GetGamesQuery {
     public readonly size: number,
     public readonly userId: string,
     public readonly roles: string[],
+    public readonly sort?: string,
   ) {}
 }

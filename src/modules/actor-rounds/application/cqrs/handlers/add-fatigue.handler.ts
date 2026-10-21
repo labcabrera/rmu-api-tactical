@@ -1,3 +1,4 @@
+import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { UnprocessableEntityError } from '../../../../shared/domain/errors';
@@ -9,7 +10,10 @@ import { AddFatigueCommand } from '../commands/add-fatigue.command';
 export class AddFatigueHandler implements ICommandHandler<AddFatigueCommand, ActorRound> {
   private readonly logger = new Logger(AddFatigueHandler.name);
 
-  constructor(@Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository) {}
+  constructor(
+    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject('GameRepository') private readonly gameRepository: GameRepository,
+  ) {}
 
   async execute(command: AddFatigueCommand): Promise<ActorRound> {
     this.logger.debug(`Execute << ${JSON.stringify(command)}`);
@@ -22,6 +26,7 @@ export class AddFatigueHandler implements ICommandHandler<AddFatigueCommand, Act
     }
 
     if (!actorRound) throw new UnprocessableEntityError(`Actor round not found`);
+    (await this.gameRepository.findById(actorRound.gameId))?.checkNotFinished();
 
     actorRound.addFatigue(command.fatigue);
 

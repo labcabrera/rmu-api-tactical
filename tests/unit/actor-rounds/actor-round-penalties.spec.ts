@@ -27,7 +27,7 @@ describe('ActorRound penalties', () => {
     });
 
     expect(round.getPenaltiesBySource()).toEqual([
-      { source: 'critical', value: -15 },
+      { source: 'injury', value: -15 },
       { source: 'hp', value: -20 },
     ]);
     expect(round.getPenaltySum()).toBe(-35);

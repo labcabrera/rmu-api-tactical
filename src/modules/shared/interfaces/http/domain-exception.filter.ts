@@ -18,6 +18,7 @@ export class DomainExceptionFilter implements ExceptionFilter {
       error: exception.name,
       errorCode: exception.errorCode,
       message: exception.message,
+      ...(exception.details !== undefined ? { details: exception.details } : {}),
       timestamp: new Date().toISOString(),
     });
   }

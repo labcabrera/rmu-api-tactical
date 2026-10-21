@@ -3,6 +3,7 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Page } from '../../../../shared/domain/entities/page.entity';
 import { Game } from '../../../domain/aggregates/game.aggregate';
 import type { GameRepository } from '../../ports/game.repository';
+import { toGameMongoSort } from '../../../domain/value-objects/game-sort.vo';
 import { GetGamesQuery } from '../queries/get-games.query';
 
 @QueryHandler(GetGamesQuery)
@@ -13,6 +14,6 @@ export class GetGamesHandler implements IQueryHandler<GetGamesQuery, Page<Game>>
 
   async execute(query: GetGamesQuery): Promise<Page<Game>> {
     this.logger.debug(`Finding games with query: ${JSON.stringify(query)}`);
-    return await this.gameRepository.findByRsql(query.rsql, query.page, query.size);
+    return await this.gameRepository.findByRsql(query.rsql, query.page, query.size, undefined, toGameMongoSort(query.sort));
   }
 }

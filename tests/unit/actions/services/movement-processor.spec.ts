@@ -63,7 +63,7 @@ describe('MovementProcessorService movement roll', () => {
     expect(modifiers).toEqual({
       running: -25,
       difficulty: -10,
-      'penalty-critical': -10,
+      'penalty-injury': -10,
       'armor-maneuver': -15,
       encumbrance: -5,
       'custom-bonus': 0,

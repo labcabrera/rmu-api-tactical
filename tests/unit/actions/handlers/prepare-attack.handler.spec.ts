@@ -48,7 +48,7 @@ const setup = (
     ),
   } as unknown as CharacterPort;
   const strategicGameClient = {
-    findById: jest.fn(() => Promise.resolve({ options: { lethality: 5 } })),
+    findById: jest.fn(() => Promise.resolve({ options: { letality: 5 } })),
   } as unknown as StrategicGameApiClient;
   const actionEventBus = { publish: jest.fn(() => Promise.resolve()) } as unknown as ActionEventBusPort;
   const handler = new PrepareAttackHandler(

@@ -1,6 +1,7 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
+import { isCharacterNotAble } from '../../../../strategic/application/ports/character.port';
 import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
 import { Game } from '../../../domain/aggregates/game.aggregate';
 import { Actor } from '../../../domain/value-objects/actor.vo';
@@ -27,6 +28,7 @@ export class AddGameActorsHandler implements ICommandHandler<AddGameActorsComman
     if (!game) {
       throw new NotFoundError('Game', command.gameId);
     }
+    game.checkNotFinished();
     const mappedActors = await Promise.all(
       command.actors.map(async actor => {
         if (actor.type === 'character') {
@@ -47,6 +49,9 @@ export class AddGameActorsHandler implements ICommandHandler<AddGameActorsComman
     const character = await this.characterClient.findById(actor.id);
     if (!character) {
       throw new NotFoundError('Actor', actor.id);
+    }
+    if (isCharacterNotAble(character)) {
+      throw new ValidationError(`Character ${character.id} is dead or permanently unconscious`, 'err-character-not-able');
     }
     if (!game.factions.includes(character.faction.id)) {
       throw new ValidationError('Actor is not part of the game factions');

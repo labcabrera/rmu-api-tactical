@@ -144,7 +144,7 @@ export const setupManeuver = (options: ManeuverSetup = {}) => {
       movementBaseDifficulty: 'm',
     },
   } as unknown as Character;
-  const game = { id: 'game-1', phase: options.phase ?? 'phase_1', round: 1 } as unknown as Game;
+  const game = { id: 'game-1', phase: options.phase ?? 'phase_1', round: 1, checkNotFinished: () => undefined } as unknown as Game;
 
   const actionUpdate = jest.fn((_id: string, updated: Action) => Promise.resolve(updated));
   const actionRepository = {

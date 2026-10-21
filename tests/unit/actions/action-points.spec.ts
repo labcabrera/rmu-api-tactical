@@ -167,7 +167,7 @@ describe('Action points of an action (spec 011, §2 and §4)', () => {
     const actorRound = load();
     const melee = action('melee', 'melee_attack', 1);
     declare(actorRound, [], melee, 1);
-    actorRound.effects.push(effect('unconcious'));
+    actorRound.effects.push(effect('unconscious'));
 
     expect(readiness(melee, actorRound, 1, true).readiness).toBe('unreachable');
   });

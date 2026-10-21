@@ -10,8 +10,10 @@ import { ActorRoundDefenseModeDto } from './actor-round-defense-mode.dto';
 import { ActorRoundDefenseDto } from './actor-round-defense.dto';
 import { ActorRoundFatigueDto } from './actor-round-fatigue.dto';
 import { ActorRoundHPDto } from './actor-round-hp.dto';
+import { ActorRoundSnapshotDto, InjuryDto } from './actor-round-injury.dto';
 import { ActorRoundInitiativeDto } from './actor-round-initiative.dto';
 import { ActorRoundMovementDto } from './actor-round-movement.dto';
+import { HpLogEntryDto } from './hp-log-entry.dto';
 import { ActorRoundParryDto } from './actor-round-parry.dto';
 import { ActorRoundPenaltyDto } from './actor-round-penalty.dto';
 import { ActorRoundPhaseLogDto } from './actor-round-phase-log.dto';
@@ -99,6 +101,21 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Talents and flaws of the actor, from its character sheet', type: [ActorRoundTraitDto], isArray: true })
   traits: ActorRoundTraitDto[];
 
+  @ApiProperty({ description: 'Injuries of the actor (spec 013): brought from its character and taken in the game', type: [InjuryDto] })
+  injuries: InjuryDto[];
+
+  @ApiProperty({ description: 'Changes of the hits in this round, with their origin (spec 013)', type: [HpLogEntryDto] })
+  hpLog: HpLogEntryDto[];
+
+  @ApiProperty({ description: 'Strategic character of a character actor', required: false })
+  characterId?: string;
+
+  @ApiProperty({ description: 'What the character brought into the game (only in the actor round built from it)', required: false })
+  snapshot?: ActorRoundSnapshotDto;
+
+  @ApiProperty({ description: 'Bleeding of the injuries, hits per round' })
+  bleeding: number;
+
   @ApiProperty({ description: 'Image URL of the actor', example: 'foo/bar/image.png', required: false })
   imageUrl?: string | undefined;
 
@@ -131,6 +148,11 @@ export class ActorRoundDto {
     dto.effects = entity.effects;
     dto.alerts = entity.alerts.map(a => ActorRoundAlertDto.fromEntity(a));
     dto.traits = (entity.traits || []).map(t => ActorRoundTraitDto.fromEntity(t));
+    dto.injuries = (entity.injuries || []).map(injury => InjuryDto.fromEntity(injury));
+    dto.hpLog = (entity.hpLog || []).map(entry => HpLogEntryDto.fromEntity(entry));
+    dto.characterId = entity.characterId;
+    dto.snapshot = entity.snapshot ? ActorRoundSnapshotDto.fromEntity(entity.snapshot) : undefined;
+    dto.bleeding = entity.getBleeding();
     dto.imageUrl = entity.imageUrl;
     return dto;
   }

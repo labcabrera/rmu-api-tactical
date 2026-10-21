@@ -1,3 +1,4 @@
+import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
@@ -9,7 +10,10 @@ import { DeclareInitiativeCommand } from '../commands/declare-initiative.command
 export class DeclareInitiativeCommandHandler implements ICommandHandler<DeclareInitiativeCommand, ActorRound> {
   private readonly logger = new Logger(DeclareInitiativeCommandHandler.name);
 
-  constructor(@Inject('ActorRoundRepository') private readonly characterRoundRepository: ActorRoundRepository) {}
+  constructor(
+    @Inject('ActorRoundRepository') private readonly characterRoundRepository: ActorRoundRepository,
+    @Inject('GameRepository') private readonly gameRepository: GameRepository,
+  ) {}
 
   async execute(command: DeclareInitiativeCommand): Promise<ActorRound> {
     this.logger.debug(`Execute << ${JSON.stringify(command)}`);
@@ -20,6 +24,7 @@ export class DeclareInitiativeCommandHandler implements ICommandHandler<DeclareI
     if (!characterRound) {
       throw new NotFoundError('Character round', command.actorRoundId);
     }
+    (await this.gameRepository.findById(characterRound.gameId))?.checkNotFinished();
     characterRound.declareInitiative(command.initiativeRoll, command.strikeReflex);
     const updatedCharacterRound = await this.characterRoundRepository.update(command.actorRoundId, characterRound);
     return updatedCharacterRound;

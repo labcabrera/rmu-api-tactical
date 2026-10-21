@@ -1,17 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNumber } from 'class-validator';
-import { AddEffectsCommand } from '../../../application/cqrs/commands/add-effects.command';
+import { AdjustHpCommand } from '../../../application/cqrs/commands/adjust-hp.command';
 
 export class AddHpDto {
   constructor(dmg: number) {
     this.dmg = dmg;
   }
 
-  @ApiProperty({ description: 'HP to add or subtract' })
+  @ApiProperty({ description: 'Hits taken (positive) or healed (negative), up to the maximum' })
   @IsNumber()
   dmg: number;
 
-  static toCommand(id: string, dto: AddHpDto, userId: string, userRoles: string[]): AddEffectsCommand {
-    return new AddEffectsCommand(id, dto.dmg, [], undefined, userId, userRoles);
+  static toCommand(id: string, dto: AddHpDto, userId: string, userRoles: string[]): AdjustHpCommand {
+    return new AdjustHpCommand(id, dto.dmg, userId, userRoles);
   }
 }

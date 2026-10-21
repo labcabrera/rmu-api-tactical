@@ -160,7 +160,7 @@ describe('StartPhaseHandler: carrying open actions (spec 011, §5)', () => {
   });
 
   it('interrupts the open action of an unconscious actor (criterion 5)', async () => {
-    const actorRound = load({ effects: [effect('unconcious')] });
+    const actorRound = load({ effects: [effect('unconscious')] });
     const melee = action('melee', 'melee_attack', 1);
     actorRound.spend(1, 'melee', 1);
     const { nextPhase } = world(game('phase_1'), [actorRound], [melee]);

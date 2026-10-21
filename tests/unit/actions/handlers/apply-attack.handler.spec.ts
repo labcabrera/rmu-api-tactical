@@ -187,11 +187,9 @@ describe('ApplyAttackHandler', () => {
 
       await run();
 
-      expect(
-        effectCommands()
-          .get('defender-round')!
-          .effects.map(e => [e.status, e.value]),
-      ).toEqual([['bleeding', 2]]);
+      const cmd = effectCommands().get('defender-round')!;
+      expect(cmd.effects).toEqual([]);
+      expect(cmd.injuries.map(i => i.bleeding)).toEqual([2]);
     });
 
     it('raises each new bleeding of a Rapid Bleeder by its tier', async () => {
@@ -206,14 +204,9 @@ describe('ApplyAttackHandler', () => {
 
       await run();
 
-      expect(
-        effectCommands()
-          .get('defender-round')!
-          .effects.map(e => [e.status, e.value]),
-      ).toEqual([
-        ['bleeding', 3],
-        ['stunned', -25],
-      ]);
+      const cmd = effectCommands().get('defender-round')!;
+      expect(cmd.effects.map(e => [e.status, e.value])).toEqual([['stunned', -25]]);
+      expect(cmd.injuries.map(i => i.bleeding)).toEqual([3]);
     });
 
     it('gives Pressing the Advantage against the foe after inflicting a critical with a matching weapon', async () => {
@@ -282,6 +275,96 @@ describe('ApplyAttackHandler', () => {
 
       expect(source.effects.map(e => e.status)).toEqual(['non-violent']);
       expect(source.getPenaltiesBySource()).toEqual([]);
+    });
+  });
+
+  describe('injuries (spec 013)', () => {
+    const injuryAttack = (effects: CriticalEffect[], location = 'arm', injury?: CriticalResult['injury'], criticalType = 'S') =>
+      ({
+        ...appliedAttack('mainHand', []),
+        modifiers: { targetId: 'defender', bo: 0 },
+        roll: { roll: 37, criticalRolls: new Map(), fumbleRoll: undefined },
+        results: new ActionAttackResult(
+          new AttackTableEntry('10BS', 10, criticalType, 'B'),
+          [new Critical('s_b_1', 'completed', criticalType, 'B', 91, new CriticalResult('Hit.', 3, location, effects, injury))],
+          undefined,
+        ),
+      }) as unknown as ActionAttack;
+    const penalty = (value: number) => ({ status: 'penalty', value }) as unknown as CriticalEffect;
+
+    it('makes one injury per critical with penalty or bleeding, with type, location, side and source', async () => {
+      const { run, effectCommands } = setup([
+        injuryAttack([penalty(-10), bleeding(2), { status: 'stunned', value: -25, rounds: 1 } as CriticalEffect]),
+      ]);
+
+      await run();
+
+      const cmd = effectCommands().get('defender-round')!;
+      expect(cmd.location).toBe('arms');
+      expect(cmd.injuries).toEqual([
+        expect.objectContaining({
+          type: 'cut-burn',
+          severity: 'light',
+          location: 'arm',
+          side: 'left',
+          penalty: -10,
+          initialPenalty: -10,
+          bleeding: 2,
+          status: 'active',
+          source: expect.objectContaining({ kind: 'critical', actionId: 'action-1', attackerId: 'attacker', criticalKey: 'S-B-91' }),
+        }),
+      ]);
+      expect(cmd.effects.map(e => [e.status, e.source?.criticalKey])).toEqual([['stunned', 'S-B-91']]);
+    });
+
+    it('takes the type and flags of the critical data, and adds its secondary injuries without penalty', async () => {
+      const { run, effectCommands } = setup([
+        injuryAttack([penalty(-50)], 'leg', { type: 'bone', secondary: ['muscle-tendon'], flags: ['limb-loss'] }),
+      ]);
+
+      await run();
+
+      const injuries = effectCommands().get('defender-round')!.injuries;
+      expect(injuries.map(i => [i.type, i.penalty, i.severity, i.flags])).toEqual([
+        ['bone', -50, 'severe', ['limb-loss']],
+        ['muscle-tendon', 0, 'severe', undefined],
+      ]);
+      expect(injuries[1].source).toEqual(injuries[0].source);
+    });
+
+    it('makes no injury for a critical without penalty or bleeding', async () => {
+      const { run, effectCommands } = setup([injuryAttack([{ status: 'stunned', value: -25, rounds: 1 } as CriticalEffect])]);
+
+      await run();
+
+      expect(effectCommands().get('defender-round')!.injuries).toEqual([]);
+    });
+
+    it('heals the attacker with a heal effect that applies to the source', async () => {
+      const heal = { status: 'heal', value: 5, applyTo: 'source' } as unknown as CriticalEffect;
+      const { run, effectCommands } = setup([injuryAttack([heal], 'chest', undefined, 'K')]);
+
+      await run();
+
+      expect(effectCommands().get('attacker-round')!.heal).toBe(5);
+      expect(effectCommands().get('attacker-round')!.hpChanges).toEqual([
+        { kind: 'treatment', amount: 5, criticalKey: 'K-B-91', actionId: 'action-1' },
+      ]);
+      expect(effectCommands().get('defender-round')!.effects).toEqual([]);
+    });
+
+    it('splits the hits of the target into the attack table damage and each critical (spec 013, §1.1)', async () => {
+      const { run, effectCommands } = setup([injuryAttack([penalty(-10)])]);
+
+      await run();
+
+      const cmd = effectCommands().get('defender-round')!;
+      expect(cmd.dmg).toBe(13);
+      const attacker = { actionId: 'action-1', attackerId: 'attacker', attackerName: '' };
+      expect(cmd.hpChanges).toEqual([
+        { kind: 'attack', amount: -10, ...attacker },
+        { kind: 'critical', amount: -3, criticalKey: 'S-B-91', ...attacker },
+      ]);
     });
   });
 });

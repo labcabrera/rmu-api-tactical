@@ -1,5 +1,6 @@
 import { Prop, Schema } from '@nestjs/mongoose';
 import type { DefenseLevel } from '../../../domain/value-objets/actor-round-defense-mode.vo';
+import type { InjurySource } from '../../../domain/value-objets/injury.vo';
 
 @Schema({ _id: false })
 export class ActorRoundFatigue {
@@ -46,6 +47,22 @@ export class ActorRoundEffect {
 
   @Prop({ type: String, required: false })
   targetActorId?: string;
+
+  /** Spec 013: the critical, fumble or condition the effect comes from. */
+  @Prop({ type: Object, required: false })
+  source?: InjurySource;
+}
+
+@Schema({ _id: false })
+export class ActorRoundSnapshot {
+  @Prop({ type: Number, required: true })
+  hp: number;
+
+  @Prop({ type: [String], required: true, default: [] })
+  injuryIds: string[];
+
+  @Prop({ type: [String], required: true, default: [] })
+  conditionIds: string[];
 }
 
 @Schema({ _id: false })
@@ -112,4 +129,41 @@ export class ActorRoundDefenseMode {
 
   @Prop({ type: String, required: true, default: 'none' })
   block: DefenseLevel;
+}
+
+/** A change of the hits of the round (spec 013, §1.1). */
+@Schema({ _id: false })
+export class ActorRoundHpLogEntry {
+  @Prop({ type: String, required: true })
+  id: string;
+
+  @Prop({ type: Number, required: true })
+  round: number;
+
+  @Prop({ type: Number, required: false })
+  phase?: number;
+
+  @Prop({ type: Number, required: true })
+  amount: number;
+
+  @Prop({ type: String, required: true })
+  kind: string;
+
+  @Prop({ type: String, required: false })
+  actionId?: string;
+
+  @Prop({ type: String, required: false })
+  attackerId?: string;
+
+  @Prop({ type: String, required: false })
+  attackerName?: string;
+
+  @Prop({ type: String, required: false })
+  injuryId?: string;
+
+  @Prop({ type: String, required: false })
+  criticalKey?: string;
+
+  @Prop({ type: String, required: true })
+  at: string;
 }

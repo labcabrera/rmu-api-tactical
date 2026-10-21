@@ -10,6 +10,9 @@ import { SharedModule } from '../shared/shared.module';
 import { StrategicModule } from '../strategic/strategic.module';
 import { AddGameActorsHandler } from './application/cqrs/handlers/add-game-actors.handler';
 import { AddGameFactionsHandler } from './application/cqrs/handlers/add-game-factions.handler';
+import { ApplyGameHandler } from './application/cqrs/handlers/apply-game.handler';
+import { FinishGameHandler } from './application/cqrs/handlers/finish-game.handler';
+import { GetFinishPreviewHandler } from './application/cqrs/handlers/get-finish-preview.handler';
 import { CreateGameHandler } from './application/cqrs/handlers/create-game.handler';
 import { DeleteGameActorsHandler } from './application/cqrs/handlers/delete-game-actors.handler';
 import { DeleteGameFactionsHandler } from './application/cqrs/handlers/delete-game-factions.handler';
@@ -58,6 +61,9 @@ import { StrategicGameKafkaConsumer } from './interfaces/messaging/kafka.strateg
     DeleteGameActorsHandler,
     DeleteGamesByStrategicIdHandler,
     RandomizeInitiativesHandler,
+    GetFinishPreviewHandler,
+    FinishGameHandler,
+    ApplyGameHandler,
     {
       provide: 'GameRepository',
       useClass: MongoGameRepository,

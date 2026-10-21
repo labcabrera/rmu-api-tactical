@@ -30,3 +30,15 @@ export class GamePhaseStartedEvent extends DomainEvent<Game> {
     super('phase-started', data);
   }
 }
+
+export class GameFinishedEvent extends DomainEvent<Game> {
+  constructor(data: Game) {
+    super('finished', data);
+  }
+}
+
+export class GameAppliedEvent extends DomainEvent<Game> {
+  constructor(data: Game) {
+    super('applied', data);
+  }
+}

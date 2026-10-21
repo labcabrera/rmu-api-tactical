@@ -9,7 +9,7 @@ export class DomainEvent<E> {
     this.eventType = eventType;
     this.eventVersion = '1';
     this.eventTime = new Date();
-    this.producer = 'rmu-api-core';
+    this.producer = 'rmu-api-tactical';
     this.data = data;
   }
 }

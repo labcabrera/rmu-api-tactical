@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { AttackLocation } from '../../../actions/domain/value-objects/attack-location.vo';
 import { BaseAggregateRoot } from '../../../shared/domain/aggregates/base-aggregate';
-import { UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors';
+import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors';
 import { ActorRoundCreatedEvent } from '../events/actor-round.events';
 import { ActorRoundAlert } from '../value-objets/actor-round-alert.vo';
 import { ActorRoundAttack } from '../value-objets/actor-round-attack.vo';
@@ -11,17 +11,24 @@ import {
   ActorRoundEffect,
   ADRENAL_SPEED,
   AP_CAP,
+  BLEEDING,
+  DEAD,
   DISTRACTION,
+  DYING,
   FLATFOOTED,
+  INCAPACITATED,
+  PARALYZED,
   HASTE,
   HOLD,
   MANUAL_AP,
   NON_VIOLENT,
+  PENALTY,
   PRESSING_ADVANTAGE,
   REFLEXES,
   SPEED,
   STAGGERED,
   SURPRISED,
+  UNCONSCIOUS,
 } from '../value-objets/actor-round-effect.vo';
 import { ActorRoundFatigue, MAX_FATIGUE_PENALTY } from '../value-objets/actor-round-fatigue.vo';
 import { ActorRoundHP } from '../value-objets/actor-round-hp.vo';
@@ -36,8 +43,25 @@ import { ActorRoundUsedBo } from '../value-objets/actor-round-used-bo.vo';
 import { ActorType } from '../value-objets/actor-type.vo';
 import { ApLedgerEntry, ApLedgerKind } from '../value-objets/ap-ledger-entry.vo';
 import { ApModifier, ApModifierSource } from '../value-objets/ap-modifier.vo';
+import { HpChange, HpLogEntry } from '../value-objets/hp-log-entry.vo';
 import { ACTION_PHASES, ActionPointCapacity } from '../services/action-point-capacity';
-import { ActorRoundProps } from './actor-round-props';
+import { InjuryTreatmentRules, MedicalOutcome, TacticalProcedure, TreatmentEffect } from '../services/injury-treatment';
+import {
+  buildInjury,
+  deriveInjurySeverity,
+  Injury,
+  InjurySource,
+  InjuryTreatment,
+  isBleeding,
+  isPenalizing,
+  toBodyLocation,
+} from '../value-objets/injury.vo';
+import { ActorRoundProps, ActorRoundSnapshot } from './actor-round-props';
+
+/** Fields of an injury the game master can change (spec 013, §3). */
+export type InjuryPatch = Partial<
+  Pick<Injury, 'type' | 'severity' | 'location' | 'side' | 'penalty' | 'bleeding' | 'bleedingControl' | 'flags' | 'description' | 'status'>
+>;
 
 /** When an effect lands: the phase (see `ActorRoundEffect.appliedPhase`) and the AP the actor had spent in the round. */
 export interface EffectApplication {
@@ -79,6 +103,9 @@ export interface LedgerSourceAction {
   phaseEnd: number | null;
   freeAction: boolean;
 }
+
+/** Phase number of the upkeep (see `Game.getEffectPhase`). */
+const UPKEEP_PHASE = 5;
 
 /** Initiative bonus of an actor with Strike Reflex when the game master declares it. */
 const STRIKE_REFLEX_BONUS = 20;
@@ -132,6 +159,18 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
 
   /** The AP of `apPendingLoss` by the effect that left them. */
   private apPendingByEffect: Record<string, number> = {};
+
+  /** Injuries of the actor (spec 013, §3): those it brought from its character and those taken in the game. */
+  public injuries: Injury[] = [];
+
+  /** Changes of the hits in this round, with their origin (spec 013, §1.1). Each round starts with none. */
+  public hpLog: HpLogEntry[] = [];
+
+  /** Strategic character of a character actor. */
+  public characterId: string | undefined;
+
+  /** What the actor brought into the game (only in the actor round built from its character). */
+  public snapshot: ActorRoundSnapshot | undefined;
 
   static create(
     gameId: string,
@@ -258,6 +297,11 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       props.createdAt,
       props.updatedAt,
     );
+    actorRound.injuries = (props.injuries ?? []).map(injury => ({ ...injury, treatments: [...(injury.treatments ?? [])] }));
+    actorRound.hpLog = (props.hpLog ?? []).map(entry => ({ ...entry }));
+    actorRound.characterId = props.characterId ?? (props.actorType === 'character' ? props.actorId : undefined);
+    actorRound.snapshot = props.snapshot;
+    actorRound.normalizeLegacy();
     // Derived: recomputed so that values stored with the penalties folded in are corrected.
     actorRound.calculateCurrentBo();
     // Derived too: actor rounds stored with older hit point or stun penalties read with the current ones.
@@ -321,11 +365,51 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       new Date(),
       null,
     );
+    actorRound.injuries = previous.injuries.map(injury => ({ ...injury, treatments: [...injury.treatments] }));
+    actorRound.characterId = previous.characterId;
     actorRound.calculateCurrentBo();
     // A penalty that starts in the new round (non-violent) is counted from its first moment.
     actorRound.applyPenalties();
     actorRound.apply(new ActorRoundCreatedEvent(actorRound));
     return actorRound;
+  }
+
+  /**
+   * Round 1 of a character (spec 013, §3): its injuries not healed (same uuid), its unresolved conditions as effects
+   * and what it brought into the game.
+   */
+  initFromCharacter(characterId: string, injuries: Injury[], conditionEffects: ActorRoundEffect[], snapshot: ActorRoundSnapshot): void {
+    this.characterId = characterId;
+    this.injuries = injuries.map(injury => ({ ...injury, treatments: [...(injury.treatments ?? [])] }));
+    conditionEffects.forEach(effect => this.addEffect(effect, undefined));
+    this.snapshot = snapshot;
+    this.applyPenalties();
+    this.refreshActionPoints();
+  }
+
+  /**
+   * Actor rounds stored before spec 013 (and not migrated): `unconcious` is `unconscious`, and the bleeding effects and
+   * critical penalties are injuries of unknown type (with the id of the effect or modifier, so it is stable).
+   */
+  private normalizeLegacy(): void {
+    const legacyStatus = 'unconcious';
+    this.effects = (this.effects ?? []).map(effect =>
+      effect.status === legacyStatus ? ({ ...effect, status: UNCONSCIOUS } as ActorRoundEffect) : effect,
+    );
+    const createdAt = this.createdAt ? new Date(this.createdAt) : new Date();
+    const source: InjurySource = { kind: 'manual', tacticalGameId: this.gameId, round: this.round };
+    this.effects
+      .filter(effect => effect.status === BLEEDING)
+      .forEach(effect =>
+        this.injuries.push(buildInjury({ id: effect.id, type: 'unknown', penalty: 0, bleeding: effect.value ?? 0, source, createdAt })),
+      );
+    this.effects = this.effects.filter(effect => effect.status !== BLEEDING);
+    this.penalty.modifiers
+      .filter(modifier => modifier.source === 'critical')
+      .forEach(modifier =>
+        this.injuries.push(buildInjury({ id: modifier.id, type: 'unknown', penalty: modifier.value, source, createdAt })),
+      );
+    this.penalty.modifiers = this.penalty.modifiers.filter(modifier => modifier.source !== 'critical');
   }
 
   /**
@@ -361,17 +445,22 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   /**
    * Applies the hits and the effects of an attack (or of the game master). `application` stamps the effects with the
    * round, phase and AP spent, which decide whether the upkeep of this round shortens them; without it they lose a
-   * round in every upkeep.
+   * round in every upkeep. `hpChanges` say where the hits come from (spec 013, §1.1): the hits they do not account for
+   * are logged as a game master adjustment.
    */
   applyAttackResults(
     dmg: number | undefined,
     effects: ActorRoundEffect[] | undefined,
     location: AttackLocation | undefined,
     application?: EffectApplication,
+    injuries: Injury[] = [],
+    hpChanges: HpChange[] = [],
   ) {
     if (dmg) {
       this.hp.current -= dmg;
+      this.logDamage(dmg, hpChanges, application?.phase);
     }
+    injuries.forEach(injury => this.addInjury(injury));
     if (effects) {
       effects.forEach(effect => {
         if (application) {
@@ -379,16 +468,181 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
           effect.appliedPhase = application.phase;
           effect.spentApBefore = application.spentAp;
         }
-        this.addEffect(effect, 'critical', location);
+        this.addEffect(effect, location);
       });
     }
+    this.checkHitsState();
+    this.applyPenalties();
+    this.refreshActionPoints();
+  }
+
+  /** Dead beyond the death threshold, unconscious at 0 or fewer hits. */
+  private checkHitsState(): void {
     if (this.isBeyondDeathThreshold()) {
-      this.addEffect(new ActorRoundEffect(randomUUID(), 'dead', undefined, undefined), undefined, undefined);
+      this.addEffect(new ActorRoundEffect(randomUUID(), DEAD, undefined, undefined), undefined);
     } else if (this.hp.current < 1) {
-      this.addEffect(new ActorRoundEffect(randomUUID(), 'unconcious', undefined, undefined), undefined, undefined);
+      this.addEffect(new ActorRoundEffect(randomUUID(), UNCONSCIOUS, undefined, undefined), undefined);
+    }
+  }
+
+  /**
+   * Game master hits adjustment (`PATCH hp`): `dmg` hits taken (negative heals). The hits never go over the maximum,
+   * and an actor brought over 0 hits wakes from the unconsciousness its hits caused (spec 013, §9.7).
+   */
+  adjustHp(dmg: number, phase?: number): void {
+    if (dmg > 0) {
+      this.applyAttackResults(dmg, undefined, undefined, undefined, [], [{ kind: 'manual', amount: -dmg, phase }]);
+      return;
+    }
+    this.heal(-dmg, { kind: 'manual', phase });
+  }
+
+  /**
+   * Heals `hits`, up to the maximum, logged with `origin` (the hits the maximum let in). Over 0 hits, the
+   * unconsciousness caused by the hits ends.
+   */
+  heal(hits: number, origin: Omit<HpChange, 'amount'> = { kind: 'manual' }): void {
+    if (hits > 0) {
+      const before = this.hp.current;
+      this.hp.current = Math.min(this.hp.max, this.hp.current + hits);
+      this.logHp({ ...origin, amount: this.hp.current - before });
+    }
+    if (this.hp.current > 0) {
+      this.effects = this.effects.filter(effect => effect.status !== UNCONSCIOUS || ActorRound.isFromCritical(effect));
     }
     this.applyPenalties();
     this.refreshActionPoints();
+  }
+
+  /** Logs `dmg` hits taken by their origins; what they do not account for is a game master adjustment. */
+  private logDamage(dmg: number, changes: HpChange[], phase: number | undefined): void {
+    const recorded = changes.filter(change => change.amount !== 0);
+    const rest = -dmg - recorded.reduce((sum, change) => sum + change.amount, 0);
+    if (rest !== 0) {
+      recorded.push({ kind: 'manual', amount: rest });
+    }
+    recorded.forEach(change => this.logHp({ ...change, phase: change.phase ?? phase }));
+  }
+
+  /** Adds a change of the hits to the log of the round (spec 013, §1.1); a change of 0 hits is not logged. */
+  private logHp(change: HpChange): void {
+    if (!change.amount) {
+      return;
+    }
+    const defined = Object.fromEntries(Object.entries(change).filter(([, value]) => value !== undefined && value !== null)) as HpChange;
+    this.hpLog.push({ ...defined, id: randomUUID(), round: this.round, at: new Date().toISOString() });
+  }
+
+  /**
+   * An unconsciousness of a critical or a fumble does not end with the hits. The one of the hits, and the one brought
+   * from a strategic condition (which also ends when the hits are over 0), do.
+   */
+  private static isFromCritical(effect: ActorRoundEffect): boolean {
+    const kind = effect.source?.kind;
+    return kind === 'critical' || kind === 'fumble';
+  }
+
+  // --- Injuries (spec 013, §3) ---
+
+  addInjury(injury: Injury): void {
+    if (this.injuries.some(existing => existing.id === injury.id)) {
+      return;
+    }
+    this.injuries.push(injury);
+  }
+
+  findInjury(injuryId: string): Injury {
+    const injury = this.injuries.find(each => each.id === injuryId);
+    if (!injury) {
+      throw new NotFoundError('Injury', injuryId, 'err-injury-not-found');
+    }
+    return injury;
+  }
+
+  /** Game master change of an injury. The severity follows the penalty and bleeding unless it is given. */
+  updateInjury(injuryId: string, patch: InjuryPatch): Injury {
+    const injury = this.findInjury(injuryId);
+    const changed: InjuryPatch = Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined));
+    if (changed.penalty !== undefined) {
+      changed.penalty = Math.min(0, changed.penalty);
+    }
+    if (changed.bleeding !== undefined) {
+      changed.bleeding = Math.max(0, changed.bleeding);
+    }
+    Object.assign(injury, changed);
+    if (patch.severity === undefined && (patch.penalty !== undefined || patch.bleeding !== undefined)) {
+      injury.severity = deriveInjurySeverity(Math.min(injury.penalty, injury.initialPenalty), injury.bleeding);
+    }
+    if (patch.status === 'healed' && !injury.healedAt) {
+      injury.healedAt = new Date().toISOString();
+    }
+    injury.updatedAt = new Date().toISOString();
+    this.applyPenalties();
+    return injury;
+  }
+
+  deleteInjury(injuryId: string): void {
+    this.findInjury(injuryId);
+    this.injuries = this.injuries.filter(injury => injury.id !== injuryId);
+    this.applyPenalties();
+  }
+
+  /**
+   * A medical procedure on one of the actor's injuries, already resolved with the medical maneuver table. The
+   * treatment is kept in the injury; a cauterization leaves a heat critical alert for the game master.
+   */
+  treatInjury(
+    injuryId: string,
+    procedure: TacticalProcedure,
+    outcome: MedicalOutcome,
+    treatment: Omit<InjuryTreatment, 'id' | 'procedure' | 'result' | 'healingType' | 'recoveryModifier' | 'at' | 'context'>,
+  ): { injury: Injury; effect: TreatmentEffect; treatment: InjuryTreatment } {
+    const injury = this.findInjury(injuryId);
+    InjuryTreatmentRules.validate(procedure, injury);
+    const effect = InjuryTreatmentRules.apply(procedure, injury, outcome);
+    const record: InjuryTreatment = {
+      ...treatment,
+      id: randomUUID(),
+      procedure,
+      result: outcome.result,
+      healingType: effect.healingType,
+      recoveryModifier: outcome.recoveryModifier,
+      at: new Date().toISOString(),
+      context: 'tactical',
+      tacticalGameId: this.gameId,
+    };
+    injury.treatments.push(record);
+    injury.updatedAt = record.at;
+    if (effect.heatCritical) {
+      this.alerts.push(ActorRoundAlert.buildCritical('H', effect.heatCritical, `Cauterization: ${effect.heatCritical} Heat critical`));
+    }
+    this.applyPenalties();
+    return { injury, effect, treatment: record };
+  }
+
+  /** A dying actor stabilized (spec 013, §3): the dying effect gains the rounds of the result. */
+  stabilize(effectId: string, rounds: number): ActorRoundEffect {
+    const effect = this.effects.find(each => each.id === effectId);
+    if (!effect) {
+      throw new NotFoundError('Effect', effectId, 'err-effect-not-found');
+    }
+    if (effect.status !== DYING) {
+      throw new ValidationError(`Effect ${effectId} is not a dying effect`, 'err-effect-not-dying');
+    }
+    if (rounds > 0) {
+      effect.rounds = (effect.rounds ?? 0) + rounds;
+    }
+    return effect;
+  }
+
+  /** Bleeding of the actor's injuries, hits per round. */
+  getBleeding(): number {
+    return this.injuries.filter(isBleeding).reduce((sum, injury) => sum + (injury.bleeding ?? 0), 0);
+  }
+
+  /** At risk when the game ends (spec 013, §3): bleeding or dying, and not dead yet. */
+  isAtRisk(): boolean {
+    return !this.isDead() && (this.getBleeding() > 0 || this.hasEffect(DYING));
   }
 
   /** §9.8 Hits: dead when the hits below zero exceed the Body Development bonus (`max` for older actor rounds). */
@@ -397,23 +651,27 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     return this.hp.current < -threshold;
   }
 
-  private addEffect(
-    effect: ActorRoundEffect,
-    penaltySource: ActorRoundPenaltySource | undefined,
-    location: AttackLocation | undefined,
-  ): void {
-    // Handle penalty effects separately
-    if (effect.status === 'penalty') {
-      if (!penaltySource) throw new UnprocessableEntityError('Penalty effects require a penalty source');
-      if (!effect.value) throw new UnprocessableEntityError('Penalty effects require a value');
-      this.penalty.addModifier(penaltySource, effect.value);
+  private addEffect(effect: ActorRoundEffect, location: AttackLocation | undefined): void {
+    // Penalties and bleeding are injuries (spec 013, §3): those not built from a critical are game master ones.
+    if (effect.status === PENALTY || effect.status === BLEEDING) {
+      if (!effect.value) throw new UnprocessableEntityError(`A ${effect.status} effect requires a value`, 'err-effect-invalid-value');
+      this.addInjury(
+        buildInjury({
+          id: effect.id,
+          type: 'unknown',
+          location: toBodyLocation(location),
+          penalty: effect.status === PENALTY ? effect.value : 0,
+          bleeding: effect.status === BLEEDING ? effect.value : 0,
+          source: effect.source ?? { kind: 'manual', tacticalGameId: this.gameId, round: this.round },
+        }),
+      );
       return;
     }
     if (effect.status === 'breakage_roll') {
       this.addCriticalBreakageAlert(location);
       return;
     }
-    if (this.isDead() && effect.status === 'dying') {
+    if (this.isDead() && effect.status === DYING) {
       return;
     }
     if (effect.status === SURPRISED) {
@@ -542,12 +800,16 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
 
   /**
    * Applies an endurance roll (§5.5, Table 5-5): `fatigueChange` adds to the fatigue penalty (negative shakes it off)
-   * and `hits` are taken. Fatigue beyond -50 becomes an injury, applied as hits lost. The roll uses up the activity
+   * and `hits` are taken. Fatigue beyond -50 becomes an injury penalty (§5.5 Injuries due to Fatigue): an injury of
+   * unknown type with a fatigue source, the one of this game made worse if there is one. The roll uses up the activity
    * points that called for it and its alert.
    */
-  applyEnduranceResult(fatigueChange: number, hits: number, alertId?: string): void {
+  applyEnduranceResult(fatigueChange: number, hits: number, alertId?: string, gameName?: string, phase?: number): void {
     const fatigue = Math.max(0, (this.fatigue.fatigue || 0) + fatigueChange);
-    const injury = Math.max(0, fatigue - MAX_FATIGUE_PENALTY);
+    const excess = Math.max(0, fatigue - MAX_FATIGUE_PENALTY);
+    if (excess > 0) {
+      this.addFatigueInjury(excess, gameName);
+    }
     this.fatigue.fatigue = Math.min(fatigue, MAX_FATIGUE_PENALTY);
     this.fatigue.accumulator = Math.max(0, (this.fatigue.accumulator || 0) - 100);
     this.alerts = this.alerts.filter(alert => alert.id !== alertId);
@@ -555,7 +817,29 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       this.alerts = this.alerts.filter(alert => alert.type !== 'endurance');
     }
     // applyAttackResults checks unconsciousness and death, and recomputes the penalties (the fatigue one included).
-    this.applyAttackResults(Math.max(0, hits) + injury || undefined, undefined, undefined);
+    const taken = Math.max(0, hits);
+    this.applyAttackResults(taken || undefined, undefined, undefined, undefined, [], [{ kind: 'endurance', amount: -taken, phase }]);
+  }
+
+  private addFatigueInjury(excess: number, gameName: string | undefined): void {
+    const existing = this.injuries.find(
+      injury => injury.source.kind === 'fatigue' && injury.source.tacticalGameId === this.gameId && injury.status === 'active',
+    );
+    if (existing) {
+      existing.penalty -= excess;
+      existing.initialPenalty = Math.min(existing.initialPenalty, existing.penalty);
+      existing.severity = deriveInjurySeverity(existing.penalty, existing.bleeding);
+      existing.updatedAt = new Date().toISOString();
+      return;
+    }
+    this.addInjury(
+      buildInjury({
+        id: randomUUID(),
+        type: 'unknown',
+        penalty: -excess,
+        source: { kind: 'fatigue', tacticalGameId: this.gameId, tacticalGameName: gameName, round: this.round },
+      }),
+    );
   }
 
   /**
@@ -563,22 +847,39 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    * when bleeding takes it beyond its death threshold or a dying effect runs out.
    */
   applyUpkeep() {
-    if (this.effects.length === 0) {
+    const bleeding = this.getBleeding();
+    if (this.effects.length === 0 && bleeding === 0) {
       return;
     }
     this.applyStaggeredUpkeep();
-    const totalBleeding = this.effects.filter(e => e.status === 'bleeding').reduce((sum, e) => sum + (e.value ?? 0), 0);
-    this.hp.current -= totalBleeding;
+    // Spec 013, §3: the bleeding of the injuries, logged by injury (§1.1).
+    this.hp.current -= bleeding;
+    this.injuries
+      .filter(injury => isBleeding(injury) && (injury.bleeding ?? 0) > 0)
+      .forEach(injury =>
+        this.logHp({
+          kind: 'bleeding',
+          amount: -(injury.bleeding ?? 0),
+          phase: UPKEEP_PHASE,
+          injuryId: injury.id,
+          actionId: injury.source?.actionId,
+          attackerId: injury.source?.attackerId,
+          attackerName: injury.source?.attackerName,
+          criticalKey: injury.source?.criticalKey,
+        }),
+      );
     this.getEffectsLosingARound().forEach(e => (e.rounds! -= 1));
-    if (this.effects.some(e => e.status === 'dying' && e.rounds !== undefined && e.rounds !== null && e.rounds <= 0)) {
-      this.addEffect(new ActorRoundEffect(randomUUID(), 'dead', undefined, undefined), undefined, undefined);
+    if (this.effects.some(e => e.status === DYING && e.rounds !== undefined && e.rounds !== null && e.rounds <= 0)) {
+      this.addEffect(new ActorRoundEffect(randomUUID(), DEAD, undefined, undefined), undefined);
     }
     this.effects = this.effects.filter(e => e.rounds === undefined || e.rounds === null || e.rounds > 0);
     if (this.isBeyondDeathThreshold()) {
-      this.addEffect(new ActorRoundEffect(randomUUID(), 'dead', undefined, undefined), undefined, undefined);
+      this.addEffect(new ActorRoundEffect(randomUUID(), DEAD, undefined, undefined), undefined);
+    } else if (this.hp.current < 1) {
+      this.addEffect(new ActorRoundEffect(randomUUID(), UNCONSCIOUS, undefined, undefined), undefined);
     }
     if (this.isDead()) {
-      this.effects = this.effects.filter(e => e.status !== 'dying');
+      this.effects = this.effects.filter(e => e.status !== DYING);
     }
     // A non-violent penalty lasts the round after the one it was gained in.
     this.effects = this.effects.filter(e => e.status !== NON_VIOLENT || !this.isFromEarlierRound(e));
@@ -649,10 +950,20 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   }
 
   private applyPenalties() {
+    this.applyInjuryPenalty();
     this.applyHpPenalty();
     this.applyStunPenalty();
     this.applyNonViolentPenalty();
     this.applyFatiguePenalty();
+  }
+
+  /** Spec 013, §3: the penalties of the injuries that still penalize, in full (no location rule). */
+  private applyInjuryPenalty() {
+    this.penalty.modifiers = this.penalty.modifiers.filter(m => m.source !== 'injury');
+    const value = (this.injuries ?? []).filter(isPenalizing).reduce((sum, injury) => sum + Math.min(0, injury.penalty || 0), 0);
+    if (value !== 0) {
+      this.penalty.addModifier('injury', value);
+    }
   }
 
   /** §5.5: the accumulated fatigue penalty applies to all actions. */
@@ -743,16 +1054,16 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   }
 
   isDead(): boolean {
-    return this.effects.some(e => e.status === 'dead');
+    return this.effects.some(e => e.status === DEAD);
   }
 
   hasEffect(status: string): boolean {
     return this.effects.some(e => e.status === status);
   }
 
-  /** Dead, dying or unconscious (both spellings of the effect): the actor's open actions cannot go on (spec 011, §5). */
+  /** Dead, dying, unconscious, incapacitated or paralyzed: the actor's open actions cannot go on (spec 011, §5). */
   isIncapacitated(): boolean {
-    return this.isDead() || this.hasEffect('dying') || this.hasEffect('unconcious') || this.hasEffect('unconscious');
+    return this.isDead() || [DYING, UNCONSCIOUS, INCAPACITATED, PARALYZED].some(status => this.hasEffect(status));
   }
 
   /** The actor can carry on an action: it is not incapacitated and has some AP this round (spec 011, §5). */
@@ -1071,8 +1382,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     this.alerts.push(ActorRoundAlert.buildBreakageFromAttack(attackName));
   }
 
+  /** The location of the critical comes with the effects (spec 013, §9.5); `chest` only when there is none. */
   addCriticalBreakageAlert(location: AttackLocation | undefined) {
-    //TODO required location
     this.alerts.push(ActorRoundAlert.buildBreakageFromCritical(location || 'chest'));
   }
 
@@ -1106,6 +1417,10 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       apCapacity: this.apCapacity,
       apLedger: this.apLedger,
       traits: this.traits,
+      injuries: this.injuries,
+      hpLog: this.hpLog,
+      characterId: this.characterId,
+      snapshot: this.snapshot,
       imageUrl: this.imageUrl,
       owner: this.owner,
       createdAt: this.createdAt,

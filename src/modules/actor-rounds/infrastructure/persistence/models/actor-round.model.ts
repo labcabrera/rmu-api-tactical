@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
+import type { Injury } from '../../../domain/value-objets/injury.vo';
 import { ActorRoundAlert } from './actor-round-alert.model';
 import { ActorRoundAttack } from './actor-round-attack.model';
 import { ActorRoundDefense } from './actor-round-defense.model';
@@ -14,7 +15,9 @@ import {
   ActorRoundDefenseMode,
   ActorRoundEffect,
   ActorRoundFatigue,
+  ActorRoundHpLogEntry,
   ActorRoundPhaseLog,
+  ActorRoundSnapshot,
   ActorRoundTrait,
 } from './actor-round.models-childs';
 
@@ -105,6 +108,20 @@ export class ActorRoundModel {
 
   @Prop({ type: [ActorRoundApLedgerEntry], required: false, default: [] })
   apLedger?: ActorRoundApLedgerEntry[];
+
+  /** Spec 013, §1: injuries as the shared model (stored as documents of their own shape). */
+  @Prop({ type: [Object], required: false, default: [] })
+  injuries?: Injury[];
+
+  /** Spec 013, §1.1: the changes of the hits in this round. */
+  @Prop({ type: [ActorRoundHpLogEntry], required: false, default: [] })
+  hpLog?: ActorRoundHpLogEntry[];
+
+  @Prop({ type: String, required: false })
+  characterId?: string;
+
+  @Prop({ type: ActorRoundSnapshot, required: false })
+  snapshot?: ActorRoundSnapshot;
 
   @Prop({ type: String, required: false })
   imageUrl: string | undefined;
