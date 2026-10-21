@@ -50,26 +50,19 @@ const meleeAttack = (targetId: string, protectors: string[] | null = null, posit
     protectorPositions: positions,
   }) as unknown as ActionAttack;
 
-describe('Action declaration (§8.1, §8.3)', () => {
-  const declare = (actions: Action[], phaseStart: number, freeAction = false, options: LoadOptions = {}, currentPhase = 1) =>
-    Action.checkDeclaration(load(options), actions, phaseStart, freeAction, currentPhase);
+describe('Action declaration (§8.1, §8.3; spec 011, §2)', () => {
+  const request = (phaseStart: number, freeAction = false, actionType: ActionType = 'maneuver') => ({ actionType, phaseStart, freeAction });
+  const declare = (actions: Action[], phaseStart: number, freeAction = false, options: LoadOptions = {}, currentPhase = phaseStart) =>
+    Action.checkDeclaration(load(options), actions, request(phaseStart, freeAction), currentPhase);
 
-  it('accepts an action in a free phase', () => {
-    expect(() => declare([action('actor-1', 'movement', 1, { phaseEnd: 1, status: 'completed' })], 2)).not.toThrow();
+  it('takes 1 AP of the current phase for an action', () => {
+    expect(declare([], 2)).toEqual({ spend: { phase: 2, ap: 1, kind: 'spent' }, interrupted: [] });
   });
 
-  it('rejects an action that starts in a phase another action holds', () => {
-    const completed = action('actor-1', 'melee_attack', 1, { phaseEnd: 2, status: 'completed' });
-    const inProgress = action('actor-1', 'maneuver', 3);
-
-    expect(() => declare([completed], 2)).toThrow(expect.objectContaining({ errorCode: 'err-action-phase-overlap' }));
-    expect(() => declare([inProgress], 4, false, {}, 3)).toThrow(expect.objectContaining({ errorCode: 'err-action-phase-overlap' }));
-  });
-
-  it('rejects an action beyond the 4 AP of the round', () => {
-    const allRound = action('actor-1', 'melee_attack', 1, { phaseEnd: 4, status: 'completed' });
-
-    expect(() => declare([allRound], 5)).toThrow(expect.objectContaining({ errorCode: 'err-action-invalid-phase' }));
+  it('rejects an action outside the current phase, past or future', () => {
+    expect(() => declare([], 1, false, {}, 2)).toThrow(expect.objectContaining({ errorCode: 'err-action-invalid-phase' }));
+    expect(() => declare([], 3, false, {}, 2)).toThrow(expect.objectContaining({ errorCode: 'err-action-invalid-phase' }));
+    expect(() => declare([], 5)).toThrow(expect.objectContaining({ errorCode: 'err-action-invalid-phase' }));
     expect(() => declare([], 0)).toThrow(expect.objectContaining({ errorCode: 'err-action-invalid-phase' }));
   });
 
@@ -82,15 +75,13 @@ describe('Action declaration (§8.1, §8.3)', () => {
     expect(() => declare([], 2, false, perceptive)).not.toThrow();
   });
 
-  it('rejects an action over the AP left once the lost ones are taken off', () => {
-    // Actions declared before the surprise was set still spend AP.
-    const surprised = { effects: [effect('surprised')] };
-    const held = [
-      action('actor-1', 'movement', 1, { phaseEnd: 1, status: 'completed' }),
-      action('actor-1', 'maneuver', 3, { phaseEnd: 3, status: 'completed' }),
-    ];
+  it('rejects an action in a phase whose AP are spent', () => {
+    const actorRound = load();
+    actorRound.spend(2, 'other-action', 1);
 
-    expect(() => declare(held, 4, false, surprised, 3)).toThrow(expect.objectContaining({ errorCode: 'err-action-points-exceeded' }));
+    expect(() => Action.checkDeclaration(actorRound, [], request(2), 2)).toThrow(
+      expect.objectContaining({ errorCode: 'err-action-points-exceeded' }),
+    );
   });
 
   it('rejects any action of a flatfooted actor', () => {
@@ -99,12 +90,22 @@ describe('Action declaration (§8.1, §8.3)', () => {
     );
   });
 
-  it('allows one free instantaneous action per round, whatever the phases held', () => {
-    const allRound = action('actor-1', 'melee_attack', 1, { phaseEnd: 4, status: 'completed' });
-    const free = action('actor-1', 'other', 2, { freeAction: true });
+  it('criterion 10: the first instantaneous action of the round takes 0 AP, the next ones 1 AP of free capacity', () => {
+    const actorRound = load();
+    const first = action('actor-1', 'other', 2, { freeAction: true });
 
-    expect(() => declare([allRound], 2, true)).not.toThrow();
-    expect(() => declare([free], 3, true)).toThrow(expect.objectContaining({ errorCode: 'err-action-free-limit' }));
+    expect(Action.checkDeclaration(actorRound, [], request(2, true, 'other'), 2).spend).toEqual({ phase: 2, ap: 0, kind: 'instant' });
+    expect(Action.checkDeclaration(actorRound, [first], request(2, true, 'other'), 2).spend).toEqual({ phase: 2, ap: 1, kind: 'instant' });
+    actorRound.spend(2, 'attack', 1);
+    expect(() => Action.checkDeclaration(actorRound, [first], request(2, true, 'other'), 2)).toThrow(
+      expect.objectContaining({ errorCode: 'err-action-points-exceeded' }),
+    );
+  });
+
+  it('never takes an attack as an instantaneous action', () => {
+    expect(() => Action.checkDeclaration(load(), [], request(1, true, 'melee_attack'), 1)).toThrow(
+      expect.objectContaining({ errorCode: 'err-action-free-not-allowed' }),
+    );
   });
 });
 

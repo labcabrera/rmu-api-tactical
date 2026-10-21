@@ -9,6 +9,8 @@ import { ActorRoundMovement } from './actor-round-movement.model';
 import { ActorRoundPenalty } from './actor-round-penalty.model';
 import { ActorRoundUsedBo } from './actor-round-used-bo.model';
 import {
+  ActorRoundApLedgerEntry,
+  ActorRoundApModifier,
   ActorRoundDefenseMode,
   ActorRoundEffect,
   ActorRoundFatigue,
@@ -94,6 +96,15 @@ export class ActorRoundModel {
 
   @Prop({ type: [ActorRoundPhaseLog], required: false, default: [] })
   phaseLog?: ActorRoundPhaseLog[];
+
+  @Prop({ type: [ActorRoundApModifier], required: false, default: [] })
+  apModifiers?: ActorRoundApModifier[];
+
+  @Prop({ type: [Number], required: false, default: [] })
+  apCapacity?: number[];
+
+  @Prop({ type: [ActorRoundApLedgerEntry], required: false, default: [] })
+  apLedger?: ActorRoundApLedgerEntry[];
 
   @Prop({ type: String, required: false })
   imageUrl: string | undefined;

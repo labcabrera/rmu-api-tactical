@@ -2,6 +2,8 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsBoolean, IsIn, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { CreateActionCommand } from '../../../application/cqrs/commands/create-action.command';
+import { FORCE_REASONS } from '../../../domain/value-objects/action-resolution.vo';
+import type { ForceReason } from '../../../domain/value-objects/action-resolution.vo';
 import type { ActionType } from '../../../domain/value-objects/action-type.vo';
 import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo';
 
@@ -43,6 +45,17 @@ export class ActionManeuverCreationDto {
   continuesActionId?: string;
 }
 
+export class ForceActionDto {
+  @ApiProperty({ description: 'Why the action is resolved out of turn', enum: FORCE_REASONS })
+  @IsIn(FORCE_REASONS)
+  reason: ForceReason;
+
+  @ApiProperty({ description: 'Note of the game master', required: false })
+  @IsOptional()
+  @IsString()
+  note?: string;
+}
+
 export class CreateActionDto {
   @ApiProperty({ description: 'Game identifier' })
   @IsString()
@@ -59,7 +72,7 @@ export class CreateActionDto {
   @IsNotEmpty()
   actionType: ActionType;
 
-  @ApiProperty({ description: 'Is free action', default: false, example: false })
+  @ApiProperty({ description: 'Instantaneous action (not allowed on attacks)', default: false, example: false })
   @IsOptional()
   @IsBoolean()
   freeAction: boolean = false;
@@ -75,10 +88,16 @@ export class CreateActionDto {
   @IsObject()
   maneuver: ActionManeuverCreationDto | undefined;
 
-  @ApiProperty({ description: 'Attack names' })
+  @ApiProperty({
+    description: 'A new action resolved out of turn (an effect or the game master): it takes no AP and skips the phase checks',
+    type: ForceActionDto,
+    required: false,
+  })
   @IsOptional()
-  @IsString({ each: true })
-  attackNames: string[] | undefined;
+  @ValidateNested()
+  @Type(() => ForceActionDto)
+  @IsObject()
+  forced?: ForceActionDto;
 
   static toCommand(dto: CreateActionDto, userId: string, roles: string[]) {
     return new CreateActionCommand(
@@ -88,10 +107,10 @@ export class CreateActionDto {
       dto.freeAction,
       dto.phaseStart,
       dto.maneuver,
-      dto.attackNames,
       '',
       userId,
       roles,
+      dto.forced ? { reason: dto.forced.reason, note: dto.forced.note } : undefined,
     );
   }
 }

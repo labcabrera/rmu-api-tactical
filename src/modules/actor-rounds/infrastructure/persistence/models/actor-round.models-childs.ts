@@ -73,6 +73,39 @@ export class ActorRoundPhaseLog {
 }
 
 @Schema({ _id: false })
+export class ActorRoundApModifier {
+  @Prop({ type: String, required: true })
+  source: string;
+
+  @Prop({ type: String, required: true })
+  kind: string;
+
+  @Prop({ type: Number, required: true })
+  value: number;
+
+  @Prop({ type: Number, required: false })
+  phase?: number;
+
+  @Prop({ type: String, required: false })
+  effectId?: string;
+}
+
+@Schema({ _id: false })
+export class ActorRoundApLedgerEntry {
+  @Prop({ type: Number, required: true })
+  phase: number;
+
+  @Prop({ type: String, required: false })
+  actionId?: string;
+
+  @Prop({ type: Number, required: true })
+  ap: number;
+
+  @Prop({ type: String, required: true })
+  kind: string;
+}
+
+@Schema({ _id: false })
 export class ActorRoundDefenseMode {
   @Prop({ type: String, required: true, default: 'none' })
   dodge: DefenseLevel;

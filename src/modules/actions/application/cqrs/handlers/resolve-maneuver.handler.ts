@@ -48,16 +48,18 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     if (Number.isNaN(currentPhase)) {
       throw new ValidationError(`Phase ${game.phase} does not allow resolving actions`);
     }
-    action.phaseEnd = currentPhase;
-    action.actionPoints = action.freeAction ? 0 : action.phaseEnd - action.phaseStart + 1;
 
+    // The AP come from the ledger (spec 011, §2); the range from the profile of the skill rolled.
     const request = command.request;
     const context = await this.maneuverContextService.load(action, game, {
       skillId: request.skillId,
       specialization: request.specialization,
       maneuverType: request.maneuverType,
-      actionPoints: action.actionPoints,
     });
+    const range = context.profile.actionPoints;
+    action.apRange = range ? { min: range.min, max: range.max } : null;
+    action.checkResolvable(context.actorRound, currentPhase);
+    action.actionPoints = action.apOf(context.actorRound, currentPhase);
     const calculation = this.maneuverContextService.calculate(context, request, command.roll.roll);
     this.updateModifiers(action, command, context, calculation);
     action.maneuver!.roll = { modifiers: calculation.modifiers, roll: command.roll.roll, totalRoll: calculation.total };
@@ -67,14 +69,14 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
         ? await this.resolvePercent(action, context, calculation.total)
         : await this.resolveAbsolute(action, context, calculation.total, command.roll.unmodified === UNUSUAL_EVENT_ROLL);
 
-    action.status = 'completed';
-    action.updatedAt = new Date();
+    action.close(context.actorRound, currentPhase);
     const updated = await this.actionRepository.update(action.id, action);
     if (alert) {
       context.actorRound.alerts.push(alert);
       await this.actorRoundRepository.update(context.actorRound.id, context.actorRound);
     }
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
+    updated.refreshApState(context.actorRound, currentPhase);
     return updated;
   }
 

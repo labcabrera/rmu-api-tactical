@@ -8,12 +8,48 @@ import { ProtectPosition } from '../value-objects/action-attack-modifiers.vo';
 import { ActionParry } from '../value-objects/action-attack-parry.vo';
 import { ActionAttack } from '../value-objects/action-attack.vo';
 import { ActionManeuver } from '../value-objects/action-maneuver.vo';
+import { ActionApProfile } from '../value-objects/action-ap-profile.vo';
 import { ActionMovement } from '../value-objects/action-movement.vo';
-import { ActionStatus } from '../value-objects/action-status.vo';
+import { ActionResolution, ForceReason } from '../value-objects/action-resolution.vo';
+import { ActionStatus, CLOSED_ACTION_STATUSES, IN_RESOLUTION_ACTION_STATUSES } from '../value-objects/action-status.vo';
 import { ActionType } from '../value-objects/action-type.vo';
+import type { ManeuverActionPoints } from '../value-objects/maneuver-profile.vo';
 
-/** Action points of a round (§8.3). */
-const MAX_ACTION_POINTS = 4;
+/** Action phases of a round (§8.3). */
+const ACTION_PHASES = 4;
+
+/** How close an action is to being resolved (spec 011, §4). */
+export type ActionReadiness = 'blocked' | 'unreachable' | 'ready' | 'optimal' | 'held' | 'in-resolution' | 'done';
+
+/** AP of an action and its readiness, as of the actor round and phase they were computed with (not stored). */
+export interface ActionApState {
+  actionPoints: number | null;
+  readiness: ActionReadiness | null;
+  /** Penalty of resolving the action with its AP (0 or negative); null while it cannot be resolved or is resolved. */
+  readinessPenalty: number | null;
+}
+
+/** AP an action takes from the ledger of a new action: the phase, the AP and how they are recorded. */
+export interface DeclarationSpend {
+  phase: number;
+  ap: number;
+  kind: 'spent' | 'instant';
+}
+
+/** What declaring an action does to the round of the actor (spec 011, §2). */
+export interface DeclarationPlan {
+  /** AP recorded on the new action; null when it takes none (forced). */
+  spend: DeclarationSpend | null;
+  /** Open actions of the actor that the new one interrupts. */
+  interrupted: Action[];
+}
+
+export interface DeclarationRequest {
+  actionType: ActionType;
+  phaseStart: number;
+  freeAction: boolean;
+  forced?: ForceReason;
+}
 
 /** Table 9-7c: OB penalty of a protector by where it stands. */
 const PROTECT_PENALTIES: Record<ProtectPosition, number> = {
@@ -39,6 +75,14 @@ export interface ActionProps {
   maneuver: ActionManeuver | null;
   fatigue: number | null;
   description: string | null;
+  /** How the action is resolved. Missing in actions stored before spec 011 (their AP come from their phases). */
+  resolution?: ActionResolution | null;
+  /** AP range of the action when it is not the one of its type: the maneuver's skill, standing up with Acrobatics. */
+  apRange?: ManeuverActionPoints | null;
+  /** Action of the previous round this one continues (open rounds, multi-round actions or held ones; spec 011, §5). */
+  continuesActionId?: string | null;
+  /** AP the continued action had at the end of its round: they count toward this one's AP. */
+  carriedAp?: number | null;
   owner: string;
   createdAt: Date;
   updatedAt: Date | null;
@@ -52,7 +96,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     public readonly round: number,
     public readonly actionType: ActionType,
     public readonly freeAction: boolean,
-    public readonly phaseStart: number,
+    public phaseStart: number,
     public phaseEnd: number | null,
     public status: ActionStatus,
     public actionPoints: number | null,
@@ -65,9 +109,16 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     public owner: string,
     public readonly createdAt: Date,
     public updatedAt: Date | null,
+    public resolution: ActionResolution | null = null,
+    public apRange: ManeuverActionPoints | null = null,
+    public continuesActionId: string | null = null,
+    public carriedAp: number | null = null,
   ) {
     super();
   }
+
+  /** AP and readiness computed for the response (see `refreshApState`); not stored. */
+  apState?: ActionApState;
 
   static create(
     gameId: string,
@@ -79,6 +130,8 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     maneuver: ActionManeuver | null,
     description: string | null,
     owner: string,
+    resolution: ActionResolution = ActionResolution.normal(),
+    apRange: ManeuverActionPoints | null = null,
   ) {
     const action = new Action(
       randomUUID(),
@@ -100,6 +153,8 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
       owner,
       new Date(),
       null,
+      resolution,
+      apRange,
     );
     action.apply(new ActionCreatedEvent(action));
     return action;
@@ -126,7 +181,46 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
       props.owner,
       props.createdAt,
       props.updatedAt,
+      props.resolution ?? null,
+      props.apRange ?? null,
+      props.continuesActionId ?? null,
+      props.carriedAp ?? null,
     );
+  }
+
+  /**
+   * The continuation of an action still open when its round ends (spec 011, §5): same type, data and resolution, in
+   * the new round from phase 1, with the AP the action had (`carriedAp`). A held action goes on held; any other, declared,
+   * and it takes 1 AP of phase 1 when that phase starts.
+   */
+  static continuationOf(previous: Action, round: number, carriedAp: number): Action {
+    const action = new Action(
+      randomUUID(),
+      previous.gameId,
+      previous.actorId,
+      round,
+      previous.actionType,
+      previous.freeAction,
+      1,
+      null,
+      previous.status === 'held' ? 'held' : 'declared',
+      carriedAp,
+      previous.movement ? structuredClone(previous.movement) : null,
+      previous.attacks ? structuredClone(previous.attacks) : null,
+      previous.parries ? structuredClone(previous.parries) : null,
+      previous.maneuver ? structuredClone(previous.maneuver) : null,
+      null,
+      previous.description,
+      previous.owner,
+      new Date(),
+      null,
+      previous.effectiveResolution(),
+      previous.apRange ? { ...previous.apRange } : null,
+      previous.id,
+      carriedAp,
+    );
+    action.apply(new ActionCreatedEvent(action));
+    return action;
   }
 
   prepare() {
@@ -135,14 +229,6 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     }
     if (this.status !== 'declared') {
       throw new Error('Action is not in a preparable state');
-    }
-  }
-
-  setActionPoints(currentPhase: number) {
-    if (this.freeAction) {
-      this.actionPoints = 0;
-    } else {
-      this.actionPoints = currentPhase - this.phaseStart + 1;
     }
   }
 
@@ -167,82 +253,416 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     return actions.some(action => action.status === 'completed' && action.phaseEnd === phase && action.spendsApInPhase(phase)) ? 1 : 0;
   }
 
-  /**
-   * Checks a new action of an actor against its round (§8.1, §8.3, Table 8-1): a flatfooted actor declares nothing;
-   * the phases a surprised actor lost are blocked; an action cannot start in a phase another one of the actor still
-   * holds, nor go over the AP left; only the first instantaneous action of the round is free (the next one costs 1 AP).
-   */
-  static checkDeclaration(actorRound: ActorRound, actions: Action[], phaseStart: number, freeAction: boolean, currentPhase: number): void {
-    if (actorRound.hasEffect('flatfooted')) {
-      throw new ValidationError('A flatfooted actor cannot declare actions this round', 'err-action-flatfooted');
-    }
-    const maxPhase = actorRound.actionPoints || MAX_ACTION_POINTS;
-    if (!Number.isInteger(phaseStart) || phaseStart < 1 || phaseStart > maxPhase) {
-      throw new ValidationError(`An action starts in a phase from 1 to ${maxPhase}`, 'err-action-invalid-phase');
-    }
-    const lost = actorRound.getLostActionPoints();
-    if (phaseStart <= lost) {
-      throw new ValidationError(`A surprised actor loses the first ${lost} action points of the round`, 'err-action-surprised-phase');
-    }
-    if (freeAction) {
-      if (actions.some(action => action.freeAction)) {
-        throw new ValidationError('Only the first instantaneous action of the round is free', 'err-action-free-limit');
-      }
-      return;
-    }
-    const held = actions.filter(action => !action.freeAction);
-    if (held.some(action => phaseStart >= action.phaseStart && phaseStart <= (action.phaseEnd ?? maxPhase))) {
-      throw new ValidationError(`Phase ${phaseStart} is already taken by another action of the actor`, 'err-action-phase-overlap');
-    }
-    const spent = held.reduce((sum, action) => sum + action.heldActionPoints(currentPhase), 0);
-    if (spent + 1 > maxPhase - lost) {
-      throw new ValidationError(`The actor has no action points left this round`, 'err-action-points-exceeded');
-    }
+  // --- Action points: ledger, profile, readiness and declaration (spec 011) ---
+
+  isAttack(): boolean {
+    return this.actionType === 'melee_attack' || this.actionType === 'ranged_attack';
   }
 
-  /** AP the action holds: the phases it spans, up to the current one while it is in progress. */
-  private heldActionPoints(currentPhase: number): number {
-    const end = this.phaseEnd ?? Math.max(currentPhase, this.phaseStart);
+  /** Stored before spec 011: without a resolution, its AP come from the phases it spans when the ledger has none. */
+  isLegacy(): boolean {
+    return this.resolution === null || this.resolution === undefined;
+  }
+
+  /** A free attack stored before spec 011: it is read as forced by the game master with the full AP (§6). */
+  isLegacyFreeAttack(): boolean {
+    return this.freeAction && this.isAttack();
+  }
+
+  /** The resolution, reading a legacy free attack as forced by the game master. */
+  effectiveResolution(): ActionResolution {
+    if (this.resolution) {
+      return this.resolution;
+    }
+    return this.isLegacyFreeAttack() ? ActionResolution.forced('gm') : ActionResolution.normal();
+  }
+
+  isForced(): boolean {
+    return this.effectiveResolution().mode === 'forced';
+  }
+
+  /** The attack takes the AP penalty: not an instantaneous or legacy free action, nor forced by an effect. */
+  takesApPenalty(): boolean {
+    return !this.freeAction && this.effectiveResolution().reason !== 'effect';
+  }
+
+  /**
+   * An open action that takes 1 AP of each new phase (spec 011, §5): declared, not instantaneous nor forced. Legacy
+   * actions are left out: their ledger is filled from the phases they span.
+   */
+  carriesOnPhaseChange(): boolean {
+    return this.status === 'declared' && !this.freeAction && !this.isForced() && !this.isLegacy();
+  }
+
+  /**
+   * Takes 1 AP of `phase` for the open action when the phase starts (spec 011, §5): spent if the phase has free
+   * capacity, else recorded as `lost` (the action does not advance). Nothing when the action already has an entry in
+   * the phase, so it can run again. Returns the entry kind recorded, or undefined.
+   */
+  advanceToPhase(actorRound: ActorRound, phase: number): 'spent' | 'lost' | undefined {
+    if (!this.carriesOnPhaseChange() || phase < this.phaseStart || actorRound.ledgerOf(this.id).some(entry => entry.phase === phase)) {
+      return undefined;
+    }
+    const kind = actorRound.freeCapacity(phase) > 0 ? 'spent' : 'lost';
+    actorRound.spend(phase, this.id, 1, kind);
+    this.actionPoints = this.apOf(actorRound, phase);
+    this.updatedAt = new Date();
+    return kind;
+  }
+
+  /**
+   * What happens to the action when its round ends (spec 011, §5), with the open rounds option of the game:
+   * - `none`: it is closed or under resolution, nothing to do;
+   * - `expired`: an instantaneous action, or an open one without open rounds that is not multi-round;
+   * - `carried`: it goes on in the next round (open rounds, a multi-round profile, or held).
+   * An actor that cannot act any more is handled by the caller (the action is interrupted).
+   */
+  roundEndOutcome(openRounds: boolean): 'none' | 'expired' | 'carried' {
+    if (this.status !== 'declared' && this.status !== 'held') {
+      return 'none';
+    }
+    if (this.freeAction) {
+      return 'expired';
+    }
+    if (this.status === 'held' || openRounds || this.apProfile().multiRound) {
+      return 'carried';
+    }
+    return 'expired';
+  }
+
+  /** Over in its round: completed, interrupted, expired or carried to the next one. */
+  isClosed(): boolean {
+    return CLOSED_ACTION_STATUSES.includes(this.status);
+  }
+
+  /**
+   * AP range of the action (spec 011, §3): the stored one (maneuver skill, standing up with Acrobatics) or its type's.
+   * An instantaneous action can be resolved without AP.
+   */
+  apProfile(): ActionApProfile {
+    let profile: ActionApProfile;
+    if (this.apRange && this.actionType === 'maneuver') {
+      profile = ActionApProfile.forManeuver(this.apRange);
+    } else if (this.apRange) {
+      profile = new ActionApProfile(this.apRange.min, this.apRange.max, ActionApProfile.forAction(this.actionType).penaltyPerMissing);
+    } else {
+      profile = ActionApProfile.forAction(this.actionType);
+    }
+    if (this.freeAction && !this.isAttack()) {
+      return new ActionApProfile(0, profile.max, profile.penaltyPerMissing, profile.multiRound);
+    }
+    return profile;
+  }
+
+  /**
+   * AP spent on the action: the ones carried from the previous round (a continuation) plus its `spent` and `instant`
+   * entries in the ledger of its actor round. A legacy free attack
+   * has the full AP of its profile. A legacy action without entries counts 1 AP per phase it spans (up to the current
+   * phase while open), or its stored AP once resolved; an instantaneous legacy action, none.
+   */
+  apOf(actorRound: ActorRound | null | undefined, currentPhase?: number | null): number {
+    if (this.isLegacyFreeAttack()) {
+      return this.apProfile().max;
+    }
+    const carried = this.carriedAp ?? 0;
+    if (actorRound && actorRound.ledgerOf(this.id).length > 0) {
+      return carried + actorRound.spentByAction(this.id);
+    }
+    if (!this.isLegacy() || this.freeAction) {
+      return carried;
+    }
+    if (this.actionPoints !== null && this.actionPoints !== undefined && this.status !== 'declared' && this.status !== 'held') {
+      return this.actionPoints;
+    }
+    const end = Math.min(this.phaseEnd ?? currentPhase ?? this.phaseStart, ACTION_PHASES);
     return Math.max(0, end - this.phaseStart + 1);
   }
 
-  addAttacks(attackNames: string[] | undefined) {
-    if (!attackNames || attackNames.length === 0) {
+  /**
+   * Readiness of the action (spec 011, §4) with the AP it has now and the capacity its actor has left from
+   * `currentPhase` (null or past phase 4 outside the action phases: no capacity left).
+   *
+   * Below its minimum, the action is `blocked` while it can still get there and `unreachable` when it cannot. It can
+   * get there with the capacity left in the round or, with `openRounds` (the game option, on by default) or a
+   * multi-round profile, in the next round, where it goes on (§5). It is `unreachable` anyway when the actor cannot act
+   * (dead, dying, unconscious or without AP this round): it will be interrupted.
+   */
+  readiness(actorRound: ActorRound | null | undefined, currentPhase: number | null | undefined, openRounds = true): ActionApState {
+    const byStatus = this.readinessByStatus();
+    const actionPoints = this.apOf(actorRound, currentPhase);
+    if (byStatus === 'done' || byStatus === 'in-resolution') {
+      return { actionPoints, readiness: byStatus, readinessPenalty: null };
+    }
+    const profile = this.apProfile();
+    const resolution = this.effectiveResolution();
+    if (resolution.mode === 'forced') {
+      const penalty = resolution.reason === 'effect' ? 0 : profile.penaltyFor(actionPoints);
+      return { actionPoints, readiness: byStatus ?? (penalty === 0 ? 'optimal' : 'ready'), readinessPenalty: penalty };
+    }
+    if (actionPoints >= profile.max) {
+      return { actionPoints, readiness: byStatus ?? 'optimal', readinessPenalty: 0 };
+    }
+    if (profile.reachesMin(actionPoints)) {
+      return { actionPoints, readiness: byStatus ?? 'ready', readinessPenalty: profile.penaltyFor(actionPoints) };
+    }
+    if (byStatus) {
+      return { actionPoints, readiness: byStatus, readinessPenalty: null };
+    }
+    if (actorRound && !actorRound.canAct()) {
+      return { actionPoints, readiness: 'unreachable', readinessPenalty: null };
+    }
+    if (openRounds || profile.multiRound) {
+      return { actionPoints, readiness: 'blocked', readinessPenalty: null };
+    }
+    const phase = currentPhase ?? ACTION_PHASES + 1;
+    const left = actorRound && phase <= ACTION_PHASES ? actorRound.remainingCapacity(phase) : 0;
+    return { actionPoints, readiness: actionPoints + left >= profile.min ? 'blocked' : 'unreachable', readinessPenalty: null };
+  }
+
+  /** Readiness that only depends on the status: held, under resolution or done (undefined otherwise). */
+  readinessByStatus(): ActionReadiness | undefined {
+    if (this.isClosed()) {
+      return 'done';
+    }
+    if (this.status === 'held') {
+      return 'held';
+    }
+    if (IN_RESOLUTION_ACTION_STATUSES.includes(this.status)) {
+      return 'in-resolution';
+    }
+    return undefined;
+  }
+
+  /** Computes the AP and readiness of the response, and keeps `actionPoints` in step with the ledger. */
+  refreshApState(actorRound: ActorRound | null | undefined, currentPhase: number | null | undefined, openRounds = true): ActionApState {
+    this.apState = this.readiness(actorRound, currentPhase, openRounds);
+    if (actorRound) {
+      this.actionPoints = this.apState.actionPoints;
+    }
+    return this.apState;
+  }
+
+  /**
+   * A step that fixes the result (preparing an attack, resolving a maneuver or movement, completing a simple action)
+   * needs the minimum AP of the action, unless it is forced (spec 011, §4).
+   */
+  checkResolvable(actorRound: ActorRound, currentPhase: number): void {
+    if (this.isClosed()) {
+      throw new ValidationError(`Action ${this.id} is already ${this.status}`, 'err-action-closed');
+    }
+    if (this.isForced()) {
       return;
     }
-    if (!this.attacks) {
-      this.attacks = [];
+    const state = this.readiness(actorRound, currentPhase);
+    if (state.readiness === 'blocked' || state.readiness === 'unreachable') {
+      const min = this.apProfile().min;
+      throw new ValidationError(
+        `The action has ${state.actionPoints} action points, below the ${min} it needs`,
+        'err-action-points-below-min',
+      );
     }
-    attackNames.forEach(attackName => {
-      const attack = {
-        attackName: attackName,
-        type: this.actionType === 'melee_attack' ? 'melee' : 'ranged',
-        modifiers: {
-          bo: 0,
-          calledShot: 'none',
-          calledShotPenalty: 0,
-          positionalSource: 'none',
-          positionalTarget: 'none',
-          restrictedQuarters: 'none',
-          cover: 'none',
-          disabledDB: false,
-          disabledShield: false,
-          disabledParry: false,
-          pace: 'creep',
-          restrictedParry: false,
-          higherGround: false,
-          stunnedFoe: false,
-          surprisedFoe: false,
-          proneSource: false,
-          proneTarget: false,
-          offHand: attackName === 'offHand' ? true : false,
-          ambush: false,
-          chargeSpeed: 'none',
-        },
-        status: 'pending_attack_roll',
-      } as ActionAttack;
-      this.attacks!.push(attack);
+  }
+
+  /**
+   * A legacy action without ledger entries gets them from the phases it spans up to `upToPhase`, before the ledger
+   * changes for it. Returns whether the ledger changed.
+   */
+  fillLegacyLedger(actorRound: ActorRound, upToPhase: number): boolean {
+    if (!this.isLegacy() || this.freeAction || actorRound.ledgerOf(this.id).length > 0 || upToPhase < this.phaseStart) {
+      return false;
+    }
+    const before = actorRound.apLedger.length;
+    actorRound.fillLedgerFromActions([this], upToPhase);
+    return actorRound.apLedger.length !== before;
+  }
+
+  /**
+   * Ends the action (completed, interrupted, or expired or carried at the end of the round): its AP and phases come
+   * from the ledger; `phaseEnd` is the last phase it spent AP in, or when it spent none, the current phase (completed)
+   * or its first one.
+   */
+  close(
+    actorRound: ActorRound | null | undefined,
+    currentPhase: number,
+    status: 'completed' | 'interrupted' | 'expired' | 'carried' = 'completed',
+  ): void {
+    const entries = actorRound ? actorRound.ledgerOf(this.id).filter(entry => entry.kind !== 'lost') : [];
+    this.actionPoints = this.apOf(actorRound, currentPhase);
+    if (entries.length > 0) {
+      this.phaseStart = Math.min(...entries.map(entry => entry.phase));
+      this.phaseEnd = Math.max(...entries.map(entry => entry.phase));
+    } else {
+      this.phaseEnd = status === 'completed' ? Math.max(this.phaseStart, currentPhase) : this.phaseStart;
+    }
+    this.status = status;
+    this.updatedAt = new Date();
+  }
+
+  /** `PATCH /spend-ap`: one more AP of the current phase on the open action (spec 011, §2). */
+  spendExtraAp(actorRound: ActorRound, currentPhase: number): void {
+    if (this.status !== 'declared') {
+      throw new ValidationError(`Only a declared action can take more action points, not a ${this.status} one`, 'err-action-not-open');
+    }
+    if (this.freeAction) {
+      throw new ValidationError('An instantaneous action takes no more action points', 'err-action-instant');
+    }
+    this.fillLegacyLedger(actorRound, currentPhase);
+    actorRound.spend(currentPhase, this.id, 1);
+    this.actionPoints = this.apOf(actorRound, currentPhase);
+    this.updatedAt = new Date();
+  }
+
+  /** `PATCH /hold`: the game master holds an action that has its maximum AP, to trigger it later (spec 011, §4). */
+  hold(actorRound: ActorRound, currentPhase: number): void {
+    if (this.status !== 'declared') {
+      throw new ValidationError(`Only a declared action can be held, not a ${this.status} one`, 'err-action-not-open');
+    }
+    const actionPoints = this.apOf(actorRound, currentPhase);
+    if (actionPoints < this.apProfile().max) {
+      throw new ValidationError(
+        `An action is held with its maximum action points (${this.apProfile().max}), it has ${actionPoints}`,
+        'err-action-hold-below-max',
+      );
+    }
+    this.actionPoints = actionPoints;
+    this.status = 'held';
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * `PATCH /force` (spec 011, §6): the action is resolved out of its turn. A withdrawal or passing through needs an AP
+   * already spent and takes the next free AP of the actor: of the current phase if it has one, else of the next phase
+   * with capacity. An effect takes none and the game master keeps the ones spent.
+   */
+  force(actorRound: ActorRound, currentPhase: number, reason: ForceReason, note?: string): void {
+    if (this.status !== 'declared' && this.status !== 'held') {
+      throw new ValidationError(`Only an open action can be forced, not a ${this.status} one`, 'err-action-not-open');
+    }
+    const resolution = ActionResolution.forced(reason, note);
+    if (resolution.apSource === 'next-phase') {
+      if (this.apOf(actorRound, currentPhase) < 1) {
+        throw new ValidationError(`A ${reason} needs an action point already spent on the action`, 'err-action-force-needs-ap');
+      }
+      this.fillLegacyLedger(actorRound, currentPhase);
+      const phase = Action.nextFreePhase(actorRound, currentPhase);
+      if (phase === undefined) {
+        throw new ValidationError('The actor has no action points left this round', 'err-action-points-exceeded');
+      }
+      actorRound.spend(phase, this.id, 1);
+    }
+    this.resolution = resolution;
+    this.actionPoints = this.apOf(actorRound, currentPhase);
+    this.updatedAt = new Date();
+  }
+
+  /** First phase from `fromPhase` with free capacity. */
+  private static nextFreePhase(actorRound: ActorRound, fromPhase: number): number | undefined {
+    for (let phase = Math.max(1, fromPhase); phase <= ACTION_PHASES; phase++) {
+      if (actorRound.freeCapacity(phase) > 0) {
+        return phase;
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Checks a new action of an actor against its round and says what it does to it (§8.1, §8.3, Table 8-1; spec 011,
+   * §2 and §6).
+   *
+   * - A flatfooted actor declares nothing. An attack is never instantaneous.
+   * - A normal action starts in the current phase, which must have capacity (lost to surprise, Hold Kind…).
+   * - The first instantaneous action of the round takes 0 AP; the next ones 1 AP of free capacity.
+   * - Any other action takes 1 AP of free capacity of the phase, and interrupts the open action of the actor (its AP
+   *   stay spent), except when it is a movement or the open action is a melee attack the actor parried with.
+   * - A forced action (an effect, the game master) takes no AP and interrupts nothing; a withdrawal or passing through
+   *   needs an action already under way.
+   *
+   * `actions` are the actor's actions of the round; `roundActions` every action of the round, to find its parries.
+   */
+  static checkDeclaration(
+    actorRound: ActorRound,
+    actions: Action[],
+    request: DeclarationRequest,
+    currentPhase: number,
+    roundActions: Action[] = actions,
+  ): DeclarationPlan {
+    const attack = request.actionType === 'melee_attack' || request.actionType === 'ranged_attack';
+    if (request.freeAction && attack) {
+      throw new ValidationError('An attack cannot be an instantaneous action', 'err-action-free-not-allowed');
+    }
+    if (request.forced) {
+      if (ActionResolution.apSourceOf(request.forced) === 'next-phase') {
+        throw new ValidationError(`A new action cannot be forced as a ${request.forced}`, 'err-action-force-invalid-reason');
+      }
+      return { spend: null, interrupted: [] };
+    }
+    if (actorRound.hasEffect('flatfooted')) {
+      throw new ValidationError('A flatfooted actor cannot declare actions this round', 'err-action-flatfooted');
+    }
+    const phase = request.phaseStart;
+    if (!Number.isInteger(phase) || phase < 1 || phase > ACTION_PHASES || phase !== currentPhase) {
+      throw new ValidationError(
+        `An action is declared in the current phase (${currentPhase}), not in ${phase}`,
+        'err-action-invalid-phase',
+      );
+    }
+    if (actorRound.capacityOf(phase) === 0) {
+      throw new ValidationError(`The actor has no action points in phase ${phase}`, 'err-action-surprised-phase');
+    }
+    if (request.freeAction) {
+      const first = !actions.some(action => action.freeAction && !action.isAttack());
+      if (!first && actorRound.freeCapacity(phase) < 1) {
+        throw new ValidationError(`The actor has no action points left in phase ${phase}`, 'err-action-points-exceeded');
+      }
+      return { spend: { phase, ap: first ? 0 : 1, kind: 'instant' }, interrupted: [] };
+    }
+    if (actorRound.freeCapacity(phase) < 1) {
+      throw new ValidationError(`The actor has no action points left in phase ${phase}`, 'err-action-points-exceeded');
+    }
+    const interrupted = request.actionType === 'movement' ? [] : actions.filter(action => action.isInterruptible());
+    const parried = interrupted.find(action => Action.parriedWith(action, roundActions));
+    if (parried) {
+      throw new ValidationError(
+        `The actor parried with the melee attack ${parried.id}: it has to complete it first`,
+        'err-action-must-complete-parried',
+      );
+    }
+    return { spend: { phase, ap: 1, kind: 'spent' }, interrupted };
+  }
+
+  /** An open action that a new one interrupts: declared, not instantaneous, forced nor a movement (spec 011, §2). */
+  isInterruptible(): boolean {
+    return this.status === 'declared' && !this.freeAction && this.actionType !== 'movement' && !this.isForced();
+  }
+
+  /**
+   * The actor already parried with this melee attack (§8.3): some foe's attack of the round, updated since the melee
+   * attack was declared, has a parry of the actor that is not carried over.
+   */
+  static parriedWith(action: Action, roundActions: Action[]): boolean {
+    if (action.actionType !== 'melee_attack') {
+      return false;
+    }
+    const since = new Date(action.createdAt).getTime();
+    return roundActions.some(
+      other =>
+        other.id !== action.id &&
+        other.actorId !== action.actorId &&
+        new Date(other.updatedAt ?? other.createdAt).getTime() >= since &&
+        (other.parries || []).some(parry => parry.actorId === action.actorId && parry.parry > 0 && !parry.carriedOver),
+    );
+  }
+
+  /** Records on the actor round the AP of the new action and closes the actions it interrupts. */
+  applyDeclaration(actorRound: ActorRound, plan: DeclarationPlan, currentPhase: number): void {
+    plan.interrupted.forEach(action => {
+      action.fillLegacyLedger(actorRound, currentPhase - 1);
+      action.close(actorRound, currentPhase, 'interrupted');
     });
+    if (plan.spend) {
+      actorRound.spend(plan.spend.phase, this.id, plan.spend.ap, plan.spend.kind);
+    }
+    this.actionPoints = this.apOf(actorRound, currentPhase);
   }
 
   setAttackBo(attackName: string, currentBo: number) {
@@ -433,7 +853,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
   }
 
   processFatigue(fatigueMultiplier: number | null): void {
-    if (!this.actionPoints) {
+    if (this.actionPoints === null || this.actionPoints === undefined) {
       throw new Error('Action does not have action points defined');
     }
     let value: number | null = null;
@@ -489,6 +909,10 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
       maneuver: this.maneuver,
       fatigue: this.fatigue,
       description: this.description,
+      resolution: this.resolution,
+      apRange: this.apRange,
+      continuesActionId: this.continuesActionId,
+      carriedAp: this.carriedAp,
       owner: this.owner,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,

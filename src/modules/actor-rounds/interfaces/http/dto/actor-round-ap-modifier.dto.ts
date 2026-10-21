@@ -1,0 +1,30 @@
+import { ApiProperty } from '@nestjs/swagger';
+import type { ApModifierKind, ApModifierSource } from '../../../domain/value-objets/ap-modifier.vo';
+import { ApModifier } from '../../../domain/value-objets/ap-modifier.vo';
+
+export class ActorRoundApModifierDto {
+  @ApiProperty({ description: 'What the modifier comes from', example: 'haste' })
+  source: ApModifierSource;
+
+  @ApiProperty({ description: 'Kind of modifier', enum: ['bonus', 'loss', 'cap', 'cost-multiplier'], example: 'bonus' })
+  kind: ApModifierKind;
+
+  @ApiProperty({ description: 'AP gained or lost, the cap, or the cost multiplier', example: 2 })
+  value: number;
+
+  @ApiProperty({ description: 'Phase of a loss that falls in a given phase (staggered)', required: false, example: 2 })
+  phase?: number;
+
+  @ApiProperty({ description: 'Effect the modifier comes from', required: false })
+  effectId?: string;
+
+  static fromEntity(entity: ApModifier): ActorRoundApModifierDto {
+    const dto = new ActorRoundApModifierDto();
+    dto.source = entity.source;
+    dto.kind = entity.kind;
+    dto.value = entity.value;
+    dto.phase = entity.phase;
+    dto.effectId = entity.effectId;
+    return dto;
+  }
+}

@@ -1,12 +1,51 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { PaginationDto } from '../../../../shared/interfaces/http/dto';
 import { Action } from '../../../domain/aggregates/action.aggregate';
+import type { ActionReadiness } from '../../../domain/aggregates/action.aggregate';
+import { ActionResolution } from '../../../domain/value-objects/action-resolution.vo';
+import type { ForceReason, ForcedApSource, ResolutionMode } from '../../../domain/value-objects/action-resolution.vo';
+import { ACTION_STATUSES } from '../../../domain/value-objects/action-status.vo';
 import type { ActionStatus } from '../../../domain/value-objects/action-status.vo';
 import type { ActionType } from '../../../domain/value-objects/action-type.vo';
 import { ActionAttackDto } from './action-attack.dto';
 import { ActionManeuverDto } from './action-maneuver.dto';
 import { ActionMovementDto } from './action-movement.dto';
 import { ActionParryDto } from './action-parry.dto';
+
+export class ActionApProfileDto {
+  @ApiProperty({ description: 'Minimum action points to resolve the action', example: 2 })
+  min: number;
+
+  @ApiProperty({ description: 'Action points to resolve the action without penalty', example: 4 })
+  max: number;
+}
+
+export class ActionResolutionDto {
+  @ApiProperty({ description: 'Normal resolution, or forced out of turn', enum: ['normal', 'forced'], example: 'normal' })
+  mode: ResolutionMode;
+
+  @ApiProperty({ description: 'Why the action is forced', enum: ['withdrawal', 'pass-through', 'effect', 'gm'], required: false })
+  reason?: ForceReason;
+
+  @ApiProperty({
+    description: 'Where the AP of a forced action come from',
+    enum: ['next-phase', 'none', 'as-spent'],
+    required: false,
+  })
+  apSource?: ForcedApSource;
+
+  @ApiProperty({ description: 'Note of the game master', required: false })
+  note?: string;
+
+  static fromEntity(resolution: ActionResolution): ActionResolutionDto {
+    const dto = new ActionResolutionDto();
+    dto.mode = resolution.mode;
+    if (resolution.reason) dto.reason = resolution.reason;
+    if (resolution.apSource) dto.apSource = resolution.apSource;
+    if (resolution.note) dto.note = resolution.note;
+    return dto;
+  }
+}
 
 export class ActionDto {
   @ApiProperty({ description: 'Action identifier', example: 'action-123' })
@@ -17,7 +56,7 @@ export class ActionDto {
 
   @ApiProperty({
     description: 'Action status. An attack action is `pending_roll` while any of its attacks waits for a roll',
-    enum: ['declared', 'prepared', 'parry', 'pending_roll', 'pending_apply', 'completed'],
+    enum: ACTION_STATUSES,
     example: 'declared',
   })
   status: ActionStatus;
@@ -40,8 +79,38 @@ export class ActionDto {
   @ApiProperty({ description: 'Phase end', example: 1 })
   phaseEnd: number | null;
 
-  @ApiProperty({ description: 'Action points', example: 2 })
+  @ApiProperty({ description: 'Action points spent on the action, from the AP ledger of its actor round', example: 2 })
   actionPoints: number | null;
+
+  @ApiProperty({ description: 'AP range of the action', type: ActionApProfileDto })
+  apProfile: ActionApProfileDto;
+
+  @ApiProperty({
+    description: 'How close the action is to being resolved; null when it could not be computed',
+    enum: ['blocked', 'unreachable', 'ready', 'optimal', 'held', 'in-resolution', 'done'],
+    nullable: true,
+  })
+  readiness: ActionReadiness | null;
+
+  @ApiProperty({ description: 'Penalty of resolving the action with its AP now (0 or negative)', nullable: true, example: -50 })
+  readinessPenalty: number | null;
+
+  @ApiProperty({ description: 'How the action is resolved', type: ActionResolutionDto })
+  resolution: ActionResolutionDto;
+
+  @ApiProperty({
+    description: 'Action of the previous round this one continues (open rounds, multi-round or held actions)',
+    nullable: true,
+    example: 'action-122',
+  })
+  continuesActionId: string | null;
+
+  @ApiProperty({
+    description: 'AP carried from the continued action; already counted in `actionPoints`',
+    nullable: true,
+    example: 1,
+  })
+  carriedAp: number | null;
 
   @ApiProperty({ description: 'Action movement', type: ActionMovementDto, required: false })
   movement: ActionMovementDto | null;
@@ -72,7 +141,15 @@ export class ActionDto {
     dto.freeAction = entity.freeAction;
     dto.phaseStart = entity.phaseStart;
     dto.phaseEnd = entity.phaseEnd;
-    dto.actionPoints = entity.actionPoints;
+    const state = entity.apState;
+    const profile = entity.apProfile();
+    dto.actionPoints = state ? state.actionPoints : entity.actionPoints;
+    dto.apProfile = { min: profile.min, max: profile.max };
+    dto.readiness = state ? state.readiness : (entity.readinessByStatus() ?? null);
+    dto.readinessPenalty = state ? state.readinessPenalty : null;
+    dto.resolution = ActionResolutionDto.fromEntity(entity.effectiveResolution());
+    dto.continuesActionId = entity.continuesActionId ?? null;
+    dto.carriedAp = entity.carriedAp ?? null;
     dto.movement = entity.movement ? ActionMovementDto.fromEntity(entity.movement) : null;
     dto.maneuver = entity.maneuver ? ActionManeuverDto.fromEntity(entity.maneuver) : null;
     dto.attacks = entity.attacks && entity.attacks.length > 0 ? entity.attacks.map(a => ActionAttackDto.fromEntity(a)) : null;

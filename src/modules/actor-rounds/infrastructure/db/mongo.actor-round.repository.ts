@@ -11,6 +11,7 @@ import { ActorRoundPenaltyModifier } from '../../domain/value-objets/actor-round
 import { ActorRoundPenalty } from '../../domain/value-objets/actor-round-penalty.vo';
 import { ActorRoundPhaseLog } from '../../domain/value-objets/actor-round-phase-log.vo';
 import { ActorRoundTrait } from '../../domain/value-objets/actor-round-trait.vo';
+import { ApLedgerEntry, ApLedgerKind } from '../../domain/value-objets/ap-ledger-entry.vo';
 import { ActorRoundDocument, ActorRoundModel } from '../persistence/models/actor-round.model';
 
 @Injectable()
@@ -100,6 +101,9 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
         ? new ActorRoundDefenseMode(doc.defenseMode.dodge ?? 'none', doc.defenseMode.block ?? 'none')
         : ActorRoundDefenseMode.none(),
       phaseLog: (doc.phaseLog || []).map(entry => new ActorRoundPhaseLog(entry.phase, entry.spentAp, entry.totalSpentAp)),
+      apLedger: (doc.apLedger || []).map(
+        entry => new ApLedgerEntry(entry.phase, entry.actionId ?? undefined, entry.ap, entry.kind as ApLedgerKind),
+      ),
       imageUrl: doc.imageUrl,
       owner: doc.owner,
       createdAt: doc.createdAt,

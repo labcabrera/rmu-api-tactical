@@ -6,6 +6,7 @@ import { NotFoundError } from '../../../shared/domain/errors';
 import { RsqlParser } from '../../../shared/infrastructure/db/rsql-parser';
 import { ActionRepository } from '../../application/ports/action.repository';
 import { Action } from '../../domain/aggregates/action.aggregate';
+import { ActionResolution } from '../../domain/value-objects/action-resolution.vo';
 import { ActionDocument, ActionModel } from '../persistence/models/action.model';
 
 @Injectable()
@@ -79,6 +80,12 @@ export class MongoActionRepository implements ActionRepository {
       maneuver: doc.maneuver,
       fatigue: doc.fatigue,
       description: doc.description,
+      resolution: doc.resolution
+        ? new ActionResolution(doc.resolution.mode, doc.resolution.reason, doc.resolution.apSource, doc.resolution.note)
+        : null,
+      apRange: doc.apRange ? { min: doc.apRange.min, max: doc.apRange.max } : null,
+      continuesActionId: doc.continuesActionId ?? null,
+      carriedAp: doc.carriedAp ?? null,
       owner: doc.owner,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,

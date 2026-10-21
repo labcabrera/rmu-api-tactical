@@ -7,7 +7,22 @@ import { ActorRoundAlert } from '../value-objets/actor-round-alert.vo';
 import { ActorRoundAttack } from '../value-objets/actor-round-attack.vo';
 import { ActorRoundDefenseMode, DefenseLevel } from '../value-objets/actor-round-defense-mode.vo';
 import { ActorRoundDefense } from '../value-objets/actor-round-defense.vo';
-import { ActorRoundEffect, NON_VIOLENT, PRESSING_ADVANTAGE } from '../value-objets/actor-round-effect.vo';
+import {
+  ActorRoundEffect,
+  ADRENAL_SPEED,
+  AP_CAP,
+  DISTRACTION,
+  FLATFOOTED,
+  HASTE,
+  HOLD,
+  MANUAL_AP,
+  NON_VIOLENT,
+  PRESSING_ADVANTAGE,
+  REFLEXES,
+  SPEED,
+  STAGGERED,
+  SURPRISED,
+} from '../value-objets/actor-round-effect.vo';
 import { ActorRoundFatigue, MAX_FATIGUE_PENALTY } from '../value-objets/actor-round-fatigue.vo';
 import { ActorRoundHP } from '../value-objets/actor-round-hp.vo';
 import { ActorRoundInitiative } from '../value-objets/actor-round-initiative.vo';
@@ -19,6 +34,9 @@ import { ActorRoundShield } from '../value-objets/actor-round-shield.vo';
 import { ActorRoundTrait, STRIKE_REFLEX } from '../value-objets/actor-round-trait.vo';
 import { ActorRoundUsedBo } from '../value-objets/actor-round-used-bo.vo';
 import { ActorType } from '../value-objets/actor-type.vo';
+import { ApLedgerEntry, ApLedgerKind } from '../value-objets/ap-ledger-entry.vo';
+import { ApModifier, ApModifierSource } from '../value-objets/ap-modifier.vo';
+import { ACTION_PHASES, ActionPointCapacity } from '../services/action-point-capacity';
 import { ActorRoundProps } from './actor-round-props';
 
 /** When an effect lands: the phase (see `ActorRoundEffect.appliedPhase`) and the AP the actor had spent in the round. */
@@ -29,6 +47,38 @@ export interface EffectApplication {
 
 /** Action points lost by a surprised actor when the effect has no value (§8.3 Surprise). */
 const DEFAULT_SURPRISE_LOST_AP = 2;
+
+/** Action points of a round before any modifier: one per action phase (§8.3). */
+export const BASE_ACTION_POINTS = 4;
+
+/** AP lost by a staggered actor when the effect has no value. */
+const DEFAULT_STAGGERED_LOST_AP = 1;
+
+/** AP lost under Hold Kind when the effect has no value. */
+const DEFAULT_HOLD_LOST_AP = 3;
+
+/** Initiative bonus of the Reflexes effect by its value (1-3). */
+const REFLEXES_INITIATIVE_BONUS: Record<number, number> = { 1: 10, 2: 15, 3: 20 };
+
+/** Range of values of the AP effects that need one. */
+const AP_EFFECT_VALUE_RANGES: Record<string, [number, number]> = {
+  [HASTE]: [1, 4],
+  [SPEED]: [1, 4],
+  [REFLEXES]: [1, 3],
+  [ADRENAL_SPEED]: [1, 4],
+  [DISTRACTION]: [1, 3],
+  [HOLD]: [1, BASE_ACTION_POINTS],
+  [STAGGERED]: [1, BASE_ACTION_POINTS],
+  [AP_CAP]: [0, BASE_ACTION_POINTS * 2],
+};
+
+/** An action as the AP ledger sees it, to rebuild the ledger of actor rounds stored without one. */
+export interface LedgerSourceAction {
+  id: string;
+  phaseStart: number;
+  phaseEnd: number | null;
+  freeAction: boolean;
+}
 
 /** Initiative bonus of an actor with Strike Reflex when the game master declares it. */
 const STRIKE_REFLEX_BONUS = 20;
@@ -59,6 +109,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     public alerts: ActorRoundAlert[],
     public defenseMode: ActorRoundDefenseMode,
     public phaseLog: ActorRoundPhaseLog[],
+    /** AP spent, lost or used by instantaneous actions, by phase and action (spec 011, §2). */
+    public apLedger: ApLedgerEntry[],
     public traits: ActorRoundTrait[],
     public imageUrl: string | undefined,
     public owner: string,
@@ -66,7 +118,20 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     public readonly updatedAt: Date | null,
   ) {
     super(id);
+    this.refreshActionPoints();
   }
+
+  /** Modifiers of the AP capacity, derived from the effects. */
+  public apModifiers: ApModifier[] = [];
+
+  /** AP of each action phase (index 0 is phase 1), derived from the modifiers and the ledger. */
+  public apCapacity: number[] = [];
+
+  /** AP of phase losses that found no capacity left in the round: they fall on phase 1 of the next one (§9.8). */
+  public apPendingLoss = 0;
+
+  /** The AP of `apPendingLoss` by the effect that left them. */
+  private apPendingByEffect: Record<string, number> = {};
 
   static create(
     gameId: string,
@@ -116,6 +181,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       effects,
       alerts,
       ActorRoundDefenseMode.none(),
+      [],
       [],
       traits,
       imageUrl,
@@ -185,6 +251,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       props.alerts,
       props.defenseMode ?? ActorRoundDefenseMode.none(),
       props.phaseLog ?? [],
+      ActorRound.readLedger(props),
       props.traits ?? [],
       props.imageUrl,
       props.owner,
@@ -235,7 +302,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       factionId,
       movement,
       new ActorRoundInitiative(initiative.base, initiative.penalty, undefined, undefined),
-      4,
+      BASE_ACTION_POINTS,
       hp,
       fatigue,
       new ActorRoundPenalty([...penalty.modifiers]),
@@ -246,6 +313,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       effects,
       alerts,
       ActorRoundDefenseMode.none(),
+      [],
       [],
       traits,
       imageUrl,
@@ -258,6 +326,19 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.applyPenalties();
     actorRound.apply(new ActorRoundCreatedEvent(actorRound));
     return actorRound;
+  }
+
+  /**
+   * The stored ledger. Actor rounds stored before the ledger existed get one rebuilt from their phase log: the AP of
+   * each ended phase, without the action it went to.
+   */
+  private static readLedger(props: ActorRoundProps): ApLedgerEntry[] {
+    if (props.apLedger && props.apLedger.length > 0) {
+      return props.apLedger;
+    }
+    return (props.phaseLog ?? [])
+      .filter(entry => entry.spentAp > 0)
+      .map(entry => new ApLedgerEntry(entry.phase, undefined, entry.spentAp, 'spent'));
   }
 
   private static resetShieldBlocks(defense: ActorRoundDefense): ActorRoundDefense {
@@ -307,6 +388,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       this.addEffect(new ActorRoundEffect(randomUUID(), 'unconcious', undefined, undefined), undefined, undefined);
     }
     this.applyPenalties();
+    this.refreshActionPoints();
   }
 
   /** §9.8 Hits: dead when the hits below zero exceed the Body Development bonus (`max` for older actor rounds). */
@@ -334,9 +416,10 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     if (this.isDead() && effect.status === 'dying') {
       return;
     }
-    if (effect.status === 'surprised') {
+    if (effect.status === SURPRISED) {
       this.normalizeSurprise(effect);
     }
+    ActorRound.normalizeApEffect(effect);
     if (ActorRoundEffect.isRoundBound(effect)) {
       effect.rounds = 1;
     }
@@ -385,9 +468,34 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     effect.value = lost;
   }
 
+  /** Checks the value of an AP effect, and sets the default one of those that have it. */
+  private static normalizeApEffect(effect: ActorRoundEffect): void {
+    if (effect.status === STAGGERED && (effect.value === undefined || effect.value === null)) {
+      effect.value = DEFAULT_STAGGERED_LOST_AP;
+    }
+    if (effect.status === HOLD && (effect.value === undefined || effect.value === null)) {
+      effect.value = DEFAULT_HOLD_LOST_AP;
+    }
+    if (effect.status === MANUAL_AP) {
+      if (!effect.value || !Number.isInteger(effect.value)) {
+        throw new ValidationError('A manual AP effect needs a whole value other than 0', 'err-effect-invalid-value');
+      }
+      return;
+    }
+    const range = AP_EFFECT_VALUE_RANGES[effect.status];
+    if (!range) {
+      return;
+    }
+    const value = effect.value;
+    if (value === undefined || value === null || !Number.isInteger(value) || value < range[0] || value > range[1]) {
+      throw new ValidationError(`The ${effect.status} effect takes a value from ${range[0]} to ${range[1]}`, 'err-effect-invalid-value');
+    }
+  }
+
   deleteEffect(effectId: string) {
     this.effects = this.effects.filter(e => e.id !== effectId);
     this.applyPenalties();
+    this.refreshActionPoints();
   }
 
   /** Removes the effects used up by an action, such as a `pressing-advantage` once its attack is applied. */
@@ -397,6 +505,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     }
     this.effects = this.effects.filter(e => !effectIds.includes(e.id));
     this.applyPenalties();
+    this.refreshActionPoints();
   }
 
   declareParry(parry: number): void {
@@ -457,6 +566,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     if (this.effects.length === 0) {
       return;
     }
+    this.applyStaggeredUpkeep();
     const totalBleeding = this.effects.filter(e => e.status === 'bleeding').reduce((sum, e) => sum + (e.value ?? 0), 0);
     this.hp.current -= totalBleeding;
     this.getEffectsLosingARound().forEach(e => (e.rounds! -= 1));
@@ -473,6 +583,37 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     // A non-violent penalty lasts the round after the one it was gained in.
     this.effects = this.effects.filter(e => e.status !== NON_VIOLENT || !this.isFromEarlierRound(e));
     this.applyPenalties();
+    this.refreshActionPoints();
+  }
+
+  /**
+   * §8.3 and §9.8: the staggered effects of the round are applied by now, so they go. The AP they could not take in the
+   * round (no capacity left) are lost in phase 1 of the next one: a staggered effect stamped with that round and phase
+   * keeps them.
+   */
+  private applyStaggeredUpkeep(): void {
+    this.refreshActionPoints();
+    // A lasting loss that goes on in the next round takes its AP from phase 1 there anyway: its pending ones are not
+    // carried twice.
+    const pending = this.effects
+      .filter(e => this.apPendingByEffect[e.id] && (e.status === STAGGERED || !this.outlivesUpkeep(e)))
+      .reduce((sum, e) => sum + this.apPendingByEffect[e.id], 0);
+    this.effects = this.effects.filter(e => e.status !== STAGGERED || this.isFromLaterRound(e));
+    if (pending > 0) {
+      this.effects.push(new ActorRoundEffect(randomUUID(), STAGGERED, pending, undefined, this.round + 1, 1, 0));
+    }
+  }
+
+  /** The effect is still there after this upkeep: no duration, more than one round left, or applied late. */
+  private outlivesUpkeep(effect: ActorRoundEffect): boolean {
+    if (effect.rounds === undefined || effect.rounds === null) {
+      return true;
+    }
+    return effect.rounds > 1 || (!ActorRoundEffect.isRoundBound(effect) && this.isAppliedThisRoundLate(effect));
+  }
+
+  private isFromLaterRound(effect: ActorRoundEffect): boolean {
+    return effect.appliedRound !== undefined && effect.appliedRound !== null && effect.appliedRound > this.round;
   }
 
   private isFromEarlierRound(effect: ActorRoundEffect): boolean {
@@ -609,9 +750,19 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     return this.effects.some(e => e.status === status);
   }
 
+  /** Dead, dying or unconscious (both spellings of the effect): the actor's open actions cannot go on (spec 011, §5). */
+  isIncapacitated(): boolean {
+    return this.isDead() || this.hasEffect('dying') || this.hasEffect('unconcious') || this.hasEffect('unconscious');
+  }
+
+  /** The actor can carry on an action: it is not incapacitated and has some AP this round (spec 011, §5). */
+  canAct(): boolean {
+    return !this.isIncapacitated() && this.totalCapacity() > 0;
+  }
+
   /**
    * §8.3 Initiative Phase: 2d10 plus the base, less 1 per -10 of the penalties to all actions, rounded toward zero
-   * (-75 gives -7). A flatfooted actor does not roll initiative.
+   * (-75 gives -7). A flatfooted actor does not roll initiative. The Reflexes effect adds +10, +15 or +20 (value 1-3).
    */
   declareInitiative(roll: number, strikeReflex = false): void {
     if (this.hasEffect('flatfooted')) {
@@ -622,10 +773,19 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     }
     const penalty = Math.trunc(this.getPenaltySum() / 10) || 0;
     const strikeReflexBonus = strikeReflex ? STRIKE_REFLEX_BONUS : 0;
+    const reflexesBonus = this.getReflexesInitiativeBonus();
     this.initiative.penalty = penalty;
     this.initiative.roll = roll;
     this.initiative.strikeReflex = strikeReflexBonus || undefined;
-    this.initiative.total = (this.initiative.base || 0) + penalty + strikeReflexBonus + roll;
+    this.initiative.reflexes = reflexesBonus || undefined;
+    this.initiative.total = (this.initiative.base || 0) + penalty + strikeReflexBonus + reflexesBonus + roll;
+  }
+
+  /** Initiative bonus of the strongest Reflexes effect. */
+  private getReflexesInitiativeBonus(): number {
+    return this.effects
+      .filter(e => e.status === REFLEXES)
+      .reduce((max, e) => Math.max(max, REFLEXES_INITIATIVE_BONUS[Math.min(3, Math.max(0, e.value ?? 0))] ?? 0), 0);
   }
 
   /** Tier of one of the actor's traits, 0 when it does not have it. */
@@ -634,35 +794,234 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   }
 
   /**
-   * Action points lost this round (§8.3 Surprise): all of them when flatfooted, the surprise effect's value (2, or 1
-   * after a successful Perception) when surprised.
-   */
-  getLostActionPoints(): number {
-    if (this.hasEffect('flatfooted')) {
-      return this.actionPoints;
-    }
-    const surprised = this.effects.find(e => e.status === 'surprised');
-    if (!surprised) {
-      return 0;
-    }
-    return Math.min(this.actionPoints, surprised.value ?? DEFAULT_SURPRISE_LOST_AP);
-  }
-
-  /**
-   * Action points spent in the round before `phase`, from the phase log, plus `spentInPhase` (the actions already
-   * completed in that phase, which the log does not hold yet).
+   * Action points spent in the round before `phase`, plus `spentInPhase` (the actions already completed in that
+   * phase). From the ledger, or from the phase log while the actor round has no ledger.
    */
   getSpentAp(phase: number, spentInPhase = 0): number {
-    const logged = this.phaseLog.filter(entry => entry.phase < phase).reduce((sum, entry) => sum + entry.spentAp, 0);
+    const logged =
+      this.apLedger.length > 0
+        ? this.apLedger.filter(entry => entry.phase < phase && ApLedgerEntry.usesCapacity(entry)).reduce((sum, entry) => sum + entry.ap, 0)
+        : this.phaseLog.filter(entry => entry.phase < phase).reduce((sum, entry) => sum + entry.spentAp, 0);
     return logged + spentInPhase;
   }
 
   /** Records the action points spent in an action phase that ends, replacing an earlier entry of that phase. */
   logPhase(phase: number, spentAp: number): void {
-    const totalSpentAp = this.getSpentAp(phase) + spentAp;
+    const totalSpentAp = this.phaseLog.filter(entry => entry.phase < phase).reduce((sum, entry) => sum + entry.spentAp, 0) + spentAp;
     this.phaseLog = this.phaseLog.filter(entry => entry.phase !== phase);
     this.phaseLog.push(new ActorRoundPhaseLog(phase, spentAp, totalSpentAp));
     this.phaseLog.sort((a, b) => a.phase - b.phase);
+  }
+
+  /**
+   * The phase log: the AP spent in each phase and up to it. Derived from the ledger when there is one (for every phase
+   * up to the last one logged or with entries), else the stored one.
+   */
+  getPhaseLog(): ActorRoundPhaseLog[] {
+    if (this.apLedger.length === 0) {
+      return this.phaseLog;
+    }
+    const lastPhase = Math.max(...this.apLedger.map(entry => entry.phase), ...this.phaseLog.map(entry => entry.phase));
+    const log: ActorRoundPhaseLog[] = [];
+    let total = 0;
+    for (let phase = 1; phase <= Math.min(lastPhase, ACTION_PHASES); phase++) {
+      const spent = this.spentInPhase(phase);
+      total += spent;
+      log.push(new ActorRoundPhaseLog(phase, spent, total));
+    }
+    return log;
+  }
+
+  // --- Action points: capacity and ledger (spec 011, §1 and §2) ---
+
+  /** AP of the round once every modifier is applied. */
+  totalCapacity(): number {
+    return this.apCapacity.reduce((sum, value) => sum + value, 0);
+  }
+
+  /** AP of a phase (1-4) once every modifier is applied. */
+  capacityOf(phase: number): number {
+    return this.apCapacity[phase - 1] ?? 0;
+  }
+
+  /** AP of a phase already used: spent on actions or on instantaneous actions past the first one. */
+  spentInPhase(phase: number): number {
+    return this.apLedger
+      .filter(entry => entry.phase === phase && ApLedgerEntry.usesCapacity(entry))
+      .reduce((sum, entry) => sum + entry.ap, 0);
+  }
+
+  /** AP of a phase not used yet (0 when the phase has none). */
+  freeCapacity(phase: number): number {
+    return Math.max(0, this.capacityOf(phase) - this.spentInPhase(phase));
+  }
+
+  /** AP an action spent (lost entries left out). */
+  spentByAction(actionId: string): number {
+    return this.apLedger
+      .filter(entry => entry.actionId === actionId && ApLedgerEntry.usesCapacity(entry))
+      .reduce((sum, entry) => sum + entry.ap, 0);
+  }
+
+  /** Ledger entries of an action, lost ones included, in phase order. */
+  ledgerOf(actionId: string): ApLedgerEntry[] {
+    return this.apLedger.filter(entry => entry.actionId === actionId).sort((a, b) => a.phase - b.phase);
+  }
+
+  /** AP used in the round. */
+  totalSpent(): number {
+    return this.apLedger.filter(entry => ApLedgerEntry.usesCapacity(entry)).reduce((sum, entry) => sum + entry.ap, 0);
+  }
+
+  /** AP of the round not used yet, from `fromPhase` on. */
+  remainingCapacity(fromPhase = 1): number {
+    let remaining = 0;
+    for (let phase = Math.max(1, fromPhase); phase <= ACTION_PHASES; phase++) {
+      remaining += this.freeCapacity(phase);
+    }
+    return remaining;
+  }
+
+  /**
+   * Records `ap` AP of `phase` on an action. A `spent` or `instant` entry needs that free capacity in the phase
+   * (`err-action-points-exceeded`); a `lost` one records an AP an open action could not get, and uses none.
+   */
+  spend(phase: number, actionId: string | undefined, ap: number, kind: ApLedgerKind = 'spent'): ApLedgerEntry {
+    if (!Number.isInteger(phase) || phase < 1 || phase > ACTION_PHASES) {
+      throw new ValidationError(`Action points are spent in a phase from 1 to ${ACTION_PHASES}`, 'err-action-invalid-phase');
+    }
+    if (!Number.isInteger(ap) || ap < 0) {
+      throw new ValidationError('Action points spent must be a whole number from 0', 'err-action-points-invalid');
+    }
+    const entry = new ApLedgerEntry(phase, actionId, ap, kind);
+    if (ApLedgerEntry.usesCapacity(entry) && ap > this.freeCapacity(phase)) {
+      throw new ValidationError(`The actor has no action points left in phase ${phase}`, 'err-action-points-exceeded');
+    }
+    this.apLedger.push(entry);
+    this.refreshActionPoints();
+    return entry;
+  }
+
+  /** Removes the ledger entries of a deleted action: the AP it took are free again. */
+  releaseAction(actionId: string): boolean {
+    const before = this.apLedger.length;
+    this.apLedger = this.apLedger.filter(entry => entry.actionId !== actionId);
+    if (this.apLedger.length === before) {
+      return false;
+    }
+    this.refreshActionPoints();
+    return true;
+  }
+
+  /**
+   * Fills the ledger from the actions of the round, as AP were counted before it existed: 1 AP per phase an action
+   * spans (an action still open spans up to `upToPhase`), whatever the number of actions, and an `instant` 0 AP entry
+   * for each instantaneous action. Phases that already have AP used or lost are left as they are, so it can run again.
+   */
+  fillLedgerFromActions(actions: LedgerSourceAction[], upToPhase: number): void {
+    const lastPhase = Math.min(upToPhase, ACTION_PHASES);
+    const sorted = [...actions].sort((a, b) => a.phaseStart - b.phaseStart);
+    sorted
+      .filter(action => action.freeAction && action.phaseStart <= lastPhase && !this.apLedger.some(entry => entry.actionId === action.id))
+      .forEach(action => this.apLedger.push(new ApLedgerEntry(action.phaseStart, action.id, 0, 'instant')));
+    for (let phase = 1; phase <= lastPhase; phase++) {
+      const recorded = this.apLedger.some(entry => entry.phase === phase && (entry.kind === 'lost' || entry.ap > 0));
+      if (recorded) {
+        continue;
+      }
+      const spanning = sorted.find(action => !action.freeAction && action.phaseStart <= phase && (action.phaseEnd ?? lastPhase) >= phase);
+      if (spanning) {
+        this.apLedger.push(new ApLedgerEntry(phase, spanning.id, 1, 'spent'));
+      }
+    }
+    this.refreshActionPoints();
+  }
+
+  /** Recomputes the AP modifiers from the effects, and the capacity of each phase from them and the ledger. */
+  private refreshActionPoints(): void {
+    this.apModifiers = this.deriveApModifiers();
+    const spent = Array.from({ length: ACTION_PHASES }, (_, i) => this.spentInPhase(i + 1));
+    const result = ActionPointCapacity.compute(this.apModifiers, { spent });
+    this.apCapacity = result.capacity;
+    this.apPendingLoss = result.pendingLoss;
+    this.apPendingByEffect = result.pendingByEffect;
+  }
+
+  /** AP modifiers of the effects (spec 011, §1, initial sources). */
+  private deriveApModifiers(): ApModifier[] {
+    const modifiers: ApModifier[] = [];
+    for (const effect of this.effects ?? []) {
+      const value = effect.value ?? 0;
+      switch (effect.status) {
+        case SURPRISED:
+          modifiers.push(new ApModifier('surprised', 'loss', effect.value ?? DEFAULT_SURPRISE_LOST_AP, undefined, effect.id));
+          break;
+        case FLATFOOTED:
+          modifiers.push(new ApModifier('flatfooted', 'cap', 0, undefined, effect.id));
+          break;
+        case STAGGERED:
+          if (!this.isFromLaterRound(effect)) {
+            modifiers.push(
+              new ApModifier('staggered', 'loss', effect.value ?? DEFAULT_STAGGERED_LOST_AP, this.staggeredPhase(effect), effect.id),
+            );
+          }
+          break;
+        case HASTE:
+        case SPEED:
+        case REFLEXES:
+          modifiers.push(new ApModifier(effect.status, 'bonus', value, undefined, effect.id));
+          break;
+        case ADRENAL_SPEED:
+          if (effect.appliedRound === undefined || effect.appliedRound === null || effect.appliedRound === this.round) {
+            modifiers.push(new ApModifier('adrenal-speed', 'bonus', value, undefined, effect.id));
+          }
+          break;
+        case HOLD:
+          this.pushLoss(modifiers, 'hold', effect.value ?? DEFAULT_HOLD_LOST_AP, effect);
+          break;
+        case DISTRACTION:
+          this.pushLoss(modifiers, 'distraction', value, effect);
+          break;
+        case AP_CAP:
+          if (effect.value !== undefined && effect.value !== null) {
+            modifiers.push(new ApModifier('cap', 'cap', effect.value, undefined, effect.id));
+          }
+          break;
+        case MANUAL_AP:
+          if (value > 0) {
+            modifiers.push(new ApModifier('manual', 'bonus', value, undefined, effect.id));
+          } else if (value < 0) {
+            this.pushLoss(modifiers, 'manual', -value, effect);
+          }
+          break;
+      }
+    }
+    return modifiers;
+  }
+
+  /**
+   * A lasting loss (Hold Kind, distraction, manual): from phase 1 when the round starts with it, else from the phase
+   * it was applied in onwards, leaving the phases before it and those already spent as they were. Applied in the
+   * upkeep of this round, it only counts from the next one.
+   */
+  private pushLoss(modifiers: ApModifier[], source: ApModifierSource, value: number, effect: ActorRoundEffect): void {
+    const appliedThisRound = effect.appliedRound !== undefined && effect.appliedRound !== null && effect.appliedRound === this.round;
+    const phase = appliedThisRound ? (effect.appliedPhase ?? 0) : 0;
+    if (phase > ACTION_PHASES) {
+      return;
+    }
+    modifiers.push(new ApModifier(source, 'loss', value, phase >= 1 ? phase : undefined, effect.id));
+  }
+
+  /**
+   * Phase a staggered effect takes its AP from: the one it was applied in (phase 1 when applied before the action
+   * phases, in an earlier round or without a stamp). Applied in the upkeep (5), there is none left in the round.
+   */
+  private staggeredPhase(effect: ActorRoundEffect): number {
+    if (effect.appliedRound !== undefined && effect.appliedRound !== null && effect.appliedRound < this.round) {
+      return 1;
+    }
+    return Math.max(1, effect.appliedPhase ?? 1);
   }
 
   hasShieldBlocksLeft(): boolean {
@@ -743,6 +1102,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       alerts: this.alerts,
       defenseMode: this.defenseMode,
       phaseLog: this.phaseLog,
+      apModifiers: this.apModifiers,
+      apCapacity: this.apCapacity,
+      apLedger: this.apLedger,
       traits: this.traits,
       imageUrl: this.imageUrl,
       owner: this.owner,

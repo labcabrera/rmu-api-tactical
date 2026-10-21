@@ -3,6 +3,8 @@ import { PaginationDto } from '../../../../shared/interfaces/http/dto';
 import { ActorRound } from '../../../domain/aggregates/actor-round.aggregate';
 import { ActorRoundEffect } from '../../../domain/value-objets/actor-round-effect.vo';
 import { ActorRoundAlertDto } from './actor-round-alert.dto';
+import { ActorRoundApLedgerEntryDto } from './actor-round-ap-ledger-entry.dto';
+import { ActorRoundApModifierDto } from './actor-round-ap-modifier.dto';
 import { ActorRoundAttackDto } from './actor-round-attack.dto';
 import { ActorRoundDefenseModeDto } from './actor-round-defense-mode.dto';
 import { ActorRoundDefenseDto } from './actor-round-defense.dto';
@@ -52,8 +54,17 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Initiative information' })
   initiative: ActorRoundInitiativeDto;
 
-  @ApiProperty({ description: 'Action points', example: 4 })
+  @ApiProperty({ description: 'Base action points of the round, before modifiers', example: 4 })
   actionPoints: number;
+
+  @ApiProperty({ description: 'Modifiers of the action points, with their origin', type: [ActorRoundApModifierDto], isArray: true })
+  apModifiers: ActorRoundApModifierDto[];
+
+  @ApiProperty({ description: 'Action points of each action phase (index 0 is phase 1)', type: [Number], example: [1, 1, 2, 2] })
+  apCapacity: number[];
+
+  @ApiProperty({ description: 'Action points spent, lost or used by phase and action', type: [ActorRoundApLedgerEntryDto], isArray: true })
+  apLedger: ActorRoundApLedgerEntryDto[];
 
   @ApiProperty({ description: 'Hit points' })
   hp: ActorRoundHPDto;
@@ -106,11 +117,14 @@ export class ActorRoundDto {
     dto.movement = ActorRoundMovementDto.fromEntity(entity.movement);
     dto.initiative = ActorRoundInitiativeDto.fromEntity(entity.initiative);
     dto.actionPoints = entity.actionPoints;
+    dto.apModifiers = entity.apModifiers.map(modifier => ActorRoundApModifierDto.fromEntity(modifier));
+    dto.apCapacity = [...entity.apCapacity];
+    dto.apLedger = entity.apLedger.map(entry => ActorRoundApLedgerEntryDto.fromEntity(entry));
     dto.hp = ActorRoundHPDto.fromEntity(entity.hp);
     dto.fatigue = ActorRoundFatigueDto.fromEntity(entity.fatigue);
     dto.defense = ActorRoundDefenseDto.fromEntity(entity.defense);
     dto.defenseMode = ActorRoundDefenseModeDto.fromEntity(entity.defenseMode);
-    dto.phaseLog = entity.phaseLog.map(entry => ActorRoundPhaseLogDto.fromEntity(entry));
+    dto.phaseLog = entity.getPhaseLog().map(entry => ActorRoundPhaseLogDto.fromEntity(entry));
     dto.attacks = entity.attacks.map(a => ActorRoundAttackDto.fromEntity(a));
     dto.parries = entity.parries;
     dto.penalty = ActorRoundPenaltyDto.fromEntity(entity.penalty);

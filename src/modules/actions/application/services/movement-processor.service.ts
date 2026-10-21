@@ -31,10 +31,14 @@ export class MovementProcessorService {
     private readonly baseModifiersService: ManeuverBaseModifiersService,
   ) {}
 
-  async process(roll: number | null, action: Action, actorRound: ActorRound): Promise<void> {
+  /**
+   * `actionPoints`: AP the distance is covered in, the action's when left out (an instantaneous movement alongside
+   * another action takes no AP of its own but still covers the phases it spans).
+   */
+  async process(roll: number | null, action: Action, actorRound: ActorRound, actionPoints = action.actionPoints): Promise<void> {
     if (!action.movement || !action.movement.modifiers) {
       throw new Error('Action does not have movement data');
-    } else if (!action.actionPoints) {
+    } else if (!actionPoints) {
       throw new Error('Action does not have action points data');
     }
     this.checkMaxPace(action.movement.modifiers.pace, actorRound.movement.maxPace);
@@ -87,7 +91,7 @@ export class MovementProcessorService {
     }
     const bmr = actorRound.movement.bmr;
     const paceMultiplier = this.getPaceMultiplier(action.movement.modifiers.pace);
-    const distance = (bmr * percent * action.actionPoints * paceMultiplier) / 100;
+    const distance = (bmr * percent * actionPoints * paceMultiplier) / 100;
     action.movement.calculated = {
       bmr: bmr,
       paceMultiplier: paceMultiplier,

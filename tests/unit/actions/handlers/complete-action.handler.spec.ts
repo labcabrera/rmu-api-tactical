@@ -4,7 +4,8 @@ import { CompleteActionCommand } from '../../../../src/modules/actions/applicati
 import { CompleteActionHandler } from '../../../../src/modules/actions/application/cqrs/handlers/complete-action.handler';
 import type { ActionEventBusPort } from '../../../../src/modules/actions/application/ports/action-event-bus.port';
 import type { ActionRepository } from '../../../../src/modules/actions/application/ports/action.repository';
-import type { Action } from '../../../../src/modules/actions/domain/aggregates/action.aggregate';
+import { Action, ActionProps } from '../../../../src/modules/actions/domain/aggregates/action.aggregate';
+import type { ActionType } from '../../../../src/modules/actions/domain/value-objects/action-type.vo';
 import { DeleteEffectCommand } from '../../../../src/modules/actor-rounds/application/cqrs/commands/delete-effect.command';
 import type { ActorRoundRepository } from '../../../../src/modules/actor-rounds/application/ports/actor-round.repository';
 import type { GameRepository } from '../../../../src/modules/games/application/ports/game.repository';
@@ -12,20 +13,29 @@ import { ActorRound } from '../../../../src/modules/actor-rounds/domain/aggregat
 import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-shield.vo';
 import type { CharacterPort } from '../../../../src/modules/strategic/application/ports/character.port';
 
-const setup = (actionType: string, extra: Partial<Action> = {}, options: { acrobaticsRanks?: number; shield?: boolean } = {}) => {
-  const action = {
+const setup = (actionType: string, extra: Partial<ActionProps> = {}, options: { acrobaticsRanks?: number; shield?: boolean } = {}) => {
+  const action = Action.fromProps({
     id: 'action-1',
     gameId: 'game-1',
     actorId: 'actor-1',
     round: 1,
-    actionType,
+    actionType: actionType as ActionType,
     freeAction: false,
     phaseStart: 2,
     phaseEnd: null,
     status: 'declared',
+    actionPoints: null,
+    movement: null,
+    attacks: null,
+    parries: null,
+    maneuver: null,
+    fatigue: null,
     description: null,
+    owner: 'owner',
+    createdAt: new Date(),
+    updatedAt: null,
     ...extra,
-  } as unknown as Action;
+  });
   const actionRepository = {
     findById: jest.fn(() => Promise.resolve(action)),
     update: jest.fn((_id: string, updated: Action) => Promise.resolve(updated)),
@@ -71,7 +81,7 @@ describe('CompleteActionHandler', () => {
   });
 
   it('spends no action points for a free action', async () => {
-    const { run } = setup('other', { freeAction: true } as Partial<Action>);
+    const { run } = setup('other', { freeAction: true });
     expect((await run()).actionPoints).toBe(0);
   });
 
@@ -83,34 +93,34 @@ describe('CompleteActionHandler', () => {
   });
 
   it('rejects standing up with fewer than 2 AP, or 1 with Acrobatics ranks (Table 8-1)', async () => {
-    await expect(setup('stand_up', { phaseStart: 3 } as Partial<Action>).run()).rejects.toMatchObject({
+    await expect(setup('stand_up', { phaseStart: 3 }).run()).rejects.toMatchObject({
       errorCode: 'err-stand-up-action-points',
     });
-    await expect(setup('stand_up', { freeAction: true } as Partial<Action>).run()).rejects.toThrow('takes 2 action points');
-    const acrobat = await setup('stand_up', { phaseStart: 3 } as Partial<Action>, { acrobaticsRanks: 2 }).run();
+    await expect(setup('stand_up', { freeAction: true }).run()).rejects.toThrow('takes 2 action points');
+    const acrobat = await setup('stand_up', { phaseStart: 3 }, { acrobaticsRanks: 2 }).run();
     expect(acrobat.actionPoints).toBe(1);
   });
 
   it('takes the 4 phases of the round with a dodge and sets the full dodge or block (§9.6)', async () => {
-    const dodge = setup('dodge', { phaseStart: 1 } as Partial<Action>);
+    const dodge = setup('dodge', { phaseStart: 1 });
     const result = await dodge.run();
     expect(result).toMatchObject({ phaseEnd: 4, actionPoints: 4, status: 'completed' });
     expect(dodge.actorRound.defenseMode).toEqual({ dodge: 'full', block: 'none' });
     expect(dodge.updateActorRound).toHaveBeenCalled();
 
-    const block = setup('dodge', { phaseStart: 1 } as Partial<Action>, { shield: true });
+    const block = setup('dodge', { phaseStart: 1 }, { shield: true });
     await block.run(undefined, 'block');
     expect(block.actorRound.defenseMode).toEqual({ dodge: 'none', block: 'full' });
   });
 
   it('rejects a dodge that cannot take the 4 AP, and a defence type on other actions', async () => {
     await expect(setup('dodge').run()).rejects.toMatchObject({ errorCode: 'err-full-defense-action-points' });
-    await expect(setup('dodge', { phaseStart: 1 } as Partial<Action>).run(undefined, 'block')).rejects.toThrow('no shield');
+    await expect(setup('dodge', { phaseStart: 1 }).run(undefined, 'block')).rejects.toThrow('no shield');
     await expect(setup('other').run(undefined, 'dodge')).rejects.toThrow('only declared for dodge actions');
   });
 
   it('rejects actions that need a resolution and completed actions', async () => {
     await expect(setup('melee_attack').run()).rejects.toThrow('cannot be completed');
-    await expect(setup('dodge', { status: 'completed' } as Partial<Action>).run()).rejects.toThrow('already completed');
+    await expect(setup('dodge', { status: 'completed' }).run()).rejects.toThrow('already completed');
   });
 });

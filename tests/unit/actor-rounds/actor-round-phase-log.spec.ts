@@ -145,6 +145,9 @@ describe('StartPhaseHandler phase log', () => {
       { phase: 2, spentAp: 1, totalSpentAp: 1 },
     ]);
     expect(idle.phaseLog.map(entry => ({ ...entry }))).toEqual([{ phase: 2, spentAp: 0, totalSpentAp: 0 }]);
+    // The AP ledger is filled from the actions up to the phase that ends (spec 011).
+    expect(attacker.apLedger.map(entry => ({ ...entry }))).toEqual([{ phase: 2, actionId: 'attacker-2', ap: 1, kind: 'spent' }]);
+    expect(idle.apLedger).toEqual([]);
   });
 
   it('logs the 4th phase when moving to the upkeep', async () => {

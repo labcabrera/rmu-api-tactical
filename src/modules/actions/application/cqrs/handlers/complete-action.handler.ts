@@ -2,27 +2,29 @@ import { Inject, Logger } from '@nestjs/common';
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { DeleteEffectCommand } from '../../../../actor-rounds/application/cqrs/commands/delete-effect.command';
 import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
 import type { GameRepository } from '../../../../games/application/ports/game.repository';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
 import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
 import { Action } from '../../../domain/aggregates/action.aggregate';
 import { ActionUpdatedEvent } from '../../../domain/events/action-events';
+import { ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo';
 import { SIMPLE_ACTION_TYPES } from '../../../domain/value-objects/action-type.vo';
 import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
 import type { ActionRepository } from '../../ports/action.repository';
 import { CompleteActionCommand } from '../commands/complete-action.command';
 
 /** Full dodge or block: the whole round (§9.6). */
-const FULL_DEFENSE_ACTION_POINTS = 4;
-/** Standing up (Table 8-1, §9.8 Prone): 2 AP, or 1 with Acrobatics ranks. */
-const STAND_UP_ACTION_POINTS = 2;
-const STAND_UP_ACROBATICS_ACTION_POINTS = 1;
+const FULL_DEFENSE_ACTION_POINTS = ActionApProfile.forAction('dodge').max;
+
+/** Action phases of a round. */
+const ACTION_PHASES = 4;
 
 /**
- * Completes an action that has no rolls (stand up, dodge, draw and load, other): it ends in the current phase and
- * spends one action point per phase unless it is free. Standing up checks its cost and clears the actor's prone
- * effects. A dodge is the 4 AP full dodge or full block of the round (§9.6): it takes the four phases whenever it is
- * completed, and sets the actor's defence mode.
+ * Completes an action that has no rolls (stand up, dodge, draw and load, other) in the current phase, with the AP of
+ * the ledger (spec 011): it needs the minimum AP of its profile unless it is forced. Standing up checks its cost and
+ * clears the actor's prone effects. A dodge is the 4 AP full dodge or full block of the round (§9.6): completing it
+ * takes the AP of the phases left in the round, and sets the actor's defence mode.
  */
 @CommandHandler(CompleteActionCommand)
 export class CompleteActionHandler implements ICommandHandler<CompleteActionCommand, Action> {
@@ -45,57 +47,80 @@ export class CompleteActionHandler implements ICommandHandler<CompleteActionComm
       throw new ValidationError(`Action type ${action.actionType} cannot be completed without resolution`);
     }
     if (action.status === 'completed') throw new ValidationError('Action is already completed');
+    if (action.actionType !== 'dodge' && command.defenseType) {
+      throw new ValidationError('A defence type is only declared for dodge actions');
+    }
 
     const game = await this.gameRepository.findById(action.gameId);
     if (!game) throw new NotFoundError('Game', action.gameId);
     const currentPhase = game.getActionPhase();
+    const actorRound = await this.actorRoundRepository.findByActorIdAndRound(action.gameId, action.actorId, action.round);
+    if (!actorRound) throw new NotFoundError('ActorRound', `${action.actorId} - ${action.round}`);
+    const ledgerSize = actorRound.apLedger.length;
 
     if (action.actionType === 'dodge') {
-      await this.setFullDefense(action, command);
-    } else if (command.defenseType) {
-      throw new ValidationError('A defence type is only declared for dodge actions');
-    } else {
-      action.phaseEnd = Math.max(action.phaseStart, currentPhase);
-      action.actionPoints = action.freeAction ? 0 : action.phaseEnd - action.phaseStart + 1;
+      this.takeFullDefenseAp(action, actorRound, currentPhase);
+      actorRound.setFullDefense(command.defenseType ?? 'dodge');
+    } else if (action.actionType === 'stand_up') {
+      await this.checkStandUpCost(action, actorRound, currentPhase);
     }
-    if (action.actionType === 'stand_up') {
-      await this.checkStandUpCost(action);
-      await this.clearProne(action, command);
-    }
+    action.checkResolvable(actorRound, currentPhase);
 
     if (command.note !== undefined) action.description = command.note;
-    action.status = 'completed';
-    action.updatedAt = new Date();
+    action.close(actorRound, currentPhase);
 
+    if (action.actionType === 'dodge' || actorRound.apLedger.length !== ledgerSize) {
+      await this.actorRoundRepository.update(actorRound.id, actorRound);
+    }
+    if (action.actionType === 'stand_up') {
+      await this.clearProne(actorRound, command);
+    }
     const updated = await this.actionRepository.update(action.id, action);
     await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
+    updated.refreshApState(actorRound, currentPhase);
     return updated;
   }
 
-  private async checkStandUpCost(action: Action): Promise<void> {
+  /** Standing up (Table 8-1, §9.8 Prone): 2 AP, or 1 with Acrobatics ranks. */
+  private async checkStandUpCost(action: Action, actorRound: ActorRound, currentPhase: number): Promise<void> {
     const character = await this.characterClient.findById(action.actorId);
     const acrobatics = character?.skills?.find(skill => skill.skillId === 'acrobatics')?.ranks || 0;
-    const required = acrobatics > 0 ? STAND_UP_ACROBATICS_ACTION_POINTS : STAND_UP_ACTION_POINTS;
-    if ((action.actionPoints || 0) < required) {
-      throw new ValidationError(`Standing up takes ${required} action points`, 'err-stand-up-action-points');
+    const profile = ActionApProfile.forAction('stand_up', { acrobatics: acrobatics > 0 });
+    action.apRange = { min: profile.min, max: profile.max };
+    if (!action.isForced() && action.apOf(actorRound, currentPhase) < profile.min) {
+      throw new ValidationError(`Standing up takes ${profile.min} action points`, 'err-stand-up-action-points');
     }
   }
 
-  private async setFullDefense(action: Action, command: CompleteActionCommand): Promise<void> {
-    if (action.freeAction || action.phaseStart + FULL_DEFENSE_ACTION_POINTS - 1 > FULL_DEFENSE_ACTION_POINTS) {
-      throw new ValidationError('A full dodge or block takes the 4 action points of the round', 'err-full-defense-action-points');
+  /**
+   * A full dodge or block takes 4 AP: the action keeps the AP it spent and takes the free AP of the current phase and
+   * of the next ones until it has them all (`err-full-defense-action-points` when the round has not enough left).
+   */
+  private takeFullDefenseAp(action: Action, actorRound: ActorRound, currentPhase: number): void {
+    const error = () =>
+      new ValidationError('A full dodge or block takes the 4 action points of the round', 'err-full-defense-action-points');
+    if (action.freeAction) {
+      throw error();
     }
-    const actorRound = await this.actorRoundRepository.findByActorIdAndRound(action.gameId, action.actorId, action.round);
-    if (!actorRound) throw new NotFoundError('ActorRound', `${action.actorId} - ${action.round}`);
-    actorRound.setFullDefense(command.defenseType ?? 'dodge');
-    await this.actorRoundRepository.update(actorRound.id, actorRound);
-    action.phaseEnd = action.phaseStart + FULL_DEFENSE_ACTION_POINTS - 1;
-    action.actionPoints = FULL_DEFENSE_ACTION_POINTS;
+    action.fillLegacyLedger(actorRound, currentPhase);
+    const spent = action.apOf(actorRound, currentPhase);
+    const needed = FULL_DEFENSE_ACTION_POINTS - spent;
+    const plan: Array<[number, number]> = [];
+    let left = needed;
+    for (let phase = currentPhase; phase <= ACTION_PHASES && left > 0; phase++) {
+      const taken = Math.min(actorRound.freeCapacity(phase), left);
+      if (taken > 0) {
+        plan.push([phase, taken]);
+        left -= taken;
+      }
+    }
+    if (left > 0) {
+      throw error();
+    }
+    plan.forEach(([phase, ap]) => actorRound.spend(phase, action.id, ap));
   }
 
-  private async clearProne(action: Action, command: CompleteActionCommand): Promise<void> {
-    const actorRound = await this.actorRoundRepository.findByActorIdAndRound(action.gameId, action.actorId, action.round);
-    if (!actorRound) throw new NotFoundError('ActorRound', `${action.actorId} - ${action.round}`);
+  private async clearProne(actorRound: ActorRound, command: CompleteActionCommand): Promise<void> {
     const prone = actorRound.effects.filter(effect => effect.status === 'prone');
     for (const effect of prone) {
       await this.commandBus.execute(new DeleteEffectCommand(actorRound.id, effect.id, command.userId, command.roles));

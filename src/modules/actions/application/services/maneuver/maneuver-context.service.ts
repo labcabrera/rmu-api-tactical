@@ -110,7 +110,7 @@ export class ManeuverContextService {
     if (!skill) throw new NotFoundError('Skill', skillId);
     const profile = skill.maneuver ?? DEFAULT_MANEUVER_PROFILE;
     const actionPoints =
-      options.actionPoints !== undefined ? options.actionPoints : ManeuverContextService.expectedActionPoints(action, game);
+      options.actionPoints !== undefined ? options.actionPoints : ManeuverContextService.expectedActionPoints(action, game, actorRound);
     const { skill: skillBonus, base } = this.baseModifiersService.compute({
       actorRound,
       character,
@@ -126,16 +126,16 @@ export class ManeuverContextService {
     return { actorRound, character, profile, catalog, skill: skillBonus, base, maneuverType };
   }
 
-  /** AP the action takes if it ends in the game's current phase (0 when free); null outside the action phases. */
-  static expectedActionPoints(action: Action, game: Game): number | null {
-    if (action.freeAction) {
-      return 0;
-    }
-    const phase = parseInt((game.phase || '').replace('phase_', ''));
-    if (Number.isNaN(phase)) {
+  /**
+   * AP the action has now, from the ledger of its actor round (spec 011, §2): what it takes if it is resolved in the
+   * current phase. Outside the action phases, the stored AP (null when it has none).
+   */
+  static expectedActionPoints(action: Action, game: Game, actorRound: ActorRound): number | null {
+    const phase = Game.toActionPhase(game.phase);
+    if (phase === undefined) {
       return action.actionPoints ?? null;
     }
-    return Math.max(1, phase - action.phaseStart + 1);
+    return action.apOf(actorRound, phase);
   }
 
   listing(context: ManeuverContext, action: Action): ManeuverModifiersListing {

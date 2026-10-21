@@ -7,6 +7,7 @@ import { ActionAttack } from './action-attack.model';
 import { ActionManeuver } from './action-maneuver.model';
 import { ActionMovement } from './action-movement.model';
 import { ActionParry } from './action-parry.model';
+import { ActionApRangeModel, ActionResolutionModel } from './action-resolution.model';
 
 export type ActionDocument = ActionModel & Document;
 
@@ -59,6 +60,18 @@ export class ActionModel {
 
   @Prop({ type: String, required: false })
   description: string | null;
+
+  @Prop({ type: ActionResolutionModel, required: false })
+  resolution?: ActionResolutionModel | null;
+
+  @Prop({ type: ActionApRangeModel, required: false })
+  apRange?: ActionApRangeModel | null;
+
+  @Prop({ type: String, required: false })
+  continuesActionId?: string | null;
+
+  @Prop({ type: Number, required: false })
+  carriedAp?: number | null;
 
   @Prop({ required: true })
   owner: string;

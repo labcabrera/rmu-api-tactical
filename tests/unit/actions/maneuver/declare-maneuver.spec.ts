@@ -9,6 +9,7 @@ import type { ActionRepository } from '../../../../src/modules/actions/applicati
 import type { Action } from '../../../../src/modules/actions/domain/aggregates/action.aggregate';
 import type { ActorRoundRepository } from '../../../../src/modules/actor-rounds/application/ports/actor-round.repository';
 import type { GameRepository } from '../../../../src/modules/games/application/ports/game.repository';
+import type { CharacterPort } from '../../../../src/modules/strategic/application/ports/character.port';
 import { load } from '../../actor-rounds/actor-round-test.factory';
 import { action, setupManeuver } from './maneuver-test.factory';
 
@@ -31,6 +32,7 @@ const declare = (maneuver: CreateActionCommandManeuver, existing: Action[] = [pr
   const gameRepository = { findById: jest.fn(() => Promise.resolve(game)) } as unknown as GameRepository;
   const actorRoundRepository = {
     findByRsql: jest.fn(() => Promise.resolve({ content: [load({ round: 2 })] })),
+    update: jest.fn(() => Promise.resolve()),
   } as unknown as ActorRoundRepository;
   const actionRepository = {
     findById: jest.fn((id: string) => Promise.resolve(existing.find(a => a.id === id) ?? null)),
@@ -38,8 +40,9 @@ const declare = (maneuver: CreateActionCommandManeuver, existing: Action[] = [pr
     save: jest.fn((saved: Action) => Promise.resolve(saved)),
   } as unknown as ActionRepository;
   const eventBus = { publish: jest.fn(() => Promise.resolve()) } as unknown as ActionEventBusPort;
-  const handler = new CreateActionHandler(gameRepository, actorRoundRepository, actionRepository, eventBus, skillCatalog);
-  return handler.execute(new CreateActionCommand('game-1', 'actor-1', 'maneuver', false, 1, maneuver, undefined, '', 'user-1', []));
+  const characterClient = { findById: jest.fn(() => Promise.resolve(null)) } as unknown as CharacterPort;
+  const handler = new CreateActionHandler(gameRepository, actorRoundRepository, actionRepository, eventBus, skillCatalog, characterClient);
+  return handler.execute(new CreateActionCommand('game-1', 'actor-1', 'maneuver', false, 1, maneuver, '', 'user-1', []));
 };
 
 describe('Declaring a maneuver', () => {
