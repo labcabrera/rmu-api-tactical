@@ -89,7 +89,10 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       throw new UnprocessableEntityError('Some actors not found in the current round');
     }
     const substractBoCommands = this.processAttackSourceSubstractBo(action, actors, command.userId, command.roles);
-    await Promise.all(substractBoCommands.map(cmd => this.commandBus.execute(cmd)));
+    // One after another: two attacks of the same attacker update the same actor round, and each command reloads it.
+    for (const cmd of substractBoCommands) {
+      await this.commandBus.execute(cmd);
+    }
 
     const sourceActor = actors.find(a => a.actorId === action.actorId)!;
     const applications = await this.readEffectApplications(action, actors, game.round, game.getActionPhase());
