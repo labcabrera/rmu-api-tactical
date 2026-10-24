@@ -1,4 +1,4 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { describe, expect, it, vi } from 'vitest';
 import { ResolveBreakageCheckCommand } from '../../../src/modules/actor-rounds/application/cqrs/commands/resolve-breakage-check.command';
 import { ResolveBreakageCheckHandler } from '../../../src/modules/actor-rounds/application/cqrs/handlers/resolve-breakage-check.handler';
 import type { ActorRoundRepository } from '../../../src/modules/actor-rounds/application/ports/actor-round.repository';
@@ -104,12 +104,12 @@ describe('Items of the actor', () => {
 describe('ResolveBreakageCheckHandler', () => {
   const setup = (finished = false) => {
     const round = new ActorRoundCharacterMapperAdapter().toActorRound('game-1', 1, character(), ITEMS);
-    const update = jest.fn((_id: string, entity: ActorRound) => Promise.resolve(ActorRound.fromProps(entity.getProps())));
-    const actorRoundRepository = { findById: jest.fn(() => Promise.resolve(round)), update } as unknown as ActorRoundRepository;
-    const checkNotFinished = jest.fn(() => {
+    const update = vi.fn((_id: string, entity: ActorRound) => Promise.resolve(ActorRound.fromProps(entity.getProps())));
+    const actorRoundRepository = { findById: vi.fn(() => Promise.resolve(round)), update } as unknown as ActorRoundRepository;
+    const checkNotFinished = vi.fn(() => {
       if (finished) throw new Error('err-game-finished');
     });
-    const gameRepository = { findById: jest.fn(() => Promise.resolve({ name: 'Ambush', checkNotFinished })) } as unknown as GameRepository;
+    const gameRepository = { findById: vi.fn(() => Promise.resolve({ name: 'Ambush', checkNotFinished })) } as unknown as GameRepository;
     return { handler: new ResolveBreakageCheckHandler(actorRoundRepository, gameRepository), update };
   };
 

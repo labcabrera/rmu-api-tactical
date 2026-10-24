@@ -26,6 +26,7 @@ export class ActionAttackDto {
   public results: ActionAttackResultsDto | undefined;
 
   @ApiProperty({
+    type: String,
     description: 'What the attack is waiting for',
     enum: ['pending_attack_roll', 'pending_critical_roll', 'pending_fumble_roll', 'pending_apply', 'completed'],
     example: 'pending_attack_roll',

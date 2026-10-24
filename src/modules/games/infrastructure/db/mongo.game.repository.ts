@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose/dist/common/mongoose.decorators';
+import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { NotFoundError } from '../../../shared/domain/errors';
 import { MongoBaseRepository } from '../../../shared/infrastructure/db/mongo.base.repository';
@@ -28,7 +28,7 @@ export class MongoGameRepository extends MongoBaseRepository<Game, GameDocument>
       ? new GameEnvironment(doc.environment.temperatureFatigueModifier, doc.environment.altitudeFatigueModifier)
       : undefined;
     return Game.fromProps({
-      id: doc.id as string,
+      id: doc.id,
       strategicGameId: doc.strategicGameId,
       name: doc.name,
       status: doc.status,

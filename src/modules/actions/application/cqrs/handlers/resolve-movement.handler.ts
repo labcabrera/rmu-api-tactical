@@ -19,7 +19,7 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
   private readonly logger = new Logger(ResolveMovementHandler.name);
 
   constructor(
-    @Inject() private readonly movementProcessorService: MovementProcessorService,
+    private readonly movementProcessorService: MovementProcessorService,
     @Inject('GameRepository') private readonly gameRepository: GameRepository,
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('ActionRepository') private readonly actionRepository: ActionRepository,

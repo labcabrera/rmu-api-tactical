@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, jest } from '@jest/globals';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { ApiManeuverAdapter } from '../../../../src/modules/actions/infrastructure/api-clients/api.maneuver.adapter';
@@ -10,12 +10,12 @@ const BASE_URI = 'http://core/v1';
 const tokenService = { getToken: () => Promise.resolve('token') } as unknown as TokenService;
 const configService = { get: (key: string) => (key === 'RMU_API_CORE_URI' ? BASE_URI : undefined) } as unknown as ConfigService;
 
-const mockGet = (data: unknown) => jest.spyOn(axios, 'get').mockResolvedValue({ data });
+const mockGet = (data: unknown) => vi.spyOn(axios, 'get').mockResolvedValue({ data });
 const axiosError = (status: number) =>
   Object.assign(new Error(`Status ${status}`), { isAxiosError: true, response: { status, data: { message: 'x' } } });
 
 afterEach(() => {
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 describe('ApiManeuverAdapter', () => {
@@ -59,8 +59,8 @@ describe('ApiSkillCatalogAdapter', () => {
       movement: false,
       light: 'none',
     });
-    jest.restoreAllMocks();
-    jest.spyOn(axios, 'get').mockRejectedValue(axiosError(404));
+    vi.restoreAllMocks();
+    vi.spyOn(axios, 'get').mockRejectedValue(axiosError(404));
     expect(await adapter.findSkill('nope')).toBeNull();
   });
 
@@ -72,7 +72,7 @@ describe('ApiSkillCatalogAdapter', () => {
   });
 
   it('turns a failure of core into a domain error', async () => {
-    jest.spyOn(axios, 'get').mockRejectedValue(axiosError(500));
+    vi.spyOn(axios, 'get').mockRejectedValue(axiosError(500));
     await expect(adapter.findManeuverModifiers('x')).rejects.toBeInstanceOf(BadGatewayError);
   });
 });

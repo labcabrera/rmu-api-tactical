@@ -13,6 +13,7 @@ export class ActorRoundApLedgerEntryDto {
   ap: number;
 
   @ApiProperty({
+    type: String,
     description: 'Spent on an action, lost, or an instantaneous action',
     enum: ['spent', 'lost', 'instant'],
     example: 'spent',

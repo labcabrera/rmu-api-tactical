@@ -19,16 +19,16 @@ export class InjuryDto {
   @ApiProperty({ description: 'Stable uuid, shared with the strategic character' })
   id: string;
 
-  @ApiProperty({ enum: ['bone', 'cut-burn', 'muscle-tendon', 'organ', 'poison-disease', 'skin-tissue', 'unknown'] })
+  @ApiProperty({ type: String, enum: ['bone', 'cut-burn', 'muscle-tendon', 'organ', 'poison-disease', 'skin-tissue', 'unknown'] })
   type: InjuryType;
 
-  @ApiProperty({ enum: ['light', 'medium', 'severe'] })
+  @ApiProperty({ type: String, enum: ['light', 'medium', 'severe'] })
   severity: InjurySeverity;
 
-  @ApiProperty({ enum: ['head', 'chest', 'abdomen', 'arm', 'leg'], required: false })
+  @ApiProperty({ type: String, enum: ['head', 'chest', 'abdomen', 'arm', 'leg'], required: false })
   location?: BodyLocation;
 
-  @ApiProperty({ enum: ['left', 'right'], required: false })
+  @ApiProperty({ type: String, enum: ['left', 'right'], required: false })
   side?: BodySide;
 
   @ApiProperty({ description: 'Current penalty (0 or negative)' })
@@ -40,7 +40,7 @@ export class InjuryDto {
   @ApiProperty({ description: 'Hits per round; 0 or missing when stopped', required: false })
   bleeding?: number;
 
-  @ApiProperty({ enum: ['pressure', 'stitches', 'tourniquet', 'cauterized', 'magic'], required: false })
+  @ApiProperty({ type: String, enum: ['pressure', 'stitches', 'tourniquet', 'cauterized', 'magic'], required: false })
   bleedingControl?: BleedingControl;
 
   @ApiProperty({ type: [String], required: false })
@@ -61,7 +61,7 @@ export class InjuryDto {
   @ApiProperty({ type: Object, required: false })
   permanent?: { penalty: number; roll?: number };
 
-  @ApiProperty({ enum: ['active', 'recovering', 'permanent', 'healed'] })
+  @ApiProperty({ type: String, enum: ['active', 'recovering', 'permanent', 'healed'] })
   status: InjuryStatus;
 
   @ApiProperty()

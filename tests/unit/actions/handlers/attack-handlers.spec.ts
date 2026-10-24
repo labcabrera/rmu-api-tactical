@@ -1,7 +1,7 @@
 import { ActorRoundAttack } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-attack.vo';
 import { ActorRoundPenalty } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-penalty.vo';
 import { ActorRoundPenaltyModifier } from '../../../../src/modules/actor-rounds/domain/value-objets/actor-round-penalty-modifier.vo';
-import { describe, expect, it, jest } from '@jest/globals';
+import { describe, expect, it, vi } from 'vitest';
 import { ActionAttackCalculated } from '../../../../src/modules/actions/domain/value-objects/action-attack-calculated.vo';
 import { ActionAttackRoll } from '../../../../src/modules/actions/domain/value-objects/action-attack-roll.vo';
 import { ActionAttackResult, AttackTableEntry, Fumble } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo';
@@ -12,8 +12,8 @@ import { KeyValueModifier } from '../../../../src/modules/actions/domain/value-o
 import type { Action } from '../../../../src/modules/actions/domain/aggregates/action.aggregate';
 import type { ActionEventBusPort } from '../../../../src/modules/actions/application/ports/action-event-bus.port';
 import type { ActionRepository } from '../../../../src/modules/actions/application/ports/action.repository';
-import type { CriticalTableLookupRequest, CriticalTablePort } from '../../../../src/modules/actions/application/ports/critical-table.port';
-import type { FumbleTableLookupRequest, FumbleTablePort } from '../../../../src/modules/actions/application/ports/fumble-table.port';
+import type { CriticalTableLookupRequest } from '../../../../src/modules/actions/application/ports/critical-table.port';
+import type { FumbleTableLookupRequest } from '../../../../src/modules/actions/application/ports/fumble-table.port';
 import type { ActorRoundRepository } from '../../../../src/modules/actor-rounds/application/ports/actor-round.repository';
 import type { GameRepository } from '../../../../src/modules/games/application/ports/game.repository';
 import {
@@ -30,26 +30,25 @@ import { UpdateCriticalRollCommand } from '../../../../src/modules/actions/appli
 import { UpdateFumbleRollCommand } from '../../../../src/modules/actions/application/cqrs/commands/update-fumble-roll.command';
 import { DeclareParryCommand, DeclareParryItem } from '../../../../src/modules/actions/application/cqrs/commands/declare-parry.command';
 import { UpdateAttackRollCommand } from '../../../../src/modules/actions/application/cqrs/commands/update-attack-roll.command';
-import type { AttackTablePort } from '../../../../src/modules/actions/application/ports/attack-table.port';
 import { createCombatPluginContext } from '../combat/combat-plugin-test.factory';
 
 const processor = () => new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST));
 
 const repositories = (action: Action, actors = createCombatPluginContext().actors!) => {
   const actionRepository = {
-    findById: jest.fn(() => Promise.resolve(action)),
-    update: jest.fn((_id: string, updated: Action) => Promise.resolve(updated)),
+    findById: vi.fn(() => Promise.resolve(action)),
+    update: vi.fn((_id: string, updated: Action) => Promise.resolve(updated)),
   } as unknown as ActionRepository;
   const gameRepository = {
-    findById: jest.fn(() => Promise.resolve({ id: 'game-1', round: 1, checkNotFinished: () => undefined })),
+    findById: vi.fn(() => Promise.resolve({ id: 'game-1', round: 1, checkNotFinished: () => undefined })),
   } as unknown as GameRepository;
-  const actorRoundUpdate = jest.fn(() => Promise.resolve());
+  const actorRoundUpdate = vi.fn(() => Promise.resolve());
   const actorRoundRepository = {
-    findByActorIdAndRound: jest.fn((_gameId: string, actorId: string) => Promise.resolve(actors.find(actor => actor.actorId === actorId))),
-    findByRsql: jest.fn(() => Promise.resolve({ content: actors })),
+    findByActorIdAndRound: vi.fn((_gameId: string, actorId: string) => Promise.resolve(actors.find(actor => actor.actorId === actorId))),
+    findByRsql: vi.fn(() => Promise.resolve({ content: actors })),
     update: actorRoundUpdate,
   } as unknown as ActorRoundRepository;
-  const actionEventBus = { publish: jest.fn(() => Promise.resolve()) } as unknown as ActionEventBusPort;
+  const actionEventBus = { publish: vi.fn(() => Promise.resolve()) } as unknown as ActionEventBusPort;
   return { actionRepository, gameRepository, actorRoundRepository, actorRoundUpdate, actionEventBus };
 };
 
@@ -74,14 +73,14 @@ describe('UpdateCriticalRollHandler', () => {
   const setup = (criticals: Critical[]) => {
     const ctx = rolledContext(criticals);
     const repos = repositories(ctx.action);
-    const lookup = jest.fn((request: CriticalTableLookupRequest) => {
+    const lookup = vi.fn((request: CriticalTableLookupRequest) => {
       void request;
       return Promise.resolve(new CriticalResult('Hit.', 4, 'arm', []));
     });
     const handler = new UpdateCriticalRollHandler(
       repos.gameRepository,
       repos.actionRepository,
-      { lookup } as CriticalTablePort,
+      { lookup },
       repos.actionEventBus,
       processor(),
       repos.actorRoundRepository,
@@ -175,7 +174,7 @@ describe('UpdateFumbleRollHandler', () => {
     ctx.attack!.results!.attackTableEntry = undefined;
     const repos = repositories(ctx.action, ctx.actors);
     const fumble = new Fumble('completed', 'Slips.', undefined, 0, []);
-    const lookup = jest.fn((request: FumbleTableLookupRequest) => {
+    const lookup = vi.fn((request: FumbleTableLookupRequest) => {
       void request;
       return Promise.resolve(fumble);
     });
@@ -183,7 +182,7 @@ describe('UpdateFumbleRollHandler', () => {
       repos.gameRepository,
       repos.actionRepository,
       repos.actorRoundRepository,
-      { lookup } as FumbleTablePort,
+      { lookup },
       repos.actionEventBus,
       processor(),
     );
@@ -348,8 +347,8 @@ describe('UpdateAttackRollHandler', () => {
     const ctx = createCombatPluginContext();
     ctx.attack!.calculated = new ActionAttackCalculated([new KeyValueModifier('bo', 75)], 75, undefined, undefined, []);
     const repos = repositories(ctx.action, ctx.actors);
-    const lookup = jest.fn(() => Promise.resolve(new AttackTableEntry('9', 9, undefined, undefined)));
-    const resolver = new CombatAttackRollResolverService(processor(), { lookup } as unknown as AttackTablePort);
+    const lookup = vi.fn(() => Promise.resolve(new AttackTableEntry('9', 9, undefined, undefined)));
+    const resolver = new CombatAttackRollResolverService(processor(), { lookup });
     const handler = new UpdateAttackRollHandler(
       repos.gameRepository,
       repos.actionRepository,

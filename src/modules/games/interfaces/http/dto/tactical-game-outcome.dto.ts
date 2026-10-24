@@ -60,7 +60,7 @@ export class TacticalGameOutcomeCharacterDto {
   @ApiProperty({ type: [String], description: 'Conditions it brought that ended in the game' })
   conditionsResolved: string[];
 
-  @ApiProperty({ enum: CHARACTER_FATES, required: false })
+  @ApiProperty({ type: String, enum: CHARACTER_FATES, required: false })
   fate?: CharacterFate;
 
   @ApiProperty({ type: [Object], description: 'Modifiers the items of the character got in the game (spec 019)' })
@@ -141,7 +141,7 @@ export class ActorFateDto implements ActorFate {
   @IsString()
   actorId: string;
 
-  @ApiProperty({ enum: CHARACTER_FATES })
+  @ApiProperty({ type: String, enum: CHARACTER_FATES })
   @IsIn(CHARACTER_FATES)
   fate: CharacterFate;
 }

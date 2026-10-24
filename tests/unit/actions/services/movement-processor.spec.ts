@@ -1,4 +1,4 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { describe, expect, it, vi } from 'vitest';
 import type { ManeuverPort, PercentManeuverResponse } from '../../../../src/modules/actions/application/ports/maneuver.port';
 import { MovementProcessorService } from '../../../../src/modules/actions/application/services/movement-processor.service';
 import { ManeuverBaseModifiersService } from '../../../../src/modules/actions/application/services/maneuver/maneuver-base-modifiers.service';
@@ -33,7 +33,7 @@ describe('MovementProcessorService', () => {
 
 describe('MovementProcessorService movement roll', () => {
   const roll = async (skills: Array<{ skillId: string; specialization: string | null; totalBonus: number }>, light?: string) => {
-    const percent = jest.fn<(total: number) => Promise<PercentManeuverResponse>>(() =>
+    const percent = vi.fn<(total: number) => Promise<PercentManeuverResponse>>(() =>
       Promise.resolve({ percent: 100, critical: null, message: 'Completed at 100%' }),
     );
     const characterClient = {

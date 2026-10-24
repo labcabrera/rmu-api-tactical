@@ -38,7 +38,7 @@ export class ActorRoundAttack {
   @Prop({ required: true })
   currentBo: number;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   type: 'melee' | 'ranged';
 
   @Prop({ required: true })

@@ -1,13 +1,12 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { describe, expect, it, vi } from 'vitest';
 import { randomUUID } from 'crypto';
 import {
   PrepareAttackCommand,
   PrepareAttackCommandModifiers,
 } from '../../../../src/modules/actions/application/cqrs/commands/prepare-attack.command';
 import { PrepareAttackHandler } from '../../../../src/modules/actions/application/cqrs/handlers/prepare-attack.handler';
-import type { ActionEventBusPort } from '../../../../src/modules/actions/application/ports/action-event-bus.port';
 import type { ActionRepository } from '../../../../src/modules/actions/application/ports/action.repository';
-import type { AttackTableLookupRequest, AttackTablePort } from '../../../../src/modules/actions/application/ports/attack-table.port';
+import type { AttackTableLookupRequest } from '../../../../src/modules/actions/application/ports/attack-table.port';
 import {
   COMBAT_PLUGIN_LIST,
   CombatAttackRollResolverService,
@@ -142,13 +141,13 @@ describe('Combat talents', () => {
     it('uses the widened fumble range when resolving the roll', async () => {
       const ctx = createCombatPluginContext({ fumble: 3 });
       ctx.attack!.calculated = new ActionAttackCalculated([new KeyValueModifier('bo', 80)], 80, undefined, undefined, [], undefined, 5);
-      const lookup = jest.fn((request: AttackTableLookupRequest) => {
+      const lookup = vi.fn((request: AttackTableLookupRequest) => {
         void request;
         return Promise.resolve(new AttackTableEntry('5', 5, undefined, undefined));
       });
       const resolver = new CombatAttackRollResolverService(new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST)), {
         lookup,
-      } as AttackTablePort);
+      });
 
       await resolver.resolve({
         action: ctx.action,
@@ -219,9 +218,9 @@ describe('Combat talents', () => {
   describe('PrepareAttackHandler', () => {
     const setup = (ctx: CombatContext, roundActions: Action[]) => {
       const actionRepository = {
-        findById: jest.fn(() => Promise.resolve(ctx.action)),
-        findByRsql: jest.fn(() => Promise.resolve({ content: roundActions })),
-        update: jest.fn((_id: string, updated: Action) => Promise.resolve(updated)),
+        findById: vi.fn(() => Promise.resolve(ctx.action)),
+        findByRsql: vi.fn(() => Promise.resolve({ content: roundActions })),
+        update: vi.fn((_id: string, updated: Action) => Promise.resolve(updated)),
       } as unknown as ActionRepository;
       const game = {
         id: 'game-1',
@@ -231,12 +230,12 @@ describe('Combat talents', () => {
         getActionPhase: () => 2, // a melee attack needs 2 AP to be prepared (spec 011)
       };
       const handler = new PrepareAttackHandler(
-        { findById: jest.fn(() => Promise.resolve(game)) } as unknown as GameRepository,
-        { findByGameAndRoundAndActors: jest.fn(() => Promise.resolve(ctx.actors)) } as unknown as ActorRoundRepository,
+        { findById: vi.fn(() => Promise.resolve(game)) } as unknown as GameRepository,
+        { findByGameAndRoundAndActors: vi.fn(() => Promise.resolve(ctx.actors)) } as unknown as ActorRoundRepository,
         actionRepository,
-        { findById: jest.fn(() => Promise.resolve({ skills: [], traits: [{ traitId: 'ignored' }] })) } as unknown as CharacterPort,
-        { findById: jest.fn(() => Promise.resolve({ options: {} })) } as unknown as StrategicGameApiClient,
-        { publish: jest.fn(() => Promise.resolve()) } as unknown as ActionEventBusPort,
+        { findById: vi.fn(() => Promise.resolve({ skills: [], traits: [{ traitId: 'ignored' }] })) } as unknown as CharacterPort,
+        { findById: vi.fn(() => Promise.resolve({ options: {} })) } as unknown as StrategicGameApiClient,
+        { publish: vi.fn(() => Promise.resolve()) },
         new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST)),
       );
       return () =>

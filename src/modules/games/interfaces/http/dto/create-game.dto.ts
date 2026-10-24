@@ -16,12 +16,12 @@ export class CreateGameActorDto {
   @IsNotEmpty()
   id: string;
 
-  @ApiProperty({ description: 'Actor type', example: 'character' })
+  @ApiProperty({ type: String, description: 'Actor type', example: 'character' })
   @IsString()
   @IsNotEmpty()
   type: ActorType;
 
-  @ApiProperty({ description: 'Faction. Only for NPCs. For characters faction are not required', example: 'neutral' })
+  @ApiProperty({ type: String, description: 'Faction. Only for NPCs. For characters faction are not required', example: 'neutral' })
   @IsString()
   @IsOptional()
   faction: string | undefined;
@@ -32,12 +32,12 @@ export class CreateGameActorDto {
 }
 
 export class CreateGameEnvironmentDto {
-  @ApiProperty({ description: 'Temperature fatigue modifier', required: false, example: -5 })
+  @ApiProperty({ type: Number, description: 'Temperature fatigue modifier', required: false, example: -5 })
   @IsNumber()
   @IsOptional()
   temperatureFatigueModifier: number | undefined;
 
-  @ApiProperty({ description: 'Altitude fatigue modifier', required: false, example: -10 })
+  @ApiProperty({ type: Number, description: 'Altitude fatigue modifier', required: false, example: -10 })
   @IsNumber()
   @IsOptional()
   altitudeFatigueModifier: number | undefined;
@@ -93,11 +93,11 @@ export class CreateGameDto {
   @Type(() => CreateGameEnvironmentDto)
   environment: CreateGameEnvironmentDto | undefined;
 
-  @ApiProperty({ description: 'Description of the game', required: false, example: 'Tactical battle in Mordor' })
+  @ApiProperty({ type: String, description: 'Description of the game', required: false, example: 'Tactical battle in Mordor' })
   @IsString()
   description: string | undefined;
 
-  @ApiProperty({ description: 'Image URL for the game', required: false, example: 'https://example.com/image.png' })
+  @ApiProperty({ type: String, description: 'Image URL for the game', required: false, example: 'https://example.com/image.png' })
   @IsString()
   @IsOptional()
   imageUrl: string | undefined;

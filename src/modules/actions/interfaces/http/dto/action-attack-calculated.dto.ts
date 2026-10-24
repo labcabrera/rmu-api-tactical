@@ -14,19 +14,21 @@ export class ActionAttackCalculatedDto {
   rollTotal: number;
 
   @ApiProperty({
+    type: String,
     description: 'The location hit by a called shot (no location is rolled otherwise)',
     required: false,
     enum: ['head', 'chest', 'abdomen', 'arms', 'legs'],
   })
   location: AttackLocation | undefined;
 
-  @ApiProperty({ description: 'Sum of the critical modifiers, added to each critical roll', required: false, example: 1 })
+  @ApiProperty({ type: Number, description: 'Sum of the critical modifiers, added to each critical roll', required: false, example: 1 })
   criticalAdjustment: number | undefined;
 
-  @ApiProperty({ description: 'Whether the attack roll requires a breakage roll', required: false, example: true })
+  @ApiProperty({ type: Boolean, description: 'Whether the attack roll requires a breakage roll', required: false, example: true })
   breakageRoll: boolean | undefined;
 
   @ApiProperty({
+    type: Number,
     description: "Fumble range of the attack roll: the weapon's, widened by the target's Foiler",
     required: false,
     example: 4,

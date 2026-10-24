@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import { Action, ActionProps } from '../../../src/modules/actions/domain/aggregates/action.aggregate';
 import { ActionParry } from '../../../src/modules/actions/domain/value-objects/action-attack-parry.vo';
 import { ActionAttack } from '../../../src/modules/actions/domain/value-objects/action-attack.vo';

@@ -5,10 +5,10 @@ export class ActorRoundAlertModifierDto {
   @ApiProperty({ description: 'Key of the modifier', required: true, example: 'strength' })
   key: string;
 
-  @ApiProperty({ description: 'Value of the modifier', required: false, example: 10 })
+  @ApiProperty({ type: Number, description: 'Value of the modifier', required: false, example: 10 })
   value: number | null;
 
-  @ApiProperty({ description: 'Modifier description', required: false, example: 'increase' })
+  @ApiProperty({ type: String, description: 'Modifier description', required: false, example: 'increase' })
   modifier: string | null;
 
   static fromEntity(entity: ActorRoundAlertModifier): ActorRoundAlertModifierDto {

@@ -1,6 +1,6 @@
 import type { ActorRoundItem } from '../../../domain/value-objets/actor-round-item.vo';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import type { HydratedDocument } from 'mongoose';
 import type { Injury } from '../../../domain/value-objets/injury.vo';
 import { ActorRoundAlert } from './actor-round-alert.model';
 import { ActorRoundAttack } from './actor-round-attack.model';
@@ -22,7 +22,7 @@ import {
   ActorRoundTrait,
 } from './actor-round.models-childs';
 
-export type ActorRoundDocument = ActorRoundModel & Document;
+export type ActorRoundDocument = HydratedDocument<ActorRoundModel>;
 
 @Schema({ collection: 'actor-rounds', _id: false, versionKey: false })
 export class ActorRoundModel {

@@ -1,4 +1,4 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { describe, expect, it, vi } from 'vitest';
 import type { ActionRepository } from '../../../src/modules/actions/application/ports/action.repository';
 import { Action, ActionProps } from '../../../src/modules/actions/domain/aggregates/action.aggregate';
 import type { ActorRoundRepository } from '../../../src/modules/actor-rounds/application/ports/actor-round.repository';
@@ -52,19 +52,19 @@ const game = (phase: GamePhase) =>
 
 const setup = (phase: GamePhase, actorRounds: ActorRound[], actions: Action[]) => {
   const gameRepository = {
-    findById: jest.fn(() => Promise.resolve(game(phase))),
-    update: jest.fn((_id: string, updated: Game) => Promise.resolve(updated)),
+    findById: vi.fn(() => Promise.resolve(game(phase))),
+    update: vi.fn((_id: string, updated: Game) => Promise.resolve(updated)),
   } as unknown as GameRepository;
-  const update = jest.fn((_id: string, updated: ActorRound) => Promise.resolve(updated));
+  const update = vi.fn((_id: string, updated: ActorRound) => Promise.resolve(updated));
   const actorRoundRepository = {
-    findWithUndefinedInitiativeRoll: jest.fn(() => Promise.resolve([])),
-    findByRsql: jest.fn(() => Promise.resolve(new Page(actorRounds, 0, 1000, actorRounds.length))),
+    findWithUndefinedInitiativeRoll: vi.fn(() => Promise.resolve([])),
+    findByRsql: vi.fn(() => Promise.resolve(new Page(actorRounds, 0, 1000, actorRounds.length))),
     update,
   } as unknown as ActorRoundRepository;
   const actionRepository = {
-    findByRsql: jest.fn(() => Promise.resolve(new Page(actions, 0, 1000, actions.length))),
+    findByRsql: vi.fn(() => Promise.resolve(new Page(actions, 0, 1000, actions.length))),
   } as unknown as ActionRepository;
-  const eventBus = { publish: jest.fn() } as unknown as GameEventBusPort;
+  const eventBus = { publish: vi.fn() } as unknown as GameEventBusPort;
   const handler = new StartPhaseHandler(gameRepository, actorRoundRepository, actionRepository, eventBus);
   return { run: () => handler.execute(new StartPhaseCommand('game-1', 'user-1', [])), update };
 };

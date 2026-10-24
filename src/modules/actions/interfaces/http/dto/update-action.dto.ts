@@ -3,7 +3,7 @@ import { IsOptional, IsString, MaxLength } from 'class-validator';
 import { UpdateActionCommand } from '../../../application/cqrs/commands/update-action.command';
 
 export class UpdateActionDto {
-  @ApiProperty({ description: 'Action description', example: 'Attack the enemy', required: false })
+  @ApiProperty({ type: String, description: 'Action description', example: 'Attack the enemy', required: false })
   @IsOptional()
   @IsString()
   @MaxLength(500)

@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.aggregate';
 import { HpLog, HpLogEntry } from '../../../src/modules/actor-rounds/domain/value-objets/hp-log-entry.vo';
 import { buildInjury } from '../../../src/modules/actor-rounds/domain/value-objets/injury.vo';

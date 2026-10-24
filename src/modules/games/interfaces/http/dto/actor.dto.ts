@@ -13,7 +13,7 @@ export class ActorDto {
   @ApiProperty({ description: 'Actor faction' })
   faction: ActorRoundFactionDto;
 
-  @ApiProperty({ description: 'Actor type', example: 'character' })
+  @ApiProperty({ type: String, description: 'Actor type', example: 'character' })
   type: ActorType;
 
   static fromEntity(entity: Actor): ActorDto {

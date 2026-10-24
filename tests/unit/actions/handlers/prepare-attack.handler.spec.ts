@@ -1,4 +1,5 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import {
   PrepareAttackCommand,
   PrepareAttackCommandModifiers,
@@ -33,24 +34,24 @@ const setup = (
   const ctx = createCombatPluginContext(options);
   const action = ctx.action;
   const actionRepository = {
-    findById: jest.fn(() => Promise.resolve(action)),
-    findByRsql: jest.fn(() => Promise.resolve({ content: [] })),
-    update: jest.fn((_id: string, updated: Action) => Promise.resolve(updated)),
+    findById: vi.fn(() => Promise.resolve(action)),
+    findByRsql: vi.fn(() => Promise.resolve({ content: [] })),
+    update: vi.fn((_id: string, updated: Action) => Promise.resolve(updated)),
   } as unknown as ActionRepository;
   const game = { id: 'game-1', round: 1, strategicGameId: 'sg-1', checkValidActionManagement: () => undefined, getActionPhase: () => 3 };
-  const gameRepository = { findById: jest.fn(() => Promise.resolve(game)) } as unknown as GameRepository;
+  const gameRepository = { findById: vi.fn(() => Promise.resolve(game)) } as unknown as GameRepository;
   const actorRoundRepository = {
-    findByGameAndRoundAndActors: jest.fn(() => Promise.resolve(ctx.actors)),
+    findByGameAndRoundAndActors: vi.fn(() => Promise.resolve(ctx.actors)),
   } as unknown as ActorRoundRepository;
   const characterClient = {
-    findById: jest.fn((id: string) =>
+    findById: vi.fn((id: string) =>
       Promise.resolve({ skills: id === ctx.sourceActor!.actorId ? SOURCE_SKILLS : targetSkills, traits: [] }),
     ),
   } as unknown as CharacterPort;
   const strategicGameClient = {
-    findById: jest.fn(() => Promise.resolve({ options: { letality: 5 } })),
+    findById: vi.fn(() => Promise.resolve({ options: { letality: 5 } })),
   } as unknown as StrategicGameApiClient;
-  const actionEventBus = { publish: jest.fn(() => Promise.resolve()) } as unknown as ActionEventBusPort;
+  const actionEventBus = { publish: vi.fn(() => Promise.resolve()) } as unknown as ActionEventBusPort;
   const handler = new PrepareAttackHandler(
     gameRepository,
     actorRoundRepository,
@@ -175,7 +176,7 @@ describe('PrepareAttackHandler', () => {
       phaseEnd: null,
       freeAction: false,
     };
-    (actionRepository.findByRsql as jest.Mock).mockImplementation(() => Promise.resolve({ content: [defenderAction] }));
+    (actionRepository.findByRsql as Mock).mockImplementation(() => Promise.resolve({ content: [defenderAction] }));
 
     const action = await execute({});
 

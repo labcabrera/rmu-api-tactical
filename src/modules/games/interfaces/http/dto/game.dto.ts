@@ -18,7 +18,7 @@ export class GameDto {
   @ApiProperty({ description: 'Name of the game', example: 'Mordor Game 1' })
   name: string;
 
-  @ApiProperty({ description: 'Current status of the game' })
+  @ApiProperty({ type: String, description: 'Current status of the game' })
   @IsString()
   status: GameStatus;
 
@@ -26,7 +26,7 @@ export class GameDto {
   @IsNotEmpty()
   round: number;
 
-  @ApiProperty({ description: 'Current phase of the game' })
+  @ApiProperty({ type: String, description: 'Current phase of the game' })
   @IsString()
   phase: GamePhase;
 
@@ -43,10 +43,10 @@ export class GameDto {
   @ApiProperty({ description: 'Environment configuration for the game', required: false })
   environment: GameEnvironmentDto | undefined;
 
-  @ApiProperty({ description: 'Description of the game', required: false, example: 'Tactical battle in Mordor' })
+  @ApiProperty({ type: String, description: 'Description of the game', required: false, example: 'Tactical battle in Mordor' })
   description: string | undefined;
 
-  @ApiProperty({ description: 'Image URL for the game', required: false, example: 'https://example.com/image.png' })
+  @ApiProperty({ type: String, description: 'Image URL for the game', required: false, example: 'https://example.com/image.png' })
   imageUrl: string | undefined;
 
   @ApiProperty({ description: 'Owner of the game', example: 'user-123' })

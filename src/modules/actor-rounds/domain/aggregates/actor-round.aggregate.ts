@@ -431,9 +431,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    */
   private normalizeLegacy(): void {
     const legacyStatus = 'unconcious';
-    this.effects = (this.effects ?? []).map(effect =>
-      effect.status === legacyStatus ? ({ ...effect, status: UNCONSCIOUS } as ActorRoundEffect) : effect,
-    );
+    this.effects = (this.effects ?? []).map(effect => (effect.status === legacyStatus ? { ...effect, status: UNCONSCIOUS } : effect));
     const createdAt = this.createdAt ? new Date(this.createdAt) : new Date();
     const source: InjurySource = { kind: 'manual', tacticalGameId: this.gameId, round: this.round };
     this.effects

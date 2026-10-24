@@ -5,19 +5,19 @@ export class CriticalEffectDto {
   @ApiProperty({ description: 'Effect status', example: 'applied' })
   status: string;
 
-  @ApiProperty({ description: 'Number of rounds', example: 2 })
+  @ApiProperty({ type: Number, description: 'Number of rounds', example: 2 })
   rounds: number | undefined;
 
-  @ApiProperty({ description: 'Effect value', example: 5 })
+  @ApiProperty({ type: Number, description: 'Effect value', example: 5 })
   value: number | undefined;
 
-  @ApiProperty({ description: 'Effect delay', example: 1 })
+  @ApiProperty({ type: Number, description: 'Effect delay', example: 1 })
   delay: number | undefined;
 
-  @ApiProperty({ description: 'Effect condition', example: 'stunned' })
+  @ApiProperty({ type: String, description: 'Effect condition', example: 'stunned' })
   condition: string | undefined;
 
-  @ApiProperty({ description: 'source: falls on the attacker', required: false, enum: ['source', 'target'] })
+  @ApiProperty({ type: String, description: 'source: falls on the attacker', required: false, enum: ['source', 'target'] })
   applyTo?: 'source' | 'target';
 }
 
@@ -51,7 +51,7 @@ export class CriticalDto {
   @ApiProperty({ description: 'Critical severity', example: 'A' })
   criticalSeverity: string;
 
-  @ApiProperty({ description: 'Roll looked up: the roll plus the critical adjustment, clamped to 1..100', example: 10 })
+  @ApiProperty({ type: Number, description: 'Roll looked up: the roll plus the critical adjustment, clamped to 1..100', example: 10 })
   adjustedRoll: number | undefined;
 
   @ApiProperty({ description: 'Critical result', type: CriticalResultDto, required: false })

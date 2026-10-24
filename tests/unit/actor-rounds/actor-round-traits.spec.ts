@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import { randomUUID } from 'crypto';
 import { DeclareInitiativeDto } from '../../../src/modules/actor-rounds/interfaces/http/dto/declare-initiative.dto';
 import { ActorRoundDto } from '../../../src/modules/actor-rounds/interfaces/http/dto/actor-round.dto';

@@ -72,8 +72,8 @@ const addEffects = (round: ActorRound, effects: ActorRoundEffect[], phase: numbe
 const world = (initial: Game, actorRounds: ActorRound[], actions: Action[], openRounds?: boolean) => {
   let current = initial;
   const gameRepository = {
-    findById: jest.fn(() => Promise.resolve(current)),
-    update: jest.fn((_id: string, updated: Game) => {
+    findById: vi.fn(() => Promise.resolve(current)),
+    update: vi.fn((_id: string, updated: Game) => {
       current = updated;
       return Promise.resolve(updated);
     }),
@@ -83,29 +83,29 @@ const world = (initial: Game, actorRounds: ActorRound[], actions: Action[], open
     const content = items.filter(item => item.round === round);
     return Promise.resolve(new Page(content, 0, 1000, content.length));
   };
-  const actorRoundUpdate = jest.fn((_id: string, updated: ActorRound) => Promise.resolve(updated));
+  const actorRoundUpdate = vi.fn((_id: string, updated: ActorRound) => Promise.resolve(updated));
   const actorRoundRepository = {
-    findWithUndefinedInitiativeRoll: jest.fn(() => Promise.resolve([])),
-    findByRsql: jest.fn((rsql: string) => byRound(actorRounds, rsql)),
+    findWithUndefinedInitiativeRoll: vi.fn(() => Promise.resolve([])),
+    findByRsql: vi.fn((rsql: string) => byRound(actorRounds, rsql)),
     update: actorRoundUpdate,
   } as unknown as ActorRoundRepository;
-  const actionSave = jest.fn((saved: Action) => {
+  const actionSave = vi.fn((saved: Action) => {
     actions.push(saved);
     return Promise.resolve(saved);
   });
-  const actionUpdate = jest.fn((_id: string, updated: Action) => Promise.resolve(updated));
+  const actionUpdate = vi.fn((_id: string, updated: Action) => Promise.resolve(updated));
   const actionRepository = {
-    findByRsql: jest.fn((rsql: string) => byRound(actions, rsql)),
+    findByRsql: vi.fn((rsql: string) => byRound(actions, rsql)),
     save: actionSave,
     update: actionUpdate,
   } as unknown as ActionRepository;
-  const eventBus = { publish: jest.fn() } as unknown as GameEventBusPort;
+  const eventBus = { publish: vi.fn() } as unknown as GameEventBusPort;
   const commands: object[] = [];
   const commandBus = {
-    execute: jest.fn((command: object) => {
+    execute: vi.fn((command: object) => {
       commands.push(command);
       if (command instanceof UpkeepActorRoundCommand) {
-        actorRounds.find(ar => ar.actorId === command.actorId && ar.round === command.round)?.applyUpkeep();
+        actorRounds.find(ar => ar.id === command.actorRoundId && ar.round === command.round)?.applyUpkeep();
       }
       if (command instanceof CreateActorRoundCommand) {
         const previous = actorRounds.find(ar => ar.actorId === command.actor.id && ar.round === command.round - 1)!;
@@ -114,7 +114,7 @@ const world = (initial: Game, actorRounds: ActorRound[], actions: Action[], open
       return Promise.resolve();
     }),
   } as unknown as CommandBus;
-  const strategicFindById = jest.fn(() =>
+  const strategicFindById = vi.fn(() =>
     Promise.resolve({ id: 'strategic-1', owner: 'user-1', options: openRounds === undefined ? null : { openRounds } }),
   );
   const strategicGameClient = { findById: strategicFindById } as unknown as StrategicGamePort;
@@ -320,7 +320,7 @@ describe('StartRoundHandler (spec 011, §5)', () => {
   it('carries a multi-round action whatever the option', async () => {
     const actorRound = load({});
     const long = action('long', 'other', 3);
-    jest.spyOn(long, 'apProfile').mockReturnValue(new ActionApProfile(6, 6, 0, true));
+    vi.spyOn(long, 'apProfile').mockReturnValue(new ActionApProfile(6, 6, 0, true));
     actorRound.spend(3, 'long', 1);
     actorRound.spend(4, 'long', 1);
     const w = world(game('upkeep'), [actorRound], [long], false);

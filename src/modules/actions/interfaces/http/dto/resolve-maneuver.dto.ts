@@ -21,13 +21,13 @@ export class ManeuverRollDto {
 
 /** @deprecated Body of the resolve request before spec 010. Read for one more version. */
 export class LegacyResolveManeuverModifiersDto {
-  @ApiProperty({ description: 'The difficulty of the maneuver', example: 'h', required: false })
+  @ApiProperty({ type: String, description: 'The difficulty of the maneuver', example: 'h', required: false })
   difficulty?: Difficulty;
 
-  @ApiProperty({ description: 'How the maneuver uses light', example: 'helpful', required: false })
+  @ApiProperty({ type: String, description: 'How the maneuver uses light', example: 'helpful', required: false })
   lightModifier?: LightManeuverModifier;
 
-  @ApiProperty({ description: 'The type of light', example: 'dark', required: false })
+  @ApiProperty({ type: String, description: 'The type of light', example: 'dark', required: false })
   light?: LightType;
 
   @ApiProperty({ description: 'Ignored: the armor penalty comes from the character sheet', required: false })
@@ -48,17 +48,22 @@ export class ResolveManeuverDto {
   @IsString()
   specialization?: string;
 
-  @ApiProperty({ description: 'Maneuver type, when it changes from the declared one', enum: ['absolute', 'percent'], required: false })
+  @ApiProperty({
+    type: String,
+    description: 'Maneuver type, when it changes from the declared one',
+    enum: ['absolute', 'percent'],
+    required: false,
+  })
   @IsOptional()
   @IsIn(['absolute', 'percent'])
   maneuverType?: ManeuverType;
 
-  @ApiProperty({ description: 'Difficulty (Table 5-1)', example: 'm', required: false })
+  @ApiProperty({ type: String, description: 'Difficulty (Table 5-1)', example: 'm', required: false })
   @IsOptional()
   @IsString()
   difficulty?: Difficulty;
 
-  @ApiProperty({ description: 'Light of the environment, when the skill uses light', example: 'dark', required: false })
+  @ApiProperty({ type: String, description: 'Light of the environment, when the skill uses light', example: 'dark', required: false })
   @IsOptional()
   @IsString()
   light?: LightType;

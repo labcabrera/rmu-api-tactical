@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, jest } from '@jest/globals';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import type { TokenService } from '../../../../src/modules/auth/token.service';
@@ -11,10 +11,12 @@ const BASE_URI = 'http://attack-tables/v1';
 const tokenService = { getToken: () => Promise.resolve('token') } as unknown as TokenService;
 const configService = { get: (key: string) => (key === 'RMU_API_ATTACK_TABLES_URI' ? BASE_URI : undefined) } as unknown as ConfigService;
 
-const mockGet = (data: unknown) => jest.spyOn(axios, 'get').mockResolvedValue({ data });
+const mockGet = (data: unknown) => vi.spyOn(axios, 'get').mockResolvedValue({ data });
 const requestedUri = (spy: ReturnType<typeof mockGet>) => spy.mock.calls[0][0];
 
-afterEach(() => jest.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe('ApiAttackTableAdapter', () => {
   const adapter = new ApiAttackTableAdapter(tokenService, configService);
@@ -44,11 +46,9 @@ describe('ApiAttackTableAdapter', () => {
   });
 
   it('turns a 400 of the tables into a validation error', async () => {
-    jest
-      .spyOn(axios, 'get')
-      .mockRejectedValue(
-        Object.assign(new Error('Bad request'), { isAxiosError: true, response: { status: 400, data: { error: 'Invalid roll' } } }),
-      );
+    vi.spyOn(axios, 'get').mockRejectedValue(
+      Object.assign(new Error('Bad request'), { isAxiosError: true, response: { status: 400, data: { error: 'Invalid roll' } } }),
+    );
 
     await expect(adapter.lookup({ ...request, roll: 50, armor: 1 })).rejects.toThrow(ValidationError);
   });

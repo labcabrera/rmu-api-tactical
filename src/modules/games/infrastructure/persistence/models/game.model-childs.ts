@@ -13,7 +13,7 @@ export class Actor {
   @Prop({ required: true })
   faction: ActorRoundFaction;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   type: ActorType;
 
   @Prop({ required: true })

@@ -1,9 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Body, Controller, Delete, Get, HttpCode, Logger, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
-import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
+import { JwtAuthGuard } from '../../../auth/jwt.auth.guard';
 import { Page } from '../../../shared/domain/entities/page.entity';
 import { ErrorDto } from '../../../shared/interfaces/http/dto';
 import { ApplyGameCommand } from '../../application/cqrs/commands/apply-game.command';
@@ -24,6 +22,7 @@ import { GameDto, GamePageDto } from './dto/game.dto';
 import { AtRiskActorDto, FinishGameDto, FinishPreviewDto, TacticalGameOutcomeCharacterDto } from './dto/tactical-game-outcome.dto';
 import { GamePagedQueryDto } from './dto/game-paged-query.dto';
 import { UpdateGameDto } from './dto/update-game.dto';
+import type { AuthenticatedRequest } from '../../../shared/interfaces/http/authenticated-request';
 
 @UseGuards(JwtAuthGuard)
 @Controller('v1/tactical-games')
@@ -41,10 +40,10 @@ export class GameController {
   @ApiOperation({ operationId: 'findGameById', summary: 'Find game by id' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiNotFoundResponse({ description: 'Game not found', type: ErrorDto })
-  async findById(@Param('id') id: string, @Request() req) {
+  async findById(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     this.logger.debug(`Find game << ${id}`);
-    const user = req.user!;
-    const query = new GetGameQuery(id, user.id as string, user.roles as string[]);
+    const user = req.user;
+    const query = new GetGameQuery(id, user.id, user.roles);
     const entity = await this.queryBus.execute<GetGameQuery, Game>(query);
     return GameDto.fromEntity(entity);
   }
@@ -53,10 +52,10 @@ export class GameController {
   @ApiOkResponse({ type: GamePageDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiOperation({ operationId: 'findGames', summary: 'Find games by RSQL' })
-  async find(@Query() dto: GamePagedQueryDto, @Request() req) {
+  async find(@Query() dto: GamePagedQueryDto, @Request() req: AuthenticatedRequest) {
     this.logger.debug(`Find games << ${JSON.stringify(dto)}`);
-    const user = req.user!;
-    const query = new GetGamesQuery(dto.q, dto.page, dto.size, user.id as string, user.roles as string[], dto.sort);
+    const user = req.user;
+    const query = new GetGamesQuery(dto.q, dto.page, dto.size, user.id, user.roles, dto.sort);
     const page = await this.queryBus.execute<GetGamesQuery, Page<Game>>(query);
     const mapped = page.content.map(game => GameDto.fromEntity(game));
     return new Page<GameDto>(mapped, page.pagination.page, page.pagination.size, page.pagination.totalElements);
@@ -68,10 +67,10 @@ export class GameController {
   @ApiOkResponse({ type: GameDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
-  async create(@Body() dto: CreateGameDto, @Request() req) {
+  async create(@Body() dto: CreateGameDto, @Request() req: AuthenticatedRequest) {
     this.logger.debug(`Create game << ${JSON.stringify(dto)}`);
-    const user = req.user!;
-    const command = CreateGameDto.toCommand(dto, user.id as string, user.roles as string[]);
+    const user = req.user;
+    const command = CreateGameDto.toCommand(dto, user.id, user.roles);
     const entity = await this.commandBus.execute<CreateGameCommand, Game>(command);
     return GameDto.fromEntity(entity);
   }
@@ -80,10 +79,10 @@ export class GameController {
   @ApiOperation({ operationId: 'updateGame', summary: 'Update game' })
   @ApiOkResponse({ type: GameDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  async updateSettings(@Param('id') id: string, @Body() dto: UpdateGameDto, @Request() req) {
+  async updateSettings(@Param('id') id: string, @Body() dto: UpdateGameDto, @Request() req: AuthenticatedRequest) {
     this.logger.debug(`Update game << ${JSON.stringify(dto)}`);
-    const user = req.user!;
-    const command = UpdateGameDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+    const user = req.user;
+    const command = UpdateGameDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<UpdateGameCommand, Game>(command);
     return GameDto.fromEntity(entity);
   }
@@ -92,10 +91,10 @@ export class GameController {
   @HttpCode(204)
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiOperation({ operationId: 'deleteGame', summary: 'Delete game by id' })
-  async delete(@Param('id') id: string, @Request() req) {
+  async delete(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     this.logger.debug(`Delete game << ${id}`);
-    const user = req.user!;
-    const command = new DeleteGameCommand(id, user.id as string, user.roles as string[]);
+    const user = req.user;
+    const command = new DeleteGameCommand(id, user.id, user.roles);
     await this.commandBus.execute(command);
   }
 
@@ -104,10 +103,10 @@ export class GameController {
   @ApiOperation({ operationId: 'startRound', summary: 'Start a new round for a game' })
   @ApiOkResponse({ type: GameDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  async startRound(@Param('id') id: string, @Request() req) {
+  async startRound(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     this.logger.debug(`Start round for game << ${id}`);
-    const user = req.user!;
-    const command = new StartRoundCommand(id, user.id as string, user.roles as string[]);
+    const user = req.user;
+    const command = new StartRoundCommand(id, user.id, user.roles);
     const entity = await this.commandBus.execute<StartRoundCommand, Game>(command);
     return GameDto.fromEntity(entity);
   }
@@ -117,10 +116,10 @@ export class GameController {
   @ApiOperation({ operationId: 'startPhase', summary: 'Start a new phase for a game' })
   @ApiOkResponse({ type: GameDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  async startPhase(@Param('id') id: string, @Request() req) {
+  async startPhase(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     this.logger.debug(`Start phase for game << ${id}`);
-    const user = req.user!;
-    const command = new StartPhaseCommand(id, user.id as string, user.roles as string[]);
+    const user = req.user;
+    const command = new StartPhaseCommand(id, user.id, user.roles);
     const entity = await this.commandBus.execute<StartPhaseCommand, Game>(command);
     return GameDto.fromEntity(entity);
   }
@@ -130,10 +129,10 @@ export class GameController {
   @ApiOperation({ operationId: 'randomizeInitiatives', summary: 'Randomize undeclared initiatives' })
   @ApiOkResponse({ type: GameDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  async randomizeInitiatives(@Param('id') id: string, @Request() req) {
+  async randomizeInitiatives(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     this.logger.debug(`Randomize initiatives for game << ${id}`);
-    const user = req.user!;
-    const command = new RandomizeInitiativesCommand(id, user.id as string, user.roles as string[]);
+    const user = req.user;
+    const command = new RandomizeInitiativesCommand(id, user.id, user.roles);
     const entity = await this.commandBus.execute<RandomizeInitiativesCommand, Game>(command);
     return GameDto.fromEntity(entity);
   }
@@ -143,11 +142,9 @@ export class GameController {
   @ApiOperation({ operationId: 'getFinishPreview', summary: 'Outcome the game would finish with, and the characters at risk' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiNotFoundResponse({ description: 'Game not found', type: ErrorDto })
-  async finishPreview(@Param('id') id: string, @Request() req) {
-    const user = req.user!;
-    const preview = await this.queryBus.execute<GetFinishPreviewQuery, FinishPreview>(
-      new GetFinishPreviewQuery(id, user.id as string, user.roles as string[]),
-    );
+  async finishPreview(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+    const user = req.user;
+    const preview = await this.queryBus.execute<GetFinishPreviewQuery, FinishPreview>(new GetFinishPreviewQuery(id, user.id, user.roles));
     const dto = new FinishPreviewDto();
     dto.gameId = id;
     dto.characters = preview.characters.map(character => TacticalGameOutcomeCharacterDto.fromEntity(character));
@@ -163,9 +160,9 @@ export class GameController {
   @ApiResponse({ status: 400, description: 'err-finish-fate-required (details.atRisk), err-game-not-in-progress', type: ErrorDto })
   @ApiResponse({ status: 409, description: 'err-game-finished', type: ErrorDto })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  async finish(@Param('id') id: string, @Body() dto: FinishGameDto, @Request() req) {
-    const user = req.user!;
-    const command = new FinishGameCommand(id, dto.fates || [], user.id as string, user.roles as string[]);
+  async finish(@Param('id') id: string, @Body() dto: FinishGameDto, @Request() req: AuthenticatedRequest) {
+    const user = req.user;
+    const command = new FinishGameCommand(id, dto.fates || [], user.id, user.roles);
     const entity = await this.commandBus.execute<FinishGameCommand, Game>(command);
     return GameDto.fromEntity(entity);
   }
@@ -177,9 +174,9 @@ export class GameController {
   @ApiResponse({ status: 400, description: 'err-game-not-finished', type: ErrorDto })
   @ApiResponse({ status: 409, description: 'err-outcome-already-applied', type: ErrorDto })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  async applyOutcome(@Param('id') id: string, @Request() req) {
-    const user = req.user!;
-    const command = new ApplyGameCommand(id, user.id as string, user.roles as string[]);
+  async applyOutcome(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+    const user = req.user;
+    const command = new ApplyGameCommand(id, user.id, user.roles);
     const entity = await this.commandBus.execute<ApplyGameCommand, Game>(command);
     return GameDto.fromEntity(entity);
   }

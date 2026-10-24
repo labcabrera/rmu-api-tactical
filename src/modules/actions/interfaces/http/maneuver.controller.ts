@@ -1,9 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Body, Controller, Get, Logger, Param, Patch, Query, Request, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiOkResponse, ApiOperation, ApiQuery, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
-import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
+import { JwtAuthGuard } from '../../../auth/jwt.auth.guard';
 import { ErrorDto } from '../../../shared/interfaces/http/dto';
 import { ResolveManeuverCommand } from '../../application/cqrs/commands/resolve-maneuver.commands';
 import { GetManeuverModifiersQuery } from '../../application/cqrs/queries/get-maneuver-modifiers.query';
@@ -12,6 +10,7 @@ import { Action } from '../../domain/aggregates/action.aggregate';
 import { ActionDto } from './dto/action.dto';
 import { ManeuverModifiersDto } from './dto/maneuver-modifiers.dto';
 import { ResolveManeuverDto } from './dto/resolve-maneuver.dto';
+import type { AuthenticatedRequest } from '../../../shared/interfaces/http/authenticated-request';
 
 @UseGuards(JwtAuthGuard)
 @Controller('v1/actions')
@@ -36,16 +35,10 @@ export class ManeuverController {
     @Param('id') id: string,
     @Query('skillId') skillId: string | undefined,
     @Query('specialization') specialization: string | undefined,
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
   ) {
-    const user = req.user!;
-    const query = new GetManeuverModifiersQuery(
-      id,
-      skillId || undefined,
-      specialization || undefined,
-      user.id as string,
-      user.roles as string[],
-    );
+    const user = req.user;
+    const query = new GetManeuverModifiersQuery(id, skillId || undefined, specialization || undefined, user.id, user.roles);
     const listing = await this.queryBus.execute<GetManeuverModifiersQuery, ManeuverModifiersListing>(query);
     return ManeuverModifiersDto.fromListing(listing);
   }
@@ -56,10 +49,10 @@ export class ManeuverController {
   @ApiOkResponse({ type: ActionDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
-  async resolveManeuver(@Param('id') id: string, @Body() dto: ResolveManeuverDto, @Request() req) {
-    this.logger.debug(`Resolving maneuver: ${JSON.stringify(dto)} for user ${req.user}`);
-    const user = req.user!;
-    const command = ResolveManeuverDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+  async resolveManeuver(@Param('id') id: string, @Body() dto: ResolveManeuverDto, @Request() req: AuthenticatedRequest) {
+    this.logger.debug(`Resolving maneuver: ${JSON.stringify(dto)} for user ${req.user.id}`);
+    const user = req.user;
+    const command = ResolveManeuverDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<ResolveManeuverCommand, Action>(command);
     return ActionDto.fromEntity(entity);
   }

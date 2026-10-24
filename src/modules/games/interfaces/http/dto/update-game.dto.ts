@@ -5,7 +5,7 @@ import { GameEnvironment } from '../../../domain/value-objects/game-environment.
 import { GameEnvironmentDto } from './game-environment.dto';
 
 export class UpdateGameDto {
-  @ApiProperty({ description: 'Name of the game', example: 'Mordor Game 1' })
+  @ApiProperty({ type: String, description: 'Name of the game', example: 'Mordor Game 1' })
   @IsString()
   name: string | undefined;
 
@@ -13,11 +13,11 @@ export class UpdateGameDto {
   @IsOptional()
   environment?: GameEnvironmentDto;
 
-  @ApiProperty({ description: 'Description of the game', example: 'Mordor Game 1 description' })
+  @ApiProperty({ type: String, description: 'Description of the game', example: 'Mordor Game 1 description' })
   @IsString()
   description: string | undefined;
 
-  @ApiProperty({ description: 'Image URL for the game', required: false, example: 'https://example.com/image.png' })
+  @ApiProperty({ type: String, description: 'Image URL for the game', required: false, example: 'https://example.com/image.png' })
   @IsString()
   @IsOptional()
   imageUrl: string | undefined;
