@@ -26,6 +26,8 @@ export interface Character {
   initiative: CharacterInitiative;
   skills: CharacterSkill[];
   traits?: CharacterTrait[];
+  /** Resistance roll bonuses (workspace spec 022 reads `totalBonus`); missing in older characters. */
+  resistances?: CharacterResistance[];
   items: CharacterItem[];
   equipment: CharacterEquipment;
   attacks: CharacterAttack[];
@@ -84,6 +86,11 @@ export interface CharacterSkill {
   totalBonus: number;
   /** Missing in older characters: 0. */
   ranks?: number;
+}
+
+export interface CharacterResistance {
+  resistance: string;
+  totalBonus: number;
 }
 
 export interface CharacterTrait {

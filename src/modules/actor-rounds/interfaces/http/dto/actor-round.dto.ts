@@ -21,6 +21,14 @@ import { ActorRoundPenaltyDto } from './actor-round-penalty.dto.js';
 import { ActorRoundPhaseLogDto } from './actor-round-phase-log.dto.js';
 import { ActorRoundTraitDto } from './actor-round-trait.dto.js';
 
+export class ActorRoundResistanceDto {
+  @ApiProperty({ description: 'Resistance type', example: 'fear' })
+  resistance: string;
+
+  @ApiProperty({ description: 'Total resistance roll bonus', example: 12 })
+  totalBonus: number;
+}
+
 export class ActorRoundDto {
   @ApiProperty({ description: 'Actor Round identifier', example: 'actor-round-123' })
   id: string;
@@ -121,6 +129,12 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Result of the breakage check of this request (only in its answer)', required: false })
   lastBreakageCheck?: BreakageCheckResultDto;
 
+  @ApiProperty({
+    description: 'Resistance roll bonuses of the character (workspace spec 022); none for NPCs',
+    type: [ActorRoundResistanceDto],
+  })
+  resistances: ActorRoundResistanceDto[];
+
   @ApiProperty({ description: 'What the character brought into the game (only in the actor round built from it)', required: false })
   snapshot?: ActorRoundSnapshotDto;
 
@@ -165,6 +179,7 @@ export class ActorRoundDto {
     dto.characterId = entity.characterId;
     dto.items = (entity.items || []).map(item => ActorRoundItemDto.fromEntity(item));
     if (entity.lastBreakageCheck) dto.lastBreakageCheck = BreakageCheckResultDto.fromEntity(entity.lastBreakageCheck);
+    dto.resistances = (entity.resistances || []).map(each => ({ resistance: each.resistance, totalBonus: each.totalBonus }));
     dto.snapshot = entity.snapshot ? ActorRoundSnapshotDto.fromEntity(entity.snapshot) : undefined;
     dto.bleeding = entity.getBleeding();
     dto.imageUrl = entity.imageUrl;

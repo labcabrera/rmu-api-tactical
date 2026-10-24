@@ -116,6 +116,28 @@ describe('ActorRound traits', () => {
     expect(third.getProps().traits).toEqual(first.traits);
   });
 
+  it('copies the resistance roll bonuses of the sheet and keeps them in the next rounds (workspace spec 022)', () => {
+    const sheet = character({
+      resistances: [
+        { resistance: 'fear', totalBonus: 14, statBonus: 4 } as never,
+        { resistance: 'physical', totalBonus: 0 },
+        { resistance: '', totalBonus: 3 },
+      ],
+    });
+    const first = new ActorRoundCharacterMapperAdapter().toActorRound('game-1', 1, sheet);
+    const second = ActorRound.createFromPrevious(first);
+
+    expect(second.resistances).toEqual([
+      { resistance: 'fear', totalBonus: 14 },
+      { resistance: 'physical', totalBonus: 0 },
+    ]);
+    expect(second.resistanceBonus('fear')).toBe(14);
+    expect(second.resistanceBonus('mentalism')).toBeUndefined();
+    expect(ActorRoundDto.fromEntity(second).resistances).toEqual(second.resistances);
+    expect(ActorRound.fromProps({ ...second.getProps(), resistances: undefined }).resistances).toEqual([]);
+    expect(new ActorRoundCharacterMapperAdapter().toActorRound('game-1', 1, character()).resistances).toEqual([]);
+  });
+
   it('reads actor rounds stored without traits as having none', () => {
     const round = ActorRound.fromProps({ ...load().getProps(), traits: undefined });
 

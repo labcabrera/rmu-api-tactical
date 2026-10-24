@@ -18,6 +18,9 @@ import { CriticalResult } from '../../../src/modules/actions/domain/value-object
 import { DEFAULT_MANEUVER_PROFILE } from '../../../src/modules/actions/domain/value-objects/maneuver-profile.vo.js';
 import { HEALING_TABLES_PORT } from '../../../src/modules/actor-rounds/application/ports/healing-tables.port.js';
 import type { TreatmentTables } from '../../../src/modules/actor-rounds/domain/value-objects/treatment-difficulty.vo.js';
+import { PSYCHOLOGY_TABLES_PORT } from '../../../src/modules/psychology/application/ports/psychology-tables.port.js';
+import type { PsychologyTables } from '../../../src/modules/psychology/domain/value-objects/psychology-tables.vo.js';
+import { PSYCHOLOGY_TABLES } from '../../fixtures/psychology-tables.js';
 import { NPC_PORT, type Npc } from '../../../src/modules/games/application/ports/npc.port.js';
 import {
   DOMAIN_EVENT_PUBLISHER,
@@ -58,6 +61,8 @@ export type World = {
   fumble: Fumble;
   /** Treatment tables of core's healing tables (workspace spec 022); null is a core without them. */
   treatmentTables: TreatmentTables | null;
+  /** Psychology tables of core (workspace spec 022), with made-up numbers. */
+  psychologyTables: PsychologyTables;
   lookups: { attack: AttackTableLookupRequest[]; critical: CriticalTableLookupRequest[]; fumble: FumbleTableLookupRequest[] };
   outcomes: { characterId: string; request: TacticalOutcomeRequest }[];
   /** Events published, as `<aggregateType>.<eventType>`. */
@@ -83,6 +88,7 @@ const newWorld = (): World => ({
   critical: new CriticalResult('Strike to the leg.', 6, 'leg', [], undefined),
   fumble: new Fumble('completed', 'Off balance.', undefined, 0, []),
   treatmentTables: null,
+  psychologyTables: PSYCHOLOGY_TABLES,
   lookups: { attack: [], critical: [], fumble: [] },
   outcomes: [],
   events: [],
@@ -157,6 +163,7 @@ function fakePorts(world: World) {
         findManeuverModifiers: () => Promise.resolve([]),
       },
     ],
+    [PSYCHOLOGY_TABLES_PORT, { find: () => Promise.resolve(world.psychologyTables) }],
     [HEALING_TABLES_PORT, { treatmentTables: () => Promise.resolve(world.treatmentTables) }],
     [
       TACTICAL_OUTCOME_PORT,
