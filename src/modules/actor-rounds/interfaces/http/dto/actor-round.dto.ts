@@ -1,3 +1,5 @@
+import { ActorRoundItemDto } from './actor-round-item.dto';
+import { BreakageCheckResultDto } from './resolve-breakage-check.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { PaginationDto } from '../../../../shared/interfaces/http/dto';
 import { ActorRound } from '../../../domain/aggregates/actor-round.aggregate';
@@ -110,6 +112,12 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Strategic character of a character actor', required: false })
   characterId?: string;
 
+  @ApiProperty({ description: 'Items of the actor, with their breakage (spec 019)', type: [ActorRoundItemDto] })
+  items: ActorRoundItemDto[];
+
+  @ApiProperty({ description: 'Result of the breakage check of this request (only in its answer)', required: false })
+  lastBreakageCheck?: BreakageCheckResultDto;
+
   @ApiProperty({ description: 'What the character brought into the game (only in the actor round built from it)', required: false })
   snapshot?: ActorRoundSnapshotDto;
 
@@ -151,6 +159,8 @@ export class ActorRoundDto {
     dto.injuries = (entity.injuries || []).map(injury => InjuryDto.fromEntity(injury));
     dto.hpLog = (entity.hpLog || []).map(entry => HpLogEntryDto.fromEntity(entry));
     dto.characterId = entity.characterId;
+    dto.items = (entity.items || []).map(item => ActorRoundItemDto.fromEntity(item));
+    if (entity.lastBreakageCheck) dto.lastBreakageCheck = BreakageCheckResultDto.fromEntity(entity.lastBreakageCheck);
     dto.snapshot = entity.snapshot ? ActorRoundSnapshotDto.fromEntity(entity.snapshot) : undefined;
     dto.bleeding = entity.getBleeding();
     dto.imageUrl = entity.imageUrl;

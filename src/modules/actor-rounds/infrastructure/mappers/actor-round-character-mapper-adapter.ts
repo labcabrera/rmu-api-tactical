@@ -15,13 +15,15 @@ import { ActorRoundPenalty } from '../../domain/value-objets/actor-round-penalty
 import { ActorRoundShield } from '../../domain/value-objets/actor-round-shield.vo';
 import { ActorRoundTrait } from '../../domain/value-objets/actor-round-trait.vo';
 import { Injury } from '../../domain/value-objets/injury.vo';
+import { ActorRoundItem, ActorRoundItemKind, ActorRoundItemSlot } from '../../domain/value-objets/actor-round-item.vo';
+import type { StrategicItem } from '../../../strategic/application/ports/item.port';
 
 const ACTOR_SIZES: Record<string, number> = { medium: 0, small: -1, big: 1 };
 const BODY_DEVELOPMENT_SKILL_ID = 'body-development';
 
 @Injectable()
 export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapperPort {
-  toActorRound(gameId: string, round: number, character: Character): ActorRound {
+  toActorRound(gameId: string, round: number, character: Character, items: StrategicItem[] = []): ActorRound {
     if (isCharacterNotAble(character)) {
       throw new ValidationError(`Character ${character.id} is dead or permanently unconscious`, 'err-character-not-able');
     }
@@ -64,7 +66,7 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
         shield,
         (character as any).defense?.protect || 0,
       ),
-      this.mapAttacksFromCharacter(character),
+      this.mapAttacksFromCharacter(character, items),
       [] as ActorRoundEffect[],
       [] as ActorRoundAlert[],
       character.imageUrl,
@@ -82,7 +84,50 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
       injuryIds: injuries.map(injury => injury.id),
       conditionIds: conditions.map(condition => condition.id),
     });
+    actorRound.initItems(this.mapItems(character, items));
     return actorRound;
+  }
+
+  /**
+   * Spec 019, §2: the equipped items with their slot, and the other carried ones (not the stacks, such as coins), with
+   * their strength and modifiers. Armor keeps the AT of its area and the shield its DB, as the sheet gives them.
+   */
+  private mapItems(character: Character, items: StrategicItem[]): ActorRoundItem[] {
+    const slots: Record<string, string | null> = character.equipment?.slots || {};
+    const slotOf = (itemId: string): ActorRoundItemSlot | undefined =>
+      Object.entries(slots).find(([, id]) => id === itemId)?.[0] as ActorRoundItemSlot | undefined;
+    return items
+      .filter(item => !!slotOf(item.id) || (item.carried && !item.info?.stackable))
+      .map(item => {
+        const slot = slotOf(item.id);
+        const kind: ActorRoundItemKind = !slot ? 'other' : item.weapon ? 'weapon' : item.shield ? 'shield' : item.armor ? 'armor' : 'other';
+        const modifiers = (item.modifiers || []).map(modifier => ({ ...modifier }));
+        const result: ActorRoundItem = {
+          itemId: item.id,
+          name: item.name,
+          itemTypeId: item.itemTypeId,
+          kind,
+          strength: item.info?.strength ?? null,
+          modifiers,
+          startModifierIds: modifiers.map(modifier => modifier.id),
+        };
+        if (slot) result.slot = slot;
+        const baseValue = this.getBaseValue(character, kind, slot);
+        if (baseValue !== undefined) result.baseValue = baseValue;
+        return result;
+      });
+  }
+
+  private getBaseValue(character: Character, kind: ActorRoundItemKind, slot: ActorRoundItemSlot | undefined): number | undefined {
+    if (kind === 'shield') {
+      return character.defense.shield?.db ?? undefined;
+    }
+    if (kind !== 'armor' || !slot) {
+      return undefined;
+    }
+    const armor = character.defense.armor;
+    const bySlot: Record<string, number | null> = { body: armor.bodyAt, head: armor.headAt, arms: armor.armsAt, legs: armor.legsAt };
+    return bySlot[slot] ?? armor.at ?? undefined;
   }
 
   /** Traits without an id (older sheets) are left out. */
@@ -97,9 +142,12 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
     return character.skills?.find(skill => skill.skillId === BODY_DEVELOPMENT_SKILL_ID)?.totalBonus;
   }
 
-  private mapAttacksFromCharacter(character: Character): ActorRoundAttack[] {
+  /** The item of each attack: the one of the sheet, or the one in its slot for sheets before spec 019. */
+  private mapAttacksFromCharacter(character: Character, items: StrategicItem[]): ActorRoundAttack[] {
+    const slots: Record<string, string | null> = character.equipment?.slots || {};
     return character.attacks.map(attack => {
-      return new ActorRoundAttack(
+      const itemId = attack.itemId ?? slots[attack.attackName] ?? null;
+      const roundAttack = new ActorRoundAttack(
         attack.attackName,
         [],
         attack.bo,
@@ -116,6 +164,8 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
         attack.weaponCategory ?? 'standard',
         attack.skillId || null,
       );
+      roundAttack.itemId = itemId && items.some(item => item.id === itemId) ? itemId : null;
+      return roundAttack;
     });
   }
 }

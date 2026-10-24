@@ -16,6 +16,7 @@ import { ApLedgerEntry } from '../value-objets/ap-ledger-entry.vo';
 import { ApModifier } from '../value-objets/ap-modifier.vo';
 import { HpLogEntry } from '../value-objets/hp-log-entry.vo';
 import { Injury } from '../value-objets/injury.vo';
+import type { ActorRoundItem } from '../value-objets/actor-round-item.vo';
 
 /** What the actor brought into the game, taken when round 1 is built from its character (spec 013, §3). */
 export interface ActorRoundSnapshot {
@@ -65,6 +66,8 @@ export interface ActorRoundProps {
   hpLog?: HpLogEntry[];
   /** Strategic character of a character actor. */
   characterId?: string;
+  /** Items of the actor (spec 019). Missing in actor rounds stored before it: none. */
+  items?: ActorRoundItem[];
   /** Only in the actor round built from the character (round 1, or the round it joined in). */
   snapshot?: ActorRoundSnapshot;
   imageUrl: string | undefined;

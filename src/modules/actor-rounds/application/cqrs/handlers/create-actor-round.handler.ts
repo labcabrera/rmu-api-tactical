@@ -3,6 +3,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Actor } from '../../../../games/domain/value-objects/actor.vo';
 import { ValidationError } from '../../../../shared/domain/errors';
 import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
+import type { ItemPort } from '../../../../strategic/application/ports/item.port';
 import { ActorRound } from '../../../domain/aggregates/actor-round.aggregate';
 import type { ActorRoundCharacterMapperPort } from '../../ports/actor-round-character-mapper-port';
 import type { ActorRoundRepository } from '../../ports/actor-round.repository';
@@ -16,6 +17,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
     @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
     @Inject('CharacterClient') private readonly characterClient: CharacterPort,
     @Inject('ActorRoundCharacterMapperPort') private readonly characterMapper: ActorRoundCharacterMapperPort,
+    @Inject('ItemClient') private readonly itemClient: ItemPort,
   ) {}
 
   async execute(command: CreateActorRoundCommand): Promise<ActorRound> {
@@ -48,6 +50,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
   private async buildActorRoundFromCharacter(gameId: string, round: number, characterId: string): Promise<ActorRound> {
     const character = await this.characterClient.findById(characterId);
     if (!character) throw new ValidationError(`Character ${characterId} not found`);
-    return this.characterMapper.toActorRound(gameId, round, character);
+    const items = await this.itemClient.findByCharacterId(characterId);
+    return this.characterMapper.toActorRound(gameId, round, character, items);
   }
 }

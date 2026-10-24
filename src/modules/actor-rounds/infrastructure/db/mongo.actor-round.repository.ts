@@ -5,6 +5,8 @@ import { MongoBaseRepository } from '../../../shared/infrastructure/db/mongo.bas
 import { RsqlParser } from '../../../shared/infrastructure/db/rsql-parser';
 import { ActorRoundRepository } from '../../application/ports/actor-round.repository';
 import { ActorRound } from '../../domain/aggregates/actor-round.aggregate';
+import { ActorRoundAlert, type ActorRoundAlertData } from '../../domain/value-objets/actor-round-alert.vo';
+import { ActorRoundItems } from '../../domain/value-objets/actor-round-item.vo';
 import { ActorRoundAttack } from '../../domain/value-objets/actor-round-attack.vo';
 import { ActorRoundDefenseMode } from '../../domain/value-objets/actor-round-defense-mode.vo';
 import { ActorRoundEffect } from '../../domain/value-objets/actor-round-effect.vo';
@@ -70,8 +72,8 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
     const penalty = doc.penalty
       ? new ActorRoundPenalty((doc.penalty.modifiers || []).map(m => new ActorRoundPenaltyModifier(m.id, m.source, m.value)))
       : new ActorRoundPenalty([]);
-    const attacks: ActorRoundAttack[] = doc.attacks.map(
-      e =>
+    const attacks: ActorRoundAttack[] = doc.attacks.map(e =>
+      Object.assign(
         new ActorRoundAttack(
           e.attackName,
           e.boModifiers || [],
@@ -89,6 +91,8 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
           e.weaponCategory ?? 'standard',
           e.skillId ?? null,
         ),
+        { itemId: e.itemId ?? null, breakagePenalty: e.breakagePenalty ?? 0, broken: e.broken ?? false },
+      ),
     );
     return ActorRound.fromProps({
       id: doc._id,
@@ -126,7 +130,7 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
           ),
       ),
       traits: (doc.traits || []).map(trait => new ActorRoundTrait(trait.traitId, trait.tier || 1, trait.specialization ?? null)),
-      alerts: doc.alerts,
+      alerts: (doc.alerts || []).map(alert => ActorRoundAlert.from(alert as unknown as ActorRoundAlertData)),
       defenseMode: doc.defenseMode
         ? new ActorRoundDefenseMode(doc.defenseMode.dodge ?? 'none', doc.defenseMode.block ?? 'none')
         : ActorRoundDefenseMode.none(),
@@ -137,6 +141,9 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       injuries: (doc.injuries || []).map(injury => ({ ...injury, treatments: injury.treatments || [] })),
       hpLog: (doc.hpLog || []).map(entry => MongoActorRoundRepository.toHpLogEntry(entry)),
       characterId: doc.characterId,
+      items: (doc.items || []).map(item =>
+        ActorRoundItems.copy({ ...item, modifiers: item.modifiers || [], startModifierIds: item.startModifierIds || [] }),
+      ),
       snapshot: doc.snapshot
         ? { hp: doc.snapshot.hp, injuryIds: [...(doc.snapshot.injuryIds || [])], conditionIds: [...(doc.snapshot.conditionIds || [])] }
         : undefined,

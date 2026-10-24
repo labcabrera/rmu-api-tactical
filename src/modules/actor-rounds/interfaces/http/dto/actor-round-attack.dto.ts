@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { ActorRoundAttack, WeaponCategory } from '../../../domain/value-objets/actor-round-attack.vo';
 import { BoModifiers } from '../../../infrastructure/persistence/models/actor-round-attack.model';
 import { AttackRangeDto } from './attack-range.dto';
@@ -35,6 +36,15 @@ export class ActorRoundAttackDto {
   /** Skill of the weapon, such as `melee-weapon@blade`; null for older actor rounds. */
   skillId: string | null;
 
+  @ApiProperty({ description: 'Item of the attack (spec 019)', nullable: true, required: false })
+  itemId: string | null;
+
+  @ApiProperty({ description: 'Breakage damage of the item in the game, in currentBo', example: 0 })
+  breakagePenalty: number;
+
+  @ApiProperty({ description: 'The item broke in the game: the attack cannot be declared', example: false })
+  broken: boolean;
+
   static fromEntity(entity: ActorRoundAttack): ActorRoundAttackDto {
     const dto = new ActorRoundAttackDto();
     dto.attackName = entity.attackName;
@@ -50,6 +60,9 @@ export class ActorRoundAttackDto {
     dto.twoHanded = entity.twoHanded ?? false;
     dto.weaponCategory = entity.weaponCategory ?? 'standard';
     dto.skillId = entity.skillId ?? null;
+    dto.itemId = entity.itemId ?? null;
+    dto.breakagePenalty = entity.breakagePenalty ?? 0;
+    dto.broken = entity.broken ?? false;
     dto.ranges = entity.ranges && entity.ranges.length > 0 ? entity.ranges.map(r => AttackRangeDto.fromEntity(r)) : undefined;
     return dto;
   }

@@ -34,6 +34,7 @@ export class AddEffectsHandler implements ICommandHandler<AddEffectsCommand, Act
       application,
       command.injuries || [],
       hpChanges.filter(change => change.amount < 0),
+      command.fumbleAttackName,
     );
     this.heal(actorRound, command, application);
     const updated = await this.actorRoundRepository.update(actorRound.id, actorRound);

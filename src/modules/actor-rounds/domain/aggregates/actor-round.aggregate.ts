@@ -57,6 +57,32 @@ import {
   toBodyLocation,
 } from '../value-objets/injury.vo';
 import { ActorRoundProps, ActorRoundSnapshot } from './actor-round-props';
+import { ActorRoundItem, ActorRoundItems, ItemModifier, UNARMORED_AT } from '../value-objets/actor-round-item.vo';
+import { BreakageModifier, BreakageResolver, BreakageResult } from '../services/breakage-resolver';
+
+/** A breakage check of an item of the actor (spec 019, §2). */
+export interface BreakageCheckInput {
+  itemId: string;
+  roll: number;
+  unmodifiedRoll?: number;
+  alertId?: string;
+  /** The strength of the item when it has none, or the game master's one. */
+  strength?: number;
+  modifiers?: BreakageModifier[];
+  tacticalGameName?: string;
+  actionId?: string;
+}
+
+export interface BreakageCheckResult {
+  itemId: string;
+  roll: number;
+  unmodified66: boolean;
+  total: number;
+  breakdown: BreakageModifier[];
+  result: BreakageResult;
+  /** The damage (or repair) added to the item; none on a success. */
+  modifier?: ItemModifier;
+}
 
 /** Fields of an injury the game master can change (spec 013, §3). */
 export type InjuryPatch = Partial<
@@ -168,6 +194,15 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
 
   /** Strategic character of a character actor. */
   public characterId: string | undefined;
+
+  /** Items of the actor (spec 019): those of its character, or the attacks and shield of an NPC. */
+  public items: ActorRoundItem[] = [];
+
+  /** The last breakage check (spec 019), for the answer of the check; not stored. */
+  public lastBreakageCheck: BreakageCheckResult | undefined;
+
+  /** The attack of the fumble whose effects are being added, for its breakage alert. */
+  private fumbleAttackName: string | undefined;
 
   /** What the actor brought into the game (only in the actor round built from its character). */
   public snapshot: ActorRoundSnapshot | undefined;
@@ -287,7 +322,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       props.usedBo,
       props.parries,
       props.effects,
-      props.alerts,
+      (props.alerts || []).map(alert => ActorRoundAlert.from(alert)),
       props.defenseMode ?? ActorRoundDefenseMode.none(),
       props.phaseLog ?? [],
       ActorRound.readLedger(props),
@@ -300,6 +335,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.injuries = (props.injuries ?? []).map(injury => ({ ...injury, treatments: [...(injury.treatments ?? [])] }));
     actorRound.hpLog = (props.hpLog ?? []).map(entry => ({ ...entry }));
     actorRound.characterId = props.characterId ?? (props.actorType === 'character' ? props.actorId : undefined);
+    actorRound.items = (props.items ?? []).map(item => ActorRoundItems.copy(item));
     actorRound.snapshot = props.snapshot;
     actorRound.normalizeLegacy();
     // Derived: recomputed so that values stored with the penalties folded in are corrected.
@@ -367,6 +403,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     );
     actorRound.injuries = previous.injuries.map(injury => ({ ...injury, treatments: [...injury.treatments] }));
     actorRound.characterId = previous.characterId;
+    actorRound.items = previous.items.map(item => ActorRoundItems.copy(item));
+    actorRound.applyItemConditions();
     actorRound.calculateCurrentBo();
     // A penalty that starts in the new round (non-violent) is counted from its first moment.
     actorRound.applyPenalties();
@@ -455,7 +493,10 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     application?: EffectApplication,
     injuries: Injury[] = [],
     hpChanges: HpChange[] = [],
+    /** The attack of a fumble, whose item takes its breakage roll (spec 019, decision 6). */
+    fumbleAttackName?: string,
   ) {
+    this.fumbleAttackName = fumbleAttackName;
     if (dmg) {
       this.hp.current -= dmg;
       this.logDamage(dmg, hpChanges, application?.phase);
@@ -668,7 +709,11 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       return;
     }
     if (effect.status === 'breakage_roll') {
-      this.addCriticalBreakageAlert(location);
+      if (effect.source?.kind === 'fumble') {
+        this.addFumbleBreakageAlert(this.fumbleAttackName, effect.value);
+      } else {
+        this.addCriticalBreakageAlert(location, effect.value);
+      }
       return;
     }
     if (this.isDead() && effect.status === DYING) {
@@ -1018,7 +1063,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    */
   private calculateCurrentBo() {
     this.attacks.forEach(attack => {
-      attack.currentBo = attack.baseBo;
+      // Spec 019: the base OB counts the breakage the item brought; the one of the game is applied here.
+      attack.currentBo = attack.baseBo + (attack.breakagePenalty || 0);
       this.usedBo.forEach(u => (attack.currentBo -= u.usedBo));
       this.parries.forEach(p => (attack.currentBo -= p));
     });
@@ -1378,13 +1424,173 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
         : ActorRoundDefenseMode.of(this.defenseMode.dodge === 'full' ? 'none' : this.defenseMode.dodge, 'full');
   }
 
+  /** A 33 or 77 on the attack roll: the item of the attack (spec 019, decision 6). */
   addAttackBreakageAlert(attackName: string) {
-    this.alerts.push(ActorRoundAlert.buildBreakageFromAttack(attackName));
+    const itemId = this.attackItem(attackName)?.itemId;
+    this.alerts.push(
+      ActorRoundAlert.buildBreakage('attack-roll', { attackName, itemId, candidates: itemId ? [itemId] : this.usableItemIds() }),
+    );
   }
 
-  /** The location of the critical comes with the effects (spec 013, §9.5); `chest` only when there is none. */
-  addCriticalBreakageAlert(location: AttackLocation | undefined) {
-    this.alerts.push(ActorRoundAlert.buildBreakageFromCritical(location || 'chest'));
+  /**
+   * The location of the critical comes with the effects (spec 013, §9.5); `chest` only when there is none. Its
+   * candidates are the armor of the location, the shield and the weapons, the armor first (spec 019, decision 6).
+   */
+  addCriticalBreakageAlert(location: AttackLocation | undefined, penalty?: number) {
+    const at = location || 'chest';
+    const slot = ActorRoundItems.slotOf(at);
+    const armor = (this.items ?? []).filter(item => item.kind === 'armor' && item.slot === slot);
+    const shields = (this.items ?? []).filter(item => item.kind === 'shield' && item.slot === 'offHand');
+    const weapons = (this.items ?? []).filter(item => item.kind === 'weapon' && (item.slot === 'mainHand' || item.slot === 'offHand'));
+    const candidates = [...armor, ...shields, ...weapons].map(item => item.itemId);
+    this.alerts.push(ActorRoundAlert.buildBreakage('critical', { location: at, penalty, itemId: candidates[0], candidates }));
+  }
+
+  /** A fumble breaks the item of the attack that fumbled. */
+  addFumbleBreakageAlert(attackName: string | undefined, penalty?: number) {
+    const itemId = attackName ? this.attackItem(attackName)?.itemId : undefined;
+    this.alerts.push(
+      ActorRoundAlert.buildBreakage('fumble', { attackName, penalty, itemId, candidates: itemId ? [itemId] : this.usableItemIds() }),
+    );
+  }
+
+  private attackItem(attackName: string): ActorRoundItem | undefined {
+    const itemId = this.attacks.find(attack => attack.attackName === attackName)?.itemId;
+    return itemId ? (this.items ?? []).find(item => item.itemId === itemId) : undefined;
+  }
+
+  /** Weapons and shields held, when the item of the alert is not known. */
+  private usableItemIds(): string[] {
+    return (this.items ?? []).filter(item => item.kind === 'weapon' || item.kind === 'shield').map(item => item.itemId);
+  }
+
+  /** Spec 019, §2: the items of the actor, when round 1 is built. */
+  initItems(items: ActorRoundItem[]): void {
+    this.items = items.map(item => ActorRoundItems.copy(item));
+    this.applyItemConditions();
+    this.calculateCurrentBo();
+  }
+
+  /**
+   * Breakage check (§6.1, spec 019 decisions 4 and 5): the roll with the strength of the item, its quality, its earlier
+   * damage, the penalty of the alert and the game master's modifiers, resolved on Table 6-1. The damage goes to the
+   * item and from there to its attacks, the shield and the armor of its area.
+   */
+  resolveBreakageCheck(input: BreakageCheckInput): BreakageCheckResult {
+    const item = (this.items ?? []).find(each => each.itemId === input.itemId);
+    if (!item) {
+      throw new NotFoundError('Item', input.itemId, 'err-breakage-item-not-found');
+    }
+    const alert = input.alertId ? this.alerts.find(each => each.id === input.alertId) : undefined;
+    if (input.alertId && !alert) {
+      throw new NotFoundError('Alert', input.alertId, 'err-alert-not-found');
+    }
+    if (alert && alert.status === 'resolved') {
+      throw new ValidationError(`Alert ${alert.id} is already resolved`, 'err-alert-already-resolved');
+    }
+    const strength = input.strength ?? item.strength;
+    if (typeof strength !== 'number' || !Number.isFinite(strength)) {
+      throw new ValidationError(`Item ${item.name} has no strength`, 'err-breakage-strength-required');
+    }
+    const condition = ActorRoundItems.condition(item.modifiers);
+    const breakdown: BreakageModifier[] = [
+      { key: 'strength', value: strength },
+      { key: 'quality', value: ActorRoundItems.breakageBonus(item) },
+      { key: 'item-damage', value: condition.breakagePenalty },
+      { key: 'origin', value: alert?.getModifierValue('penalty') ?? 0 },
+      ...(input.modifiers || []).map(modifier => ({ key: modifier.key, value: modifier.value || 0 })),
+    ].filter(modifier => modifier.key === 'strength' || modifier.value !== 0);
+    const outcome = BreakageResolver.resolve(
+      { roll: input.roll, unmodifiedRoll: input.unmodifiedRoll, modifiers: breakdown },
+      condition.breakagePenalty,
+    );
+    let modifier: ItemModifier | undefined;
+    if (outcome.damage !== 0 || outcome.broken) {
+      modifier = {
+        id: randomUUID(),
+        type: 'breakage',
+        value: outcome.damage,
+        appliesTo: 'all',
+        ...(outcome.broken ? { broken: true } : {}),
+        ...(outcome.temporary ? { temporary: true } : {}),
+        source: {
+          kind: 'tactical',
+          tacticalGameId: this.gameId,
+          ...(input.tacticalGameName ? { tacticalGameName: input.tacticalGameName } : {}),
+          round: this.round,
+          ...(input.actionId ? { actionId: input.actionId } : {}),
+        },
+        createdAt: new Date().toISOString(),
+      };
+      item.modifiers.push(modifier);
+    }
+    if (alert) {
+      alert.resolveBreakage(item.itemId, outcome.result, outcome.total);
+    }
+    this.applyItemConditions();
+    this.calculateCurrentBo();
+    this.lastBreakageCheck = {
+      itemId: item.itemId,
+      roll: input.roll,
+      unmodified66: outcome.unmodified66,
+      total: outcome.total,
+      breakdown,
+      result: outcome.result,
+      ...(modifier ? { modifier } : {}),
+    };
+    return this.lastBreakageCheck;
+  }
+
+  /**
+   * The breakage of the game on the attacks, the shield and the armor (spec 019, decisions 8-10). The base OB, the
+   * shield DB and the ATs the actor brought count the damage its items brought; the one of the game is added here.
+   */
+  applyItemConditions(): void {
+    this.attacks.forEach(attack => {
+      const item = attack.itemId ? (this.items ?? []).find(each => each.itemId === attack.itemId) : undefined;
+      const condition = item ? ActorRoundItems.gameCondition(item) : { breakagePenalty: 0, broken: false };
+      attack.breakagePenalty = condition.breakagePenalty;
+      attack.broken = condition.broken;
+    });
+    this.defense = this.defenseWithItems(this.defense);
+  }
+
+  private defenseWithItems(defense: ActorRoundDefense): ActorRoundDefense {
+    let shield = defense.shield;
+    const shieldItem = (this.items ?? []).find(item => item.kind === 'shield' && item.slot === 'offHand' && item.baseValue !== undefined);
+    if (shieldItem && shield) {
+      const condition = ActorRoundItems.gameCondition(shieldItem);
+      shield = condition.broken
+        ? null
+        : new ActorRoundShield(Math.max(0, shieldItem.baseValue! + condition.breakagePenalty), shield.blockCount, shield.currentBlocks);
+    }
+    const armorAt = (slot: string, current: number | null): number | null => {
+      const piece = (this.items ?? []).find(item => item.kind === 'armor' && item.slot === slot && item.baseValue !== undefined);
+      if (!piece) return current;
+      return ActorRoundItems.isUnprotected(ActorRoundItems.condition(piece.modifiers)) ? UNARMORED_AT : piece.baseValue!;
+    };
+    const headAt = armorAt('head', defense.headAt ?? defense.at);
+    const bodyAt = armorAt('body', defense.bodyAt ?? defense.at);
+    const armsAt = armorAt('arms', defense.armsAt ?? defense.at);
+    const legsAt = armorAt('legs', defense.legsAt ?? defense.at);
+    const uniform = headAt === bodyAt && bodyAt === armsAt && armsAt === legsAt;
+    return new ActorRoundDefense(
+      defense.bd,
+      uniform ? headAt : null,
+      uniform ? null : headAt,
+      uniform ? null : bodyAt,
+      uniform ? null : armsAt,
+      uniform ? null : legsAt,
+      shield,
+      defense.protect,
+    );
+  }
+
+  /** Spec 019, decision 10: the breakage armor took in the game, a maneuver penalty (the sheet counts the earlier one). */
+  getArmorBreakagePenalty(): number {
+    return this.items
+      .filter(item => item.kind === 'armor')
+      .reduce((sum, item) => sum + ActorRoundItems.gameCondition(item).breakagePenalty, 0);
   }
 
   getProps(): ActorRoundProps {
@@ -1420,6 +1626,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       injuries: this.injuries,
       hpLog: this.hpLog,
       characterId: this.characterId,
+      items: this.items,
       snapshot: this.snapshot,
       imageUrl: this.imageUrl,
       owner: this.owner,

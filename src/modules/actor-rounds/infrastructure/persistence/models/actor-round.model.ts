@@ -1,3 +1,4 @@
+import type { ActorRoundItem } from '../../../domain/value-objets/actor-round-item.vo';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import type { Injury } from '../../../domain/value-objets/injury.vo';
@@ -119,6 +120,10 @@ export class ActorRoundModel {
 
   @Prop({ type: String, required: false })
   characterId?: string;
+
+  /** Spec 019: the items of the actor, with their modifiers (stored as documents of their own shape). */
+  @Prop({ type: [Object], required: false, default: [] })
+  items?: ActorRoundItem[];
 
   @Prop({ type: ActorRoundSnapshot, required: false })
   snapshot?: ActorRoundSnapshot;

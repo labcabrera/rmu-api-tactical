@@ -71,4 +71,13 @@ export class ActorRoundAttack {
 
   @Prop({ type: String, required: false })
   skillId: string | null;
+
+  @Prop({ type: String, required: false })
+  itemId?: string | null;
+
+  @Prop({ type: Number, required: false, default: 0 })
+  breakagePenalty?: number;
+
+  @Prop({ type: Boolean, required: false, default: false })
+  broken?: boolean;
 }

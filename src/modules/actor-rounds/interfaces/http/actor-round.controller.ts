@@ -29,6 +29,8 @@ import { AddFatigueAccumulatorDto } from './dto/add-fatigue-accumulator.dto';
 import { AddHpDto } from './dto/add-hp.dto';
 import { DeclareInitiativeDto } from './dto/declare-initiative.dto';
 import { ResolveEnduranceCheckDto } from './dto/resolve-endurance-check.dto';
+import { ResolveBreakageCheckDto } from './dto/resolve-breakage-check.dto';
+import { ResolveBreakageCheckCommand } from '../../application/cqrs/commands/resolve-breakage-check.command';
 import { MedicalResultDto, MedicalRollDto, TreatInjuryDto, UpdateInjuryDto } from './dto/treat-injury.dto';
 
 @UseGuards(JwtAuthGuard)
@@ -125,6 +127,19 @@ export class ActorRoundController {
     const user = req.user!;
     const command = ResolveEnduranceCheckDto.toCommand(id, dto, user.id as string, user.roles as string[]);
     const entity = await this.commandBus.execute<ResolveEnduranceCheckCommand, ActorRound>(command);
+    return ActorRoundDto.fromEntity(entity);
+  }
+
+  @Post(':id/breakage-checks')
+  @HttpCode(200)
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success, with the result in lastBreakageCheck' })
+  @ApiOperation({ operationId: 'resolveBreakageCheck', summary: 'Resolve a breakage check of an item of the actor (spec 019)' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiNotFoundResponse({ description: 'Actor round, item or alert not found', type: ErrorDto })
+  async resolveBreakageCheck(@Param('id') id: string, @Body() dto: ResolveBreakageCheckDto, @Request() req) {
+    const user = req.user!;
+    const command = ResolveBreakageCheckDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+    const entity = await this.commandBus.execute<ResolveBreakageCheckCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
   }
 
