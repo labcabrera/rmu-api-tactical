@@ -67,4 +67,29 @@ gateway), `RMU_THROTTLE_LIMIT` / `RMU_THROTTLE_TTL_MS` (`300` per `60000` ms and
 
 Errors answer `{ statusCode, error, code, message, timestamp, path }`. Responses carry the `version` of the entity and a
 `PATCH` may send it back: a stale one is a 409 `version-conflict`. `size` goes up to 100. `GET /v1/actions` accepts up to 1000 (`CatalogPagedQueryDto`), because rmu-mfe-tactical loads a round whole. Error bodies also carry the deprecated `errorCode` (same value as `code`) and `details`, which rmu-mfe-tactical still reads.
+== Permissions
+
+Workspace spec 021, decision 2, over the `BaseEntityGuard` of every API (`shared/infrastructure/security`):
+
+* A tactical game is managed (changed, played, finished, deleted, its factions and actors) by its owner, the owner of
+  its strategic game or a `rmu-admin`. Creating one needs `rmu-user` or `rmu-admin`.
+* It is read as its strategic game says (`accessType`): a public one by everybody, a private one by its managers, the
+  owners of its actors and the admins. Listings of games, actor rounds and actions only return what the user reads.
+* The owner of a character acts for its actor: declares and resolves its actions and changes its actor round. A
+  defender declares a parry on the attacker's action as long as it owns an actor of the game.
+
+The checks run at the HTTP edge (`GameAccessGuard`, `ActorRoundAccessGuard`, `ActionAccessGuard` over the
+`GameGuardPort`), not in the command handlers: a handler runs commands of its own on actors the caller does not own (an
+attack damages its target). The service account token carries `rmu-admin`.
+
+The game stores `strategicGameOwner` and `accessType`, copied from the strategic game when the game is created, so the
+checks make no call to strategic. Games created before spec 021 have neither: until they are migrated, only their owner
+and the admins manage them, and they read as private. The migration is a mongosh script run from rmu-platform:
+
+```bash
+# in rmu-platform, after make mongo-backup
+make mongo-migrate f=../rmu-api-tactical/scripts/migrations/021-tactical-game-strategic-owner.js DRY_RUN=1
+make mongo-migrate f=../rmu-api-tactical/scripts/migrations/021-tactical-game-strategic-owner.js
+```
+
 Open problems found during the migration are listed in `docs/reports/api-template-rollout-findings.md` of the workspace.
