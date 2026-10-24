@@ -115,6 +115,18 @@ describe('declare', () => {
     expect(stale.body).toMatchObject({ code: 'version-conflict' });
   });
 
+  // Spec 021, decision 9 [F-tactical-19]: a PATCH that changes nothing neither writes nor publishes.
+  it('answers 200 without a write or an event to a change that changes nothing', async () => {
+    const gameId = await gameInPhase1();
+    const action = await declareAttack(gameId);
+    expect((await as('owner').patch(`/v1/actions/${action.id}`, { description: 'Strike' })).status).toBe(200);
+    const before = e2e.world.events.length;
+    const same = await as('owner').patch(`/v1/actions/${action.id}`, { description: 'Strike' });
+    expect(same.status).toBe(200);
+    expect(same.body).toMatchObject({ description: 'Strike', version: 1 });
+    expect(e2e.world.events.slice(before).filter(e => e.aggregateType === 'action')).toEqual([]);
+  });
+
   it('validates the body', async () => {
     expect((await as('owner').post('/v1/actions', { actorId: 'aragorn' })).status).toBe(400);
   });

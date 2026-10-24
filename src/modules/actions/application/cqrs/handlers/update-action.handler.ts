@@ -30,6 +30,11 @@ export class UpdateActionHandler implements ICommandHandler<UpdateActionCommand,
     if (command.description !== undefined) {
       action.description = command.description;
     }
+    // Nothing changed: no write and no event (spec 021, decision 9) [F-tactical-19].
+    if (!action.hasChanges()) {
+      await this.apStateService.refresh([action]);
+      return action;
+    }
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action);
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
