@@ -343,14 +343,14 @@ describe('lifecycle', () => {
 
     const response = await as('owner').post(`/v1/tactical-games/${game.id}/rounds/start`);
     expect(response.status).toBe(409);
-    // The rule key goes in code, and in errorCode for the clients that read it before spec 020 (rmu-mfe-tactical).
+    // The rule key goes in code, which rmu-mfe-tactical translates; the errorCode alias is gone (spec 021).
     expect(response.body).toMatchObject({
       statusCode: 409,
       error: 'ConflictError',
       code: 'err-game-finished',
-      errorCode: 'err-game-finished',
       path: `/v1/tactical-games/${game.id}/rounds/start`,
     });
+    expect(response.body).not.toHaveProperty('errorCode');
   });
 
   it('rejects applying a game that is not finished', async () => {

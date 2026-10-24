@@ -23,7 +23,8 @@ describe('HttpExceptionFilter', () => {
     const { status, body } = send(new GatewayTimeoutError('rmu-api-strategic/v1/characters/c-1 did not answer in 50 ms'));
 
     expect(status).toBe(504);
-    expect(body).toMatchObject({ statusCode: 504, error: 'GatewayTimeoutError', code: 'upstream-timeout', errorCode: 'upstream-timeout' });
+    expect(body).toMatchObject({ statusCode: 504, error: 'GatewayTimeoutError', code: 'upstream-timeout' });
+    expect(body).not.toHaveProperty('errorCode');
   });
 
   // Spec 021 [F-receta-22]: the path of the body has no query string.
