@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { ActorRoundAttack } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-attack.vo';
-import { ActorRoundDefenseMode } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-defense-mode.vo';
-import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo';
-import { ActionAttackCalculated } from '../../../../src/modules/actions/domain/value-objects/action-attack-calculated.vo';
-import { AttackTableEntry } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo';
-import { KeyValueModifier } from '../../../../src/modules/actions/domain/value-objects/key-value-modifier.vo';
-import { UnprocessableEntityError, ValidationError } from '../../../../src/modules/shared/domain/errors/errors';
+import { ActorRoundAttack } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-attack.vo.js';
+import { ActorRoundDefenseMode } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-defense-mode.vo.js';
+import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo.js';
+import { ActionAttackCalculated } from '../../../../src/modules/actions/domain/value-objects/action-attack-calculated.vo.js';
+import { AttackTableEntry } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo.js';
+import { KeyValueModifier } from '../../../../src/modules/actions/domain/value-objects/key-value-modifier.vo.js';
+import { UnprocessableEntityError, ValidationError } from '../../../../src/modules/shared/domain/errors/errors.js';
 import {
   CombatActorPenaltiesPlugin,
   COMBAT_PLUGIN_LIST,
@@ -41,9 +41,9 @@ import {
   CombatSurprisedPlugin,
   CombatTwoHandedWeaponPlugin,
   sizeDifference,
-} from '../../../../src/modules/actions/application/services/combat';
-import { CombatContext } from '../../../../src/modules/actions/application/services/combat/combat-context';
-import { createCombatPluginContext, getModifier, rollModifierValues, runPluginHook } from './combat-plugin-test.factory';
+} from '../../../../src/modules/actions/application/services/combat/index.js';
+import type { CombatContext } from '../../../../src/modules/actions/application/services/combat/combat-context.js';
+import { createCombatPluginContext, getModifier, rollModifierValues, runPluginHook } from './combat-plugin-test.factory.js';
 
 const prepare = async (plugin: Parameters<typeof runPluginHook>[0], ctx: CombatContext) => {
   const applied = await runPluginHook(plugin, 'prepare', ctx);

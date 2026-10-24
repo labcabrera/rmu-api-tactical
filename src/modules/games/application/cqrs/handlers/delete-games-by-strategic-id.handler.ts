@@ -1,9 +1,9 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port';
-import { DeleteGameCommand } from '../commands/delete-game.command';
-import { DeleteGamesByStrategicIdCommand } from '../commands/delete-games-by-strategic-id.command';
-import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
+import { CommandBus, CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port.js';
+import { DeleteGameCommand } from '../commands/delete-game.command.js';
+import { DeleteGamesByStrategicIdCommand } from '../commands/delete-games-by-strategic-id.command.js';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 @CommandHandler(DeleteGamesByStrategicIdCommand)
 export class DeleteGamesByStrategicIdHandler implements ICommandHandler<DeleteGamesByStrategicIdCommand> {

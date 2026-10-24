@@ -1,8 +1,8 @@
-import { UNCOORDINATED } from '../../../../../actor-rounds/domain/value-objects/actor-round-trait.vo';
-import { ValidationError } from '../../../../../shared/domain/errors/errors';
-import { isMelee, isPreparing, preparation, rollModifiers, sourceSkill, sourceTraitTier } from '../combat-modifiers';
-import { CombatContext } from '../combat-context';
-import { CombatPlugin } from '../combat-plugin';
+import { UNCOORDINATED } from '../../../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
+import { ValidationError } from '../../../../../shared/domain/errors/errors.js';
+import { isMelee, isPreparing, preparation, rollModifiers, sourceSkill, sourceTraitTier } from '../combat-modifiers.js';
+import type { CombatContext } from '../combat-context.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 const paceModifiers: Record<string, number> = {
   walk: -25,

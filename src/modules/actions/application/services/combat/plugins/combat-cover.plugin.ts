@@ -1,5 +1,5 @@
-import { isMelee, isPreparing, preparation, rollModifiers } from '../combat-modifiers';
-import { CombatPlugin } from '../combat-plugin';
+import { isMelee, isPreparing, preparation, rollModifiers } from '../combat-modifiers.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 type CoverLevel = 'partial' | 'half' | 'full';
 

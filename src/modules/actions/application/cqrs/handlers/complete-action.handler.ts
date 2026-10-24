@@ -1,18 +1,21 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { DeleteEffectCommand } from '../../../../actor-rounds/application/cqrs/commands/delete-effect.command';
-import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
-import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round';
-import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors';
-import { type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port';
-import { Action } from '../../../domain/aggregates/action';
-import { ActionUpdatedEvent } from '../../../domain/events/action.events';
-import { ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo';
-import { SIMPLE_ACTION_TYPES } from '../../../domain/value-objects/action-type.vo';
-import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port';
-import { CompleteActionCommand } from '../commands/complete-action.command';
-import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
+import { CommandBus, CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { DeleteEffectCommand } from '../../../../actor-rounds/application/cqrs/commands/delete-effect.command.js';
+import {
+  type ActorRoundRepository,
+  ACTOR_ROUND_REPOSITORY,
+} from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port.js';
+import { Action } from '../../../domain/aggregates/action.js';
+import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
+import { ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo.js';
+import { SIMPLE_ACTION_TYPES } from '../../../domain/value-objects/action-type.vo.js';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
+import { CompleteActionCommand } from '../commands/complete-action.command.js';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 /** Full dodge or block: the whole round (§9.6). */
 const FULL_DEFENSE_ACTION_POINTS = ActionApProfile.forAction('dodge').max;

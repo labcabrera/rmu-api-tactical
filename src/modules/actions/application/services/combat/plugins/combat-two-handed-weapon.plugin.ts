@@ -1,5 +1,5 @@
-import { isMelee, isPreparing, rollModifiers } from '../combat-modifiers';
-import { CombatPlugin } from '../combat-plugin';
+import { isMelee, isPreparing, rollModifiers } from '../combat-modifiers.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 const TWO_HANDED_BONUS = 10;
 

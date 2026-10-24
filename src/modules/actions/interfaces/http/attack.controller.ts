@@ -1,23 +1,23 @@
 import { Body, Controller, Logger, Param, Patch, UseGuards } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import { ApiBody, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../../shared/infrastructure/security/jwt-auth.guard';
-import { ApplyAttackCommand } from '../../application/cqrs/commands/apply-attack.command';
-import { DeclareParryCommand } from '../../application/cqrs/commands/declare-parry.command';
-import { PrepareAttackCommand } from '../../application/cqrs/commands/prepare-attack.command';
-import { UpdateAttackRollCommand } from '../../application/cqrs/commands/update-attack-roll.command';
-import { UpdateCriticalRollCommand } from '../../application/cqrs/commands/update-critical-roll.command';
-import { UpdateFumbleRollCommand } from '../../application/cqrs/commands/update-fumble-roll.command';
-import { Action } from '../../domain/aggregates/action';
-import { ActionDto } from './dto/action.dto';
-import { DeclareParryDto } from './dto/declare-parry.dto';
-import { PrepareAttackDto } from './dto/prepare-attack.dto';
-import { UpdateAttackRollDto } from './dto/update-attack-roll.dto';
-import { UpdateCriticalRollDto } from './dto/update-critical-roll.dto';
-import { UpdateFumbleRollDto } from './dto/update-fumble-roll.dto';
-import { ApiErrors } from '../../../shared/interfaces/http/api-errors.decorator';
-import { CurrentUser } from '../../../shared/interfaces/http/current-user.decorator';
-import type { AuthenticatedUser } from '../../../shared/interfaces/http/authenticated-request';
+import { JwtAuthGuard } from '../../../shared/infrastructure/security/jwt-auth.guard.js';
+import { ApplyAttackCommand } from '../../application/cqrs/commands/apply-attack.command.js';
+import { DeclareParryCommand } from '../../application/cqrs/commands/declare-parry.command.js';
+import { PrepareAttackCommand } from '../../application/cqrs/commands/prepare-attack.command.js';
+import { UpdateAttackRollCommand } from '../../application/cqrs/commands/update-attack-roll.command.js';
+import { UpdateCriticalRollCommand } from '../../application/cqrs/commands/update-critical-roll.command.js';
+import { UpdateFumbleRollCommand } from '../../application/cqrs/commands/update-fumble-roll.command.js';
+import { Action } from '../../domain/aggregates/action.js';
+import { ActionDto } from './dto/action.dto.js';
+import { DeclareParryDto } from './dto/declare-parry.dto.js';
+import { PrepareAttackDto } from './dto/prepare-attack.dto.js';
+import { UpdateAttackRollDto } from './dto/update-attack-roll.dto.js';
+import { UpdateCriticalRollDto } from './dto/update-critical-roll.dto.js';
+import { UpdateFumbleRollDto } from './dto/update-fumble-roll.dto.js';
+import { ApiErrors } from '../../../shared/interfaces/http/api-errors.decorator.js';
+import { CurrentUser } from '../../../shared/interfaces/http/current-user.decorator.js';
+import type { AuthenticatedUser } from '../../../shared/interfaces/http/authenticated-request.js';
 
 @UseGuards(JwtAuthGuard)
 @Controller('v1/actions')

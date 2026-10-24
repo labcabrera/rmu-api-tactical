@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { TokenService } from '../../../shared/infrastructure/security/token.service';
-import { HttpClient } from '../../../shared/infrastructure/http/http-client';
-import { TacticalOutcomePort, TacticalOutcomeRequest } from '../../application/ports/tactical-outcome.port';
+import { TokenService } from '../../../shared/infrastructure/security/token.service.js';
+import { HttpClient } from '../../../shared/infrastructure/http/http-client.js';
+import type { TacticalOutcomePort, TacticalOutcomeRequest } from '../../application/ports/tactical-outcome.port.js';
 
 /** Writes the outcome of a finished tactical game to the strategic character, with the service token (spec 013, §3). */
 @Injectable()

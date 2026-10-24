@@ -1,17 +1,17 @@
 import { Body, Controller, Get, Logger, Param, Patch, Query, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../../shared/infrastructure/security/jwt-auth.guard';
-import { ResolveManeuverCommand } from '../../application/cqrs/commands/resolve-maneuver.command';
-import { GetManeuverModifiersQuery } from '../../application/cqrs/queries/get-maneuver-modifiers.query';
-import type { ManeuverModifiersListing } from '../../application/services/maneuver/maneuver-context.service';
-import { Action } from '../../domain/aggregates/action';
-import { ActionDto } from './dto/action.dto';
-import { ManeuverModifiersDto } from './dto/maneuver-modifiers.dto';
-import { ResolveManeuverDto } from './dto/resolve-maneuver.dto';
-import { ApiErrors } from '../../../shared/interfaces/http/api-errors.decorator';
-import { CurrentUser } from '../../../shared/interfaces/http/current-user.decorator';
-import type { AuthenticatedUser } from '../../../shared/interfaces/http/authenticated-request';
+import { JwtAuthGuard } from '../../../shared/infrastructure/security/jwt-auth.guard.js';
+import { ResolveManeuverCommand } from '../../application/cqrs/commands/resolve-maneuver.command.js';
+import { GetManeuverModifiersQuery } from '../../application/cqrs/queries/get-maneuver-modifiers.query.js';
+import type { ManeuverModifiersListing } from '../../application/services/maneuver/maneuver-context.service.js';
+import { Action } from '../../domain/aggregates/action.js';
+import { ActionDto } from './dto/action.dto.js';
+import { ManeuverModifiersDto } from './dto/maneuver-modifiers.dto.js';
+import { ResolveManeuverDto } from './dto/resolve-maneuver.dto.js';
+import { ApiErrors } from '../../../shared/interfaces/http/api-errors.decorator.js';
+import { CurrentUser } from '../../../shared/interfaces/http/current-user.decorator.js';
+import type { AuthenticatedUser } from '../../../shared/interfaces/http/authenticated-request.js';
 
 @UseGuards(JwtAuthGuard)
 @Controller('v1/actions')

@@ -1,8 +1,8 @@
-import { Actor } from '../value-objects/actor.vo';
-import { GameEnvironment } from '../value-objects/game-environment.vo';
-import { GamePhase } from '../value-objects/game-phase.vo';
-import { GameStatus } from '../value-objects/game-status.vo';
-import { TacticalGameOutcome } from '../value-objects/tactical-game-outcome.vo';
+import { Actor } from '../value-objects/actor.vo.js';
+import { GameEnvironment } from '../value-objects/game-environment.vo.js';
+import type { GamePhase } from '../value-objects/game-phase.vo.js';
+import type { GameStatus } from '../value-objects/game-status.vo.js';
+import type { TacticalGameOutcome } from '../value-objects/tactical-game-outcome.vo.js';
 
 export type GameProps = {
   id: string;

@@ -1,15 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { AttackTableLookupRequest } from '../../../../src/modules/actions/application/ports/attack-table.port';
+import type { AttackTableLookupRequest } from '../../../../src/modules/actions/application/ports/attack-table.port.js';
 import {
   COMBAT_PLUGIN_LIST,
   CombatAttackRollResolverService,
   CombatPluginRegistryService,
   CombatProcessor,
-} from '../../../../src/modules/actions/application/services/combat';
-import { ActionAttackCalculated } from '../../../../src/modules/actions/domain/value-objects/action-attack-calculated.vo';
-import { AttackTableEntry } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo';
-import { KeyValueModifier } from '../../../../src/modules/actions/domain/value-objects/key-value-modifier.vo';
-import { createCombatPluginContext, CombatPluginContextOptions } from './combat-plugin-test.factory';
+} from '../../../../src/modules/actions/application/services/combat/index.js';
+import { ActionAttackCalculated } from '../../../../src/modules/actions/domain/value-objects/action-attack-calculated.vo.js';
+import { AttackTableEntry } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo.js';
+import { KeyValueModifier } from '../../../../src/modules/actions/domain/value-objects/key-value-modifier.vo.js';
+import { createCombatPluginContext, type CombatPluginContextOptions } from './combat-plugin-test.factory.js';
 
 const setup = (entry: AttackTableEntry, options: CombatPluginContextOptions = {}) => {
   const ctx = createCombatPluginContext(options);

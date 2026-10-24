@@ -1,5 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import type { CalledShot, ChargeSpeed, PositionalSource } from '../../../domain/value-objects/action-attack-modifiers.vo';
+import type { CalledShot, ChargeSpeed, PositionalSource } from '../../../domain/value-objects/action-attack-modifiers.vo.js';
 
 @Schema({ _id: false })
 export class ActionAttackModifiers {

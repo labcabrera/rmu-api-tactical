@@ -1,12 +1,12 @@
-import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round';
-import { ActorRoundAlert } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-alert.vo';
-import { ActorRoundDefense } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-defense.vo';
-import { ActorRoundEffect } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-effect.vo';
-import { ActorRoundItem, ItemModifier } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-item.vo';
-import { ActorRoundShield } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo';
-import { BreakageResolver } from '../../../src/modules/actor-rounds/domain/services/breakage-resolver';
-import { NotFoundError, ValidationError } from '../../../src/modules/shared/domain/errors/errors';
-import { attack, load } from './actor-round-test.factory';
+import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
+import { ActorRoundAlert } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-alert.vo.js';
+import { ActorRoundDefense } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-defense.vo.js';
+import { ActorRoundEffect } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-effect.vo.js';
+import type { ActorRoundItem, ItemModifier } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-item.vo.js';
+import { ActorRoundShield } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo.js';
+import { BreakageResolver } from '../../../src/modules/actor-rounds/domain/services/breakage-resolver.js';
+import { NotFoundError, ValidationError } from '../../../src/modules/shared/domain/errors/errors.js';
+import { attack, load } from './actor-round-test.factory.js';
 
 const sword = (modifiers: ItemModifier[] = [], strength: number | null = 80): ActorRoundItem => ({
   itemId: 'sword',

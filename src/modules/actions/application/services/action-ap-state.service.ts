@@ -1,11 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../actor-rounds/application/ports/actor-round-repository.port';
-import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round';
-import { type GameRepository, GAME_REPOSITORY } from '../../../games/application/ports/game-repository.port';
-import { Game } from '../../../games/domain/aggregates/game';
-import { openRoundsOf, STRATEGIC_GAME_PORT } from '../../../strategic/application/ports/strategic-game.port';
-import type { StrategicGamePort } from '../../../strategic/application/ports/strategic-game.port';
-import { Action } from '../../domain/aggregates/action';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../actor-rounds/application/ports/actor-round-repository.port.js';
+import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.js';
+import { type GameRepository, GAME_REPOSITORY } from '../../../games/application/ports/game-repository.port.js';
+import { Game } from '../../../games/domain/aggregates/game.js';
+import { openRoundsOf, STRATEGIC_GAME_PORT } from '../../../strategic/application/ports/strategic-game.port.js';
+import type { StrategicGamePort } from '../../../strategic/application/ports/strategic-game.port.js';
+import { Action } from '../../domain/aggregates/action.js';
 
 /** Past the action phases: no capacity left in the round. */
 const NO_PHASE_LEFT = 5;

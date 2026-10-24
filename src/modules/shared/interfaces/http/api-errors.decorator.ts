@@ -1,6 +1,6 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
-import { ErrorDto } from './dto/error-dto';
+import { ErrorDto } from './dto/error-dto.js';
 
 type ErrorStatus = 400 | 401 | 403 | 404 | 409;
 

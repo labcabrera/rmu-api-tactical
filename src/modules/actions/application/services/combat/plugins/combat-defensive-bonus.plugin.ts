@@ -1,5 +1,5 @@
-import { isPreparing, preparation, rollModifiers, targetIsFlatfooted } from '../combat-modifiers';
-import { CombatPlugin } from '../combat-plugin';
+import { isPreparing, preparation, rollModifiers, targetIsFlatfooted } from '../combat-modifiers.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 /** The target's DB. A flatfooted target has no Quickness DB (§9.5 Surprised or Flatfooted). */
 export const CombatDefensiveBonusPlugin: CombatPlugin = {

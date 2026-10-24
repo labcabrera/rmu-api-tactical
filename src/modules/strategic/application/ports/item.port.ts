@@ -1,4 +1,4 @@
-import type { ItemModifier } from '../../../actor-rounds/domain/value-objects/actor-round-item.vo';
+import type { ItemModifier } from '../../../actor-rounds/domain/value-objects/actor-round-item.vo.js';
 
 /** A strategic item of a character, as the strategic API returns it (spec 019). */
 export interface StrategicItem {

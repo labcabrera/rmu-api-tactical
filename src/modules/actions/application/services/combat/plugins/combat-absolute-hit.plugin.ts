@@ -1,5 +1,5 @@
-import { criticalModifiers } from '../combat-modifiers';
-import { CombatPlugin } from '../combat-plugin';
+import { criticalModifiers } from '../combat-modifiers.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 const MAX_TABLE_ROLL = 175;
 const ROLL_PER_CRITICAL_POINT = 5;

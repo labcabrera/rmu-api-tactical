@@ -1,15 +1,18 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
-import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors';
-import { Action } from '../../../domain/aggregates/action';
-import { ActionUpdatedEvent } from '../../../domain/events/action.events';
-import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port';
-import { type FumbleTablePort, FUMBLE_TABLE_PORT } from '../../ports/fumble-table.port';
-import { CombatProcessor } from '../../services/combat';
-import { UpdateFumbleRollCommand } from '../commands/update-fumble-roll.command';
-import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import {
+  type ActorRoundRepository,
+  ACTOR_ROUND_REPOSITORY,
+} from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { Action } from '../../../domain/aggregates/action.js';
+import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
+import { type FumbleTablePort, FUMBLE_TABLE_PORT } from '../../ports/fumble-table.port.js';
+import { CombatProcessor } from '../../services/combat/index.js';
+import { UpdateFumbleRollCommand } from '../commands/update-fumble-roll.command.js';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 @CommandHandler(UpdateFumbleRollCommand)
 export class UpdateFumbleRollHandler implements ICommandHandler<UpdateFumbleRollCommand, Action> {

@@ -1,5 +1,5 @@
-import { Page } from '../../../shared/application/pagination/page';
-import { Action } from '../../domain/aggregates/action';
+import { Page } from '../../../shared/application/pagination/page.js';
+import { Action } from '../../domain/aggregates/action.js';
 
 export interface ActionRepository {
   findById(id: string): Promise<Action | null>;

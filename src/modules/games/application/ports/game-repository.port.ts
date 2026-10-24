@@ -1,5 +1,5 @@
-import { Page } from '../../../shared/application/pagination/page';
-import { Game } from '../../domain/aggregates/game';
+import { Page } from '../../../shared/application/pagination/page.js';
+import { Game } from '../../domain/aggregates/game.js';
 
 export interface GameRepository {
   findById(id: string): Promise<Game | null>;

@@ -1,5 +1,5 @@
-import { criticalModifiers, isPreparing, sourceSkillRanks } from '../combat-modifiers';
-import { CombatPlugin } from '../combat-plugin';
+import { criticalModifiers, isPreparing, sourceSkillRanks } from '../combat-modifiers.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 /**
  * Modifiers of the critical roll (§9.8). While preparing, an ambush adds the attacker's Ambush ranks; when a critical

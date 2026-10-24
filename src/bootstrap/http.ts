@@ -1,7 +1,7 @@
 import { ValidationPipe } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { RequestTokenInterceptor } from '../modules/shared/infrastructure/security/request-token.context';
-import { DomainExceptionFilter } from '../modules/shared/interfaces/http/domain-exception.filter';
+import { RequestTokenInterceptor } from '../modules/shared/infrastructure/security/request-token.context.js';
+import { DomainExceptionFilter } from '../modules/shared/interfaces/http/domain-exception.filter.js';
 
 /**
  * The HTTP setup shared by main.ts and the e2e suite: CORS, validation, the error filter and the interceptor that keeps

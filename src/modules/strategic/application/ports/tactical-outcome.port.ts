@@ -1,6 +1,6 @@
-import type { HpBySource, HpLogEntry } from '../../../actor-rounds/domain/value-objects/hp-log-entry.vo';
-import type { CharacterCondition, Injury } from '../../../actor-rounds/domain/value-objects/injury.vo';
-import type { TacticalItemOutcome } from '../../../games/domain/value-objects/tactical-game-outcome.vo';
+import type { HpBySource, HpLogEntry } from '../../../actor-rounds/domain/value-objects/hp-log-entry.vo.js';
+import type { CharacterCondition, Injury } from '../../../actor-rounds/domain/value-objects/injury.vo.js';
+import type { TacticalItemOutcome } from '../../../games/domain/value-objects/tactical-game-outcome.vo.js';
 
 /** One character of a finished tactical game, as the strategic API takes it (spec 013, §3 and §4). */
 export interface TacticalOutcomeRequest {

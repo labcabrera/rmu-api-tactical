@@ -1,10 +1,10 @@
 import { Inject } from '@nestjs/common';
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors';
-import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port';
-import { ManeuverContextService, ManeuverModifiersListing } from '../../services/maneuver/maneuver-context.service';
-import { GetManeuverModifiersQuery } from '../queries/get-maneuver-modifiers.query';
+import { type IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
+import { ManeuverContextService, type ManeuverModifiersListing } from '../../services/maneuver/maneuver-context.service.js';
+import { GetManeuverModifiersQuery } from '../queries/get-maneuver-modifiers.query.js';
 
 /** Modifiers a declared maneuver can take: base ones of the actor, difficulty, light and the skill's catalog. */
 @QueryHandler(GetManeuverModifiersQuery)

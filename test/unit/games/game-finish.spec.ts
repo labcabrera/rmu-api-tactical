@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round';
-import { buildInjury, Injury } from '../../../src/modules/actor-rounds/domain/value-objects/injury.vo';
-import { ApplyGameCommand } from '../../../src/modules/games/application/cqrs/commands/apply-game.command';
-import { ApplyGameHandler } from '../../../src/modules/games/application/cqrs/handlers/apply-game.handler';
-import type { GameRepository } from '../../../src/modules/games/application/ports/game-repository.port';
-import { Game } from '../../../src/modules/games/domain/aggregates/game';
-import { TacticalGameOutcomeCalculator } from '../../../src/modules/games/domain/services/tactical-game-outcome.calculator';
-import { Actor } from '../../../src/modules/games/domain/value-objects/actor.vo';
-import { effect, load } from '../actor-rounds/actor-round-test.factory';
+import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
+import { buildInjury, type Injury } from '../../../src/modules/actor-rounds/domain/value-objects/injury.vo.js';
+import { ApplyGameCommand } from '../../../src/modules/games/application/cqrs/commands/apply-game.command.js';
+import { ApplyGameHandler } from '../../../src/modules/games/application/cqrs/handlers/apply-game.handler.js';
+import type { GameRepository } from '../../../src/modules/games/application/ports/game-repository.port.js';
+import { Game } from '../../../src/modules/games/domain/aggregates/game.js';
+import { TacticalGameOutcomeCalculator } from '../../../src/modules/games/domain/services/tactical-game-outcome.calculator.js';
+import { Actor } from '../../../src/modules/games/domain/value-objects/actor.vo.js';
+import { effect, load } from '../actor-rounds/actor-round-test.factory.js';
 
 const faction = { id: 'f1', name: 'Fellowship' };
 const actor = (id: string, type: 'character' | 'npc' = 'character') => Actor.fromProps({ id, name: id, faction, type, owner: 'gm' });

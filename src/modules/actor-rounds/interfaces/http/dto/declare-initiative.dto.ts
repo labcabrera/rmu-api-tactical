@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsNumber, IsOptional } from 'class-validator';
-import { DeclareInitiativeCommand } from '../../../application/cqrs/commands/declare-initiative.command';
+import { DeclareInitiativeCommand } from '../../../application/cqrs/commands/declare-initiative.command.js';
 
 export class DeclareInitiativeDto {
   constructor(roll: number, strikeReflex?: boolean) {

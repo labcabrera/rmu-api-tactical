@@ -1,10 +1,10 @@
-import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors';
-import { ActorRound } from '../../../domain/aggregates/actor-round';
-import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port';
-import { DeclareInitiativeCommand } from '../commands/declare-initiative.command';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { ActorRound } from '../../../domain/aggregates/actor-round.js';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port.js';
+import { DeclareInitiativeCommand } from '../commands/declare-initiative.command.js';
 
 @CommandHandler(DeclareInitiativeCommand)
 export class DeclareInitiativeCommandHandler implements ICommandHandler<DeclareInitiativeCommand, ActorRound> {

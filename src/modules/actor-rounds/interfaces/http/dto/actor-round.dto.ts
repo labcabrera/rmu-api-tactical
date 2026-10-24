@@ -1,25 +1,25 @@
-import { ActorRoundItemDto } from './actor-round-item.dto';
-import { BreakageCheckResultDto } from './resolve-breakage-check.dto';
+import { ActorRoundItemDto } from './actor-round-item.dto.js';
+import { BreakageCheckResultDto } from './resolve-breakage-check.dto.js';
 import { ApiProperty } from '@nestjs/swagger';
-import { PaginationDto } from '../../../../shared/interfaces/http/dto/page.dto';
-import { ActorRound } from '../../../domain/aggregates/actor-round';
-import { ActorRoundEffect } from '../../../domain/value-objects/actor-round-effect.vo';
-import { ActorRoundAlertDto } from './actor-round-alert.dto';
-import { ActorRoundApLedgerEntryDto } from './actor-round-ap-ledger-entry.dto';
-import { ActorRoundApModifierDto } from './actor-round-ap-modifier.dto';
-import { ActorRoundAttackDto } from './actor-round-attack.dto';
-import { ActorRoundDefenseModeDto } from './actor-round-defense-mode.dto';
-import { ActorRoundDefenseDto } from './actor-round-defense.dto';
-import { ActorRoundFatigueDto } from './actor-round-fatigue.dto';
-import { ActorRoundHPDto } from './actor-round-hp.dto';
-import { ActorRoundSnapshotDto, InjuryDto } from './actor-round-injury.dto';
-import { ActorRoundInitiativeDto } from './actor-round-initiative.dto';
-import { ActorRoundMovementDto } from './actor-round-movement.dto';
-import { HpLogEntryDto } from './hp-log-entry.dto';
-import { ActorRoundParryDto } from './actor-round-parry.dto';
-import { ActorRoundPenaltyDto } from './actor-round-penalty.dto';
-import { ActorRoundPhaseLogDto } from './actor-round-phase-log.dto';
-import { ActorRoundTraitDto } from './actor-round-trait.dto';
+import { PaginationDto } from '../../../../shared/interfaces/http/dto/page.dto.js';
+import { ActorRound } from '../../../domain/aggregates/actor-round.js';
+import { ActorRoundEffect } from '../../../domain/value-objects/actor-round-effect.vo.js';
+import { ActorRoundAlertDto } from './actor-round-alert.dto.js';
+import { ActorRoundApLedgerEntryDto } from './actor-round-ap-ledger-entry.dto.js';
+import { ActorRoundApModifierDto } from './actor-round-ap-modifier.dto.js';
+import { ActorRoundAttackDto } from './actor-round-attack.dto.js';
+import { ActorRoundDefenseModeDto } from './actor-round-defense-mode.dto.js';
+import { ActorRoundDefenseDto } from './actor-round-defense.dto.js';
+import { ActorRoundFatigueDto } from './actor-round-fatigue.dto.js';
+import { ActorRoundHPDto } from './actor-round-hp.dto.js';
+import { ActorRoundSnapshotDto, InjuryDto } from './actor-round-injury.dto.js';
+import { ActorRoundInitiativeDto } from './actor-round-initiative.dto.js';
+import { ActorRoundMovementDto } from './actor-round-movement.dto.js';
+import { HpLogEntryDto } from './hp-log-entry.dto.js';
+import { ActorRoundParryDto } from './actor-round-parry.dto.js';
+import { ActorRoundPenaltyDto } from './actor-round-penalty.dto.js';
+import { ActorRoundPhaseLogDto } from './actor-round-phase-log.dto.js';
+import { ActorRoundTraitDto } from './actor-round-trait.dto.js';
 
 export class ActorRoundDto {
   @ApiProperty({ description: 'Actor Round identifier', example: 'actor-round-123' })

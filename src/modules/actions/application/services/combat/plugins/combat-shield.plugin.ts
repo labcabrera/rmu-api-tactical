@@ -1,4 +1,4 @@
-import { CombatContext } from '../combat-context';
+import type { CombatContext } from '../combat-context.js';
 import {
   isPreparing,
   preparation,
@@ -7,8 +7,8 @@ import {
   targetIsFlatfooted,
   targetSkill,
   targetSkillRanks,
-} from '../combat-modifiers';
-import { CombatPlugin } from '../combat-plugin';
+} from '../combat-modifiers.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 /** Most DB a shield gives with passive blocking, its own DB included (§9.6 Shields). */
 const MAX_PASSIVE_SHIELD_DB = 50;

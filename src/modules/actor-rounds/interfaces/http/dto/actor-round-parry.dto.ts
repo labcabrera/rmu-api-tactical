@@ -1,4 +1,4 @@
-import { ActorRoundParry } from '../../../infrastructure/persistence/models/actor-round-childs.model';
+import { ActorRoundParry } from '../../../infrastructure/persistence/models/actor-round-childs.model.js';
 
 export class ActorRoundParryDto {
   attackName: string;

@@ -1,10 +1,10 @@
 import { Inject } from '@nestjs/common';
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { NotFoundError } from '../../../../shared/domain/errors/errors';
-import { Action } from '../../../domain/aggregates/action';
-import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port';
-import { ActionApStateService } from '../../services/action-ap-state.service';
-import { GetActionQuery } from '../queries/get-action.query';
+import { type IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { NotFoundError } from '../../../../shared/domain/errors/errors.js';
+import { Action } from '../../../domain/aggregates/action.js';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
+import { ActionApStateService } from '../../services/action-ap-state.service.js';
+import { GetActionQuery } from '../queries/get-action.query.js';
 
 @QueryHandler(GetActionQuery)
 export class GetActionQueryHandler implements IQueryHandler<GetActionQuery, Action> {

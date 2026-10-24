@@ -1,5 +1,5 @@
 import type { QueryFilter } from 'mongoose';
-import { Page } from '../pagination/page';
+import { Page } from '../pagination/page.js';
 
 //TODO using filterQuery hit infrastructure layer
 export interface BaseRepository<I> {

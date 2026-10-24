@@ -1,6 +1,6 @@
-import { ValidationError } from '../../../../shared/domain/errors/errors';
-import { KeyValueModifier } from '../../../domain/value-objects/key-value-modifier.vo';
-import { ManeuverModifierDefinition, ManeuverModifierSelection } from '../../../domain/value-objects/maneuver-profile.vo';
+import { ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { KeyValueModifier } from '../../../domain/value-objects/key-value-modifier.vo.js';
+import type { ManeuverModifierDefinition, ManeuverModifierSelection } from '../../../domain/value-objects/maneuver-profile.vo.js';
 
 export const ERR_UNKNOWN_MODIFIER = 'err-maneuver-unknown-modifier';
 export const ERR_INVALID_MODIFIER = 'err-maneuver-invalid-modifier';

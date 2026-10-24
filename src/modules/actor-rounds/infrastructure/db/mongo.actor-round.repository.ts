@@ -1,23 +1,23 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { MongoBaseRepository } from '../../../shared/infrastructure/db/mongo.base.repository';
-import { RsqlParser } from '../../../shared/infrastructure/db/rsql-parser';
-import { ActorRoundRepository } from '../../application/ports/actor-round-repository.port';
-import { ActorRound } from '../../domain/aggregates/actor-round';
-import { ActorRoundAlert, type ActorRoundAlertData } from '../../domain/value-objects/actor-round-alert.vo';
-import { ActorRoundItems } from '../../domain/value-objects/actor-round-item.vo';
-import { ActorRoundAttack } from '../../domain/value-objects/actor-round-attack.vo';
-import { ActorRoundDefenseMode } from '../../domain/value-objects/actor-round-defense-mode.vo';
-import { ActorRoundEffect } from '../../domain/value-objects/actor-round-effect.vo';
-import { ActorRoundPenaltyModifier } from '../../domain/value-objects/actor-round-penalty-modifier.vo';
-import { ActorRoundPenalty } from '../../domain/value-objects/actor-round-penalty.vo';
-import { ActorRoundPhaseLog } from '../../domain/value-objects/actor-round-phase-log.vo';
-import { ActorRoundTrait } from '../../domain/value-objects/actor-round-trait.vo';
-import { ApLedgerEntry, ApLedgerKind } from '../../domain/value-objects/ap-ledger-entry.vo';
-import { HpLogEntry, HpLogKind } from '../../domain/value-objects/hp-log-entry.vo';
-import type { ActorType } from '../../domain/value-objects/actor-type.vo';
-import { ActorRoundDocument, ActorRoundModel } from '../persistence/models/actor-round.model';
+import { MongoBaseRepository } from '../../../shared/infrastructure/db/mongo.base.repository.js';
+import { RsqlParser } from '../../../shared/infrastructure/db/rsql-parser.js';
+import type { ActorRoundRepository } from '../../application/ports/actor-round-repository.port.js';
+import { ActorRound } from '../../domain/aggregates/actor-round.js';
+import { ActorRoundAlert, type ActorRoundAlertData } from '../../domain/value-objects/actor-round-alert.vo.js';
+import { ActorRoundItems } from '../../domain/value-objects/actor-round-item.vo.js';
+import { ActorRoundAttack } from '../../domain/value-objects/actor-round-attack.vo.js';
+import { ActorRoundDefenseMode } from '../../domain/value-objects/actor-round-defense-mode.vo.js';
+import { ActorRoundEffect } from '../../domain/value-objects/actor-round-effect.vo.js';
+import { ActorRoundPenaltyModifier } from '../../domain/value-objects/actor-round-penalty-modifier.vo.js';
+import { ActorRoundPenalty } from '../../domain/value-objects/actor-round-penalty.vo.js';
+import { ActorRoundPhaseLog } from '../../domain/value-objects/actor-round-phase-log.vo.js';
+import { ActorRoundTrait } from '../../domain/value-objects/actor-round-trait.vo.js';
+import { ApLedgerEntry, type ApLedgerKind } from '../../domain/value-objects/ap-ledger-entry.vo.js';
+import type { HpLogEntry, HpLogKind } from '../../domain/value-objects/hp-log-entry.vo.js';
+import type { ActorType } from '../../domain/value-objects/actor-type.vo.js';
+import { type ActorRoundDocument, ActorRoundModel } from '../persistence/models/actor-round.model.js';
 
 @Injectable()
 export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, ActorRoundDocument> implements ActorRoundRepository {

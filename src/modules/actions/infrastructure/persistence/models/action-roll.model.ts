@@ -1,5 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import { KeyValueModifier } from './key-value-modifiers.model';
+import { KeyValueModifier } from './key-value-modifiers.model.js';
 
 @Schema({ _id: false })
 export class ActionRoll {

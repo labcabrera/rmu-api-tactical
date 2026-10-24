@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActionRoll } from '../../../domain/value-objects/action-roll.vo';
-import { KeyValueModifierDto } from './key-value-modifier.dto';
+import { ActionRoll } from '../../../domain/value-objects/action-roll.vo.js';
+import { KeyValueModifierDto } from './key-value-modifier.dto.js';
 
 export class ActionRollDto {
   modifiers?: KeyValueModifierDto[] | undefined;

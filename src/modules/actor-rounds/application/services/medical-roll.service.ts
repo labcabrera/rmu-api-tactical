@@ -1,13 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { type ManeuverPort, MANEUVER_PORT } from '../../../actions/application/ports/maneuver.port';
-import { type GameRepository, GAME_REPOSITORY } from '../../../games/application/ports/game-repository.port';
-import { Game } from '../../../games/domain/aggregates/game';
-import { NotFoundError, ValidationError } from '../../../shared/domain/errors/errors';
-import { type CharacterPort, CHARACTER_PORT } from '../../../strategic/application/ports/character.port';
-import { ActorRound } from '../../domain/aggregates/actor-round';
-import { MEDICAL_RESULTS, MedicalOutcome } from '../../domain/services/injury-treatment';
-import { InjuryHealer } from '../../domain/value-objects/injury.vo';
-import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../ports/actor-round-repository.port';
+import { type ManeuverPort, MANEUVER_PORT } from '../../../actions/application/ports/maneuver.port.js';
+import { type GameRepository, GAME_REPOSITORY } from '../../../games/application/ports/game-repository.port.js';
+import { Game } from '../../../games/domain/aggregates/game.js';
+import { NotFoundError, ValidationError } from '../../../shared/domain/errors/errors.js';
+import { type CharacterPort, CHARACTER_PORT } from '../../../strategic/application/ports/character.port.js';
+import { ActorRound } from '../../domain/aggregates/actor-round.js';
+import { MEDICAL_RESULTS, type MedicalOutcome } from '../../domain/services/injury-treatment.js';
+import type { InjuryHealer } from '../../domain/value-objects/injury.vo.js';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../ports/actor-round-repository.port.js';
 
 /** Skill of the healer (strategic skill id). */
 export const MEDICINE_SKILL_ID = 'medicine';

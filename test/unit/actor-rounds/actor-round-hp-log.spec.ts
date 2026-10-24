@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round';
-import { HpLog, HpLogEntry } from '../../../src/modules/actor-rounds/domain/value-objects/hp-log-entry.vo';
-import { buildInjury } from '../../../src/modules/actor-rounds/domain/value-objects/injury.vo';
-import { load } from './actor-round-test.factory';
+import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
+import { HpLog, type HpLogEntry } from '../../../src/modules/actor-rounds/domain/value-objects/hp-log-entry.vo.js';
+import { buildInjury } from '../../../src/modules/actor-rounds/domain/value-objects/injury.vo.js';
+import { load } from './actor-round-test.factory.js';
 
 const strip = (entries: HpLogEntry[]) => entries.map(({ id, at, ...rest }) => (expect(id).toBeTruthy(), expect(at).toBeTruthy(), rest));
 

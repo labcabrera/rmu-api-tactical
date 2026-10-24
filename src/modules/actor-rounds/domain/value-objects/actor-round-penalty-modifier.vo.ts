@@ -1,4 +1,4 @@
-import { ActorRoundPenaltySource } from './actor-round-penalty-source.vo';
+import type { ActorRoundPenaltySource } from './actor-round-penalty-source.vo.js';
 
 export class ActorRoundPenaltyModifier {
   constructor(

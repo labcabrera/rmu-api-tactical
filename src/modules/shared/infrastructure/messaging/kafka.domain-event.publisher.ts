@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { DomainEventPublisher } from '../../application/ports/domain-event-publisher.port';
-import type { DomainEvent } from '../../domain/events/domain-event';
-import { KafkaProducerService } from './kafka-producer.service';
+import type { DomainEventPublisher } from '../../application/ports/domain-event-publisher.port.js';
+import type { DomainEvent } from '../../domain/events/domain-event.js';
+import { KafkaProducerService } from './kafka-producer.service.js';
 
 /**
  * Topics that do not follow `internal.rmu-tactical.<aggregateType>.<eventType>.v1`. Every action event (created,

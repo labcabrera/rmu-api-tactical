@@ -1,27 +1,27 @@
 import { vi } from 'vitest';
-import type { DomainEventPublisher } from '../../../../src/modules/shared/application/ports/domain-event-publisher.port';
-import type { ActionRepository } from '../../../../src/modules/actions/application/ports/action-repository.port';
+import type { DomainEventPublisher } from '../../../../src/modules/shared/application/ports/domain-event-publisher.port.js';
+import type { ActionRepository } from '../../../../src/modules/actions/application/ports/action-repository.port.js';
 import type {
   AbsoluteManeuverResponse,
   ManeuverPort,
   PercentManeuverResponse,
-} from '../../../../src/modules/actions/application/ports/maneuver.port';
-import type { SkillCatalogPort } from '../../../../src/modules/actions/application/ports/skill-catalog.port';
-import { ManeuverBaseModifiersService } from '../../../../src/modules/actions/application/services/maneuver/maneuver-base-modifiers.service';
-import { ManeuverContextService } from '../../../../src/modules/actions/application/services/maneuver/maneuver-context.service';
-import { Action, ActionProps } from '../../../../src/modules/actions/domain/aggregates/action';
-import type { ActionManeuver } from '../../../../src/modules/actions/domain/value-objects/action-maneuver.vo';
+} from '../../../../src/modules/actions/application/ports/maneuver.port.js';
+import type { SkillCatalogPort } from '../../../../src/modules/actions/application/ports/skill-catalog.port.js';
+import { ManeuverBaseModifiersService } from '../../../../src/modules/actions/application/services/maneuver/maneuver-base-modifiers.service.js';
+import { ManeuverContextService } from '../../../../src/modules/actions/application/services/maneuver/maneuver-context.service.js';
+import { Action, type ActionProps } from '../../../../src/modules/actions/domain/aggregates/action.js';
+import type { ActionManeuver } from '../../../../src/modules/actions/domain/value-objects/action-maneuver.vo.js';
 import type {
   ManeuverModifierDefinition,
   SkillManeuverProfile,
-} from '../../../../src/modules/actions/domain/value-objects/maneuver-profile.vo';
-import type { Pace } from '../../../../src/modules/actions/domain/value-objects/pace.vo';
-import type { ActorRoundRepository } from '../../../../src/modules/actor-rounds/application/ports/actor-round-repository.port';
-import type { ActorRound } from '../../../../src/modules/actor-rounds/domain/aggregates/actor-round';
-import type { GameRepository } from '../../../../src/modules/games/application/ports/game-repository.port';
-import type { Game } from '../../../../src/modules/games/domain/aggregates/game';
-import type { Character, CharacterPort, CharacterSkill } from '../../../../src/modules/strategic/application/ports/character.port';
-import { load } from '../../actor-rounds/actor-round-test.factory';
+} from '../../../../src/modules/actions/domain/value-objects/maneuver-profile.vo.js';
+import type { Pace } from '../../../../src/modules/actions/domain/value-objects/pace.vo.js';
+import type { ActorRoundRepository } from '../../../../src/modules/actor-rounds/application/ports/actor-round-repository.port.js';
+import type { ActorRound } from '../../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
+import type { GameRepository } from '../../../../src/modules/games/application/ports/game-repository.port.js';
+import type { Game } from '../../../../src/modules/games/domain/aggregates/game.js';
+import type { Character, CharacterPort, CharacterSkill } from '../../../../src/modules/strategic/application/ports/character.port.js';
+import { load } from '../../actor-rounds/actor-round-test.factory.js';
 
 /*
  * Invented catalog data: skills, profiles and modifiers here are made up for the tests and are not the book's.

@@ -1,5 +1,5 @@
-import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command';
-import type { ActorFate } from '../../../domain/value-objects/tactical-game-outcome.vo';
+import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command.js';
+import type { ActorFate } from '../../../domain/value-objects/tactical-game-outcome.vo.js';
 
 /** `POST /v1/tactical-games/:id/finish` (spec 013, §3). */
 export class FinishGameCommand extends AuthenticatedCommand {

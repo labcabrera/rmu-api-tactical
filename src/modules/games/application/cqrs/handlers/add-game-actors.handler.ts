@@ -1,15 +1,15 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors';
-import { isCharacterNotAble, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port';
-import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
-import { Game } from '../../../domain/aggregates/game';
-import { Actor } from '../../../domain/value-objects/actor.vo';
-import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port';
-import { type NpcPort, NPC_PORT } from '../../ports/npc.port';
-import { AddGameActorsCommand } from '../commands/add-game-actors.command';
-import type { CreateGameCommandActor } from '../commands/create-game.command';
-import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { isCharacterNotAble, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port.js';
+import type { CharacterPort } from '../../../../strategic/application/ports/character.port.js';
+import { Game } from '../../../domain/aggregates/game.js';
+import { Actor } from '../../../domain/value-objects/actor.vo.js';
+import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port.js';
+import { type NpcPort, NPC_PORT } from '../../ports/npc.port.js';
+import { AddGameActorsCommand } from '../commands/add-game-actors.command.js';
+import type { CreateGameCommandActor } from '../commands/create-game.command.js';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 @CommandHandler(AddGameActorsCommand)
 export class AddGameActorsHandler implements ICommandHandler<AddGameActorsCommand, Game> {

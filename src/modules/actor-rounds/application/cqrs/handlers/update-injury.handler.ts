@@ -1,10 +1,10 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
-import { NotFoundError } from '../../../../shared/domain/errors/errors';
-import { ActorRound } from '../../../domain/aggregates/actor-round';
-import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port';
-import { UpdateInjuryCommand } from '../commands/update-injury.command';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
+import { NotFoundError } from '../../../../shared/domain/errors/errors.js';
+import { ActorRound } from '../../../domain/aggregates/actor-round.js';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port.js';
+import { UpdateInjuryCommand } from '../commands/update-injury.command.js';
 
 /** Loads the actor round of an injury change and checks that its game is not finished. */
 export const loadActorRoundOfInjury = async (

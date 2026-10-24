@@ -1,11 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsBoolean, IsIn, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
-import { CreateActionCommand } from '../../../application/cqrs/commands/create-action.command';
-import { FORCE_REASONS } from '../../../domain/value-objects/action-resolution.vo';
-import type { ForceReason } from '../../../domain/value-objects/action-resolution.vo';
-import type { ActionType } from '../../../domain/value-objects/action-type.vo';
-import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo';
+import { CreateActionCommand } from '../../../application/cqrs/commands/create-action.command.js';
+import { FORCE_REASONS } from '../../../domain/value-objects/action-resolution.vo.js';
+import type { ForceReason } from '../../../domain/value-objects/action-resolution.vo.js';
+import type { ActionType } from '../../../domain/value-objects/action-type.vo.js';
+import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo.js';
 
 export class ActionAttackCreationDto {
   @ApiProperty({ description: 'Attack type' })

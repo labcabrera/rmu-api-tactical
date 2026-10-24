@@ -1,6 +1,6 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import type { DefenseLevel } from '../../../domain/value-objects/actor-round-defense-mode.vo';
-import type { InjurySource } from '../../../domain/value-objects/injury.vo';
+import type { DefenseLevel } from '../../../domain/value-objects/actor-round-defense-mode.vo.js';
+import type { InjurySource } from '../../../domain/value-objects/injury.vo.js';
 
 @Schema({ _id: false })
 export class ActorRoundFatigue {

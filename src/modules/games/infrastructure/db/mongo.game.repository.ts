@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { NotFoundError } from '../../../shared/domain/errors/errors';
-import { MongoBaseRepository } from '../../../shared/infrastructure/db/mongo.base.repository';
-import { RsqlParser } from '../../../shared/infrastructure/db/rsql-parser';
-import { GameRepository } from '../../application/ports/game-repository.port';
-import { Game } from '../../domain/aggregates/game';
-import { Actor } from '../../domain/value-objects/actor.vo';
-import { GameEnvironment } from '../../domain/value-objects/game-environment.vo';
-import { GameDocument, GameModel } from '../persistence/models/game.model';
+import { NotFoundError } from '../../../shared/domain/errors/errors.js';
+import { MongoBaseRepository } from '../../../shared/infrastructure/db/mongo.base.repository.js';
+import { RsqlParser } from '../../../shared/infrastructure/db/rsql-parser.js';
+import type { GameRepository } from '../../application/ports/game-repository.port.js';
+import { Game } from '../../domain/aggregates/game.js';
+import { Actor } from '../../domain/value-objects/actor.vo.js';
+import { GameEnvironment } from '../../domain/value-objects/game-environment.vo.js';
+import { type GameDocument, GameModel } from '../persistence/models/game.model.js';
 
 @Injectable()
 export class MongoGameRepository extends MongoBaseRepository<Game, GameDocument> implements GameRepository {

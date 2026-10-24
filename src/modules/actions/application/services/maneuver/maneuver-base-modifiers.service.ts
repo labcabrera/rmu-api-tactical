@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round';
-import { ValidationError } from '../../../../shared/domain/errors/errors';
-import { Character } from '../../../../strategic/application/ports/character.port';
-import { Action } from '../../../domain/aggregates/action';
-import { AP_PENALTY_PER_MISSING, ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo';
-import { SkillManeuverProfile } from '../../../domain/value-objects/maneuver-profile.vo';
-import { Pace } from '../../../domain/value-objects/pace.vo';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
+import { ValidationError } from '../../../../shared/domain/errors/errors.js';
+import type { Character } from '../../../../strategic/application/ports/character.port.js';
+import { Action } from '../../../domain/aggregates/action.js';
+import { AP_PENALTY_PER_MISSING, ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo.js';
+import type { SkillManeuverProfile } from '../../../domain/value-objects/maneuver-profile.vo.js';
+import type { Pace } from '../../../domain/value-objects/pace.vo.js';
 
 /** Bonus of a character without the skill (chapter 3). */
 export const UNSKILLED_BONUS = -25;

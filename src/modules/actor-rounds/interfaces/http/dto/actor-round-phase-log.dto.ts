@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActorRoundPhaseLog } from '../../../domain/value-objects/actor-round-phase-log.vo';
+import { ActorRoundPhaseLog } from '../../../domain/value-objects/actor-round-phase-log.vo.js';
 
 export class ActorRoundPhaseLogDto {
   @ApiProperty({ description: 'Action phase (1-4)', example: 2 })

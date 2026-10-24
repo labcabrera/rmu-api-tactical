@@ -1,4 +1,4 @@
-import { CombatContext } from './combat-context';
+import type { CombatContext } from './combat-context.js';
 
 /**
  * Phases of an attack, in order. `prepare` builds the roll modifiers, `parry` adds the declared parry,

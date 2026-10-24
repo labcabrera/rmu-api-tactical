@@ -1,15 +1,15 @@
-import type { Action } from '../../../domain/aggregates/action';
-import type { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round';
-import type { ActorRoundAttack } from '../../../../actor-rounds/domain/value-objects/actor-round-attack.vo';
-import type { ActionAttack, AttackTableEntry } from '../../../domain/value-objects/action-attack.vo';
-import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
+import type { Action } from '../../../domain/aggregates/action.js';
+import type { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
+import type { ActorRoundAttack } from '../../../../actor-rounds/domain/value-objects/actor-round-attack.vo.js';
+import type { ActionAttack, AttackTableEntry } from '../../../domain/value-objects/action-attack.vo.js';
+import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo.js';
 import type {
   CombatAttackCalculatedResult,
   CombatAttackPreparation,
   CombatAttackSourceSkill,
   CombatAttackSourceTrait,
-} from './combat-attack-calculation';
-import type { CombatModifierOrigin } from './combat-modifier-bag';
+} from './combat-attack-calculation.js';
+import type { CombatModifierOrigin } from './combat-modifier-bag.js';
 
 export interface CombatTraceEntry {
   source: string;

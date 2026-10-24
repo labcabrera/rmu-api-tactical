@@ -1,4 +1,4 @@
-import type { ForceReason } from '../../../domain/value-objects/action-resolution.vo';
+import type { ForceReason } from '../../../domain/value-objects/action-resolution.vo.js';
 
 /** What the game master does with the AP of an open action (spec 011, §2, §4 and §6). */
 export type ActionPointsOperation = 'spend-ap' | 'hold' | 'force';

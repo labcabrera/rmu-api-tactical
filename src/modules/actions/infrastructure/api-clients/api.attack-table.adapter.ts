@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { TokenService } from '../../../shared/infrastructure/security/token.service';
-import { HttpClient } from '../../../shared/infrastructure/http/http-client';
-import { AttackTableLookupRequest, AttackTablePort } from '../../application/ports/attack-table.port';
-import { AttackTableEntry } from '../../domain/value-objects/action-attack.vo';
+import { TokenService } from '../../../shared/infrastructure/security/token.service.js';
+import { HttpClient } from '../../../shared/infrastructure/http/http-client.js';
+import type { AttackTableLookupRequest, AttackTablePort } from '../../application/ports/attack-table.port.js';
+import { AttackTableEntry } from '../../domain/value-objects/action-attack.vo.js';
 
 const MIN_ROLL = 1;
 const MAX_ROLL = 175;

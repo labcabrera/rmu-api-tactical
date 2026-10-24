@@ -3,14 +3,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   COMBAT_PLUGIN_LIST,
-  CombatContext,
+  type CombatContext,
   CombatModifierBag,
   CombatPluginRegistryService,
   CombatProcessor,
-} from '../../../../src/modules/actions/application/services/combat';
-import { ActionAttackCalculated } from '../../../../src/modules/actions/domain/value-objects/action-attack-calculated.vo';
-import { ActorRoundAttack } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-attack.vo';
-import { createCombatPluginContext, rollModifierValues } from './combat-plugin-test.factory';
+} from '../../../../src/modules/actions/application/services/combat/index.js';
+import { ActionAttackCalculated } from '../../../../src/modules/actions/domain/value-objects/action-attack-calculated.vo.js';
+import { ActorRoundAttack } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-attack.vo.js';
+import { createCombatPluginContext, rollModifierValues } from './combat-plugin-test.factory.js';
 
 const processor = new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST));
 

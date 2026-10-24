@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round';
-import { InjuryTypeResolver } from '../../../src/modules/actor-rounds/domain/services/injury-type.resolver';
-import { ActorRoundEffect } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-effect.vo';
-import { buildInjury, deriveInjurySeverity, Injury } from '../../../src/modules/actor-rounds/domain/value-objects/injury.vo';
-import { effect, load } from './actor-round-test.factory';
+import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
+import { InjuryTypeResolver } from '../../../src/modules/actor-rounds/domain/services/injury-type.resolver.js';
+import { ActorRoundEffect } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-effect.vo.js';
+import { buildInjury, deriveInjurySeverity, type Injury } from '../../../src/modules/actor-rounds/domain/value-objects/injury.vo.js';
+import { effect, load } from './actor-round-test.factory.js';
 
 const injury = (penalty: number, bleeding = 0, overrides: Partial<Injury> = {}): Injury => ({
   ...buildInjury({ id: `injury-${penalty}-${bleeding}`, type: 'cut-burn', penalty, bleeding, source: { kind: 'critical' } }),

@@ -1,13 +1,13 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import type { HydratedDocument } from 'mongoose';
 
-import type { ActionStatus } from '../../../domain/value-objects/action-status.vo';
-import type { ActionType } from '../../../domain/value-objects/action-type.vo';
-import { ActionAttack } from './action-attack.model';
-import { ActionManeuver } from './action-maneuver.model';
-import { ActionMovement } from './action-movement.model';
-import { ActionParry } from './action-parry.model';
-import { ActionApRangeModel, ActionResolutionModel } from './action-resolution.model';
+import type { ActionStatus } from '../../../domain/value-objects/action-status.vo.js';
+import type { ActionType } from '../../../domain/value-objects/action-type.vo.js';
+import { ActionAttack } from './action-attack.model.js';
+import { ActionManeuver } from './action-maneuver.model.js';
+import { ActionMovement } from './action-movement.model.js';
+import { ActionParry } from './action-parry.model.js';
+import { ActionApRangeModel, ActionResolutionModel } from './action-resolution.model.js';
 
 export type ActionDocument = HydratedDocument<ActionModel>;
 

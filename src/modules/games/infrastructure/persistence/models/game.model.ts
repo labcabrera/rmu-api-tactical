@@ -1,9 +1,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import type { HydratedDocument } from 'mongoose';
-import type { GamePhase } from '../../../domain/value-objects/game-phase.vo';
-import type { GameStatus } from '../../../domain/value-objects/game-status.vo';
-import type { TacticalGameOutcome } from '../../../domain/value-objects/tactical-game-outcome.vo';
-import { Actor, GameEnvironment } from './game-childs.model';
+import type { GamePhase } from '../../../domain/value-objects/game-phase.vo.js';
+import type { GameStatus } from '../../../domain/value-objects/game-status.vo.js';
+import type { TacticalGameOutcome } from '../../../domain/value-objects/tactical-game-outcome.vo.js';
+import { Actor, GameEnvironment } from './game-childs.model.js';
 
 export type GameDocument = HydratedDocument<GameModel>;
 

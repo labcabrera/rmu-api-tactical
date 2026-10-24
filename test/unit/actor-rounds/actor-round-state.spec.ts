@@ -1,7 +1,7 @@
-import { ValidationError, UnprocessableEntityError } from '../../../src/modules/shared/domain/errors/errors';
-import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round';
-import { ActorRoundShield } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo';
-import { effect, load } from './actor-round-test.factory';
+import { ValidationError, UnprocessableEntityError } from '../../../src/modules/shared/domain/errors/errors.js';
+import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
+import { ActorRoundShield } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo.js';
+import { effect, load } from './actor-round-test.factory.js';
 
 describe('ActorRound initiative (§8.3 Initiative Phase)', () => {
   it('follows the example of Moriah: -75 to all actions gives -7', () => {

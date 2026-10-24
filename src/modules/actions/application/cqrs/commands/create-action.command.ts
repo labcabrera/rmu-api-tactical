@@ -1,6 +1,6 @@
-import { ActionType } from '../../../domain/value-objects/action-type.vo';
-import type { ForceReason } from '../../../domain/value-objects/action-resolution.vo';
-import { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo';
+import type { ActionType } from '../../../domain/value-objects/action-type.vo.js';
+import type { ForceReason } from '../../../domain/value-objects/action-resolution.vo.js';
+import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo.js';
 
 export class CreateActionCommand {
   constructor(

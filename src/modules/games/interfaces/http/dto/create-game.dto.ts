@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
-import { CreateGameCommand, CreateGameCommandActor } from '../../../application/cqrs/commands/create-game.command';
-import type { ActorType } from '../../../domain/value-objects/actor-type.vo';
+import { CreateGameCommand, CreateGameCommandActor } from '../../../application/cqrs/commands/create-game.command.js';
+import type { ActorType } from '../../../domain/value-objects/actor-type.vo.js';
 
 export class CreateGameActorDto {
   constructor(id: string, type: ActorType, faction: string | undefined) {

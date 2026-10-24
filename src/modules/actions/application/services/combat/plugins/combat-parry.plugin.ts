@@ -1,5 +1,5 @@
-import { rollModifiers } from '../combat-modifiers';
-import { CombatPlugin } from '../combat-plugin';
+import { rollModifiers } from '../combat-modifiers.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 /**
  * The declared parry. A restricted parry (§9.6 Restricted Parrying: unarmed against a weapon, an invisible or

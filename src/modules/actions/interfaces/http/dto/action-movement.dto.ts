@@ -1,10 +1,10 @@
-import type { LightType } from '../../../domain/value-objects/light-type.vo';
+import type { LightType } from '../../../domain/value-objects/light-type.vo.js';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
-import { ActionMovement, ActionMovementModifiers, ActionMovementResult } from '../../../domain/value-objects/action-movement.vo';
-import { Difficulty } from '../../../domain/value-objects/difficulty.vo';
-import type { Pace } from '../../../domain/value-objects/pace.vo';
-import { ActionRollDto } from './action-roll.dto';
+import { ActionMovement, ActionMovementModifiers, ActionMovementResult } from '../../../domain/value-objects/action-movement.vo.js';
+import type { Difficulty } from '../../../domain/value-objects/difficulty.vo.js';
+import type { Pace } from '../../../domain/value-objects/pace.vo.js';
+import { ActionRollDto } from './action-roll.dto.js';
 
 export class ActionMovementDto {
   modifiers: ActionMovementModifiersDto;

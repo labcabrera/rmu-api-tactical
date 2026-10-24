@@ -1,9 +1,9 @@
 import { Inject, Logger } from '@nestjs/common';
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { Page } from '../../../../shared/application/pagination/page';
-import { ActorRound } from '../../../domain/aggregates/actor-round';
-import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port';
-import { GetActorsRoundsQuery as GetActorRoundsQuery } from '../queries/get-actor-rounds.query';
+import { type IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { Page } from '../../../../shared/application/pagination/page.js';
+import { ActorRound } from '../../../domain/aggregates/actor-round.js';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port.js';
+import { GetActorsRoundsQuery as GetActorRoundsQuery } from '../queries/get-actor-rounds.query.js';
 
 @QueryHandler(GetActorRoundsQuery)
 export class GetActorRoundsHandler implements IQueryHandler<GetActorRoundsQuery, Page<ActorRound>> {

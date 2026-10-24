@@ -1,17 +1,24 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
-import { ActorRoundAlert } from '../../../../actor-rounds/domain/value-objects/actor-round-alert.vo';
-import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors';
-import { Action } from '../../../domain/aggregates/action';
-import { ActionUpdatedEvent } from '../../../domain/events/action.events';
-import { ActionManeuverResult } from '../../../domain/value-objects/action-maneuver.vo';
-import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port';
-import { type ManeuverPort, MANEUVER_PORT } from '../../ports/maneuver.port';
-import { ManeuverContext, ManeuverContextService, ManeuverRollCalculation } from '../../services/maneuver/maneuver-context.service';
-import { ResolveManeuverCommand } from '../commands/resolve-maneuver.command';
-import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import {
+  type ActorRoundRepository,
+  ACTOR_ROUND_REPOSITORY,
+} from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
+import { ActorRoundAlert } from '../../../../actor-rounds/domain/value-objects/actor-round-alert.vo.js';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { Action } from '../../../domain/aggregates/action.js';
+import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
+import { ActionManeuverResult } from '../../../domain/value-objects/action-maneuver.vo.js';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
+import { type ManeuverPort, MANEUVER_PORT } from '../../ports/maneuver.port.js';
+import {
+  type ManeuverContext,
+  ManeuverContextService,
+  type ManeuverRollCalculation,
+} from '../../services/maneuver/maneuver-context.service.js';
+import { ResolveManeuverCommand } from '../commands/resolve-maneuver.command.js';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 /** Unmodified roll of an unusual event (§5.1). */
 const UNUSUAL_EVENT_ROLL = 66;

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActorRoundFatigue } from '../../../domain/value-objects/actor-round-fatigue.vo';
+import { ActorRoundFatigue } from '../../../domain/value-objects/actor-round-fatigue.vo.js';
 
 export class ActorRoundFatigueDto {
   @ApiProperty({ description: 'Endurance points' })

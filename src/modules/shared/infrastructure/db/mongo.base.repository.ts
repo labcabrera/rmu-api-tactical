@@ -2,10 +2,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Logger } from '@nestjs/common';
 import type { QueryFilter, Model } from 'mongoose';
-import { BaseAggregateRoot } from '../../domain/aggregates/base-aggregate';
-import { Page } from '../../application/pagination/page';
-import { NotFoundError } from '../../domain/errors/errors';
-import { RsqlParser } from './rsql-parser';
+import { BaseAggregateRoot } from '../../domain/aggregates/base-aggregate.js';
+import { Page } from '../../application/pagination/page.js';
+import { NotFoundError } from '../../domain/errors/errors.js';
+import { RsqlParser } from './rsql-parser.js';
 
 export abstract class MongoBaseRepository<E extends BaseAggregateRoot<any>, D> {
   private readonly logger = new Logger(MongoBaseRepository.name);

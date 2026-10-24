@@ -1,4 +1,4 @@
-import { KeyValueModifier } from './key-value-modifier.vo';
+import { KeyValueModifier } from './key-value-modifier.vo.js';
 
 export class ActionRoll {
   constructor(

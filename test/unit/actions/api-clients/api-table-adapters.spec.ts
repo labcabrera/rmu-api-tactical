@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ConfigService } from '@nestjs/config';
-import { HttpClient } from '../../../../src/modules/shared/infrastructure/http/http-client';
-import type { TokenService } from '../../../../src/modules/shared/infrastructure/security/token.service';
-import { ApiAttackTableAdapter } from '../../../../src/modules/actions/infrastructure/api-clients/api.attack-table.adapter';
-import { ApiCriticalTableAdapter } from '../../../../src/modules/actions/infrastructure/api-clients/api.critical-table.adapter';
-import { ApiFumbleTableAdapter } from '../../../../src/modules/actions/infrastructure/api-clients/api.fumble-table.adapter';
-import { ValidationError } from '../../../../src/modules/shared/domain/errors/errors';
+import { HttpClient } from '../../../../src/modules/shared/infrastructure/http/http-client.js';
+import type { TokenService } from '../../../../src/modules/shared/infrastructure/security/token.service.js';
+import { ApiAttackTableAdapter } from '../../../../src/modules/actions/infrastructure/api-clients/api.attack-table.adapter.js';
+import { ApiCriticalTableAdapter } from '../../../../src/modules/actions/infrastructure/api-clients/api.critical-table.adapter.js';
+import { ApiFumbleTableAdapter } from '../../../../src/modules/actions/infrastructure/api-clients/api.fumble-table.adapter.js';
+import { ValidationError } from '../../../../src/modules/shared/domain/errors/errors.js';
 
 const BASE_URI = 'http://attack-tables/v1';
 const tokenService = { getToken: () => Promise.resolve('token') } as unknown as TokenService;

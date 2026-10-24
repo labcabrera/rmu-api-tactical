@@ -2,16 +2,16 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   CreateActionCommand,
   CreateActionCommandManeuver,
-} from '../../../../src/modules/actions/application/cqrs/commands/create-action.command';
-import { CreateActionHandler } from '../../../../src/modules/actions/application/cqrs/handlers/create-action.handler';
-import type { DomainEventPublisher } from '../../../../src/modules/shared/application/ports/domain-event-publisher.port';
-import type { ActionRepository } from '../../../../src/modules/actions/application/ports/action-repository.port';
-import type { Action } from '../../../../src/modules/actions/domain/aggregates/action';
-import type { ActorRoundRepository } from '../../../../src/modules/actor-rounds/application/ports/actor-round-repository.port';
-import type { GameRepository } from '../../../../src/modules/games/application/ports/game-repository.port';
-import type { CharacterPort } from '../../../../src/modules/strategic/application/ports/character.port';
-import { load } from '../../actor-rounds/actor-round-test.factory';
-import { action, setupManeuver } from './maneuver-test.factory';
+} from '../../../../src/modules/actions/application/cqrs/commands/create-action.command.js';
+import { CreateActionHandler } from '../../../../src/modules/actions/application/cqrs/handlers/create-action.handler.js';
+import type { DomainEventPublisher } from '../../../../src/modules/shared/application/ports/domain-event-publisher.port.js';
+import type { ActionRepository } from '../../../../src/modules/actions/application/ports/action-repository.port.js';
+import type { Action } from '../../../../src/modules/actions/domain/aggregates/action.js';
+import type { ActorRoundRepository } from '../../../../src/modules/actor-rounds/application/ports/actor-round-repository.port.js';
+import type { GameRepository } from '../../../../src/modules/games/application/ports/game-repository.port.js';
+import type { CharacterPort } from '../../../../src/modules/strategic/application/ports/character.port.js';
+import { load } from '../../actor-rounds/actor-round-test.factory.js';
+import { action, setupManeuver } from './maneuver-test.factory.js';
 
 const previous = (overrides: Partial<Action> = {}, progress = 60, completed = false): Action =>
   action({

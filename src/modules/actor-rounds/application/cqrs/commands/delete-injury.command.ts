@@ -1,4 +1,4 @@
-import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command';
+import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command.js';
 
 /** `DELETE /v1/actor-rounds/:id/injuries/:injuryId`: the game master removes an injury. */
 export class DeleteInjuryCommand extends AuthenticatedCommand {

@@ -1,5 +1,5 @@
-import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command';
-import type { BreakageModifier } from '../../../domain/services/breakage-resolver';
+import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command.js';
+import type { BreakageModifier } from '../../../domain/services/breakage-resolver.js';
 
 /** `POST /v1/actor-rounds/:id/breakage-checks` (spec 019, §2): a breakage check of an item of the actor. */
 export class ResolveBreakageCheckCommand extends AuthenticatedCommand {

@@ -1,18 +1,18 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsBoolean, IsIn, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
-import { PrepareAttackCommandItem, PrepareAttackCommandModifiers } from '../../../application/cqrs/commands/prepare-attack.command';
-import { ValidationError } from '../../../../shared/domain/errors/errors';
+import { PrepareAttackCommandItem, PrepareAttackCommandModifiers } from '../../../application/cqrs/commands/prepare-attack.command.js';
+import { ValidationError } from '../../../../shared/domain/errors/errors.js';
 import {
-  CalledShot,
-  ChargeSpeed,
-  Cover,
+  type CalledShot,
+  type ChargeSpeed,
+  type Cover,
   normalizeChargeSpeed,
-  PositionalSource,
-  PositionalTarget,
+  type PositionalSource,
+  type PositionalTarget,
   PROTECT_POSITIONS,
-  ProtectPosition,
-  RestrictedQuarters,
-} from '../../../domain/value-objects/action-attack-modifiers.vo';
+  type ProtectPosition,
+  type RestrictedQuarters,
+} from '../../../domain/value-objects/action-attack-modifiers.vo.js';
 
 export class PrepareAttackModifiersDto {
   @ApiProperty({ description: 'Target actor round identifier', example: 'actor-round-003' })

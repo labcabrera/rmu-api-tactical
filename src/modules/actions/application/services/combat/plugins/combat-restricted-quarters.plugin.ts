@@ -1,6 +1,6 @@
-import { RestrictedQuarters } from '../../../../domain/value-objects/action-attack-modifiers.vo';
-import { isPreparing, preparation, rollModifiers, sourceSkill } from '../combat-modifiers';
-import { CombatPlugin } from '../combat-plugin';
+import type { RestrictedQuarters } from '../../../../domain/value-objects/action-attack-modifiers.vo.js';
+import { isPreparing, preparation, rollModifiers, sourceSkill } from '../combat-modifiers.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 const restrictedQuartersModifiers: Record<RestrictedQuarters, number> = {
   none: 0,

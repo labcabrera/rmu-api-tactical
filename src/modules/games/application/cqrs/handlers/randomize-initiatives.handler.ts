@@ -1,13 +1,16 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { DeclareInitiativeCommand } from '../../../../actor-rounds/application/cqrs/commands/declare-initiative.command';
-import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
-import { NotFoundError } from '../../../../shared/domain/errors/errors';
-import { Game } from '../../../domain/aggregates/game';
-import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port';
-import { RandomizeInitiativesCommand } from '../commands/randomize-initiatives.command';
-import { StartRoundCommand } from '../commands/start-round.command';
-import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
+import { CommandBus, CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { DeclareInitiativeCommand } from '../../../../actor-rounds/application/cqrs/commands/declare-initiative.command.js';
+import {
+  type ActorRoundRepository,
+  ACTOR_ROUND_REPOSITORY,
+} from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
+import { NotFoundError } from '../../../../shared/domain/errors/errors.js';
+import { Game } from '../../../domain/aggregates/game.js';
+import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port.js';
+import { RandomizeInitiativesCommand } from '../commands/randomize-initiatives.command.js';
+import { StartRoundCommand } from '../commands/start-round.command.js';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 @CommandHandler(RandomizeInitiativesCommand)
 export class RandomizeInitiativesHandler implements ICommandHandler<RandomizeInitiativesCommand, Game> {

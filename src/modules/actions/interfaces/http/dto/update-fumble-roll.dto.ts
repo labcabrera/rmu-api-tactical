@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
-import { UpdateFumbleRollCommand } from '../../../application/cqrs/commands/update-fumble-roll.command';
+import { UpdateFumbleRollCommand } from '../../../application/cqrs/commands/update-fumble-roll.command.js';
 
 export class UpdateFumbleRollDto {
   @ApiProperty({ description: 'Attack name', example: 'mainHand' })

@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { ActorType } from '../../../domain/value-objects/actor-type.vo';
-import { Actor } from '../../../domain/value-objects/actor.vo';
-import { ActorRoundFactionDto } from './actor-round-faction.dto';
+import type { ActorType } from '../../../domain/value-objects/actor-type.vo.js';
+import { Actor } from '../../../domain/value-objects/actor.vo.js';
+import { ActorRoundFactionDto } from './actor-round-faction.dto.js';
 
 export class ActorDto {
   @ApiProperty({ description: 'Actor unique identifier', example: 'actor-001' })

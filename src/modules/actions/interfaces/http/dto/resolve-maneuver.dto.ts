@@ -1,12 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsIn, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
-import { ManeuverRoll, ResolveManeuverCommand, ResolveManeuverRequest } from '../../../application/cqrs/commands/resolve-maneuver.command';
-import type { Difficulty } from '../../../domain/value-objects/difficulty.vo';
-import type { LightType } from '../../../domain/value-objects/light-type.vo';
-import type { LightManeuverModifier } from '../../../domain/value-objects/light-maneuver-modifier.vo';
-import type { ManeuverModifierSelection } from '../../../domain/value-objects/maneuver-profile.vo';
-import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo';
+import {
+  ManeuverRoll,
+  ResolveManeuverCommand,
+  ResolveManeuverRequest,
+} from '../../../application/cqrs/commands/resolve-maneuver.command.js';
+import type { Difficulty } from '../../../domain/value-objects/difficulty.vo.js';
+import type { LightType } from '../../../domain/value-objects/light-type.vo.js';
+import type { LightManeuverModifier } from '../../../domain/value-objects/light-maneuver-modifier.vo.js';
+import type { ManeuverModifierSelection } from '../../../domain/value-objects/maneuver-profile.vo.js';
+import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo.js';
 
 export class ManeuverRollDto {
   @ApiProperty({ description: 'Total of the open-ended roll', example: 87 })

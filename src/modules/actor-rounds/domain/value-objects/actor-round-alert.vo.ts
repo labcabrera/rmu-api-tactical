@@ -1,8 +1,8 @@
 import { randomUUID } from 'crypto';
-import { AttackLocation } from '../../../actions/domain/value-objects/attack-location.vo';
-import { ActorRoundAlertModifier } from './actor-round-alert-modifier.vo';
-import type { ActorRoundAlertStatus } from './actor-round-alert-status.vo';
-import { ActorRoundAlertType } from './actor-round-alert-type.vo';
+import type { AttackLocation } from '../../../actions/domain/value-objects/attack-location.vo.js';
+import { ActorRoundAlertModifier } from './actor-round-alert-modifier.vo.js';
+import type { ActorRoundAlertStatus } from './actor-round-alert-status.vo.js';
+import type { ActorRoundAlertType } from './actor-round-alert-type.vo.js';
 
 /** The fields of a stored alert. */
 export type ActorRoundAlertData = Pick<ActorRoundAlert, 'id' | 'type' | 'message' | 'modifiers' | 'status'>;

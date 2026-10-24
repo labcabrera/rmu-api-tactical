@@ -1,6 +1,6 @@
-import { DIFFICULTY_MAP, Difficulty } from '../../../actions/domain/value-objects/difficulty.vo';
-import { ValidationError } from '../../../shared/domain/errors/errors';
-import { HealingType, Injury, MedicalResult } from '../value-objects/injury.vo';
+import { DIFFICULTY_MAP, type Difficulty } from '../../../actions/domain/value-objects/difficulty.vo.js';
+import { ValidationError } from '../../../shared/domain/errors/errors.js';
+import type { HealingType, Injury, MedicalResult } from '../value-objects/injury.vo.js';
 
 /** Procedures that can be done during a tactical game (spec 013, §3). */
 export type TacticalProcedure = 'pressure' | 'stitches' | 'tourniquet' | 'cauterize' | 'dress' | 'magic';

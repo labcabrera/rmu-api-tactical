@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNumber, IsOptional } from 'class-validator';
-import { GameEnvironment } from '../../../domain/value-objects/game-environment.vo';
+import { GameEnvironment } from '../../../domain/value-objects/game-environment.vo.js';
 
 export class GameEnvironmentDto {
   @ApiProperty({ type: Number, description: 'Temperature fatigue modifier', required: false, example: -10 })

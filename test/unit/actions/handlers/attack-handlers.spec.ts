@@ -1,36 +1,36 @@
-import { ActorRoundAttack } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-attack.vo';
-import { ActorRoundPenalty } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-penalty.vo';
-import { ActorRoundPenaltyModifier } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-penalty-modifier.vo';
+import { ActorRoundAttack } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-attack.vo.js';
+import { ActorRoundPenalty } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-penalty.vo.js';
+import { ActorRoundPenaltyModifier } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-penalty-modifier.vo.js';
 import { describe, expect, it, vi } from 'vitest';
-import { ActionAttackCalculated } from '../../../../src/modules/actions/domain/value-objects/action-attack-calculated.vo';
-import { ActionAttackRoll } from '../../../../src/modules/actions/domain/value-objects/action-attack-roll.vo';
-import { ActionAttackResult, AttackTableEntry, Fumble } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo';
-import { ActionParry } from '../../../../src/modules/actions/domain/value-objects/action-attack-parry.vo';
-import { Critical } from '../../../../src/modules/actions/domain/value-objects/critical.vo';
-import { CriticalResult } from '../../../../src/modules/actions/domain/value-objects/critical-result.vo';
-import { KeyValueModifier } from '../../../../src/modules/actions/domain/value-objects/key-value-modifier.vo';
-import type { Action } from '../../../../src/modules/actions/domain/aggregates/action';
-import type { DomainEventPublisher } from '../../../../src/modules/shared/application/ports/domain-event-publisher.port';
-import type { ActionRepository } from '../../../../src/modules/actions/application/ports/action-repository.port';
-import type { CriticalTableLookupRequest } from '../../../../src/modules/actions/application/ports/critical-table.port';
-import type { FumbleTableLookupRequest } from '../../../../src/modules/actions/application/ports/fumble-table.port';
-import type { ActorRoundRepository } from '../../../../src/modules/actor-rounds/application/ports/actor-round-repository.port';
-import type { GameRepository } from '../../../../src/modules/games/application/ports/game-repository.port';
+import { ActionAttackCalculated } from '../../../../src/modules/actions/domain/value-objects/action-attack-calculated.vo.js';
+import { ActionAttackRoll } from '../../../../src/modules/actions/domain/value-objects/action-attack-roll.vo.js';
+import { ActionAttackResult, AttackTableEntry, Fumble } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo.js';
+import { ActionParry } from '../../../../src/modules/actions/domain/value-objects/action-attack-parry.vo.js';
+import { Critical } from '../../../../src/modules/actions/domain/value-objects/critical.vo.js';
+import { CriticalResult } from '../../../../src/modules/actions/domain/value-objects/critical-result.vo.js';
+import { KeyValueModifier } from '../../../../src/modules/actions/domain/value-objects/key-value-modifier.vo.js';
+import type { Action } from '../../../../src/modules/actions/domain/aggregates/action.js';
+import type { DomainEventPublisher } from '../../../../src/modules/shared/application/ports/domain-event-publisher.port.js';
+import type { ActionRepository } from '../../../../src/modules/actions/application/ports/action-repository.port.js';
+import type { CriticalTableLookupRequest } from '../../../../src/modules/actions/application/ports/critical-table.port.js';
+import type { FumbleTableLookupRequest } from '../../../../src/modules/actions/application/ports/fumble-table.port.js';
+import type { ActorRoundRepository } from '../../../../src/modules/actor-rounds/application/ports/actor-round-repository.port.js';
+import type { GameRepository } from '../../../../src/modules/games/application/ports/game-repository.port.js';
 import {
   COMBAT_PLUGIN_LIST,
   CombatAttackRollResolverService,
   CombatPluginRegistryService,
   CombatProcessor,
-} from '../../../../src/modules/actions/application/services/combat';
-import { UpdateCriticalRollHandler } from '../../../../src/modules/actions/application/cqrs/handlers/update-critical-roll.handler';
-import { UpdateFumbleRollHandler } from '../../../../src/modules/actions/application/cqrs/handlers/update-fumble-roll.handler';
-import { DeclareParryHandler } from '../../../../src/modules/actions/application/cqrs/handlers/declare-parry.handler';
-import { UpdateAttackRollHandler } from '../../../../src/modules/actions/application/cqrs/handlers/update-attack-roll.handler';
-import { UpdateCriticalRollCommand } from '../../../../src/modules/actions/application/cqrs/commands/update-critical-roll.command';
-import { UpdateFumbleRollCommand } from '../../../../src/modules/actions/application/cqrs/commands/update-fumble-roll.command';
-import { DeclareParryCommand, DeclareParryItem } from '../../../../src/modules/actions/application/cqrs/commands/declare-parry.command';
-import { UpdateAttackRollCommand } from '../../../../src/modules/actions/application/cqrs/commands/update-attack-roll.command';
-import { createCombatPluginContext } from '../combat/combat-plugin-test.factory';
+} from '../../../../src/modules/actions/application/services/combat/index.js';
+import { UpdateCriticalRollHandler } from '../../../../src/modules/actions/application/cqrs/handlers/update-critical-roll.handler.js';
+import { UpdateFumbleRollHandler } from '../../../../src/modules/actions/application/cqrs/handlers/update-fumble-roll.handler.js';
+import { DeclareParryHandler } from '../../../../src/modules/actions/application/cqrs/handlers/declare-parry.handler.js';
+import { UpdateAttackRollHandler } from '../../../../src/modules/actions/application/cqrs/handlers/update-attack-roll.handler.js';
+import { UpdateCriticalRollCommand } from '../../../../src/modules/actions/application/cqrs/commands/update-critical-roll.command.js';
+import { UpdateFumbleRollCommand } from '../../../../src/modules/actions/application/cqrs/commands/update-fumble-roll.command.js';
+import { DeclareParryCommand, DeclareParryItem } from '../../../../src/modules/actions/application/cqrs/commands/declare-parry.command.js';
+import { UpdateAttackRollCommand } from '../../../../src/modules/actions/application/cqrs/commands/update-attack-roll.command.js';
+import { createCombatPluginContext } from '../combat/combat-plugin-test.factory.js';
 
 const processor = () => new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST));
 

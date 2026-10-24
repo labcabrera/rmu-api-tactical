@@ -1,5 +1,5 @@
-import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command';
-import { GameEnvironment } from '../../../domain/value-objects/game-environment.vo';
+import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command.js';
+import { GameEnvironment } from '../../../domain/value-objects/game-environment.vo.js';
 
 export class UpdateGameCommand extends AuthenticatedCommand {
   constructor(

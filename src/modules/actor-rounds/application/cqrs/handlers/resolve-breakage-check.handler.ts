@@ -1,10 +1,10 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
-import { NotFoundError } from '../../../../shared/domain/errors/errors';
-import { ActorRound } from '../../../domain/aggregates/actor-round';
-import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port';
-import { ResolveBreakageCheckCommand } from '../commands/resolve-breakage-check.command';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
+import { NotFoundError } from '../../../../shared/domain/errors/errors.js';
+import { ActorRound } from '../../../domain/aggregates/actor-round.js';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port.js';
+import { ResolveBreakageCheckCommand } from '../commands/resolve-breakage-check.command.js';
 
 /**
  * Breakage check (§6.1, spec 019): the roll of an item of the actor resolved on Table 6-1. The damage goes to the

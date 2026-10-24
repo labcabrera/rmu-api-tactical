@@ -1,12 +1,12 @@
-import type { GameRepository } from '../../../src/modules/games/application/ports/game-repository.port';
+import type { GameRepository } from '../../../src/modules/games/application/ports/game-repository.port.js';
 import { describe, expect, it, vi } from 'vitest';
-import type { EnduranceManeuverResult, ManeuverPort } from '../../../src/modules/actions/application/ports/maneuver.port';
-import { ResolveEnduranceCheckCommand } from '../../../src/modules/actor-rounds/application/cqrs/commands/resolve-endurance-check.command';
-import { ResolveEnduranceCheckHandler } from '../../../src/modules/actor-rounds/application/cqrs/handlers/resolve-endurance-check.handler';
-import type { ActorRoundRepository } from '../../../src/modules/actor-rounds/application/ports/actor-round-repository.port';
-import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round';
-import { ActorRoundAlert } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-alert.vo';
-import { load } from './actor-round-test.factory';
+import type { EnduranceManeuverResult, ManeuverPort } from '../../../src/modules/actions/application/ports/maneuver.port.js';
+import { ResolveEnduranceCheckCommand } from '../../../src/modules/actor-rounds/application/cqrs/commands/resolve-endurance-check.command.js';
+import { ResolveEnduranceCheckHandler } from '../../../src/modules/actor-rounds/application/cqrs/handlers/resolve-endurance-check.handler.js';
+import type { ActorRoundRepository } from '../../../src/modules/actor-rounds/application/ports/actor-round-repository.port.js';
+import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
+import { ActorRoundAlert } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-alert.vo.js';
+import { load } from './actor-round-test.factory.js';
 
 const fatiguePenalty = (round: ActorRound) => round.getPenaltiesBySource().find(p => p.source === 'fatigue')?.value;
 

@@ -1,6 +1,6 @@
-import { PositionalSource } from '../../../../domain/value-objects/action-attack-modifiers.vo';
-import { isMelee, isPreparing, preparation, rollModifiers, sourceSkill } from '../combat-modifiers';
-import { CombatPlugin } from '../combat-plugin';
+import type { PositionalSource } from '../../../../domain/value-objects/action-attack-modifiers.vo.js';
+import { isMelee, isPreparing, preparation, rollModifiers, sourceSkill } from '../combat-modifiers.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 const positionalSourceModifiers: Record<PositionalSource, number> = {
   none: 0,

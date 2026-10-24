@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Page } from '../../../shared/application/pagination/page';
-import { NotFoundError } from '../../../shared/domain/errors/errors';
-import { RsqlParser } from '../../../shared/infrastructure/db/rsql-parser';
-import { ActionRepository } from '../../application/ports/action-repository.port';
-import { Action } from '../../domain/aggregates/action';
-import { ActionResolution } from '../../domain/value-objects/action-resolution.vo';
-import { ActionDocument, ActionModel } from '../persistence/models/action.model';
+import { Page } from '../../../shared/application/pagination/page.js';
+import { NotFoundError } from '../../../shared/domain/errors/errors.js';
+import { RsqlParser } from '../../../shared/infrastructure/db/rsql-parser.js';
+import type { ActionRepository } from '../../application/ports/action-repository.port.js';
+import { Action } from '../../domain/aggregates/action.js';
+import { ActionResolution } from '../../domain/value-objects/action-resolution.vo.js';
+import { type ActionDocument, ActionModel } from '../persistence/models/action.model.js';
 
 @Injectable()
 export class MongoActionRepository implements ActionRepository {

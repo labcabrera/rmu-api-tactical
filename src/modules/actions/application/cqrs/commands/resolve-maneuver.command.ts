@@ -1,8 +1,8 @@
-import { Difficulty } from '../../../domain/value-objects/difficulty.vo';
-import { LightType } from '../../../domain/value-objects/light-type.vo';
-import { LightManeuverModifier } from '../../../domain/value-objects/light-maneuver-modifier.vo';
-import { ManeuverModifierSelection } from '../../../domain/value-objects/maneuver-profile.vo';
-import { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo';
+import type { Difficulty } from '../../../domain/value-objects/difficulty.vo.js';
+import type { LightType } from '../../../domain/value-objects/light-type.vo.js';
+import type { LightManeuverModifier } from '../../../domain/value-objects/light-maneuver-modifier.vo.js';
+import type { ManeuverModifierSelection } from '../../../domain/value-objects/maneuver-profile.vo.js';
+import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo.js';
 
 /** What the client chose for the roll (spec 010 §4.1). The API computes every value. */
 export class ResolveManeuverRequest {

@@ -1,10 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActionAttack } from '../../../domain/value-objects/action-attack.vo';
-import type { AttackStatus } from '../../../domain/value-objects/attack-status.vo';
-import { ActionAttackCalculatedDto } from './action-attack-calculated.dto';
-import { ActionAttackModifiersDto } from './action-attack-modifiers.dto';
-import { ActionAttackResultsDto } from './action-attack-results.dto';
-import { ActionAttackRollDto } from './action-attack-roll.dto';
+import { ActionAttack } from '../../../domain/value-objects/action-attack.vo.js';
+import type { AttackStatus } from '../../../domain/value-objects/attack-status.vo.js';
+import { ActionAttackCalculatedDto } from './action-attack-calculated.dto.js';
+import { ActionAttackModifiersDto } from './action-attack-modifiers.dto.js';
+import { ActionAttackResultsDto } from './action-attack-results.dto.js';
+import { ActionAttackRollDto } from './action-attack-roll.dto.js';
 
 export class ActionAttackDto {
   @ApiProperty({ description: 'Name of the attack', example: 'mainHand' })

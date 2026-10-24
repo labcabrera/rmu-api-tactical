@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ResolveBreakageCheckCommand } from '../../../src/modules/actor-rounds/application/cqrs/commands/resolve-breakage-check.command';
-import { ResolveBreakageCheckHandler } from '../../../src/modules/actor-rounds/application/cqrs/handlers/resolve-breakage-check.handler';
-import type { ActorRoundRepository } from '../../../src/modules/actor-rounds/application/ports/actor-round-repository.port';
-import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round';
-import { ActorRoundCharacterMapperAdapter } from '../../../src/modules/actor-rounds/infrastructure/mappers/actor-round-character-mapper.adapter';
-import type { GameRepository } from '../../../src/modules/games/application/ports/game-repository.port';
-import type { Character } from '../../../src/modules/strategic/application/ports/character.port';
-import type { StrategicItem } from '../../../src/modules/strategic/application/ports/item.port';
+import { ResolveBreakageCheckCommand } from '../../../src/modules/actor-rounds/application/cqrs/commands/resolve-breakage-check.command.js';
+import { ResolveBreakageCheckHandler } from '../../../src/modules/actor-rounds/application/cqrs/handlers/resolve-breakage-check.handler.js';
+import type { ActorRoundRepository } from '../../../src/modules/actor-rounds/application/ports/actor-round-repository.port.js';
+import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
+import { ActorRoundCharacterMapperAdapter } from '../../../src/modules/actor-rounds/infrastructure/mappers/actor-round-character-mapper.adapter.js';
+import type { GameRepository } from '../../../src/modules/games/application/ports/game-repository.port.js';
+import type { Character } from '../../../src/modules/strategic/application/ports/character.port.js';
+import type { StrategicItem } from '../../../src/modules/strategic/application/ports/item.port.js';
 
 const character = (): Character =>
   ({

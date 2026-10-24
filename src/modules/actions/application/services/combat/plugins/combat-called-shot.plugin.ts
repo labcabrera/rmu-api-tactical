@@ -1,6 +1,6 @@
-import { ActionAttack } from '../../../../domain/value-objects/action-attack.vo';
-import { isPreparing, preparation, rollModifiers, sourceSkill } from '../combat-modifiers';
-import { CombatPlugin } from '../combat-plugin';
+import { ActionAttack } from '../../../../domain/value-objects/action-attack.vo.js';
+import { isPreparing, preparation, rollModifiers, sourceSkill } from '../combat-modifiers.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 const DEFAULT_PENALTY = -25;
 

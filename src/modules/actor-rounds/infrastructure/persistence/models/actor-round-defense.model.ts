@@ -1,5 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import { ActorRoundShield } from './actor-round-shield.model';
+import { ActorRoundShield } from './actor-round-shield.model.js';
 
 @Schema({ _id: false })
 export class ActorRoundDefense {

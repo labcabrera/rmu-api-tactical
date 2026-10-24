@@ -1,9 +1,9 @@
-import { ActionRoll } from './action-roll.vo';
-import { Difficulty } from './difficulty.vo';
-import { LightType } from './light-type.vo';
-import { LightManeuverModifier } from './light-maneuver-modifier.vo';
-import type { ManeuverModifierSelection } from './maneuver-profile.vo';
-import { ManeuverType } from './maneuver-type.vo';
+import { ActionRoll } from './action-roll.vo.js';
+import type { Difficulty } from './difficulty.vo.js';
+import type { LightType } from './light-type.vo.js';
+import type { LightManeuverModifier } from './light-maneuver-modifier.vo.js';
+import type { ManeuverModifierSelection } from './maneuver-profile.vo.js';
+import type { ManeuverType } from './maneuver-type.vo.js';
 
 export class ActionManeuver {
   constructor(

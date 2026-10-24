@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
-  ManeuverBaseInput,
+  type ManeuverBaseInput,
   ManeuverBaseModifiersService,
-} from '../../../../src/modules/actions/application/services/maneuver/maneuver-base-modifiers.service';
-import type { Character } from '../../../../src/modules/strategic/application/ports/character.port';
-import { load } from '../../actor-rounds/actor-round-test.factory';
-import { action, movementAction, profile } from './maneuver-test.factory';
+} from '../../../../src/modules/actions/application/services/maneuver/maneuver-base-modifiers.service.js';
+import type { Character } from '../../../../src/modules/strategic/application/ports/character.port.js';
+import { load } from '../../actor-rounds/actor-round-test.factory.js';
+import { action, movementAction, profile } from './maneuver-test.factory.js';
 
 const service = new ManeuverBaseModifiersService();
 

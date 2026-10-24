@@ -1,15 +1,15 @@
-import type { ActorRoundItem } from '../../../domain/value-objects/actor-round-item.vo';
+import type { ActorRoundItem } from '../../../domain/value-objects/actor-round-item.vo.js';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import type { HydratedDocument } from 'mongoose';
-import type { Injury } from '../../../domain/value-objects/injury.vo';
-import { ActorRoundAlert } from './actor-round-alert.model';
-import { ActorRoundAttack } from './actor-round-attack.model';
-import { ActorRoundDefense } from './actor-round-defense.model';
-import { ActorRoundHP } from './actor-round-hp.model';
-import { ActorRoundInitiative } from './actor-round-initiative.model';
-import { ActorRoundMovement } from './actor-round-movement.model';
-import { ActorRoundPenalty } from './actor-round-penalty.model';
-import { ActorRoundUsedBo } from './actor-round-used-bo.model';
+import type { Injury } from '../../../domain/value-objects/injury.vo.js';
+import { ActorRoundAlert } from './actor-round-alert.model.js';
+import { ActorRoundAttack } from './actor-round-attack.model.js';
+import { ActorRoundDefense } from './actor-round-defense.model.js';
+import { ActorRoundHP } from './actor-round-hp.model.js';
+import { ActorRoundInitiative } from './actor-round-initiative.model.js';
+import { ActorRoundMovement } from './actor-round-movement.model.js';
+import { ActorRoundPenalty } from './actor-round-penalty.model.js';
+import { ActorRoundUsedBo } from './actor-round-used-bo.model.js';
 import {
   ActorRoundApLedgerEntry,
   ActorRoundApModifier,
@@ -20,7 +20,7 @@ import {
   ActorRoundPhaseLog,
   ActorRoundSnapshot,
   ActorRoundTrait,
-} from './actor-round-childs.model';
+} from './actor-round-childs.model.js';
 
 export type ActorRoundDocument = HydratedDocument<ActorRoundModel>;
 

@@ -1,6 +1,6 @@
-import { PositionalTarget } from '../../../../domain/value-objects/action-attack-modifiers.vo';
-import { isMelee, isPreparing, preparation, rollModifiers, targetIsFlatfooted } from '../combat-modifiers';
-import { CombatPlugin } from '../combat-plugin';
+import type { PositionalTarget } from '../../../../domain/value-objects/action-attack-modifiers.vo.js';
+import { isMelee, isPreparing, preparation, rollModifiers, targetIsFlatfooted } from '../combat-modifiers.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 const positionalTargetModifiers: Record<PositionalTarget, number> = {
   none: 0,

@@ -1,13 +1,13 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
-import { NotFoundError } from '../../../../shared/domain/errors/errors';
-import { Action } from '../../../domain/aggregates/action';
-import { ActionUpdatedEvent } from '../../../domain/events/action.events';
-import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port';
-import { ActionApStateService } from '../../services/action-ap-state.service';
-import { UpdateActionCommand } from '../commands/update-action.command';
-import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
+import { NotFoundError } from '../../../../shared/domain/errors/errors.js';
+import { Action } from '../../../domain/aggregates/action.js';
+import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
+import { ActionApStateService } from '../../services/action-ap-state.service.js';
+import { UpdateActionCommand } from '../commands/update-action.command.js';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 /** `PATCH /v1/actions/:id`: only the description changes. */
 @CommandHandler(UpdateActionCommand)

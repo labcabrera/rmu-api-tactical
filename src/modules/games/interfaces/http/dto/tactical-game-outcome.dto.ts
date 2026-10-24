@@ -1,16 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { ArrayUnique, IsArray, IsIn, IsString, ValidateNested } from 'class-validator';
-import type { CharacterCondition } from '../../../../actor-rounds/domain/value-objects/injury.vo';
-import { InjuryDto } from '../../../../actor-rounds/interfaces/http/dto/actor-round-injury.dto';
-import { HpBySourceDto, HpLogEntryDto } from '../../../../actor-rounds/interfaces/http/dto/hp-log-entry.dto';
-import { ActorFate, AtRiskActor, CHARACTER_FATES } from '../../../domain/value-objects/tactical-game-outcome.vo';
+import type { CharacterCondition } from '../../../../actor-rounds/domain/value-objects/injury.vo.js';
+import { InjuryDto } from '../../../../actor-rounds/interfaces/http/dto/actor-round-injury.dto.js';
+import { HpBySourceDto, HpLogEntryDto } from '../../../../actor-rounds/interfaces/http/dto/hp-log-entry.dto.js';
+import { type ActorFate, type AtRiskActor, CHARACTER_FATES } from '../../../domain/value-objects/tactical-game-outcome.vo.js';
 import type {
   CharacterFate,
   TacticalGameOutcome,
   TacticalGameOutcomeCharacter,
   TacticalItemOutcome,
-} from '../../../domain/value-objects/tactical-game-outcome.vo';
+} from '../../../domain/value-objects/tactical-game-outcome.vo.js';
 
 export class OutcomeHpDto {
   @ApiProperty()

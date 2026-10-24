@@ -4,7 +4,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   HealthCheck,
   HealthCheckService,
-  HealthIndicatorResult,
+  type HealthIndicatorResult,
   HealthIndicatorService,
   MemoryHealthIndicator,
   MongooseHealthIndicator,

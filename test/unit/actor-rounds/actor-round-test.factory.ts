@@ -1,15 +1,15 @@
 import { randomUUID } from 'crypto';
-import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round';
-import { ActorRoundAttack } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-attack.vo';
-import { ActorRoundDefense } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-defense.vo';
-import { ActorRoundEffect } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-effect.vo';
-import { ActorRoundHP } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-hp.vo';
-import { ActorRoundInitiative } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-initiative.vo';
-import { ActorRoundPenaltyModifier } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-penalty-modifier.vo';
-import { ActorRoundPenalty } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-penalty.vo';
-import { ActorRoundShield } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo';
-import { ActorRoundTrait } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-trait.vo';
-import type { Injury } from '../../../src/modules/actor-rounds/domain/value-objects/injury.vo';
+import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
+import { ActorRoundAttack } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-attack.vo.js';
+import { ActorRoundDefense } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-defense.vo.js';
+import { ActorRoundEffect } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-effect.vo.js';
+import { ActorRoundHP } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-hp.vo.js';
+import { ActorRoundInitiative } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-initiative.vo.js';
+import { ActorRoundPenaltyModifier } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-penalty-modifier.vo.js';
+import { ActorRoundPenalty } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-penalty.vo.js';
+import { ActorRoundShield } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo.js';
+import { ActorRoundTrait } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-trait.vo.js';
+import type { Injury } from '../../../src/modules/actor-rounds/domain/value-objects/injury.vo.js';
 
 export const attack = (attackName: string, baseBo: number, currentBo = baseBo, type: 'melee' | 'ranged' = 'melee') =>
   new ActorRoundAttack(attackName, [], baseBo, currentBo, type, 'arming-sword', 'melee-one-hand', 0, 3, false, null, null);

@@ -1,11 +1,11 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
-import { Game } from '../../../../games/domain/aggregates/game';
-import { NotFoundError } from '../../../../shared/domain/errors/errors';
-import { ActorRound, EffectApplication } from '../../../domain/aggregates/actor-round';
-import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port';
-import { AddEffectsCommand } from '../commands/add-effects.command';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
+import { Game } from '../../../../games/domain/aggregates/game.js';
+import { NotFoundError } from '../../../../shared/domain/errors/errors.js';
+import { ActorRound, type EffectApplication } from '../../../domain/aggregates/actor-round.js';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port.js';
+import { AddEffectsCommand } from '../commands/add-effects.command.js';
 
 @CommandHandler(AddEffectsCommand)
 export class AddEffectsHandler implements ICommandHandler<AddEffectsCommand, ActorRound> {

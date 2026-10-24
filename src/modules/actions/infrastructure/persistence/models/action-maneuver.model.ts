@@ -1,11 +1,11 @@
 import { Prop, Schema } from '@nestjs/mongoose';
 import { Schema as MongooseSchema } from 'mongoose';
-import { Difficulty } from '../../../domain/value-objects/difficulty.vo';
-import { LightType } from '../../../domain/value-objects/light-type.vo';
-import { LightManeuverModifier } from '../../../domain/value-objects/light-maneuver-modifier.vo';
-import type { ManeuverModifierSelection } from '../../../domain/value-objects/maneuver-profile.vo';
-import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo';
-import { ActionRoll } from './action-roll.model';
+import type { Difficulty } from '../../../domain/value-objects/difficulty.vo.js';
+import type { LightType } from '../../../domain/value-objects/light-type.vo.js';
+import type { LightManeuverModifier } from '../../../domain/value-objects/light-maneuver-modifier.vo.js';
+import type { ManeuverModifierSelection } from '../../../domain/value-objects/maneuver-profile.vo.js';
+import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo.js';
+import { ActionRoll } from './action-roll.model.js';
 
 @Schema({ _id: false })
 export class ActionManeuverModifiers {

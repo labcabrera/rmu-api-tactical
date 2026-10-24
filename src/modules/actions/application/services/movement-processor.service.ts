@@ -1,14 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round';
-import { NotFoundError, ValidationError } from '../../../shared/domain/errors/errors';
-import { type CharacterPort, CHARACTER_PORT } from '../../../strategic/application/ports/character.port';
-import { Action } from '../../domain/aggregates/action';
-import { DIFFICULTY_MAP } from '../../domain/value-objects/difficulty.vo';
-import { KeyValueModifier } from '../../domain/value-objects/key-value-modifier.vo';
-import { LIGHT_MAP } from '../../domain/value-objects/light-type.vo';
-import { MOVEMENT_MANEUVER_PROFILE } from '../../domain/value-objects/maneuver-profile.vo';
-import { type ManeuverPort, MANEUVER_PORT } from '../ports/maneuver.port';
-import { ManeuverBaseModifiersService } from './maneuver/maneuver-base-modifiers.service';
+import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.js';
+import { NotFoundError, ValidationError } from '../../../shared/domain/errors/errors.js';
+import { type CharacterPort, CHARACTER_PORT } from '../../../strategic/application/ports/character.port.js';
+import { Action } from '../../domain/aggregates/action.js';
+import { DIFFICULTY_MAP } from '../../domain/value-objects/difficulty.vo.js';
+import { KeyValueModifier } from '../../domain/value-objects/key-value-modifier.vo.js';
+import { LIGHT_MAP } from '../../domain/value-objects/light-type.vo.js';
+import { MOVEMENT_MANEUVER_PROFILE } from '../../domain/value-objects/maneuver-profile.vo.js';
+import { type ManeuverPort, MANEUVER_PORT } from '../ports/maneuver.port.js';
+import { ManeuverBaseModifiersService } from './maneuver/maneuver-base-modifiers.service.js';
 
 @Injectable()
 export class MovementProcessorService {

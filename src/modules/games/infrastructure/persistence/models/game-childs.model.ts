@@ -1,6 +1,6 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import { ActorRoundFaction } from '../../../../actor-rounds/domain/value-objects/actor-round-faction.vo';
-import type { ActorType } from '../../../domain/value-objects/actor-type.vo';
+import { ActorRoundFaction } from '../../../../actor-rounds/domain/value-objects/actor-round-faction.vo.js';
+import type { ActorType } from '../../../domain/value-objects/actor-type.vo.js';
 
 @Schema({ _id: false })
 export class Actor {

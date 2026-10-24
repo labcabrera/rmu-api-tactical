@@ -1,4 +1,4 @@
-import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command';
+import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command.js';
 
 /** `POST /v1/tactical-games/:id/apply`: the outcome of a finished game to the strategic model (spec 013, §3). */
 export class ApplyGameCommand extends AuthenticatedCommand {

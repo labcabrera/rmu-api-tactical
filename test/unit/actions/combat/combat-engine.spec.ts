@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   CombatModifierBag,
-  CombatPlugin,
+  type CombatPlugin,
   CombatPluginRegistryService,
   CombatProcessor,
   rollModifiers,
-} from '../../../../src/modules/actions/application/services/combat';
-import { createCombatPluginContext } from './combat-plugin-test.factory';
+} from '../../../../src/modules/actions/application/services/combat/index.js';
+import { createCombatPluginContext } from './combat-plugin-test.factory.js';
 
 const plugin = (id: string, priority?: number, condition?: () => boolean): CombatPlugin => ({
   id,

@@ -2,7 +2,7 @@
   "$schema": "https://swc.rs/schema.json",
   "sourceMaps": true,
   "module": {
-    "type": "commonjs"
+    "type": "es6"
   },
   "jsc": {
     "target": "es2024",

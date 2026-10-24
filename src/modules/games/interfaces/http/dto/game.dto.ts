@@ -1,12 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
-import { PaginationDto } from '../../../../shared/interfaces/http/dto/page.dto';
-import { Game } from '../../../domain/aggregates/game';
-import type { GamePhase } from '../../../domain/value-objects/game-phase.vo';
-import type { GameStatus } from '../../../domain/value-objects/game-status.vo';
-import { TacticalGameOutcomeDto } from './tactical-game-outcome.dto';
-import { ActorDto } from './actor.dto';
-import { GameEnvironmentDto } from './game-environment.dto';
+import { PaginationDto } from '../../../../shared/interfaces/http/dto/page.dto.js';
+import { Game } from '../../../domain/aggregates/game.js';
+import type { GamePhase } from '../../../domain/value-objects/game-phase.vo.js';
+import type { GameStatus } from '../../../domain/value-objects/game-status.vo.js';
+import { TacticalGameOutcomeDto } from './tactical-game-outcome.dto.js';
+import { ActorDto } from './actor.dto.js';
+import { GameEnvironmentDto } from './game-environment.dto.js';
 
 export class GameDto {
   @ApiProperty({ description: 'Game identifier', example: 'lotr' })

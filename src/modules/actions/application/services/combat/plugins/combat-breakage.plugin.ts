@@ -1,4 +1,4 @@
-import { CombatPlugin } from '../combat-plugin';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 const BREAKAGE_ROLLS = new Set([33, 77]);
 

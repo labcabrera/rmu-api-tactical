@@ -1,8 +1,8 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
-import type { CombatHook, CombatPhase } from '../combat-phase';
-import { CombatPlugin } from '../combat-plugin';
-import type { CombatPluginProvider } from './combat-plugin.tokens';
-import { COMBAT_PLUGINS } from './combat-plugin.tokens';
+import type { CombatHook, CombatPhase } from '../combat-phase.js';
+import type { CombatPlugin } from '../combat-plugin.js';
+import type { CombatPluginProvider } from './combat-plugin.tokens.js';
+import { COMBAT_PLUGINS } from './combat-plugin.tokens.js';
 
 @Injectable()
 export class CombatPluginRegistryService {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GAME_SORTS, toGameMongoSort } from '../../../src/modules/games/domain/value-objects/game-sort.vo';
+import { GAME_SORTS, toGameMongoSort } from '../../../src/modules/games/domain/value-objects/game-sort.vo.js';
 
 describe('toGameMongoSort', () => {
   it('sorts ascending by a field and descending with a leading dash, with the id as tiebreak', () => {

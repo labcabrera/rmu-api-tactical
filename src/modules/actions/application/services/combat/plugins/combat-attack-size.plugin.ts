@@ -1,6 +1,6 @@
-import { chargeSizeAdjustment, targetEffectiveSize } from '../combat-modifiers';
-import { CombatContext } from '../combat-context';
-import { CombatPlugin } from '../combat-plugin';
+import { chargeSizeAdjustment, targetEffectiveSize } from '../combat-modifiers.js';
+import type { CombatContext } from '../combat-context.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 const SEVERITIES = ['Z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
 

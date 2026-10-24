@@ -1,6 +1,6 @@
-import { ActionApProfile } from '../../../../domain/value-objects/action-ap-profile.vo';
-import { isMelee, isPreparing, preparation, rollModifiers } from '../combat-modifiers';
-import { CombatPlugin } from '../combat-plugin';
+import { ActionApProfile } from '../../../../domain/value-objects/action-ap-profile.vo.js';
+import { isMelee, isPreparing, preparation, rollModifiers } from '../combat-modifiers.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 /**
  * §8.1: -25 per AP below the maximum of the attack's AP profile (melee 2-4, ranged 1-3). An attack forced by an effect

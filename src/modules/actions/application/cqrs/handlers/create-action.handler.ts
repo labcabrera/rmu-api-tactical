@@ -1,22 +1,25 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
-import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round';
-import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
-import { Game } from '../../../../games/domain/aggregates/game';
-import { ValidationError } from '../../../../shared/domain/errors/errors';
-import { type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port';
-import { Action } from '../../../domain/aggregates/action';
-import { ActionUpdatedEvent } from '../../../domain/events/action.events';
-import { ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo';
-import { ActionManeuver } from '../../../domain/value-objects/action-maneuver.vo';
-import { ActionResolution } from '../../../domain/value-objects/action-resolution.vo';
-import type { ManeuverActionPoints } from '../../../domain/value-objects/maneuver-profile.vo';
-import { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo';
-import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port';
-import { type SkillCatalogPort, SKILL_CATALOG_PORT } from '../../ports/skill-catalog.port';
-import { CreateActionCommand } from '../commands/create-action.command';
-import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import {
+  type ActorRoundRepository,
+  ACTOR_ROUND_REPOSITORY,
+} from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
+import { Game } from '../../../../games/domain/aggregates/game.js';
+import { ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port.js';
+import { Action } from '../../../domain/aggregates/action.js';
+import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
+import { ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo.js';
+import { ActionManeuver } from '../../../domain/value-objects/action-maneuver.vo.js';
+import { ActionResolution } from '../../../domain/value-objects/action-resolution.vo.js';
+import type { ManeuverActionPoints } from '../../../domain/value-objects/maneuver-profile.vo.js';
+import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo.js';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
+import { type SkillCatalogPort, SKILL_CATALOG_PORT } from '../../ports/skill-catalog.port.js';
+import { CreateActionCommand } from '../commands/create-action.command.js';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 /**
  * Declares an action (spec 011, §2): it records its AP in the ledger of the actor round and closes as `interrupted`

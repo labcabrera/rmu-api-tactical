@@ -1,4 +1,4 @@
-import { CombatPlugin } from '../combat-plugin';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 export const COMBAT_PLUGINS = Symbol('COMBAT_PLUGINS');
 

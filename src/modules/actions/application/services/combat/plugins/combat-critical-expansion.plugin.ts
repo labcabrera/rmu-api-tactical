@@ -1,5 +1,5 @@
-import { UnprocessableEntityError } from '../../../../../shared/domain/errors/errors';
-import { CombatPlugin } from '../combat-plugin';
+import { UnprocessableEntityError } from '../../../../../shared/domain/errors/errors.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 /**
  * Severities with a table (Z, A..E) give one critical; F..I give an E plus lighter ones. J is E, C, B: the Python

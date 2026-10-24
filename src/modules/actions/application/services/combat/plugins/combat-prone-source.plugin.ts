@@ -1,5 +1,5 @@
-import { isPreparing, rollModifiers, sourceHasStatus } from '../combat-modifiers';
-import { CombatPlugin } from '../combat-plugin';
+import { isPreparing, rollModifiers, sourceHasStatus } from '../combat-modifiers.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 export const CombatProneSourcePlugin: CombatPlugin = {
   id: 'prone-source',

@@ -1,5 +1,5 @@
-import { isMelee, isPreparing, rollModifiers, sourceHasStatus } from '../combat-modifiers';
-import { CombatPlugin } from '../combat-plugin';
+import { isMelee, isPreparing, rollModifiers, sourceHasStatus } from '../combat-modifiers.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 export const CombatRangeInMeleePlugin: CombatPlugin = {
   id: 'range-in-melee',

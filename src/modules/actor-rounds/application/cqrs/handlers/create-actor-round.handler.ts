@@ -1,13 +1,13 @@
 import { Inject, Logger, NotImplementedException } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Actor } from '../../../../games/domain/value-objects/actor.vo';
-import { ValidationError } from '../../../../shared/domain/errors/errors';
-import { type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port';
-import { type ItemPort, ITEM_PORT } from '../../../../strategic/application/ports/item.port';
-import { ActorRound } from '../../../domain/aggregates/actor-round';
-import { type ActorRoundCharacterMapperPort, ACTOR_ROUND_CHARACTER_MAPPER_PORT } from '../../ports/actor-round-character-mapper.port';
-import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port';
-import { CreateActorRoundCommand } from '../commands/create-actor-round.command';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { Actor } from '../../../../games/domain/value-objects/actor.vo.js';
+import { ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port.js';
+import { type ItemPort, ITEM_PORT } from '../../../../strategic/application/ports/item.port.js';
+import { ActorRound } from '../../../domain/aggregates/actor-round.js';
+import { type ActorRoundCharacterMapperPort, ACTOR_ROUND_CHARACTER_MAPPER_PORT } from '../../ports/actor-round-character-mapper.port.js';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port.js';
+import { CreateActorRoundCommand } from '../commands/create-actor-round.command.js';
 
 @CommandHandler(CreateActorRoundCommand)
 export class CreateActorRoundHandler implements ICommandHandler<CreateActorRoundCommand, ActorRound> {

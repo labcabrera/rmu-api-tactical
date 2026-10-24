@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActionAttackCalculated } from '../../../domain/value-objects/action-attack-calculated.vo';
-import { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
-import { KeyValueModifierDto } from './key-value-modifier.dto';
+import { ActionAttackCalculated } from '../../../domain/value-objects/action-attack-calculated.vo.js';
+import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo.js';
+import { KeyValueModifierDto } from './key-value-modifier.dto.js';
 
 export class ActionAttackCalculatedDto {
   @ApiProperty({ description: 'Modifiers of the attack roll, with the plugin that added each one', type: [KeyValueModifierDto] })

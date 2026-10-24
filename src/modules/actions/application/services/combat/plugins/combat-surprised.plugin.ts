@@ -1,5 +1,5 @@
-import { isPreparing, rollModifiers, targetHasStatus, targetIsFlatfooted } from '../combat-modifiers';
-import { CombatPlugin } from '../combat-plugin';
+import { isPreparing, rollModifiers, targetHasStatus, targetIsFlatfooted } from '../combat-modifiers.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 /** Surprised target (§9.5). A flatfooted one gets the surprise bonus from the `flatfooted-target` plugin. */
 export const CombatSurprisedPlugin: CombatPlugin = {

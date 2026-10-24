@@ -1,15 +1,15 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { ValidationError } from '../../../../shared/domain/errors/errors';
-import { type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port';
-import { type StrategicGamePort, STRATEGIC_GAME_PORT } from '../../../../strategic/application/ports/strategic-game.port';
-import { Game } from '../../../domain/aggregates/game';
-import { Actor } from '../../../domain/value-objects/actor.vo';
-import { GameEnvironment } from '../../../domain/value-objects/game-environment.vo';
-import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port';
-import { type NpcPort, NPC_PORT } from '../../ports/npc.port';
-import { CreateGameCommand, CreateGameCommandActor } from '../commands/create-game.command';
-import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port.js';
+import { type StrategicGamePort, STRATEGIC_GAME_PORT } from '../../../../strategic/application/ports/strategic-game.port.js';
+import { Game } from '../../../domain/aggregates/game.js';
+import { Actor } from '../../../domain/value-objects/actor.vo.js';
+import { GameEnvironment } from '../../../domain/value-objects/game-environment.vo.js';
+import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port.js';
+import { type NpcPort, NPC_PORT } from '../../ports/npc.port.js';
+import { CreateGameCommand, CreateGameCommandActor } from '../commands/create-game.command.js';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 @CommandHandler(CreateGameCommand)
 export class CreateGameHandler implements ICommandHandler<CreateGameCommand, Game> {

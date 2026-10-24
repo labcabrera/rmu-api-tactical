@@ -1,4 +1,4 @@
-import { KeyValueModifier, ModifierGroup } from '../../../domain/value-objects/key-value-modifier.vo';
+import { KeyValueModifier, type ModifierGroup } from '../../../domain/value-objects/key-value-modifier.vo.js';
 
 /** Plugin that adds the modifiers: stamped on each entry so the breakdown shows where every value comes from. */
 export interface CombatModifierOrigin {

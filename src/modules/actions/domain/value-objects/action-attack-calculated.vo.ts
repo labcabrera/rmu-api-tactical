@@ -1,5 +1,5 @@
-import { AttackLocation } from './attack-location.vo';
-import { KeyValueModifier } from './key-value-modifier.vo';
+import type { AttackLocation } from './attack-location.vo.js';
+import { KeyValueModifier } from './key-value-modifier.vo.js';
 
 export class ActionAttackCalculated {
   constructor(
