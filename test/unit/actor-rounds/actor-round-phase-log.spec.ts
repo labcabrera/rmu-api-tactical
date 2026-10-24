@@ -53,9 +53,9 @@ const game = (phase: GamePhase) =>
 const setup = (phase: GamePhase, actorRounds: ActorRound[], actions: Action[]) => {
   const gameRepository = {
     findById: vi.fn(() => Promise.resolve(game(phase))),
-    update: vi.fn((_id: string, updated: Game) => Promise.resolve(updated)),
+    update: vi.fn((updated: Game) => Promise.resolve(updated)),
   } as unknown as GameRepository;
-  const update = vi.fn((_id: string, updated: ActorRound) => Promise.resolve(updated));
+  const update = vi.fn((updated: ActorRound) => Promise.resolve(updated));
   const actorRoundRepository = {
     findWithUndefinedInitiativeRoll: vi.fn(() => Promise.resolve([])),
     findByRsql: vi.fn(() => Promise.resolve(new Page(actorRounds, 0, 1000, actorRounds.length))),

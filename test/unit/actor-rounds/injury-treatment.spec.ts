@@ -73,7 +73,7 @@ describe('InjuryTreatmentRules (spec 013, §3)', () => {
 
   it('puts a tourniquet only on a limb', () => {
     expect(() => InjuryTreatmentRules.validate('tourniquet', wound(4, { location: 'chest' }))).toThrow(
-      expect.objectContaining({ errorCode: 'err-treatment-invalid-location' }),
+      expect.objectContaining({ code: 'err-treatment-invalid-location' }),
     );
   });
 
@@ -97,7 +97,7 @@ describe('TreatInjuryHandler and StabilizeEffectHandler', () => {
       actorName: 'Elrond',
       gameId: 'game-1',
     });
-    const update = vi.fn((_id: string, updated: ActorRound) => Promise.resolve(updated));
+    const update = vi.fn((updated: ActorRound) => Promise.resolve(updated));
     const actorRoundRepository = {
       findById: vi.fn(() => Promise.resolve(patient)),
       findByActorIdAndRound: vi.fn(() => Promise.resolve(healer)),
@@ -167,7 +167,7 @@ describe('TreatInjuryHandler and StabilizeEffectHandler', () => {
     const { treat } = setup('success');
     await expect(
       treat.execute(new TreatInjuryCommand('patient-round', 'wound', 'pressure', {}, 50, undefined, 'user', [])),
-    ).rejects.toThrow(expect.objectContaining({ errorCode: 'err-healer-required' }));
+    ).rejects.toThrow(expect.objectContaining({ code: 'err-healer-required' }));
   });
 
   it('gives a dying actor 2 more rounds on an absolute success', async () => {

@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { BaseAggregateRoot } from '../../../shared/domain/aggregates/base-aggregate.js';
-import { ConflictError, NotModifiedError, ValidationError } from '../../../shared/domain/errors/errors.js';
+import { ConflictError, ValidationError } from '../../../shared/domain/errors/errors.js';
 import {
   GameAppliedEvent,
   GameCreatedEvent,
@@ -175,9 +175,8 @@ export class Game extends BaseAggregateRoot<GameProps> {
       this.imageUrl = imageUrl;
       changes = true;
     }
-    if (!changes) {
-      throw new NotModifiedError('No changes detected');
-    }
+    // A PATCH that changes nothing is a 200 with the game as it is, and no event (spec 020).
+    if (!changes) return;
     this.updatedAt = new Date();
     this.apply(new GameUpdatedEvent(this));
   }

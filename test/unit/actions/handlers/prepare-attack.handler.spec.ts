@@ -36,7 +36,7 @@ const setup = (
   const actionRepository = {
     findById: vi.fn(() => Promise.resolve(action)),
     findByRsql: vi.fn(() => Promise.resolve({ content: [] })),
-    update: vi.fn((_id: string, updated: Action) => Promise.resolve(updated)),
+    update: vi.fn((updated: Action) => Promise.resolve(updated)),
   } as unknown as ActionRepository;
   const game = { id: 'game-1', round: 1, strategicGameId: 'sg-1', checkValidActionManagement: () => undefined, getActionPhase: () => 3 };
   const gameRepository = { findById: vi.fn(() => Promise.resolve(game)) } as unknown as GameRepository;
@@ -103,7 +103,7 @@ describe('PrepareAttackHandler', () => {
   it('rejects an attack whose item broke in the game (spec 019)', async () => {
     const { ctx, execute } = setup();
     ctx.sourceActor!.attacks.find(attack => attack.attackName === 'Longsword')!.broken = true;
-    await expect(execute({})).rejects.toMatchObject({ errorCode: 'err-attack-item-broken' });
+    await expect(execute({})).rejects.toMatchObject({ code: 'err-attack-item-broken' });
   });
 
   it('accepts `spring` for `sprint`; the charge does not change the DB by size (§9.4)', async () => {

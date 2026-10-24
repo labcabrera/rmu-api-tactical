@@ -3,6 +3,7 @@ import { character, ids, startApp, USERS, type E2eApp, type UserName } from './s
 
 type GameBody = {
   id: string;
+  version: number;
   strategicGameId: string;
   name: string;
   status: string;
@@ -172,9 +173,12 @@ describe('read and list', () => {
     expect((await as('owner').get('/v1/tactical-games?q=name===')).status).toBe(400);
   });
 
-  // No maximum page size: 100000 answers 200 [F-tactical-13].
-  it('accepts any page size', async () => {
-    expect((await as('owner').get('/v1/tactical-games?size=100000')).status).toBe(200);
+  // Pages go up to 100 games (spec 020) [F-tactical-13].
+  it('limits the page size to 100', async () => {
+    expect((await as('owner').get('/v1/tactical-games?size=100')).status).toBe(200);
+    const response = await as('owner').get('/v1/tactical-games?size=101');
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({ statusCode: 400, code: 'bad-request', path: '/v1/tactical-games?size=101' });
   });
 });
 
@@ -216,6 +220,33 @@ describe('update', () => {
     });
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({ environment: { temperatureFatigueModifier: -20, altitudeFatigueModifier: -10 } });
+  });
+
+  it('answers the version and moves it with each write', async () => {
+    const game = await createGame();
+    expect(game.version).toBe(0);
+    const response = await as('owner').patch(`/v1/tactical-games/${game.id}`, { name: 'v1', description: 'x', version: 0 });
+    expect(response.status).toBe(200);
+    expect((response.body as GameBody).version).toBe(1);
+  });
+
+  it('rejects a change made on a stale version with 409 version-conflict', async () => {
+    const game = await createGame();
+    await as('owner').patch(`/v1/tactical-games/${game.id}`, { name: 'first', description: 'x' });
+    const response = await as('owner').patch(`/v1/tactical-games/${game.id}`, { name: 'second', description: 'x', version: 0 });
+    expect(response.status).toBe(409);
+    expect(response.body).toMatchObject({ code: 'version-conflict' });
+    expect((await as('owner').get(`/v1/tactical-games/${game.id}`)).body).toMatchObject({ name: 'first', version: 1 });
+  });
+
+  // NotModifiedError went with spec 020: a PATCH that changes nothing is a 200 with the game, and no event.
+  it('answers 200 without an event to a change that changes nothing', async () => {
+    const game = await createGame();
+    const before = e2e.world.events.length;
+    const response = await as('owner').patch(`/v1/tactical-games/${game.id}`, { name: game.name, description: game.description });
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ name: game.name });
+    expect(e2e.world.events.slice(before).filter(e => e.aggregateType === 'game')).toEqual([]);
   });
 
   it('answers 404 for an unknown game', async () => {
@@ -302,8 +333,15 @@ describe('lifecycle', () => {
     await as('owner').post(`/v1/tactical-games/${game.id}/finish`, { fates: [] });
 
     const response = await as('owner').post(`/v1/tactical-games/${game.id}/rounds/start`);
-    expect(response.status).toBeGreaterThanOrEqual(400);
-    expect(response.status).toBeLessThan(500);
+    expect(response.status).toBe(409);
+    // The rule key goes in code, and in errorCode for the clients that read it before spec 020 (rmu-mfe-tactical).
+    expect(response.body).toMatchObject({
+      statusCode: 409,
+      error: 'ConflictError',
+      code: 'err-game-finished',
+      errorCode: 'err-game-finished',
+      path: `/v1/tactical-games/${game.id}/rounds/start`,
+    });
   });
 
   it('rejects applying a game that is not finished', async () => {

@@ -19,6 +19,6 @@ export class DeleteInjuryHandler implements ICommandHandler<DeleteInjuryCommand,
     this.logger.log(`Execute << ${JSON.stringify(command)}`);
     const actorRound = await loadActorRoundOfInjury(this.actorRoundRepository, this.gameRepository, command.actorRoundId);
     actorRound.deleteInjury(command.injuryId);
-    return this.actorRoundRepository.update(actorRound.id, actorRound);
+    return this.actorRoundRepository.update(actorRound);
   }
 }

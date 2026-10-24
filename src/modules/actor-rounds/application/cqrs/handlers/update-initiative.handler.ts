@@ -26,7 +26,7 @@ export class DeclareInitiativeCommandHandler implements ICommandHandler<DeclareI
     }
     (await this.gameRepository.findById(characterRound.gameId))?.checkNotFinished();
     characterRound.declareInitiative(command.initiativeRoll, command.strikeReflex);
-    const updatedCharacterRound = await this.characterRoundRepository.update(command.actorRoundId, characterRound);
+    const updatedCharacterRound = await this.characterRoundRepository.update(characterRound);
     return updatedCharacterRound;
   }
 }

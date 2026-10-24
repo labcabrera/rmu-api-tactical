@@ -12,6 +12,9 @@ export class GameDto {
   @ApiProperty({ description: 'Game identifier', example: 'lotr' })
   id: string;
 
+  @ApiProperty({ type: Number, description: 'Version of optimistic concurrency: it goes up with each write', example: 0 })
+  version: number;
+
   @ApiProperty({ description: 'Strategic Game identifier', example: 'lotr' })
   strategicGameId: string;
 
@@ -58,6 +61,7 @@ export class GameDto {
   static fromEntity(entity: Game) {
     const dto = new GameDto();
     dto.id = entity.id;
+    dto.version = entity.version;
     dto.strategicGameId = entity.strategicGameId;
     dto.name = entity.name;
     dto.status = entity.status;

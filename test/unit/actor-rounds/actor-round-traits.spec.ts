@@ -205,7 +205,7 @@ describe('Strike Reflex', () => {
   it('rejects it for an actor without the talent', () => {
     const round = load({ initiativeBase: 10 });
 
-    expect(() => round.declareInitiative(12, true)).toThrow(expect.objectContaining({ errorCode: 'err-strike-reflex-without-trait' }));
+    expect(() => round.declareInitiative(12, true)).toThrow(expect.objectContaining({ code: 'err-strike-reflex-without-trait' }));
   });
 
   it('passes the flag from the request to the command, false by default', () => {
@@ -253,6 +253,6 @@ describe('ActorRoundCharacterMapperAdapter injuries and conditions (spec 013, §
   it.each(['dead', 'permanent-unconscious'] as const)('rejects a %s character', status => {
     expect(() =>
       mapper.toActorRound('game-1', 1, character({ conditions: [{ id: 'c', status, source, createdAt: '2026-10-01' }] })),
-    ).toThrow(expect.objectContaining({ errorCode: 'err-character-not-able' }));
+    ).toThrow(expect.objectContaining({ code: 'err-character-not-able' }));
   });
 });

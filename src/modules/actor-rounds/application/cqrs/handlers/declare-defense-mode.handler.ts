@@ -23,6 +23,6 @@ export class DeclareDefenseModeHandler implements ICommandHandler<DeclareDefense
     (await this.gameRepository.findById(actorRound.gameId))?.checkNotFinished();
 
     actorRound.setDefenseMode(command.dodge, command.block);
-    return await this.actorRoundRepository.update(actorRound.id, actorRound);
+    return await this.actorRoundRepository.update(actorRound);
   }
 }

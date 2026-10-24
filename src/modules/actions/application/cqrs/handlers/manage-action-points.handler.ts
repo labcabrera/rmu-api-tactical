@@ -56,9 +56,9 @@ export class ManageActionPointsHandler implements ICommandHandler<ManageActionPo
     }
 
     if (actorRound.apLedger.length !== ledgerSize) {
-      await this.actorRoundRepository.update(actorRound.id, actorRound);
+      await this.actorRoundRepository.update(actorRound);
     }
-    const updated = await this.actionRepository.update(action.id, action);
+    const updated = await this.actionRepository.update(action);
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     updated.refreshApState(actorRound, currentPhase);
     return updated;

@@ -184,6 +184,8 @@ export async function startApp(env: Record<string, string> = {}): Promise<E2eApp
     RMU_IAM_CLIENT_SECRET: 'e2e',
     RMU_KAFKA_BROKERS: 'localhost:9092',
     RMU_KAFKA_CLIENT_ID: 'rmu-api-tactical-e2e',
+    RMU_THROTTLE_LIMIT: '0',
+    RMU_CORS_ORIGINS: '',
     RMU_KAFKA_CONSUMER_GROUP_ID: 'rmu-api-tactical-e2e',
     RMU_API_CORE_URI: 'http://127.0.0.1:1/v1',
     RMU_API_STRATEGIC_URI: 'http://127.0.0.1:1/v1',

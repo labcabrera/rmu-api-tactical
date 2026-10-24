@@ -97,7 +97,7 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
     action.refreshAttackStatuses();
 
     action.updatedAt = new Date();
-    const updated = await this.actionRepository.update(action.id, action);
+    const updated = await this.actionRepository.update(action);
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     return updated;
   }

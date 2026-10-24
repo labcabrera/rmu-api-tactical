@@ -87,7 +87,7 @@ const prepareAttack = async (options: { phase: number; ledger: number[]; resolut
   const actionRepository = {
     findById: vi.fn(() => Promise.resolve(ctx.action)),
     findByRsql: vi.fn(() => Promise.resolve({ content: [] })),
-    update: vi.fn((_id: string, updated: Action) => Promise.resolve(updated)),
+    update: vi.fn((updated: Action) => Promise.resolve(updated)),
   } as unknown as ActionRepository;
   const game = {
     id: 'game-1',
@@ -119,7 +119,7 @@ const prepareAttack = async (options: { phase: number; ledger: number[]; resolut
 
 describe('Action points of an action (spec 011, §2 and §4)', () => {
   it('criterion 1: a melee attack with 1 AP cannot be prepared; with 2 AP it takes -50, with 4 AP nothing', async () => {
-    await expect(prepareAttack({ phase: 1, ledger: [1] })).rejects.toMatchObject({ errorCode: 'err-action-points-below-min' });
+    await expect(prepareAttack({ phase: 1, ledger: [1] })).rejects.toMatchObject({ code: 'err-action-points-below-min' });
 
     const two = await prepareAttack({ phase: 2, ledger: [1, 2] });
     expect(two.modifiers['action-points']).toBe(-50);
@@ -150,7 +150,7 @@ describe('Action points of an action (spec 011, §2 and §4)', () => {
     declare(actorRound, [], melee, 4);
 
     expect(readiness(melee, actorRound, 4).readiness).toBe('unreachable');
-    expect(() => melee.checkResolvable(actorRound, 4)).toThrow(expect.objectContaining({ errorCode: 'err-action-points-below-min' }));
+    expect(() => melee.checkResolvable(actorRound, 4)).toThrow(expect.objectContaining({ code: 'err-action-points-below-min' }));
     expect(readiness(melee, actorRound, 3).readiness).toBe('blocked');
   });
 
@@ -162,7 +162,7 @@ describe('Action points of an action (spec 011, §2 and §4)', () => {
     expect(readiness(melee, actorRound, 4, true).readiness).toBe('blocked');
     // The default is the game default: open rounds on.
     expect(melee.readiness(actorRound, 4).readiness).toBe('blocked');
-    expect(() => melee.checkResolvable(actorRound, 4)).toThrow(expect.objectContaining({ errorCode: 'err-action-points-below-min' }));
+    expect(() => melee.checkResolvable(actorRound, 4)).toThrow(expect.objectContaining({ code: 'err-action-points-below-min' }));
   });
 
   it('is unreachable, even with open rounds, when the actor cannot act any more', () => {
@@ -192,7 +192,7 @@ describe('Action points of an action (spec 011, §2 and §4)', () => {
     const melee = action('melee', 'melee_attack', 1);
     spend(actorRound, 'melee', 1, 2);
 
-    expect(() => melee.hold(actorRound, 2)).toThrow(expect.objectContaining({ errorCode: 'err-action-hold-below-max' }));
+    expect(() => melee.hold(actorRound, 2)).toThrow(expect.objectContaining({ code: 'err-action-hold-below-max' }));
   });
 
   it('spends the extra AP of a phase on the open action (haste)', () => {
@@ -203,7 +203,7 @@ describe('Action points of an action (spec 011, §2 and §4)', () => {
     melee.spendExtraAp(actorRound, 3);
     expect(melee.actionPoints).toBe(2);
     expect(actorRound.ledgerOf('melee').map(entry => entry.phase)).toEqual([3, 3]);
-    expect(() => melee.spendExtraAp(actorRound, 3)).toThrow(expect.objectContaining({ errorCode: 'err-action-points-exceeded' }));
+    expect(() => melee.spendExtraAp(actorRound, 3)).toThrow(expect.objectContaining({ code: 'err-action-points-exceeded' }));
   });
 
   it('a new action on a phase with an extra AP takes it, and keeps the open action going', () => {
@@ -259,7 +259,7 @@ describe('Interruption (spec 011, §2; criterion 7)', () => {
 
     expect(() =>
       Action.checkDeclaration(actorRound, [melee], { actionType: 'maneuver', phaseStart: 2, freeAction: false }, 2, [melee, foeAttack]),
-    ).toThrow(expect.objectContaining({ errorCode: 'err-action-must-complete-parried' }));
+    ).toThrow(expect.objectContaining({ code: 'err-action-must-complete-parried' }));
     // A parry before the melee attack was declared is not with it.
     const earlier = action('earlier', 'melee_attack', 1, {
       actorId: 'foe',
@@ -274,7 +274,7 @@ describe('Interruption (spec 011, §2; criterion 7)', () => {
     const open = action('open', 'melee_attack', 1);
     spend(actorRound, 'open', 1);
     const game = { id: 'game-1', name: 'g', round: 1, phase: 'phase_2', getActionPhase: () => 2 };
-    const actionUpdate = vi.fn((_id: string, updated: Action) => Promise.resolve(updated));
+    const actionUpdate = vi.fn((updated: Action) => Promise.resolve(updated));
     const actionRepository = {
       findByRsql: vi.fn(() => Promise.resolve({ content: [open] })),
       save: vi.fn((saved: Action) => Promise.resolve(saved)),
@@ -301,11 +301,11 @@ describe('Interruption (spec 011, §2; criterion 7)', () => {
     expect(created.resolution).toEqual(ActionResolution.normal());
     expect(created.apState).toMatchObject({ actionPoints: 1, readiness: 'ready', readinessPenalty: -50 });
     expect(actorRound.spentByAction(created.id)).toBe(1);
-    expect(actorRoundUpdate).toHaveBeenCalledWith(actorRound.id, actorRound);
-    expect(actionUpdate).toHaveBeenCalledWith('open', expect.objectContaining({ status: 'interrupted', actionPoints: 1 }));
+    expect(actorRoundUpdate).toHaveBeenCalledWith(actorRound);
+    expect(actionUpdate).toHaveBeenCalledWith(expect.objectContaining({ status: 'interrupted', actionPoints: 1 }));
     await expect(
       handler.execute(new CreateActionCommand('game-1', 'actor-1', 'melee_attack', true, 2, undefined, '', 'user', [])),
-    ).rejects.toMatchObject({ errorCode: 'err-action-free-not-allowed' });
+    ).rejects.toMatchObject({ code: 'err-action-free-not-allowed' });
   });
 });
 
@@ -327,11 +327,11 @@ describe('Forced resolution (spec 011, §6)', () => {
   it('a withdrawal needs an AP spent, and some AP left in the round', () => {
     const actorRound = load();
     expect(() => action('none', 'melee_attack', 1).force(actorRound, 1, 'pass-through')).toThrow(
-      expect.objectContaining({ errorCode: 'err-action-force-needs-ap' }),
+      expect.objectContaining({ code: 'err-action-force-needs-ap' }),
     );
     spend(actorRound, 'melee', 1, 2, 3, 4);
     expect(() => action('melee', 'melee_attack', 1).force(actorRound, 4, 'withdrawal')).toThrow(
-      expect.objectContaining({ errorCode: 'err-action-points-exceeded' }),
+      expect.objectContaining({ code: 'err-action-points-exceeded' }),
     );
   });
 
@@ -347,7 +347,7 @@ describe('Forced resolution (spec 011, §6)', () => {
     expect(plan).toEqual({ spend: null, interrupted: [] });
     expect(() =>
       Action.checkDeclaration(actorRound, [], { actionType: 'melee_attack', phaseStart: 2, freeAction: false, forced: 'withdrawal' }, 2),
-    ).toThrow(expect.objectContaining({ errorCode: 'err-action-force-invalid-reason' }));
+    ).toThrow(expect.objectContaining({ code: 'err-action-force-invalid-reason' }));
 
     const forced = action('forced', 'melee_attack', 2, { resolution: ActionResolution.forced('effect') });
     expect(readiness(forced, actorRound, 2)).toEqual({ actionPoints: 0, readiness: 'optimal', readinessPenalty: 0 });
@@ -393,7 +393,7 @@ describe('Validation of the minimum AP when resolving (spec 011, §4)', () => {
       } as unknown as ActorRoundRepository,
       {
         findById: vi.fn(() => Promise.resolve(target)),
-        update: vi.fn((_id: string, updated: Action) => Promise.resolve(updated)),
+        update: vi.fn((updated: Action) => Promise.resolve(updated)),
       } as unknown as ActionRepository,
       { publish: vi.fn(() => Promise.resolve()) },
       { findById: vi.fn(() => Promise.resolve({ skills: [] })) } as unknown as CharacterPort,
@@ -406,7 +406,7 @@ describe('Validation of the minimum AP when resolving (spec 011, §4)', () => {
     const actorRound = load();
     spend(actorRound, 'another', 4);
     const other = action('other', 'other', 4);
-    await expect(completeSetup(other, actorRound, 4)()).rejects.toMatchObject({ errorCode: 'err-action-points-below-min' });
+    await expect(completeSetup(other, actorRound, 4)()).rejects.toMatchObject({ code: 'err-action-points-below-min' });
 
     other.resolution = ActionResolution.forced('gm');
     const completed = await completeSetup(other, actorRound, 4)();
@@ -425,7 +425,7 @@ describe('Validation of the minimum AP when resolving (spec 011, §4)', () => {
 
 describe('AP endpoints (spec 011)', () => {
   const setup = (target: Action, actorRound: ActorRound, phase: number) => {
-    const update = vi.fn((_id: string, updated: Action) => Promise.resolve(updated));
+    const update = vi.fn((updated: Action) => Promise.resolve(updated));
     const actorRoundUpdate = vi.fn(() => Promise.resolve());
     const handler = new ManageActionPointsHandler(
       { findById: vi.fn(() => Promise.resolve({ id: 'game-1', round: 1, getActionPhase: () => phase })) } as unknown as GameRepository,

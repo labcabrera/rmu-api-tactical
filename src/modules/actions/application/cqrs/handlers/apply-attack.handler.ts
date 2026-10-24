@@ -114,7 +114,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     // The AP and the last phase of the attack come from the ledger (spec 011, §9).
     action.completeAttacks();
     action.close(sourceActor, game.getActionPhase());
-    const updated = await this.actionRepository.update(action.id, action);
+    const updated = await this.actionRepository.update(action);
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     updated.refreshApState(sourceActor, game.getActionPhase());
     return updated;
@@ -185,7 +185,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
         }
         target.useShieldBlock();
       }
-      await this.actorRoundRepository.update(target.id, target);
+      await this.actorRoundRepository.update(target);
     }
   }
 

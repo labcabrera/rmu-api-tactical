@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Page } from '../../../shared/application/pagination/page.js';
-import { NotFoundError } from '../../../shared/domain/errors/errors.js';
+import { MongoBaseRepository } from '../../../shared/infrastructure/db/mongo.base.repository.js';
 import { RsqlParser } from '../../../shared/infrastructure/db/rsql-parser.js';
 import type { ActionRepository } from '../../application/ports/action-repository.port.js';
 import { Action } from '../../domain/aggregates/action.js';
@@ -10,59 +10,25 @@ import { ActionResolution } from '../../domain/value-objects/action-resolution.v
 import { type ActionDocument, ActionModel } from '../persistence/models/action.model.js';
 
 @Injectable()
-export class MongoActionRepository implements ActionRepository {
-  constructor(
-    @InjectModel(ActionModel.name) private actionModel: Model<ActionDocument>,
-    private rsqlParser: RsqlParser,
-  ) {}
-
-  async findById(id: string): Promise<Action | null> {
-    return this.actionModel.findById(id).then(readed => (readed ? this.mapToEntity(readed) : null));
+export class MongoActionRepository extends MongoBaseRepository<Action, ActionModel> implements ActionRepository {
+  constructor(@InjectModel(ActionModel.name) actionModel: Model<ActionModel>, rsqlParser: RsqlParser) {
+    super(actionModel, rsqlParser);
   }
 
-  async findByRsql(rsql: string, page: number, size: number): Promise<Page<Action>> {
-    const skip = page * size;
-    const mongoQuery = this.rsqlParser.parse(rsql);
-    const [actionsDocs, totalElements] = await Promise.all([
-      this.actionModel.find(mongoQuery).skip(skip).limit(size).sort({ name: 1 }),
-      this.actionModel.countDocuments(mongoQuery),
-    ]);
-    const content = actionsDocs.map(doc => this.mapToEntity(doc));
-    return new Page<Action>(content, page, size, totalElements);
-  }
-
-  async save(request: Partial<Action>): Promise<Action> {
-    const model = new this.actionModel({ ...request, _id: request.id });
-    return model.save().then(saved => this.mapToEntity(saved));
-  }
-
-  async update(id: string, request: Partial<Action>): Promise<Action> {
-    const current = await this.actionModel.findById(id);
-    if (!current) {
-      throw new NotFoundError('Action', id);
-    }
-    //TODO merge
-    const update = request;
-    const updatedAction = await this.actionModel.findByIdAndUpdate(id, { $set: update }, { new: true });
-    if (!updatedAction) {
-      throw new NotFoundError('Action', id);
-    }
-    return this.mapToEntity(updatedAction);
-  }
-
-  async deleteById(id: string): Promise<Action | null> {
-    const result = await this.actionModel.findByIdAndDelete(id);
-    return result ? this.mapToEntity(result) : null;
+  // Actions were listed sorted by a `name` they do not have, which left them in the order Mongo returns them (the
+  // order they were stored). The creation date keeps that order on purpose.
+  override findByRsql(rsql: string | undefined, page: number, size: number): Promise<Page<Action>> {
+    return super.findByRsql(rsql, page, size, undefined, { createdAt: 1, _id: 1 });
   }
 
   async deleteByGameId(gameId: string): Promise<void> {
-    await this.actionModel.deleteMany({ gameId });
+    await this.model.deleteMany({ gameId });
   }
   async deleteByCharacterId(characterId: string): Promise<void> {
-    await this.actionModel.deleteMany({ characterId });
+    await this.model.deleteMany({ characterId });
   }
 
-  private mapToEntity(doc: ActionDocument): Action {
+  protected mapToEntity(doc: ActionDocument): Action {
     return Action.fromProps({
       id: doc._id,
       gameId: doc.gameId,

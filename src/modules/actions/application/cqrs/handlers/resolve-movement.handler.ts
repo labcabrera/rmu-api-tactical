@@ -53,7 +53,7 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     const currentPhase = game.getActionPhase();
     action.checkResolvable(actorRound, currentPhase);
     await this.processAction(command, action, actorRound, strategicGame, currentPhase);
-    const updated = await this.actionRepository.update(action.id, action);
+    const updated = await this.actionRepository.update(action);
     let actorRoundModified = false;
     if (action.fatigue) {
       actorRoundModified = true;
@@ -66,7 +66,7 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
       actorRound.alerts.push(alert);
     }
     if (actorRoundModified) {
-      await this.actorRoundRepository.update(actorRound.id, actorRound);
+      await this.actorRoundRepository.update(actorRound);
     }
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     updated.refreshApState(actorRound, currentPhase);

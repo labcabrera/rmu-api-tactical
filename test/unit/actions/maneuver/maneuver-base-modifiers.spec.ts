@@ -95,8 +95,8 @@ describe('ManeuverBaseModifiersService', () => {
   });
 
   it('rejects other actions while sprinting or dashing, but lets an instantaneous one through', () => {
-    expect(() => service.compute(input({ pace: 'sprint' }))).toThrow(expect.objectContaining({ errorCode: 'err-maneuver-invalid-pace' }));
-    expect(() => service.compute(input({ pace: 'dash' }))).toThrow(expect.objectContaining({ errorCode: 'err-maneuver-invalid-pace' }));
+    expect(() => service.compute(input({ pace: 'sprint' }))).toThrow(expect.objectContaining({ code: 'err-maneuver-invalid-pace' }));
+    expect(() => service.compute(input({ pace: 'dash' }))).toThrow(expect.objectContaining({ code: 'err-maneuver-invalid-pace' }));
     expect(keys({ pace: 'dash', freeAction: true }).pace).toBeUndefined();
   });
 

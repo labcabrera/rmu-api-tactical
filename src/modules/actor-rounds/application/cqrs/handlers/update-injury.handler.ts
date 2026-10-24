@@ -31,6 +31,6 @@ export class UpdateInjuryHandler implements ICommandHandler<UpdateInjuryCommand,
     this.logger.log(`Execute << ${JSON.stringify(command)}`);
     const actorRound = await loadActorRoundOfInjury(this.actorRoundRepository, this.gameRepository, command.actorRoundId);
     actorRound.updateInjury(command.injuryId, command.patch);
-    return this.actorRoundRepository.update(actorRound.id, actorRound);
+    return this.actorRoundRepository.update(actorRound);
   }
 }

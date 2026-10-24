@@ -15,7 +15,8 @@ export interface ActorRoundRepository {
 
   save(entity: ActorRound): Promise<ActorRound>;
 
-  update(characterRoundId: string, data: Partial<ActorRound>): Promise<ActorRound>;
+  /** Writes the actor round, provided it is still at the version it was loaded with (else a `version-conflict`). */
+  update(entity: ActorRound): Promise<ActorRound>;
 
   /** Every actor round of a game, all rounds (spec 013: the outcome of a finished game). */
   findByGameId(gameId: string): Promise<ActorRound[]>;

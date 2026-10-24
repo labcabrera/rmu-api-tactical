@@ -34,7 +34,7 @@ export class StabilizeEffectHandler implements ICommandHandler<StabilizeEffectCo
     const roll = await this.medicalRollService.roll(patient, command.healer, command.roll, command.difficulty ?? 0);
     const roundsGained = InjuryTreatmentRules.stabilizationRounds(roll.outcome.result);
     patient.stabilize(command.effectId, roundsGained);
-    const updated = await this.actorRoundRepository.update(patient.id, patient);
+    const updated = await this.actorRoundRepository.update(patient);
     return { actorRound: updated, roll, roundsGained };
   }
 }

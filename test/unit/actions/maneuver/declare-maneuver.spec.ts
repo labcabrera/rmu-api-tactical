@@ -69,13 +69,13 @@ describe('Declaring a maneuver', () => {
     ['not a maneuver', action({ id: 'previous', actionType: 'movement', status: 'completed' })],
   ])('rejects continuing %s', async (_name, continued) => {
     await expect(declare({ skillId: 'desk-work', continuesActionId: 'previous' }, [continued])).rejects.toMatchObject({
-      errorCode: 'err-maneuver-invalid-continuation',
+      code: 'err-maneuver-invalid-continuation',
     });
   });
 
   it('rejects continuing an action that does not exist', async () => {
     await expect(declare({ skillId: 'desk-work', continuesActionId: 'nope' })).rejects.toMatchObject({
-      errorCode: 'err-maneuver-invalid-continuation',
+      code: 'err-maneuver-invalid-continuation',
     });
   });
 });

@@ -6,9 +6,11 @@ export interface ActionRepository {
 
   findByRsql(rsql: string | undefined, page: number, size: number): Promise<Page<Action>>;
 
-  save(entity: Partial<Action>): Promise<Action>;
+  /** Stores a new action; an id that already exists is a ConflictError (`duplicate-key`). */
+  save(entity: Action): Promise<Action>;
 
-  update(id: string, entity: Partial<Action>): Promise<Action>;
+  /** Writes the action, provided it is still at the version it was loaded with (else a `version-conflict`). */
+  update(entity: Action): Promise<Action>;
 
   deleteById(id: string): Promise<Action | null>;
 

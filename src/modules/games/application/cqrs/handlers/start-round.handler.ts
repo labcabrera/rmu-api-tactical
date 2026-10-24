@@ -52,7 +52,7 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
       await this.carryOverActions(game);
     }
     game.startRound();
-    const updatedGame = await this.gameRepository.update(gameId, game);
+    const updatedGame = await this.gameRepository.update(game);
     const events = game.getUncommittedEvents();
     void this.eventPublisher.publish('game', ...events);
     return updatedGame;
@@ -99,10 +99,10 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
         await this.actionRepository.save(continuation);
       }
       this.logger.log(`Action ${action.id} of ${action.actorId} ${action.status} at the end of round ${game.round}`);
-      await this.actionRepository.update(action.id, action);
+      await this.actionRepository.update(action);
     }
     for (const actorRound of changedActorRounds) {
-      await this.actorRoundRepository.update(actorRound.id, actorRound);
+      await this.actorRoundRepository.update(actorRound);
     }
   }
 

@@ -60,17 +60,17 @@ describe('Action declaration (§8.1, §8.3; spec 011, §2)', () => {
   });
 
   it('rejects an action outside the current phase, past or future', () => {
-    expect(() => declare([], 1, false, {}, 2)).toThrow(expect.objectContaining({ errorCode: 'err-action-invalid-phase' }));
-    expect(() => declare([], 3, false, {}, 2)).toThrow(expect.objectContaining({ errorCode: 'err-action-invalid-phase' }));
-    expect(() => declare([], 5)).toThrow(expect.objectContaining({ errorCode: 'err-action-invalid-phase' }));
-    expect(() => declare([], 0)).toThrow(expect.objectContaining({ errorCode: 'err-action-invalid-phase' }));
+    expect(() => declare([], 1, false, {}, 2)).toThrow(expect.objectContaining({ code: 'err-action-invalid-phase' }));
+    expect(() => declare([], 3, false, {}, 2)).toThrow(expect.objectContaining({ code: 'err-action-invalid-phase' }));
+    expect(() => declare([], 5)).toThrow(expect.objectContaining({ code: 'err-action-invalid-phase' }));
+    expect(() => declare([], 0)).toThrow(expect.objectContaining({ code: 'err-action-invalid-phase' }));
   });
 
   it('blocks the phases a surprised actor lost, 2 by default', () => {
     const surprised = { effects: [effect('surprised')] };
     const perceptive = { effects: [effect('surprised', 1)] };
 
-    expect(() => declare([], 2, false, surprised)).toThrow(expect.objectContaining({ errorCode: 'err-action-surprised-phase' }));
+    expect(() => declare([], 2, false, surprised)).toThrow(expect.objectContaining({ code: 'err-action-surprised-phase' }));
     expect(() => declare([], 3, false, surprised)).not.toThrow();
     expect(() => declare([], 2, false, perceptive)).not.toThrow();
   });
@@ -80,13 +80,13 @@ describe('Action declaration (§8.1, §8.3; spec 011, §2)', () => {
     actorRound.spend(2, 'other-action', 1);
 
     expect(() => Action.checkDeclaration(actorRound, [], request(2), 2)).toThrow(
-      expect.objectContaining({ errorCode: 'err-action-points-exceeded' }),
+      expect.objectContaining({ code: 'err-action-points-exceeded' }),
     );
   });
 
   it('rejects any action of a flatfooted actor', () => {
     expect(() => declare([], 4, false, { effects: [effect('flatfooted')] })).toThrow(
-      expect.objectContaining({ errorCode: 'err-action-flatfooted' }),
+      expect.objectContaining({ code: 'err-action-flatfooted' }),
     );
   });
 
@@ -98,13 +98,13 @@ describe('Action declaration (§8.1, §8.3; spec 011, §2)', () => {
     expect(Action.checkDeclaration(actorRound, [first], request(2, true, 'other'), 2).spend).toEqual({ phase: 2, ap: 1, kind: 'instant' });
     actorRound.spend(2, 'attack', 1);
     expect(() => Action.checkDeclaration(actorRound, [first], request(2, true, 'other'), 2)).toThrow(
-      expect.objectContaining({ errorCode: 'err-action-points-exceeded' }),
+      expect.objectContaining({ code: 'err-action-points-exceeded' }),
     );
   });
 
   it('never takes an attack as an instantaneous action', () => {
     expect(() => Action.checkDeclaration(load(), [], request(1, true, 'melee_attack'), 1)).toThrow(
-      expect.objectContaining({ errorCode: 'err-action-free-not-allowed' }),
+      expect.objectContaining({ code: 'err-action-free-not-allowed' }),
     );
   });
 });

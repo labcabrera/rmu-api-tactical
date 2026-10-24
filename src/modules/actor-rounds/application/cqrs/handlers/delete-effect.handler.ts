@@ -23,7 +23,7 @@ export class DeleteEffectHandler implements ICommandHandler<DeleteEffectCommand,
     (await this.gameRepository.findById(actorRound.gameId))?.checkNotFinished();
 
     actorRound.deleteEffect(command.effectId);
-    const updated = await this.actorRoundRepository.update(actorRound.id, actorRound);
+    const updated = await this.actorRoundRepository.update(actorRound);
     //TODO notify event bus
     return updated;
   }

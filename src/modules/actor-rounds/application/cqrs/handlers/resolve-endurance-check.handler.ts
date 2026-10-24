@@ -43,6 +43,6 @@ export class ResolveEnduranceCheckHandler implements ICommandHandler<ResolveEndu
 
     const phase = game && game.round === actorRound.round ? game.getEffectPhase() : undefined;
     actorRound.applyEnduranceResult(result.fatigue || 0, result.hitPoints || 0, command.alertId, game?.name, phase);
-    return this.actorRoundRepository.update(actorRound.id, actorRound);
+    return this.actorRoundRepository.update(actorRound);
   }
 }

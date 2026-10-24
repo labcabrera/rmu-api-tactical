@@ -86,7 +86,7 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     // Update action and publish events
     action.status = 'pending_roll';
     action.updatedAt = new Date();
-    const updated = await this.actionRepository.update(action.id, action);
+    const updated = await this.actionRepository.update(action);
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     return updated;
   }

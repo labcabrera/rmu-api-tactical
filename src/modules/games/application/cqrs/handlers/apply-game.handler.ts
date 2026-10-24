@@ -38,7 +38,7 @@ export class ApplyGameHandler implements ICommandHandler<ApplyGameCommand, Game>
         game.markOutcomeApplied(character.actorId, message);
       }
     }
-    const updated = await this.gameRepository.update(game.id, game);
+    const updated = await this.gameRepository.update(game);
     void this.eventPublisher.publish('game', ...game.getUncommittedEvents());
     return updated;
   }

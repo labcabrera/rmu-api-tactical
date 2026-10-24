@@ -25,7 +25,7 @@ export class DeleteGameActorsHandler implements ICommandHandler<DeleteGameActors
     if (game.status !== 'created') {
       throw new ValidationError('Only games in created status can be modified');
     }
-    const updated = await this.gameRepository.update(command.gameId, game);
+    const updated = await this.gameRepository.update(game);
     const events = game.getUncommittedEvents();
     void this.eventPublisher.publish('game', ...events);
     return updated;
