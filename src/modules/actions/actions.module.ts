@@ -13,6 +13,7 @@ import { HEALING_TABLES_PORT } from '../actor-rounds/application/ports/healing-t
 import { ApiHealingTablesAdapter } from '../actor-rounds/infrastructure/api-clients/api.healing-tables.adapter.js';
 import { ActorsRoundModule } from '../actor-rounds/actor-rounds.module.js';
 import { GamesModule } from '../games/games.module.js';
+import { PsychologyModule } from '../psychology/psychology.module.js';
 import { SharedModule } from '../shared/shared.module.js';
 import { StrategicModule } from '../strategic/strategic.module.js';
 import { ApplyAttackHandler } from './application/cqrs/handlers/apply-attack.handler.js';
@@ -71,6 +72,7 @@ import { SKILL_CATALOG_PORT } from './application/ports/skill-catalog.port.js';
     GamesModule,
     StrategicModule,
     ActorsRoundModule,
+    PsychologyModule,
   ],
   controllers: [ActionController, AttackController, MovementController, ManeuverController],
   providers: [

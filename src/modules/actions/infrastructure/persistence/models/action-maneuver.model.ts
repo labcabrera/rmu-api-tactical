@@ -38,6 +38,12 @@ export class ActionManeuverModifiers {
 
   @Prop({ type: Number, required: false })
   passiveTotal: number | undefined;
+
+  @Prop({ type: String, required: false })
+  targetActorId: string | undefined;
+
+  @Prop({ type: String, required: false })
+  passiveSkillId: string | undefined;
 }
 
 @Schema({ _id: false })
@@ -80,6 +86,18 @@ export class ActionManeuverResult {
 
   @Prop({ type: Boolean, required: false })
   unusualEvent: boolean | undefined;
+
+  @Prop({ type: Number, required: false })
+  price: number | undefined;
+
+  @Prop({ type: String, required: false })
+  outcome: string | undefined;
+
+  @Prop({ type: Number, required: false })
+  moraleModifier: number | undefined;
+
+  @Prop({ type: Number, required: false })
+  moraleModifierDays: number | undefined;
 }
 
 @Schema({ _id: false })

@@ -40,6 +40,18 @@ export class ActionManeuverResultDto {
   @ApiProperty({ description: 'Absolute maneuvers: unmodified 66', required: false })
   unusualEvent?: boolean;
 
+  @ApiProperty({ description: 'Trading: price as a percent of the asked one (50-200)', required: false })
+  price?: number;
+
+  @ApiProperty({ description: 'Leadership: outcome key of the morale table (refuses, obeys...)', required: false })
+  outcome?: string;
+
+  @ApiProperty({ description: 'Leadership: modifier to later morale rolls, and the days it lasts (game master)', required: false })
+  moraleModifier?: number;
+
+  @ApiProperty({ required: false })
+  moraleModifierDays?: number;
+
   static fromEntity(entity: ActionManeuverResult): ActionManeuverResultDto {
     const dto = new ActionManeuverResultDto();
     dto.result = entity.result ?? undefined;
@@ -49,6 +61,10 @@ export class ActionManeuverResultDto {
     dto.critical = entity.critical ?? undefined;
     dto.completed = entity.completed ?? undefined;
     dto.unusualEvent = entity.unusualEvent ?? undefined;
+    dto.price = entity.price ?? undefined;
+    dto.outcome = entity.outcome ?? undefined;
+    dto.moraleModifier = entity.moraleModifier ?? undefined;
+    dto.moraleModifierDays = entity.moraleModifierDays ?? undefined;
     return dto;
   }
 }

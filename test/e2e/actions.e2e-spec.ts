@@ -304,3 +304,42 @@ describe('permissions', () => {
     });
   });
 });
+
+describe('social maneuvers (workspace spec 022)', () => {
+  it('resolves Trading against another actor as a price', async () => {
+    e2e.world.skillProfiles.set('trading', { defaultType: 'percent', resultKind: 'price' });
+    e2e.world.characters.set(
+      'aragorn',
+      character('aragorn', { skills: [{ skillId: 'trading', specialization: null, totalBonus: 20, ranks: 2 }] }),
+    );
+    e2e.world.characters.set(
+      'lurtz',
+      character('lurtz', {
+        faction: { id: 'faction-2', name: 'Uruk-hai' },
+        skills: [{ skillId: 'trading', specialization: null, totalBonus: 10, ranks: 1 }],
+      }),
+    );
+    const gameId = await gameInPhase1();
+    const declared = await as('owner').post('/v1/actions', {
+      gameId,
+      actorId: 'aragorn',
+      actionType: 'maneuver',
+      phaseStart: 1,
+      maneuver: { skillId: 'trading' },
+    });
+    expect(declared.status).toBe(201);
+    const resolved = await as('owner').patch(`/v1/actions/${(declared.body as ActionBody).id}/maneuver/resolve`, {
+      roll: { roll: 70 },
+      targetActorId: 'lurtz',
+      passiveRoll: 40,
+    });
+    expect(resolved.status).toBe(200);
+    const maneuver = (resolved.body as { maneuver: { modifiers: object; result: object } }).maneuver;
+    // 70 + 20 + (100 - 50) = 140: the fake percent table answers 100, so the price is 100%.
+    expect(maneuver.modifiers).toMatchObject({ targetActorId: 'lurtz', passiveSkillId: 'trading', passiveTotal: 50 });
+    expect(maneuver.result).toMatchObject({ percent: 100, price: 100 });
+    e2e.world.skillProfiles.clear();
+    e2e.world.characters.set('aragorn', character('aragorn'));
+    e2e.world.characters.set('lurtz', character('lurtz', { faction: { id: 'faction-2', name: 'Uruk-hai' } }));
+  });
+});

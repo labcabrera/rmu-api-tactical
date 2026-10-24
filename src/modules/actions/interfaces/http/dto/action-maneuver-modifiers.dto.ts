@@ -33,6 +33,12 @@ export class ActionManeuverModifiersDto {
   @ApiProperty({ description: 'Conflicting maneuver: total of the passive side', required: false })
   passiveTotal?: number;
 
+  @ApiProperty({ description: 'Actor the maneuver is against (workspace spec 022)', required: false })
+  targetActorId?: string;
+
+  @ApiProperty({ description: 'Skill of the passive side read from the target actor', required: false })
+  passiveSkillId?: string;
+
   static fromEntity(entity: ActionManeuverModifiers): ActionManeuverModifiersDto {
     const dto = new ActionManeuverModifiersDto();
     dto.skillId = entity.skillId;
@@ -45,6 +51,8 @@ export class ActionManeuverModifiersDto {
     dto.armorModifier = entity.armorModifier;
     dto.selections = entity.selections;
     dto.passiveTotal = entity.passiveTotal ?? undefined;
+    dto.targetActorId = entity.targetActorId ?? undefined;
+    dto.passiveSkillId = entity.passiveSkillId ?? undefined;
     return dto;
   }
 }

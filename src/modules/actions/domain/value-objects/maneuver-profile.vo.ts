@@ -8,6 +8,13 @@ export interface ManeuverActionPoints {
 }
 
 /**
+ * How the result of a maneuver reads (workspace spec 022, decisions 11-12, from core's profile): `standard` the result
+ * table of the maneuver type; `morale` the morale table of core's psychology tables (Leadership); `price` a percent
+ * maneuver opposed by the seller whose result is a price (Trading).
+ */
+export type ManeuverResultKind = 'standard' | 'morale' | 'price';
+
+/**
  * Maneuver profile of a skill, as core resolves it (the skill's own fields over its category's). Read from core at
  * runtime: the values are catalog data, not code.
  */
@@ -20,6 +27,8 @@ export interface SkillManeuverProfile {
   light: LightManeuverModifier;
   /** -25 per AP below `max` when present. */
   actionPoints?: ManeuverActionPoints;
+  /** `standard` when core does not say. */
+  resultKind?: ManeuverResultKind;
 }
 
 /** Profile used when core has none for the skill. */
