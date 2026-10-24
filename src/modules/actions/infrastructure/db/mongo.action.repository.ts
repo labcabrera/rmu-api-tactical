@@ -17,8 +17,8 @@ export class MongoActionRepository extends MongoBaseRepository<Action, ActionMod
 
   // Actions were listed sorted by a `name` they do not have, which left them in the order Mongo returns them (the
   // order they were stored). The creation date keeps that order on purpose.
-  override findByRsql(rsql: string | undefined, page: number, size: number): Promise<Page<Action>> {
-    return super.findByRsql(rsql, page, size, undefined, { createdAt: 1, _id: 1 });
+  override findByRsql(rsql: string | undefined, page: number, size: number, filter?: Record<string, unknown>): Promise<Page<Action>> {
+    return super.findByRsql(rsql, page, size, filter, { createdAt: 1, _id: 1 });
   }
 
   async deleteByGameId(gameId: string): Promise<void> {

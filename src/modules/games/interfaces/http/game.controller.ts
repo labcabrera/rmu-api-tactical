@@ -24,8 +24,9 @@ import { UpdateGameDto } from './dto/update-game.dto.js';
 import { ApiErrors } from '../../../shared/interfaces/http/api-errors.decorator.js';
 import { CurrentUser } from '../../../shared/interfaces/http/current-user.decorator.js';
 import type { AuthenticatedUser } from '../../../shared/interfaces/http/authenticated-request.js';
+import { GameAccess, GameAccessGuard } from './security/game-access.guard.js';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, GameAccessGuard)
 @Controller('v1/tactical-games')
 @ApiTags('Games')
 export class GameController {
@@ -36,6 +37,7 @@ export class GameController {
     private queryBus: QueryBus,
   ) {}
 
+  @GameAccess('read')
   @Get(':id')
   @ApiOkResponse({ type: GameDto, description: 'Success' })
   @ApiOperation({ operationId: 'findGameById', summary: 'Find game by id' })
@@ -59,6 +61,7 @@ export class GameController {
     return new Page<GameDto>(mapped, page.pagination.page, page.pagination.size, page.pagination.totalElements);
   }
 
+  @GameAccess('create')
   @Post('')
   @ApiBody({ type: CreateGameDto })
   @ApiOperation({ operationId: 'createGame', summary: 'Create a new game' })
@@ -71,6 +74,7 @@ export class GameController {
     return GameDto.fromEntity(entity);
   }
 
+  @GameAccess('manage')
   @Patch(':id')
   @ApiOperation({ operationId: 'updateGame', summary: 'Update game' })
   @ApiOkResponse({ type: GameDto, description: 'Success' })
@@ -82,6 +86,7 @@ export class GameController {
     return GameDto.fromEntity(entity);
   }
 
+  @GameAccess('delete')
   @Delete(':id')
   @HttpCode(204)
   @ApiErrors()
@@ -92,6 +97,7 @@ export class GameController {
     await this.commandBus.execute(command);
   }
 
+  @GameAccess('manage')
   @Post(':id/rounds/start')
   @HttpCode(200)
   @ApiOperation({ operationId: 'startRound', summary: 'Start a new round for a game' })
@@ -104,6 +110,7 @@ export class GameController {
     return GameDto.fromEntity(entity);
   }
 
+  @GameAccess('manage')
   @Post(':id/phases/start')
   @HttpCode(200)
   @ApiOperation({ operationId: 'startPhase', summary: 'Start a new phase for a game' })
@@ -116,6 +123,7 @@ export class GameController {
     return GameDto.fromEntity(entity);
   }
 
+  @GameAccess('manage')
   @Post(':id/initiatives/randomize')
   @HttpCode(200)
   @ApiOperation({ operationId: 'randomizeInitiatives', summary: 'Randomize undeclared initiatives' })
@@ -128,6 +136,7 @@ export class GameController {
     return GameDto.fromEntity(entity);
   }
 
+  @GameAccess('read')
   @Get(':id/finish-preview')
   @ApiOkResponse({ type: FinishPreviewDto, description: 'Success' })
   @ApiOperation({ operationId: 'getFinishPreview', summary: 'Outcome the game would finish with, and the characters at risk' })
@@ -141,6 +150,7 @@ export class GameController {
     return dto;
   }
 
+  @GameAccess('manage')
   @Post(':id/finish')
   @HttpCode(200)
   @ApiBody({ type: FinishGameDto })
@@ -153,6 +163,7 @@ export class GameController {
     return GameDto.fromEntity(entity);
   }
 
+  @GameAccess('manage')
   @Post(':id/apply')
   @HttpCode(200)
   @ApiOperation({ operationId: 'applyGame', summary: 'Apply the outcome of a finished game to the strategic characters (spec 013)' })

@@ -55,6 +55,17 @@ export class GameDto {
   @ApiProperty({ description: 'Owner of the game', example: 'user-123' })
   owner: string;
 
+  @ApiProperty({
+    type: String,
+    description: 'Owner of the strategic game, who also manages this game (spec 021); missing in games not migrated yet',
+    required: false,
+    example: 'user-456',
+  })
+  strategicGameOwner?: string;
+
+  @ApiProperty({ type: String, description: 'accessType of the strategic game: who reads this game (spec 021)', example: 'private' })
+  accessType: string;
+
   @ApiProperty({ description: 'Outcome of a finished game (spec 013)', type: () => TacticalGameOutcomeDto, required: false })
   outcome?: TacticalGameOutcomeDto;
 
@@ -73,6 +84,8 @@ export class GameDto {
     dto.description = entity.description;
     dto.imageUrl = entity.imageUrl;
     dto.owner = entity.owner;
+    dto.strategicGameOwner = entity.strategicGameOwner;
+    dto.accessType = entity.accessType;
     dto.outcome = entity.outcome ? TacticalGameOutcomeDto.fromEntity(entity.outcome) : undefined;
     return dto;
   }

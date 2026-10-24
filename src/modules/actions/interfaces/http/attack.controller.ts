@@ -18,8 +18,9 @@ import { UpdateFumbleRollDto } from './dto/update-fumble-roll.dto.js';
 import { ApiErrors } from '../../../shared/interfaces/http/api-errors.decorator.js';
 import { CurrentUser } from '../../../shared/interfaces/http/current-user.decorator.js';
 import type { AuthenticatedUser } from '../../../shared/interfaces/http/authenticated-request.js';
+import { ActionAccess, ActionAccessGuard } from './security/action-access.guard.js';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ActionAccessGuard)
 @Controller('v1/actions')
 @ApiTags('Actions')
 export class AttackController {
@@ -27,6 +28,7 @@ export class AttackController {
 
   constructor(private commandBus: CommandBus) {}
 
+  @ActionAccess('act')
   @Patch(':id/attack/prepare')
   @ApiBody({ type: PrepareAttackDto })
   @ApiOperation({ operationId: 'prepareAttack', summary: 'Prepare attack' })
@@ -39,6 +41,7 @@ export class AttackController {
     return ActionDto.fromEntity(entity);
   }
 
+  @ActionAccess('participate')
   @Patch(':id/attack/parry')
   @ApiBody({ type: DeclareParryDto })
   @ApiOperation({ operationId: 'declareParry', summary: 'Declare parry' })
@@ -51,6 +54,7 @@ export class AttackController {
     return ActionDto.fromEntity(entity);
   }
 
+  @ActionAccess('act')
   @Patch(':id/attack/roll')
   @ApiBody({ type: UpdateAttackRollDto })
   @ApiOperation({ operationId: 'updateAttackRoll', summary: 'Update attack roll' })
@@ -63,6 +67,7 @@ export class AttackController {
     return ActionDto.fromEntity(entity);
   }
 
+  @ActionAccess('act')
   @Patch(':id/attack/critical-roll')
   @ApiBody({ type: UpdateCriticalRollDto })
   @ApiOperation({ operationId: 'updateCriticalRoll', summary: 'Update critical roll' })
@@ -75,6 +80,7 @@ export class AttackController {
     return ActionDto.fromEntity(entity);
   }
 
+  @ActionAccess('act')
   @Patch(':id/attack/fumble-roll')
   @ApiBody({ type: UpdateFumbleRollDto })
   @ApiOperation({ operationId: 'updateFumbleRoll', summary: 'Update fumble roll' })
@@ -87,6 +93,7 @@ export class AttackController {
     return ActionDto.fromEntity(entity);
   }
 
+  @ActionAccess('act')
   @Patch(':id/attack/apply')
   @ApiOperation({ operationId: 'applyAttack', summary: 'Apply attack' })
   @ApiOkResponse({ type: ActionDto, description: 'Success' })

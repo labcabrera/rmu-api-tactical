@@ -8,6 +8,8 @@ export interface StrategicGame {
   id: string;
   options: StrategicGameOptions | null;
   owner: string;
+  /** `public` or `private`; strategic sends it since spec 021 (F-strategic-05). Missing means private. */
+  accessType?: string;
 }
 
 export interface StrategicGameOptions {

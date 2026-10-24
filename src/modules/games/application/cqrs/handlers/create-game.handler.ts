@@ -43,6 +43,8 @@ export class CreateGameHandler implements ICommandHandler<CreateGameCommand, Gam
       command.description,
       command.imageUrl,
       command.userId,
+      strategicGame.owner,
+      strategicGame.accessType,
     );
     const saved = await this.gameRepository.save(game);
     const events = game.getUncommittedEvents();

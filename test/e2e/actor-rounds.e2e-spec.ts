@@ -50,6 +50,7 @@ beforeAll(async () => {
     }),
   );
   e2e.world.items.set('gimli', [item('axe', {})]);
+  e2e.world.characters.set('legolas', character('legolas', { owner: USERS.other.sub }));
 });
 
 afterAll(async () => {
@@ -186,20 +187,63 @@ describe('finished game', () => {
   });
 });
 
-// No handler checks who calls [F-tactical-11]: any authenticated user changes the actor round of another user's game.
+// Spec 021, decision 2 [F-tactical-11]: an actor round is changed by a manager of the game or the owner of its actor,
+// and read as the game is read. Actor rounds are created when a round starts and deleted with the game, so their
+// create and delete go through the game (see the permissions of tactical-games.e2e-spec.ts).
 describe('permissions', () => {
-  it.each(['other', 'noRole', 'admin'] as const)('lets %s damage the actor of another user', async user => {
+  /** A game of the owner in round 1 with Gimli (of the owner) and Legolas (of the other user). */
+  const sharedGame = async () => {
+    const created = await as('owner').post('/v1/tactical-games', {
+      strategicGameId: 'sg-1',
+      name: 'Helm',
+      description: 'Deep',
+      factions: ['faction-1'],
+      actors: [
+        { id: 'gimli', type: 'character' },
+        { id: 'legolas', type: 'character' },
+      ],
+    });
+    const gameId = (created.body as { id: string }).id;
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/rounds/start`)).status).toBe(200);
+    const page = await as('owner').get(`/v1/actor-rounds?q=gameId==${gameId};round==1`);
+    const rounds = (page.body as { content: ActorRoundBody[] }).content;
+    return { gameId, gimli: rounds.find(ar => ar.actorId === 'gimli')!, legolas: rounds.find(ar => ar.actorId === 'legolas')! };
+  };
+
+  it.each(['owner', 'admin'] as const)('lets %s change any actor round of the game', async user => {
+    const { gimli, legolas } = await sharedGame();
+    expect((await as(user).patch(`/v1/actor-rounds/${gimli.id}/hp`, { dmg: 1 })).status).toBe(200);
+    expect((await as(user).patch(`/v1/actor-rounds/${legolas.id}/hp`, { dmg: 1 })).status).toBe(200);
+  });
+
+  it('lets the owner of an actor change its actor round, and only that one', async () => {
+    const { gimli, legolas } = await sharedGame();
+    expect((await as('other').patch(`/v1/actor-rounds/${legolas.id}/hp`, { dmg: 1 })).status).toBe(200);
+    expect((await as('other').patch(`/v1/actor-rounds/${gimli.id}/hp`, { dmg: 1 })).status).toBe(403);
+  });
+
+  it.each(['other', 'noRole'] as const)('forbids %s to change the actor round of another user [F-tactical-11]', async user => {
     const { actorRound } = await startedGame();
-    expect((await as(user).patch(`/v1/actor-rounds/${actorRound.id}/hp`, { dmg: 1 })).status).toBe(200);
+    expect((await as(user).patch(`/v1/actor-rounds/${actorRound.id}/hp`, { dmg: 1 })).status).toBe(403);
+    expect((await as(user).post(`/v1/actor-rounds/${actorRound.id}/effects`, { effect: { status: 'stunned', rounds: 1 } })).status).toBe(
+      403,
+    );
+    expect((await as('owner').get(`/v1/actor-rounds/${actorRound.id}`)).body).toMatchObject({ hp: actorRound.hp });
+  });
+
+  it('reads as the game is read, and lists only the actor rounds of readable games', async () => {
+    const { gameId, actorRound } = await startedGame();
+    expect((await as('admin').get(`/v1/actor-rounds/${actorRound.id}`)).status).toBe(200);
+    expect((await as('noRole').get(`/v1/actor-rounds/${actorRound.id}`)).status).toBe(403);
+    expect(ids((await as('noRole').get(`/v1/actor-rounds?q=gameId==${gameId}`)).body)).toEqual([]);
+    expect(ids((await as('admin').get(`/v1/actor-rounds?q=gameId==${gameId}`)).body)).toEqual([actorRound.id]);
+    const { gameId: shared, legolas } = await sharedGame();
+    expect((await as('other').get(`/v1/actor-rounds/${legolas.id}`)).status).toBe(200);
+    expect(ids((await as('other').get(`/v1/actor-rounds?q=gameId==${shared}`)).body)).toHaveLength(2);
   });
 
   it('rejects a request without a token', async () => {
     const { actorRound } = await startedGame();
     expect((await request(e2e.server).patch(`/v1/actor-rounds/${actorRound.id}/hp`).send({ dmg: 1 })).status).toBe(401);
-  });
-
-  it.skip('forbids another user to change the actor round [F-tactical-11]', async () => {
-    const { actorRound } = await startedGame();
-    expect((await as('other').patch(`/v1/actor-rounds/${actorRound.id}/hp`, { dmg: 1 })).status).toBe(403);
   });
 });

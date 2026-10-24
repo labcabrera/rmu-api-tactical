@@ -33,6 +33,8 @@ import { GameController } from './interfaces/http/game.controller.js';
 import { StrategicGameKafkaConsumer } from './interfaces/messaging/kafka.strategic-game.consumer.js';
 
 import { GAME_REPOSITORY } from './application/ports/game-repository.port.js';
+import { GAME_GUARD } from './application/ports/game-guard.port.js';
+import { GameGuardAdapter } from './infrastructure/security/game-guard.adapter.js';
 import { NPC_PORT } from './application/ports/npc.port.js';
 @Module({
   imports: [
@@ -69,10 +71,14 @@ import { NPC_PORT } from './application/ports/npc.port.js';
       useClass: MongoGameRepository,
     },
     {
+      provide: GAME_GUARD,
+      useClass: GameGuardAdapter,
+    },
+    {
       provide: NPC_PORT,
       useClass: ApiNpcAdapter,
     },
   ],
-  exports: [GAME_REPOSITORY],
+  exports: [GAME_REPOSITORY, GAME_GUARD],
 })
 export class GamesModule {}

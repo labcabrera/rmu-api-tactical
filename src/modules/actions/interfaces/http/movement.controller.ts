@@ -9,8 +9,9 @@ import { ResolveMovementRequestDto } from './dto/resolve-movement.dto.js';
 import { ApiErrors } from '../../../shared/interfaces/http/api-errors.decorator.js';
 import { CurrentUser } from '../../../shared/interfaces/http/current-user.decorator.js';
 import type { AuthenticatedUser } from '../../../shared/interfaces/http/authenticated-request.js';
+import { ActionAccess, ActionAccessGuard } from './security/action-access.guard.js';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ActionAccessGuard)
 @Controller('v1/actions')
 @ApiTags('Actions')
 export class MovementController {
@@ -18,6 +19,7 @@ export class MovementController {
 
   constructor(private commandBus: CommandBus) {}
 
+  @ActionAccess('act')
   @Patch(':id/movement/resolve')
   @ApiBody({ type: ResolveMovementRequestDto })
   @ApiOperation({ operationId: 'resolveMovement', summary: 'Resolve movement' })

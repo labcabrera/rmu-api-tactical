@@ -49,6 +49,14 @@ export class GameModel {
   @Prop({ required: true })
   owner: string;
 
+  /** Spec 021: owner of the strategic game, who also manages this one. */
+  @Prop({ required: false })
+  strategicGameOwner?: string;
+
+  /** Spec 021: accessType of the strategic game. Missing means private. */
+  @Prop({ required: false })
+  accessType?: string;
+
   /** Spec 013: set when the game is finished. */
   @Prop({ type: Object, required: false })
   outcome?: TacticalGameOutcome;

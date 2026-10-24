@@ -20,6 +20,11 @@ export class MongoGameRepository extends MongoBaseRepository<Game, GameModel> im
     return this.model.find({ strategicGameId }).then(games => games.map(doc => this.toEntity(doc)));
   }
 
+  async findIds(filter: Record<string, unknown>): Promise<string[]> {
+    const docs = await this.model.find(filter, { _id: 1 }).lean();
+    return docs.map(doc => doc._id);
+  }
+
   protected mapToEntity(doc: GameDocument): Game {
     if (!doc) {
       throw new NotFoundError('Game', 'unknown');
@@ -40,6 +45,8 @@ export class MongoGameRepository extends MongoBaseRepository<Game, GameModel> im
       imageUrl: doc.imageUrl,
       description: doc.description,
       owner: doc.owner,
+      strategicGameOwner: doc.strategicGameOwner,
+      accessType: doc.accessType,
       outcome: doc.outcome ?? undefined,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,

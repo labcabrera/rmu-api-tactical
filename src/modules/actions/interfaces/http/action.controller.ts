@@ -20,8 +20,9 @@ import { UpdateActionDto } from './dto/update-action.dto.js';
 import { ApiErrors } from '../../../shared/interfaces/http/api-errors.decorator.js';
 import { CurrentUser } from '../../../shared/interfaces/http/current-user.decorator.js';
 import type { AuthenticatedUser } from '../../../shared/interfaces/http/authenticated-request.js';
+import { ActionAccess, ActionAccessGuard } from './security/action-access.guard.js';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ActionAccessGuard)
 @Controller('v1/actions')
 @ApiTags('Actions')
 export class ActionController {
@@ -32,6 +33,7 @@ export class ActionController {
     private queryBus: QueryBus,
   ) {}
 
+  @ActionAccess('read')
   @Get(':id')
   @ApiOkResponse({ type: ActionDto, description: 'Success' })
   @ApiOperation({ operationId: 'findActionById', summary: 'Find action by id' })
@@ -56,6 +58,7 @@ export class ActionController {
     return new Page<ActionDto>(mapped, page.pagination.page, page.pagination.size, page.pagination.totalElements);
   }
 
+  @ActionAccess('declare')
   @Post('')
   @ApiBody({ type: CreateActionDto })
   @ApiOperation({ operationId: 'createAction', summary: 'Create a new action' })
@@ -68,6 +71,7 @@ export class ActionController {
     return ActionDto.fromEntity(entity);
   }
 
+  @ActionAccess('act')
   @Patch(':id')
   @ApiOperation({ operationId: 'updateAction', summary: 'Update action' })
   @ApiOkResponse({ type: ActionDto, description: 'Success' })
@@ -78,6 +82,7 @@ export class ActionController {
     return ActionDto.fromEntity(entity);
   }
 
+  @ActionAccess('act')
   @Delete(':id')
   @HttpCode(204)
   @ApiOperation({ operationId: 'deleteAction', summary: 'Delete action by id' })
@@ -87,6 +92,7 @@ export class ActionController {
     await this.commandBus.execute(command);
   }
 
+  @ActionAccess('act')
   @Patch(':id/complete')
   @ApiBody({ type: CompleteActionDto })
   @ApiOperation({ operationId: 'completeAction', summary: 'Complete an action without rolls (stand up, dodge, draw and load, other)' })
@@ -98,6 +104,7 @@ export class ActionController {
     return ActionDto.fromEntity(entity);
   }
 
+  @ActionAccess('act')
   @Patch(':id/spend-ap')
   @ApiOperation({ operationId: 'spendActionPoint', summary: 'Spend one more AP of the current phase on an open action' })
   @ApiOkResponse({ type: ActionDto, description: 'Success' })
@@ -108,6 +115,7 @@ export class ActionController {
     return ActionDto.fromEntity(entity);
   }
 
+  @ActionAccess('act')
   @Patch(':id/hold')
   @ApiOperation({ operationId: 'holdAction', summary: 'Hold an action that has its maximum AP, to trigger it later' })
   @ApiOkResponse({ type: ActionDto, description: 'Success' })
@@ -118,6 +126,7 @@ export class ActionController {
     return ActionDto.fromEntity(entity);
   }
 
+  @ActionAccess('act')
   @Patch(':id/force')
   @ApiBody({ type: ForceResolutionDto })
   @ApiOperation({ operationId: 'forceAction', summary: 'Resolve an open action out of turn (withdrawal, pass-through, effect, gm)' })
