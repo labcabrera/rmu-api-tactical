@@ -62,6 +62,48 @@ export class TreatInjuryDto extends MedicalRollDto {
   @ApiProperty({ type: String, enum: TACTICAL_PROCEDURES })
   @IsIn(TACTICAL_PROCEDURES)
   procedure: TacticalProcedure;
+
+  @ApiProperty({ description: 'First roll of the open-ended one, when it is not `roll` (66: unusual event)', required: false })
+  @IsOptional()
+  @IsNumber()
+  unmodifiedRoll?: number;
+
+  @ApiProperty({ description: 'Cauterize: sum of the d10 of extra hits of the result; rolled by the server when missing', required: false })
+  @IsOptional()
+  @IsNumber()
+  heatHitsRoll?: number;
+
+  @ApiProperty({
+    description: 'Cauterize: roll of the heat critical (1-100), resolved on the location of the injury; an alert when missing',
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  heatCriticalRoll?: number;
+}
+
+/** What a cauterization did besides the bleeding (Table 13-1c). */
+export class HeatResultDto {
+  @ApiProperty({ description: 'Severity of the heat critical (A-D)' })
+  critical: string;
+
+  @ApiProperty({ description: 'Number of d10 of extra hits' })
+  hitsDice: number;
+
+  @ApiProperty({ description: 'Extra hits taken' })
+  hits: number;
+
+  @ApiProperty({ required: false, description: 'Roll of the heat critical, when it was resolved' })
+  criticalRoll?: number;
+
+  @ApiProperty({ required: false, description: 'Hits of the heat critical' })
+  criticalDamage?: number;
+
+  @ApiProperty({ required: false, description: 'Text of the critical table entry' })
+  criticalText?: string;
+
+  @ApiProperty({ required: false, description: 'Alert of the heat critical left for the game master' })
+  alertId?: string;
 }
 
 export class UpdateInjuryDto implements InjuryPatch {
@@ -152,6 +194,12 @@ export class MedicalResultDto {
   @ApiProperty({ required: false, description: 'Severity of the heat critical to resolve (cauterize)' })
   heatCritical?: string;
 
+  @ApiProperty({ required: false, type: HeatResultDto, description: 'Cauterize: extra hits and heat critical' })
+  heat?: HeatResultDto;
+
+  @ApiProperty({ required: false, description: 'Cauterize: unmodified 66, the patient catches fire (game master)' })
+  unusualEvent?: boolean;
+
   @ApiProperty({ required: false, description: 'Rounds the dying effect gained (stabilize)' })
   roundsGained?: number;
 
@@ -159,6 +207,9 @@ export class MedicalResultDto {
     const dto = MedicalResultDto.base(result.actorRound, result.roll);
     dto.treatment = result.treatment;
     dto.heatCritical = result.heatCritical;
+    dto.heat = result.heat;
+    dto.unusualEvent = result.unusualEvent;
+    dto.recoveryModifier = result.treatment.recoveryModifier;
     return dto;
   }
 

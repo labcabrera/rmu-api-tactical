@@ -4,6 +4,7 @@ import { BaseAggregateRoot } from '../../../shared/domain/aggregates/base-aggreg
 import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors/errors.js';
 import { ActorRoundCreatedEvent } from '../events/actor-round.events.js';
 import { ActorRoundAlert } from '../value-objects/actor-round-alert.vo.js';
+import { ActorRoundAlertModifier } from '../value-objects/actor-round-alert-modifier.vo.js';
 import { ActorRoundAttack } from '../value-objects/actor-round-attack.vo.js';
 import { ActorRoundDefenseMode, type DefenseLevel } from '../value-objects/actor-round-defense-mode.vo.js';
 import { ActorRoundDefense } from '../value-objects/actor-round-defense.vo.js';
@@ -628,35 +629,44 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
 
   /**
    * A medical procedure on one of the actor's injuries, already resolved with the medical maneuver table. The
-   * treatment is kept in the injury; a cauterization leaves a heat critical alert for the game master.
+   * treatment is kept in the injury. The heat critical and hits of a cauterization are left to the caller (see
+   * `addHeatCriticalAlert`).
    */
   treatInjury(
     injuryId: string,
     procedure: TacticalProcedure,
     outcome: MedicalOutcome,
     treatment: Omit<InjuryTreatment, 'id' | 'procedure' | 'result' | 'healingType' | 'recoveryModifier' | 'at' | 'context'>,
+    unmodifiedRoll?: number,
   ): { injury: Injury; effect: TreatmentEffect; treatment: InjuryTreatment } {
     const injury = this.findInjury(injuryId);
     InjuryTreatmentRules.validate(procedure, injury);
-    const effect = InjuryTreatmentRules.apply(procedure, injury, outcome);
+    const effect = InjuryTreatmentRules.apply(procedure, injury, outcome, unmodifiedRoll);
     const record: InjuryTreatment = {
       ...treatment,
       id: randomUUID(),
       procedure,
       result: outcome.result,
       healingType: effect.healingType,
-      recoveryModifier: outcome.recoveryModifier,
+      recoveryModifier: effect.recoveryModifier,
       at: new Date().toISOString(),
       context: 'tactical',
       tacticalGameId: this.gameId,
     };
     injury.treatments.push(record);
     injury.updatedAt = record.at;
-    if (effect.heatCritical) {
-      this.alerts.push(ActorRoundAlert.buildCritical('H', effect.heatCritical, `Cauterization: ${effect.heatCritical} Heat critical`));
-    }
     this.applyPenalties();
     return { injury, effect, treatment: record };
+  }
+
+  /** The heat critical of a cauterization for the game master to resolve, on the location of the injury (Table 13-1c). */
+  addHeatCriticalAlert(severity: string, location: AttackLocation | undefined): ActorRoundAlert {
+    const alert = ActorRoundAlert.buildCritical('H', severity, `Cauterization: ${severity} Heat critical`);
+    if (location) {
+      alert.modifiers?.push(new ActorRoundAlertModifier('location', null, location));
+    }
+    this.alerts.push(alert);
+    return alert;
   }
 
   /** A dying actor stabilized (spec 013, §3): the dying effect gains the rounds of the result. */

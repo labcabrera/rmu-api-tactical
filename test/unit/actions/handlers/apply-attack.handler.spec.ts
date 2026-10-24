@@ -332,6 +332,21 @@ describe('ApplyAttackHandler', () => {
       expect(injuries[1].source).toEqual(injuries[0].source);
     });
 
+    it('heals the penalty of a bleeding wound as a cut and keeps the type of the critical as a secondary (spec 022, D8)', async () => {
+      const { run, effectCommands } = setup([
+        injuryAttack([penalty(-20), bleeding(3)], 'chest', { type: 'organ', secondary: ['bone'] }, 'P'),
+      ]);
+
+      await run();
+
+      const injuries = effectCommands().get('defender-round')!.injuries;
+      expect(injuries.map(i => [i.type, i.penalty, i.bleeding ?? 0, i.severity])).toEqual([
+        ['cut-burn', -20, 3, 'light'],
+        ['organ', 0, 0, 'light'],
+        ['bone', 0, 0, 'light'],
+      ]);
+    });
+
     it('makes no injury for a critical without penalty or bleeding', async () => {
       const { run, effectCommands } = setup([injuryAttack([{ status: 'stunned', value: -25, rounds: 1 } as CriticalEffect])]);
 

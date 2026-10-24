@@ -9,6 +9,8 @@ import { ResolveBreakageCheckHandler } from '../actor-rounds/application/cqrs/ha
 import { StabilizeEffectHandler } from '../actor-rounds/application/cqrs/handlers/stabilize-effect.handler.js';
 import { TreatInjuryHandler } from '../actor-rounds/application/cqrs/handlers/treat-injury.handler.js';
 import { MedicalRollService } from '../actor-rounds/application/services/medical-roll.service.js';
+import { HEALING_TABLES_PORT } from '../actor-rounds/application/ports/healing-tables.port.js';
+import { ApiHealingTablesAdapter } from '../actor-rounds/infrastructure/api-clients/api.healing-tables.adapter.js';
 import { ActorsRoundModule } from '../actor-rounds/actor-rounds.module.js';
 import { GamesModule } from '../games/games.module.js';
 import { SharedModule } from '../shared/shared.module.js';
@@ -120,6 +122,10 @@ import { SKILL_CATALOG_PORT } from './application/ports/skill-catalog.port.js';
     {
       provide: MANEUVER_PORT,
       useClass: ApiManeuverAdapter,
+    },
+    {
+      provide: HEALING_TABLES_PORT,
+      useClass: ApiHealingTablesAdapter,
     },
     {
       provide: SKILL_CATALOG_PORT,

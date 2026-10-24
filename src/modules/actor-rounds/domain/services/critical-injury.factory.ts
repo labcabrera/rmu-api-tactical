@@ -7,6 +7,7 @@ import {
   INJURY_FLAGS,
   type InjuryFlag,
   type InjurySource,
+  type InjuryType,
   toBodyLocation,
 } from '../value-objects/injury.vo.js';
 import { InjuryTypeResolver } from './injury-type.resolver.js';
@@ -41,10 +42,18 @@ export interface CriticalInjuryResult {
   effects: CriticalEffectData[];
 }
 
+/** The type a bleeding wound's penalty heals as (ch. 13, Bleeding Injuries). */
+const CUT: InjuryType = 'cut-burn';
+
 /**
  * Spec 013, §3: a critical (or fumble) with penalty or bleeding makes one injury, of the type of its data or the
  * inferred one, plus one injury without penalty for each secondary type, all with the same source. The rest of its
  * effects stay effects.
+ *
+ * Workspace spec 022, D8: when the critical both bleeds and has a penalty, the penalty is the wound's, healed and
+ * recovered as a cut: the main injury (penalty and bleeding) is a cut, and the type of the critical (a bone, an organ)
+ * is kept as one more secondary injury without penalty, so it can still be treated. In the critical data
+ * (`data/core-law/critical-tables`, 2026-10-24) 145 entries have both: 60 cuts, 40 organ, 21 muscle, 20 bone, 4 skin.
  */
 export class CriticalInjuryFactory {
   static build(input: CriticalInjuryInput): CriticalInjuryResult {
@@ -65,7 +74,9 @@ export class CriticalInjuryFactory {
       return { injuries: [], effects };
     }
     const location = toBodyLocation(input.location);
-    const type = InjuryTypeResolver.resolve(input.criticalType, location, input.injury?.type);
+    const resolved = InjuryTypeResolver.resolve(input.criticalType, location, input.injury?.type);
+    const bleedingWound = penalty < 0 && bleeding > 0;
+    const type = bleedingWound ? CUT : resolved;
     const flags = (input.injury?.flags || []).filter((flag): flag is InjuryFlag => INJURY_FLAGS.includes(flag as InjuryFlag));
     const createdAt = new Date();
     const main = buildInjury({
@@ -79,7 +90,11 @@ export class CriticalInjuryFactory {
       source: input.source,
       createdAt,
     });
-    const secondary = InjuryTypeResolver.known(input.injury?.secondary ?? undefined).map(secondaryType =>
+    const secondaryTypes = InjuryTypeResolver.known(input.injury?.secondary ?? undefined);
+    if (bleedingWound && resolved !== CUT && resolved !== 'unknown' && !secondaryTypes.includes(resolved)) {
+      secondaryTypes.unshift(resolved);
+    }
+    const secondary = secondaryTypes.map(secondaryType =>
       buildInjury({
         id: randomUUID(),
         type: secondaryType,
