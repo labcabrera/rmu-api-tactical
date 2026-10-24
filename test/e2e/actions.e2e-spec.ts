@@ -137,15 +137,24 @@ describe('declare', () => {
     expect(response.status).toBe(400);
   });
 
-  // The game that is not there is the caller's input: a 400, not a 404.
-  it('answers 400 for an unknown game', async () => {
+  // A game that is not there is a 404 [F-tactical-18].
+  it('answers 404 for an unknown game', async () => {
     const response = await as('owner').post('/v1/actions', {
       gameId: 'nope',
       actorId: 'aragorn',
       actionType: 'melee_attack',
       phaseStart: 1,
     });
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(404);
+    expect(response.body).toMatchObject({ error: 'NotFoundError', code: 'not-found', message: 'Game nope not found' });
+  });
+
+  // An actor that is not in the round is a 404 too [F-tactical-18].
+  it('answers 404 for an actor without an actor round', async () => {
+    const gameId = await gameInPhase1();
+    const response = await as('owner').post('/v1/actions', { gameId, actorId: 'nobody', actionType: 'melee_attack', phaseStart: 1 });
+    expect(response.status).toBe(404);
+    expect(response.body).toMatchObject({ code: 'not-found' });
   });
 
   it('answers 404 for an unknown action', async () => {

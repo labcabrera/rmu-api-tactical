@@ -7,7 +7,7 @@ import {
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { Game } from '../../../../games/domain/aggregates/game.js';
-import { ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { ValidationError, NotFoundError } from '../../../../shared/domain/errors/errors.js';
 import { type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port.js';
 import { Action } from '../../../domain/aggregates/action.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
@@ -97,7 +97,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
   private async readGame(command: CreateActionCommand): Promise<Game> {
     const game = await this.gameRepository.findById(command.gameId);
     if (!game) {
-      throw new ValidationError(`Game ${command.gameId} not found`);
+      throw new NotFoundError('Game', command.gameId);
     }
     return game;
   }
@@ -106,7 +106,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     const rsql = `gameId==${command.gameId};actorId==${command.actorId};round==${round}`;
     const actorRounds = await this.actorRoundRepository.findByRsql(rsql, 0, 100);
     if (actorRounds.content.length === 0) {
-      throw new ValidationError(`Actor round for game ${command.gameId}, character ${command.actorId}, round ${round} not found`);
+      throw new NotFoundError('Actor round', `of actor ${command.actorId} in round ${round} of game ${command.gameId}`);
     }
     return actorRounds.content[0];
   }

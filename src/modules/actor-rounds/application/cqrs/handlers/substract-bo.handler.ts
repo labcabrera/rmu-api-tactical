@@ -1,6 +1,6 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, type IQueryHandler } from '@nestjs/cqrs';
-import { UnprocessableEntityError } from '../../../../shared/domain/errors/errors.js';
+import { NotFoundError } from '../../../../shared/domain/errors/errors.js';
 import { ActorRound } from '../../../domain/aggregates/actor-round.js';
 import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port.js';
 import { SubstractBoCommand } from '../commands/substract-bo.command.js';
@@ -15,7 +15,7 @@ export class SubstractBoHandler implements IQueryHandler<SubstractBoCommand> {
     this.logger.debug(`Substracting bo << ${JSON.stringify(command)}`);
     const actorRound = await this.actorRoundRepository.findById(command.actorRoundId);
     if (!actorRound) {
-      throw new UnprocessableEntityError(`Actor round not found: ${command.actorRoundId}`);
+      throw new NotFoundError('Actor round', command.actorRoundId);
     }
     actorRound.addUsedBo(command.attackName, command.bo);
     const updated = await this.actorRoundRepository.update(actorRound);

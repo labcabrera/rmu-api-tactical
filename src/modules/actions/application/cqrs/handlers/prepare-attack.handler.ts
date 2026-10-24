@@ -55,7 +55,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     if (!action) throw new NotFoundError('Action', command.actionId);
 
     const game = await this.gameRepository.findById(action.gameId);
-    if (!game) throw new UnprocessableEntityError('Game not found');
+    if (!game) throw new NotFoundError('Game', action.gameId);
 
     const strategicGame = await this.strategicGameClient.findById(game.strategicGameId);
     if (!strategicGame) throw new NotFoundError('StrategicGame', game.strategicGameId);
