@@ -16,6 +16,8 @@ import { SKILL_CATALOG_PORT } from '../../../src/modules/actions/application/por
 import { AttackTableEntry, Fumble } from '../../../src/modules/actions/domain/value-objects/action-attack.vo.js';
 import { CriticalResult } from '../../../src/modules/actions/domain/value-objects/critical-result.vo.js';
 import { DEFAULT_MANEUVER_PROFILE } from '../../../src/modules/actions/domain/value-objects/maneuver-profile.vo.js';
+import { HEALING_TABLES_PORT } from '../../../src/modules/actor-rounds/application/ports/healing-tables.port.js';
+import type { TreatmentTables } from '../../../src/modules/actor-rounds/domain/value-objects/treatment-difficulty.vo.js';
 import { NPC_PORT, type Npc } from '../../../src/modules/games/application/ports/npc.port.js';
 import {
   DOMAIN_EVENT_PUBLISHER,
@@ -54,6 +56,8 @@ export type World = {
   attackEntry: AttackTableEntry;
   critical: CriticalResult;
   fumble: Fumble;
+  /** Treatment tables of core's healing tables (workspace spec 022); null is a core without them. */
+  treatmentTables: TreatmentTables | null;
   lookups: { attack: AttackTableLookupRequest[]; critical: CriticalTableLookupRequest[]; fumble: FumbleTableLookupRequest[] };
   outcomes: { characterId: string; request: TacticalOutcomeRequest }[];
   /** Events published, as `<aggregateType>.<eventType>`. */
@@ -78,6 +82,7 @@ const newWorld = (): World => ({
   attackEntry: new AttackTableEntry('12CS', 12, 'S', 'C'),
   critical: new CriticalResult('Strike to the leg.', 6, 'leg', [], undefined),
   fumble: new Fumble('completed', 'Off balance.', undefined, 0, []),
+  treatmentTables: null,
   lookups: { attack: [], critical: [], fumble: [] },
   outcomes: [],
   events: [],
@@ -152,6 +157,7 @@ function fakePorts(world: World) {
         findManeuverModifiers: () => Promise.resolve([]),
       },
     ],
+    [HEALING_TABLES_PORT, { treatmentTables: () => Promise.resolve(world.treatmentTables) }],
     [
       TACTICAL_OUTCOME_PORT,
       {

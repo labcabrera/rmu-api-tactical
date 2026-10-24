@@ -177,6 +177,89 @@ describe('changes', () => {
   });
 });
 
+describe('treatments (workspace spec 022)', () => {
+  const wound = (id: string, severity: string, penalty: number, bleeding: number) => ({
+    id,
+    type: 'cut-burn',
+    severity,
+    location: 'arm',
+    penalty,
+    initialPenalty: penalty,
+    bleeding,
+    source: { kind: 'critical' },
+    treatments: [],
+    status: 'active',
+    createdAt: '2026-10-24T00:00:00.000Z',
+  });
+
+  const boromirRound = async () => {
+    e2e.world.characters.set(
+      'boromir',
+      character('boromir', {
+        injuries: [wound('medium-cut', 'medium', -30, 4), wound('severe-cut', 'severe', -50, 8)],
+      } as never),
+    );
+    const created = await as('owner').post('/v1/tactical-games', {
+      strategicGameId: 'sg-1',
+      name: 'Amon Hen',
+      factions: ['faction-1'],
+      actors: [{ id: 'boromir', type: 'character' }],
+    });
+    const gameId = (created.body as { id: string }).id;
+    await as('owner').post(`/v1/tactical-games/${gameId}/rounds/start`);
+    const page = await as('owner').get(`/v1/actor-rounds?q=gameId==${gameId};round==1`);
+    return (page.body as { content: ActorRoundBody[] }).content[0];
+  };
+
+  afterEach(() => {
+    e2e.world.treatmentTables = null;
+  });
+
+  it('stitches a medium wound with the difficulty of core: no bleeding and half the penalty', async () => {
+    e2e.world.treatmentTables = {
+      difficulties: [{ procedure: 'stitches', injuryType: 'cut-burn', severity: 'medium', difficulty: 'h' }],
+      rules: { headDifficultySteps: 1, cauterizePenaltyPerBleeding: -5 },
+    };
+    const round = await boromirRound();
+
+    const response = await as('owner').post(`/v1/actor-rounds/${round.id}/injuries/medium-cut/treatments`, {
+      procedure: 'stitches',
+      healer: { name: 'Aragorn', bonus: 80 },
+      roll: 40,
+    });
+
+    expect(response.status).toBe(200);
+    const body = response.body as { result: string; difficulty: number; actorRound: { injuries: Record<string, unknown>[] } };
+    expect([body.result, body.difficulty]).toEqual(['success', -10]);
+    expect(body.actorRound.injuries.find(i => i.id === 'medium-cut')).toMatchObject({ bleeding: 0, penalty: -15, initialPenalty: -15 });
+  });
+
+  it('refuses stitches on a severe wound', async () => {
+    const round = await boromirRound();
+    const response = await as('owner').post(`/v1/actor-rounds/${round.id}/injuries/severe-cut/treatments`, {
+      procedure: 'stitches',
+      healer: { name: 'Aragorn', bonus: 80 },
+      roll: 40,
+    });
+    expect(response.status).toBe(400);
+    expect((response.body as { code: string }).code).toBe('err-treatment-invalid-severity');
+  });
+
+  it('cauterizes: extra hits and the heat critical left as an alert', async () => {
+    const round = await boromirRound();
+    const response = await as('owner').post(`/v1/actor-rounds/${round.id}/injuries/severe-cut/treatments`, {
+      procedure: 'cauterize',
+      healer: { name: 'Aragorn', bonus: 80 },
+      roll: 70,
+      heatHitsRoll: 5,
+    });
+    expect(response.status).toBe(200);
+    const body = response.body as { heat: { critical: string; hits: number; alertId: string }; actorRound: ActorRoundBody };
+    expect(body.heat).toMatchObject({ critical: 'A', hits: 5 });
+    expect(body.actorRound.hp.current).toBe(45);
+  });
+});
+
 describe('finished game', () => {
   it('rejects changes once the game is finished', async () => {
     const { gameId, actorRound } = await startedGame();
