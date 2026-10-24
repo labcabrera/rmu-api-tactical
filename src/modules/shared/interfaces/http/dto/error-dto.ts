@@ -15,13 +15,6 @@ export class ErrorDto {
   code: string;
 
   @ApiProperty({
-    description: 'Same as code, kept for the clients that read it before spec 020 (rmu-mfe-tactical); deprecated',
-    example: 'not-found',
-    deprecated: true,
-  })
-  errorCode: string;
-
-  @ApiProperty({
     description: 'Error message; a list of messages for request validation errors',
     oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }],
     example: 'Game 3f6c1a52-8d0e-4b8f-9a51-2f7d3c9e1b40 not found',

@@ -68,7 +68,7 @@ gateway), `RMU_THROTTLE_LIMIT` / `RMU_THROTTLE_TTL_MS` (`300` per `60000` ms and
 is a 504 `upstream-timeout`, one that is down a 502. `/v1/health` checks only Mongo and memory (spec 021, decision 8).
 
 Errors answer `{ statusCode, error, code, message, timestamp, path }` (`path` without the query string). A missing game, actor round or action is a 404. Responses carry the `version` of the entity and a
-`PATCH` may send it back: a stale one is a 409 `version-conflict`. `size` goes up to 100. `GET /v1/actions` accepts up to 1000 (`CatalogPagedQueryDto`), because rmu-mfe-tactical loads a round whole. Error bodies also carry the deprecated `errorCode` (same value as `code`) and `details`, which rmu-mfe-tactical still reads.
+`PATCH` may send it back: a stale one is a 409 `version-conflict`. `size` goes up to 100. `GET /v1/actions` accepts up to 1000 (`CatalogPagedQueryDto`), because rmu-mfe-tactical loads a round whole. Error bodies may also carry `details`. The deprecated `errorCode` alias was removed in workspace spec 021: rmu-mfe-tactical reads `code`.
 == Permissions
 
 Workspace spec 021, decision 2, over the `BaseEntityGuard` of every API (`shared/infrastructure/security`):
