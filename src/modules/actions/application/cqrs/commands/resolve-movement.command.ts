@@ -1,4 +1,4 @@
-import { ActionMovementModifiers } from '../../../domain/value-objects/action-movement.vo';
+import { ActionMovementModifiers } from '../../../domain/value-objects/action-movement.vo.js';
 
 export class ResolveMovementCommand {
   constructor(

@@ -1,5 +1,5 @@
-import { ActionPointCapacity } from '../../../src/modules/actor-rounds/domain/services/action-point-capacity';
-import { ApModifier } from '../../../src/modules/actor-rounds/domain/value-objects/ap-modifier.vo';
+import { ActionPointCapacity } from '../../../src/modules/actor-rounds/domain/services/action-point-capacity.js';
+import { ApModifier } from '../../../src/modules/actor-rounds/domain/value-objects/ap-modifier.vo.js';
 
 const bonus = (value: number) => new ApModifier('haste', 'bonus', value);
 const loss = (value: number, source: 'surprised' | 'hold' = 'surprised') => new ApModifier(source, 'loss', value);

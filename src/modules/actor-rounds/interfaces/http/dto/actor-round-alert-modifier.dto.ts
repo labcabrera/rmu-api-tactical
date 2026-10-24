@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActorRoundAlertModifier } from '../../../domain/value-objects/actor-round-alert-modifier.vo';
+import { ActorRoundAlertModifier } from '../../../domain/value-objects/actor-round-alert-modifier.vo.js';
 
 export class ActorRoundAlertModifierDto {
   @ApiProperty({ description: 'Key of the modifier', required: true, example: 'strength' })

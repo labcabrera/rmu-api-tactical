@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { ApModifierKind, ApModifierSource } from '../../../domain/value-objects/ap-modifier.vo';
-import { ApModifier } from '../../../domain/value-objects/ap-modifier.vo';
+import type { ApModifierKind, ApModifierSource } from '../../../domain/value-objects/ap-modifier.vo.js';
+import { ApModifier } from '../../../domain/value-objects/ap-modifier.vo.js';
 
 export class ActorRoundApModifierDto {
   @ApiProperty({ type: String, description: 'What the modifier comes from', example: 'haste' })

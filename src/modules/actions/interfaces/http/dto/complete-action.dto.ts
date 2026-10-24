@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
-import { CompleteActionCommand } from '../../../application/cqrs/commands/complete-action.command';
-import type { FullDefenseType } from '../../../application/cqrs/commands/complete-action.command';
+import { CompleteActionCommand } from '../../../application/cqrs/commands/complete-action.command.js';
+import type { FullDefenseType } from '../../../application/cqrs/commands/complete-action.command.js';
 
 export class CompleteActionDto {
   @ApiProperty({ description: 'Free text kept with the action', required: false, example: 'Draws a dagger' })

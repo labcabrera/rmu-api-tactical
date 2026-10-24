@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNumber } from 'class-validator';
-import { AdjustHpCommand } from '../../../application/cqrs/commands/adjust-hp.command';
+import { AdjustHpCommand } from '../../../application/cqrs/commands/adjust-hp.command.js';
 
 export class AddHpDto {
   constructor(dmg: number) {

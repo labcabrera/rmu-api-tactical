@@ -1,5 +1,5 @@
-import { AttackLocation } from '../../domain/value-objects/attack-location.vo';
-import { CriticalResult } from '../../domain/value-objects/critical-result.vo';
+import type { AttackLocation } from '../../domain/value-objects/attack-location.vo.js';
+import { CriticalResult } from '../../domain/value-objects/critical-result.vo.js';
 
 export interface CriticalTableLookupRequest {
   criticalType: string;

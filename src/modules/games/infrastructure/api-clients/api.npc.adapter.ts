@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { TokenService } from '../../../shared/infrastructure/security/token.service';
-import { HttpClient, isUpstreamHttpError } from '../../../shared/infrastructure/http/http-client';
-import { Npc, NpcPort } from '../../application/ports/npc.port';
+import { TokenService } from '../../../shared/infrastructure/security/token.service.js';
+import { HttpClient, isUpstreamHttpError } from '../../../shared/infrastructure/http/http-client.js';
+import type { Npc, NpcPort } from '../../application/ports/npc.port.js';
 
 @Injectable()
 export class ApiNpcAdapter implements NpcPort {

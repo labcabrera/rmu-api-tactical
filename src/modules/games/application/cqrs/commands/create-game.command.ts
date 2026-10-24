@@ -1,5 +1,5 @@
-import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command';
-import { ActorType } from '../../../domain/value-objects/actor-type.vo';
+import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command.js';
+import type { ActorType } from '../../../domain/value-objects/actor-type.vo.js';
 
 export class CreateGameCommand extends AuthenticatedCommand {
   constructor(

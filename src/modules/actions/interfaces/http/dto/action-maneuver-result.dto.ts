@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActionManeuverEffect, ActionManeuverResult } from '../../../domain/value-objects/action-maneuver.vo';
+import { type ActionManeuverEffect, ActionManeuverResult } from '../../../domain/value-objects/action-maneuver.vo.js';
 
 export class ActionManeuverEffectDto {
   @ApiProperty({ example: 'penaltyUntilAbsoluteSuccess' })

@@ -1,4 +1,4 @@
-import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command';
+import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command.js';
 
 /** `PATCH /v1/actor-rounds/:id/hp`: hits taken (`dmg` > 0) or healed (`dmg` < 0) by the game master. */
 export class AdjustHpCommand extends AuthenticatedCommand {

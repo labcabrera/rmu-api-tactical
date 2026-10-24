@@ -1,12 +1,15 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
-import { NotFoundError } from '../../../../shared/domain/errors/errors';
-import { Game } from '../../../domain/aggregates/game';
-import { TacticalGameOutcomeCalculator } from '../../../domain/services/tactical-game-outcome.calculator';
-import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port';
-import { FinishGameCommand } from '../commands/finish-game.command';
-import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import {
+  type ActorRoundRepository,
+  ACTOR_ROUND_REPOSITORY,
+} from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
+import { NotFoundError } from '../../../../shared/domain/errors/errors.js';
+import { Game } from '../../../domain/aggregates/game.js';
+import { TacticalGameOutcomeCalculator } from '../../../domain/services/tactical-game-outcome.calculator.js';
+import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port.js';
+import { FinishGameCommand } from '../commands/finish-game.command.js';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 /** Finishes a game in progress with its outcome; the characters at risk need a fate (spec 013, §3). */
 @CommandHandler(FinishGameCommand)

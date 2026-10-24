@@ -1,5 +1,5 @@
-import { AttackTableEntry } from '../../domain/value-objects/action-attack.vo';
-import { AttackLocation } from '../../domain/value-objects/attack-location.vo';
+import { AttackTableEntry } from '../../domain/value-objects/action-attack.vo.js';
+import type { AttackLocation } from '../../domain/value-objects/attack-location.vo.js';
 
 export interface AttackTableLookupRequest {
   attackTable: string;

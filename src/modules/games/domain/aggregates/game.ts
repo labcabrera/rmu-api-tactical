@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
-import { BaseAggregateRoot } from '../../../shared/domain/aggregates/base-aggregate';
-import { ConflictError, NotModifiedError, ValidationError } from '../../../shared/domain/errors/errors';
+import { BaseAggregateRoot } from '../../../shared/domain/aggregates/base-aggregate.js';
+import { ConflictError, NotModifiedError, ValidationError } from '../../../shared/domain/errors/errors.js';
 import {
   GameAppliedEvent,
   GameCreatedEvent,
@@ -8,13 +8,13 @@ import {
   GamePhaseStartedEvent,
   GameRoundStartedEvent,
   GameUpdatedEvent,
-} from '../events/game.events';
-import { Actor } from '../value-objects/actor.vo';
-import { GameEnvironment } from '../value-objects/game-environment.vo';
-import { GamePhase } from '../value-objects/game-phase.vo';
-import { GameStatus } from '../value-objects/game-status.vo';
-import { TacticalGameOutcome, TacticalGameOutcomeCharacter } from '../value-objects/tactical-game-outcome.vo';
-import { GameProps } from './game-props';
+} from '../events/game.events.js';
+import { Actor } from '../value-objects/actor.vo.js';
+import { GameEnvironment } from '../value-objects/game-environment.vo.js';
+import type { GamePhase } from '../value-objects/game-phase.vo.js';
+import type { GameStatus } from '../value-objects/game-status.vo.js';
+import type { TacticalGameOutcome, TacticalGameOutcomeCharacter } from '../value-objects/tactical-game-outcome.vo.js';
+import type { GameProps } from './game-props.js';
 
 export class Game extends BaseAggregateRoot<GameProps> {
   private static readonly phaseTransitions: Map<GamePhase, GamePhase> = new Map([

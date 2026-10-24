@@ -1,5 +1,5 @@
-import { isMelee, isPreparing, rollModifiers, targetIsFlatfooted } from '../combat-modifiers';
-import { CombatPlugin } from '../combat-plugin';
+import { isMelee, isPreparing, rollModifiers, targetIsFlatfooted } from '../combat-modifiers.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 const SURPRISE_BONUS = 25;
 const REAR_BONUS = 35;

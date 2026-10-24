@@ -1,5 +1,5 @@
-import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round';
-import { effect, load, stunPenalty, stuns } from './actor-round-test.factory';
+import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
+import { effect, load, stunPenalty, stuns } from './actor-round-test.factory.js';
 
 const statuses = (round: ActorRound) => round.effects.map(e => e.status);
 

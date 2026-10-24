@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { ModifierGroup } from '../../../domain/value-objects/key-value-modifier.vo';
-import { KeyValueModifier } from '../../../domain/value-objects/key-value-modifier.vo';
+import type { ModifierGroup } from '../../../domain/value-objects/key-value-modifier.vo.js';
+import { KeyValueModifier } from '../../../domain/value-objects/key-value-modifier.vo.js';
 
 export class KeyValueModifierDto {
   @ApiProperty({ description: 'Key of the modifier', example: 'difficulty' })

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { ActorRoundSnapshot } from '../../../domain/aggregates/actor-round-props';
+import type { ActorRoundSnapshot } from '../../../domain/aggregates/actor-round-props.js';
 import type {
   BleedingControl,
   BodyLocation,
@@ -12,7 +12,7 @@ import type {
   InjuryStatus,
   InjuryTreatment,
   InjuryType,
-} from '../../../domain/value-objects/injury.vo';
+} from '../../../domain/value-objects/injury.vo.js';
 
 /** An injury of the actor (spec 013, §1), the model shared with the strategic API. */
 export class InjuryDto {

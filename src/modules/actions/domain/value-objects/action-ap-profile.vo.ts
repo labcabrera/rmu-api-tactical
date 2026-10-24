@@ -1,5 +1,5 @@
-import type { ActionType } from './action-type.vo';
-import type { ManeuverActionPoints } from './maneuver-profile.vo';
+import type { ActionType } from './action-type.vo.js';
+import type { ManeuverActionPoints } from './maneuver-profile.vo.js';
 
 /** §8.1: penalty per action point below the maximum of the action's range. */
 export const AP_PENALTY_PER_MISSING = -25;

@@ -1,22 +1,25 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
-import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round';
-import { ActorRoundAlert } from '../../../../actor-rounds/domain/value-objects/actor-round-alert.vo';
-import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import {
+  type ActorRoundRepository,
+  ACTOR_ROUND_REPOSITORY,
+} from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
+import { ActorRoundAlert } from '../../../../actor-rounds/domain/value-objects/actor-round-alert.vo.js';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
 import {
   type StrategicGame,
   type StrategicGamePort,
   STRATEGIC_GAME_PORT,
-} from '../../../../strategic/application/ports/strategic-game.port';
-import { Action } from '../../../domain/aggregates/action';
-import { ActionUpdatedEvent } from '../../../domain/events/action.events';
-import { ActionMovement, ActionMovementModifiers } from '../../../domain/value-objects/action-movement.vo';
-import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port';
-import { MovementProcessorService } from '../../services/movement-processor.service';
-import { ResolveMovementCommand } from '../commands/resolve-movement.command';
-import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
+} from '../../../../strategic/application/ports/strategic-game.port.js';
+import { Action } from '../../../domain/aggregates/action.js';
+import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
+import { ActionMovement, ActionMovementModifiers } from '../../../domain/value-objects/action-movement.vo.js';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
+import { MovementProcessorService } from '../../services/movement-processor.service.js';
+import { ResolveMovementCommand } from '../commands/resolve-movement.command.js';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 @CommandHandler(ResolveMovementCommand)
 export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCommand, Action> {

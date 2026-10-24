@@ -1,25 +1,28 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
-import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round';
-import { Game } from '../../../../games/domain/aggregates/game';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors';
-import { type Character, type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port';
-import { Action } from '../../../domain/aggregates/action';
-import { DIFFICULTY_MAP, Difficulty } from '../../../domain/value-objects/difficulty.vo';
-import { KeyValueModifier } from '../../../domain/value-objects/key-value-modifier.vo';
-import { LIGHT_MAP, LightType } from '../../../domain/value-objects/light-type.vo';
-import { LightManeuverModifier } from '../../../domain/value-objects/light-maneuver-modifier.vo';
+import {
+  type ActorRoundRepository,
+  ACTOR_ROUND_REPOSITORY,
+} from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
+import { Game } from '../../../../games/domain/aggregates/game.js';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { type Character, type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port.js';
+import { Action } from '../../../domain/aggregates/action.js';
+import { DIFFICULTY_MAP, type Difficulty } from '../../../domain/value-objects/difficulty.vo.js';
+import { KeyValueModifier } from '../../../domain/value-objects/key-value-modifier.vo.js';
+import { LIGHT_MAP, type LightType } from '../../../domain/value-objects/light-type.vo.js';
+import type { LightManeuverModifier } from '../../../domain/value-objects/light-maneuver-modifier.vo.js';
 import {
   DEFAULT_MANEUVER_PROFILE,
-  ManeuverModifierDefinition,
-  ManeuverModifierSelection,
-  SkillManeuverProfile,
-} from '../../../domain/value-objects/maneuver-profile.vo';
-import { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo';
-import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port';
-import { type SkillCatalogPort, SKILL_CATALOG_PORT } from '../../ports/skill-catalog.port';
-import { ManeuverBaseModifier, ManeuverBaseModifiersService, ManeuverSkillBonus } from './maneuver-base-modifiers.service';
-import { ERR_INVALID_MODIFIER, resolveSelections } from './maneuver-selections';
+  type ManeuverModifierDefinition,
+  type ManeuverModifierSelection,
+  type SkillManeuverProfile,
+} from '../../../domain/value-objects/maneuver-profile.vo.js';
+import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo.js';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
+import { type SkillCatalogPort, SKILL_CATALOG_PORT } from '../../ports/skill-catalog.port.js';
+import { type ManeuverBaseModifier, ManeuverBaseModifiersService, type ManeuverSkillBonus } from './maneuver-base-modifiers.service.js';
+import { ERR_INVALID_MODIFIER, resolveSelections } from './maneuver-selections.js';
 
 export const DEFAULT_DIFFICULTY: Difficulty = 'm';
 

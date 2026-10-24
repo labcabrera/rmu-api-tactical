@@ -1,7 +1,7 @@
-import { PRESSING_ADVANTAGE } from '../../../../../actor-rounds/domain/value-objects/actor-round-effect.vo';
-import { CombatContext } from '../combat-context';
-import { isPreparing, rollModifiers } from '../combat-modifiers';
-import { CombatPlugin } from '../combat-plugin';
+import { PRESSING_ADVANTAGE } from '../../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
+import type { CombatContext } from '../combat-context.js';
+import { isPreparing, rollModifiers } from '../combat-modifiers.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 /** The source's `pressing-advantage` effect against this attack's target, if this is its first attack on it. */
 const pressingAdvantage = (ctx: CombatContext) => {

@@ -1,11 +1,11 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { NotFoundError } from '../../../../shared/domain/errors/errors';
-import { type TacticalOutcomePort, TACTICAL_OUTCOME_PORT } from '../../../../strategic/application/ports/tactical-outcome.port';
-import { Game } from '../../../domain/aggregates/game';
-import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port';
-import { ApplyGameCommand } from '../commands/apply-game.command';
-import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { NotFoundError } from '../../../../shared/domain/errors/errors.js';
+import { type TacticalOutcomePort, TACTICAL_OUTCOME_PORT } from '../../../../strategic/application/ports/tactical-outcome.port.js';
+import { Game } from '../../../domain/aggregates/game.js';
+import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port.js';
+import { ApplyGameCommand } from '../commands/apply-game.command.js';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 /**
  * Applies the outcome of a finished game to the strategic characters (spec 013, §3), one call per character not

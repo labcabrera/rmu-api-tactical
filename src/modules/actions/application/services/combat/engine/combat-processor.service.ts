@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { CombatContext } from '../combat-context';
-import { CombatPhase } from '../combat-phase';
-import { CombatPluginRegistryService } from './combat-plugin-registry.service';
+import type { CombatContext } from '../combat-context.js';
+import type { CombatPhase } from '../combat-phase.js';
+import { CombatPluginRegistryService } from './combat-plugin-registry.service.js';
 
 /** Runs the hooks of a phase in order, skipping the ones whose condition does not hold, and traces them. */
 @Injectable()

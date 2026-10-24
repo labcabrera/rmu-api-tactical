@@ -1,22 +1,22 @@
-import { ActorRoundAlert } from '../value-objects/actor-round-alert.vo';
-import { ActorRoundAttack } from '../value-objects/actor-round-attack.vo';
-import { ActorRoundDefenseMode } from '../value-objects/actor-round-defense-mode.vo';
-import { ActorRoundDefense } from '../value-objects/actor-round-defense.vo';
-import { ActorRoundEffect } from '../value-objects/actor-round-effect.vo';
-import { ActorRoundFatigue } from '../value-objects/actor-round-fatigue.vo';
-import { ActorRoundHP } from '../value-objects/actor-round-hp.vo';
-import { ActorRoundInitiative } from '../value-objects/actor-round-initiative.vo';
-import { ActorRoundMovement } from '../value-objects/actor-round-movement.vo';
-import { ActorRoundPenalty } from '../value-objects/actor-round-penalty.vo';
-import { ActorRoundPhaseLog } from '../value-objects/actor-round-phase-log.vo';
-import { ActorRoundTrait } from '../value-objects/actor-round-trait.vo';
-import { ActorRoundUsedBo } from '../value-objects/actor-round-used-bo.vo';
-import { ActorType } from '../value-objects/actor-type.vo';
-import { ApLedgerEntry } from '../value-objects/ap-ledger-entry.vo';
-import { ApModifier } from '../value-objects/ap-modifier.vo';
-import { HpLogEntry } from '../value-objects/hp-log-entry.vo';
-import { Injury } from '../value-objects/injury.vo';
-import type { ActorRoundItem } from '../value-objects/actor-round-item.vo';
+import { ActorRoundAlert } from '../value-objects/actor-round-alert.vo.js';
+import { ActorRoundAttack } from '../value-objects/actor-round-attack.vo.js';
+import { ActorRoundDefenseMode } from '../value-objects/actor-round-defense-mode.vo.js';
+import { ActorRoundDefense } from '../value-objects/actor-round-defense.vo.js';
+import { ActorRoundEffect } from '../value-objects/actor-round-effect.vo.js';
+import { ActorRoundFatigue } from '../value-objects/actor-round-fatigue.vo.js';
+import { ActorRoundHP } from '../value-objects/actor-round-hp.vo.js';
+import { ActorRoundInitiative } from '../value-objects/actor-round-initiative.vo.js';
+import { ActorRoundMovement } from '../value-objects/actor-round-movement.vo.js';
+import { ActorRoundPenalty } from '../value-objects/actor-round-penalty.vo.js';
+import { ActorRoundPhaseLog } from '../value-objects/actor-round-phase-log.vo.js';
+import { ActorRoundTrait } from '../value-objects/actor-round-trait.vo.js';
+import { ActorRoundUsedBo } from '../value-objects/actor-round-used-bo.vo.js';
+import type { ActorType } from '../value-objects/actor-type.vo.js';
+import { ApLedgerEntry } from '../value-objects/ap-ledger-entry.vo.js';
+import { ApModifier } from '../value-objects/ap-modifier.vo.js';
+import type { HpLogEntry } from '../value-objects/hp-log-entry.vo.js';
+import type { Injury } from '../value-objects/injury.vo.js';
+import type { ActorRoundItem } from '../value-objects/actor-round-item.vo.js';
 
 /** What the actor brought into the game, taken when round 1 is built from its character (spec 013, §3). */
 export interface ActorRoundSnapshot {

@@ -1,5 +1,5 @@
-import { ActorRoundFaction } from '../../../actor-rounds/domain/value-objects/actor-round-faction.vo';
-import { ActorType } from './actor-type.vo';
+import { ActorRoundFaction } from '../../../actor-rounds/domain/value-objects/actor-round-faction.vo.js';
+import type { ActorType } from './actor-type.vo.js';
 
 export interface ActorProps {
   id: string;

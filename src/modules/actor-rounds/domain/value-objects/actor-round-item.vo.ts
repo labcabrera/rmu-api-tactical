@@ -1,4 +1,4 @@
-import type { AttackLocation } from '../../../actions/domain/value-objects/attack-location.vo';
+import type { AttackLocation } from '../../../actions/domain/value-objects/attack-location.vo.js';
 
 /** Kind of modifier of an item, as in the strategic items (spec 019, decision 2). */
 export type ItemModifierType = 'breakage' | 'quality' | 'custom';

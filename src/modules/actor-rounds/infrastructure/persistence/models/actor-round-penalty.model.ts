@@ -1,5 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import { ActorRoundPenaltyModifier } from './actor-round-penalty-modifier.model';
+import { ActorRoundPenaltyModifier } from './actor-round-penalty-modifier.model.js';
 
 @Schema({ _id: false })
 export class ActorRoundPenalty {

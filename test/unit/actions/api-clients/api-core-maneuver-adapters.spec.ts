@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ConfigService } from '@nestjs/config';
-import { ApiManeuverAdapter } from '../../../../src/modules/actions/infrastructure/api-clients/api.maneuver.adapter';
-import { ApiSkillCatalogAdapter } from '../../../../src/modules/actions/infrastructure/api-clients/api.skill-catalog.adapter';
-import { HttpClient } from '../../../../src/modules/shared/infrastructure/http/http-client';
-import type { TokenService } from '../../../../src/modules/shared/infrastructure/security/token.service';
-import { BadGatewayError } from '../../../../src/modules/shared/domain/errors/errors';
+import { ApiManeuverAdapter } from '../../../../src/modules/actions/infrastructure/api-clients/api.maneuver.adapter.js';
+import { ApiSkillCatalogAdapter } from '../../../../src/modules/actions/infrastructure/api-clients/api.skill-catalog.adapter.js';
+import { HttpClient } from '../../../../src/modules/shared/infrastructure/http/http-client.js';
+import type { TokenService } from '../../../../src/modules/shared/infrastructure/security/token.service.js';
+import { BadGatewayError } from '../../../../src/modules/shared/domain/errors/errors.js';
 
 const BASE_URI = 'http://core/v1';
 const tokenService = { getToken: () => Promise.resolve('token') } as unknown as TokenService;

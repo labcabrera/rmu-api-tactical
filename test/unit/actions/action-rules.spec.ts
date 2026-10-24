@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { Action, ActionProps } from '../../../src/modules/actions/domain/aggregates/action';
-import { ActionParry } from '../../../src/modules/actions/domain/value-objects/action-attack-parry.vo';
-import { ActionAttack } from '../../../src/modules/actions/domain/value-objects/action-attack.vo';
-import type { ActionType } from '../../../src/modules/actions/domain/value-objects/action-type.vo';
-import { DeclareActorParryCommand } from '../../../src/modules/actor-rounds/application/cqrs/commands/declare-actor-parry.command';
-import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round';
-import { ActorRoundDefense } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-defense.vo';
-import { attack, effect, load, LoadOptions } from '../actor-rounds/actor-round-test.factory';
+import { Action, type ActionProps } from '../../../src/modules/actions/domain/aggregates/action.js';
+import { ActionParry } from '../../../src/modules/actions/domain/value-objects/action-attack-parry.vo.js';
+import { ActionAttack } from '../../../src/modules/actions/domain/value-objects/action-attack.vo.js';
+import type { ActionType } from '../../../src/modules/actions/domain/value-objects/action-type.vo.js';
+import { DeclareActorParryCommand } from '../../../src/modules/actor-rounds/application/cqrs/commands/declare-actor-parry.command.js';
+import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
+import { ActorRoundDefense } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-defense.vo.js';
+import { attack, effect, load, type LoadOptions } from '../actor-rounds/actor-round-test.factory.js';
 
 const action = (actorId: string, actionType: ActionType, phaseStart: number, extra: Partial<ActionProps> = {}): Action =>
   Action.fromProps({

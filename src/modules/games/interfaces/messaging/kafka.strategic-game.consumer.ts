@@ -1,7 +1,7 @@
 import { Controller, Logger } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import { Ctx, EventPattern, KafkaContext, Payload } from '@nestjs/microservices';
-import { DeleteGamesByStrategicIdCommand } from '../../application/cqrs/commands/delete-games-by-strategic-id.command';
+import { DeleteGamesByStrategicIdCommand } from '../../application/cqrs/commands/delete-games-by-strategic-id.command.js';
 
 @Controller()
 export class StrategicGameKafkaConsumer {

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { BadGatewayError, ValidationError } from '../../domain/errors/errors';
+import { BadGatewayError, ValidationError } from '../../domain/errors/errors.js';
 
 /** Options of a call to another RMU API: the bearer token to send and any extra headers. */
 export interface HttpRequestOptions {

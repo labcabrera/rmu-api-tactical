@@ -1,6 +1,6 @@
-import { ActionParry } from '../../../domain/value-objects/action-attack-parry.vo';
-import { ProtectPosition } from '../../../domain/value-objects/action-attack-modifiers.vo';
-import { ParryType } from '../../../domain/value-objects/parry-type.vo';
+import { ActionParry } from '../../../domain/value-objects/action-attack-parry.vo.js';
+import type { ProtectPosition } from '../../../domain/value-objects/action-attack-modifiers.vo.js';
+import type { ParryType } from '../../../domain/value-objects/parry-type.vo.js';
 
 export class ActionParryDto {
   id: string;

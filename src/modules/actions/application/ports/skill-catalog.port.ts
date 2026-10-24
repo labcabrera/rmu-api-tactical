@@ -1,4 +1,4 @@
-import type { CatalogSkill, ManeuverModifierDefinition } from '../../domain/value-objects/maneuver-profile.vo';
+import type { CatalogSkill, ManeuverModifierDefinition } from '../../domain/value-objects/maneuver-profile.vo.js';
 
 /** Skills and their maneuver catalog, read from core. */
 export interface SkillCatalogPort {

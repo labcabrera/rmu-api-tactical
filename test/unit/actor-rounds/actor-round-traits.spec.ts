@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { randomUUID } from 'crypto';
-import { DeclareInitiativeDto } from '../../../src/modules/actor-rounds/interfaces/http/dto/declare-initiative.dto';
-import { ActorRoundDto } from '../../../src/modules/actor-rounds/interfaces/http/dto/actor-round.dto';
-import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round';
-import { ActorRoundEffect } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-effect.vo';
-import { ActorRoundTrait } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-trait.vo';
-import { ActorRoundCharacterMapperAdapter } from '../../../src/modules/actor-rounds/infrastructure/mappers/actor-round-character-mapper.adapter';
-import type { Character } from '../../../src/modules/strategic/application/ports/character.port';
-import { load } from './actor-round-test.factory';
+import { DeclareInitiativeDto } from '../../../src/modules/actor-rounds/interfaces/http/dto/declare-initiative.dto.js';
+import { ActorRoundDto } from '../../../src/modules/actor-rounds/interfaces/http/dto/actor-round.dto.js';
+import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
+import { ActorRoundEffect } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-effect.vo.js';
+import { ActorRoundTrait } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-trait.vo.js';
+import { ActorRoundCharacterMapperAdapter } from '../../../src/modules/actor-rounds/infrastructure/mappers/actor-round-character-mapper.adapter.js';
+import type { Character } from '../../../src/modules/strategic/application/ports/character.port.js';
+import { load } from './actor-round-test.factory.js';
 
 const character = (overrides: Partial<Character> = {}): Character =>
   ({

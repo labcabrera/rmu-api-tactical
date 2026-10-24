@@ -1,4 +1,4 @@
-import type { ActionManeuverEffect } from '../../domain/value-objects/action-maneuver.vo';
+import type { ActionManeuverEffect } from '../../domain/value-objects/action-maneuver.vo.js';
 
 export interface ManeuverPort {
   percent(roll: number): Promise<PercentManeuverResponse>;

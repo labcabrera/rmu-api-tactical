@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActorRoundMovement } from '../../../domain/value-objects/actor-round-movement.vo';
+import { ActorRoundMovement } from '../../../domain/value-objects/actor-round-movement.vo.js';
 
 export class ActorRoundMovementDto {
   @ApiProperty({ description: 'Base movement rate', example: 6 })

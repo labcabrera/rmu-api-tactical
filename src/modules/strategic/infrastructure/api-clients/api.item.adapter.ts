@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { TokenService } from '../../../shared/infrastructure/security/token.service';
-import { HttpClient } from '../../../shared/infrastructure/http/http-client';
-import { ItemPort, StrategicItem } from '../../application/ports/item.port';
+import { TokenService } from '../../../shared/infrastructure/security/token.service.js';
+import { HttpClient } from '../../../shared/infrastructure/http/http-client.js';
+import type { ItemPort, StrategicItem } from '../../application/ports/item.port.js';
 
 /** Reads the strategic items of a character with the service token (spec 019). */
 @Injectable()

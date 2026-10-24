@@ -1,32 +1,32 @@
-import { ActorRound } from '../../../../src/modules/actor-rounds/domain/aggregates/actor-round';
+import { ActorRound } from '../../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
 import {
   ActorRoundAttack,
   AttackRange,
-  WeaponCategory,
-} from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-attack.vo';
-import { ActorRoundEffect } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-effect.vo';
-import { ActorRoundTrait } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-trait.vo';
-import { ActorRoundDefenseMode } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-defense-mode.vo';
-import { ActorRoundPenalty } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-penalty.vo';
-import { ActorRoundPenaltyModifier } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-penalty-modifier.vo';
-import { ActorRoundPenaltySource } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-penalty-source.vo';
-import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo';
-import { Action } from '../../../../src/modules/actions/domain/aggregates/action';
+  type WeaponCategory,
+} from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-attack.vo.js';
+import { ActorRoundEffect } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-effect.vo.js';
+import { ActorRoundTrait } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-trait.vo.js';
+import { ActorRoundDefenseMode } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-defense-mode.vo.js';
+import { ActorRoundPenalty } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-penalty.vo.js';
+import { ActorRoundPenaltyModifier } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-penalty-modifier.vo.js';
+import type { ActorRoundPenaltySource } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-penalty-source.vo.js';
+import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo.js';
+import { Action } from '../../../../src/modules/actions/domain/aggregates/action.js';
 import {
   ActionAttackModifiers,
-  AttackType,
-  CalledShot,
-} from '../../../../src/modules/actions/domain/value-objects/action-attack-modifiers.vo';
-import { ActionAttack } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo';
-import { KeyValueModifier } from '../../../../src/modules/actions/domain/value-objects/key-value-modifier.vo';
-import {
+  type AttackType,
+  type CalledShot,
+} from '../../../../src/modules/actions/domain/value-objects/action-attack-modifiers.vo.js';
+import { ActionAttack } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo.js';
+import { KeyValueModifier } from '../../../../src/modules/actions/domain/value-objects/key-value-modifier.vo.js';
+import type {
   CombatAttackPreparation,
   CombatAttackSituationalModifiers,
   CombatAttackSourceSkill,
-} from '../../../../src/modules/actions/application/services/combat/combat-attack-calculation';
-import { CombatContext } from '../../../../src/modules/actions/application/services/combat/combat-context';
-import type { CombatPhase } from '../../../../src/modules/actions/application/services/combat/combat-phase';
-import type { CombatPlugin } from '../../../../src/modules/actions/application/services/combat/combat-plugin';
+} from '../../../../src/modules/actions/application/services/combat/combat-attack-calculation.js';
+import type { CombatContext } from '../../../../src/modules/actions/application/services/combat/combat-context.js';
+import type { CombatPhase } from '../../../../src/modules/actions/application/services/combat/combat-phase.js';
+import type { CombatPlugin } from '../../../../src/modules/actions/application/services/combat/combat-plugin.js';
 
 export interface CombatDefenseOptions {
   bd?: number;

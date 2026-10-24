@@ -7,18 +7,18 @@
 import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import type { AttackTableLookupRequest } from '../../../../src/modules/actions/application/ports/attack-table.port';
+import type { AttackTableLookupRequest } from '../../../../src/modules/actions/application/ports/attack-table.port.js';
 import {
   COMBAT_PLUGIN_LIST,
   COMBAT_SKILL_IDS,
   CombatAttackRollResolverService,
-  CombatContext,
+  type CombatContext,
   CombatModifierBag,
   CombatPluginRegistryService,
   CombatProcessor,
   PARRY_PHASE,
-} from '../../../../src/modules/actions/application/services/combat';
-import { ActionAttackCalculated } from '../../../../src/modules/actions/domain/value-objects/action-attack-calculated.vo';
+} from '../../../../src/modules/actions/application/services/combat/index.js';
+import { ActionAttackCalculated } from '../../../../src/modules/actions/domain/value-objects/action-attack-calculated.vo.js';
 import type {
   AttackType,
   CalledShot,
@@ -26,11 +26,11 @@ import type {
   PositionalSource,
   PositionalTarget,
   RestrictedQuarters,
-} from '../../../../src/modules/actions/domain/value-objects/action-attack-modifiers.vo';
-import { ActionAttack, AttackTableEntry } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo';
-import type { KeyValueModifier } from '../../../../src/modules/actions/domain/value-objects/key-value-modifier.vo';
-import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo';
-import { createCombatPluginContext } from './combat-plugin-test.factory';
+} from '../../../../src/modules/actions/domain/value-objects/action-attack-modifiers.vo.js';
+import { ActionAttack, AttackTableEntry } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo.js';
+import type { KeyValueModifier } from '../../../../src/modules/actions/domain/value-objects/key-value-modifier.vo.js';
+import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo.js';
+import { createCombatPluginContext } from './combat-plugin-test.factory.js';
 
 // ---------------------------------------------------------------------------------------------------------------
 // Key names

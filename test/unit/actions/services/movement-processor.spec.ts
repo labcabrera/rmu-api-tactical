@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { ManeuverPort, PercentManeuverResponse } from '../../../../src/modules/actions/application/ports/maneuver.port';
-import { MovementProcessorService } from '../../../../src/modules/actions/application/services/movement-processor.service';
-import { ManeuverBaseModifiersService } from '../../../../src/modules/actions/application/services/maneuver/maneuver-base-modifiers.service';
-import type { Action } from '../../../../src/modules/actions/domain/aggregates/action';
-import type { ActorRound } from '../../../../src/modules/actor-rounds/domain/aggregates/actor-round';
-import type { CharacterPort } from '../../../../src/modules/strategic/application/ports/character.port';
-import { load } from '../../actor-rounds/actor-round-test.factory';
+import type { ManeuverPort, PercentManeuverResponse } from '../../../../src/modules/actions/application/ports/maneuver.port.js';
+import { MovementProcessorService } from '../../../../src/modules/actions/application/services/movement-processor.service.js';
+import { ManeuverBaseModifiersService } from '../../../../src/modules/actions/application/services/maneuver/maneuver-base-modifiers.service.js';
+import type { Action } from '../../../../src/modules/actions/domain/aggregates/action.js';
+import type { ActorRound } from '../../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
+import type { CharacterPort } from '../../../../src/modules/strategic/application/ports/character.port.js';
+import { load } from '../../actor-rounds/actor-round-test.factory.js';
 
 const service = new MovementProcessorService({} as ManeuverPort, {} as CharacterPort, new ManeuverBaseModifiersService());
 

@@ -1,4 +1,4 @@
-import {
+import type {
   CalledShot,
   ChargeSpeed,
   Cover,
@@ -6,7 +6,7 @@ import {
   PositionalTarget,
   ProtectPosition,
   RestrictedQuarters,
-} from '../../../domain/value-objects/action-attack-modifiers.vo';
+} from '../../../domain/value-objects/action-attack-modifiers.vo.js';
 
 export class PrepareAttackCommand {
   constructor(

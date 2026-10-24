@@ -1,4 +1,4 @@
-import { ValidationError } from '../../../shared/domain/errors/errors';
+import { ValidationError } from '../../../shared/domain/errors/errors.js';
 
 export type DefenseLevel = 'none' | 'passive' | 'partial' | 'full';
 

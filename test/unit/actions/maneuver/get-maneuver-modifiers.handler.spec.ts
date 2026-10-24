@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { GetManeuverModifiersHandler } from '../../../../src/modules/actions/application/cqrs/handlers/get-maneuver-modifiers.handler';
-import { GetManeuverModifiersQuery } from '../../../../src/modules/actions/application/cqrs/queries/get-maneuver-modifiers.query';
-import { ManeuverModifiersDto } from '../../../../src/modules/actions/interfaces/http/dto/maneuver-modifiers.dto';
-import { CATALOG, ManeuverSetup, setupManeuver } from './maneuver-test.factory';
+import { GetManeuverModifiersHandler } from '../../../../src/modules/actions/application/cqrs/handlers/get-maneuver-modifiers.handler.js';
+import { GetManeuverModifiersQuery } from '../../../../src/modules/actions/application/cqrs/queries/get-maneuver-modifiers.query.js';
+import { ManeuverModifiersDto } from '../../../../src/modules/actions/interfaces/http/dto/maneuver-modifiers.dto.js';
+import { CATALOG, type ManeuverSetup, setupManeuver } from './maneuver-test.factory.js';
 
 const list = async (options: ManeuverSetup = {}, skillId?: string, specialization?: string) => {
   const setup = setupManeuver(options);

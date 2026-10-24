@@ -2,7 +2,7 @@ import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import request from 'supertest';
-import { KafkaProducerService } from '../../src/modules/shared/infrastructure/messaging/kafka-producer.service';
+import { KafkaProducerService } from '../../src/modules/shared/infrastructure/messaging/kafka-producer.service.js';
 
 // Smoke test of the platform (spec 020, phase 1): the whole AppModule boots against an in-memory Mongo. The full
 // suite, with tokens signed against a local JWKS, comes in phase 4.

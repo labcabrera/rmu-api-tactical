@@ -1,4 +1,4 @@
-import { Fumble } from '../../domain/value-objects/action-attack.vo';
+import { Fumble } from '../../domain/value-objects/action-attack.vo.js';
 
 export interface FumbleTableLookupRequest {
   fumbleTable: string;

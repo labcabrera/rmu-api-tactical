@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { TokenService } from '../../../shared/infrastructure/security/token.service';
-import { HttpClient, isUpstreamHttpError } from '../../../shared/infrastructure/http/http-client';
-import { StrategicGame, StrategicGamePort } from '../../application/ports/strategic-game.port';
+import { TokenService } from '../../../shared/infrastructure/security/token.service.js';
+import { HttpClient, isUpstreamHttpError } from '../../../shared/infrastructure/http/http-client.js';
+import type { StrategicGame, StrategicGamePort } from '../../application/ports/strategic-game.port.js';
 
 @Injectable()
 export class StrategicGameApiClient implements StrategicGamePort {

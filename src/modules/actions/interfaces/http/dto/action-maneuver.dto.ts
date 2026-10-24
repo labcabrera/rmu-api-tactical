@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActionManeuver } from '../../../domain/value-objects/action-maneuver.vo';
-import { ActionManeuverModifiersDto } from './action-maneuver-modifiers.dto';
-import { ActionManeuverResultDto } from './action-maneuver-result.dto';
-import { ActionRollDto } from './action-roll.dto';
+import { ActionManeuver } from '../../../domain/value-objects/action-maneuver.vo.js';
+import { ActionManeuverModifiersDto } from './action-maneuver-modifiers.dto.js';
+import { ActionManeuverResultDto } from './action-maneuver-result.dto.js';
+import { ActionRollDto } from './action-roll.dto.js';
 
 export class ActionManeuverDto {
   modifiers: ActionManeuverModifiersDto;

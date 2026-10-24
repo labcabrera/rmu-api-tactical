@@ -1,5 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import type { ForceReason, ForcedApSource, ResolutionMode } from '../../../domain/value-objects/action-resolution.vo';
+import type { ForceReason, ForcedApSource, ResolutionMode } from '../../../domain/value-objects/action-resolution.vo.js';
 
 @Schema({ _id: false })
 export class ActionResolutionModel {

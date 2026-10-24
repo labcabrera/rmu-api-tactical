@@ -1,13 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { TokenService } from '../../../shared/infrastructure/security/token.service';
-import { HttpClient } from '../../../shared/infrastructure/http/http-client';
-import {
+import { TokenService } from '../../../shared/infrastructure/security/token.service.js';
+import { HttpClient } from '../../../shared/infrastructure/http/http-client.js';
+import type {
   AbsoluteManeuverResponse,
   EnduranceManeuverResult,
   ManeuverPort,
   PercentManeuverResponse,
-} from '../../application/ports/maneuver.port';
+} from '../../application/ports/maneuver.port.js';
 
 @Injectable()
 export class ApiManeuverAdapter implements ManeuverPort {

@@ -1,17 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { ManeuverPort } from '../../../src/modules/actions/application/ports/maneuver.port';
-import { StabilizeEffectCommand } from '../../../src/modules/actor-rounds/application/cqrs/commands/stabilize-effect.command';
-import { TreatInjuryCommand } from '../../../src/modules/actor-rounds/application/cqrs/commands/treat-injury.command';
-import { StabilizeEffectHandler } from '../../../src/modules/actor-rounds/application/cqrs/handlers/stabilize-effect.handler';
-import { TreatInjuryHandler } from '../../../src/modules/actor-rounds/application/cqrs/handlers/treat-injury.handler';
-import type { ActorRoundRepository } from '../../../src/modules/actor-rounds/application/ports/actor-round-repository.port';
-import { MedicalRollService } from '../../../src/modules/actor-rounds/application/services/medical-roll.service';
-import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round';
-import { InjuryTreatmentRules, MedicalOutcome } from '../../../src/modules/actor-rounds/domain/services/injury-treatment';
-import { buildInjury, Injury, MedicalResult } from '../../../src/modules/actor-rounds/domain/value-objects/injury.vo';
-import type { GameRepository } from '../../../src/modules/games/application/ports/game-repository.port';
-import type { CharacterPort } from '../../../src/modules/strategic/application/ports/character.port';
-import { effect, load } from './actor-round-test.factory';
+import type { ManeuverPort } from '../../../src/modules/actions/application/ports/maneuver.port.js';
+import { StabilizeEffectCommand } from '../../../src/modules/actor-rounds/application/cqrs/commands/stabilize-effect.command.js';
+import { TreatInjuryCommand } from '../../../src/modules/actor-rounds/application/cqrs/commands/treat-injury.command.js';
+import { StabilizeEffectHandler } from '../../../src/modules/actor-rounds/application/cqrs/handlers/stabilize-effect.handler.js';
+import { TreatInjuryHandler } from '../../../src/modules/actor-rounds/application/cqrs/handlers/treat-injury.handler.js';
+import type { ActorRoundRepository } from '../../../src/modules/actor-rounds/application/ports/actor-round-repository.port.js';
+import { MedicalRollService } from '../../../src/modules/actor-rounds/application/services/medical-roll.service.js';
+import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
+import { InjuryTreatmentRules, type MedicalOutcome } from '../../../src/modules/actor-rounds/domain/services/injury-treatment.js';
+import { buildInjury, type Injury, type MedicalResult } from '../../../src/modules/actor-rounds/domain/value-objects/injury.vo.js';
+import type { GameRepository } from '../../../src/modules/games/application/ports/game-repository.port.js';
+import type { CharacterPort } from '../../../src/modules/strategic/application/ports/character.port.js';
+import { effect, load } from './actor-round-test.factory.js';
 
 const wound = (bleeding: number, overrides: Partial<Injury> = {}): Injury => ({
   ...buildInjury({ id: 'wound', type: 'cut-burn', location: 'arm', penalty: -10, bleeding, source: { kind: 'critical' } }),

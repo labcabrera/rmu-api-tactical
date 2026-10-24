@@ -1,17 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { CommandBus } from '@nestjs/cqrs';
-import { CompleteActionCommand } from '../../../../src/modules/actions/application/cqrs/commands/complete-action.command';
-import { CompleteActionHandler } from '../../../../src/modules/actions/application/cqrs/handlers/complete-action.handler';
-import type { DomainEventPublisher } from '../../../../src/modules/shared/application/ports/domain-event-publisher.port';
-import type { ActionRepository } from '../../../../src/modules/actions/application/ports/action-repository.port';
-import { Action, ActionProps } from '../../../../src/modules/actions/domain/aggregates/action';
-import type { ActionType } from '../../../../src/modules/actions/domain/value-objects/action-type.vo';
-import { DeleteEffectCommand } from '../../../../src/modules/actor-rounds/application/cqrs/commands/delete-effect.command';
-import type { ActorRoundRepository } from '../../../../src/modules/actor-rounds/application/ports/actor-round-repository.port';
-import type { GameRepository } from '../../../../src/modules/games/application/ports/game-repository.port';
-import { ActorRound } from '../../../../src/modules/actor-rounds/domain/aggregates/actor-round';
-import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo';
-import type { CharacterPort } from '../../../../src/modules/strategic/application/ports/character.port';
+import { CompleteActionCommand } from '../../../../src/modules/actions/application/cqrs/commands/complete-action.command.js';
+import { CompleteActionHandler } from '../../../../src/modules/actions/application/cqrs/handlers/complete-action.handler.js';
+import type { DomainEventPublisher } from '../../../../src/modules/shared/application/ports/domain-event-publisher.port.js';
+import type { ActionRepository } from '../../../../src/modules/actions/application/ports/action-repository.port.js';
+import { Action, type ActionProps } from '../../../../src/modules/actions/domain/aggregates/action.js';
+import type { ActionType } from '../../../../src/modules/actions/domain/value-objects/action-type.vo.js';
+import { DeleteEffectCommand } from '../../../../src/modules/actor-rounds/application/cqrs/commands/delete-effect.command.js';
+import type { ActorRoundRepository } from '../../../../src/modules/actor-rounds/application/ports/actor-round-repository.port.js';
+import type { GameRepository } from '../../../../src/modules/games/application/ports/game-repository.port.js';
+import { ActorRound } from '../../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
+import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo.js';
+import type { CharacterPort } from '../../../../src/modules/strategic/application/ports/character.port.js';
 
 const setup = (actionType: string, extra: Partial<ActionProps> = {}, options: { acrobaticsRanks?: number; shield?: boolean } = {}) => {
   const action = Action.fromProps({

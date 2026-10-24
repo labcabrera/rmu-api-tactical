@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsOptional, IsString } from 'class-validator';
-import { UpdateGameCommand } from '../../../application/cqrs/commands/update-game.command';
-import { GameEnvironment } from '../../../domain/value-objects/game-environment.vo';
-import { GameEnvironmentDto } from './game-environment.dto';
+import { UpdateGameCommand } from '../../../application/cqrs/commands/update-game.command.js';
+import { GameEnvironment } from '../../../domain/value-objects/game-environment.vo.js';
+import { GameEnvironmentDto } from './game-environment.dto.js';
 
 export class UpdateGameDto {
   @ApiProperty({ type: String, description: 'Name of the game', example: 'Mordor Game 1' })

@@ -1,7 +1,7 @@
-import { CombatAttackArmor } from '../combat-attack-calculation';
-import { ActionAttack } from '../../../../domain/value-objects/action-attack.vo';
-import { AttackLocation } from '../../../../domain/value-objects/attack-location.vo';
-import { CombatPlugin } from '../combat-plugin';
+import type { CombatAttackArmor } from '../combat-attack-calculation.js';
+import { ActionAttack } from '../../../../domain/value-objects/action-attack.vo.js';
+import type { AttackLocation } from '../../../../domain/value-objects/attack-location.vo.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 const LOCATIONS: string[] = ['head', 'chest', 'abdomen', 'arms', 'legs'];
 

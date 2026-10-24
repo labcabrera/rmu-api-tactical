@@ -4,18 +4,14 @@
     "moduleResolution": "nodenext",
     "resolvePackageJsonExports": true,
     "target": "ES2024",
-    "lib": [
-      "ES2024"
-    ],
-    "types": [
-      "node",
-      "vitest/globals"
-    ],
+    "lib": ["ES2024"],
+    "types": ["node", "vitest/globals"],
     "outDir": "./dist",
     "sourceMap": true,
     "declaration": false,
     "removeComments": true,
     "isolatedModules": true,
+    "verbatimModuleSyntax": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "esModuleInterop": true,

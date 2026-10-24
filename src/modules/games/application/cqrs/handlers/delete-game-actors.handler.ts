@@ -1,10 +1,10 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors';
-import { Game } from '../../../domain/aggregates/game';
-import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port';
-import { DeleteGameActorsCommand } from '../commands/delete-game-actors.command';
-import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { Game } from '../../../domain/aggregates/game.js';
+import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port.js';
+import { DeleteGameActorsCommand } from '../commands/delete-game-actors.command.js';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 @CommandHandler(DeleteGameActorsCommand)
 export class DeleteGameActorsHandler implements ICommandHandler<DeleteGameActorsCommand, Game> {

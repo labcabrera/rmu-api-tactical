@@ -3,15 +3,15 @@ import { randomUUID } from 'crypto';
 import {
   PrepareAttackCommand,
   PrepareAttackCommandModifiers,
-} from '../../../../src/modules/actions/application/cqrs/commands/prepare-attack.command';
-import { PrepareAttackHandler } from '../../../../src/modules/actions/application/cqrs/handlers/prepare-attack.handler';
-import type { ActionRepository } from '../../../../src/modules/actions/application/ports/action-repository.port';
-import type { AttackTableLookupRequest } from '../../../../src/modules/actions/application/ports/attack-table.port';
+} from '../../../../src/modules/actions/application/cqrs/commands/prepare-attack.command.js';
+import { PrepareAttackHandler } from '../../../../src/modules/actions/application/cqrs/handlers/prepare-attack.handler.js';
+import type { ActionRepository } from '../../../../src/modules/actions/application/ports/action-repository.port.js';
+import type { AttackTableLookupRequest } from '../../../../src/modules/actions/application/ports/attack-table.port.js';
 import {
   COMBAT_PLUGIN_LIST,
   CombatAttackRollResolverService,
   CombatAttackSizePlugin,
-  CombatContext,
+  type CombatContext,
   CombatFoilerPlugin,
   CombatPacePlugin,
   CombatPluginRegistryService,
@@ -20,20 +20,25 @@ import {
   CombatSizeDifferencePlugin,
   effectivePace,
   sizeDifference,
-} from '../../../../src/modules/actions/application/services/combat';
-import { Action } from '../../../../src/modules/actions/domain/aggregates/action';
-import { ActionAttackCalculated } from '../../../../src/modules/actions/domain/value-objects/action-attack-calculated.vo';
-import { ActionAttack, AttackTableEntry } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo';
-import { KeyValueModifier } from '../../../../src/modules/actions/domain/value-objects/key-value-modifier.vo';
-import type { ActorRoundRepository } from '../../../../src/modules/actor-rounds/application/ports/actor-round-repository.port';
-import { ActorRoundAttack } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-attack.vo';
-import { ActorRoundEffect } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-effect.vo';
-import { ActorRoundTrait } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-trait.vo';
-import type { GameRepository } from '../../../../src/modules/games/application/ports/game-repository.port';
-import { ValidationError } from '../../../../src/modules/shared/domain/errors/errors';
-import type { CharacterPort } from '../../../../src/modules/strategic/application/ports/character.port';
-import type { StrategicGameApiClient } from '../../../../src/modules/strategic/infrastructure/api-clients/api.strategic-game.adapter';
-import { CombatPluginContextOptions, createCombatPluginContext, rollModifierValues, runPluginHook } from './combat-plugin-test.factory';
+} from '../../../../src/modules/actions/application/services/combat/index.js';
+import { Action } from '../../../../src/modules/actions/domain/aggregates/action.js';
+import { ActionAttackCalculated } from '../../../../src/modules/actions/domain/value-objects/action-attack-calculated.vo.js';
+import { ActionAttack, AttackTableEntry } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo.js';
+import { KeyValueModifier } from '../../../../src/modules/actions/domain/value-objects/key-value-modifier.vo.js';
+import type { ActorRoundRepository } from '../../../../src/modules/actor-rounds/application/ports/actor-round-repository.port.js';
+import { ActorRoundAttack } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-attack.vo.js';
+import { ActorRoundEffect } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-effect.vo.js';
+import { ActorRoundTrait } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-trait.vo.js';
+import type { GameRepository } from '../../../../src/modules/games/application/ports/game-repository.port.js';
+import { ValidationError } from '../../../../src/modules/shared/domain/errors/errors.js';
+import type { CharacterPort } from '../../../../src/modules/strategic/application/ports/character.port.js';
+import type { StrategicGameApiClient } from '../../../../src/modules/strategic/infrastructure/api-clients/api.strategic-game.adapter.js';
+import {
+  type CombatPluginContextOptions,
+  createCombatPluginContext,
+  rollModifierValues,
+  runPluginHook,
+} from './combat-plugin-test.factory.js';
 
 const trait = (traitId: string, tier = 1, specialization: string | null = null) => new ActorRoundTrait(traitId, tier, specialization);
 

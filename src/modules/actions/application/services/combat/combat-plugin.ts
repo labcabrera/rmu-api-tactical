@@ -1,6 +1,6 @@
-import type { ModifierGroup } from '../../../domain/value-objects/key-value-modifier.vo';
-import { CombatContext } from './combat-context';
-import { CombatPhaseHooks } from './combat-phase';
+import type { ModifierGroup } from '../../../domain/value-objects/key-value-modifier.vo.js';
+import type { CombatContext } from './combat-context.js';
+import type { CombatPhaseHooks } from './combat-phase.js';
 
 /**
  * One rule of the attack calculation. A plugin reads the combat context and contributes modifiers or results in

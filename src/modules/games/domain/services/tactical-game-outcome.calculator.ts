@@ -1,17 +1,17 @@
 import { randomUUID } from 'crypto';
-import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round';
-import { DYING, UNCONSCIOUS } from '../../../actor-rounds/domain/value-objects/actor-round-effect.vo';
-import { HpLog } from '../../../actor-rounds/domain/value-objects/hp-log-entry.vo';
-import type { CharacterCondition, InjurySource } from '../../../actor-rounds/domain/value-objects/injury.vo';
-import { ValidationError } from '../../../shared/domain/errors/errors';
-import { Game } from '../aggregates/game';
-import {
+import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.js';
+import { DYING, UNCONSCIOUS } from '../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
+import { HpLog } from '../../../actor-rounds/domain/value-objects/hp-log-entry.vo.js';
+import type { CharacterCondition, InjurySource } from '../../../actor-rounds/domain/value-objects/injury.vo.js';
+import { ValidationError } from '../../../shared/domain/errors/errors.js';
+import { Game } from '../aggregates/game.js';
+import type {
   ActorFate,
   AtRiskActor,
   TacticalGameOutcome,
   TacticalGameOutcomeCharacter,
   TacticalItemOutcome,
-} from '../value-objects/tactical-game-outcome.vo';
+} from '../value-objects/tactical-game-outcome.vo.js';
 
 /** What the finish dialog shows and the game finishes with. */
 export interface FinishPreview {

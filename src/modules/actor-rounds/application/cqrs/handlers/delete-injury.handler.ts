@@ -1,10 +1,10 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
-import { ActorRound } from '../../../domain/aggregates/actor-round';
-import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port';
-import { DeleteInjuryCommand } from '../commands/delete-injury.command';
-import { loadActorRoundOfInjury } from './update-injury.handler';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
+import { ActorRound } from '../../../domain/aggregates/actor-round.js';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port.js';
+import { DeleteInjuryCommand } from '../commands/delete-injury.command.js';
+import { loadActorRoundOfInjury } from './update-injury.handler.js';
 
 @CommandHandler(DeleteInjuryCommand)
 export class DeleteInjuryHandler implements ICommandHandler<DeleteInjuryCommand, ActorRound> {

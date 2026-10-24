@@ -1,16 +1,16 @@
 import { Body, Controller, Delete, HttpCode, Logger, Param, Post, UseGuards } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../../shared/infrastructure/security/jwt-auth.guard';
-import { AddGameActorsCommand } from '../../application/cqrs/commands/add-game-actors.command';
-import { DeleteGameActorsCommand } from '../../application/cqrs/commands/delete-game-actors.command';
-import { Game } from '../../domain/aggregates/game';
-import { AddGameActorsDto } from './dto/add-game-actors.dto';
-import { DeleteGameActorsDto } from './dto/delete-game-actors.dto';
-import { GameDto } from './dto/game.dto';
-import { ApiErrors } from '../../../shared/interfaces/http/api-errors.decorator';
-import { CurrentUser } from '../../../shared/interfaces/http/current-user.decorator';
-import type { AuthenticatedUser } from '../../../shared/interfaces/http/authenticated-request';
+import { JwtAuthGuard } from '../../../shared/infrastructure/security/jwt-auth.guard.js';
+import { AddGameActorsCommand } from '../../application/cqrs/commands/add-game-actors.command.js';
+import { DeleteGameActorsCommand } from '../../application/cqrs/commands/delete-game-actors.command.js';
+import { Game } from '../../domain/aggregates/game.js';
+import { AddGameActorsDto } from './dto/add-game-actors.dto.js';
+import { DeleteGameActorsDto } from './dto/delete-game-actors.dto.js';
+import { GameDto } from './dto/game.dto.js';
+import { ApiErrors } from '../../../shared/interfaces/http/api-errors.decorator.js';
+import { CurrentUser } from '../../../shared/interfaces/http/current-user.decorator.js';
+import type { AuthenticatedUser } from '../../../shared/interfaces/http/authenticated-request.js';
 
 @UseGuards(JwtAuthGuard)
 @Controller('v1/tactical-games')

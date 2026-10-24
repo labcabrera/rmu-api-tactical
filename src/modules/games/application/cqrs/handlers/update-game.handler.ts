@@ -1,10 +1,10 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler } from '@nestjs/cqrs';
-import { NotFoundError } from '../../../../shared/domain/errors/errors';
-import { Game } from '../../../domain/aggregates/game';
-import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port';
-import { UpdateGameCommand } from '../commands/update-game.command';
-import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
+import { NotFoundError } from '../../../../shared/domain/errors/errors.js';
+import { Game } from '../../../domain/aggregates/game.js';
+import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port.js';
+import { UpdateGameCommand } from '../commands/update-game.command.js';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 @CommandHandler(UpdateGameCommand)
 export class UpdateGameHandler {

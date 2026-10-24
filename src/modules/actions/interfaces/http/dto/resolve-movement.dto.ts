@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsObject, IsOptional, IsString } from 'class-validator';
-import { ResolveMovementCommand } from '../../../application/cqrs/commands/resolve-movement.command';
-import { ActionMovementModifiersDto } from './action-movement.dto';
-import { ActionRollDto } from './action-roll.dto';
+import { ResolveMovementCommand } from '../../../application/cqrs/commands/resolve-movement.command.js';
+import { ActionMovementModifiersDto } from './action-movement.dto.js';
+import { ActionRollDto } from './action-roll.dto.js';
 
 export class ResolveMovementRequestDto {
   @ApiProperty({ description: 'Movement completion phase', example: 2 })

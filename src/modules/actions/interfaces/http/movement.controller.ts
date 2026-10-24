@@ -1,14 +1,14 @@
 import { Body, Controller, Logger, Param, Patch, UseGuards } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import { ApiBody, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../../shared/infrastructure/security/jwt-auth.guard';
-import { ResolveMovementCommand } from '../../application/cqrs/commands/resolve-movement.command';
-import { Action } from '../../domain/aggregates/action';
-import { ActionDto } from './dto/action.dto';
-import { ResolveMovementRequestDto } from './dto/resolve-movement.dto';
-import { ApiErrors } from '../../../shared/interfaces/http/api-errors.decorator';
-import { CurrentUser } from '../../../shared/interfaces/http/current-user.decorator';
-import type { AuthenticatedUser } from '../../../shared/interfaces/http/authenticated-request';
+import { JwtAuthGuard } from '../../../shared/infrastructure/security/jwt-auth.guard.js';
+import { ResolveMovementCommand } from '../../application/cqrs/commands/resolve-movement.command.js';
+import { Action } from '../../domain/aggregates/action.js';
+import { ActionDto } from './dto/action.dto.js';
+import { ResolveMovementRequestDto } from './dto/resolve-movement.dto.js';
+import { ApiErrors } from '../../../shared/interfaces/http/api-errors.decorator.js';
+import { CurrentUser } from '../../../shared/interfaces/http/current-user.decorator.js';
+import type { AuthenticatedUser } from '../../../shared/interfaces/http/authenticated-request.js';
 
 @UseGuards(JwtAuthGuard)
 @Controller('v1/actions')

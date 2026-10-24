@@ -1,25 +1,25 @@
 import { Body, Controller, Delete, Get, HttpCode, Logger, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../../shared/infrastructure/security/jwt-auth.guard';
-import { Page } from '../../../shared/application/pagination/page';
-import { PagedQueryDto } from '../../../shared/interfaces/http/dto/paged-rsql-query';
-import { CompleteActionCommand } from '../../application/cqrs/commands/complete-action.command';
-import { CreateActionCommand } from '../../application/cqrs/commands/create-action.command';
-import { DeleteActionCommand } from '../../application/cqrs/commands/delete-action.command';
-import { ManageActionPointsCommand } from '../../application/cqrs/commands/manage-action-points.command';
-import { UpdateActionCommand } from '../../application/cqrs/commands/update-action.command';
-import { GetActionQuery } from '../../application/cqrs/queries/get-action.query';
-import { GetActionsQuery } from '../../application/cqrs/queries/get-actions.query';
-import { Action } from '../../domain/aggregates/action';
-import { ActionDto, ActionPageDto } from './dto/action.dto';
-import { CompleteActionDto } from './dto/complete-action.dto';
-import { CreateActionDto } from './dto/create-action.dto';
-import { ForceResolutionDto } from './dto/force-action.dto';
-import { UpdateActionDto } from './dto/update-action.dto';
-import { ApiErrors } from '../../../shared/interfaces/http/api-errors.decorator';
-import { CurrentUser } from '../../../shared/interfaces/http/current-user.decorator';
-import type { AuthenticatedUser } from '../../../shared/interfaces/http/authenticated-request';
+import { JwtAuthGuard } from '../../../shared/infrastructure/security/jwt-auth.guard.js';
+import { Page } from '../../../shared/application/pagination/page.js';
+import { PagedQueryDto } from '../../../shared/interfaces/http/dto/paged-rsql-query.js';
+import { CompleteActionCommand } from '../../application/cqrs/commands/complete-action.command.js';
+import { CreateActionCommand } from '../../application/cqrs/commands/create-action.command.js';
+import { DeleteActionCommand } from '../../application/cqrs/commands/delete-action.command.js';
+import { ManageActionPointsCommand } from '../../application/cqrs/commands/manage-action-points.command.js';
+import { UpdateActionCommand } from '../../application/cqrs/commands/update-action.command.js';
+import { GetActionQuery } from '../../application/cqrs/queries/get-action.query.js';
+import { GetActionsQuery } from '../../application/cqrs/queries/get-actions.query.js';
+import { Action } from '../../domain/aggregates/action.js';
+import { ActionDto, ActionPageDto } from './dto/action.dto.js';
+import { CompleteActionDto } from './dto/complete-action.dto.js';
+import { CreateActionDto } from './dto/create-action.dto.js';
+import { ForceResolutionDto } from './dto/force-action.dto.js';
+import { UpdateActionDto } from './dto/update-action.dto.js';
+import { ApiErrors } from '../../../shared/interfaces/http/api-errors.decorator.js';
+import { CurrentUser } from '../../../shared/interfaces/http/current-user.decorator.js';
+import type { AuthenticatedUser } from '../../../shared/interfaces/http/authenticated-request.js';
 
 @UseGuards(JwtAuthGuard)
 @Controller('v1/actions')

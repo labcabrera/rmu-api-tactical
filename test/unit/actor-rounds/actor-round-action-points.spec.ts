@@ -1,10 +1,10 @@
-import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round';
-import { ActorRoundEffect } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-effect.vo';
-import { ActorRoundPhaseLog } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-phase-log.vo';
-import { ApLedgerEntry } from '../../../src/modules/actor-rounds/domain/value-objects/ap-ledger-entry.vo';
-import { ActorRoundDto } from '../../../src/modules/actor-rounds/interfaces/http/dto/actor-round.dto';
-import { ValidationError } from '../../../src/modules/shared/domain/errors/errors';
-import { effect, load } from './actor-round-test.factory';
+import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
+import { ActorRoundEffect } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-effect.vo.js';
+import { ActorRoundPhaseLog } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-phase-log.vo.js';
+import { ApLedgerEntry } from '../../../src/modules/actor-rounds/domain/value-objects/ap-ledger-entry.vo.js';
+import { ActorRoundDto } from '../../../src/modules/actor-rounds/interfaces/http/dto/actor-round.dto.js';
+import { ValidationError } from '../../../src/modules/shared/domain/errors/errors.js';
+import { effect, load } from './actor-round-test.factory.js';
 
 const add = (round: ActorRound, effects: ActorRoundEffect[], phase = 0) =>
   round.applyAttackResults(0, effects, undefined, { phase, spentAp: round.getSpentAp(phase) });

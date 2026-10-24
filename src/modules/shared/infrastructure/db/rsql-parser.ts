@@ -6,7 +6,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Injectable, Logger } from '@nestjs/common';
 import { parse } from '@rsql/parser';
-import { InvalidSearchExpression } from '../../domain/errors/errors';
+import { InvalidSearchExpression } from '../../domain/errors/errors.js';
 
 type MongoQuery = Record<string, any>;
 

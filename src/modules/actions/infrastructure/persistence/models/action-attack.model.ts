@@ -1,9 +1,9 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import { Modifier } from '../../../../shared/infrastructure/persistence/models/modifier.model';
-import type { AttackType, ProtectPosition } from '../../../domain/value-objects/action-attack-modifiers.vo';
-import { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
-import type { AttackStatus } from '../../../domain/value-objects/attack-status.vo';
-import { ActionAttackModifiers } from './action-attack-modifiers.model';
+import { Modifier } from '../../../../shared/infrastructure/persistence/models/modifier.model.js';
+import type { AttackType, ProtectPosition } from '../../../domain/value-objects/action-attack-modifiers.vo.js';
+import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo.js';
+import type { AttackStatus } from '../../../domain/value-objects/attack-status.vo.js';
+import { ActionAttackModifiers } from './action-attack-modifiers.model.js';
 
 @Schema({ _id: false })
 export class ActionAttackCalculated {

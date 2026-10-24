@@ -1,5 +1,5 @@
-import { Page } from '../../../shared/application/pagination/page';
-import { ActorRound } from '../../domain/aggregates/actor-round';
+import { Page } from '../../../shared/application/pagination/page.js';
+import { ActorRound } from '../../domain/aggregates/actor-round.js';
 
 export interface ActorRoundRepository {
   findById(id: string): Promise<ActorRound | null>;

@@ -1,16 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { ActionRepository } from '../../../src/modules/actions/application/ports/action-repository.port';
-import { Action, ActionProps } from '../../../src/modules/actions/domain/aggregates/action';
-import type { ActorRoundRepository } from '../../../src/modules/actor-rounds/application/ports/actor-round-repository.port';
-import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round';
-import { StartPhaseCommand } from '../../../src/modules/games/application/cqrs/commands/start-phase.command';
-import { StartPhaseHandler } from '../../../src/modules/games/application/cqrs/handlers/start-phase.handler';
-import type { DomainEventPublisher } from '../../../src/modules/shared/application/ports/domain-event-publisher.port';
-import type { GameRepository } from '../../../src/modules/games/application/ports/game-repository.port';
-import { Game } from '../../../src/modules/games/domain/aggregates/game';
-import type { GamePhase } from '../../../src/modules/games/domain/value-objects/game-phase.vo';
-import { Page } from '../../../src/modules/shared/application/pagination/page';
-import { load } from './actor-round-test.factory';
+import type { ActionRepository } from '../../../src/modules/actions/application/ports/action-repository.port.js';
+import { Action, type ActionProps } from '../../../src/modules/actions/domain/aggregates/action.js';
+import type { ActorRoundRepository } from '../../../src/modules/actor-rounds/application/ports/actor-round-repository.port.js';
+import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
+import { StartPhaseCommand } from '../../../src/modules/games/application/cqrs/commands/start-phase.command.js';
+import { StartPhaseHandler } from '../../../src/modules/games/application/cqrs/handlers/start-phase.handler.js';
+import type { DomainEventPublisher } from '../../../src/modules/shared/application/ports/domain-event-publisher.port.js';
+import type { GameRepository } from '../../../src/modules/games/application/ports/game-repository.port.js';
+import { Game } from '../../../src/modules/games/domain/aggregates/game.js';
+import type { GamePhase } from '../../../src/modules/games/domain/value-objects/game-phase.vo.js';
+import { Page } from '../../../src/modules/shared/application/pagination/page.js';
+import { load } from './actor-round-test.factory.js';
 
 const action = (actorId: string, phaseStart: number, phaseEnd: number | null, extra: Partial<ActionProps> = {}) =>
   Action.fromProps({

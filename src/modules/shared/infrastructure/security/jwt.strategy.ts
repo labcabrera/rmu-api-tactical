@@ -3,7 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import * as jwksRsa from 'jwks-rsa';
 import { ConfigService } from '@nestjs/config';
-import type { AuthenticatedUser } from '../../interfaces/http/authenticated-request';
+import type { AuthenticatedUser } from '../../interfaces/http/authenticated-request.js';
 
 interface JwtPayload {
   sub: string;

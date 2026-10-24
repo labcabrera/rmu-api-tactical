@@ -1,4 +1,4 @@
-import { attack, effect, load } from './actor-round-test.factory';
+import { attack, effect, load } from './actor-round-test.factory.js';
 
 describe('ActorRound penalties', () => {
   it('keeps the penalties out of the OB left, recomputing what was stored with them folded in', () => {

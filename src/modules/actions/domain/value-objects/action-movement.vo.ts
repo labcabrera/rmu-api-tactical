@@ -1,7 +1,7 @@
-import type { LightType } from './light-type.vo';
-import { ActionRoll } from './action-roll.vo';
-import { Difficulty } from './difficulty.vo';
-import { Pace } from './pace.vo';
+import type { LightType } from './light-type.vo.js';
+import { ActionRoll } from './action-roll.vo.js';
+import type { Difficulty } from './difficulty.vo.js';
+import type { Pace } from './pace.vo.js';
 
 export class ActionMovement {
   constructor(

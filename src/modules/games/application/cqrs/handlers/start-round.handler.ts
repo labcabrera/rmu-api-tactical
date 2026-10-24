@@ -1,19 +1,22 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { type ActionRepository, ACTION_REPOSITORY } from '../../../../actions/application/ports/action-repository.port';
-import { Action } from '../../../../actions/domain/aggregates/action';
-import { CreateActorRoundCommand } from '../../../../actor-rounds/application/cqrs/commands/create-actor-round.command';
-import { UpkeepActorRoundCommand } from '../../../../actor-rounds/application/cqrs/commands/upkeep-actor-round.command';
-import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
-import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round';
-import { NotFoundError } from '../../../../shared/domain/errors/errors';
-import { openRoundsOf, STRATEGIC_GAME_PORT } from '../../../../strategic/application/ports/strategic-game.port';
-import type { StrategicGamePort } from '../../../../strategic/application/ports/strategic-game.port';
-import { Game } from '../../../domain/aggregates/game';
-import { Actor } from '../../../domain/value-objects/actor.vo';
-import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port';
-import { StartRoundCommand } from '../commands/start-round.command';
-import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
+import { CommandBus, CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../../../actions/application/ports/action-repository.port.js';
+import { Action } from '../../../../actions/domain/aggregates/action.js';
+import { CreateActorRoundCommand } from '../../../../actor-rounds/application/cqrs/commands/create-actor-round.command.js';
+import { UpkeepActorRoundCommand } from '../../../../actor-rounds/application/cqrs/commands/upkeep-actor-round.command.js';
+import {
+  type ActorRoundRepository,
+  ACTOR_ROUND_REPOSITORY,
+} from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
+import { NotFoundError } from '../../../../shared/domain/errors/errors.js';
+import { openRoundsOf, STRATEGIC_GAME_PORT } from '../../../../strategic/application/ports/strategic-game.port.js';
+import type { StrategicGamePort } from '../../../../strategic/application/ports/strategic-game.port.js';
+import { Game } from '../../../domain/aggregates/game.js';
+import { Actor } from '../../../domain/value-objects/actor.vo.js';
+import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port.js';
+import { StartRoundCommand } from '../commands/start-round.command.js';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 const MAX_PAGE_SIZE = 1000;
 /** Last action phase of a round. */

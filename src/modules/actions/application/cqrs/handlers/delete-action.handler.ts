@@ -1,12 +1,15 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
-import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
-import { NotFoundError } from '../../../../shared/domain/errors/errors';
-import { ActionDeletedEvent } from '../../../domain/events/action.events';
-import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port';
-import { DeleteActionCommand } from '../commands/delete-action.command';
-import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import {
+  type ActorRoundRepository,
+  ACTOR_ROUND_REPOSITORY,
+} from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
+import { NotFoundError } from '../../../../shared/domain/errors/errors.js';
+import { ActionDeletedEvent } from '../../../domain/events/action.events.js';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
+import { DeleteActionCommand } from '../commands/delete-action.command.js';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 /** Deletes an action and frees the AP it took in the ledger of its actor round (spec 011, §2). */
 @CommandHandler(DeleteActionCommand)

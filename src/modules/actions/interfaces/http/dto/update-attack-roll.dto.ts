@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
-import { UpdateAttackRollCommand } from '../../../application/cqrs/commands/update-attack-roll.command';
+import { UpdateAttackRollCommand } from '../../../application/cqrs/commands/update-attack-roll.command.js';
 
 export class UpdateAttackRollDto {
   @ApiProperty({ description: 'Attack name', example: 'mainHand' })

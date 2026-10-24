@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { readBody, sendRequest, upstreamError } from '../http/http-client';
-import { currentRequestToken } from './request-token.context';
+import { readBody, sendRequest, upstreamError } from '../http/http-client.js';
+import { currentRequestToken } from './request-token.context.js';
 
 interface TokenResponse {
   access_token: string;

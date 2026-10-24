@@ -1,4 +1,4 @@
-import { ActionApProfile } from '../../../src/modules/actions/domain/value-objects/action-ap-profile.vo';
+import { ActionApProfile } from '../../../src/modules/actions/domain/value-objects/action-ap-profile.vo.js';
 
 describe('ActionApProfile (spec 011, §3)', () => {
   it('gives the AP range of each action type', () => {

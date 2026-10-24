@@ -1,9 +1,14 @@
-import type { ActorRoundTrait } from '../../../../actor-rounds/domain/value-objects/actor-round-trait.vo';
-import { Cover, PositionalSource, PositionalTarget, RestrictedQuarters } from '../../../domain/value-objects/action-attack-modifiers.vo';
-import { ActionAttackResult } from '../../../domain/value-objects/action-attack.vo';
-import { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
-import { AttackStatus } from '../../../domain/value-objects/attack-status.vo';
-import { KeyValueModifier } from '../../../domain/value-objects/key-value-modifier.vo';
+import type { ActorRoundTrait } from '../../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
+import type {
+  Cover,
+  PositionalSource,
+  PositionalTarget,
+  RestrictedQuarters,
+} from '../../../domain/value-objects/action-attack-modifiers.vo.js';
+import { ActionAttackResult } from '../../../domain/value-objects/action-attack.vo.js';
+import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo.js';
+import type { AttackStatus } from '../../../domain/value-objects/attack-status.vo.js';
+import { KeyValueModifier } from '../../../domain/value-objects/key-value-modifier.vo.js';
 
 export interface CombatAttackSituationalModifiers {
   cover: Cover;

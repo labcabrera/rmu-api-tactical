@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
-import { ResolveBreakageCheckCommand } from '../../../application/cqrs/commands/resolve-breakage-check.command';
-import type { BreakageCheckResult } from '../../../domain/aggregates/actor-round';
+import { ResolveBreakageCheckCommand } from '../../../application/cqrs/commands/resolve-breakage-check.command.js';
+import type { BreakageCheckResult } from '../../../domain/aggregates/actor-round.js';
 
 export class BreakageModifierDto {
   @ApiProperty({ example: 'gm' })

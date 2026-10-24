@@ -1,19 +1,19 @@
 import { AggregateRoot } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
-import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round';
-import { UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors/errors';
-import { DomainEvent } from '../../../shared/domain/events/domain-event';
-import { ActionCreatedEvent } from '../events/action.events';
-import { ProtectPosition } from '../value-objects/action-attack-modifiers.vo';
-import { ActionParry } from '../value-objects/action-attack-parry.vo';
-import { ActionAttack } from '../value-objects/action-attack.vo';
-import { ActionManeuver } from '../value-objects/action-maneuver.vo';
-import { ActionApProfile } from '../value-objects/action-ap-profile.vo';
-import { ActionMovement } from '../value-objects/action-movement.vo';
-import { ActionResolution, ForceReason } from '../value-objects/action-resolution.vo';
-import { ActionStatus, CLOSED_ACTION_STATUSES, IN_RESOLUTION_ACTION_STATUSES } from '../value-objects/action-status.vo';
-import { ActionType } from '../value-objects/action-type.vo';
-import type { ManeuverActionPoints } from '../value-objects/maneuver-profile.vo';
+import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.js';
+import { UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors/errors.js';
+import { DomainEvent } from '../../../shared/domain/events/domain-event.js';
+import { ActionCreatedEvent } from '../events/action.events.js';
+import type { ProtectPosition } from '../value-objects/action-attack-modifiers.vo.js';
+import { ActionParry } from '../value-objects/action-attack-parry.vo.js';
+import { ActionAttack } from '../value-objects/action-attack.vo.js';
+import { ActionManeuver } from '../value-objects/action-maneuver.vo.js';
+import { ActionApProfile } from '../value-objects/action-ap-profile.vo.js';
+import { ActionMovement } from '../value-objects/action-movement.vo.js';
+import { ActionResolution, type ForceReason } from '../value-objects/action-resolution.vo.js';
+import { type ActionStatus, CLOSED_ACTION_STATUSES, IN_RESOLUTION_ACTION_STATUSES } from '../value-objects/action-status.vo.js';
+import type { ActionType } from '../value-objects/action-type.vo.js';
+import type { ManeuverActionPoints } from '../value-objects/maneuver-profile.vo.js';
 
 /** Action phases of a round (§8.3). */
 const ACTION_PHASES = 4;

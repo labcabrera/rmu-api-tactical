@@ -1,9 +1,9 @@
-import { ActionAttackCalculated } from './action-attack-calculated.vo';
-import { ActionAttackModifiers, AttackType, ProtectPosition } from './action-attack-modifiers.vo';
-import { ActionAttackRoll } from './action-attack-roll.vo';
-import { AttackStatus } from './attack-status.vo';
-import { CriticalEffect } from './critical-result.vo';
-import { Critical } from './critical.vo';
+import { ActionAttackCalculated } from './action-attack-calculated.vo.js';
+import { ActionAttackModifiers, type AttackType, type ProtectPosition } from './action-attack-modifiers.vo.js';
+import { ActionAttackRoll } from './action-attack-roll.vo.js';
+import type { AttackStatus } from './attack-status.vo.js';
+import { CriticalEffect } from './critical-result.vo.js';
+import { Critical } from './critical.vo.js';
 
 export class ActionAttack {
   constructor(

@@ -1,5 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import type { ModifierGroup } from '../../../../actions/domain/value-objects/key-value-modifier.vo';
+import type { ModifierGroup } from '../../../../actions/domain/value-objects/key-value-modifier.vo.js';
 
 @Schema({ _id: false })
 export class Modifier {

@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { TokenService } from '../../../shared/infrastructure/security/token.service';
-import { HttpClient } from '../../../shared/infrastructure/http/http-client';
-import { FumbleTableLookupRequest, FumbleTablePort } from '../../application/ports/fumble-table.port';
-import { Fumble } from '../../domain/value-objects/action-attack.vo';
-import { CriticalEffect } from '../../domain/value-objects/critical-result.vo';
+import { TokenService } from '../../../shared/infrastructure/security/token.service.js';
+import { HttpClient } from '../../../shared/infrastructure/http/http-client.js';
+import type { FumbleTableLookupRequest, FumbleTablePort } from '../../application/ports/fumble-table.port.js';
+import { Fumble } from '../../domain/value-objects/action-attack.vo.js';
+import { CriticalEffect } from '../../domain/value-objects/critical-result.vo.js';
 
 interface FumbleTableEffect {
   status: string;

@@ -2,9 +2,9 @@ import type { ConfigService } from '@nestjs/config';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { lastValueFrom, Observable } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { BadGatewayError } from '../../../../src/modules/shared/domain/errors/errors';
-import { RequestTokenInterceptor } from '../../../../src/modules/shared/infrastructure/security/request-token.context';
-import { TokenService } from '../../../../src/modules/shared/infrastructure/security/token.service';
+import { BadGatewayError } from '../../../../src/modules/shared/domain/errors/errors.js';
+import { RequestTokenInterceptor } from '../../../../src/modules/shared/infrastructure/security/request-token.context.js';
+import { TokenService } from '../../../../src/modules/shared/infrastructure/security/token.service.js';
 
 const config: Record<string, string> = {
   RMU_IAM_TOKEN_URI: 'http://keycloak/realms/rmu/protocol/openid-connect/token',

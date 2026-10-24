@@ -1,4 +1,4 @@
-import type { InjurySource } from './injury.vo';
+import type { InjurySource } from './injury.vo.js';
 
 /** Bonus of the attacker against the foe it inflicted a critical on (Pressing the Advantage). */
 export const PRESSING_ADVANTAGE = 'pressing-advantage';

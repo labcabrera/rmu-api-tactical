@@ -1,12 +1,12 @@
 import { randomUUID } from 'crypto';
-import { AttackLocation } from '../../../actions/domain/value-objects/attack-location.vo';
-import { BaseAggregateRoot } from '../../../shared/domain/aggregates/base-aggregate';
-import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors/errors';
-import { ActorRoundCreatedEvent } from '../events/actor-round.events';
-import { ActorRoundAlert } from '../value-objects/actor-round-alert.vo';
-import { ActorRoundAttack } from '../value-objects/actor-round-attack.vo';
-import { ActorRoundDefenseMode, DefenseLevel } from '../value-objects/actor-round-defense-mode.vo';
-import { ActorRoundDefense } from '../value-objects/actor-round-defense.vo';
+import type { AttackLocation } from '../../../actions/domain/value-objects/attack-location.vo.js';
+import { BaseAggregateRoot } from '../../../shared/domain/aggregates/base-aggregate.js';
+import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors/errors.js';
+import { ActorRoundCreatedEvent } from '../events/actor-round.events.js';
+import { ActorRoundAlert } from '../value-objects/actor-round-alert.vo.js';
+import { ActorRoundAttack } from '../value-objects/actor-round-attack.vo.js';
+import { ActorRoundDefenseMode, type DefenseLevel } from '../value-objects/actor-round-defense-mode.vo.js';
+import { ActorRoundDefense } from '../value-objects/actor-round-defense.vo.js';
 import {
   ActorRoundEffect,
   ADRENAL_SPEED,
@@ -29,36 +29,36 @@ import {
   STAGGERED,
   SURPRISED,
   UNCONSCIOUS,
-} from '../value-objects/actor-round-effect.vo';
-import { ActorRoundFatigue, MAX_FATIGUE_PENALTY } from '../value-objects/actor-round-fatigue.vo';
-import { ActorRoundHP } from '../value-objects/actor-round-hp.vo';
-import { ActorRoundInitiative } from '../value-objects/actor-round-initiative.vo';
-import { ActorRoundMovement } from '../value-objects/actor-round-movement.vo';
-import { ActorRoundPenaltySource } from '../value-objects/actor-round-penalty-source.vo';
-import { ActorRoundPenalty } from '../value-objects/actor-round-penalty.vo';
-import { ActorRoundPhaseLog } from '../value-objects/actor-round-phase-log.vo';
-import { ActorRoundShield } from '../value-objects/actor-round-shield.vo';
-import { ActorRoundTrait, STRIKE_REFLEX } from '../value-objects/actor-round-trait.vo';
-import { ActorRoundUsedBo } from '../value-objects/actor-round-used-bo.vo';
-import { ActorType } from '../value-objects/actor-type.vo';
-import { ApLedgerEntry, ApLedgerKind } from '../value-objects/ap-ledger-entry.vo';
-import { ApModifier, ApModifierSource } from '../value-objects/ap-modifier.vo';
-import { HpChange, HpLogEntry } from '../value-objects/hp-log-entry.vo';
-import { ACTION_PHASES, ActionPointCapacity } from '../services/action-point-capacity';
-import { InjuryTreatmentRules, MedicalOutcome, TacticalProcedure, TreatmentEffect } from '../services/injury-treatment';
+} from '../value-objects/actor-round-effect.vo.js';
+import { ActorRoundFatigue, MAX_FATIGUE_PENALTY } from '../value-objects/actor-round-fatigue.vo.js';
+import { ActorRoundHP } from '../value-objects/actor-round-hp.vo.js';
+import { ActorRoundInitiative } from '../value-objects/actor-round-initiative.vo.js';
+import { ActorRoundMovement } from '../value-objects/actor-round-movement.vo.js';
+import type { ActorRoundPenaltySource } from '../value-objects/actor-round-penalty-source.vo.js';
+import { ActorRoundPenalty } from '../value-objects/actor-round-penalty.vo.js';
+import { ActorRoundPhaseLog } from '../value-objects/actor-round-phase-log.vo.js';
+import { ActorRoundShield } from '../value-objects/actor-round-shield.vo.js';
+import { ActorRoundTrait, STRIKE_REFLEX } from '../value-objects/actor-round-trait.vo.js';
+import { ActorRoundUsedBo } from '../value-objects/actor-round-used-bo.vo.js';
+import type { ActorType } from '../value-objects/actor-type.vo.js';
+import { ApLedgerEntry, type ApLedgerKind } from '../value-objects/ap-ledger-entry.vo.js';
+import { ApModifier, type ApModifierSource } from '../value-objects/ap-modifier.vo.js';
+import type { HpChange, HpLogEntry } from '../value-objects/hp-log-entry.vo.js';
+import { ACTION_PHASES, ActionPointCapacity } from '../services/action-point-capacity.js';
+import { InjuryTreatmentRules, type MedicalOutcome, type TacticalProcedure, type TreatmentEffect } from '../services/injury-treatment.js';
 import {
   buildInjury,
   deriveInjurySeverity,
-  Injury,
-  InjurySource,
-  InjuryTreatment,
+  type Injury,
+  type InjurySource,
+  type InjuryTreatment,
   isBleeding,
   isPenalizing,
   toBodyLocation,
-} from '../value-objects/injury.vo';
-import { ActorRoundProps, ActorRoundSnapshot } from './actor-round-props';
-import { ActorRoundItem, ActorRoundItems, ItemModifier, UNARMORED_AT } from '../value-objects/actor-round-item.vo';
-import { BreakageModifier, BreakageResolver, BreakageResult } from '../services/breakage-resolver';
+} from '../value-objects/injury.vo.js';
+import type { ActorRoundProps, ActorRoundSnapshot } from './actor-round-props.js';
+import { type ActorRoundItem, ActorRoundItems, type ItemModifier, UNARMORED_AT } from '../value-objects/actor-round-item.vo.js';
+import { type BreakageModifier, BreakageResolver, type BreakageResult } from '../services/breakage-resolver.js';
 
 /** A breakage check of an item of the actor (spec 019, §2). */
 export interface BreakageCheckInput {

@@ -2,11 +2,11 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { type MicroserviceOptions, Transport } from '@nestjs/microservices';
-import { AppModule } from './app.module';
+import { AppModule } from './app.module.js';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { configureHttp } from './bootstrap/http';
-import { configureLogger } from './bootstrap/logger';
-import { configureOpenApi } from './bootstrap/openapi';
+import { configureHttp } from './bootstrap/http.js';
+import { configureLogger } from './bootstrap/logger.js';
+import { configureOpenApi } from './bootstrap/openapi.js';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger: configureLogger(process.env.LOG_LEVEL) });

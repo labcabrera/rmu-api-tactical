@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { TokenService } from '../../../shared/infrastructure/security/token.service';
-import { HttpClient } from '../../../shared/infrastructure/http/http-client';
-import { CriticalTableLookupRequest, CriticalTablePort } from '../../application/ports/critical-table.port';
-import { AttackLocation } from '../../domain/value-objects/attack-location.vo';
-import { CriticalEffect, CriticalInjury, CriticalResult } from '../../domain/value-objects/critical-result.vo';
+import { TokenService } from '../../../shared/infrastructure/security/token.service.js';
+import { HttpClient } from '../../../shared/infrastructure/http/http-client.js';
+import type { CriticalTableLookupRequest, CriticalTablePort } from '../../application/ports/critical-table.port.js';
+import type { AttackLocation } from '../../domain/value-objects/attack-location.vo.js';
+import { CriticalEffect, type CriticalInjury, CriticalResult } from '../../domain/value-objects/critical-result.vo.js';
 
 interface CriticalTableEffect {
   status: string;

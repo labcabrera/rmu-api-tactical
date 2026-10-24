@@ -3,24 +3,24 @@ import type { Mock } from 'vitest';
 import {
   PrepareAttackCommand,
   PrepareAttackCommandModifiers,
-} from '../../../../src/modules/actions/application/cqrs/commands/prepare-attack.command';
-import { PrepareAttackHandler } from '../../../../src/modules/actions/application/cqrs/handlers/prepare-attack.handler';
-import type { DomainEventPublisher } from '../../../../src/modules/shared/application/ports/domain-event-publisher.port';
-import type { ActionRepository } from '../../../../src/modules/actions/application/ports/action-repository.port';
+} from '../../../../src/modules/actions/application/cqrs/commands/prepare-attack.command.js';
+import { PrepareAttackHandler } from '../../../../src/modules/actions/application/cqrs/handlers/prepare-attack.handler.js';
+import type { DomainEventPublisher } from '../../../../src/modules/shared/application/ports/domain-event-publisher.port.js';
+import type { ActionRepository } from '../../../../src/modules/actions/application/ports/action-repository.port.js';
 import {
   COMBAT_PLUGIN_LIST,
   CombatPluginRegistryService,
   CombatProcessor,
-} from '../../../../src/modules/actions/application/services/combat';
-import type { Action } from '../../../../src/modules/actions/domain/aggregates/action';
-import type { ActorRoundRepository } from '../../../../src/modules/actor-rounds/application/ports/actor-round-repository.port';
-import type { GameRepository } from '../../../../src/modules/games/application/ports/game-repository.port';
-import type { CharacterPort } from '../../../../src/modules/strategic/application/ports/character.port';
-import type { StrategicGameApiClient } from '../../../../src/modules/strategic/infrastructure/api-clients/api.strategic-game.adapter';
-import { createCombatPluginContext, CombatPluginContextOptions } from '../combat/combat-plugin-test.factory';
-import { ActorRoundAttack } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-attack.vo';
-import { ActorRoundDefenseMode } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-defense-mode.vo';
-import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo';
+} from '../../../../src/modules/actions/application/services/combat/index.js';
+import type { Action } from '../../../../src/modules/actions/domain/aggregates/action.js';
+import type { ActorRoundRepository } from '../../../../src/modules/actor-rounds/application/ports/actor-round-repository.port.js';
+import type { GameRepository } from '../../../../src/modules/games/application/ports/game-repository.port.js';
+import type { CharacterPort } from '../../../../src/modules/strategic/application/ports/character.port.js';
+import type { StrategicGameApiClient } from '../../../../src/modules/strategic/infrastructure/api-clients/api.strategic-game.adapter.js';
+import { createCombatPluginContext, type CombatPluginContextOptions } from '../combat/combat-plugin-test.factory.js';
+import { ActorRoundAttack } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-attack.vo.js';
+import { ActorRoundDefenseMode } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-defense-mode.vo.js';
+import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo.js';
 
 const SOURCE_SKILLS = [
   { skillId: 'restricted-quarters', totalBonus: 20 },

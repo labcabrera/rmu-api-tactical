@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { TokenService } from '../../../shared/infrastructure/security/token.service';
-import { HttpClient, isUpstreamHttpError } from '../../../shared/infrastructure/http/http-client';
-import { SkillCatalogPort } from '../../application/ports/skill-catalog.port';
+import { TokenService } from '../../../shared/infrastructure/security/token.service.js';
+import { HttpClient, isUpstreamHttpError } from '../../../shared/infrastructure/http/http-client.js';
+import type { SkillCatalogPort } from '../../application/ports/skill-catalog.port.js';
 import {
-  CatalogSkill,
+  type CatalogSkill,
   DEFAULT_MANEUVER_PROFILE,
-  ManeuverModifierDefinition,
-  SkillManeuverProfile,
-} from '../../domain/value-objects/maneuver-profile.vo';
+  type ManeuverModifierDefinition,
+  type SkillManeuverProfile,
+} from '../../domain/value-objects/maneuver-profile.vo.js';
 
 interface SkillResponse {
   id: string;

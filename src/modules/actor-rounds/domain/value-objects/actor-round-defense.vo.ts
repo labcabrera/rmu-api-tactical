@@ -1,4 +1,4 @@
-import { ActorRoundShield } from './actor-round-shield.vo';
+import { ActorRoundShield } from './actor-round-shield.vo.js';
 
 export class ActorRoundDefense {
   constructor(

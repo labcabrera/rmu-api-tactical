@@ -1,5 +1,5 @@
-import { ProtectPosition } from './action-attack-modifiers.vo';
-import { ParryType } from './parry-type.vo';
+import type { ProtectPosition } from './action-attack-modifiers.vo.js';
+import type { ParryType } from './parry-type.vo.js';
 
 export class ActionParry {
   constructor(

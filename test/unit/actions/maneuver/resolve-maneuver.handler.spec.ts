@@ -3,10 +3,10 @@ import {
   ManeuverRoll,
   ResolveManeuverCommand,
   ResolveManeuverRequest,
-} from '../../../../src/modules/actions/application/cqrs/commands/resolve-maneuver.command';
-import { ResolveManeuverHandler } from '../../../../src/modules/actions/application/cqrs/handlers/resolve-maneuver.handler';
-import { ResolveManeuverDto } from '../../../../src/modules/actions/interfaces/http/dto/resolve-maneuver.dto';
-import { breakdown, ManeuverSetup, setupManeuver } from './maneuver-test.factory';
+} from '../../../../src/modules/actions/application/cqrs/commands/resolve-maneuver.command.js';
+import { ResolveManeuverHandler } from '../../../../src/modules/actions/application/cqrs/handlers/resolve-maneuver.handler.js';
+import { ResolveManeuverDto } from '../../../../src/modules/actions/interfaces/http/dto/resolve-maneuver.dto.js';
+import { breakdown, type ManeuverSetup, setupManeuver } from './maneuver-test.factory.js';
 
 const handlerFor = (setup: ReturnType<typeof setupManeuver>) =>
   new ResolveManeuverHandler(

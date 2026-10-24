@@ -1,7 +1,7 @@
-import { AttackRange, WeaponCategory } from '../../../actor-rounds/domain/value-objects/actor-round-attack.vo';
-import { ActorRoundFaction } from '../../../actor-rounds/domain/value-objects/actor-round-faction.vo';
-import { ActorRoundShield } from '../../../actor-rounds/domain/value-objects/actor-round-shield.vo';
-import type { CharacterCondition, Injury } from '../../../actor-rounds/domain/value-objects/injury.vo';
+import { AttackRange, type WeaponCategory } from '../../../actor-rounds/domain/value-objects/actor-round-attack.vo.js';
+import { ActorRoundFaction } from '../../../actor-rounds/domain/value-objects/actor-round-faction.vo.js';
+import { ActorRoundShield } from '../../../actor-rounds/domain/value-objects/actor-round-shield.vo.js';
+import type { CharacterCondition, Injury } from '../../../actor-rounds/domain/value-objects/injury.vo.js';
 
 export type AttackType = 'melee' | 'ranged';
 

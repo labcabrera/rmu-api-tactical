@@ -1,5 +1,5 @@
 import { AggregateRoot } from '@nestjs/cqrs';
-import { DomainEvent } from '../events/domain-event';
+import { DomainEvent } from '../events/domain-event.js';
 
 /**
  * P: Props type for the aggregate, used in events and persistence

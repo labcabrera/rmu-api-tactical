@@ -1,16 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { PaginationDto } from '../../../../shared/interfaces/http/dto/page.dto';
-import { Action } from '../../../domain/aggregates/action';
-import type { ActionReadiness } from '../../../domain/aggregates/action';
-import { ActionResolution } from '../../../domain/value-objects/action-resolution.vo';
-import type { ForceReason, ForcedApSource, ResolutionMode } from '../../../domain/value-objects/action-resolution.vo';
-import { ACTION_STATUSES } from '../../../domain/value-objects/action-status.vo';
-import type { ActionStatus } from '../../../domain/value-objects/action-status.vo';
-import type { ActionType } from '../../../domain/value-objects/action-type.vo';
-import { ActionAttackDto } from './action-attack.dto';
-import { ActionManeuverDto } from './action-maneuver.dto';
-import { ActionMovementDto } from './action-movement.dto';
-import { ActionParryDto } from './action-parry.dto';
+import { PaginationDto } from '../../../../shared/interfaces/http/dto/page.dto.js';
+import { Action } from '../../../domain/aggregates/action.js';
+import type { ActionReadiness } from '../../../domain/aggregates/action.js';
+import { ActionResolution } from '../../../domain/value-objects/action-resolution.vo.js';
+import type { ForceReason, ForcedApSource, ResolutionMode } from '../../../domain/value-objects/action-resolution.vo.js';
+import { ACTION_STATUSES } from '../../../domain/value-objects/action-status.vo.js';
+import type { ActionStatus } from '../../../domain/value-objects/action-status.vo.js';
+import type { ActionType } from '../../../domain/value-objects/action-type.vo.js';
+import { ActionAttackDto } from './action-attack.dto.js';
+import { ActionManeuverDto } from './action-maneuver.dto.js';
+import { ActionMovementDto } from './action-movement.dto.js';
+import { ActionParryDto } from './action-parry.dto.js';
 
 export class ActionApProfileDto {
   @ApiProperty({ description: 'Minimum action points to resolve the action', example: 2 })

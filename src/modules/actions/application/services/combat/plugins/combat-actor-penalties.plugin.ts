@@ -1,5 +1,5 @@
-import { isPreparing, rollModifiers } from '../combat-modifiers';
-import { CombatPlugin } from '../combat-plugin';
+import { isPreparing, rollModifiers } from '../combat-modifiers.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 /**
  * The attacker's penalties (hit points, criticals, endurance…), one `penalty-<source>` entry per source. They are

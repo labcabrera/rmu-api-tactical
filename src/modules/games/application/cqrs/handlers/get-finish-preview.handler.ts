@@ -1,10 +1,13 @@
 import { Inject, Logger } from '@nestjs/common';
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
-import { NotFoundError } from '../../../../shared/domain/errors/errors';
-import { FinishPreview, TacticalGameOutcomeCalculator } from '../../../domain/services/tactical-game-outcome.calculator';
-import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port';
-import { GetFinishPreviewQuery } from '../queries/get-finish-preview.query';
+import { type IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import {
+  type ActorRoundRepository,
+  ACTOR_ROUND_REPOSITORY,
+} from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
+import { NotFoundError } from '../../../../shared/domain/errors/errors.js';
+import { type FinishPreview, TacticalGameOutcomeCalculator } from '../../../domain/services/tactical-game-outcome.calculator.js';
+import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port.js';
+import { GetFinishPreviewQuery } from '../queries/get-finish-preview.query.js';
 
 /** The data of the finish dialog: the outcome the game would finish with and the characters at risk (spec 013, §3). */
 @QueryHandler(GetFinishPreviewQuery)

@@ -1,7 +1,7 @@
-import { ActorRoundAttack, WeaponCategory } from '../../../../../actor-rounds/domain/value-objects/actor-round-attack.vo';
-import { CombatContext } from '../combat-context';
-import { isPreparing, rollModifiers, sourceSkill } from '../combat-modifiers';
-import { CombatPlugin } from '../combat-plugin';
+import { ActorRoundAttack, type WeaponCategory } from '../../../../../actor-rounds/domain/value-objects/actor-round-attack.vo.js';
+import type { CombatContext } from '../combat-context.js';
+import { isPreparing, rollModifiers, sourceSkill } from '../combat-modifiers.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 const SECOND_ATTACK_PENALTY = -75;
 const ADDITIONAL_ATTACK_PENALTY = -25;

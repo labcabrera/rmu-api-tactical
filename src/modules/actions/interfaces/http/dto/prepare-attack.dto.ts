@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, ValidateNested } from 'class-validator';
-import { PrepareAttackCommand } from '../../../application/cqrs/commands/prepare-attack.command';
-import { PrepareAttackItemDto } from './prepare-attack-item.dto';
+import { PrepareAttackCommand } from '../../../application/cqrs/commands/prepare-attack.command.js';
+import { PrepareAttackItemDto } from './prepare-attack-item.dto.js';
 
 export class PrepareAttackDto {
   @ApiProperty({ description: 'List of attacks to prepare', type: [PrepareAttackItemDto] })

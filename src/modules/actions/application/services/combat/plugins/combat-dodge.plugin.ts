@@ -1,4 +1,4 @@
-import { CombatContext } from '../combat-context';
+import type { CombatContext } from '../combat-context.js';
 import {
   isMelee,
   isPreparing,
@@ -7,8 +7,8 @@ import {
   targetIsFlatfooted,
   targetSkill,
   targetSkillRanks,
-} from '../combat-modifiers';
-import { CombatPlugin } from '../combat-plugin';
+} from '../combat-modifiers.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 /** Most DB a passive dodge gives (§9.6 Dodging). */
 const MAX_PASSIVE_DODGE = 50;

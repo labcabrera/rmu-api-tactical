@@ -1,25 +1,25 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { CommandBus } from '@nestjs/cqrs';
-import { ApplyAttackCommand } from '../../../../src/modules/actions/application/cqrs/commands/apply-attack.command';
-import { ApplyAttackHandler } from '../../../../src/modules/actions/application/cqrs/handlers/apply-attack.handler';
-import type { ActionRepository } from '../../../../src/modules/actions/application/ports/action-repository.port';
-import { Action } from '../../../../src/modules/actions/domain/aggregates/action';
-import { ActionParry } from '../../../../src/modules/actions/domain/value-objects/action-attack-parry.vo';
-import { ActionAttack } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo';
-import { KeyValueModifier } from '../../../../src/modules/actions/domain/value-objects/key-value-modifier.vo';
-import { DeclareActorParryCommand } from '../../../../src/modules/actor-rounds/application/cqrs/commands/declare-actor-parry.command';
-import type { ActorRoundRepository } from '../../../../src/modules/actor-rounds/application/ports/actor-round-repository.port';
-import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo';
-import type { GameRepository } from '../../../../src/modules/games/application/ports/game-repository.port';
-import type { StrategicGameApiClient } from '../../../../src/modules/strategic/infrastructure/api-clients/api.strategic-game.adapter';
-import { load } from '../../actor-rounds/actor-round-test.factory';
-import { AddEffectsCommand } from '../../../../src/modules/actor-rounds/application/cqrs/commands/add-effects.command';
-import { ActorRoundAttack } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-attack.vo';
-import { ActorRoundEffect } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-effect.vo';
-import { ActorRoundTrait } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-trait.vo';
-import { ActionAttackResult, AttackTableEntry } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo';
-import { Critical } from '../../../../src/modules/actions/domain/value-objects/critical.vo';
-import { CriticalEffect, CriticalResult } from '../../../../src/modules/actions/domain/value-objects/critical-result.vo';
+import { ApplyAttackCommand } from '../../../../src/modules/actions/application/cqrs/commands/apply-attack.command.js';
+import { ApplyAttackHandler } from '../../../../src/modules/actions/application/cqrs/handlers/apply-attack.handler.js';
+import type { ActionRepository } from '../../../../src/modules/actions/application/ports/action-repository.port.js';
+import { Action } from '../../../../src/modules/actions/domain/aggregates/action.js';
+import { ActionParry } from '../../../../src/modules/actions/domain/value-objects/action-attack-parry.vo.js';
+import { ActionAttack } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo.js';
+import { KeyValueModifier } from '../../../../src/modules/actions/domain/value-objects/key-value-modifier.vo.js';
+import { DeclareActorParryCommand } from '../../../../src/modules/actor-rounds/application/cqrs/commands/declare-actor-parry.command.js';
+import type { ActorRoundRepository } from '../../../../src/modules/actor-rounds/application/ports/actor-round-repository.port.js';
+import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo.js';
+import type { GameRepository } from '../../../../src/modules/games/application/ports/game-repository.port.js';
+import type { StrategicGameApiClient } from '../../../../src/modules/strategic/infrastructure/api-clients/api.strategic-game.adapter.js';
+import { load } from '../../actor-rounds/actor-round-test.factory.js';
+import { AddEffectsCommand } from '../../../../src/modules/actor-rounds/application/cqrs/commands/add-effects.command.js';
+import { ActorRoundAttack } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-attack.vo.js';
+import { ActorRoundEffect } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-effect.vo.js';
+import { ActorRoundTrait } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-trait.vo.js';
+import { ActionAttackResult, AttackTableEntry } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo.js';
+import { Critical } from '../../../../src/modules/actions/domain/value-objects/critical.vo.js';
+import { CriticalEffect, CriticalResult } from '../../../../src/modules/actions/domain/value-objects/critical-result.vo.js';
 
 const appliedAttack = (attackName: string, modifiers: KeyValueModifier[]) =>
   ({

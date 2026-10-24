@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { ManeuverModifiersListing } from '../../../application/services/maneuver/maneuver-context.service';
-import type { ManeuverModifierDefinition } from '../../../domain/value-objects/maneuver-profile.vo';
+import type { ManeuverModifiersListing } from '../../../application/services/maneuver/maneuver-context.service.js';
+import type { ManeuverModifierDefinition } from '../../../domain/value-objects/maneuver-profile.vo.js';
 
 export class ManeuverOptionDto {
   @ApiProperty({ example: 'h' })

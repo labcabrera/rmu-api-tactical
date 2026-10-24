@@ -1,5 +1,5 @@
-import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command';
-import { CreateGameCommandActor } from './create-game.command';
+import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command.js';
+import { CreateGameCommandActor } from './create-game.command.js';
 
 export class AddGameActorsCommand extends AuthenticatedCommand {
   constructor(

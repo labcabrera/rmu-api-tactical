@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { BadGatewayError, ValidationError } from '../../../../src/modules/shared/domain/errors/errors';
-import { HttpClient, isUpstreamHttpError } from '../../../../src/modules/shared/infrastructure/http/http-client';
+import { BadGatewayError, ValidationError } from '../../../../src/modules/shared/domain/errors/errors.js';
+import { HttpClient, isUpstreamHttpError } from '../../../../src/modules/shared/infrastructure/http/http-client.js';
 
 const URL = 'http://rmu-api-strategic:3002/v1/strategic-games/g-1?x=1';
 

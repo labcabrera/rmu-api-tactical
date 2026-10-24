@@ -1,5 +1,5 @@
-import { DomainEvent } from '../../../shared/domain/events/domain-event';
-import { Game } from '../aggregates/game';
+import { DomainEvent } from '../../../shared/domain/events/domain-event.js';
+import { Game } from '../aggregates/game.js';
 
 export class GameCreatedEvent extends DomainEvent<Game> {
   constructor(data: Game) {

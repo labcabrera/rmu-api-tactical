@@ -1,14 +1,17 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { type ActionRepository, ACTION_REPOSITORY } from '../../../../actions/application/ports/action-repository.port';
-import { Action } from '../../../../actions/domain/aggregates/action';
-import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
-import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors';
-import { Game } from '../../../domain/aggregates/game';
-import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port';
-import { StartPhaseCommand } from '../commands/start-phase.command';
-import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../../../actions/application/ports/action-repository.port.js';
+import { Action } from '../../../../actions/domain/aggregates/action.js';
+import {
+  type ActorRoundRepository,
+  ACTOR_ROUND_REPOSITORY,
+} from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { Game } from '../../../domain/aggregates/game.js';
+import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port.js';
+import { StartPhaseCommand } from '../commands/start-phase.command.js';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 const MAX_PAGE_SIZE = 1000;
 const ACTION_PHASES = 4;

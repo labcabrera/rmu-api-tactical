@@ -1,10 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   ActionAttackModifiers,
-  CalledShot,
-  ChargeSpeed,
+  type CalledShot,
+  type ChargeSpeed,
   normalizeChargeSpeed,
-} from '../../../domain/value-objects/action-attack-modifiers.vo';
+} from '../../../domain/value-objects/action-attack-modifiers.vo.js';
 
 export class ActionAttackModifiersDto {
   @ApiProperty({ type: String, description: 'Target actor round identifier', required: false, example: 'actor-round-003' })

@@ -1,7 +1,7 @@
-import { FOILER } from '../../../../../actor-rounds/domain/value-objects/actor-round-trait.vo';
-import { CombatContext } from '../combat-context';
-import { isPreparing, preparation, targetIsFlatfooted, targetTraitTierForSkill } from '../combat-modifiers';
-import { CombatPlugin } from '../combat-plugin';
+import { FOILER } from '../../../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
+import type { CombatContext } from '../combat-context.js';
+import { isPreparing, preparation, targetIsFlatfooted, targetTraitTierForSkill } from '../combat-modifiers.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 /**
  * Foiler tier of the target for this round: it counts when the target has a melee attack declared this round with a

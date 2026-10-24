@@ -1,6 +1,6 @@
-import { UnprocessableEntityError, ValidationError } from '../../../../../shared/domain/errors/errors';
-import { isMelee, isPreparing, preparation, rollModifiers } from '../combat-modifiers';
-import { CombatPlugin } from '../combat-plugin';
+import { UnprocessableEntityError, ValidationError } from '../../../../../shared/domain/errors/errors.js';
+import { isMelee, isPreparing, preparation, rollModifiers } from '../combat-modifiers.js';
+import type { CombatPlugin } from '../combat-plugin.js';
 
 export const CombatRangePlugin: CombatPlugin = {
   id: 'range',

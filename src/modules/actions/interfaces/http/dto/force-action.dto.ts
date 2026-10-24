@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
-import { ManageActionPointsCommand } from '../../../application/cqrs/commands/manage-action-points.command';
-import { FORCE_REASONS } from '../../../domain/value-objects/action-resolution.vo';
-import type { ForceReason } from '../../../domain/value-objects/action-resolution.vo';
+import { ManageActionPointsCommand } from '../../../application/cqrs/commands/manage-action-points.command.js';
+import { FORCE_REASONS } from '../../../domain/value-objects/action-resolution.vo.js';
+import type { ForceReason } from '../../../domain/value-objects/action-resolution.vo.js';
 
 export class ForceResolutionDto {
   @ApiProperty({

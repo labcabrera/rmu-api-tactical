@@ -1,33 +1,37 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { CommandBus } from '@nestjs/cqrs';
-import { CompleteActionCommand } from '../../../src/modules/actions/application/cqrs/commands/complete-action.command';
-import { CreateActionCommand } from '../../../src/modules/actions/application/cqrs/commands/create-action.command';
-import { ManageActionPointsCommand } from '../../../src/modules/actions/application/cqrs/commands/manage-action-points.command';
+import { CompleteActionCommand } from '../../../src/modules/actions/application/cqrs/commands/complete-action.command.js';
+import { CreateActionCommand } from '../../../src/modules/actions/application/cqrs/commands/create-action.command.js';
+import { ManageActionPointsCommand } from '../../../src/modules/actions/application/cqrs/commands/manage-action-points.command.js';
 import {
   PrepareAttackCommand,
   PrepareAttackCommandModifiers,
-} from '../../../src/modules/actions/application/cqrs/commands/prepare-attack.command';
-import { CompleteActionHandler } from '../../../src/modules/actions/application/cqrs/handlers/complete-action.handler';
-import { CreateActionHandler } from '../../../src/modules/actions/application/cqrs/handlers/create-action.handler';
-import { ManageActionPointsHandler } from '../../../src/modules/actions/application/cqrs/handlers/manage-action-points.handler';
-import { PrepareAttackHandler } from '../../../src/modules/actions/application/cqrs/handlers/prepare-attack.handler';
-import type { ActionRepository } from '../../../src/modules/actions/application/ports/action-repository.port';
-import { ActionApStateService } from '../../../src/modules/actions/application/services/action-ap-state.service';
-import { COMBAT_PLUGIN_LIST, CombatPluginRegistryService, CombatProcessor } from '../../../src/modules/actions/application/services/combat';
-import { Action, ActionProps } from '../../../src/modules/actions/domain/aggregates/action';
-import { ActionParry } from '../../../src/modules/actions/domain/value-objects/action-attack-parry.vo';
-import { ActionResolution } from '../../../src/modules/actions/domain/value-objects/action-resolution.vo';
-import type { ActionType } from '../../../src/modules/actions/domain/value-objects/action-type.vo';
-import { ActionDto } from '../../../src/modules/actions/interfaces/http/dto/action.dto';
-import type { ActorRoundRepository } from '../../../src/modules/actor-rounds/application/ports/actor-round-repository.port';
-import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round';
-import { ApLedgerEntry } from '../../../src/modules/actor-rounds/domain/value-objects/ap-ledger-entry.vo';
-import type { GameRepository } from '../../../src/modules/games/application/ports/game-repository.port';
-import { Game } from '../../../src/modules/games/domain/aggregates/game';
-import type { CharacterPort } from '../../../src/modules/strategic/application/ports/character.port';
-import type { StrategicGameApiClient } from '../../../src/modules/strategic/infrastructure/api-clients/api.strategic-game.adapter';
-import { effect, load } from '../actor-rounds/actor-round-test.factory';
-import { createCombatPluginContext } from './combat/combat-plugin-test.factory';
+} from '../../../src/modules/actions/application/cqrs/commands/prepare-attack.command.js';
+import { CompleteActionHandler } from '../../../src/modules/actions/application/cqrs/handlers/complete-action.handler.js';
+import { CreateActionHandler } from '../../../src/modules/actions/application/cqrs/handlers/create-action.handler.js';
+import { ManageActionPointsHandler } from '../../../src/modules/actions/application/cqrs/handlers/manage-action-points.handler.js';
+import { PrepareAttackHandler } from '../../../src/modules/actions/application/cqrs/handlers/prepare-attack.handler.js';
+import type { ActionRepository } from '../../../src/modules/actions/application/ports/action-repository.port.js';
+import { ActionApStateService } from '../../../src/modules/actions/application/services/action-ap-state.service.js';
+import {
+  COMBAT_PLUGIN_LIST,
+  CombatPluginRegistryService,
+  CombatProcessor,
+} from '../../../src/modules/actions/application/services/combat/index.js';
+import { Action, type ActionProps } from '../../../src/modules/actions/domain/aggregates/action.js';
+import { ActionParry } from '../../../src/modules/actions/domain/value-objects/action-attack-parry.vo.js';
+import { ActionResolution } from '../../../src/modules/actions/domain/value-objects/action-resolution.vo.js';
+import type { ActionType } from '../../../src/modules/actions/domain/value-objects/action-type.vo.js';
+import { ActionDto } from '../../../src/modules/actions/interfaces/http/dto/action.dto.js';
+import type { ActorRoundRepository } from '../../../src/modules/actor-rounds/application/ports/actor-round-repository.port.js';
+import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
+import { ApLedgerEntry } from '../../../src/modules/actor-rounds/domain/value-objects/ap-ledger-entry.vo.js';
+import type { GameRepository } from '../../../src/modules/games/application/ports/game-repository.port.js';
+import { Game } from '../../../src/modules/games/domain/aggregates/game.js';
+import type { CharacterPort } from '../../../src/modules/strategic/application/ports/character.port.js';
+import type { StrategicGameApiClient } from '../../../src/modules/strategic/infrastructure/api-clients/api.strategic-game.adapter.js';
+import { effect, load } from '../actor-rounds/actor-round-test.factory.js';
+import { createCombatPluginContext } from './combat/combat-plugin-test.factory.js';
 
 /** An action declared after spec 011: its AP come only from the ledger. */
 const action = (id: string, actionType: ActionType, phaseStart: number, extra: Partial<ActionProps> = {}): Action =>

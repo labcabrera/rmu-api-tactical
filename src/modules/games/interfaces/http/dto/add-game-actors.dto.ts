@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty } from 'class-validator';
-import { AddGameActorsCommand } from '../../../application/cqrs/commands/add-game-actors.command';
-import { CreateGameActorDto } from './create-game.dto';
+import { AddGameActorsCommand } from '../../../application/cqrs/commands/add-game-actors.command.js';
+import { CreateGameActorDto } from './create-game.dto.js';
 
 export class AddGameActorsDto {
   @ApiProperty({

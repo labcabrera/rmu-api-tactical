@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActionAttackResult } from '../../../domain/value-objects/action-attack.vo';
-import { CriticalDto } from './critical.dto';
+import { ActionAttackResult } from '../../../domain/value-objects/action-attack.vo.js';
+import { CriticalDto } from './critical.dto.js';
 
 export class AttackTableEntryDto {
   @ApiProperty({ description: 'Attack table entry text', example: '12AS' })

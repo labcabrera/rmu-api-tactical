@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsNumber, IsOptional, IsString } from 'class-validator';
-import { KeyValueModifierDto } from '../../../../shared/interfaces/http/dto/key-value-modifier.dto';
-import { ResolveEnduranceCheckCommand } from '../../../application/cqrs/commands/resolve-endurance-check.command';
+import { KeyValueModifierDto } from '../../../../shared/interfaces/http/dto/key-value-modifier.dto.js';
+import { ResolveEnduranceCheckCommand } from '../../../application/cqrs/commands/resolve-endurance-check.command.js';
 
 export class ResolveEnduranceCheckDto {
   constructor(roll: number, alertId: string | undefined, modifiers: KeyValueModifierDto[]) {

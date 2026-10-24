@@ -1,12 +1,12 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors';
-import { ActorRound } from '../../../domain/aggregates/actor-round';
-import { InjuryTreatmentRules } from '../../../domain/services/injury-treatment';
-import { DYING } from '../../../domain/value-objects/actor-round-effect.vo';
-import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port';
-import { MedicalRoll, MedicalRollService } from '../../services/medical-roll.service';
-import { StabilizeEffectCommand } from '../commands/stabilize-effect.command';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { ActorRound } from '../../../domain/aggregates/actor-round.js';
+import { InjuryTreatmentRules } from '../../../domain/services/injury-treatment.js';
+import { DYING } from '../../../domain/value-objects/actor-round-effect.vo.js';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port.js';
+import { type MedicalRoll, MedicalRollService } from '../../services/medical-roll.service.js';
+import { StabilizeEffectCommand } from '../commands/stabilize-effect.command.js';
 
 export interface StabilizeEffectResult {
   actorRound: ActorRound;

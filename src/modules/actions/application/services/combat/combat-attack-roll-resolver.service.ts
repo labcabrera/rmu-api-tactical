@@ -1,15 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round';
-import { ActorRoundAttack } from '../../../../actor-rounds/domain/value-objects/actor-round-attack.vo';
-import { ValidationError } from '../../../../shared/domain/errors/errors';
-import { Action } from '../../../domain/aggregates/action';
-import { ActionAttackRoll } from '../../../domain/value-objects/action-attack-roll.vo';
-import { ActionAttack, ActionAttackResult, Fumble } from '../../../domain/value-objects/action-attack.vo';
-import { Critical } from '../../../domain/value-objects/critical.vo';
-import { type AttackTablePort, ATTACK_TABLE_PORT } from '../../ports/attack-table.port';
-import { CombatContext } from './combat-context';
-import { CombatModifierBag } from './combat-modifier-bag';
-import { CombatProcessor } from './engine/combat-processor.service';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
+import { ActorRoundAttack } from '../../../../actor-rounds/domain/value-objects/actor-round-attack.vo.js';
+import { ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { Action } from '../../../domain/aggregates/action.js';
+import { ActionAttackRoll } from '../../../domain/value-objects/action-attack-roll.vo.js';
+import { ActionAttack, ActionAttackResult, Fumble } from '../../../domain/value-objects/action-attack.vo.js';
+import { Critical } from '../../../domain/value-objects/critical.vo.js';
+import { type AttackTablePort, ATTACK_TABLE_PORT } from '../../ports/attack-table.port.js';
+import type { CombatContext } from './combat-context.js';
+import { CombatModifierBag } from './combat-modifier-bag.js';
+import { CombatProcessor } from './engine/combat-processor.service.js';
 
 export interface ResolveAttackRollInput {
   action: Action;
