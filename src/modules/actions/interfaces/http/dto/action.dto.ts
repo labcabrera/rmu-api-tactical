@@ -180,7 +180,7 @@ export class ActionDto {
 }
 
 export class ActionPageDto {
-  @ApiProperty({ type: [ActionDto], description: 'Actions', isArray: true })
+  @ApiProperty({ type: [ActionDto], description: 'Actions' })
   content: ActionDto[];
 
   @ApiProperty({ type: PaginationDto, description: 'Pagination information' })
