@@ -89,6 +89,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     for (const event of action.getUncommittedEvents()) {
       await this.eventPublisher.publish('action', event);
     }
+    action.commit();
     saved.refreshApState(actorRound, currentPhase);
     return saved;
   }

@@ -69,12 +69,14 @@ describe('UpdateGameHandler', () => {
     expect(game.getUncommittedEvents()).toEqual([]);
   });
 
-  it('writes and publishes a change of the environment', async () => {
-    const { handler, repository, publisher } = handlerWith(loaded());
+  it('writes and publishes a change of the environment, and clears the events it published [F-tactical-10]', async () => {
+    const game = loaded();
+    const { handler, repository, publisher } = handlerWith(game);
 
     await handler.execute(command(undefined, new GameEnvironment(-5, -20)));
 
     expect(repository.update).toHaveBeenCalledOnce();
     expect(publisher.publish).toHaveBeenCalledWith('game', expect.objectContaining({ eventType: 'updated' }));
+    expect(game.getUncommittedEvents()).toEqual([]);
   });
 });

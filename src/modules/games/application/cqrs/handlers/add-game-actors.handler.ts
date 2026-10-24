@@ -42,6 +42,8 @@ export class AddGameActorsHandler implements ICommandHandler<AddGameActorsComman
     const updated = await this.gameRepository.update(game);
     const events = game.getUncommittedEvents();
     void this.eventPublisher.publish('game', ...events);
+    // The events are handed over: clear them, so a later write of the same aggregate does not publish them again.
+    game.commit();
     return updated;
   }
 

@@ -31,6 +31,7 @@ export class FinishGameHandler implements ICommandHandler<FinishGameCommand, Gam
     game.finish(TacticalGameOutcomeCalculator.finish(game, actorRounds, command.fates || []));
     const updated = await this.gameRepository.update(game);
     void this.eventPublisher.publish('game', ...game.getUncommittedEvents());
+    game.commit();
     return updated;
   }
 }

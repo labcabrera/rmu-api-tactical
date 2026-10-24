@@ -10,7 +10,6 @@ import { Game } from '../../../domain/aggregates/game.js';
 import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port.js';
 import { RandomizeInitiativesCommand } from '../commands/randomize-initiatives.command.js';
 import { StartRoundCommand } from '../commands/start-round.command.js';
-import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 @CommandHandler(RandomizeInitiativesCommand)
 export class RandomizeInitiativesHandler implements ICommandHandler<RandomizeInitiativesCommand, Game> {
@@ -19,7 +18,6 @@ export class RandomizeInitiativesHandler implements ICommandHandler<RandomizeIni
   constructor(
     @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
     @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
     private readonly commandBus: CommandBus,
   ) {}
 

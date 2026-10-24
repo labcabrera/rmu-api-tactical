@@ -49,6 +49,8 @@ export class CreateGameHandler implements ICommandHandler<CreateGameCommand, Gam
     const saved = await this.gameRepository.save(game);
     const events = game.getUncommittedEvents();
     void this.eventPublisher.publish('game', ...events);
+    // The events are handed over: clear them, so a later write of the same aggregate does not publish them again.
+    game.commit();
     return saved;
   }
 
