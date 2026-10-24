@@ -4,7 +4,7 @@ import {
   ActorRoundItems,
   type ItemCondition,
   type ItemModifier,
-} from '../../../domain/value-objets/actor-round-item.vo';
+} from '../../../domain/value-objects/actor-round-item.vo';
 
 export class ActorRoundItemDto {
   @ApiProperty({ description: 'Strategic item identifier', example: 'item-001' })

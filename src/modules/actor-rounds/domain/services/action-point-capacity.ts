@@ -1,4 +1,4 @@
-import { ApModifier } from '../value-objets/ap-modifier.vo';
+import { ApModifier } from '../value-objects/ap-modifier.vo';
 
 /** Action phases of a round, one base AP each (§8.3). */
 export const ACTION_PHASES = 4;

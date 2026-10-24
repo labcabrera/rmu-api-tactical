@@ -1,10 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
 
-import { TokenService } from '../../../auth/token.service';
+import { TokenService } from '../../../shared/infrastructure/security/token.service';
+import { HttpClient, isUpstreamHttpError } from '../../../shared/infrastructure/http/http-client';
 import { StrategicGame, StrategicGamePort } from '../../application/ports/strategic-game.port';
-import { handleAxiosError } from '../../../shared/infrastructure/api-rest/axios.error.adapter';
 
 @Injectable()
 export class StrategicGameApiClient implements StrategicGamePort {
@@ -12,6 +11,7 @@ export class StrategicGameApiClient implements StrategicGamePort {
 
   constructor(
     private readonly tokenService: TokenService,
+    private readonly httpClient: HttpClient,
     configService: ConfigService,
   ) {
     this.baseUri = configService.get('RMU_API_STRATEGIC_URI') as string;
@@ -21,17 +21,13 @@ export class StrategicGameApiClient implements StrategicGamePort {
     const token = await this.tokenService.getToken();
     const uri = `${this.baseUri}/strategic-games/${id}`;
     try {
-      const response = await axios.get(uri, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      return response.data as StrategicGame;
+      const data = await this.httpClient.get<unknown>(uri, { token });
+      return data as StrategicGame;
     } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 404) {
+      if (isUpstreamHttpError(err) && err.status === 404) {
         return null;
       }
-      throw handleAxiosError(err, uri);
+      throw err;
     }
   }
 }

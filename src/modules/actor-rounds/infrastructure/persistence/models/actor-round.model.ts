@@ -1,7 +1,7 @@
-import type { ActorRoundItem } from '../../../domain/value-objets/actor-round-item.vo';
+import type { ActorRoundItem } from '../../../domain/value-objects/actor-round-item.vo';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import type { HydratedDocument } from 'mongoose';
-import type { Injury } from '../../../domain/value-objets/injury.vo';
+import type { Injury } from '../../../domain/value-objects/injury.vo';
 import { ActorRoundAlert } from './actor-round-alert.model';
 import { ActorRoundAttack } from './actor-round-attack.model';
 import { ActorRoundDefense } from './actor-round-defense.model';
@@ -20,7 +20,7 @@ import {
   ActorRoundPhaseLog,
   ActorRoundSnapshot,
   ActorRoundTrait,
-} from './actor-round.models-childs';
+} from './actor-round-childs.model';
 
 export type ActorRoundDocument = HydratedDocument<ActorRoundModel>;
 

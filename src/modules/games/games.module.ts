@@ -3,7 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import { MongooseModule } from '@nestjs/mongoose';
 import { TerminusModule } from '@nestjs/terminus';
-import { AuthModule } from '../auth/auth.module';
+import { AuthModule } from '../shared/infrastructure/security/auth.module';
 import { ActionsModule } from '../actions/actions.module';
 import { ActorsRoundModule } from '../actor-rounds/actor-rounds.module';
 import { SharedModule } from '../shared/shared.module';
@@ -26,13 +26,14 @@ import { StartRoundHandler } from './application/cqrs/handlers/start-round.handl
 import { UpdateGameHandler } from './application/cqrs/handlers/update-game.handler';
 import { ApiNpcAdapter } from './infrastructure/api-clients/api.npc.adapter';
 import { MongoGameRepository } from './infrastructure/db/mongo.game.repository';
-import { KafkaGameEventBusAdapter } from './infrastructure/messaging/kafka.game-bus.adapter';
 import { GameModel, GameSchema } from './infrastructure/persistence/models/game.model';
 import { GameActorController } from './interfaces/http/game-actor.controller';
 import { GameFactionController } from './interfaces/http/game-faction.controller';
 import { GameController } from './interfaces/http/game.controller';
 import { StrategicGameKafkaConsumer } from './interfaces/messaging/kafka.strategic-game.consumer';
 
+import { GAME_REPOSITORY } from './application/ports/game-repository.port';
+import { NPC_PORT } from './application/ports/npc.port';
 @Module({
   imports: [
     TerminusModule,
@@ -47,7 +48,6 @@ import { StrategicGameKafkaConsumer } from './interfaces/messaging/kafka.strateg
   ],
   controllers: [GameController, GameActorController, GameFactionController, StrategicGameKafkaConsumer],
   providers: [
-    KafkaGameEventBusAdapter,
     GetGamesHandler,
     GetGameHandler,
     CreateGameHandler,
@@ -65,18 +65,14 @@ import { StrategicGameKafkaConsumer } from './interfaces/messaging/kafka.strateg
     FinishGameHandler,
     ApplyGameHandler,
     {
-      provide: 'GameRepository',
+      provide: GAME_REPOSITORY,
       useClass: MongoGameRepository,
     },
     {
-      provide: 'GameEventBus',
-      useClass: KafkaGameEventBusAdapter,
-    },
-    {
-      provide: 'NpcPort',
+      provide: NPC_PORT,
       useClass: ApiNpcAdapter,
     },
   ],
-  exports: ['GameRepository'],
+  exports: [GAME_REPOSITORY],
 })
 export class GamesModule {}

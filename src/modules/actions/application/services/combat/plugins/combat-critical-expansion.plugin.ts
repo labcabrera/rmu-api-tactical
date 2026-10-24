@@ -1,4 +1,4 @@
-import { UnprocessableEntityError } from '../../../../../shared/domain/errors';
+import { UnprocessableEntityError } from '../../../../../shared/domain/errors/errors';
 import { CombatPlugin } from '../combat-plugin';
 
 /**

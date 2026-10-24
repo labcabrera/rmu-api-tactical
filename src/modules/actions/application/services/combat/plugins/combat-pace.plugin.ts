@@ -1,5 +1,5 @@
-import { UNCOORDINATED } from '../../../../../actor-rounds/domain/value-objets/actor-round-trait.vo';
-import { ValidationError } from '../../../../../shared/domain/errors';
+import { UNCOORDINATED } from '../../../../../actor-rounds/domain/value-objects/actor-round-trait.vo';
+import { ValidationError } from '../../../../../shared/domain/errors/errors';
 import { isMelee, isPreparing, preparation, rollModifiers, sourceSkill, sourceTraitTier } from '../combat-modifiers';
 import { CombatContext } from '../combat-context';
 import { CombatPlugin } from '../combat-plugin';

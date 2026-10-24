@@ -1,6 +1,6 @@
 import type { LightType } from '../../../domain/value-objects/light-type.vo';
 import { Prop, Schema } from '@nestjs/mongoose';
-import { Difficulty } from '../../../domain/value-objects/dificulty.vo';
+import { Difficulty } from '../../../domain/value-objects/difficulty.vo';
 import type { Pace } from '../../../domain/value-objects/pace.vo';
 import { ActionRoll } from './action-roll.model';
 

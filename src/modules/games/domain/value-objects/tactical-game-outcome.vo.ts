@@ -1,6 +1,6 @@
-import type { HpBySource, HpLogEntry } from '../../../actor-rounds/domain/value-objets/hp-log-entry.vo';
-import type { CharacterCondition, Injury } from '../../../actor-rounds/domain/value-objets/injury.vo';
-import type { ItemModifier } from '../../../actor-rounds/domain/value-objets/actor-round-item.vo';
+import type { HpBySource, HpLogEntry } from '../../../actor-rounds/domain/value-objects/hp-log-entry.vo';
+import type { CharacterCondition, Injury } from '../../../actor-rounds/domain/value-objects/injury.vo';
+import type { ItemModifier } from '../../../actor-rounds/domain/value-objects/actor-round-item.vo';
 
 /** What a character at risk (bleeding or dying) ends the game as, chosen when it is finished (spec 013, §3). */
 export type CharacterFate = 'dead' | 'permanent-unconscious';

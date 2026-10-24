@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActorRoundAttack, WeaponCategory } from '../../../domain/value-objets/actor-round-attack.vo';
+import { ActorRoundAttack, WeaponCategory } from '../../../domain/value-objects/actor-round-attack.vo';
 import { BoModifiers } from '../../../infrastructure/persistence/models/actor-round-attack.model';
 import { AttackRangeDto } from './attack-range.dto';
 

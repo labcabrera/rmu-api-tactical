@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsBoolean, IsIn, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
 import { PrepareAttackCommandItem, PrepareAttackCommandModifiers } from '../../../application/cqrs/commands/prepare-attack.command';
-import { ValidationError } from '../../../../shared/domain/errors';
+import { ValidationError } from '../../../../shared/domain/errors/errors';
 import {
   CalledShot,
   ChargeSpeed,

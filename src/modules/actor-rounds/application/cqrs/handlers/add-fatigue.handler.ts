@@ -1,9 +1,9 @@
-import type { GameRepository } from '../../../../games/application/ports/game.repository';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { UnprocessableEntityError } from '../../../../shared/domain/errors';
-import { ActorRound } from '../../../domain/aggregates/actor-round.aggregate';
-import type { ActorRoundRepository } from '../../ports/actor-round.repository';
+import { UnprocessableEntityError } from '../../../../shared/domain/errors/errors';
+import { ActorRound } from '../../../domain/aggregates/actor-round';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port';
 import { AddFatigueCommand } from '../commands/add-fatigue.command';
 
 @CommandHandler(AddFatigueCommand)
@@ -11,8 +11,8 @@ export class AddFatigueHandler implements ICommandHandler<AddFatigueCommand, Act
   private readonly logger = new Logger(AddFatigueHandler.name);
 
   constructor(
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
   ) {}
 
   async execute(command: AddFatigueCommand): Promise<ActorRound> {

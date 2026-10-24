@@ -1,18 +1,18 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import { Game } from '../../../domain/aggregates/game.aggregate';
-import type { GameEventBusPort } from '../../ports/game-event-bus.port';
-import type { GameRepository } from '../../ports/game.repository';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors';
+import { Game } from '../../../domain/aggregates/game';
+import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port';
 import { DeleteGameActorsCommand } from '../commands/delete-game-actors.command';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
 
 @CommandHandler(DeleteGameActorsCommand)
 export class DeleteGameActorsHandler implements ICommandHandler<DeleteGameActorsCommand, Game> {
   private readonly logger = new Logger(DeleteGameActorsHandler.name);
 
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('GameEventBus') private readonly gameEventBus: GameEventBusPort,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
+    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
   ) {}
 
   async execute(command: DeleteGameActorsCommand): Promise<Game> {
@@ -27,7 +27,7 @@ export class DeleteGameActorsHandler implements ICommandHandler<DeleteGameActors
     }
     const updated = await this.gameRepository.update(command.gameId, game);
     const events = game.getUncommittedEvents();
-    events.forEach(event => this.gameEventBus.publish(event));
+    void this.eventPublisher.publish('game', ...events);
     return updated;
   }
 }

@@ -1,26 +1,26 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { ValidationError } from '../../../../shared/domain/errors';
-import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
-import type { StrategicGamePort } from '../../../../strategic/application/ports/strategic-game.port';
-import { Game } from '../../../domain/aggregates/game.aggregate';
+import { ValidationError } from '../../../../shared/domain/errors/errors';
+import { type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port';
+import { type StrategicGamePort, STRATEGIC_GAME_PORT } from '../../../../strategic/application/ports/strategic-game.port';
+import { Game } from '../../../domain/aggregates/game';
 import { Actor } from '../../../domain/value-objects/actor.vo';
 import { GameEnvironment } from '../../../domain/value-objects/game-environment.vo';
-import type { GameEventBusPort } from '../../ports/game-event-bus.port';
-import type { GameRepository } from '../../ports/game.repository';
-import type { NpcPort } from '../../ports/npc.port';
+import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port';
+import { type NpcPort, NPC_PORT } from '../../ports/npc.port';
 import { CreateGameCommand, CreateGameCommandActor } from '../commands/create-game.command';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
 
 @CommandHandler(CreateGameCommand)
 export class CreateGameHandler implements ICommandHandler<CreateGameCommand, Game> {
   private readonly logger = new Logger(CreateGameHandler.name);
 
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('StrategicGameClient') private readonly strategicGameClient: StrategicGamePort,
-    @Inject('CharacterClient') private readonly characterClient: CharacterPort,
-    @Inject('NpcPort') private readonly npcPort: NpcPort,
-    @Inject('GameEventBus') private readonly gameEventBus: GameEventBusPort,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
+    @Inject(STRATEGIC_GAME_PORT) private readonly strategicGameClient: StrategicGamePort,
+    @Inject(CHARACTER_PORT) private readonly characterClient: CharacterPort,
+    @Inject(NPC_PORT) private readonly npcPort: NpcPort,
+    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
   ) {}
 
   async execute(command: CreateGameCommand): Promise<Game> {
@@ -46,7 +46,7 @@ export class CreateGameHandler implements ICommandHandler<CreateGameCommand, Gam
     );
     const saved = await this.gameRepository.save(game);
     const events = game.getUncommittedEvents();
-    events.forEach(event => this.gameEventBus.publish(event));
+    void this.eventPublisher.publish('game', ...events);
     return saved;
   }
 

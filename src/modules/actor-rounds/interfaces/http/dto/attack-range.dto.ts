@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { AttackRange } from '../../../domain/value-objets/actor-round-attack.vo';
+import { AttackRange } from '../../../domain/value-objects/actor-round-attack.vo';
 
 export class AttackRangeDto {
   @ApiProperty({ description: 'Range start', example: 10 })

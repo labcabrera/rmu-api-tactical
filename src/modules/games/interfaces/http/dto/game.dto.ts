@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
-import { PaginationDto } from '../../../../shared/interfaces/http/dto';
-import { Game } from '../../../domain/aggregates/game.aggregate';
+import { PaginationDto } from '../../../../shared/interfaces/http/dto/page.dto';
+import { Game } from '../../../domain/aggregates/game';
 import type { GamePhase } from '../../../domain/value-objects/game-phase.vo';
 import type { GameStatus } from '../../../domain/value-objects/game-status.vo';
 import { TacticalGameOutcomeDto } from './tactical-game-outcome.dto';

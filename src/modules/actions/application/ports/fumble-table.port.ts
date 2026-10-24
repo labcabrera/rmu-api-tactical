@@ -8,3 +8,5 @@ export interface FumbleTableLookupRequest {
 export interface FumbleTablePort {
   lookup(request: FumbleTableLookupRequest): Promise<Fumble>;
 }
+
+export const FUMBLE_TABLE_PORT = Symbol('FumbleTablePort');

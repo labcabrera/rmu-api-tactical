@@ -1,6 +1,6 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpStatus, Logger } from '@nestjs/common';
 import { Response } from 'express';
-import { DomainError } from '../../domain/errors';
+import { DomainError } from '../../domain/errors/errors';
 
 //TODO map errors
 @Catch(DomainError)

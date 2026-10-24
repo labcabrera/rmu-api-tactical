@@ -5,7 +5,7 @@ import {
   HealthCheck,
   HealthCheckService,
   HealthIndicatorResult,
-  HttpHealthIndicator,
+  HealthIndicatorService,
   MemoryHealthIndicator,
   MongooseHealthIndicator,
 } from '@nestjs/terminus';
@@ -18,7 +18,7 @@ export class HealthController {
     private health: HealthCheckService,
     private mongoose: MongooseHealthIndicator,
     private memory: MemoryHealthIndicator,
-    private http: HttpHealthIndicator,
+    private indicators: HealthIndicatorService,
   ) {}
 
   @Get()
@@ -32,14 +32,27 @@ export class HealthController {
       async (): Promise<HealthIndicatorResult> => {
         const rmuApiCoreUri = this.config.get<string>('RMU_API_CORE_URI');
         const healthUri = `${rmuApiCoreUri}/health`;
-        return await this.http.pingCheck('rmu-api-core', healthUri);
+        return await this.pingCheck('rmu-api-core', healthUri);
       },
       () => this.memory.checkRSS('memory_rss', 350 * 1024 * 1024),
       async (): Promise<HealthIndicatorResult> => {
         const rmuApiCoreUri = this.config.get<string>('RMU_API_STRATEGIC_URI');
         const healthUri = `${rmuApiCoreUri}/health`;
-        return await this.http.pingCheck('rmu-api-strategic', healthUri);
+        return await this.pingCheck('rmu-api-strategic', healthUri);
       },
     ]);
+  }
+
+  /** GET of another API, up on a 2xx: what terminus' HttpHealthIndicator did over axios, here with fetch. */
+  private async pingCheck(key: string, uri: string): Promise<HealthIndicatorResult> {
+    const check = this.indicators.check(key);
+    try {
+      const response = await fetch(uri);
+      return response.ok
+        ? check.up()
+        : check.down({ message: `Request failed with status code ${response.status}`, statusCode: response.status });
+    } catch (error) {
+      return check.down({ message: error instanceof Error ? error.message : String(error) });
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { BodyLocation, INJURY_TYPES, InjuryType } from '../value-objets/injury.vo';
+import { BodyLocation, INJURY_TYPES, InjuryType } from '../value-objects/injury.vo';
 
 /**
  * Default injury type of a critical when its data has none (spec 013, §2.3), by the critical table code used by the

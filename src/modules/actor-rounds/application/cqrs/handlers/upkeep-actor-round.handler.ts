@@ -1,15 +1,15 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { NotFoundError } from '../../../../shared/domain/errors';
-import { ActorRound } from '../../../domain/aggregates/actor-round.aggregate';
-import type { ActorRoundRepository } from '../../ports/actor-round.repository';
+import { NotFoundError } from '../../../../shared/domain/errors/errors';
+import { ActorRound } from '../../../domain/aggregates/actor-round';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port';
 import { UpkeepActorRoundCommand } from '../commands/upkeep-actor-round.command';
 
 @CommandHandler(UpkeepActorRoundCommand)
 export class UpkeepActorRoundHandler implements ICommandHandler<UpkeepActorRoundCommand, ActorRound> {
   private readonly logger = new Logger(UpkeepActorRoundHandler.name);
 
-  constructor(@Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository) {}
+  constructor(@Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository) {}
 
   async execute(command: UpkeepActorRoundCommand): Promise<ActorRound> {
     this.logger.debug(`Execute << ${JSON.stringify(command)}`);

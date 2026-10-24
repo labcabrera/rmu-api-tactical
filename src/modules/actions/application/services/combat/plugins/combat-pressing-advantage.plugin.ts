@@ -1,4 +1,4 @@
-import { PRESSING_ADVANTAGE } from '../../../../../actor-rounds/domain/value-objets/actor-round-effect.vo';
+import { PRESSING_ADVANTAGE } from '../../../../../actor-rounds/domain/value-objects/actor-round-effect.vo';
 import { CombatContext } from '../combat-context';
 import { isPreparing, rollModifiers } from '../combat-modifiers';
 import { CombatPlugin } from '../combat-plugin';

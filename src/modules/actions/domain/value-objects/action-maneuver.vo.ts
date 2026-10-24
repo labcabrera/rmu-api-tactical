@@ -1,7 +1,7 @@
 import { ActionRoll } from './action-roll.vo';
-import { Difficulty } from './dificulty.vo';
+import { Difficulty } from './difficulty.vo';
 import { LightType } from './light-type.vo';
-import { LightManeuverModifier } from './ligth-maneuver-modifier.vo';
+import { LightManeuverModifier } from './light-maneuver-modifier.vo';
 import type { ManeuverModifierSelection } from './maneuver-profile.vo';
 import { ManeuverType } from './maneuver-type.vo';
 

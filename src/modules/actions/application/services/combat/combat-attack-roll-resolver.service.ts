@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
-import { ActorRoundAttack } from '../../../../actor-rounds/domain/value-objets/actor-round-attack.vo';
-import { ValidationError } from '../../../../shared/domain/errors';
-import { Action } from '../../../domain/aggregates/action.aggregate';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round';
+import { ActorRoundAttack } from '../../../../actor-rounds/domain/value-objects/actor-round-attack.vo';
+import { ValidationError } from '../../../../shared/domain/errors/errors';
+import { Action } from '../../../domain/aggregates/action';
 import { ActionAttackRoll } from '../../../domain/value-objects/action-attack-roll.vo';
 import { ActionAttack, ActionAttackResult, Fumble } from '../../../domain/value-objects/action-attack.vo';
 import { Critical } from '../../../domain/value-objects/critical.vo';
-import type { AttackTablePort } from '../../ports/attack-table.port';
+import { type AttackTablePort, ATTACK_TABLE_PORT } from '../../ports/attack-table.port';
 import { CombatContext } from './combat-context';
 import { CombatModifierBag } from './combat-modifier-bag';
 import { CombatProcessor } from './engine/combat-processor.service';
@@ -23,7 +23,7 @@ export interface ResolveAttackRollInput {
 export class CombatAttackRollResolverService {
   constructor(
     private readonly combatProcessor: CombatProcessor,
-    @Inject('AttackTablePort') private readonly attackTablePort: AttackTablePort,
+    @Inject(ATTACK_TABLE_PORT) private readonly attackTablePort: AttackTablePort,
   ) {}
 
   /**

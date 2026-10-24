@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { HP_LOG_KINDS } from '../../../domain/value-objets/hp-log-entry.vo';
-import type { HpBySource, HpLogEntry, HpLogKind } from '../../../domain/value-objets/hp-log-entry.vo';
+import { HP_LOG_KINDS } from '../../../domain/value-objects/hp-log-entry.vo';
+import type { HpBySource, HpLogEntry, HpLogKind } from '../../../domain/value-objects/hp-log-entry.vo';
 
 /** A change of the hits of an actor round (spec 013, §1.1). */
 export class HpLogEntryDto {

@@ -1,4 +1,4 @@
-import { FOILER } from '../../../../../actor-rounds/domain/value-objets/actor-round-trait.vo';
+import { FOILER } from '../../../../../actor-rounds/domain/value-objects/actor-round-trait.vo';
 import { CombatContext } from '../combat-context';
 import { isPreparing, preparation, targetIsFlatfooted, targetTraitTierForSkill } from '../combat-modifiers';
 import { CombatPlugin } from '../combat-plugin';

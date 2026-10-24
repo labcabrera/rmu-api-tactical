@@ -1,19 +1,19 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import type { ActionRepository } from '../../../../actions/application/ports/action.repository';
-import { Action } from '../../../../actions/domain/aggregates/action.aggregate';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../../../actions/application/ports/action-repository.port';
+import { Action } from '../../../../actions/domain/aggregates/action';
 import { CreateActorRoundCommand } from '../../../../actor-rounds/application/cqrs/commands/create-actor-round.command';
 import { UpkeepActorRoundCommand } from '../../../../actor-rounds/application/cqrs/commands/upkeep-actor-round.command';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
-import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
-import { NotFoundError } from '../../../../shared/domain/errors';
-import { openRoundsOf } from '../../../../strategic/application/ports/strategic-game.port';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round';
+import { NotFoundError } from '../../../../shared/domain/errors/errors';
+import { openRoundsOf, STRATEGIC_GAME_PORT } from '../../../../strategic/application/ports/strategic-game.port';
 import type { StrategicGamePort } from '../../../../strategic/application/ports/strategic-game.port';
-import { Game } from '../../../domain/aggregates/game.aggregate';
+import { Game } from '../../../domain/aggregates/game';
 import { Actor } from '../../../domain/value-objects/actor.vo';
-import type { GameEventBusPort } from '../../ports/game-event-bus.port';
-import type { GameRepository } from '../../ports/game.repository';
+import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port';
 import { StartRoundCommand } from '../commands/start-round.command';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
 
 const MAX_PAGE_SIZE = 1000;
 /** Last action phase of a round. */
@@ -24,12 +24,12 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
   private readonly logger = new Logger(StartRoundHandler.name);
 
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('GameEventBus') private readonly gameEventBus: GameEventBusPort,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
+    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
     private commandBus: CommandBus,
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('StrategicGameClient') private readonly strategicGameClient: StrategicGamePort,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
+    @Inject(STRATEGIC_GAME_PORT) private readonly strategicGameClient: StrategicGamePort,
   ) {}
 
   async execute(command: StartRoundCommand): Promise<Game> {
@@ -51,7 +51,7 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
     game.startRound();
     const updatedGame = await this.gameRepository.update(gameId, game);
     const events = game.getUncommittedEvents();
-    events.forEach(event => this.gameEventBus.publish(event));
+    void this.eventPublisher.publish('game', ...events);
     return updatedGame;
   }
 

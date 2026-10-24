@@ -1,5 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import { Modifier } from '../../../../shared/infrastructure/persistence/models/modier.model';
+import { Modifier } from '../../../../shared/infrastructure/persistence/models/modifier.model';
 import type { AttackType, ProtectPosition } from '../../../domain/value-objects/action-attack-modifiers.vo';
 import { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
 import type { AttackStatus } from '../../../domain/value-objects/attack-status.vo';

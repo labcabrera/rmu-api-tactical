@@ -8,3 +8,5 @@ export interface SkillCatalogPort {
   /** Skill-specific maneuver modifiers that apply to the skill (its own and its category's). */
   findManeuverModifiers(skillId: string): Promise<ManeuverModifierDefinition[]>;
 }
+
+export const SKILL_CATALOG_PORT = Symbol('SkillCatalogPort');

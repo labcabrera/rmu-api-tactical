@@ -1,6 +1,6 @@
 import type { LightType } from './light-type.vo';
 import { ActionRoll } from './action-roll.vo';
-import { Difficulty } from './dificulty.vo';
+import { Difficulty } from './difficulty.vo';
 import { Pace } from './pace.vo';
 
 export class ActionMovement {

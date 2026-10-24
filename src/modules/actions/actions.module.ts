@@ -3,7 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import { MongooseModule } from '@nestjs/mongoose';
 import { TerminusModule } from '@nestjs/terminus';
-import { AuthModule } from '../auth/auth.module';
+import { AuthModule } from '../shared/infrastructure/security/auth.module';
 import { ResolveEnduranceCheckHandler } from '../actor-rounds/application/cqrs/handlers/resolve-endurance-check.handler';
 import { ResolveBreakageCheckHandler } from '../actor-rounds/application/cqrs/handlers/resolve-breakage-check.handler';
 import { StabilizeEffectHandler } from '../actor-rounds/application/cqrs/handlers/stabilize-effect.handler';
@@ -46,13 +46,18 @@ import { ApiFumbleTableAdapter } from './infrastructure/api-clients/api.fumble-t
 import { ApiManeuverAdapter } from './infrastructure/api-clients/api.maneuver.adapter';
 import { ApiSkillCatalogAdapter } from './infrastructure/api-clients/api.skill-catalog.adapter';
 import { MongoActionRepository } from './infrastructure/db/mongo.action.repository';
-import { KafkaActionEventBusAdapter } from './infrastructure/messaging/kafka.action-event-bus.adapter';
 import { ActionModel, ActionSchema } from './infrastructure/persistence/models/action.model';
 import { ActionController } from './interfaces/http/action.controller';
 import { AttackController } from './interfaces/http/attack.controller';
 import { ManeuverController } from './interfaces/http/maneuver.controller';
 import { MovementController } from './interfaces/http/movement.controller';
 
+import { ACTION_REPOSITORY } from './application/ports/action-repository.port';
+import { ATTACK_TABLE_PORT } from './application/ports/attack-table.port';
+import { CRITICAL_TABLE_PORT } from './application/ports/critical-table.port';
+import { FUMBLE_TABLE_PORT } from './application/ports/fumble-table.port';
+import { MANEUVER_PORT } from './application/ports/maneuver.port';
+import { SKILL_CATALOG_PORT } from './application/ports/skill-catalog.port';
 @Module({
   imports: [
     TerminusModule,
@@ -97,31 +102,27 @@ import { MovementController } from './interfaces/http/movement.controller';
     TreatInjuryHandler,
     StabilizeEffectHandler,
     {
-      provide: 'ActionRepository',
+      provide: ACTION_REPOSITORY,
       useClass: MongoActionRepository,
     },
     {
-      provide: 'ActionEventBus',
-      useClass: KafkaActionEventBusAdapter,
-    },
-    {
-      provide: 'AttackTablePort',
+      provide: ATTACK_TABLE_PORT,
       useClass: ApiAttackTableAdapter,
     },
     {
-      provide: 'CriticalTablePort',
+      provide: CRITICAL_TABLE_PORT,
       useClass: ApiCriticalTableAdapter,
     },
     {
-      provide: 'FumbleTablePort',
+      provide: FUMBLE_TABLE_PORT,
       useClass: ApiFumbleTableAdapter,
     },
     {
-      provide: 'ManeuverPort',
+      provide: MANEUVER_PORT,
       useClass: ApiManeuverAdapter,
     },
     {
-      provide: 'SkillCatalogPort',
+      provide: SKILL_CATALOG_PORT,
       useClass: ApiSkillCatalogAdapter,
     },
     {
@@ -129,6 +130,6 @@ import { MovementController } from './interfaces/http/movement.controller';
       useValue: COMBAT_PLUGIN_LIST,
     },
   ],
-  exports: ['ActionRepository', CombatPluginRegistryService, CombatProcessor],
+  exports: [ACTION_REPOSITORY, CombatPluginRegistryService, CombatProcessor],
 })
 export class ActionsModule {}

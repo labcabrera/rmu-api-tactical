@@ -1,8 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
-import { TokenService } from '../../../auth/token.service';
-import { handleAxiosError } from '../../../shared/infrastructure/api-rest/axios.error.adapter';
+import { TokenService } from '../../../shared/infrastructure/security/token.service';
+import { HttpClient } from '../../../shared/infrastructure/http/http-client';
 import {
   AbsoluteManeuverResponse,
   EnduranceManeuverResult,
@@ -17,6 +16,7 @@ export class ApiManeuverAdapter implements ManeuverPort {
 
   constructor(
     private readonly tokenService: TokenService,
+    private readonly httpClient: HttpClient,
     configService: ConfigService,
   ) {
     this.apiCoreUri = configService.get('RMU_API_CORE_URI') as string;
@@ -25,16 +25,8 @@ export class ApiManeuverAdapter implements ManeuverPort {
   async percent(roll: number): Promise<PercentManeuverResponse> {
     const token = await this.tokenService.getToken();
     const uri = `${this.apiCoreUri}/maneuvers/percent?roll=${roll}`;
-    try {
-      const response = await axios.get<PercentManeuverResponse>(uri, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      return response.data;
-    } catch (err) {
-      throw handleAxiosError(err, uri);
-    }
+    const data = await this.httpClient.get<PercentManeuverResponse>(uri, { token });
+    return data;
   }
 
   async absolute(roll: number, table?: string, unusualEvent?: boolean): Promise<AbsoluteManeuverResponse> {
@@ -43,31 +35,14 @@ export class ApiManeuverAdapter implements ManeuverPort {
     if (table) params.set('table', table);
     if (unusualEvent) params.set('unusualEvent', 'true');
     const uri = `${this.apiCoreUri}/maneuvers/absolute?${params.toString()}`;
-    try {
-      const response = await axios.get<AbsoluteManeuverResponse>(uri, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = response.data;
-      return { result: data.result, message: data.message, effects: data.effects ?? [] };
-    } catch (err) {
-      throw handleAxiosError(err, uri);
-    }
+    const data = await this.httpClient.get<AbsoluteManeuverResponse>(uri, { token });
+    return { result: data.result, message: data.message, effects: data.effects ?? [] };
   }
 
   async endurance(roll: number): Promise<EnduranceManeuverResult> {
     const token = await this.tokenService.getToken();
     const uri = `${this.apiCoreUri}/maneuvers/endurance?roll=${roll}`;
-    try {
-      const response = await axios.get(uri, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      return response.data as EnduranceManeuverResult;
-    } catch (err) {
-      throw handleAxiosError(err, uri);
-    }
+    const data = await this.httpClient.get<unknown>(uri, { token });
+    return data as EnduranceManeuverResult;
   }
 }

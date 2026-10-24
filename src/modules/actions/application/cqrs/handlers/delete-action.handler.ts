@@ -1,12 +1,12 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
-import type { GameRepository } from '../../../../games/application/ports/game.repository';
-import { NotFoundError } from '../../../../shared/domain/errors';
-import { ActionDeletedEvent } from '../../../domain/events/action-events';
-import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
-import type { ActionRepository } from '../../ports/action.repository';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
+import { NotFoundError } from '../../../../shared/domain/errors/errors';
+import { ActionDeletedEvent } from '../../../domain/events/action.events';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port';
 import { DeleteActionCommand } from '../commands/delete-action.command';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
 
 /** Deletes an action and frees the AP it took in the ledger of its actor round (spec 011, §2). */
 @CommandHandler(DeleteActionCommand)
@@ -14,10 +14,10 @@ export class DeleteActionHandler implements ICommandHandler<DeleteActionCommand>
   private readonly logger = new Logger(DeleteActionHandler.name);
 
   constructor(
-    @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
+    @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
   ) {}
 
   async execute(command: DeleteActionCommand): Promise<void> {
@@ -32,6 +32,6 @@ export class DeleteActionHandler implements ICommandHandler<DeleteActionCommand>
     if (actorRound?.releaseAction(action.id)) {
       await this.actorRoundRepository.update(actorRound.id, actorRound);
     }
-    await this.actionEventBus.publish(new ActionDeletedEvent(action));
+    await this.eventPublisher.publish('action', new ActionDeletedEvent(action));
   }
 }

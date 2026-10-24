@@ -1,22 +1,22 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
-import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
-import type { GameRepository } from '../../../../games/application/ports/game.repository';
-import { Game } from '../../../../games/domain/aggregates/game.aggregate';
-import { ValidationError } from '../../../../shared/domain/errors';
-import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
-import { Action } from '../../../domain/aggregates/action.aggregate';
-import { ActionUpdatedEvent } from '../../../domain/events/action-events';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
+import { Game } from '../../../../games/domain/aggregates/game';
+import { ValidationError } from '../../../../shared/domain/errors/errors';
+import { type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port';
+import { Action } from '../../../domain/aggregates/action';
+import { ActionUpdatedEvent } from '../../../domain/events/action.events';
 import { ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo';
 import { ActionManeuver } from '../../../domain/value-objects/action-maneuver.vo';
 import { ActionResolution } from '../../../domain/value-objects/action-resolution.vo';
 import type { ManeuverActionPoints } from '../../../domain/value-objects/maneuver-profile.vo';
 import { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo';
-import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
-import type { ActionRepository } from '../../ports/action.repository';
-import type { SkillCatalogPort } from '../../ports/skill-catalog.port';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port';
+import { type SkillCatalogPort, SKILL_CATALOG_PORT } from '../../ports/skill-catalog.port';
 import { CreateActionCommand } from '../commands/create-action.command';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
 
 /**
  * Declares an action (spec 011, §2): it records its AP in the ledger of the actor round and closes as `interrupted`
@@ -27,12 +27,12 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
   private readonly logger = new Logger(CreateActionCommand.name);
 
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
-    @Inject('SkillCatalogPort') private readonly skillCatalog: SkillCatalogPort,
-    @Inject('CharacterClient') private readonly characterClient: CharacterPort,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
+    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
+    @Inject(SKILL_CATALOG_PORT) private readonly skillCatalog: SkillCatalogPort,
+    @Inject(CHARACTER_PORT) private readonly characterClient: CharacterPort,
   ) {}
 
   async execute(command: CreateActionCommand): Promise<Action> {
@@ -81,10 +81,10 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     }
     for (const interrupted of plan.interrupted) {
       const updated = await this.actionRepository.update(interrupted.id, interrupted);
-      await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
+      await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     }
     for (const event of action.getUncommittedEvents()) {
-      await this.actionEventBus.publish(event);
+      await this.eventPublisher.publish('action', event);
     }
     saved.refreshApState(actorRound, currentPhase);
     return saved;

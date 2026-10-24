@@ -1,10 +1,10 @@
-import type { GameRepository } from '../../../../games/application/ports/game.repository';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import type { ManeuverPort } from '../../../../actions/application/ports/maneuver.port';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import { ActorRound } from '../../../domain/aggregates/actor-round.aggregate';
-import type { ActorRoundRepository } from '../../ports/actor-round.repository';
+import { type ManeuverPort, MANEUVER_PORT } from '../../../../actions/application/ports/maneuver.port';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors';
+import { ActorRound } from '../../../domain/aggregates/actor-round';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port';
 import { ResolveEnduranceCheckCommand } from '../commands/resolve-endurance-check.command';
 
 /**
@@ -17,9 +17,9 @@ export class ResolveEnduranceCheckHandler implements ICommandHandler<ResolveEndu
   private readonly logger = new Logger(ResolveEnduranceCheckHandler.name);
 
   constructor(
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject('ManeuverPort') private readonly maneuverPort: ManeuverPort,
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(MANEUVER_PORT) private readonly maneuverPort: ManeuverPort,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
   ) {}
 
   async execute(command: ResolveEnduranceCheckCommand): Promise<ActorRound> {

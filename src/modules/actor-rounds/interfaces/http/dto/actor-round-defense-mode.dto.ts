@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsIn, IsOptional } from 'class-validator';
 import { DeclareDefenseModeCommand } from '../../../application/cqrs/commands/declare-defense-mode.command';
-import { ActorRoundDefenseMode, DEFENSE_LEVELS } from '../../../domain/value-objets/actor-round-defense-mode.vo';
-import type { DefenseLevel } from '../../../domain/value-objets/actor-round-defense-mode.vo';
+import { ActorRoundDefenseMode, DEFENSE_LEVELS } from '../../../domain/value-objects/actor-round-defense-mode.vo';
+import type { DefenseLevel } from '../../../domain/value-objects/actor-round-defense-mode.vo';
 
 export class ActorRoundDefenseModeDto {
   @ApiProperty({ type: String, description: 'Dodge declared this round', enum: DEFENSE_LEVELS, example: 'none' })

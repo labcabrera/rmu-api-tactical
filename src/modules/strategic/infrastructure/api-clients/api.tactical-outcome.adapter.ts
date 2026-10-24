@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
 
-import { TokenService } from '../../../auth/token.service';
-import { handleAxiosError } from '../../../shared/infrastructure/api-rest/axios.error.adapter';
+import { TokenService } from '../../../shared/infrastructure/security/token.service';
+import { HttpClient } from '../../../shared/infrastructure/http/http-client';
 import { TacticalOutcomePort, TacticalOutcomeRequest } from '../../application/ports/tactical-outcome.port';
 
 /** Writes the outcome of a finished tactical game to the strategic character, with the service token (spec 013, §3). */
@@ -13,6 +12,7 @@ export class TacticalOutcomeApiClient implements TacticalOutcomePort {
 
   constructor(
     private readonly tokenService: TokenService,
+    private readonly httpClient: HttpClient,
     configService: ConfigService,
   ) {
     this.baseUri = configService.get('RMU_API_STRATEGIC_URI') as string;
@@ -21,14 +21,6 @@ export class TacticalOutcomeApiClient implements TacticalOutcomePort {
   async apply(characterId: string, request: TacticalOutcomeRequest): Promise<void> {
     const token = await this.tokenService.getToken();
     const uri = `${this.baseUri}/characters/${characterId}/tactical-outcomes`;
-    try {
-      await axios.post(uri, request, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-    } catch (err) {
-      throw handleAxiosError(err, uri);
-    }
+    await this.httpClient.post(uri, request, { token });
   }
 }

@@ -1,4 +1,4 @@
-import type { LightManeuverModifier } from './ligth-maneuver-modifier.vo';
+import type { LightManeuverModifier } from './light-maneuver-modifier.vo';
 import type { ManeuverType } from './maneuver-type.vo';
 
 /** Range of action points of a maneuver (Table 8-1). */

@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
-import { TokenService } from '../../../auth/token.service';
-import { handleAxiosError } from '../../../shared/infrastructure/api-rest/axios.error.adapter';
+import { TokenService } from '../../../shared/infrastructure/security/token.service';
+import { HttpClient } from '../../../shared/infrastructure/http/http-client';
 import { AttackTableLookupRequest, AttackTablePort } from '../../application/ports/attack-table.port';
 import { AttackTableEntry } from '../../domain/value-objects/action-attack.vo';
 
@@ -26,6 +25,7 @@ export class ApiAttackTableAdapter implements AttackTablePort {
 
   constructor(
     private readonly tokenService: TokenService,
+    private readonly httpClient: HttpClient,
     configService: ConfigService,
   ) {
     this.apiAttackTablesUri = configService.get('RMU_API_ATTACK_TABLES_URI') as string;
@@ -37,16 +37,7 @@ export class ApiAttackTableAdapter implements AttackTablePort {
     const roll = clamp(request.roll, MIN_ROLL, MAX_ROLL);
     // The size is applied by the attack-size combat plugin: the table is always read as medium.
     const uri = `${this.apiAttackTablesUri}/attack-tables/${request.attackTable}/medium/${armor}/${roll}`;
-    try {
-      const response = await axios.get<AttackTableResponse>(uri, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = response.data;
-      return new AttackTableEntry(data.text, data.damage || 0, data.criticalType || undefined, data.criticalSeverity || undefined);
-    } catch (err: unknown) {
-      throw handleAxiosError(err, uri);
-    }
+    const data = await this.httpClient.get<AttackTableResponse>(uri, { token });
+    return new AttackTableEntry(data.text, data.damage || 0, data.criticalType || undefined, data.criticalSeverity || undefined);
   }
 }

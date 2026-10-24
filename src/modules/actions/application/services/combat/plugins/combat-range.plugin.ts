@@ -1,4 +1,4 @@
-import { UnprocessableEntityError, ValidationError } from '../../../../../shared/domain/errors';
+import { UnprocessableEntityError, ValidationError } from '../../../../../shared/domain/errors/errors';
 import { isMelee, isPreparing, preparation, rollModifiers } from '../combat-modifiers';
 import { CombatPlugin } from '../combat-plugin';
 

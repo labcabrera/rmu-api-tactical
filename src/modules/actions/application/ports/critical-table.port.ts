@@ -11,3 +11,5 @@ export interface CriticalTableLookupRequest {
 export interface CriticalTablePort {
   lookup(request: CriticalTableLookupRequest): Promise<CriticalResult>;
 }
+
+export const CRITICAL_TABLE_PORT = Symbol('CriticalTablePort');

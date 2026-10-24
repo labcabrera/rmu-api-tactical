@@ -1,13 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { ManeuverPort } from '../../../actions/application/ports/maneuver.port';
-import type { GameRepository } from '../../../games/application/ports/game.repository';
-import { Game } from '../../../games/domain/aggregates/game.aggregate';
-import { NotFoundError, ValidationError } from '../../../shared/domain/errors';
-import type { CharacterPort } from '../../../strategic/application/ports/character.port';
-import { ActorRound } from '../../domain/aggregates/actor-round.aggregate';
+import { type ManeuverPort, MANEUVER_PORT } from '../../../actions/application/ports/maneuver.port';
+import { type GameRepository, GAME_REPOSITORY } from '../../../games/application/ports/game-repository.port';
+import { Game } from '../../../games/domain/aggregates/game';
+import { NotFoundError, ValidationError } from '../../../shared/domain/errors/errors';
+import { type CharacterPort, CHARACTER_PORT } from '../../../strategic/application/ports/character.port';
+import { ActorRound } from '../../domain/aggregates/actor-round';
 import { MEDICAL_RESULTS, MedicalOutcome } from '../../domain/services/injury-treatment';
-import { InjuryHealer } from '../../domain/value-objets/injury.vo';
-import type { ActorRoundRepository } from '../ports/actor-round.repository';
+import { InjuryHealer } from '../../domain/value-objects/injury.vo';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../ports/actor-round-repository.port';
 
 /** Skill of the healer (strategic skill id). */
 export const MEDICINE_SKILL_ID = 'medicine';
@@ -39,10 +39,10 @@ export interface MedicalRoll {
 @Injectable()
 export class MedicalRollService {
   constructor(
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('CharacterClient') private readonly characterClient: CharacterPort,
-    @Inject('ManeuverPort') private readonly maneuverPort: ManeuverPort,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
+    @Inject(CHARACTER_PORT) private readonly characterClient: CharacterPort,
+    @Inject(MANEUVER_PORT) private readonly maneuverPort: ManeuverPort,
   ) {}
 
   /** The patient's actor round and its game, which must not be finished. */

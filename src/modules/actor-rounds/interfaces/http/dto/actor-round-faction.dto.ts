@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActorRoundFaction } from '../../../domain/value-objets/actor-round-faction.vo';
+import { ActorRoundFaction } from '../../../domain/value-objects/actor-round-faction.vo';
 
 export class ActorRoundFactionDto {
   @ApiProperty({ description: 'Faction id', example: 'faction-123' })

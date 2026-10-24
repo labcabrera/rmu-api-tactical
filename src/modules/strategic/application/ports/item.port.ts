@@ -1,4 +1,4 @@
-import type { ItemModifier } from '../../../actor-rounds/domain/value-objets/actor-round-item.vo';
+import type { ItemModifier } from '../../../actor-rounds/domain/value-objects/actor-round-item.vo';
 
 /** A strategic item of a character, as the strategic API returns it (spec 019). */
 export interface StrategicItem {
@@ -21,3 +21,5 @@ export interface ItemPort {
   /** `GET /items?q=characterId==<id>`. */
   findByCharacterId(characterId: string): Promise<StrategicItem[]>;
 }
+
+export const ITEM_PORT = Symbol('ItemPort');

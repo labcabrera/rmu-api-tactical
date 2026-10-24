@@ -1,5 +1,5 @@
 import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command';
-import type { InjuryPatch } from '../../../domain/aggregates/actor-round.aggregate';
+import type { InjuryPatch } from '../../../domain/aggregates/actor-round';
 
 /** `PATCH /v1/actor-rounds/:id/injuries/:injuryId`: the game master edits an injury. */
 export class UpdateInjuryCommand extends AuthenticatedCommand {

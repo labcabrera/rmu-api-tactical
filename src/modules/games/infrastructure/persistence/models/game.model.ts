@@ -3,7 +3,7 @@ import type { HydratedDocument } from 'mongoose';
 import type { GamePhase } from '../../../domain/value-objects/game-phase.vo';
 import type { GameStatus } from '../../../domain/value-objects/game-status.vo';
 import type { TacticalGameOutcome } from '../../../domain/value-objects/tactical-game-outcome.vo';
-import { Actor, GameEnvironment } from './game.model-childs';
+import { Actor, GameEnvironment } from './game-childs.model';
 
 export type GameDocument = HydratedDocument<GameModel>;
 

@@ -1,13 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.aggregate';
-import { NotFoundError, ValidationError } from '../../../shared/domain/errors';
-import type { CharacterPort } from '../../../strategic/application/ports/character.port';
-import { Action } from '../../domain/aggregates/action.aggregate';
-import { DIFFICULTY_MAP } from '../../domain/value-objects/dificulty.vo';
+import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round';
+import { NotFoundError, ValidationError } from '../../../shared/domain/errors/errors';
+import { type CharacterPort, CHARACTER_PORT } from '../../../strategic/application/ports/character.port';
+import { Action } from '../../domain/aggregates/action';
+import { DIFFICULTY_MAP } from '../../domain/value-objects/difficulty.vo';
 import { KeyValueModifier } from '../../domain/value-objects/key-value-modifier.vo';
 import { LIGHT_MAP } from '../../domain/value-objects/light-type.vo';
 import { MOVEMENT_MANEUVER_PROFILE } from '../../domain/value-objects/maneuver-profile.vo';
-import type { ManeuverPort } from '../ports/maneuver.port';
+import { type ManeuverPort, MANEUVER_PORT } from '../ports/maneuver.port';
 import { ManeuverBaseModifiersService } from './maneuver/maneuver-base-modifiers.service';
 
 @Injectable()
@@ -26,8 +26,8 @@ export class MovementProcessorService {
   private static readonly paceOrder: string[] = ['creep', 'walk', 'jog', 'run', 'sprint', 'dash'];
 
   constructor(
-    @Inject('ManeuverPort') private readonly maneuverPort: ManeuverPort,
-    @Inject('CharacterClient') private readonly characterClient: CharacterPort,
+    @Inject(MANEUVER_PORT) private readonly maneuverPort: ManeuverPort,
+    @Inject(CHARACTER_PORT) private readonly characterClient: CharacterPort,
     private readonly baseModifiersService: ManeuverBaseModifiersService,
   ) {}
 

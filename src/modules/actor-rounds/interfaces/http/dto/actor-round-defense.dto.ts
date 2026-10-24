@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActorRoundDefense } from '../../../domain/value-objets/actor-round-defense.vo';
+import { ActorRoundDefense } from '../../../domain/value-objects/actor-round-defense.vo';
 import { ActorRoundShieldDto } from './actor-round-shield.dto';
 
 export class ActorRoundDefenseDto {

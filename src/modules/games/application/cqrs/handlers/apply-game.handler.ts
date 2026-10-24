@@ -1,11 +1,11 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { NotFoundError } from '../../../../shared/domain/errors';
-import type { TacticalOutcomePort } from '../../../../strategic/application/ports/tactical-outcome.port';
-import { Game } from '../../../domain/aggregates/game.aggregate';
-import type { GameEventBusPort } from '../../ports/game-event-bus.port';
-import type { GameRepository } from '../../ports/game.repository';
+import { NotFoundError } from '../../../../shared/domain/errors/errors';
+import { type TacticalOutcomePort, TACTICAL_OUTCOME_PORT } from '../../../../strategic/application/ports/tactical-outcome.port';
+import { Game } from '../../../domain/aggregates/game';
+import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port';
 import { ApplyGameCommand } from '../commands/apply-game.command';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
 
 /**
  * Applies the outcome of a finished game to the strategic characters (spec 013, §3), one call per character not
@@ -17,9 +17,9 @@ export class ApplyGameHandler implements ICommandHandler<ApplyGameCommand, Game>
   private readonly logger = new Logger(ApplyGameHandler.name);
 
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('TacticalOutcomeClient') private readonly tacticalOutcomeClient: TacticalOutcomePort,
-    @Inject('GameEventBus') private readonly gameEventBus: GameEventBusPort,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
+    @Inject(TACTICAL_OUTCOME_PORT) private readonly tacticalOutcomeClient: TacticalOutcomePort,
+    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
   ) {}
 
   async execute(command: ApplyGameCommand): Promise<Game> {
@@ -39,7 +39,7 @@ export class ApplyGameHandler implements ICommandHandler<ApplyGameCommand, Game>
       }
     }
     const updated = await this.gameRepository.update(game.id, game);
-    game.getUncommittedEvents().forEach(event => this.gameEventBus.publish(event));
+    void this.eventPublisher.publish('game', ...game.getUncommittedEvents());
     return updated;
   }
 }

@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Page } from '../../../shared/domain/entities/page.entity';
-import { NotFoundError } from '../../../shared/domain/errors';
+import { Page } from '../../../shared/application/pagination/page';
+import { NotFoundError } from '../../../shared/domain/errors/errors';
 import { RsqlParser } from '../../../shared/infrastructure/db/rsql-parser';
-import { ActionRepository } from '../../application/ports/action.repository';
-import { Action } from '../../domain/aggregates/action.aggregate';
+import { ActionRepository } from '../../application/ports/action-repository.port';
+import { Action } from '../../domain/aggregates/action';
 import { ActionResolution } from '../../domain/value-objects/action-resolution.vo';
 import { ActionDocument, ActionModel } from '../persistence/models/action.model';
 

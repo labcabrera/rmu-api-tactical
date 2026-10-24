@@ -9,6 +9,8 @@ export interface ManeuverPort {
   endurance(roll: number): Promise<EnduranceManeuverResult>;
 }
 
+export const MANEUVER_PORT = Symbol('ManeuverPort');
+
 export interface EnduranceManeuverResult {
   result: string;
   message: string;

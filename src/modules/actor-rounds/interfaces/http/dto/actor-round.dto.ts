@@ -1,9 +1,9 @@
 import { ActorRoundItemDto } from './actor-round-item.dto';
 import { BreakageCheckResultDto } from './resolve-breakage-check.dto';
 import { ApiProperty } from '@nestjs/swagger';
-import { PaginationDto } from '../../../../shared/interfaces/http/dto';
-import { ActorRound } from '../../../domain/aggregates/actor-round.aggregate';
-import { ActorRoundEffect } from '../../../domain/value-objets/actor-round-effect.vo';
+import { PaginationDto } from '../../../../shared/interfaces/http/dto/page.dto';
+import { ActorRound } from '../../../domain/aggregates/actor-round';
+import { ActorRoundEffect } from '../../../domain/value-objects/actor-round-effect.vo';
 import { ActorRoundAlertDto } from './actor-round-alert.dto';
 import { ActorRoundApLedgerEntryDto } from './actor-round-ap-ledger-entry.dto';
 import { ActorRoundApModifierDto } from './actor-round-ap-modifier.dto';
