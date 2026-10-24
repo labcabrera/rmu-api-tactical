@@ -1,8 +1,8 @@
 import Joi from 'joi';
 
 export const envSchema = Joi.object({
-  // 3001 is the port of rmu-api-core: the image sets PORT=3003 [F-tactical-05].
-  PORT: Joi.number().positive().default(3001),
+  // The port of rmu-api-tactical, as in the image and the compose [F-tactical-05].
+  PORT: Joi.number().positive().default(3003),
   LOG_LEVEL: Joi.string().default('info'),
   RMU_MONGO_TACTICAL_URI: Joi.string().required(),
   RMU_IAM_URI: Joi.string().uri().default('http://localhost/sso'),
