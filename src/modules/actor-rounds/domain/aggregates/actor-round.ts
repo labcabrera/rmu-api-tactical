@@ -58,6 +58,7 @@ import {
   toBodyLocation,
 } from '../value-objects/injury.vo.js';
 import type { ActorRoundProps, ActorRoundSnapshot } from './actor-round-props.js';
+import type { ActorRoundResistance } from '../value-objects/actor-round-resistance.vo.js';
 import { type ActorRoundItem, ActorRoundItems, type ItemModifier, UNARMORED_AT } from '../value-objects/actor-round-item.vo.js';
 import { type BreakageModifier, BreakageResolver, type BreakageResult } from '../services/breakage-resolver.js';
 
@@ -199,6 +200,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   /** Items of the actor (spec 019): those of its character, or the attacks and shield of an NPC. */
   public items: ActorRoundItem[] = [];
 
+  /** Resistance roll bonuses of its character (workspace spec 022): none for NPCs. */
+  public resistances: ActorRoundResistance[] = [];
+
   /** The last breakage check (spec 019), for the answer of the check; not stored. */
   public lastBreakageCheck: BreakageCheckResult | undefined;
 
@@ -338,6 +342,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.characterId = props.characterId ?? (props.actorType === 'character' ? props.actorId : undefined);
     actorRound.items = (props.items ?? []).map(item => ActorRoundItems.copy(item));
     actorRound.snapshot = props.snapshot;
+    actorRound.resistances = (props.resistances ?? []).map(resistance => ({ ...resistance }));
     actorRound.normalizeLegacy();
     // Derived: recomputed so that values stored with the penalties folded in are corrected.
     actorRound.calculateCurrentBo();
@@ -405,6 +410,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.injuries = previous.injuries.map(injury => ({ ...injury, treatments: [...injury.treatments] }));
     actorRound.characterId = previous.characterId;
     actorRound.items = previous.items.map(item => ActorRoundItems.copy(item));
+    actorRound.resistances = previous.resistances.map(resistance => ({ ...resistance }));
     actorRound.applyItemConditions();
     actorRound.calculateCurrentBo();
     // A penalty that starts in the new round (non-violent) is counted from its first moment.
@@ -1153,6 +1159,11 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       .reduce((max, e) => Math.max(max, REFLEXES_INITIATIVE_BONUS[Math.min(3, Math.max(0, e.value ?? 0))] ?? 0), 0);
   }
 
+  /** Resistance roll bonus of a type, from the character sheet; undefined when the actor has none (NPCs). */
+  resistanceBonus(resistance: string): number | undefined {
+    return this.resistances.find(each => each.resistance === resistance)?.totalBonus;
+  }
+
   /** Tier of one of the actor's traits, 0 when it does not have it. */
   traitTier(traitId: string): number {
     return ActorRoundTrait.tierOf(this.traits, traitId);
@@ -1636,6 +1647,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       characterId: this.characterId,
       items: this.items,
       snapshot: this.snapshot,
+      resistances: this.resistances,
       imageUrl: this.imageUrl,
       owner: this.owner,
       createdAt: this.createdAt,

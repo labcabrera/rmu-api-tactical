@@ -85,6 +85,9 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
       conditionIds: conditions.map(condition => condition.id),
     });
     actorRound.initItems(this.mapItems(character, items));
+    actorRound.resistances = (character.resistances || [])
+      .filter(resistance => !!resistance.resistance)
+      .map(resistance => ({ resistance: resistance.resistance, totalBonus: resistance.totalBonus || 0 }));
     return actorRound;
   }
 

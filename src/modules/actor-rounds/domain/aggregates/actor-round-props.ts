@@ -17,6 +17,7 @@ import { ApModifier } from '../value-objects/ap-modifier.vo.js';
 import type { HpLogEntry } from '../value-objects/hp-log-entry.vo.js';
 import type { Injury } from '../value-objects/injury.vo.js';
 import type { ActorRoundItem } from '../value-objects/actor-round-item.vo.js';
+import type { ActorRoundResistance } from '../value-objects/actor-round-resistance.vo.js';
 
 /** What the actor brought into the game, taken when round 1 is built from its character (spec 013, §3). */
 export interface ActorRoundSnapshot {
@@ -68,6 +69,8 @@ export interface ActorRoundProps {
   characterId?: string;
   /** Items of the actor (spec 019). Missing in actor rounds stored before it: none. */
   items?: ActorRoundItem[];
+  /** Resistance roll bonuses of its character (workspace spec 022). Missing for NPCs and older actor rounds: none. */
+  resistances?: ActorRoundResistance[];
   /** Only in the actor round built from the character (round 1, or the round it joined in). */
   snapshot?: ActorRoundSnapshot;
   imageUrl: string | undefined;

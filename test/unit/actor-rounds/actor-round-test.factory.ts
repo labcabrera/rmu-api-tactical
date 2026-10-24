@@ -28,6 +28,8 @@ export interface LoadOptions {
   shield?: ActorRoundShield | null;
   traits?: ActorRoundTrait[];
   injuries?: Injury[];
+  resistances?: { resistance: string; totalBonus: number }[];
+  factionId?: string;
 }
 
 /** An actor round as the repository loads it. */
@@ -52,6 +54,8 @@ export const load = (options: LoadOptions = {}): ActorRound => {
     alerts: [],
     traits: options.traits ?? [],
     injuries: options.injuries ?? [],
+    resistances: options.resistances ?? [],
+    factionId: options.factionId ?? '',
   });
 };
 
