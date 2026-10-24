@@ -39,6 +39,19 @@ export const PARALYZED = 'paralyzed';
 export const PENALTY = 'penalty';
 export const BLEEDING = 'bleeding';
 
+/**
+ * Fear states (Table 14-3a, workspace spec 022, decision 9), mildest first: they last until a rally or the game master
+ * removes them. Routed and broken actors cannot declare attacks (forced actions still can); the rest of each state is a
+ * warning for the game master.
+ */
+export const FEAR_BALK = 'fear-balk';
+export const FEAR_RETREAT = 'fear-retreat';
+export const FEAR_ROUTED = 'fear-routed';
+export const FEAR_BROKEN = 'fear-broken';
+export const FEAR_EFFECTS = [FEAR_BALK, FEAR_RETREAT, FEAR_ROUTED, FEAR_BROKEN];
+/** Fear states that keep the actor from declaring attacks. */
+export const FEAR_NO_ATTACK_EFFECTS = [FEAR_ROUTED, FEAR_BROKEN];
+
 export const AP_EFFECT_STATUSES = [
   SURPRISED,
   FLATFOOTED,

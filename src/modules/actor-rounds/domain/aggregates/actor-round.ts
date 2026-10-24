@@ -16,6 +16,8 @@ import {
   DEAD,
   DISTRACTION,
   DYING,
+  FEAR_EFFECTS,
+  FEAR_NO_ATTACK_EFFECTS,
   FLATFOOTED,
   INCAPACITATED,
   PARALYZED,
@@ -1157,6 +1159,66 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     return this.effects
       .filter(e => e.status === REFLEXES)
       .reduce((max, e) => Math.max(max, REFLEXES_INITIATIVE_BONUS[Math.min(3, Math.max(0, e.value ?? 0))] ?? 0), 0);
+  }
+
+  // --- Fear (workspace spec 022, decision 9) ---
+
+  /** The fear effect of the actor (one at most), undefined when it is not afraid. */
+  fearEffect(): ActorRoundEffect | undefined {
+    return this.effects.find(effect => FEAR_EFFECTS.includes(effect.status));
+  }
+
+  /** Routed or broken: the actor cannot declare an attack. */
+  isFearBlockingAttacks(): boolean {
+    return this.effects.some(effect => FEAR_NO_ATTACK_EFFECTS.includes(effect.status));
+  }
+
+  /**
+   * A failed fear RR (Table 14-3a): the actor takes the fear effect unless it already has a worse one (a failure
+   * includes the milder ones). `value` is the failure margin. Answers the fear effect the actor ends with.
+   */
+  frighten(status: string, value: number, source?: InjurySource): ActorRoundEffect {
+    if (!FEAR_EFFECTS.includes(status)) {
+      throw new ValidationError(`Unknown fear effect ${status}`, 'err-effect-invalid-fear');
+    }
+    const current = this.fearEffect();
+    if (current && FEAR_EFFECTS.indexOf(current.status) >= FEAR_EFFECTS.indexOf(status)) {
+      return current;
+    }
+    this.effects = this.effects.filter(effect => !FEAR_EFFECTS.includes(effect.status));
+    const effect = new ActorRoundEffect(randomUUID(), status, value, undefined, this.round, undefined, undefined, undefined, source);
+    this.effects.push(effect);
+    return effect;
+  }
+
+  /**
+   * A rally (Table 14-3c): the fear changes by `steps` severities (negative calms it down; below the mildest it ends,
+   * above the worst it stays the worst). An actor that is not afraid stays so. Answers the fear effect left.
+   */
+  changeFear(steps: number): ActorRoundEffect | undefined {
+    const current = this.fearEffect();
+    if (!current || !steps) {
+      return current;
+    }
+    const index = FEAR_EFFECTS.indexOf(current.status) + steps;
+    this.effects = this.effects.filter(effect => effect !== current);
+    if (index < 0) {
+      return undefined;
+    }
+    const status = FEAR_EFFECTS[Math.min(index, FEAR_EFFECTS.length - 1)];
+    const effect = new ActorRoundEffect(
+      current.id,
+      status,
+      current.value,
+      undefined,
+      current.appliedRound,
+      undefined,
+      undefined,
+      undefined,
+      current.source,
+    );
+    this.effects.push(effect);
+    return effect;
   }
 
   /** Resistance roll bonus of a type, from the character sheet; undefined when the actor has none (NPCs). */

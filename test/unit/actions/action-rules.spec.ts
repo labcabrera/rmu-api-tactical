@@ -90,6 +90,24 @@ describe('Action declaration (§8.1, §8.3; spec 011, §2)', () => {
     );
   });
 
+  it('rejects an attack of a routed or broken actor, not of a retreating one (workspace spec 022)', () => {
+    const attackOf = (status: string) =>
+      Action.checkDeclaration(load({ effects: [effect(status, 30)] }), [], request(1, false, 'melee_attack'), 1);
+    expect(() => attackOf('fear-routed')).toThrow(expect.objectContaining({ code: 'err-action-fear' }));
+    expect(() => attackOf('fear-broken')).toThrow(expect.objectContaining({ code: 'err-action-fear' }));
+    expect(() => attackOf('fear-retreat')).not.toThrow();
+    expect(() => declare([], 1, false, { effects: [effect('fear-broken', 30)] })).not.toThrow();
+  });
+
+  it('frightens with the worst fear and refuses an unknown one (workspace spec 022)', () => {
+    const round = load();
+    expect(round.changeFear(1)).toBeUndefined();
+    expect(round.frighten('fear-retreat', 30).status).toBe('fear-retreat');
+    expect(round.frighten('fear-balk', 5).status).toBe('fear-retreat');
+    expect(round.changeFear(5)?.status).toBe('fear-broken');
+    expect(() => round.frighten('fear-panic', 1)).toThrow(expect.objectContaining({ code: 'err-effect-invalid-fear' }));
+  });
+
   it('criterion 10: the first instantaneous action of the round takes 0 AP, the next ones 1 AP of free capacity', () => {
     const actorRound = load();
     const first = action('actor-1', 'other', 2, { freeAction: true });

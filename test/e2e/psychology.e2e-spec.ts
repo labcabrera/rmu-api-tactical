@@ -74,3 +74,59 @@ describe('resistance rolls (workspace spec 022, decision 8)', () => {
     ).toBe(200);
   });
 });
+
+describe('group checks (workspace spec 022, decisions 9 and 10)', () => {
+  const group = { actorIds: ['frodo'] };
+  const leader = { actorId: 'sam', leadershipRanks: 0, leadershipBonus: 0 };
+
+  it('frightens, keeps the routed actor from attacking, reads the morale and rallies', async () => {
+    const { gameId, rounds } = await startedGame();
+    const fear = await as('owner').post(`/v1/tactical-games/${gameId}/fear-checks`, {
+      frightLevel: 10,
+      group,
+      leader,
+      rolls: { frodo: 20 },
+    });
+    expect(fear.status).toBe(200);
+    expect(fear.body).toMatchObject({
+      kind: 'fear',
+      frightLevel: 10,
+      leader: { actorId: 'sam', actorRoundId: rounds.sam.id, recognized: true, fearRrBonus: 0 },
+      actors: [{ actorId: 'frodo', status: 'afraid', total: 0, failure: 60, effect: 'fear-routed', restrictions: ['no-attacks'] }],
+    });
+    const written = (fear.body as { actorRounds: ActorRoundBody[] }).actorRounds;
+    expect(written[0].effects.map(each => each.status)).toContain('fear-routed');
+
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/initiatives/randomize`)).status).toBe(200);
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/phases/start`)).status).toBe(200);
+    const attack = await as('owner').post('/v1/actions', { gameId, actorId: 'frodo', actionType: 'melee_attack', phaseStart: 1 });
+    expect(attack.status).toBe(400);
+    expect(attack.body).toMatchObject({ code: 'err-action-fear' });
+
+    const morale = await as('owner').post(`/v1/tactical-games/${gameId}/morale-checks`, { group, leader, roll: 100 });
+    expect(morale.status).toBe(200);
+    expect(morale.body).toMatchObject({ kind: 'morale', outcome: 'obeys', leaderRoll: { total: 110, result: 'success' }, actorRounds: [] });
+
+    const rally = await as('owner').post(`/v1/tactical-games/${gameId}/rally-checks`, { group, leader, roll: 150 });
+    expect(rally.status).toBe(200);
+    expect(rally.body).toMatchObject({
+      kind: 'rally',
+      fearSeverityChange: -2,
+      leaderRoll: { total: 105, result: 'success' },
+      actors: [{ actorId: 'frodo', previousEffect: 'fear-routed', effect: 'fear-balk', restrictions: [] }],
+    });
+  });
+
+  it('validates the body and lets only game managers check', async () => {
+    const { gameId } = await startedGame();
+    const url = `/v1/tactical-games/${gameId}/fear-checks`;
+    expect((await as('owner').post(url, { frightLevel: -1, group })).status).toBe(400);
+    expect((await as('owner').post(url, { group })).body).toMatchObject({ code: 'err-fright-level-required' });
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/rally-checks`, { group })).status).toBe(400);
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/rally-checks`, { group, leader, roll: 50 })).body).toMatchObject({
+      code: 'err-rally-nobody-afraid',
+    });
+    expect((await as('other').post(url, { frightLevel: 1, group })).status).toBe(403);
+    expect((await as('owner').post('/v1/tactical-games/missing/morale-checks', { leader })).status).toBe(404);
+  });
+});
