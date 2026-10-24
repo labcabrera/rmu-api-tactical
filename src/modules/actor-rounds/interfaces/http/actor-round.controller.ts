@@ -33,8 +33,9 @@ import { MedicalResultDto, MedicalRollDto, TreatInjuryDto, UpdateInjuryDto } fro
 import { ApiErrors } from '../../../shared/interfaces/http/api-errors.decorator.js';
 import { CurrentUser } from '../../../shared/interfaces/http/current-user.decorator.js';
 import type { AuthenticatedUser } from '../../../shared/interfaces/http/authenticated-request.js';
+import { ActorRoundAccess, ActorRoundAccessGuard } from './security/actor-round-access.guard.js';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ActorRoundAccessGuard)
 @Controller('v1/actor-rounds')
 @ApiTags('Actor Rounds')
 export class ActorRoundController {
@@ -45,6 +46,7 @@ export class ActorRoundController {
     private queryBus: QueryBus,
   ) {}
 
+  @ActorRoundAccess('read')
   @Get(':id')
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
   @ApiOperation({ operationId: 'findActorRoundById', summary: 'Find actor round by id' })
@@ -68,6 +70,7 @@ export class ActorRoundController {
     return new Page<ActorRoundDto>(mapped, page.pagination.page, page.pagination.size, page.pagination.totalElements);
   }
 
+  @ActorRoundAccess('act')
   @Patch(':id/initiative')
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
   @ApiOperation({ operationId: 'declareInitiative', summary: 'Declare initiative' })
@@ -78,6 +81,7 @@ export class ActorRoundController {
     return ActorRoundDto.fromEntity(entity);
   }
 
+  @ActorRoundAccess('act')
   @Patch(':id/defense-mode')
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
   @ApiOperation({ operationId: 'declareDefenseMode', summary: 'Declare the dodge and shield block of the round' })
@@ -88,6 +92,7 @@ export class ActorRoundController {
     return ActorRoundDto.fromEntity(entity);
   }
 
+  @ActorRoundAccess('act')
   @Patch(':id/hp')
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
   @ApiOperation({ operationId: 'addHp', summary: 'Take (dmg > 0) or heal (dmg < 0) hits, up to the maximum' })
@@ -98,6 +103,7 @@ export class ActorRoundController {
     return ActorRoundDto.fromEntity(entity);
   }
 
+  @ActorRoundAccess('act')
   @Patch(':id/fatigue-accumulator')
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
   @ApiOperation({ operationId: 'addFatigueAccumulator', summary: 'Add or subtract fatigue accumulator' })
@@ -108,6 +114,7 @@ export class ActorRoundController {
     return ActorRoundDto.fromEntity(entity);
   }
 
+  @ActorRoundAccess('act')
   @Patch(':id/endurance-check')
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
   @ApiOperation({ operationId: 'resolveEnduranceCheck', summary: 'Resolve an endurance roll and apply its fatigue and hits' })
@@ -118,6 +125,7 @@ export class ActorRoundController {
     return ActorRoundDto.fromEntity(entity);
   }
 
+  @ActorRoundAccess('act')
   @Post(':id/breakage-checks')
   @HttpCode(200)
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success, with the result in lastBreakageCheck' })
@@ -129,6 +137,7 @@ export class ActorRoundController {
     return ActorRoundDto.fromEntity(entity);
   }
 
+  @ActorRoundAccess('act')
   @Post(':id/effects')
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
   @ApiOperation({ operationId: 'addEffect', summary: 'Add effect' })
@@ -139,6 +148,7 @@ export class ActorRoundController {
     return ActorRoundDto.fromEntity(entity);
   }
 
+  @ActorRoundAccess('act')
   @Delete(':id/effects/:effectId')
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
   @ApiOperation({ operationId: 'deleteEffect', summary: 'Delete effect' })
@@ -149,6 +159,7 @@ export class ActorRoundController {
     return ActorRoundDto.fromEntity(entity);
   }
 
+  @ActorRoundAccess('act')
   @Post(':id/injuries/:injuryId/treatments')
   @HttpCode(200)
   @ApiOkResponse({ type: MedicalResultDto, description: 'Success' })
@@ -174,6 +185,7 @@ export class ActorRoundController {
     return MedicalResultDto.fromTreatment(result);
   }
 
+  @ActorRoundAccess('act')
   @Patch(':id/injuries/:injuryId')
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
   @ApiOperation({ operationId: 'updateInjury', summary: 'Edit an injury (game master)' })
@@ -189,6 +201,7 @@ export class ActorRoundController {
     return ActorRoundDto.fromEntity(entity);
   }
 
+  @ActorRoundAccess('act')
   @Delete(':id/injuries/:injuryId')
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
   @ApiOperation({ operationId: 'deleteInjury', summary: 'Remove an injury (game master)' })
@@ -199,6 +212,7 @@ export class ActorRoundController {
     return ActorRoundDto.fromEntity(entity);
   }
 
+  @ActorRoundAccess('act')
   @Post(':id/effects/:effectId/stabilize')
   @HttpCode(200)
   @ApiOkResponse({ type: MedicalResultDto, description: 'Success' })

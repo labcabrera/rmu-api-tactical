@@ -14,6 +14,9 @@ export interface GameRepository {
     sort?: Record<string, 1 | -1>,
   ): Promise<Page<Game>>;
 
+  /** The ids of the games that match a filter, such as the games a user can read (spec 021). */
+  findIds(filter: Record<string, unknown>): Promise<string[]>;
+
   save(entity: Game): Promise<Game>;
 
   /** Writes the game, provided it is still at the version it was loaded with (else a `version-conflict`). */

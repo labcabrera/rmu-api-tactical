@@ -15,6 +15,8 @@ type GameBody = {
   description?: string;
   imageUrl?: string;
   owner: string;
+  strategicGameOwner?: string;
+  accessType: string;
   outcome?: { appliedAt?: string; characters: { characterId: string; appliedAt?: string }[] };
 };
 
@@ -25,7 +27,10 @@ let e2e: E2eApp;
 beforeAll(async () => {
   e2e = await startApp();
   e2e.world.strategicGames.set('sg-1', { id: 'sg-1', owner: USERS.owner.sub, options: null });
+  e2e.world.strategicGames.set('sg-public', { id: 'sg-public', owner: USERS.owner.sub, options: null, accessType: 'public' });
+  e2e.world.strategicGames.set('sg-other', { id: 'sg-other', owner: USERS.other.sub, options: null, accessType: 'private' });
   e2e.world.characters.set('aragorn', character('aragorn'));
+  e2e.world.characters.set('faramir', character('faramir', { owner: USERS.other.sub }));
   e2e.world.characters.set('boromir', character('boromir', { faction: { id: 'faction-2', name: 'Gondor' } }));
   e2e.world.npcs.set('orc-1', { id: 'orc-1', realmId: 'r-1', name: 'Orc' });
 });
@@ -370,8 +375,8 @@ describe('delete', () => {
   });
 });
 
-// No handler checks who calls (F-tactical-11): every authenticated user, with or without roles, reads, changes and
-// deletes any game. The tests below document it, and the expected matrix is skipped with the finding id.
+// Spec 021, decision 2 [F-tactical-11]: the game is managed by its owner, the owner of its strategic game or an admin,
+// and read as its strategic game says, also by the owners of its actors.
 describe('permissions', () => {
   let game: GameBody;
 
@@ -379,35 +384,118 @@ describe('permissions', () => {
     game = await createGame('owner');
   });
 
-  it.each(['owner', 'other', 'admin', 'noRole'] as const)('lets %s read the game', async user => {
-    expect((await as(user).get(`/v1/tactical-games/${game.id}`)).status).toBe(200);
+  const noToken = () => request(e2e.server);
+
+  it('stores the owner and the accessType of the strategic game', () => {
+    expect(game).toMatchObject({ owner: USERS.owner.sub, strategicGameOwner: USERS.owner.sub, accessType: 'private' });
   });
 
-  it.each(['other', 'noRole'] as const)('lets %s change the game of another user', async user => {
-    expect((await as(user).patch(`/v1/tactical-games/${game.id}`, { name: 'x', description: 'x' })).status).toBe(200);
+  describe('create', () => {
+    it.each(['owner', 'other', 'admin'] as const)('lets %s create a game', async user => {
+      await createGame(user);
+    });
+
+    it('forbids a user without roles to create a game [F-tactical-11]', async () => {
+      const response = await as('noRole').post('/v1/tactical-games', { strategicGameId: 'sg-1', name: 'x', description: 'x' });
+      expect(response.status).toBe(403);
+      expect(response.body).toMatchObject({ code: 'forbidden' });
+    });
+
+    it('rejects a request without a token', async () => {
+      expect((await noToken().post('/v1/tactical-games').send({ strategicGameId: 'sg-1', name: 'x' })).status).toBe(401);
+    });
   });
 
-  it.each(['other', 'noRole'] as const)('lets %s delete the game of another user', async user => {
-    expect((await as(user).delete(`/v1/tactical-games/${game.id}`)).status).toBe(204);
+  describe('read', () => {
+    it.each(['owner', 'admin'] as const)('lets %s read the game', async user => {
+      expect((await as(user).get(`/v1/tactical-games/${game.id}`)).status).toBe(200);
+    });
+
+    it.each(['other', 'noRole'] as const)('forbids %s to read a private game [F-tactical-11]', async user => {
+      expect((await as(user).get(`/v1/tactical-games/${game.id}`)).status).toBe(403);
+      expect((await as(user).get(`/v1/tactical-games/${game.id}/finish-preview`)).status).toBe(403);
+    });
+
+    it('lets everybody read the game of a public strategic game', async () => {
+      const open = await createGame('owner', { strategicGameId: 'sg-public' });
+      expect(open.accessType).toBe('public');
+      expect((await as('other').get(`/v1/tactical-games/${open.id}`)).status).toBe(200);
+      expect((await as('noRole').get(`/v1/tactical-games/${open.id}`)).status).toBe(200);
+    });
+
+    it('lets the owner of an actor read the game', async () => {
+      const withFaramir = await createGame('owner', { actors: [{ id: 'faramir', type: 'character' }] });
+      expect((await as('other').get(`/v1/tactical-games/${withFaramir.id}`)).status).toBe(200);
+    });
+
+    it('lists only the games the user can read', async () => {
+      const open = await createGame('owner', { strategicGameId: 'sg-public' });
+      const listed = async (user: UserName) => ids((await as(user).get('/v1/tactical-games?size=100')).body);
+      expect(await listed('owner')).toEqual(expect.arrayContaining([game.id, open.id]));
+      expect(await listed('admin')).toEqual(expect.arrayContaining([game.id, open.id]));
+      expect(await listed('other')).toContain(open.id);
+      expect(await listed('other')).not.toContain(game.id);
+      expect(await listed('noRole')).not.toContain(game.id);
+    });
+
+    it('rejects a request without a token', async () => {
+      expect((await noToken().get(`/v1/tactical-games/${game.id}`)).status).toBe(401);
+    });
   });
 
-  it('lets a user without roles create a game', async () => {
-    await createGame('noRole');
+  describe('update', () => {
+    it.each(['owner', 'admin'] as const)('lets %s change and play the game', async user => {
+      expect((await as(user).patch(`/v1/tactical-games/${game.id}`, { name: `by ${user}`, description: 'x' })).status).toBe(200);
+      expect((await as(user).post(`/v1/tactical-games/${game.id}/factions`, { factions: [`f-${user}`] })).status).toBe(200);
+    });
+
+    it.each(['other', 'noRole'] as const)('forbids %s to change, play or finish the game [F-tactical-11]', async user => {
+      expect((await as(user).patch(`/v1/tactical-games/${game.id}`, { name: 'x', description: 'x' })).status).toBe(403);
+      expect((await as(user).post(`/v1/tactical-games/${game.id}/rounds/start`)).status).toBe(403);
+      expect((await as(user).post(`/v1/tactical-games/${game.id}/factions`, { factions: ['x'] })).status).toBe(403);
+      expect((await as(user).post(`/v1/tactical-games/${game.id}/actors`, { actors: [{ id: 'faramir', type: 'character' }] })).status).toBe(
+        403,
+      );
+      expect((await as(user).post(`/v1/tactical-games/${game.id}/finish`, { fates: [] })).status).toBe(403);
+      expect((await as('owner').get(`/v1/tactical-games/${game.id}`)).body).toMatchObject({ name: game.name, round: 0 });
+    });
+
+    it('lets the owner of the strategic game manage the game of another user', async () => {
+      const inOther = await createGame('owner', { strategicGameId: 'sg-other' });
+      expect(inOther.strategicGameOwner).toBe(USERS.other.sub);
+      expect(
+        (await as('other').patch(`/v1/tactical-games/${inOther.id}`, { name: 'by the strategic owner', description: 'x' })).status,
+      ).toBe(200);
+      expect((await as('other').post(`/v1/tactical-games/${inOther.id}/rounds/start`)).status).toBe(200);
+    });
+
+    it('does not let the owner of an actor manage the game', async () => {
+      const withFaramir = await createGame('owner', { actors: [{ id: 'faramir', type: 'character' }] });
+      expect((await as('other').post(`/v1/tactical-games/${withFaramir.id}/rounds/start`)).status).toBe(403);
+    });
+
+    it('rejects a request without a token', async () => {
+      expect((await noToken().patch(`/v1/tactical-games/${game.id}`).send({ name: 'x', description: 'x' })).status).toBe(401);
+    });
   });
 
-  it('lets the admin change and delete any game', async () => {
-    expect((await as('admin').patch(`/v1/tactical-games/${game.id}`, { name: 'x', description: 'x' })).status).toBe(200);
-    expect((await as('admin').delete(`/v1/tactical-games/${game.id}`)).status).toBe(204);
-  });
+  describe('delete', () => {
+    it.each(['owner', 'admin'] as const)('lets %s delete the game', async user => {
+      expect((await as(user).delete(`/v1/tactical-games/${game.id}`)).status).toBe(204);
+    });
 
-  it.skip('forbids another user to change, start or delete the game [F-tactical-11]', async () => {
-    expect((await as('other').patch(`/v1/tactical-games/${game.id}`, { name: 'x', description: 'x' })).status).toBe(403);
-    expect((await as('other').post(`/v1/tactical-games/${game.id}/rounds/start`)).status).toBe(403);
-    expect((await as('other').delete(`/v1/tactical-games/${game.id}`)).status).toBe(403);
-  });
+    it.each(['other', 'noRole'] as const)('forbids %s to delete the game [F-tactical-11]', async user => {
+      expect((await as(user).delete(`/v1/tactical-games/${game.id}`)).status).toBe(403);
+      expect((await as('owner').get(`/v1/tactical-games/${game.id}`)).status).toBe(200);
+    });
 
-  it.skip('forbids a user without roles to create a game [F-tactical-11]', async () => {
-    const response = await as('noRole').post('/v1/tactical-games', { strategicGameId: 'sg-1', name: 'x', description: 'x' });
-    expect(response.status).toBe(403);
+    it('lets the owner of the strategic game delete it', async () => {
+      const inOther = await createGame('owner', { strategicGameId: 'sg-other' });
+      expect((await as('other').delete(`/v1/tactical-games/${inOther.id}`)).status).toBe(204);
+    });
+
+    it('rejects a request without a token', async () => {
+      expect((await noToken().delete(`/v1/tactical-games/${game.id}`)).status).toBe(401);
+    });
   });
 });

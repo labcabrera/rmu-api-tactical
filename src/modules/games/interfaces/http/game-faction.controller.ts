@@ -9,8 +9,9 @@ import { GameDto } from './dto/game.dto.js';
 import { ApiErrors } from '../../../shared/interfaces/http/api-errors.decorator.js';
 import { CurrentUser } from '../../../shared/interfaces/http/current-user.decorator.js';
 import type { AuthenticatedUser } from '../../../shared/interfaces/http/authenticated-request.js';
+import { GameAccess, GameAccessGuard } from './security/game-access.guard.js';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, GameAccessGuard)
 @Controller('v1/tactical-games')
 @ApiTags('Games')
 export class GameFactionController {
@@ -18,6 +19,7 @@ export class GameFactionController {
 
   constructor(private commandBus: CommandBus) {}
 
+  @GameAccess('manage')
   @Post(':id/factions')
   @HttpCode(200)
   @ApiOperation({ operationId: 'addGameFactions', summary: 'Add factions to game' })
@@ -29,6 +31,7 @@ export class GameFactionController {
     return GameDto.fromEntity(entity);
   }
 
+  @GameAccess('manage')
   @Delete(':id/factions')
   @HttpCode(200)
   @ApiOperation({ operationId: 'deleteGameFactions', summary: 'Delete game factions' })

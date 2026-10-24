@@ -29,6 +29,7 @@ beforeAll(async () => {
   const [mainHand] = character('eomer').attacks;
   e2e.world.characters.set('eomer', character('eomer', { attacks: [mainHand, { ...mainHand, attackName: 'offHand' }] }));
   e2e.world.characters.set('lurtz', character('lurtz', { faction: { id: 'faction-2', name: 'Uruk-hai' } }));
+  e2e.world.characters.set('faramir', character('faramir', { owner: USERS.other.sub }));
 });
 
 afterAll(async () => {
@@ -43,16 +44,13 @@ const as = (user: UserName) => ({
 });
 
 /** A game with Aragorn (or another attacker) against Lurtz, in phase 1 of round 1. */
-const gameInPhase1 = async (attacker = 'aragorn') => {
+const gameInPhase1 = async (attacker = 'aragorn', others: string[] = []) => {
   const created = await as('owner').post('/v1/tactical-games', {
     strategicGameId: 'sg-1',
     name: 'Amon Hen',
     description: 'Parth Galen',
     factions: ['faction-1', 'faction-2'],
-    actors: [
-      { id: attacker, type: 'character' },
-      { id: 'lurtz', type: 'character' },
-    ],
+    actors: [{ id: attacker, type: 'character' }, { id: 'lurtz', type: 'character' }, ...others.map(id => ({ id, type: 'character' }))],
   });
   expect(created.status).toBe(201);
   const gameId = (created.body as { id: string }).id;
@@ -223,21 +221,65 @@ describe('attack with two weapons', () => {
   });
 });
 
-// No handler checks who calls [F-tactical-11].
+// Spec 021, decision 2 [F-tactical-11]: the owner of a character declares and resolves the actions of its actor, and a
+// manager of the game (its owner, the owner of the strategic game or an admin) those of every actor.
 describe('permissions', () => {
-  it.each(['other', 'noRole', 'admin'] as const)('lets %s declare an action for the actor of another user', async user => {
-    const gameId = await gameInPhase1();
-    const response = await as(user).post('/v1/actions', { gameId, actorId: 'aragorn', actionType: 'melee_attack', phaseStart: 1 });
-    expect(response.status).toBe(201);
+  const declare = (user: UserName, gameId: string, actorId = 'aragorn') =>
+    as(user).post('/v1/actions', { gameId, actorId, actionType: 'melee_attack', phaseStart: 1 });
+
+  describe('create', () => {
+    it.each(['owner', 'admin'] as const)('lets %s declare an action for any actor', async user => {
+      const gameId = await gameInPhase1();
+      expect((await declare(user, gameId)).status).toBe(201);
+    });
+
+    it('lets the owner of a character declare for its actor, and only for it', async () => {
+      const gameId = await gameInPhase1('aragorn', ['faramir']);
+      expect((await declare('other', gameId, 'faramir')).status).toBe(201);
+      expect((await declare('other', gameId, 'aragorn')).status).toBe(403);
+    });
+
+    it.each(['other', 'noRole'] as const)('forbids %s to declare an action for the actor of the owner [F-tactical-11]', async user => {
+      const gameId = await gameInPhase1();
+      const response = await declare(user, gameId);
+      expect(response.status).toBe(403);
+      expect(response.body).toMatchObject({ code: 'forbidden' });
+    });
+
+    it('rejects a request without a token', async () => {
+      expect((await request(e2e.server).post('/v1/actions').send({ gameId: 'x', actorId: 'y' })).status).toBe(401);
+    });
   });
 
-  it('rejects a request without a token', async () => {
-    expect((await request(e2e.server).get('/v1/actions')).status).toBe(401);
-  });
+  describe('update and delete', () => {
+    let action: ActionBody;
 
-  it.skip('forbids another user to declare an action for the actor of the owner [F-tactical-11]', async () => {
-    const gameId = await gameInPhase1();
-    const response = await as('other').post('/v1/actions', { gameId, actorId: 'aragorn', actionType: 'melee_attack', phaseStart: 1 });
-    expect(response.status).toBe(403);
+    beforeEach(async () => {
+      action = await declareAttack(await gameInPhase1());
+    });
+
+    it.each(['owner', 'admin'] as const)('lets %s change and delete the action', async user => {
+      expect((await as(user).patch(`/v1/actions/${action.id}`, { description: user })).status).toBe(200);
+      expect((await as(user).delete(`/v1/actions/${action.id}`)).status).toBe(204);
+    });
+
+    it.each(['other', 'noRole'] as const)('forbids %s to change, resolve or delete the action [F-tactical-11]', async user => {
+      expect((await as(user).patch(`/v1/actions/${action.id}`, { description: 'x' })).status).toBe(403);
+      expect((await as(user).patch(`/v1/actions/${action.id}/attack/roll`, { attackName: 'mainHand', roll: 70 })).status).toBe(403);
+      expect((await as(user).patch(`/v1/actions/${action.id}/attack/parry`, { parries: [] })).status).toBe(403);
+      expect((await as(user).delete(`/v1/actions/${action.id}`)).status).toBe(403);
+      expect((await as('owner').get(`/v1/actions/${action.id}`)).status).toBe(200);
+    });
+
+    it('reads as the game is read, and lists only the actions of readable games', async () => {
+      expect((await as('noRole').get(`/v1/actions/${action.id}`)).status).toBe(403);
+      expect((await as('admin').get(`/v1/actions/${action.id}`)).status).toBe(200);
+      expect(ids((await as('noRole').get(`/v1/actions?q=gameId==${action.gameId}`)).body)).toEqual([]);
+      expect(ids((await as('owner').get(`/v1/actions?q=gameId==${action.gameId}`)).body)).toEqual([action.id]);
+    });
+
+    it('rejects a request without a token', async () => {
+      expect((await request(e2e.server).delete(`/v1/actions/${action.id}`)).status).toBe(401);
+    });
   });
 });

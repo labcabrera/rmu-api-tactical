@@ -6,7 +6,8 @@ export interface ActorRoundRepository {
 
   findByIds(ids: string[]): Promise<ActorRound[]>;
 
-  findByRsql(rsql: string | undefined, page: number, size: number): Promise<Page<ActorRound>>;
+  /** `filter` narrows the RSQL, such as to the games the user can read (spec 021). */
+  findByRsql(rsql: string | undefined, page: number, size: number, filter?: Record<string, unknown>): Promise<Page<ActorRound>>;
 
   /** The actor round of an actor in one round of a game (an actor can be in several games). */
   findByActorIdAndRound(gameId: string, actorId: string, round: number): Promise<ActorRound | null>;

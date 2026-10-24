@@ -12,8 +12,9 @@ import { ResolveManeuverDto } from './dto/resolve-maneuver.dto.js';
 import { ApiErrors } from '../../../shared/interfaces/http/api-errors.decorator.js';
 import { CurrentUser } from '../../../shared/interfaces/http/current-user.decorator.js';
 import type { AuthenticatedUser } from '../../../shared/interfaces/http/authenticated-request.js';
+import { ActionAccess, ActionAccessGuard } from './security/action-access.guard.js';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ActionAccessGuard)
 @Controller('v1/actions')
 @ApiTags('Actions')
 export class ManeuverController {
@@ -24,6 +25,7 @@ export class ManeuverController {
     private queryBus: QueryBus,
   ) {}
 
+  @ActionAccess('read')
   @Get(':id/maneuver/modifiers')
   @ApiOperation({ operationId: 'getManeuverModifiers', summary: 'Modifiers a declared maneuver can take' })
   @ApiQuery({ name: 'skillId', required: false, description: 'Skill to roll with instead of the declared one' })
@@ -41,6 +43,7 @@ export class ManeuverController {
     return ManeuverModifiersDto.fromListing(listing);
   }
 
+  @ActionAccess('act')
   @Patch(':id/maneuver/resolve')
   @ApiBody({ type: ResolveManeuverDto })
   @ApiOperation({ operationId: 'resolveManeuver', summary: 'Resolve maneuver' })

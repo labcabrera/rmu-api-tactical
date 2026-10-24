@@ -17,6 +17,13 @@ export type GameProps = {
   description?: string;
   imageUrl?: string;
   owner: string;
+  /**
+   * Owner of the strategic game, copied when the game is created (spec 021): that user also manages the game. Missing in
+   * the games created before spec 021 until the migration fills it.
+   */
+  strategicGameOwner?: string;
+  /** `accessType` of the strategic game (spec 021): who reads the game. Missing means `private`. */
+  accessType?: string;
   /** Set when the game is finished (spec 013, §3). */
   outcome?: TacticalGameOutcome;
   createdAt: Date;

@@ -47,6 +47,12 @@ export class Game extends BaseAggregateRoot<GameProps> {
   /** Set when the game is finished (spec 013, §3). */
   public outcome: TacticalGameOutcome | undefined;
 
+  /** Owner of the strategic game, who also manages this one (spec 021). */
+  public strategicGameOwner: string | undefined;
+
+  /** `accessType` of the strategic game (spec 021): `public` lets every user read the game. */
+  public accessType = 'private';
+
   static create(
     strategicGameId: string,
     name: string,
@@ -56,6 +62,8 @@ export class Game extends BaseAggregateRoot<GameProps> {
     description: string | undefined,
     imageUrl: string | undefined,
     owner: string,
+    strategicGameOwner?: string,
+    accessType?: string,
   ) {
     const game = new Game(
       randomUUID(),
@@ -73,6 +81,8 @@ export class Game extends BaseAggregateRoot<GameProps> {
       new Date(),
       undefined,
     );
+    game.strategicGameOwner = strategicGameOwner;
+    game.accessType = accessType || 'private';
     game.apply(new GameCreatedEvent(game));
     return game;
   }
@@ -95,6 +105,8 @@ export class Game extends BaseAggregateRoot<GameProps> {
       props.updatedAt,
     );
     game.outcome = props.outcome;
+    game.strategicGameOwner = props.strategicGameOwner;
+    game.accessType = props.accessType || 'private';
     return game;
   }
 
@@ -300,6 +312,8 @@ export class Game extends BaseAggregateRoot<GameProps> {
       description: this.description,
       imageUrl: this.imageUrl,
       owner: this.owner,
+      strategicGameOwner: this.strategicGameOwner,
+      accessType: this.accessType,
       outcome: this.outcome,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
