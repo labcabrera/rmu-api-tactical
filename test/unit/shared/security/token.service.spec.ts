@@ -73,3 +73,17 @@ describe('TokenService', () => {
     await expect(new TokenService(configService).getToken()).rejects.toBeInstanceOf(BadGatewayError);
   });
 });
+
+describe('TokenService timeout', () => {
+  // Spec 021, decision 7: the token request has the same timeout as the calls to the other APIs.
+  it('passes RMU_HTTP_TIMEOUT_MS to the token request', async () => {
+    stubTokenEndpoint();
+    const timeouts = vi.spyOn(AbortSignal, 'timeout');
+    const withTimeout = { get: (key: string) => (key === 'RMU_HTTP_TIMEOUT_MS' ? 2500 : config[key]) } as unknown as ConfigService;
+
+    await new TokenService(withTimeout).getToken();
+
+    expect(timeouts).toHaveBeenCalledWith(2500);
+    timeouts.mockRestore();
+  });
+});

@@ -9,7 +9,8 @@ export class DomainEvent<E> {
     this.eventType = eventType;
     this.eventVersion = '1';
     this.eventTime = new Date();
-    this.producer = 'rmu-api-tactical';
+    // The Kafka client id of the API (spec 021, decision 10); no consumer reads it.
+    this.producer = process.env.RMU_KAFKA_CLIENT_ID || 'rmu-api-tactical';
     this.data = data;
   }
 }

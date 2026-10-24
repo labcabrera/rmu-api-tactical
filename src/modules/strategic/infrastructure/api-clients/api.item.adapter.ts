@@ -20,7 +20,7 @@ export class ItemApiClient implements ItemPort {
 
   async findByCharacterId(characterId: string): Promise<StrategicItem[]> {
     const token = await this.tokenService.getToken();
-    const uri = `${this.baseUri}/items?q=characterId==${characterId}&page=0&size=1000`;
+    const uri = `${this.baseUri}/items?q=characterId==${encodeURIComponent(characterId)}&page=0&size=1000`;
     const data = await this.httpClient.get<{ content?: StrategicItem[] }>(uri, { token });
     return data?.content || [];
   }

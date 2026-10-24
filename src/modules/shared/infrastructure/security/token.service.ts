@@ -34,11 +34,12 @@ export class TokenService {
     params.append('client_secret', clientSecret);
 
     // Without a service token no call to the other APIs can work: a failure reports Keycloak's answer.
-    const response = await sendRequest(uri, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: params,
-    });
+    const timeoutMs = Number(this.configService.get<number>('RMU_HTTP_TIMEOUT_MS') ?? 10_000);
+    const response = await sendRequest(
+      uri,
+      { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params },
+      timeoutMs,
+    );
     const data = await readBody(response);
     if (!response.ok) throw upstreamError(uri, response.status, response.statusText, data);
     const { access_token, expires_in } = data as TokenResponse;

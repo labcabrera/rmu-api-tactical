@@ -43,14 +43,21 @@ describe('rmu-api-tactical (e2e)', () => {
     await mongo?.stop();
   });
 
-  // The health check also pings rmu-api-core and rmu-api-strategic, so it answers 503 while they are down [F-tactical-03].
-  it('answers the health check, down while the other APIs are unreachable', async () => {
+  // Only Mongo and memory (spec 021, decision 8): the other APIs being down does not matter [F-tactical-03].
+  it('answers the health check up while the other APIs are unreachable', async () => {
     const response = await request(app.getHttpServer() as Parameters<typeof request>[0]).get('/v1/health');
     const body = response.body as { status: string; details: Record<string, { status: string }> };
-    expect(response.status).toBe(503);
-    expect(body.details.mongodb.status).toBe('up');
-    expect(body.details['rmu-api-core'].status).toBe('down');
-    expect(body.details['rmu-api-strategic'].status).toBe('down');
+    expect(response.status).toBe(200);
+    expect(body.status).toBe('ok');
+    expect(Object.keys(body.details).sort()).toEqual(['memory_heap', 'memory_rss', 'mongodb']);
+  });
+
+  // Spec 021 [F-items-02]: the health check is public, so the OpenAPI documents it without security.
+  it('documents the health check without security', async () => {
+    const { configureOpenApi } = await import('../../src/bootstrap/openapi.js');
+    const document = configureOpenApi(app);
+    expect(document.paths['/v1/health'].get?.security).toBeUndefined();
+    expect(document.paths['/v1/tactical-games'].get?.security).toEqual([{ oauth2: [], 'access-token': [] }]);
   });
 
   it('rejects a request without a token', async () => {
