@@ -93,8 +93,10 @@ export class CreateGameDto {
   @Type(() => CreateGameEnvironmentDto)
   environment: CreateGameEnvironmentDto | undefined;
 
+  // Optional, as in the model and the OpenAPI [F-tactical-12].
   @ApiProperty({ type: String, description: 'Description of the game', required: false, example: 'Tactical battle in Mordor' })
   @IsString()
+  @IsOptional()
   description: string | undefined;
 
   @ApiProperty({ type: String, description: 'Image URL for the game', required: false, example: 'https://example.com/image.png' })

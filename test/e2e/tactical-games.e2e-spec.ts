@@ -130,10 +130,11 @@ describe('create', () => {
     expect(Array.isArray((response.body as { message: unknown }).message)).toBe(true);
   });
 
-  // The description has @IsString() without @IsOptional(), so it is required [F-tactical-12].
-  it('requires a description', async () => {
+  // The description is optional, as in the model [F-tactical-12].
+  it('creates a game without a description', async () => {
     const response = await as('owner').post('/v1/tactical-games', { strategicGameId: 'sg-1', name: 'x' });
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(201);
+    expect((response.body as GameBody).description).toBeUndefined();
   });
 });
 
@@ -200,31 +201,33 @@ describe('update', () => {
     expect((await as('owner').get(`/v1/tactical-games/${game.id}`)).body).toMatchObject({ name: 'Moria II' });
   });
 
-  // PATCH needs name and description: both have @IsString() without @IsOptional() [F-tactical-12].
-  it('rejects a partial change without the name', async () => {
+  // A PATCH changes only what it sends: rmu-mfe-tactical sends only the image [F-tactical-12].
+  it('changes only the fields it receives', async () => {
     const game = await createGame();
-    expect((await as('owner').patch(`/v1/tactical-games/${game.id}`, { description: 'only this' })).status).toBe(400);
+    const description = await as('owner').patch(`/v1/tactical-games/${game.id}`, { description: 'only this' });
+    expect(description.status).toBe(200);
+    expect(description.body).toMatchObject({ name: game.name, description: 'only this' });
+    const image = await as('owner').patch(`/v1/tactical-games/${game.id}`, { imageUrl: 'images/other.png' });
+    expect(image.status).toBe(200);
+    expect(image.body).toMatchObject({ name: game.name, description: 'only this', imageUrl: 'images/other.png' });
   });
 
-  it.skip('keeps the temperature and the altitude modifiers in place [F-tactical-14]', async () => {
+  it('validates the environment', async () => {
     const game = await createGame();
-    const response = await as('owner').patch(`/v1/tactical-games/${game.id}`, {
-      name: 'x',
-      description: 'x',
-      environment: { temperatureFatigueModifier: -10, altitudeFatigueModifier: -20 },
-    });
-    expect(response.body).toMatchObject({ environment: { temperatureFatigueModifier: -10, altitudeFatigueModifier: -20 } });
+    const response = await as('owner').patch(`/v1/tactical-games/${game.id}`, { environment: { temperatureFatigueModifier: 'cold' } });
+    expect(response.status).toBe(400);
   });
 
-  it('swaps the temperature and the altitude modifiers [F-tactical-14]', async () => {
+  it('keeps the temperature and the altitude modifiers in place [F-tactical-14]', async () => {
     const game = await createGame();
     const response = await as('owner').patch(`/v1/tactical-games/${game.id}`, {
-      name: 'x',
-      description: 'x',
       environment: { temperatureFatigueModifier: -10, altitudeFatigueModifier: -20 },
     });
     expect(response.status).toBe(200);
-    expect(response.body).toMatchObject({ environment: { temperatureFatigueModifier: -20, altitudeFatigueModifier: -10 } });
+    expect(response.body).toMatchObject({ environment: { temperatureFatigueModifier: -10, altitudeFatigueModifier: -20 } });
+    expect((await as('owner').get(`/v1/tactical-games/${game.id}`)).body).toMatchObject({
+      environment: { temperatureFatigueModifier: -10, altitudeFatigueModifier: -20 },
+    });
   });
 
   it('answers the version and moves it with each write', async () => {
