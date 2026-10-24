@@ -157,26 +157,12 @@ export class Game extends BaseAggregateRoot<GameProps> {
     environment: GameEnvironment | undefined,
     imageUrl: string | undefined,
   ) {
-    let changes = false;
-    if (name && name !== this.name) {
-      this.name = name;
-      changes = true;
-    }
-    if (description && description !== this.description) {
-      this.description = description;
-      changes = true;
-    }
-    if (environment) {
-      this.environment = environment;
-      //TODO check changes
-      changes = true;
-    }
-    if (imageUrl !== undefined && imageUrl !== this.imageUrl) {
-      this.imageUrl = imageUrl;
-      changes = true;
-    }
-    // A PATCH that changes nothing is a 200 with the game as it is, and no event (spec 020).
-    if (!changes) return;
+    if (name) this.name = name;
+    if (description) this.description = description;
+    if (environment) this.environment = environment;
+    if (imageUrl !== undefined) this.imageUrl = imageUrl;
+    // A PATCH that changes nothing is a 200 with the game as it is, and no event (spec 021, decision 9).
+    if (!this.hasChanges()) return;
     this.updatedAt = new Date();
     this.apply(new GameUpdatedEvent(this));
   }
