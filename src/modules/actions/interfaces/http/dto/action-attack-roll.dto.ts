@@ -8,7 +8,7 @@ export class ActionAttackRollDto {
   @ApiProperty({ description: 'The critical rolls as rolled, by critical key', example: { s_c_1: 42 }, required: false })
   criticalRolls: Map<string, number | undefined> | undefined;
 
-  @ApiProperty({ description: 'The fumble roll value if required', required: false, example: 3 })
+  @ApiProperty({ type: Number, description: 'The fumble roll value if required', required: false, example: 3 })
   fumbleRoll: number | undefined;
   static fromEntity(entity: ActionAttackRoll): ActionAttackRollDto {
     const dto = new ActionAttackRollDto();

@@ -29,7 +29,12 @@ export class ActionManeuverCreationDto {
   @IsNotEmpty()
   skillId: string;
 
-  @ApiProperty({ description: 'Maneuver type; the skill profile one when left out', enum: ['absolute', 'percent'], required: false })
+  @ApiProperty({
+    type: String,
+    description: 'Maneuver type; the skill profile one when left out',
+    enum: ['absolute', 'percent'],
+    required: false,
+  })
   @IsOptional()
   @IsIn(['absolute', 'percent'])
   maneuverType?: ManeuverType;
@@ -46,7 +51,7 @@ export class ActionManeuverCreationDto {
 }
 
 export class ForceActionDto {
-  @ApiProperty({ description: 'Why the action is resolved out of turn', enum: FORCE_REASONS })
+  @ApiProperty({ type: String, description: 'Why the action is resolved out of turn', enum: FORCE_REASONS })
   @IsIn(FORCE_REASONS)
   reason: ForceReason;
 
@@ -67,7 +72,7 @@ export class CreateActionDto {
   @IsNotEmpty()
   actorId: string;
 
-  @ApiProperty({ description: 'Action type' })
+  @ApiProperty({ type: String, description: 'Action type' })
   @IsString()
   @IsNotEmpty()
   actionType: ActionType;

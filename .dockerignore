@@ -19,20 +19,30 @@ coverage/
 out/
 .cache/
 .npm/
-*.tsbuildinfo
-
-# Tests are not part of the image. A tests/ folder in the build context is also compiled by
-# `nest build` and moves the output to dist/src/main.js, so the image could not start.
-test/
-tests/
 
 # Local tooling and editor metadata
 .agents/
 .codex/
 .vscode/
-diagrams/
 
 # Deployment and local helper scripts
 docker-*.sh*
-create-release.sh
 k8s/
+
+# Not needed to build the image
+test/
+scripts/
+diagrams/
+coverage/
+.husky/
+.github/
+*.md
+*.adoc
+.nvmrc
+.prettierrc
+.prettierignore
+eslint.config.mjs
+commitlint.config.*
+release.config.*
+Makefile
+LICENSE

@@ -6,6 +6,7 @@ import type { ForceReason } from '../../../domain/value-objects/action-resolutio
 
 export class ForceResolutionDto {
   @ApiProperty({
+    type: String,
     description:
       'Why the action is resolved out of turn: withdrawal and pass-through take the next free AP (the action needs one ' +
       'spent), effect takes none and no AP penalty, gm keeps the AP spent',

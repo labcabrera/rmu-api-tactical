@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Logger } from '@nestjs/common';
-import { FilterQuery, Model } from 'mongoose';
+import type { QueryFilter, Model } from 'mongoose';
 import { BaseAggregateRoot } from '../../domain/aggregates/base-aggregate';
 import { Page } from '../../domain/entities/page.entity';
 import { NotFoundError } from '../../domain/errors';
@@ -19,11 +19,11 @@ export abstract class MongoBaseRepository<E extends BaseAggregateRoot<any>, D> {
     const readed = await this.model.findById(id);
     return readed ? this.mapToEntity(readed) : null;
   }
-  async findByRsql(rsql: string, page: number, size: number, filter?: FilterQuery<any>, sort?: any): Promise<Page<E>> {
+  async findByRsql(rsql: string, page: number, size: number, filter?: QueryFilter<any>, sort?: any): Promise<Page<E>> {
     const skip = page * size;
     const rsqlParsed = this.rsqlParser.parse(rsql);
 
-    let mongoQuery: FilterQuery<any>;
+    let mongoQuery: QueryFilter<any>;
     if (!rsqlParsed || Object.keys(rsqlParsed).length === 0) {
       mongoQuery = filter || {};
     } else if (!filter || Object.keys(filter).length === 0) {

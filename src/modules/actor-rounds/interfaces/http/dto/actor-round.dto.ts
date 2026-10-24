@@ -124,14 +124,14 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Bleeding of the injuries, hits per round' })
   bleeding: number;
 
-  @ApiProperty({ description: 'Image URL of the actor', example: 'foo/bar/image.png', required: false })
+  @ApiProperty({ type: String, description: 'Image URL of the actor', example: 'foo/bar/image.png', required: false })
   imageUrl?: string | undefined;
 
   static fromEntity(entity: ActorRound) {
     const dto = new ActorRoundDto();
     dto.id = entity.id;
     dto.gameId = entity.gameId;
-    dto.actorType = (entity as any).actorType;
+    dto.actorType = entity.actorType;
     dto.actorId = entity.actorId;
     dto.actorName = entity.actorName;
     dto.size = entity.size;

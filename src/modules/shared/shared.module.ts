@@ -4,7 +4,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { TerminusModule } from '@nestjs/terminus';
 
 import { HttpModule } from '@nestjs/axios';
-import { AuthModule } from 'src/modules/auth/auth.module';
+import { AuthModule } from '../auth/auth.module';
 import { RsqlParser } from './infrastructure/db/rsql-parser';
 import { KafkaProducerService } from './infrastructure/messaging/kafka-producer.service';
 import { HealthController } from './interfaces/http/health.controller';

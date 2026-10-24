@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose/dist/common/mongoose.decorators';
+import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { MongoBaseRepository } from '../../../shared/infrastructure/db/mongo.base.repository';
 import { RsqlParser } from '../../../shared/infrastructure/db/rsql-parser';
@@ -16,6 +16,7 @@ import { ActorRoundPhaseLog } from '../../domain/value-objets/actor-round-phase-
 import { ActorRoundTrait } from '../../domain/value-objets/actor-round-trait.vo';
 import { ApLedgerEntry, ApLedgerKind } from '../../domain/value-objets/ap-ledger-entry.vo';
 import { HpLogEntry, HpLogKind } from '../../domain/value-objets/hp-log-entry.vo';
+import type { ActorType } from '../../domain/value-objets/actor-type.vo';
 import { ActorRoundDocument, ActorRoundModel } from '../persistence/models/actor-round.model';
 
 @Injectable()
@@ -97,7 +98,7 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
     return ActorRound.fromProps({
       id: doc._id,
       gameId: doc.gameId,
-      actorType: doc.actorType as any,
+      actorType: doc.actorType as ActorType,
       round: doc.round,
       actorId: doc.actorId,
       actorName: doc.actorName,

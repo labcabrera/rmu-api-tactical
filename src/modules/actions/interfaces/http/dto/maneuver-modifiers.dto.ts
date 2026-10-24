@@ -14,7 +14,7 @@ export class ManeuverSkillDto {
   @ApiProperty({ example: 'climbing' })
   skillId: string;
 
-  @ApiProperty({ required: false, nullable: true })
+  @ApiProperty({ type: String, required: false, nullable: true })
   specialization: string | null;
 
   @ApiProperty({ description: 'Skill bonus of the sheet (-25 when unskilled)', example: 45 })

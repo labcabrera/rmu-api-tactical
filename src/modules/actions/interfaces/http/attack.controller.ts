@@ -1,9 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Body, Controller, Logger, Param, Patch, Request, UseGuards } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import { ApiBody, ApiOkResponse, ApiOperation, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
-import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
+import { JwtAuthGuard } from '../../../auth/jwt.auth.guard';
 import { ErrorDto } from '../../../shared/interfaces/http/dto';
 import { ApplyAttackCommand } from '../../application/cqrs/commands/apply-attack.command';
 import { DeclareParryCommand } from '../../application/cqrs/commands/declare-parry.command';
@@ -18,6 +16,7 @@ import { PrepareAttackDto } from './dto/prepare-attack.dto';
 import { UpdateAttackRollDto } from './dto/update-attack-roll.dto';
 import { UpdateCriticalRollDto } from './dto/update-critical-roll.dto';
 import { UpdateFumbleRollDto } from './dto/update-fumble-roll.dto';
+import type { AuthenticatedRequest } from '../../../shared/interfaces/http/authenticated-request';
 
 @UseGuards(JwtAuthGuard)
 @Controller('v1/actions')
@@ -33,10 +32,10 @@ export class AttackController {
   @ApiOkResponse({ type: ActionDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
-  async prepareAttack(@Param('id') id: string, @Body() dto: PrepareAttackDto, @Request() req) {
-    this.logger.debug(`Preparing attack: ${JSON.stringify(dto)} for user ${req.user}`);
-    const user = req.user!;
-    const command = PrepareAttackDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+  async prepareAttack(@Param('id') id: string, @Body() dto: PrepareAttackDto, @Request() req: AuthenticatedRequest) {
+    this.logger.debug(`Preparing attack: ${JSON.stringify(dto)} for user ${req.user.id}`);
+    const user = req.user;
+    const command = PrepareAttackDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<PrepareAttackCommand, Action>(command);
     return ActionDto.fromEntity(entity);
   }
@@ -47,10 +46,10 @@ export class AttackController {
   @ApiOkResponse({ type: ActionDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
-  async declareParry(@Param('id') id: string, @Body() dto: DeclareParryDto, @Request() req) {
-    this.logger.debug(`Declaring parry: ${JSON.stringify(dto)} for user ${req.user}`);
-    const user = req.user!;
-    const command = DeclareParryDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+  async declareParry(@Param('id') id: string, @Body() dto: DeclareParryDto, @Request() req: AuthenticatedRequest) {
+    this.logger.debug(`Declaring parry: ${JSON.stringify(dto)} for user ${req.user.id}`);
+    const user = req.user;
+    const command = DeclareParryDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<DeclareParryCommand, Action>(command);
     return ActionDto.fromEntity(entity);
   }
@@ -61,10 +60,10 @@ export class AttackController {
   @ApiOkResponse({ type: ActionDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
-  async updateAttackRoll(@Param('id') id: string, @Body() dto: UpdateAttackRollDto, @Request() req) {
-    this.logger.debug(`Updating attack roll: ${JSON.stringify(dto)} for user ${req.user}`);
-    const user = req.user!;
-    const command = UpdateAttackRollDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+  async updateAttackRoll(@Param('id') id: string, @Body() dto: UpdateAttackRollDto, @Request() req: AuthenticatedRequest) {
+    this.logger.debug(`Updating attack roll: ${JSON.stringify(dto)} for user ${req.user.id}`);
+    const user = req.user;
+    const command = UpdateAttackRollDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<UpdateAttackRollCommand, Action>(command);
     return ActionDto.fromEntity(entity);
   }
@@ -75,10 +74,10 @@ export class AttackController {
   @ApiOkResponse({ type: ActionDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
-  async updateCriticalRoll(@Param('id') id: string, @Body() dto: UpdateCriticalRollDto, @Request() req) {
-    this.logger.debug(`Updating critical roll: ${JSON.stringify(dto)} for user ${req.user}`);
-    const user = req.user!;
-    const command = UpdateCriticalRollDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+  async updateCriticalRoll(@Param('id') id: string, @Body() dto: UpdateCriticalRollDto, @Request() req: AuthenticatedRequest) {
+    this.logger.debug(`Updating critical roll: ${JSON.stringify(dto)} for user ${req.user.id}`);
+    const user = req.user;
+    const command = UpdateCriticalRollDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<UpdateCriticalRollCommand, Action>(command);
     return ActionDto.fromEntity(entity);
   }
@@ -89,10 +88,10 @@ export class AttackController {
   @ApiOkResponse({ type: ActionDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
-  async updateFumbleRoll(@Param('id') id: string, @Body() dto: UpdateFumbleRollDto, @Request() req) {
-    this.logger.debug(`Updating fumble roll: ${JSON.stringify(dto)} for user ${req.user}`);
-    const user = req.user!;
-    const command = UpdateFumbleRollDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+  async updateFumbleRoll(@Param('id') id: string, @Body() dto: UpdateFumbleRollDto, @Request() req: AuthenticatedRequest) {
+    this.logger.debug(`Updating fumble roll: ${JSON.stringify(dto)} for user ${req.user.id}`);
+    const user = req.user;
+    const command = UpdateFumbleRollDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<UpdateFumbleRollCommand, Action>(command);
     return ActionDto.fromEntity(entity);
   }
@@ -102,10 +101,10 @@ export class AttackController {
   @ApiOkResponse({ type: ActionDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
-  async applyAttack(@Param('id') id: string, @Request() req) {
-    this.logger.debug(`Applying attack ${id} for user ${req.user}`);
-    const user = req.user!;
-    const command = new ApplyAttackCommand(id, user.id as string, user.roles as string[]);
+  async applyAttack(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+    this.logger.debug(`Applying attack ${id} for user ${req.user.id}`);
+    const user = req.user;
+    const command = new ApplyAttackCommand(id, user.id, user.roles);
     const entity = await this.commandBus.execute<ApplyAttackCommand, Action>(command);
     return ActionDto.fromEntity(entity);
   }

@@ -1,5 +1,5 @@
-import { describe, expect, it, jest } from '@jest/globals';
-import type { AttackTableLookupRequest, AttackTablePort } from '../../../../src/modules/actions/application/ports/attack-table.port';
+import { describe, expect, it, vi } from 'vitest';
+import type { AttackTableLookupRequest } from '../../../../src/modules/actions/application/ports/attack-table.port';
 import {
   COMBAT_PLUGIN_LIST,
   CombatAttackRollResolverService,
@@ -20,12 +20,12 @@ const setup = (entry: AttackTableEntry, options: CombatPluginContextOptions = {}
     undefined,
     [],
   );
-  const lookup = jest.fn((request: AttackTableLookupRequest) => {
+  const lookup = vi.fn((request: AttackTableLookupRequest) => {
     void request;
     return Promise.resolve(new AttackTableEntry(entry.text, entry.damage, entry.criticalType, entry.criticalSeverity));
   });
   const processor = new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST));
-  const resolver = new CombatAttackRollResolverService(processor, { lookup } as AttackTablePort);
+  const resolver = new CombatAttackRollResolverService(processor, { lookup });
   const resolve = (roll: number) =>
     resolver.resolve({
       action: ctx.action,

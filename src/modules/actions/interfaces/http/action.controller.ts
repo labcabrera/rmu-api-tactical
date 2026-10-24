@@ -1,9 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Body, Controller, Delete, Get, HttpCode, Logger, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
-import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
+import { JwtAuthGuard } from '../../../auth/jwt.auth.guard';
 import { Page } from '../../../shared/domain/entities/page.entity';
 import { ErrorDto, PagedQueryDto } from '../../../shared/interfaces/http/dto';
 import { CompleteActionCommand } from '../../application/cqrs/commands/complete-action.command';
@@ -19,6 +17,7 @@ import { CompleteActionDto } from './dto/complete-action.dto';
 import { CreateActionDto } from './dto/create-action.dto';
 import { ForceResolutionDto } from './dto/force-action.dto';
 import { UpdateActionDto } from './dto/update-action.dto';
+import type { AuthenticatedRequest } from '../../../shared/interfaces/http/authenticated-request';
 
 @UseGuards(JwtAuthGuard)
 @Controller('v1/actions')
@@ -36,9 +35,9 @@ export class ActionController {
   @ApiOperation({ operationId: 'findActionById', summary: 'Find action by id' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiNotFoundResponse({ description: 'Realm not found', type: ErrorDto })
-  async findById(@Param('id') id: string, @Request() req) {
-    const user = req.user!;
-    const query = new GetActionQuery(id, user.id as string, user.roles as string[]);
+  async findById(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+    const user = req.user;
+    const query = new GetActionQuery(id, user.id, user.roles);
     const entity = await this.queryBus.execute<GetActionQuery, Action>(query);
     this.logger.debug(`Action found: ${JSON.stringify(entity)}`);
     return ActionDto.fromEntity(entity);
@@ -48,10 +47,10 @@ export class ActionController {
   @ApiOkResponse({ type: ActionPageDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiOperation({ operationId: 'findActions', summary: 'Find actions by RSQL' })
-  async find(@Query() dto: PagedQueryDto, @Request() req) {
+  async find(@Query() dto: PagedQueryDto, @Request() req: AuthenticatedRequest) {
     this.logger.debug(`Finding actions with query: ${JSON.stringify(dto)}`);
-    const user = req.user!;
-    const query = new GetActionsQuery(dto.q, dto.page, dto.size, user.id as string, user.roles as string[]);
+    const user = req.user;
+    const query = new GetActionsQuery(dto.q, dto.page, dto.size, user.id, user.roles);
     const page = await this.queryBus.execute<GetActionsQuery, Page<Action>>(query);
     const mapped = page.content.map(action => ActionDto.fromEntity(action));
     return new Page<ActionDto>(mapped, page.pagination.page, page.pagination.size, page.pagination.totalElements);
@@ -63,10 +62,10 @@ export class ActionController {
   @ApiOkResponse({ type: ActionDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
-  async create(@Body() dto: CreateActionDto, @Request() req) {
-    this.logger.debug(`Creating action: ${JSON.stringify(dto)} for user ${req.user}`);
-    const user = req.user!;
-    const command = CreateActionDto.toCommand(dto, user.id as string, user.roles as string[]);
+  async create(@Body() dto: CreateActionDto, @Request() req: AuthenticatedRequest) {
+    this.logger.debug(`Creating action: ${JSON.stringify(dto)} for user ${req.user.id}`);
+    const user = req.user;
+    const command = CreateActionDto.toCommand(dto, user.id, user.roles);
     const entity = await this.commandBus.execute<CreateActionCommand, Action>(command);
     return ActionDto.fromEntity(entity);
   }
@@ -75,9 +74,9 @@ export class ActionController {
   @ApiOperation({ operationId: 'updateAction', summary: 'Update action' })
   @ApiOkResponse({ type: ActionDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  async updateSettings(@Param('id') id: string, @Body() dto: UpdateActionDto, @Request() req) {
-    const user = req.user!;
-    const command = UpdateActionDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+  async updateSettings(@Param('id') id: string, @Body() dto: UpdateActionDto, @Request() req: AuthenticatedRequest) {
+    const user = req.user;
+    const command = UpdateActionDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<UpdateActionCommand, Action>(command);
     return ActionDto.fromEntity(entity);
   }
@@ -87,9 +86,9 @@ export class ActionController {
   @ApiOperation({ operationId: 'deleteAction', summary: 'Delete action by id' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiNotFoundResponse({ description: 'Action not found', type: ErrorDto })
-  async delete(@Param('id') id: string, @Request() req) {
-    const user = req.user!;
-    const command = new DeleteActionCommand(id, user.id as string, user.roles as string[]);
+  async delete(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+    const user = req.user;
+    const command = new DeleteActionCommand(id, user.id, user.roles);
     await this.commandBus.execute(command);
   }
 
@@ -99,9 +98,9 @@ export class ActionController {
   @ApiOkResponse({ type: ActionDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
-  async complete(@Param('id') id: string, @Body() dto: CompleteActionDto, @Request() req) {
-    const user = req.user!;
-    const command = CompleteActionDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+  async complete(@Param('id') id: string, @Body() dto: CompleteActionDto, @Request() req: AuthenticatedRequest) {
+    const user = req.user;
+    const command = CompleteActionDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<CompleteActionCommand, Action>(command);
     return ActionDto.fromEntity(entity);
   }
@@ -111,9 +110,9 @@ export class ActionController {
   @ApiOkResponse({ type: ActionDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiResponse({ status: 400, description: 'No AP left in the phase, or the action is not open', type: ErrorDto })
-  async spendActionPoint(@Param('id') id: string, @Request() req) {
-    const user = req.user!;
-    const command = new ManageActionPointsCommand(id, 'spend-ap', user.id as string, user.roles as string[]);
+  async spendActionPoint(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+    const user = req.user;
+    const command = new ManageActionPointsCommand(id, 'spend-ap', user.id, user.roles);
     const entity = await this.commandBus.execute<ManageActionPointsCommand, Action>(command);
     return ActionDto.fromEntity(entity);
   }
@@ -123,9 +122,9 @@ export class ActionController {
   @ApiOkResponse({ type: ActionDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiResponse({ status: 400, description: 'The action is not open or has fewer AP than its maximum', type: ErrorDto })
-  async hold(@Param('id') id: string, @Request() req) {
-    const user = req.user!;
-    const command = new ManageActionPointsCommand(id, 'hold', user.id as string, user.roles as string[]);
+  async hold(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+    const user = req.user;
+    const command = new ManageActionPointsCommand(id, 'hold', user.id, user.roles);
     const entity = await this.commandBus.execute<ManageActionPointsCommand, Action>(command);
     return ActionDto.fromEntity(entity);
   }
@@ -136,9 +135,9 @@ export class ActionController {
   @ApiOkResponse({ type: ActionDto, description: 'Success' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
   @ApiResponse({ status: 400, description: 'Bad request, invalid data', type: ErrorDto })
-  async force(@Param('id') id: string, @Body() dto: ForceResolutionDto, @Request() req) {
-    const user = req.user!;
-    const command = ForceResolutionDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+  async force(@Param('id') id: string, @Body() dto: ForceResolutionDto, @Request() req: AuthenticatedRequest) {
+    const user = req.user;
+    const command = ForceResolutionDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<ManageActionPointsCommand, Action>(command);
     return ActionDto.fromEntity(entity);
   }

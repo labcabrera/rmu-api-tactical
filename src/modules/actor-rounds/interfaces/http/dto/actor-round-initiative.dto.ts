@@ -9,11 +9,11 @@ export class ActorRoundInitiativeDto {
   @ApiProperty({ description: 'Initiative penalty' })
   penalty: number;
 
-  @ApiProperty({ description: 'Initiative roll' })
+  @ApiProperty({ type: Number, description: 'Initiative roll' })
   @IsOptional()
   roll: number | undefined;
 
-  @ApiProperty({ description: 'Total initiative' })
+  @ApiProperty({ type: Number, description: 'Total initiative' })
   @IsOptional()
   total: number | undefined;
 

@@ -11,6 +11,7 @@ export class CompleteActionDto {
   note?: string;
 
   @ApiProperty({
+    type: String,
     description: 'Dodge actions only: the 4 AP full defence is a full dodge or a full block (§9.6)',
     required: false,
     enum: ['dodge', 'block'],

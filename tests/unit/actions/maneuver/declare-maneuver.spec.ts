@@ -1,4 +1,4 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { describe, expect, it, vi } from 'vitest';
 import {
   CreateActionCommand,
   CreateActionCommandManeuver,
@@ -29,18 +29,18 @@ const previous = (overrides: Partial<Action> = {}, progress = 60, completed = fa
 const declare = (maneuver: CreateActionCommandManeuver, existing: Action[] = [previous()]) => {
   const { skillCatalog } = setupManeuver();
   const game = { id: 'game-1', name: 'g', round: 2, phase: 'phase_1', getActionPhase: () => 1 };
-  const gameRepository = { findById: jest.fn(() => Promise.resolve(game)) } as unknown as GameRepository;
+  const gameRepository = { findById: vi.fn(() => Promise.resolve(game)) } as unknown as GameRepository;
   const actorRoundRepository = {
-    findByRsql: jest.fn(() => Promise.resolve({ content: [load({ round: 2 })] })),
-    update: jest.fn(() => Promise.resolve()),
+    findByRsql: vi.fn(() => Promise.resolve({ content: [load({ round: 2 })] })),
+    update: vi.fn(() => Promise.resolve()),
   } as unknown as ActorRoundRepository;
   const actionRepository = {
-    findById: jest.fn((id: string) => Promise.resolve(existing.find(a => a.id === id) ?? null)),
-    findByRsql: jest.fn(() => Promise.resolve({ content: [] })),
-    save: jest.fn((saved: Action) => Promise.resolve(saved)),
+    findById: vi.fn((id: string) => Promise.resolve(existing.find(a => a.id === id) ?? null)),
+    findByRsql: vi.fn(() => Promise.resolve({ content: [] })),
+    save: vi.fn((saved: Action) => Promise.resolve(saved)),
   } as unknown as ActionRepository;
-  const eventBus = { publish: jest.fn(() => Promise.resolve()) } as unknown as ActionEventBusPort;
-  const characterClient = { findById: jest.fn(() => Promise.resolve(null)) } as unknown as CharacterPort;
+  const eventBus = { publish: vi.fn(() => Promise.resolve()) } as unknown as ActionEventBusPort;
+  const characterClient = { findById: vi.fn(() => Promise.resolve(null)) } as unknown as CharacterPort;
   const handler = new CreateActionHandler(gameRepository, actorRoundRepository, actionRepository, eventBus, skillCatalog, characterClient);
   return handler.execute(new CreateActionCommand('game-1', 'actor-1', 'maneuver', false, 1, maneuver, '', 'user-1', []));
 };
@@ -58,17 +58,14 @@ describe('Declaring a maneuver', () => {
   });
 
   it.each([
-    ['another actor', previous({ actorId: 'actor-2' } as Partial<Action>)],
+    ['another actor', previous({ actorId: 'actor-2' })],
     [
       'an absolute maneuver',
       action({ id: 'previous', status: 'completed', maneuver: { modifiers: { skillId: 'desk-work', maneuverType: 'absolute' } } }),
     ],
     ['a completed task', previous({}, 110, true)],
-    ['an unresolved maneuver', previous({ status: 'declared' } as Partial<Action>)],
-    [
-      'another skill',
-      previous({ maneuver: { modifiers: { skillId: 'old-lore', maneuverType: 'percent' }, progress: 10 } } as Partial<Action>),
-    ],
+    ['an unresolved maneuver', previous({ status: 'declared' })],
+    ['another skill', previous({ maneuver: { modifiers: { skillId: 'old-lore', maneuverType: 'percent' }, progress: 10 } })],
     ['not a maneuver', action({ id: 'previous', actionType: 'movement', status: 'completed' })],
   ])('rejects continuing %s', async (_name, continued) => {
     await expect(declare({ skillId: 'desk-work', continuesActionId: 'previous' }, [continued])).rejects.toMatchObject({

@@ -8,7 +8,7 @@ export class ActorRoundAlertDto {
   @ApiProperty({ description: 'Alert identifier', example: 'a1b2c3d4-e5f6-7g8h-9i0j-k1l2m3n4o5p6' })
   id: string;
 
-  @ApiProperty({ description: 'Type of alert', example: 'endurance' })
+  @ApiProperty({ type: String, description: 'Type of alert', example: 'endurance' })
   type: ActorRoundAlertType;
 
   @ApiProperty({ description: 'Message of alert', example: 'High stamina', required: true })
@@ -21,7 +21,7 @@ export class ActorRoundAlertDto {
   })
   modifiers: ActorRoundAlertModifierDto[] | null;
 
-  @ApiProperty({ description: 'Status of the alert', example: 'pending' })
+  @ApiProperty({ type: String, description: 'Status of the alert', example: 'pending' })
   status: ActorRoundAlertStatus;
 
   static fromEntity(alert: ActorRoundAlert): ActorRoundAlertDto {

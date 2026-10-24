@@ -4,10 +4,10 @@
 // follows the README rule. Intended deviations (spec D2/D3) are declared per case in the fixture and asserted here
 // as deviations; differences that are not declared there are pinned in UNDECLARED_DIFFERENCES below, and the rules
 // spec 007 corrected in SPEC_007_DIFFERENCES.
-import { describe, expect, it, jest } from '@jest/globals';
+import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import type { AttackTableLookupRequest, AttackTablePort } from '../../../../src/modules/actions/application/ports/attack-table.port';
+import type { AttackTableLookupRequest } from '../../../../src/modules/actions/application/ports/attack-table.port';
 import {
   COMBAT_PLUGIN_LIST,
   COMBAT_SKILL_IDS,
@@ -561,8 +561,8 @@ const prepare = async (input: CaseInput): Promise<PreparedAttack> => {
 };
 
 const resolve = async (input: CaseInput, prepared: PreparedAttack) => {
-  const lookup = jest.fn((request: AttackTableLookupRequest) => Promise.resolve(fakeTable(request.roll, request.armor)));
-  const resolver = new CombatAttackRollResolverService(processor, { lookup } as AttackTablePort);
+  const lookup = vi.fn((request: AttackTableLookupRequest) => Promise.resolve(fakeTable(request.roll, request.armor)));
+  const resolver = new CombatAttackRollResolverService(processor, { lookup });
   const { ctx, attack } = prepared;
   await resolver.resolve({
     action: ctx.action,

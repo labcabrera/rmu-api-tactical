@@ -21,7 +21,7 @@ export class ActionMovementDto {
 }
 
 export class ActionMovementModifiersDto {
-  @ApiProperty({ description: 'The pace of the movement', example: 'walk' })
+  @ApiProperty({ type: String, description: 'The pace of the movement', example: 'walk' })
   @IsString()
   pace: Pace;
 
@@ -41,7 +41,12 @@ export class ActionMovementModifiersDto {
   @IsOptional()
   customBonus: number | null;
 
-  @ApiProperty({ description: 'Light of the environment (Table 5-1), helpful for movement', required: false, example: 'dark' })
+  @ApiProperty({
+    type: String,
+    description: 'Light of the environment (Table 5-1), helpful for movement',
+    required: false,
+    example: 'dark',
+  })
   @IsString()
   @IsOptional()
   light?: LightType | null;

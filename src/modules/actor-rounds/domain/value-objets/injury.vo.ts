@@ -34,17 +34,7 @@ export interface InjurySource {
 }
 
 export type TreatmentProcedure =
-  | 'pressure'
-  | 'stitches'
-  | 'tourniquet'
-  | 'cauterize'
-  | 'dress'
-  | 'splint'
-  | 'cast'
-  | 'salve'
-  | 'surgery'
-  | 'magic'
-  | 'herbs';
+  'pressure' | 'stitches' | 'tourniquet' | 'cauterize' | 'dress' | 'splint' | 'cast' | 'salve' | 'surgery' | 'magic' | 'herbs';
 
 export type MedicalResult = 'absolute-failure' | 'failure' | 'partial-success' | 'success' | 'absolute-success';
 

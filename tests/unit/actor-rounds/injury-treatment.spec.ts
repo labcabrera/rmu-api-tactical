@@ -1,4 +1,4 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { describe, expect, it, vi } from 'vitest';
 import type { ManeuverPort } from '../../../src/modules/actions/application/ports/maneuver.port';
 import { StabilizeEffectCommand } from '../../../src/modules/actor-rounds/application/cqrs/commands/stabilize-effect.command';
 import { TreatInjuryCommand } from '../../../src/modules/actor-rounds/application/cqrs/commands/treat-injury.command';
@@ -97,19 +97,19 @@ describe('TreatInjuryHandler and StabilizeEffectHandler', () => {
       actorName: 'Elrond',
       gameId: 'game-1',
     });
-    const update = jest.fn((_id: string, updated: ActorRound) => Promise.resolve(updated));
+    const update = vi.fn((_id: string, updated: ActorRound) => Promise.resolve(updated));
     const actorRoundRepository = {
-      findById: jest.fn(() => Promise.resolve(patient)),
-      findByActorIdAndRound: jest.fn(() => Promise.resolve(healer)),
+      findById: vi.fn(() => Promise.resolve(patient)),
+      findByActorIdAndRound: vi.fn(() => Promise.resolve(healer)),
       update,
     } as unknown as ActorRoundRepository;
     const gameRepository = {
-      findById: jest.fn(() => Promise.resolve({ id: 'game-1', name: 'Moria', checkNotFinished: () => undefined })),
+      findById: vi.fn(() => Promise.resolve({ id: 'game-1', name: 'Moria', checkNotFinished: () => undefined })),
     } as unknown as GameRepository;
     const characterClient = {
-      findById: jest.fn(() => Promise.resolve({ skills: [{ skillId: 'medicine', specialization: null, totalBonus: 45 }] })),
+      findById: vi.fn(() => Promise.resolve({ skills: [{ skillId: 'medicine', specialization: null, totalBonus: 45 }] })),
     } as unknown as CharacterPort;
-    const absolute = jest.fn((total: number, table?: string) => Promise.resolve({ result, message: `${table} ${total}`, effects }));
+    const absolute = vi.fn((total: number, table?: string) => Promise.resolve({ result, message: `${table} ${total}`, effects }));
     const maneuverPort = { absolute } as unknown as ManeuverPort;
     const service = new MedicalRollService(actorRoundRepository, gameRepository, characterClient, maneuverPort);
     return {
@@ -137,6 +137,7 @@ describe('TreatInjuryHandler and StabilizeEffectHandler', () => {
         healingType: 'medicine',
         context: 'tactical',
         tacticalGameId: 'game-1',
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- nested asymmetric matcher (typed any)
         healer: expect.objectContaining({ actorId: 'healer', name: 'Elrond', bonus: 45 }),
         difficulty: 0,
         roll: 60,

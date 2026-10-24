@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 import type { ActionEventBusPort } from '../../../../src/modules/actions/application/ports/action-event-bus.port';
 import type { ActionRepository } from '../../../../src/modules/actions/application/ports/action.repository';
 import type {
@@ -146,23 +146,23 @@ export const setupManeuver = (options: ManeuverSetup = {}) => {
   } as unknown as Character;
   const game = { id: 'game-1', phase: options.phase ?? 'phase_1', round: 1, checkNotFinished: () => undefined } as unknown as Game;
 
-  const actionUpdate = jest.fn((_id: string, updated: Action) => Promise.resolve(updated));
+  const actionUpdate = vi.fn((_id: string, updated: Action) => Promise.resolve(updated));
   const actionRepository = {
-    findById: jest.fn((id: string) => Promise.resolve(roundActions.find(a => a.id === id) ?? null)),
-    findByRsql: jest.fn(() => Promise.resolve({ content: roundActions, page: 0, size: 100, totalElements: roundActions.length })),
+    findById: vi.fn((id: string) => Promise.resolve(roundActions.find(a => a.id === id) ?? null)),
+    findByRsql: vi.fn(() => Promise.resolve({ content: roundActions, page: 0, size: 100, totalElements: roundActions.length })),
     update: actionUpdate,
   } as unknown as ActionRepository;
-  const actorRoundUpdate = jest.fn((_id: string, updated: ActorRound) => Promise.resolve(updated));
+  const actorRoundUpdate = vi.fn((_id: string, updated: ActorRound) => Promise.resolve(updated));
   const actorRoundRepository = {
-    findByActorIdAndRound: jest.fn(() => Promise.resolve(actorRound)),
+    findByActorIdAndRound: vi.fn(() => Promise.resolve(actorRound)),
     update: actorRoundUpdate,
   } as unknown as ActorRoundRepository;
-  const gameRepository = { findById: jest.fn(() => Promise.resolve(game)) } as unknown as GameRepository;
+  const gameRepository = { findById: vi.fn(() => Promise.resolve(game)) } as unknown as GameRepository;
   const characterClient = {
-    findById: jest.fn(() => Promise.resolve(character)),
-    findByGameId: jest.fn(() => Promise.resolve([character])),
+    findById: vi.fn(() => Promise.resolve(character)),
+    findByGameId: vi.fn(() => Promise.resolve([character])),
   } as unknown as CharacterPort;
-  const findSkill = jest.fn((id: string) =>
+  const findSkill = vi.fn((id: string) =>
     Promise.resolve(
       PROFILES[id]
         ? { id, categoryId: 'beasts', maneuver: PROFILES[id] }
@@ -171,16 +171,16 @@ export const setupManeuver = (options: ManeuverSetup = {}) => {
           : { id, categoryId: 'x', maneuver: profile() },
     ),
   );
-  const findManeuverModifiers = jest.fn((id: string) => Promise.resolve(CATALOG[id] ?? []));
+  const findManeuverModifiers = vi.fn((id: string) => Promise.resolve(CATALOG[id] ?? []));
   const skillCatalog: SkillCatalogPort = { findSkill, findManeuverModifiers };
-  const absolute = jest.fn<(roll: number, table?: string, unusualEvent?: boolean) => Promise<AbsoluteManeuverResponse>>(() =>
+  const absolute = vi.fn<(roll: number, table?: string, unusualEvent?: boolean) => Promise<AbsoluteManeuverResponse>>(() =>
     Promise.resolve(options.absolute ?? { result: 'success', message: 'Done', effects: [] }),
   );
-  const percent = jest.fn<(roll: number) => Promise<PercentManeuverResponse>>(() =>
+  const percent = vi.fn<(roll: number) => Promise<PercentManeuverResponse>>(() =>
     Promise.resolve(options.percent ?? { percent: 50, critical: null, message: 'Completed at 50%' }),
   );
-  const maneuverPort = { absolute, percent, endurance: jest.fn() } as unknown as ManeuverPort;
-  const publish = jest.fn(() => Promise.resolve());
+  const maneuverPort = { absolute, percent, endurance: vi.fn() } as unknown as ManeuverPort;
+  const publish = vi.fn(() => Promise.resolve());
   const eventBus = { publish } as unknown as ActionEventBusPort;
   const contextService = new ManeuverContextService(
     actorRoundRepository,

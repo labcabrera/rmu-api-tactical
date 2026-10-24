@@ -22,7 +22,7 @@ export class ActorRoundItemDto {
   @ApiProperty({ required: false, enum: ['mainHand', 'offHand', 'body', 'head', 'arms', 'legs'] })
   slot?: string;
 
-  @ApiProperty({ description: 'Strength for the breakage checks', nullable: true, example: 80 })
+  @ApiProperty({ type: Number, description: 'Strength for the breakage checks', nullable: true, example: 80 })
   strength: number | null;
 
   @ApiProperty({ description: 'Modifiers it brought and the ones of the game', type: [Object] })

@@ -25,6 +25,7 @@ export class PrepareAttackModifiersDto {
   bo: number;
 
   @ApiProperty({
+    type: String,
     description: 'Called shot location, if any',
     required: false,
     enum: ['none', 'head', 'chest', 'abdomen', 'arms', 'legs'],
@@ -39,6 +40,7 @@ export class PrepareAttackModifiersDto {
   @IsNumber()
   calledShotPenalty: number;
   @ApiProperty({
+    type: String,
     description: 'Positional advantage the attacker has',
     required: false,
     enum: ['none', 'to_flank', 'to_rear'],
@@ -49,6 +51,7 @@ export class PrepareAttackModifiersDto {
   positionalSource: PositionalSource | undefined;
 
   @ApiProperty({
+    type: String,
     description: 'Positional disadvantage the target has',
     required: false,
     enum: ['none', 'flank', 'rear'],
@@ -59,6 +62,7 @@ export class PrepareAttackModifiersDto {
   positionalTarget: PositionalTarget | undefined;
 
   @ApiProperty({
+    type: String,
     description: 'Type of restricted quarters the attacker is in',
     required: false,
     enum: ['none', 'close', 'cramped', 'tight', 'confined'],
@@ -69,6 +73,7 @@ export class PrepareAttackModifiersDto {
   restrictedQuarters: RestrictedQuarters | undefined;
 
   @ApiProperty({
+    type: String,
     description: 'Type of cover the target has',
     required: false,
     enum: ['none', 'soft_partial', 'soft_half', 'soft_full', 'hard_partial', 'hard_half', 'hard_full'],
@@ -78,32 +83,33 @@ export class PrepareAttackModifiersDto {
   @IsString()
   cover: Cover | undefined;
 
-  @ApiProperty({ description: 'Whether attacker is in melee (close) range', required: false, example: false })
+  @ApiProperty({ type: Boolean, description: 'Whether attacker is in melee (close) range', required: false, example: false })
   @IsOptional()
   @IsBoolean()
   attackerInMelee: boolean | undefined;
 
-  @ApiProperty({ description: 'Whether the attack disables defensive bonus', required: false, example: false })
+  @ApiProperty({ type: Boolean, description: 'Whether the attack disables defensive bonus', required: false, example: false })
   @IsOptional()
   @IsBoolean()
   disabledDB: boolean | undefined;
 
-  @ApiProperty({ description: 'Whether the attack disables shield use', required: false, example: false })
+  @ApiProperty({ type: Boolean, description: 'Whether the attack disables shield use', required: false, example: false })
   @IsOptional()
   @IsBoolean()
   disabledShield: boolean | undefined;
 
-  @ApiProperty({ description: 'Whether the attack disables parry', required: false, example: false })
+  @ApiProperty({ type: Boolean, description: 'Whether the attack disables parry', required: false, example: false })
   @IsOptional()
   @IsBoolean()
   disabledParry: boolean | undefined;
 
-  @ApiProperty({ description: 'Pace applied to the attack, if any', required: false, example: 'normal' })
+  @ApiProperty({ type: String, description: 'Pace applied to the attack, if any', required: false, example: 'normal' })
   @IsOptional()
   @IsString()
   pace: string | undefined;
 
   @ApiProperty({
+    type: Boolean,
     description: 'Restricted parry (§9.6): the defender is unarmed against a weapon, or the attacker is invisible or incorporeal',
     required: false,
     example: false,
@@ -112,52 +118,58 @@ export class PrepareAttackModifiersDto {
   @IsBoolean()
   restrictedParry: boolean | undefined;
 
-  @ApiProperty({ description: 'Whether attacker has higher ground', required: false, example: false })
+  @ApiProperty({ type: Boolean, description: 'Whether attacker has higher ground', required: false, example: false })
   @IsOptional()
   @IsBoolean()
   higherGround: boolean | undefined;
 
-  @ApiProperty({ description: 'Whether the foe is stunned', required: false, example: false })
+  @ApiProperty({ type: Boolean, description: 'Whether the foe is stunned', required: false, example: false })
   @IsOptional()
   @IsBoolean()
   stunnedFoe: boolean | undefined;
 
-  @ApiProperty({ description: 'Whether the foe is surprised', required: false, example: false })
+  @ApiProperty({ type: Boolean, description: 'Whether the foe is surprised', required: false, example: false })
   @IsOptional()
   @IsBoolean()
   surprisedFoe: boolean | undefined;
 
-  @ApiProperty({ description: 'Whether the target is prone', required: false, example: false })
+  @ApiProperty({ type: Boolean, description: 'Whether the target is prone', required: false, example: false })
   @IsOptional()
   @IsBoolean()
   proneTarget: boolean | undefined;
 
-  @ApiProperty({ description: 'Whether the source is prone', required: false, example: false })
+  @ApiProperty({ type: Boolean, description: 'Whether the source is prone', required: false, example: false })
   @IsOptional()
   @IsBoolean()
   proneSource: boolean | undefined;
 
-  @ApiProperty({ description: 'Whether attack is with off-hand', required: false, example: false })
+  @ApiProperty({ type: Boolean, description: 'Whether attack is with off-hand', required: false, example: false })
   @IsOptional()
   @IsBoolean()
   offHand: boolean | undefined;
 
-  @ApiProperty({ description: "Ambush: the attacker's Ambush ranks add to the critical rolls", required: false, example: false })
+  @ApiProperty({
+    type: Boolean,
+    description: "Ambush: the attacker's Ambush ranks add to the critical rolls",
+    required: false,
+    example: false,
+  })
   @IsOptional()
   @IsBoolean()
   ambush: boolean | undefined;
 
-  @ApiProperty({ description: 'Range to the target in meters', required: false, example: 72 })
+  @ApiProperty({ type: Number, description: 'Range to the target in meters', required: false, example: 72 })
   @IsOptional()
   @IsNumber()
   range: number | undefined;
 
-  @ApiProperty({ description: 'Custom bonus to apply to the attack', required: false, example: 5 })
+  @ApiProperty({ type: Number, description: 'Custom bonus to apply to the attack', required: false, example: 5 })
   @IsOptional()
   @IsNumber()
   customBonus: number | undefined;
 
   @ApiProperty({
+    type: String,
     description: 'Charge speed, added to the attacker size (`spring` is accepted as an alias of `sprint`)',
     required: false,
     enum: ['none', 'jog', 'sprint'],

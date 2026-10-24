@@ -1,11 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import type { HydratedDocument } from 'mongoose';
 import type { GamePhase } from '../../../domain/value-objects/game-phase.vo';
 import type { GameStatus } from '../../../domain/value-objects/game-status.vo';
 import type { TacticalGameOutcome } from '../../../domain/value-objects/tactical-game-outcome.vo';
 import { Actor, GameEnvironment } from './game.model-childs';
 
-export type GameDocument = GameModel & Document;
+export type GameDocument = HydratedDocument<GameModel>;
 
 @Schema({ collection: 'tactical-games', _id: false, versionKey: false })
 export class GameModel {
@@ -18,13 +18,13 @@ export class GameModel {
   @Prop({ required: true })
   name: string;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   status: GameStatus;
 
   @Prop({ required: true })
   round: number;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   phase: GamePhase;
 
   @Prop({ required: true })

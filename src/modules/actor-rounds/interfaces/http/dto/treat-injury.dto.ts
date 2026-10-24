@@ -59,28 +59,28 @@ export class MedicalRollDto {
 }
 
 export class TreatInjuryDto extends MedicalRollDto {
-  @ApiProperty({ enum: TACTICAL_PROCEDURES })
+  @ApiProperty({ type: String, enum: TACTICAL_PROCEDURES })
   @IsIn(TACTICAL_PROCEDURES)
   procedure: TacticalProcedure;
 }
 
 export class UpdateInjuryDto implements InjuryPatch {
-  @ApiProperty({ enum: INJURY_TYPES, required: false })
+  @ApiProperty({ type: String, enum: INJURY_TYPES, required: false })
   @IsOptional()
   @IsIn(INJURY_TYPES)
   type?: InjuryType;
 
-  @ApiProperty({ enum: INJURY_SEVERITIES, required: false })
+  @ApiProperty({ type: String, enum: INJURY_SEVERITIES, required: false })
   @IsOptional()
   @IsIn(INJURY_SEVERITIES)
   severity?: InjurySeverity;
 
-  @ApiProperty({ enum: BODY_LOCATIONS, required: false })
+  @ApiProperty({ type: String, enum: BODY_LOCATIONS, required: false })
   @IsOptional()
   @IsIn(BODY_LOCATIONS)
   location?: BodyLocation;
 
-  @ApiProperty({ enum: ['left', 'right'], required: false })
+  @ApiProperty({ type: String, enum: ['left', 'right'], required: false })
   @IsOptional()
   @IsIn(['left', 'right'])
   side?: BodySide;
@@ -95,7 +95,7 @@ export class UpdateInjuryDto implements InjuryPatch {
   @IsNumber()
   bleeding?: number;
 
-  @ApiProperty({ enum: BLEEDING_CONTROLS, required: false })
+  @ApiProperty({ type: String, enum: BLEEDING_CONTROLS, required: false })
   @IsOptional()
   @IsIn(BLEEDING_CONTROLS)
   bleedingControl?: BleedingControl;
@@ -111,7 +111,7 @@ export class UpdateInjuryDto implements InjuryPatch {
   @IsString()
   description?: string;
 
-  @ApiProperty({ enum: INJURY_STATUSES, required: false })
+  @ApiProperty({ type: String, enum: INJURY_STATUSES, required: false })
   @IsOptional()
   @IsIn(INJURY_STATUSES)
   status?: InjuryStatus;

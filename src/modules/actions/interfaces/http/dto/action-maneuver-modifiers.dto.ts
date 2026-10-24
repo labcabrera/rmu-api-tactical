@@ -8,23 +8,23 @@ export class ActionManeuverModifiersDto {
   @ApiProperty({ description: 'Skill identifier', example: 'climbing' })
   skillId: string;
 
-  @ApiProperty({ description: 'Specialization of the skill', required: false, nullable: true })
+  @ApiProperty({ type: String, description: 'Specialization of the skill', required: false, nullable: true })
   specialization?: string | null;
 
-  @ApiProperty({ description: 'Maneuver type', enum: ['absolute', 'percent'] })
+  @ApiProperty({ type: String, description: 'Maneuver type', enum: ['absolute', 'percent'] })
   maneuverType: ManeuverType;
 
-  @ApiProperty({ description: 'Maneuver difficulty', example: 'm', required: false })
+  @ApiProperty({ type: String, description: 'Maneuver difficulty', example: 'm', required: false })
   difficulty?: Difficulty | undefined;
 
   customBonus?: number | undefined;
 
-  @ApiProperty({ description: 'How the skill uses light', enum: ['none', 'helpful', 'required', 'hiding'], required: false })
+  @ApiProperty({ type: String, description: 'How the skill uses light', enum: ['none', 'helpful', 'required', 'hiding'], required: false })
   lightModifier?: string | undefined;
 
   light?: string | undefined;
 
-  @ApiProperty({ description: 'Deprecated: the armor penalty comes from the character sheet', required: false })
+  @ApiProperty({ type: Boolean, description: 'Deprecated: the armor penalty comes from the character sheet', required: false })
   armorModifier?: boolean | undefined;
 
   @ApiProperty({ description: 'Choices for the skill catalog modifiers', required: false })

@@ -31,7 +31,7 @@ export class ActionManeuverResultDto {
   @ApiProperty({ description: 'Absolute maneuvers: effects of the result', type: [ActionManeuverEffectDto], required: false })
   effects?: ActionManeuverEffect[];
 
-  @ApiProperty({ description: 'Percent maneuvers: severity of the critical taken', required: false, nullable: true })
+  @ApiProperty({ type: String, description: 'Percent maneuvers: severity of the critical taken', required: false, nullable: true })
   critical?: string | null;
 
   @ApiProperty({ description: 'Percent maneuvers: the accumulated progress reached 100', required: false })

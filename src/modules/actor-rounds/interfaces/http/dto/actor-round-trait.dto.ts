@@ -8,7 +8,12 @@ export class ActorRoundTraitDto {
   @ApiProperty({ description: 'Tier (1 for traits without tiers)', example: 1 })
   tier: number;
 
-  @ApiProperty({ description: 'Skill, weapon type or other value the trait was taken for', required: false, example: 'blade' })
+  @ApiProperty({
+    type: String,
+    description: 'Skill, weapon type or other value the trait was taken for',
+    required: false,
+    example: 'blade',
+  })
   specialization: string | null;
 
   static fromEntity(entity: ActorRoundTrait): ActorRoundTraitDto {

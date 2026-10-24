@@ -1,13 +1,13 @@
-import { FilterQuery } from 'mongoose';
+import type { QueryFilter } from 'mongoose';
 
 export interface EntityGuard<E> {
-  checkCreate(roles: string[]);
+  checkCreate(roles: string[]): void;
 
-  checkRead(entity: E, userId: string, roles: string[]);
+  checkRead(entity: E, userId: string, roles: string[]): void;
 
-  checkUpdate(entity: E, userId: string, roles: string[]);
+  checkUpdate(entity: E, userId: string, roles: string[]): void;
 
-  checkDelete(entity: E, userId: string, roles: string[]);
+  checkDelete(entity: E, userId: string, roles: string[]): void;
 
-  buildQueryPredicate(userId: string, roles: string[]): FilterQuery<any>;
+  buildQueryPredicate(userId: string, roles: string[]): QueryFilter<any>;
 }

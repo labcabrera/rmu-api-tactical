@@ -1,14 +1,12 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { describe, expect, it, vi } from 'vitest';
 import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.aggregate';
 import { buildInjury, Injury } from '../../../src/modules/actor-rounds/domain/value-objets/injury.vo';
 import { ApplyGameCommand } from '../../../src/modules/games/application/cqrs/commands/apply-game.command';
 import { ApplyGameHandler } from '../../../src/modules/games/application/cqrs/handlers/apply-game.handler';
-import type { GameEventBusPort } from '../../../src/modules/games/application/ports/game-event-bus.port';
 import type { GameRepository } from '../../../src/modules/games/application/ports/game.repository';
 import { Game } from '../../../src/modules/games/domain/aggregates/game.aggregate';
 import { TacticalGameOutcomeCalculator } from '../../../src/modules/games/domain/services/tactical-game-outcome.calculator';
 import { Actor } from '../../../src/modules/games/domain/value-objects/actor.vo';
-import type { TacticalOutcomePort } from '../../../src/modules/strategic/application/ports/tactical-outcome.port';
 import { effect, load } from '../actor-rounds/actor-round-test.factory';
 
 const faction = { id: 'f1', name: 'Fellowship' };
@@ -189,16 +187,12 @@ describe('ApplyGameHandler (spec 013, §3)', () => {
 
   const setup = (finished: Game, failing: string[] = []) => {
     const gameRepository = {
-      findById: jest.fn(() => Promise.resolve(finished)),
-      update: jest.fn((_id: string, updated: Game) => Promise.resolve(updated)),
+      findById: vi.fn(() => Promise.resolve(finished)),
+      update: vi.fn((_id: string, updated: Game) => Promise.resolve(updated)),
     } as unknown as GameRepository;
-    const apply = jest.fn((characterId: string) => (failing.includes(characterId) ? Promise.reject(new Error('boom')) : Promise.resolve()));
-    const publish = jest.fn();
-    const handler = new ApplyGameHandler(
-      gameRepository,
-      { apply } as unknown as TacticalOutcomePort,
-      { publish } as unknown as GameEventBusPort,
-    );
+    const apply = vi.fn((characterId: string) => (failing.includes(characterId) ? Promise.reject(new Error('boom')) : Promise.resolve()));
+    const publish = vi.fn();
+    const handler = new ApplyGameHandler(gameRepository, { apply }, { publish });
     return { handler, apply, publish };
   };
 

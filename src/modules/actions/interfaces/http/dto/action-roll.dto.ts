@@ -5,7 +5,7 @@ import { KeyValueModifierDto } from './key-value-modifier.dto';
 export class ActionRollDto {
   modifiers?: KeyValueModifierDto[] | undefined;
 
-  @ApiProperty({ description: 'Action roll', example: '42' })
+  @ApiProperty({ type: Number, description: 'Action roll', example: '42' })
   roll: number | null;
 
   totalRoll: number | null;

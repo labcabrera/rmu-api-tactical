@@ -1,0 +1,31 @@
+# Weekly dependency updates against develop, grouped so related packages move together (spec 018).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'chore(deps)'
+    groups:
+      nestjs:
+        patterns: ['@nestjs/*']
+      swc:
+        patterns: ['@swc/*', 'unplugin-swc']
+      vitest:
+        patterns: ['vitest', '@vitest/*']
+      lint:
+        patterns: ['eslint', '@eslint/*', 'eslint-*', 'typescript-eslint', 'prettier', 'globals']
+      production:
+        dependency-type: production
+      development:
+        dependency-type: development
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: 'chore(ci)'

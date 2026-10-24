@@ -1,6 +1,6 @@
 // Integration test of spec 007: the attack modifiers of the §9.9 extended example (Kirax and Thyrzia against the
 // goat rustlers) that only depend on rules in scope, through every prepare plugin and the critical roll phase.
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import {
   COMBAT_PLUGIN_LIST,
   CombatContext,

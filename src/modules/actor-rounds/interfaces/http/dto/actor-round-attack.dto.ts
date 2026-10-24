@@ -36,7 +36,7 @@ export class ActorRoundAttackDto {
   /** Skill of the weapon, such as `melee-weapon@blade`; null for older actor rounds. */
   skillId: string | null;
 
-  @ApiProperty({ description: 'Item of the attack (spec 019)', nullable: true, required: false })
+  @ApiProperty({ type: String, description: 'Item of the attack (spec 019)', nullable: true, required: false })
   itemId: string | null;
 
   @ApiProperty({ description: 'Breakage damage of the item in the game, in currentBo', example: 0 })

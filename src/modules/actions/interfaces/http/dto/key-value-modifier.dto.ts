@@ -10,6 +10,7 @@ export class KeyValueModifierDto {
   value: number;
 
   @ApiProperty({
+    type: String,
     description: 'Breakdown group of the modifier',
     enum: ['offense', 'defense', 'situation', 'critical', 'resolution'],
     required: false,

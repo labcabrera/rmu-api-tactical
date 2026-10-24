@@ -1,8 +1,7 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { describe, expect, it, vi } from 'vitest';
 import type { CommandBus } from '@nestjs/cqrs';
 import { ApplyAttackCommand } from '../../../../src/modules/actions/application/cqrs/commands/apply-attack.command';
 import { ApplyAttackHandler } from '../../../../src/modules/actions/application/cqrs/handlers/apply-attack.handler';
-import type { ActionEventBusPort } from '../../../../src/modules/actions/application/ports/action-event-bus.port';
 import type { ActionRepository } from '../../../../src/modules/actions/application/ports/action.repository';
 import { Action } from '../../../../src/modules/actions/domain/aggregates/action.aggregate';
 import { ActionParry } from '../../../../src/modules/actions/domain/value-objects/action-attack-parry.vo';
@@ -91,27 +90,27 @@ const setup = (attacks: ActionAttack[], parries: ActionParry[] = [], blocks: [nu
     updatedAt: null,
   });
   const actionRepository = {
-    findById: jest.fn(() => Promise.resolve(action)),
-    findByRsql: jest.fn(() => Promise.resolve({ content: [] })),
-    update: jest.fn((_id: string, updated: Action) => Promise.resolve(updated)),
+    findById: vi.fn(() => Promise.resolve(action)),
+    findByRsql: vi.fn(() => Promise.resolve({ content: [] })),
+    update: vi.fn((_id: string, updated: Action) => Promise.resolve(updated)),
   } as unknown as ActionRepository;
-  const update = jest.fn<(id: string, actor: unknown) => Promise<void>>(() => Promise.resolve());
+  const update = vi.fn<(id: string, actor: unknown) => Promise<void>>(() => Promise.resolve());
   const actorRoundRepository = {
-    findByRsql: jest.fn(() => Promise.resolve({ content: [source, target] })),
-    findById: jest.fn((id: string) => Promise.resolve([source, target].find(actor => actor.id === id))),
+    findByRsql: vi.fn(() => Promise.resolve({ content: [source, target] })),
+    findById: vi.fn((id: string) => Promise.resolve([source, target].find(actor => actor.id === id))),
     update,
   } as unknown as ActorRoundRepository;
   const gameRepository = {
-    findById: jest.fn(() => Promise.resolve({ round: 1, strategicGameId: 'sg-1', getActionPhase: () => 4 })),
+    findById: vi.fn(() => Promise.resolve({ round: 1, strategicGameId: 'sg-1', getActionPhase: () => 4 })),
   } as unknown as GameRepository;
-  const strategicGame = { findById: jest.fn(() => Promise.resolve({ options: {} })) } as unknown as StrategicGameApiClient;
-  const execute = jest.fn((command: unknown) => Promise.resolve(command));
+  const strategicGame = { findById: vi.fn(() => Promise.resolve({ options: {} })) } as unknown as StrategicGameApiClient;
+  const execute = vi.fn((command: unknown) => Promise.resolve(command));
   const handler = new ApplyAttackHandler(
     gameRepository,
     actionRepository,
     actorRoundRepository,
     strategicGame,
-    { publish: jest.fn(() => Promise.resolve()) } as unknown as ActionEventBusPort,
+    { publish: vi.fn(() => Promise.resolve()) },
     { execute } as unknown as CommandBus,
   );
   const run = () => handler.execute(new ApplyAttackCommand('action-1', 'user', []));
@@ -311,6 +310,7 @@ describe('ApplyAttackHandler', () => {
           initialPenalty: -10,
           bleeding: 2,
           status: 'active',
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- nested asymmetric matcher (typed any)
           source: expect.objectContaining({ kind: 'critical', actionId: 'action-1', attackerId: 'attacker', criticalKey: 'S-B-91' }),
         }),
       ]);

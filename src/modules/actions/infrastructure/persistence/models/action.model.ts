@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import type { HydratedDocument } from 'mongoose';
 
 import type { ActionStatus } from '../../../domain/value-objects/action-status.vo';
 import type { ActionType } from '../../../domain/value-objects/action-type.vo';
@@ -9,7 +9,7 @@ import { ActionMovement } from './action-movement.model';
 import { ActionParry } from './action-parry.model';
 import { ActionApRangeModel, ActionResolutionModel } from './action-resolution.model';
 
-export type ActionDocument = ActionModel & Document;
+export type ActionDocument = HydratedDocument<ActionModel>;
 
 @Schema({ collection: 'actions', _id: false, versionKey: false })
 export class ActionModel {
@@ -22,13 +22,13 @@ export class ActionModel {
   @Prop({ required: true })
   actorId: string;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   status: ActionStatus;
 
   @Prop({ required: true })
   round: number;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   actionType: ActionType;
 
   @Prop({ required: true })

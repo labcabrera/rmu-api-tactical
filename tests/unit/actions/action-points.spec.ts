@@ -1,4 +1,4 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { describe, expect, it, vi } from 'vitest';
 import type { CommandBus } from '@nestjs/cqrs';
 import { CompleteActionCommand } from '../../../src/modules/actions/application/cqrs/commands/complete-action.command';
 import { CreateActionCommand } from '../../../src/modules/actions/application/cqrs/commands/create-action.command';
@@ -11,9 +11,7 @@ import { CompleteActionHandler } from '../../../src/modules/actions/application/
 import { CreateActionHandler } from '../../../src/modules/actions/application/cqrs/handlers/create-action.handler';
 import { ManageActionPointsHandler } from '../../../src/modules/actions/application/cqrs/handlers/manage-action-points.handler';
 import { PrepareAttackHandler } from '../../../src/modules/actions/application/cqrs/handlers/prepare-attack.handler';
-import type { ActionEventBusPort } from '../../../src/modules/actions/application/ports/action-event-bus.port';
 import type { ActionRepository } from '../../../src/modules/actions/application/ports/action.repository';
-import type { SkillCatalogPort } from '../../../src/modules/actions/application/ports/skill-catalog.port';
 import { ActionApStateService } from '../../../src/modules/actions/application/services/action-ap-state.service';
 import { COMBAT_PLUGIN_LIST, CombatPluginRegistryService, CombatProcessor } from '../../../src/modules/actions/application/services/combat';
 import { Action, ActionProps } from '../../../src/modules/actions/domain/aggregates/action.aggregate';
@@ -83,9 +81,9 @@ const prepareAttack = async (options: { phase: number; ledger: number[]; resolut
   ctx.action.resolution = options.resolution === undefined ? ActionResolution.normal() : options.resolution;
   ctx.sourceActor!.apLedger = options.ledger.map(phase => new ApLedgerEntry(phase, ctx.action.id, 1, 'spent'));
   const actionRepository = {
-    findById: jest.fn(() => Promise.resolve(ctx.action)),
-    findByRsql: jest.fn(() => Promise.resolve({ content: [] })),
-    update: jest.fn((_id: string, updated: Action) => Promise.resolve(updated)),
+    findById: vi.fn(() => Promise.resolve(ctx.action)),
+    findByRsql: vi.fn(() => Promise.resolve({ content: [] })),
+    update: vi.fn((_id: string, updated: Action) => Promise.resolve(updated)),
   } as unknown as ActionRepository;
   const game = {
     id: 'game-1',
@@ -95,12 +93,12 @@ const prepareAttack = async (options: { phase: number; ledger: number[]; resolut
     getActionPhase: () => options.phase,
   };
   const handler = new PrepareAttackHandler(
-    { findById: jest.fn(() => Promise.resolve(game)) } as unknown as GameRepository,
-    { findByGameAndRoundAndActors: jest.fn(() => Promise.resolve(ctx.actors)) } as unknown as ActorRoundRepository,
+    { findById: vi.fn(() => Promise.resolve(game)) } as unknown as GameRepository,
+    { findByGameAndRoundAndActors: vi.fn(() => Promise.resolve(ctx.actors)) } as unknown as ActorRoundRepository,
     actionRepository,
-    { findById: jest.fn(() => Promise.resolve({ skills: [], traits: [] })) } as unknown as CharacterPort,
-    { findById: jest.fn(() => Promise.resolve({ options: {} })) } as unknown as StrategicGameApiClient,
-    { publish: jest.fn(() => Promise.resolve()) } as unknown as ActionEventBusPort,
+    { findById: vi.fn(() => Promise.resolve({ skills: [], traits: [] })) } as unknown as CharacterPort,
+    { findById: vi.fn(() => Promise.resolve({ options: {} })) } as unknown as StrategicGameApiClient,
+    { publish: vi.fn(() => Promise.resolve()) },
     new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST)),
   );
   const prepared = await handler.execute(
@@ -272,24 +270,24 @@ describe('Interruption (spec 011, §2; criterion 7)', () => {
     const open = action('open', 'melee_attack', 1);
     spend(actorRound, 'open', 1);
     const game = { id: 'game-1', name: 'g', round: 1, phase: 'phase_2', getActionPhase: () => 2 };
-    const actionUpdate = jest.fn((_id: string, updated: Action) => Promise.resolve(updated));
+    const actionUpdate = vi.fn((_id: string, updated: Action) => Promise.resolve(updated));
     const actionRepository = {
-      findByRsql: jest.fn(() => Promise.resolve({ content: [open] })),
-      save: jest.fn((saved: Action) => Promise.resolve(saved)),
+      findByRsql: vi.fn(() => Promise.resolve({ content: [open] })),
+      save: vi.fn((saved: Action) => Promise.resolve(saved)),
       update: actionUpdate,
     } as unknown as ActionRepository;
-    const actorRoundUpdate = jest.fn(() => Promise.resolve());
+    const actorRoundUpdate = vi.fn(() => Promise.resolve());
     const actorRoundRepository = {
-      findByRsql: jest.fn(() => Promise.resolve({ content: [actorRound] })),
+      findByRsql: vi.fn(() => Promise.resolve({ content: [actorRound] })),
       update: actorRoundUpdate,
     } as unknown as ActorRoundRepository;
     const handler = new CreateActionHandler(
-      { findById: jest.fn(() => Promise.resolve(game)) } as unknown as GameRepository,
+      { findById: vi.fn(() => Promise.resolve(game)) } as unknown as GameRepository,
       actorRoundRepository,
       actionRepository,
-      { publish: jest.fn(() => Promise.resolve()) } as unknown as ActionEventBusPort,
-      { findSkill: jest.fn(), findManeuverModifiers: jest.fn() } as unknown as SkillCatalogPort,
-      { findById: jest.fn(() => Promise.resolve(null)) } as unknown as CharacterPort,
+      { publish: vi.fn(() => Promise.resolve()) },
+      { findSkill: vi.fn(), findManeuverModifiers: vi.fn() },
+      { findById: vi.fn(() => Promise.resolve(null)) } as unknown as CharacterPort,
     );
 
     const created = await handler.execute(
@@ -384,18 +382,18 @@ describe('Forced resolution (spec 011, §6)', () => {
 describe('Validation of the minimum AP when resolving (spec 011, §4)', () => {
   const completeSetup = (target: Action, actorRound: ActorRound, phase: number) => {
     const handler = new CompleteActionHandler(
-      { findById: jest.fn(() => Promise.resolve({ id: 'game-1', getActionPhase: () => phase })) } as unknown as GameRepository,
+      { findById: vi.fn(() => Promise.resolve({ id: 'game-1', getActionPhase: () => phase })) } as unknown as GameRepository,
       {
-        findByActorIdAndRound: jest.fn(() => Promise.resolve(actorRound)),
-        update: jest.fn(() => Promise.resolve()),
+        findByActorIdAndRound: vi.fn(() => Promise.resolve(actorRound)),
+        update: vi.fn(() => Promise.resolve()),
       } as unknown as ActorRoundRepository,
       {
-        findById: jest.fn(() => Promise.resolve(target)),
-        update: jest.fn((_id: string, updated: Action) => Promise.resolve(updated)),
+        findById: vi.fn(() => Promise.resolve(target)),
+        update: vi.fn((_id: string, updated: Action) => Promise.resolve(updated)),
       } as unknown as ActionRepository,
-      { publish: jest.fn(() => Promise.resolve()) } as unknown as ActionEventBusPort,
-      { findById: jest.fn(() => Promise.resolve({ skills: [] })) } as unknown as CharacterPort,
-      { execute: jest.fn(() => Promise.resolve()) } as unknown as CommandBus,
+      { publish: vi.fn(() => Promise.resolve()) },
+      { findById: vi.fn(() => Promise.resolve({ skills: [] })) } as unknown as CharacterPort,
+      { execute: vi.fn(() => Promise.resolve()) } as unknown as CommandBus,
     );
     return () => handler.execute(new CompleteActionCommand(target.id, undefined, 'user', []));
   };
@@ -423,13 +421,13 @@ describe('Validation of the minimum AP when resolving (spec 011, §4)', () => {
 
 describe('AP endpoints (spec 011)', () => {
   const setup = (target: Action, actorRound: ActorRound, phase: number) => {
-    const update = jest.fn((_id: string, updated: Action) => Promise.resolve(updated));
-    const actorRoundUpdate = jest.fn(() => Promise.resolve());
+    const update = vi.fn((_id: string, updated: Action) => Promise.resolve(updated));
+    const actorRoundUpdate = vi.fn(() => Promise.resolve());
     const handler = new ManageActionPointsHandler(
-      { findById: jest.fn(() => Promise.resolve({ id: 'game-1', round: 1, getActionPhase: () => phase })) } as unknown as GameRepository,
-      { findByActorIdAndRound: jest.fn(() => Promise.resolve(actorRound)), update: actorRoundUpdate } as unknown as ActorRoundRepository,
-      { findById: jest.fn(() => Promise.resolve(target)), update } as unknown as ActionRepository,
-      { publish: jest.fn(() => Promise.resolve()) } as unknown as ActionEventBusPort,
+      { findById: vi.fn(() => Promise.resolve({ id: 'game-1', round: 1, getActionPhase: () => phase })) } as unknown as GameRepository,
+      { findByActorIdAndRound: vi.fn(() => Promise.resolve(actorRound)), update: actorRoundUpdate } as unknown as ActorRoundRepository,
+      { findById: vi.fn(() => Promise.resolve(target)), update } as unknown as ActionRepository,
+      { publish: vi.fn(() => Promise.resolve()) },
     );
     return { handler, update, actorRoundUpdate };
   };
@@ -475,9 +473,9 @@ describe('ActionApStateService', () => {
   it('reads each game and each round of actor rounds once, and fills the AP state of the DTO', async () => {
     const actorRound = Object.assign(load(), { actorId: 'actor-1' });
     spend(actorRound, 'melee', 1, 2);
-    const findByRsql = jest.fn(() => Promise.resolve({ content: [actorRound] }));
-    const findById = jest.fn(() => Promise.resolve(Object.assign(Object.create(Game.prototype) as Game, { round: 1, phase: 'phase_2' })));
-    const strategicFindById = jest.fn(() => Promise.resolve({ id: 'strategic-1', options: { openRounds: false }, owner: 'user-1' }));
+    const findByRsql = vi.fn(() => Promise.resolve({ content: [actorRound] }));
+    const findById = vi.fn(() => Promise.resolve(Object.assign(Object.create(Game.prototype) as Game, { round: 1, phase: 'phase_2' })));
+    const strategicFindById = vi.fn(() => Promise.resolve({ id: 'strategic-1', options: { openRounds: false }, owner: 'user-1' }));
     const service = new ActionApStateService(
       { findById } as unknown as GameRepository,
       { findByRsql } as unknown as ActorRoundRepository,

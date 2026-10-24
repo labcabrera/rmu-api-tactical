@@ -16,7 +16,7 @@ export class HpLogEntryDto {
   @ApiProperty({ description: 'Hits applied: negative is damage, positive healing' })
   amount: number;
 
-  @ApiProperty({ enum: HP_LOG_KINDS })
+  @ApiProperty({ type: String, enum: HP_LOG_KINDS })
   kind: HpLogKind;
 
   @ApiProperty({ required: false })

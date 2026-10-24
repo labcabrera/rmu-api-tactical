@@ -9,10 +9,10 @@ export class AttackTableEntryDto {
   @ApiProperty({ description: 'Damage value', example: 5 })
   damage: number;
 
-  @ApiProperty({ description: 'Critical type', example: 'S' })
+  @ApiProperty({ type: String, description: 'Critical type', example: 'S' })
   criticalType: string | undefined;
 
-  @ApiProperty({ description: 'Critical severity', example: 'A' })
+  @ApiProperty({ type: String, description: 'Critical severity', example: 'A' })
   criticalSeverity: string | undefined;
 }
 

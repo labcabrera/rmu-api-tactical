@@ -6,19 +6,19 @@ export class ActorRoundDefenseDto {
   @ApiProperty({ description: 'Defensive bonus' })
   bd: number;
 
-  @ApiProperty({ description: 'Armor type if all items have the same AT' })
+  @ApiProperty({ type: Number, description: 'Armor type if all items have the same AT' })
   at: number | null;
 
-  @ApiProperty({ description: 'Armor type of the head' })
+  @ApiProperty({ type: Number, description: 'Armor type of the head' })
   headAt: number | null;
 
-  @ApiProperty({ description: 'Armor type of the body' })
+  @ApiProperty({ type: Number, description: 'Armor type of the body' })
   bodyAt: number | null;
 
-  @ApiProperty({ description: 'Armor type of the arms' })
+  @ApiProperty({ type: Number, description: 'Armor type of the arms' })
   armsAt: number | null;
 
-  @ApiProperty({ description: 'Armor type of the legs' })
+  @ApiProperty({ type: Number, description: 'Armor type of the legs' })
   legsAt: number | null;
 
   @ApiProperty({ description: 'Shield info', required: false })
@@ -36,7 +36,7 @@ export class ActorRoundDefenseDto {
     dto.armsAt = entity.armsAt;
     dto.legsAt = entity.legsAt;
     dto.shield = entity.shield ? ActorRoundShieldDto.fromEntity(entity.shield) : null;
-    (dto as any).protect = (entity as any).protect || 0;
+    dto.protect = entity.protect || 0;
     return dto;
   }
 }

@@ -1,10 +1,10 @@
 import { ConfigService } from '@nestjs/config';
 import { generateKeyPairSync, sign } from 'crypto';
-import { JwtStrategy } from 'src/modules/auth/jwt.strategy';
+import { JwtStrategy } from '../../../src/modules/auth/jwt.strategy';
 
 const mockKeys = generateKeyPairSync('rsa', { modulusLength: 2048 });
 
-jest.mock('jwks-rsa', () => ({
+vi.mock('jwks-rsa', () => ({
   passportJwtSecret: () => (_req: unknown, _token: unknown, done: (err: Error | null, key?: string) => void) =>
     done(null, mockKeys.publicKey.export({ type: 'spki', format: 'pem' }).toString()),
 }));

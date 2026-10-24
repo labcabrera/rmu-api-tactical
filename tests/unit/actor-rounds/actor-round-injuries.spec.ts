@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.aggregate';
 import { InjuryTypeResolver } from '../../../src/modules/actor-rounds/domain/services/injury-type.resolver';
 import { ActorRoundEffect } from '../../../src/modules/actor-rounds/domain/value-objets/actor-round-effect.vo';

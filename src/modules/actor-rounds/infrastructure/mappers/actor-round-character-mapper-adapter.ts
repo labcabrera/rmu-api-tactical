@@ -64,7 +64,7 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
         character.defense.armor.armsAt,
         character.defense.armor.legsAt,
         shield,
-        (character as any).defense?.protect || 0,
+        character.defense?.protect || 0,
       ),
       this.mapAttacksFromCharacter(character, items),
       [] as ActorRoundEffect[],

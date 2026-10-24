@@ -9,7 +9,7 @@ export class StrategicGameKafkaConsumer {
 
   constructor(private readonly commandBus: CommandBus) {}
 
-  @EventPattern('internal.rmu-strategic.game.deleted.v1')
+  @EventPattern<string>('internal.rmu-strategic.game.deleted.v1')
   async handleStrategicGameDeleted(@Payload() event: any, @Ctx() context: KafkaContext) {
     this.logger.log(`Received event on topic ${context.getTopic()}: ${JSON.stringify(event)}`);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

@@ -1,4 +1,4 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { describe, expect, it, vi } from 'vitest';
 import type { CommandBus } from '@nestjs/cqrs';
 import { CompleteActionCommand } from '../../../../src/modules/actions/application/cqrs/commands/complete-action.command';
 import { CompleteActionHandler } from '../../../../src/modules/actions/application/cqrs/handlers/complete-action.handler';
@@ -37,11 +37,11 @@ const setup = (actionType: string, extra: Partial<ActionProps> = {}, options: { 
     ...extra,
   });
   const actionRepository = {
-    findById: jest.fn(() => Promise.resolve(action)),
-    update: jest.fn((_id: string, updated: Action) => Promise.resolve(updated)),
+    findById: vi.fn(() => Promise.resolve(action)),
+    update: vi.fn((_id: string, updated: Action) => Promise.resolve(updated)),
   } as unknown as ActionRepository;
   const gameRepository = {
-    findById: jest.fn(() => Promise.resolve({ id: 'game-1', getActionPhase: () => 3 })),
+    findById: vi.fn(() => Promise.resolve({ id: 'game-1', getActionPhase: () => 3 })),
   } as unknown as GameRepository;
   const actorRound = Object.assign(ActorRound.empty(), {
     id: 'ar-1',
@@ -51,16 +51,16 @@ const setup = (actionType: string, extra: Partial<ActionProps> = {}, options: { 
     ],
     defense: { shield: options.shield ? new ActorRoundShield(20, 2, 0) : null },
   });
-  const updateActorRound = jest.fn(() => Promise.resolve());
+  const updateActorRound = vi.fn(() => Promise.resolve());
   const actorRoundRepository = {
-    findByActorIdAndRound: jest.fn(() => Promise.resolve(actorRound)),
+    findByActorIdAndRound: vi.fn(() => Promise.resolve(actorRound)),
     update: updateActorRound,
   } as unknown as ActorRoundRepository;
   const characterClient = {
-    findById: jest.fn(() => Promise.resolve({ skills: [{ skillId: 'acrobatics', totalBonus: 30, ranks: options.acrobaticsRanks ?? 0 }] })),
+    findById: vi.fn(() => Promise.resolve({ skills: [{ skillId: 'acrobatics', totalBonus: 30, ranks: options.acrobaticsRanks ?? 0 }] })),
   } as unknown as CharacterPort;
-  const publish = jest.fn(() => Promise.resolve());
-  const execute = jest.fn(() => Promise.resolve());
+  const publish = vi.fn(() => Promise.resolve());
+  const execute = vi.fn(() => Promise.resolve());
   const eventBus = { publish } as unknown as ActionEventBusPort;
   const commandBus = { execute } as unknown as CommandBus;
   const handler = new CompleteActionHandler(gameRepository, actorRoundRepository, actionRepository, eventBus, characterClient, commandBus);

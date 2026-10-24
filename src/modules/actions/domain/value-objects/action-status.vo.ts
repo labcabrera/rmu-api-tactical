@@ -4,16 +4,7 @@
  * `held` by the game master until it is triggered (spec 011, §5).
  */
 export type ActionStatus =
-  | 'declared'
-  | 'prepared'
-  | 'parry'
-  | 'pending_roll'
-  | 'pending_apply'
-  | 'completed'
-  | 'interrupted'
-  | 'expired'
-  | 'carried'
-  | 'held';
+  'declared' | 'prepared' | 'parry' | 'pending_roll' | 'pending_apply' | 'completed' | 'interrupted' | 'expired' | 'carried' | 'held';
 
 export const ACTION_STATUSES: ActionStatus[] = [
   'declared',

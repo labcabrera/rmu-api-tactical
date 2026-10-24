@@ -16,10 +16,6 @@ import {
   ActionAttackModifiers,
   AttackType,
   CalledShot,
-  Cover,
-  PositionalSource,
-  PositionalTarget,
-  RestrictedQuarters,
 } from '../../../../src/modules/actions/domain/value-objects/action-attack-modifiers.vo';
 import { ActionAttack } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo';
 import { KeyValueModifier } from '../../../../src/modules/actions/domain/value-objects/key-value-modifier.vo';
@@ -338,10 +334,10 @@ function createAttackPreparation(
       rollModifiers: [],
       criticalModifiers: [],
       situationalModifiers: {
-        cover: 'none' as Cover,
-        restrictedQuarters: 'none' as RestrictedQuarters,
-        positionalSource: 'none' as PositionalSource,
-        positionalTarget: 'none' as PositionalTarget,
+        cover: 'none',
+        restrictedQuarters: 'none',
+        positionalSource: 'none',
+        positionalTarget: 'none',
         disabledDB: false,
         disabledShield: false,
         disabledParry: false,
