@@ -86,7 +86,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     const rsql = `gameId==${action.gameId};round==${game.round};actorId=in=(${actorRoundIds.join(',')})`;
     const actors = (await this.actorRoundRepository.findByRsql(rsql, 0, 1000)).content;
     if (actorRoundIds.length !== actors.length) {
-      throw new UnprocessableEntityError('Some actors not found in the current round');
+      throw new NotFoundError('Actor rounds', `${actorRoundIds.join(', ')} in round ${game.round}`);
     }
     const substractBoCommands = this.processAttackSourceSubstractBo(action, actors, command.userId, command.roles);
     // One after another: two attacks of the same attacker update the same actor round, and each command reloads it.
@@ -150,7 +150,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
   private processAttackSourceSubstractBo(action: Action, actors: ActorRound[], userId: string, roles: string[]): SubstractBoCommand[] {
     const actorRound = actors.find(a => a.actorId === action.actorId);
     if (!actorRound) {
-      throw new UnprocessableEntityError('Actor not found');
+      throw new NotFoundError('Actor round', action.actorId);
     }
     const substractBoCommands: SubstractBoCommand[] = [];
     action.attacks?.forEach(a => {
@@ -246,7 +246,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
   ) {
     const target = actors.find(a => a.actorId === actionAttack.modifiers.targetId);
     if (!target) {
-      throw new UnprocessableEntityError('Actor not found');
+      throw new NotFoundError('Actor round', actionAttack.modifiers.targetId ?? 'of the target');
     }
     let dmg = 0;
     let sourceHeal = 0;

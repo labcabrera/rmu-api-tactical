@@ -1,7 +1,7 @@
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
-import { UnprocessableEntityError } from '../../../../shared/domain/errors/errors.js';
+import { NotFoundError } from '../../../../shared/domain/errors/errors.js';
 import { ActorRound } from '../../../domain/aggregates/actor-round.js';
 import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port.js';
 import { AddFatigueCommand } from '../commands/add-fatigue.command.js';
@@ -25,7 +25,7 @@ export class AddFatigueHandler implements ICommandHandler<AddFatigueCommand, Act
       actorRound = await this.actorRoundRepository.findByActorIdAndRound(command.gameId, command.actorId, command.round);
     }
 
-    if (!actorRound) throw new UnprocessableEntityError(`Actor round not found`);
+    if (!actorRound) throw new NotFoundError('Actor round', command.actorRoundId ?? `of actor ${command.actorId}`);
     (await this.gameRepository.findById(actorRound.gameId))?.checkNotFinished();
 
     actorRound.addFatigue(command.fatigue);

@@ -25,4 +25,10 @@ describe('HttpExceptionFilter', () => {
     expect(status).toBe(504);
     expect(body).toMatchObject({ statusCode: 504, error: 'GatewayTimeoutError', code: 'upstream-timeout', errorCode: 'upstream-timeout' });
   });
+
+  // Spec 021 [F-receta-22]: the path of the body has no query string.
+  it('sends the path without the query string', () => {
+    const { body } = send(new GatewayTimeoutError('x'));
+    expect(body.path).toBe('/v1/tactical-games/g-1');
+  });
 });

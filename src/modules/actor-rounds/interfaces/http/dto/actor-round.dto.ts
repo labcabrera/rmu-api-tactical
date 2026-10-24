@@ -64,13 +64,13 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Base action points of the round, before modifiers', example: 4 })
   actionPoints: number;
 
-  @ApiProperty({ description: 'Modifiers of the action points, with their origin', type: [ActorRoundApModifierDto], isArray: true })
+  @ApiProperty({ description: 'Modifiers of the action points, with their origin', type: [ActorRoundApModifierDto] })
   apModifiers: ActorRoundApModifierDto[];
 
   @ApiProperty({ description: 'Action points of each action phase (index 0 is phase 1)', type: [Number], example: [1, 1, 2, 2] })
   apCapacity: number[];
 
-  @ApiProperty({ description: 'Action points spent, lost or used by phase and action', type: [ActorRoundApLedgerEntryDto], isArray: true })
+  @ApiProperty({ description: 'Action points spent, lost or used by phase and action', type: [ActorRoundApLedgerEntryDto] })
   apLedger: ActorRoundApLedgerEntryDto[];
 
   @ApiProperty({ description: 'Hit points' })
@@ -85,25 +85,25 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Dodge and shield block declared this round', type: ActorRoundDefenseModeDto })
   defenseMode: ActorRoundDefenseModeDto;
 
-  @ApiProperty({ description: 'Action points spent in each action phase that has ended', type: [ActorRoundPhaseLogDto], isArray: true })
+  @ApiProperty({ description: 'Action points spent in each action phase that has ended', type: [ActorRoundPhaseLogDto] })
   phaseLog: ActorRoundPhaseLogDto[];
 
-  @ApiProperty({ description: 'Attacks', type: [ActorRoundAttackDto], isArray: true })
+  @ApiProperty({ description: 'Attacks', type: [ActorRoundAttackDto] })
   attacks: ActorRoundAttackDto[];
 
-  @ApiProperty({ description: 'Parries', type: [ActorRoundParryDto], isArray: true })
+  @ApiProperty({ description: 'Parries', type: [ActorRoundParryDto] })
   parries: number[];
 
   @ApiProperty({ description: 'Penalties' })
   penalty: ActorRoundPenaltyDto;
 
-  @ApiProperty({ description: 'Active effects', type: [ActorRoundEffect], isArray: true })
+  @ApiProperty({ description: 'Active effects', type: [ActorRoundEffect] })
   effects: ActorRoundEffect[];
 
-  @ApiProperty({ description: 'Alerts', type: [ActorRoundAlertDto], isArray: true })
+  @ApiProperty({ description: 'Alerts', type: [ActorRoundAlertDto] })
   alerts: ActorRoundAlertDto[];
 
-  @ApiProperty({ description: 'Talents and flaws of the actor, from its character sheet', type: [ActorRoundTraitDto], isArray: true })
+  @ApiProperty({ description: 'Talents and flaws of the actor, from its character sheet', type: [ActorRoundTraitDto] })
   traits: ActorRoundTraitDto[];
 
   @ApiProperty({ description: 'Injuries of the actor (spec 013): brought from its character and taken in the game', type: [InjuryDto] })
@@ -178,7 +178,7 @@ export class CharacterRoundPageDto {
     this.pagination = pagination;
   }
 
-  @ApiProperty({ type: [ActorRoundDto], description: 'Character Rounds', isArray: true })
+  @ApiProperty({ type: [ActorRoundDto], description: 'Character Rounds' })
   content: ActorRoundDto[];
 
   @ApiProperty({ type: PaginationDto, description: 'Pagination information' })

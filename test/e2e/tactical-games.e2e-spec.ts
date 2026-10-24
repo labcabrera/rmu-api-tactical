@@ -184,7 +184,8 @@ describe('read and list', () => {
     expect((await as('owner').get('/v1/tactical-games?size=100')).status).toBe(200);
     const response = await as('owner').get('/v1/tactical-games?size=101');
     expect(response.status).toBe(400);
-    expect(response.body).toMatchObject({ statusCode: 400, code: 'bad-request', path: '/v1/tactical-games?size=101' });
+    // The path goes without the query string (spec 021, F-receta-22).
+    expect(response.body).toMatchObject({ statusCode: 400, code: 'bad-request', path: '/v1/tactical-games' });
   });
 });
 
