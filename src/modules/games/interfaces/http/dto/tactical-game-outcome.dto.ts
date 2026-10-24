@@ -9,6 +9,7 @@ import type {
   CharacterFate,
   TacticalGameOutcome,
   TacticalGameOutcomeCharacter,
+  TacticalItemOutcome,
 } from '../../../domain/value-objects/tactical-game-outcome.vo';
 
 export class OutcomeHpDto {
@@ -62,6 +63,9 @@ export class TacticalGameOutcomeCharacterDto {
   @ApiProperty({ enum: CHARACTER_FATES, required: false })
   fate?: CharacterFate;
 
+  @ApiProperty({ type: [Object], description: 'Modifiers the items of the character got in the game (spec 019)' })
+  items: TacticalItemOutcome[];
+
   @ApiProperty({ required: false })
   appliedAt?: string;
 
@@ -75,6 +79,7 @@ export class TacticalGameOutcomeCharacterDto {
       hpBySource: HpBySourceDto.fromEntity(entity.hpBySource ?? { byKind: {}, byAttacker: [] }),
       injuries: (entity.injuries || []).map(injury => InjuryDto.fromEntity(injury)),
       conditionsResolved: entity.conditionsResolved || [],
+      items: (entity.items || []).map(item => ({ ...item, modifiers: item.modifiers.map(modifier => ({ ...modifier })) })),
     });
   }
 }

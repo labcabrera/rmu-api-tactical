@@ -1,5 +1,6 @@
 import type { HpBySource, HpLogEntry } from '../../../actor-rounds/domain/value-objets/hp-log-entry.vo';
 import type { CharacterCondition, Injury } from '../../../actor-rounds/domain/value-objets/injury.vo';
+import type { ItemModifier } from '../../../actor-rounds/domain/value-objets/actor-round-item.vo';
 
 /** What a character at risk (bleeding or dying) ends the game as, chosen when it is finished (spec 013, §3). */
 export type CharacterFate = 'dead' | 'permanent-unconscious';
@@ -8,6 +9,13 @@ export const CHARACTER_FATES: CharacterFate[] = ['dead', 'permanent-unconscious'
 export interface ActorFate {
   actorId: string;
   fate: CharacterFate;
+}
+
+/** Modifiers an item of the character got in the game (spec 019, decision 12): its lasting breakage. */
+export interface TacticalItemOutcome {
+  itemId: string;
+  name: string;
+  modifiers: ItemModifier[];
 }
 
 /** The outcome of one character of a finished game, sent to the strategic API by `apply`. */
@@ -31,6 +39,8 @@ export interface TacticalGameOutcomeCharacter {
   /** Conditions the character brought that ended in the game (such as waking up). */
   conditionsResolved: string[];
   fate?: CharacterFate;
+  /** Spec 019: missing in outcomes stored before it. */
+  items?: TacticalItemOutcome[];
   appliedAt?: string;
   error?: string;
 }

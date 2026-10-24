@@ -5,7 +5,13 @@ import { HpLog } from '../../../actor-rounds/domain/value-objets/hp-log-entry.vo
 import type { CharacterCondition, InjurySource } from '../../../actor-rounds/domain/value-objets/injury.vo';
 import { ValidationError } from '../../../shared/domain/errors';
 import { Game } from '../aggregates/game.aggregate';
-import { ActorFate, AtRiskActor, TacticalGameOutcome, TacticalGameOutcomeCharacter } from '../value-objects/tactical-game-outcome.vo';
+import {
+  ActorFate,
+  AtRiskActor,
+  TacticalGameOutcome,
+  TacticalGameOutcomeCharacter,
+  TacticalItemOutcome,
+} from '../value-objects/tactical-game-outcome.vo';
 
 /** What the finish dialog shows and the game finishes with. */
 export interface FinishPreview {
@@ -102,11 +108,25 @@ export class TacticalGameOutcomeCalculator {
       injuriesHealed,
       conditions,
       conditionsResolved,
+      items: TacticalGameOutcomeCalculator.items(last),
     };
     if (fate) {
       outcome.fate = fate;
     }
     return outcome;
+  }
+
+  /** Spec 019, decision 12: the modifiers the items got in the game, without the temporary ones; items without any are left out. */
+  private static items(last: ActorRound): TacticalItemOutcome[] {
+    return (last.items || [])
+      .map(item => ({
+        itemId: item.itemId,
+        name: item.name,
+        modifiers: item.modifiers
+          .filter(modifier => !item.startModifierIds.includes(modifier.id) && !modifier.temporary)
+          .map(modifier => ({ ...modifier })),
+      }))
+      .filter(item => item.modifiers.length > 0);
   }
 
   /** Dead (by its effects or its fate), permanently unconscious (its fate) or unconscious at the end. */

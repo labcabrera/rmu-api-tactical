@@ -57,6 +57,30 @@ describe('ManeuverBaseModifiersService', () => {
     expect(keys({ profile: profile({ movement: false }) })).toEqual({});
   });
 
+  it('adds the breakage the armor took in the game (spec 019)', () => {
+    const actorRound = load();
+    actorRound.initItems([
+      {
+        itemId: 'mail',
+        name: 'Mail',
+        kind: 'armor',
+        slot: 'body',
+        strength: 50,
+        modifiers: [
+          { id: 'old', type: 'breakage', value: -10, appliesTo: 'all', createdAt: '' },
+          { id: 'new', type: 'breakage', value: -20, appliesTo: 'all', createdAt: '' },
+        ],
+        startModifierIds: ['old'],
+        baseValue: 9,
+      },
+    ]);
+    expect(keys({ actorRound, profile: profile({ movement: true }) })).toEqual({
+      'armor-maneuver': -30,
+      encumbrance: -10,
+      'item-breakage': -20,
+    });
+  });
+
   it.each([
     ['creep', undefined],
     ['walk', -25],
