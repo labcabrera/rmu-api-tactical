@@ -55,6 +55,8 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
     const updatedGame = await this.gameRepository.update(game);
     const events = game.getUncommittedEvents();
     void this.eventPublisher.publish('game', ...events);
+    // The events are handed over: clear them, so a later write of the same aggregate does not publish them again.
+    game.commit();
     return updatedGame;
   }
 
