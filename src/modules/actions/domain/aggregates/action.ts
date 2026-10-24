@@ -595,6 +595,9 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       }
       return { spend: null, interrupted: [] };
     }
+    if (attack && actorRound.isFearBlockingAttacks()) {
+      throw new ValidationError('A routed or broken actor cannot attack (workspace spec 022)', 'err-action-fear');
+    }
     if (actorRound.hasEffect('flatfooted')) {
       throw new ValidationError('A flatfooted actor cannot declare actions this round', 'err-action-flatfooted');
     }
