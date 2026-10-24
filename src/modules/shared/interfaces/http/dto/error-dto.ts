@@ -16,7 +16,7 @@ export class ErrorDto {
 
   @ApiProperty({
     description: 'Same as code, kept for the clients that read it before spec 020 (rmu-mfe-tactical); deprecated',
-    example: 'err-game-finished',
+    example: 'not-found',
     deprecated: true,
   })
   errorCode: string;
@@ -24,7 +24,7 @@ export class ErrorDto {
   @ApiProperty({
     description: 'Error message; a list of messages for request validation errors',
     oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }],
-    example: 'Race 1 not found',
+    example: 'Game 3f6c1a52-8d0e-4b8f-9a51-2f7d3c9e1b40 not found',
   })
   message: string | string[];
 
@@ -34,6 +34,9 @@ export class ErrorDto {
   @ApiProperty({ description: 'Timestamp', example: '2023-01-01T00:00:00Z' })
   timestamp: string;
 
-  @ApiProperty({ description: 'Request path', example: '/v1/races/1' })
+  @ApiProperty({
+    description: 'Request path, without the query string',
+    example: '/v1/tactical-games/3f6c1a52-8d0e-4b8f-9a51-2f7d3c9e1b40',
+  })
   path: string;
 }
