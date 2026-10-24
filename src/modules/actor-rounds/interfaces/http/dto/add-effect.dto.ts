@@ -1,7 +1,7 @@
 import { IsNumber, IsOptional, IsString } from 'class-validator';
 import { randomUUID } from 'crypto';
 import { AddEffectsCommand } from '../../../application/cqrs/commands/add-effects.command';
-import { ActorRoundEffect } from '../../../domain/value-objets/actor-round-effect.vo';
+import { ActorRoundEffect } from '../../../domain/value-objects/actor-round-effect.vo';
 
 export class AddEffectDto {
   constructor(status: string, value?: number, rounds?: number) {

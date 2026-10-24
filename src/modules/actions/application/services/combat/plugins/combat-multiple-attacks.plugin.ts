@@ -1,4 +1,4 @@
-import { ActorRoundAttack, WeaponCategory } from '../../../../../actor-rounds/domain/value-objets/actor-round-attack.vo';
+import { ActorRoundAttack, WeaponCategory } from '../../../../../actor-rounds/domain/value-objects/actor-round-attack.vo';
 import { CombatContext } from '../combat-context';
 import { isPreparing, rollModifiers, sourceSkill } from '../combat-modifiers';
 import { CombatPlugin } from '../combat-plugin';

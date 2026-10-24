@@ -1,12 +1,12 @@
 import { Inject, Logger, NotImplementedException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Actor } from '../../../../games/domain/value-objects/actor.vo';
-import { ValidationError } from '../../../../shared/domain/errors';
-import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
-import type { ItemPort } from '../../../../strategic/application/ports/item.port';
-import { ActorRound } from '../../../domain/aggregates/actor-round.aggregate';
-import type { ActorRoundCharacterMapperPort } from '../../ports/actor-round-character-mapper-port';
-import type { ActorRoundRepository } from '../../ports/actor-round.repository';
+import { ValidationError } from '../../../../shared/domain/errors/errors';
+import { type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port';
+import { type ItemPort, ITEM_PORT } from '../../../../strategic/application/ports/item.port';
+import { ActorRound } from '../../../domain/aggregates/actor-round';
+import { type ActorRoundCharacterMapperPort, ACTOR_ROUND_CHARACTER_MAPPER_PORT } from '../../ports/actor-round-character-mapper.port';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port';
 import { CreateActorRoundCommand } from '../commands/create-actor-round.command';
 
 @CommandHandler(CreateActorRoundCommand)
@@ -14,10 +14,10 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
   private readonly logger = new Logger(CreateActorRoundHandler.name);
 
   constructor(
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject('CharacterClient') private readonly characterClient: CharacterPort,
-    @Inject('ActorRoundCharacterMapperPort') private readonly characterMapper: ActorRoundCharacterMapperPort,
-    @Inject('ItemClient') private readonly itemClient: ItemPort,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(CHARACTER_PORT) private readonly characterClient: CharacterPort,
+    @Inject(ACTOR_ROUND_CHARACTER_MAPPER_PORT) private readonly characterMapper: ActorRoundCharacterMapperPort,
+    @Inject(ITEM_PORT) private readonly itemClient: ItemPort,
   ) {}
 
   async execute(command: CreateActorRoundCommand): Promise<ActorRound> {

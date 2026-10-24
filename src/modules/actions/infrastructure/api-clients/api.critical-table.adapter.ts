@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
-import { TokenService } from '../../../auth/token.service';
-import { handleAxiosError } from '../../../shared/infrastructure/api-rest/axios.error.adapter';
+import { TokenService } from '../../../shared/infrastructure/security/token.service';
+import { HttpClient } from '../../../shared/infrastructure/http/http-client';
 import { CriticalTableLookupRequest, CriticalTablePort } from '../../application/ports/critical-table.port';
 import { AttackLocation } from '../../domain/value-objects/attack-location.vo';
 import { CriticalEffect, CriticalInjury, CriticalResult } from '../../domain/value-objects/critical-result.vo';
@@ -43,6 +42,7 @@ export class ApiCriticalTableAdapter implements CriticalTablePort {
 
   constructor(
     private readonly tokenService: TokenService,
+    private readonly httpClient: HttpClient,
     configService: ConfigService,
   ) {
     this.apiAttackTablesUri = configService.get('RMU_API_ATTACK_TABLES_URI') as string;
@@ -54,16 +54,8 @@ export class ApiCriticalTableAdapter implements CriticalTablePort {
     const location = request.location ? TABLE_LOCATIONS[request.location] : undefined;
     const query = location ? `?location=${location}` : '';
     const uri = `${this.apiAttackTablesUri}/critical-tables/${request.criticalType}/${request.criticalSeverity}/${roll}${query}`;
-    try {
-      const response = await axios.get<CriticalTableResponse>(uri, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      return this.mapResult(response.data);
-    } catch (err: unknown) {
-      throw handleAxiosError(err, uri);
-    }
+    const data = await this.httpClient.get<CriticalTableResponse>(uri, { token });
+    return this.mapResult(data);
   }
 
   private mapResult(data: CriticalTableResponse): CriticalResult {

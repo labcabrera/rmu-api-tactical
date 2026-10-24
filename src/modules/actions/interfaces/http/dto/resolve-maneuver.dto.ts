@@ -1,10 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsIn, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
-import { ManeuverRoll, ResolveManeuverCommand, ResolveManeuverRequest } from '../../../application/cqrs/commands/resolve-maneuver.commands';
-import type { Difficulty } from '../../../domain/value-objects/dificulty.vo';
+import { ManeuverRoll, ResolveManeuverCommand, ResolveManeuverRequest } from '../../../application/cqrs/commands/resolve-maneuver.command';
+import type { Difficulty } from '../../../domain/value-objects/difficulty.vo';
 import type { LightType } from '../../../domain/value-objects/light-type.vo';
-import type { LightManeuverModifier } from '../../../domain/value-objects/ligth-maneuver-modifier.vo';
+import type { LightManeuverModifier } from '../../../domain/value-objects/light-maneuver-modifier.vo';
 import type { ManeuverModifierSelection } from '../../../domain/value-objects/maneuver-profile.vo';
 import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo';
 

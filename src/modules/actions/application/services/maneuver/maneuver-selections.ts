@@ -1,4 +1,4 @@
-import { ValidationError } from '../../../../shared/domain/errors';
+import { ValidationError } from '../../../../shared/domain/errors/errors';
 import { KeyValueModifier } from '../../../domain/value-objects/key-value-modifier.vo';
 import { ManeuverModifierDefinition, ManeuverModifierSelection } from '../../../domain/value-objects/maneuver-profile.vo';
 

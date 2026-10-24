@@ -1,14 +1,14 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
-import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
-import type { GameRepository } from '../../../../games/application/ports/game.repository';
-import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../../shared/domain/errors';
-import type { Character, CharacterPort } from '../../../../strategic/application/ports/character.port';
-import { lethalityOf } from '../../../../strategic/application/ports/strategic-game.port';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
+import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../../shared/domain/errors/errors';
+import { type Character, type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port';
+import { lethalityOf, STRATEGIC_GAME_PORT } from '../../../../strategic/application/ports/strategic-game.port';
 import { StrategicGameApiClient } from '../../../../strategic/infrastructure/api-clients/api.strategic-game.adapter';
-import { Action } from '../../../domain/aggregates/action.aggregate';
-import { ActionUpdatedEvent } from '../../../domain/events/action-events';
+import { Action } from '../../../domain/aggregates/action';
+import { ActionUpdatedEvent } from '../../../domain/events/action.events';
 import { ActionAttackCalculated } from '../../../domain/value-objects/action-attack-calculated.vo';
 import {
   ActionAttackModifiers,
@@ -18,8 +18,7 @@ import {
   RestrictedQuarters,
 } from '../../../domain/value-objects/action-attack-modifiers.vo';
 import { ActionAttack } from '../../../domain/value-objects/action-attack.vo';
-import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
-import type { ActionRepository } from '../../ports/action.repository';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port';
 import type {
   CombatAttackCalculatedResult,
   CombatAttackPreparation,
@@ -30,18 +29,19 @@ import type {
 } from '../../services/combat';
 import { COMBAT_SKILL_IDS, CombatModifierBag, CombatProcessor, sizeDifference } from '../../services/combat';
 import { PrepareAttackCommand, PrepareAttackCommandItem } from '../commands/prepare-attack.command';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
 
 @CommandHandler(PrepareAttackCommand)
 export class PrepareAttackHandler implements ICommandHandler<PrepareAttackCommand, Action> {
   private readonly logger = new Logger(PrepareAttackHandler.name);
 
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('CharacterClient') private readonly characterClient: CharacterPort,
-    @Inject('StrategicGameClient') private readonly strategicGameClient: StrategicGameApiClient,
-    @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
+    @Inject(CHARACTER_PORT) private readonly characterClient: CharacterPort,
+    @Inject(STRATEGIC_GAME_PORT) private readonly strategicGameClient: StrategicGameApiClient,
+    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
     private readonly combatProcessor: CombatProcessor,
   ) {}
 
@@ -113,7 +113,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
 
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action.id, action);
-    await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
+    await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     updated.refreshApState(sourceActorRound, currentPhase);
     return updated;
   }

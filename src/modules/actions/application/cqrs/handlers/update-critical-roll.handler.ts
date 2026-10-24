@@ -1,17 +1,17 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
-import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
-import type { GameRepository } from '../../../../games/application/ports/game.repository';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import { Action } from '../../../domain/aggregates/action.aggregate';
-import { ActionUpdatedEvent } from '../../../domain/events/action-events';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors';
+import { Action } from '../../../domain/aggregates/action';
+import { ActionUpdatedEvent } from '../../../domain/events/action.events';
 import { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
-import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
-import type { ActionRepository } from '../../ports/action.repository';
-import type { CriticalTablePort } from '../../ports/critical-table.port';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port';
+import { type CriticalTablePort, CRITICAL_TABLE_PORT } from '../../ports/critical-table.port';
 import { CombatProcessor } from '../../services/combat';
 import { UpdateCriticalRollCommand } from '../commands/update-critical-roll.command';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
 
 const MIN_CRITICAL_ROLL = 1;
 const MAX_CRITICAL_ROLL = 100;
@@ -29,12 +29,12 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
   private readonly logger = new Logger(UpdateCriticalRollHandler.name);
 
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('CriticalTablePort') private readonly criticalTablePort: CriticalTablePort,
-    @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
+    @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
+    @Inject(CRITICAL_TABLE_PORT) private readonly criticalTablePort: CriticalTablePort,
+    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
     private readonly combatProcessor: CombatProcessor,
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
   ) {}
 
   async execute(command: UpdateCriticalRollCommand): Promise<Action> {
@@ -95,7 +95,7 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
 
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action.id, action);
-    await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
+    await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     return updated;
   }
 

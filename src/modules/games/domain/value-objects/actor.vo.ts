@@ -1,4 +1,4 @@
-import { ActorRoundFaction } from '../../../actor-rounds/domain/value-objets/actor-round-faction.vo';
+import { ActorRoundFaction } from '../../../actor-rounds/domain/value-objects/actor-round-faction.vo';
 import { ActorType } from './actor-type.vo';
 
 export interface ActorProps {

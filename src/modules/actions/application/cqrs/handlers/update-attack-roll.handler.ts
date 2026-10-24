@@ -1,24 +1,24 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
-import type { GameRepository } from '../../../../games/application/ports/game.repository';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import { Action } from '../../../domain/aggregates/action.aggregate';
-import { ActionUpdatedEvent } from '../../../domain/events/action-events';
-import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
-import type { ActionRepository } from '../../ports/action.repository';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors';
+import { Action } from '../../../domain/aggregates/action';
+import { ActionUpdatedEvent } from '../../../domain/events/action.events';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port';
 import { CombatAttackRollResolverService } from '../../services/combat';
 import { UpdateAttackRollCommand } from '../commands/update-attack-roll.command';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
 
 @CommandHandler(UpdateAttackRollCommand)
 export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRollCommand, Action> {
   private readonly logger = new Logger(UpdateAttackRollHandler.name);
 
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
+    @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
     private readonly combatAttackRollResolver: CombatAttackRollResolverService,
   ) {}
 
@@ -59,7 +59,7 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     action.updatedAt = new Date();
 
     const updated = await this.actionRepository.update(action.id, action);
-    await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
+    await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     return updated;
   }
 

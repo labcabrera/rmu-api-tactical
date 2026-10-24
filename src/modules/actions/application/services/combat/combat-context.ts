@@ -1,6 +1,6 @@
-import type { Action } from '../../../domain/aggregates/action.aggregate';
-import type { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
-import type { ActorRoundAttack } from '../../../../actor-rounds/domain/value-objets/actor-round-attack.vo';
+import type { Action } from '../../../domain/aggregates/action';
+import type { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round';
+import type { ActorRoundAttack } from '../../../../actor-rounds/domain/value-objects/actor-round-attack.vo';
 import type { ActionAttack, AttackTableEntry } from '../../../domain/value-objects/action-attack.vo';
 import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
 import type {

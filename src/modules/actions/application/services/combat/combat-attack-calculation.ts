@@ -1,4 +1,4 @@
-import type { ActorRoundTrait } from '../../../../actor-rounds/domain/value-objets/actor-round-trait.vo';
+import type { ActorRoundTrait } from '../../../../actor-rounds/domain/value-objects/actor-round-trait.vo';
 import { Cover, PositionalSource, PositionalTarget, RestrictedQuarters } from '../../../domain/value-objects/action-attack-modifiers.vo';
 import { ActionAttackResult } from '../../../domain/value-objects/action-attack.vo';
 import { AttackLocation } from '../../../domain/value-objects/attack-location.vo';

@@ -1,18 +1,22 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
-import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
-import { ActorRoundAlert } from '../../../../actor-rounds/domain/value-objets/actor-round-alert.vo';
-import type { GameRepository } from '../../../../games/application/ports/game.repository';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import type { StrategicGame, StrategicGamePort } from '../../../../strategic/application/ports/strategic-game.port';
-import { Action } from '../../../domain/aggregates/action.aggregate';
-import { ActionUpdatedEvent } from '../../../domain/events/action-events';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round';
+import { ActorRoundAlert } from '../../../../actor-rounds/domain/value-objects/actor-round-alert.vo';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors';
+import {
+  type StrategicGame,
+  type StrategicGamePort,
+  STRATEGIC_GAME_PORT,
+} from '../../../../strategic/application/ports/strategic-game.port';
+import { Action } from '../../../domain/aggregates/action';
+import { ActionUpdatedEvent } from '../../../domain/events/action.events';
 import { ActionMovement, ActionMovementModifiers } from '../../../domain/value-objects/action-movement.vo';
-import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
-import type { ActionRepository } from '../../ports/action.repository';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port';
 import { MovementProcessorService } from '../../services/movement-processor.service';
 import { ResolveMovementCommand } from '../commands/resolve-movement.command';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
 
 @CommandHandler(ResolveMovementCommand)
 export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCommand, Action> {
@@ -20,11 +24,11 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
 
   constructor(
     private readonly movementProcessorService: MovementProcessorService,
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('StrategicGameClient') private readonly strategicGameClient: StrategicGamePort,
-    @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
+    @Inject(STRATEGIC_GAME_PORT) private readonly strategicGameClient: StrategicGamePort,
+    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
   ) {}
 
   async execute(command: ResolveMovementCommand): Promise<Action> {
@@ -61,7 +65,7 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     if (actorRoundModified) {
       await this.actorRoundRepository.update(actorRound.id, actorRound);
     }
-    await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
+    await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     updated.refreshApState(actorRound, currentPhase);
     return updated;
   }

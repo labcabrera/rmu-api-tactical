@@ -1,5 +1,5 @@
-import type { HpBySource, HpLogEntry } from '../../../actor-rounds/domain/value-objets/hp-log-entry.vo';
-import type { CharacterCondition, Injury } from '../../../actor-rounds/domain/value-objets/injury.vo';
+import type { HpBySource, HpLogEntry } from '../../../actor-rounds/domain/value-objects/hp-log-entry.vo';
+import type { CharacterCondition, Injury } from '../../../actor-rounds/domain/value-objects/injury.vo';
 import type { TacticalItemOutcome } from '../../../games/domain/value-objects/tactical-game-outcome.vo';
 
 /** One character of a finished tactical game, as the strategic API takes it (spec 013, §3 and §4). */
@@ -27,3 +27,5 @@ export interface TacticalOutcomePort {
   /** `POST /characters/:id/tactical-outcomes`. Idempotent: the strategic API answers 200 when it was already applied. */
   apply(characterId: string, request: TacticalOutcomeRequest): Promise<void>;
 }
+
+export const TACTICAL_OUTCOME_PORT = Symbol('TacticalOutcomePort');

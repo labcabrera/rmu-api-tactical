@@ -1,17 +1,17 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
-import { ActorRoundAlert } from '../../../../actor-rounds/domain/value-objets/actor-round-alert.vo';
-import type { GameRepository } from '../../../../games/application/ports/game.repository';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import { Action } from '../../../domain/aggregates/action.aggregate';
-import { ActionUpdatedEvent } from '../../../domain/events/action-events';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
+import { ActorRoundAlert } from '../../../../actor-rounds/domain/value-objects/actor-round-alert.vo';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors';
+import { Action } from '../../../domain/aggregates/action';
+import { ActionUpdatedEvent } from '../../../domain/events/action.events';
 import { ActionManeuverResult } from '../../../domain/value-objects/action-maneuver.vo';
-import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
-import type { ActionRepository } from '../../ports/action.repository';
-import type { ManeuverPort } from '../../ports/maneuver.port';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port';
+import { type ManeuverPort, MANEUVER_PORT } from '../../ports/maneuver.port';
 import { ManeuverContext, ManeuverContextService, ManeuverRollCalculation } from '../../services/maneuver/maneuver-context.service';
-import { ResolveManeuverCommand } from '../commands/resolve-maneuver.commands';
+import { ResolveManeuverCommand } from '../commands/resolve-maneuver.command';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
 
 /** Unmodified roll of an unusual event (§5.1). */
 const UNUSUAL_EVENT_ROLL = 66;
@@ -27,11 +27,11 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
   private readonly logger = new Logger(ResolveManeuverHandler.name);
 
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
-    @Inject('ManeuverPort') private readonly maneuverPort: ManeuverPort,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
+    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
+    @Inject(MANEUVER_PORT) private readonly maneuverPort: ManeuverPort,
     private readonly maneuverContextService: ManeuverContextService,
   ) {}
 
@@ -76,7 +76,7 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
       context.actorRound.alerts.push(alert);
       await this.actorRoundRepository.update(context.actorRound.id, context.actorRound);
     }
-    await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
+    await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     updated.refreshApState(context.actorRound, currentPhase);
     return updated;
   }

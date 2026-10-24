@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActorRoundFaction } from '../../../../actor-rounds/domain/value-objets/actor-round-faction.vo';
+import { ActorRoundFaction } from '../../../../actor-rounds/domain/value-objects/actor-round-faction.vo';
 
 export class ActorRoundFactionDto {
   constructor(id = '', name = '') {

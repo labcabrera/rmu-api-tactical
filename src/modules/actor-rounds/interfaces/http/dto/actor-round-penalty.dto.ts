@@ -1,7 +1,7 @@
 import { Type } from 'class-transformer';
 import { IsArray, IsNumber, IsString, ValidateNested } from 'class-validator';
-import { ActorRoundPenaltyModifier } from '../../../domain/value-objets/actor-round-penalty-modifier.vo';
-import { ActorRoundPenalty } from '../../../domain/value-objets/actor-round-penalty.vo';
+import { ActorRoundPenaltyModifier } from '../../../domain/value-objects/actor-round-penalty-modifier.vo';
+import { ActorRoundPenalty } from '../../../domain/value-objects/actor-round-penalty.vo';
 
 export class ActorRoundPenaltyModifierDto {
   @IsString()

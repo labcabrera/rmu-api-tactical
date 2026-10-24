@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
-import { TokenService } from '../../../auth/token.service';
-import { handleAxiosError } from '../../../shared/infrastructure/api-rest/axios.error.adapter';
+import { TokenService } from '../../../shared/infrastructure/security/token.service';
+import { HttpClient } from '../../../shared/infrastructure/http/http-client';
 import { FumbleTableLookupRequest, FumbleTablePort } from '../../application/ports/fumble-table.port';
 import { Fumble } from '../../domain/value-objects/action-attack.vo';
 import { CriticalEffect } from '../../domain/value-objects/critical-result.vo';
@@ -31,6 +30,7 @@ export class ApiFumbleTableAdapter implements FumbleTablePort {
 
   constructor(
     private readonly tokenService: TokenService,
+    private readonly httpClient: HttpClient,
     configService: ConfigService,
   ) {
     this.apiAttackTablesUri = configService.get('RMU_API_ATTACK_TABLES_URI') as string;
@@ -40,16 +40,8 @@ export class ApiFumbleTableAdapter implements FumbleTablePort {
     const token = await this.tokenService.getToken();
     const roll = Math.min(Math.max(Math.trunc(request.roll), MIN_ROLL), MAX_ROLL);
     const uri = `${this.apiAttackTablesUri}/fumble-tables/${request.fumbleTable}/${roll}`;
-    try {
-      const response = await axios.get<FumbleTableResponse>(uri, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      return this.mapResult(response.data);
-    } catch (err: unknown) {
-      throw handleAxiosError(err, uri);
-    }
+    const data = await this.httpClient.get<FumbleTableResponse>(uri, { token });
+    return this.mapResult(data);
   }
 
   /** The fumble tables have no damage yet: 0 unless the entry gives it, as the Python service did. */

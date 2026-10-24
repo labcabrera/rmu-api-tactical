@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
-import { ValidationError } from '../../../../shared/domain/errors';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round';
+import { ValidationError } from '../../../../shared/domain/errors/errors';
 import { Character } from '../../../../strategic/application/ports/character.port';
-import { Action } from '../../../domain/aggregates/action.aggregate';
+import { Action } from '../../../domain/aggregates/action';
 import { AP_PENALTY_PER_MISSING, ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo';
 import { SkillManeuverProfile } from '../../../domain/value-objects/maneuver-profile.vo';
 import { Pace } from '../../../domain/value-objects/pace.vo';

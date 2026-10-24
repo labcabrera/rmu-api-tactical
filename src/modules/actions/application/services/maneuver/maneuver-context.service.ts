@@ -1,14 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
-import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
-import { Game } from '../../../../games/domain/aggregates/game.aggregate';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import type { Character, CharacterPort } from '../../../../strategic/application/ports/character.port';
-import { Action } from '../../../domain/aggregates/action.aggregate';
-import { DIFFICULTY_MAP, Difficulty } from '../../../domain/value-objects/dificulty.vo';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round';
+import { Game } from '../../../../games/domain/aggregates/game';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors';
+import { type Character, type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port';
+import { Action } from '../../../domain/aggregates/action';
+import { DIFFICULTY_MAP, Difficulty } from '../../../domain/value-objects/difficulty.vo';
 import { KeyValueModifier } from '../../../domain/value-objects/key-value-modifier.vo';
 import { LIGHT_MAP, LightType } from '../../../domain/value-objects/light-type.vo';
-import { LightManeuverModifier } from '../../../domain/value-objects/ligth-maneuver-modifier.vo';
+import { LightManeuverModifier } from '../../../domain/value-objects/light-maneuver-modifier.vo';
 import {
   DEFAULT_MANEUVER_PROFILE,
   ManeuverModifierDefinition,
@@ -16,8 +16,8 @@ import {
   SkillManeuverProfile,
 } from '../../../domain/value-objects/maneuver-profile.vo';
 import { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo';
-import type { ActionRepository } from '../../ports/action.repository';
-import type { SkillCatalogPort } from '../../ports/skill-catalog.port';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port';
+import { type SkillCatalogPort, SKILL_CATALOG_PORT } from '../../ports/skill-catalog.port';
 import { ManeuverBaseModifier, ManeuverBaseModifiersService, ManeuverSkillBonus } from './maneuver-base-modifiers.service';
 import { ERR_INVALID_MODIFIER, resolveSelections } from './maneuver-selections';
 
@@ -82,10 +82,10 @@ export interface ManeuverContextOptions {
 @Injectable()
 export class ManeuverContextService {
   constructor(
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('CharacterClient') private readonly characterClient: CharacterPort,
-    @Inject('SkillCatalogPort') private readonly skillCatalog: SkillCatalogPort,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
+    @Inject(CHARACTER_PORT) private readonly characterClient: CharacterPort,
+    @Inject(SKILL_CATALOG_PORT) private readonly skillCatalog: SkillCatalogPort,
     private readonly baseModifiersService: ManeuverBaseModifiersService,
   ) {}
 

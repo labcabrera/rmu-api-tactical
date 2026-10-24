@@ -2,6 +2,8 @@ export interface StrategicGamePort {
   findById: (id: string) => Promise<StrategicGame | null>;
 }
 
+export const STRATEGIC_GAME_PORT = Symbol('StrategicGamePort');
+
 export interface StrategicGame {
   id: string;
   options: StrategicGameOptions | null;

@@ -1,4 +1,4 @@
-import { ValidationError } from '../../../shared/domain/errors';
+import { ValidationError } from '../../../shared/domain/errors/errors';
 
 /** Result of a breakage check (§6.1, Table 6-1). */
 export type BreakageResult = 'absolute-failure' | 'failure' | 'partial-success' | 'success' | 'absolute-success';

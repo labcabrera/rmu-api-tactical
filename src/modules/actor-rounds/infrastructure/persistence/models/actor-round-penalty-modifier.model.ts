@@ -1,5 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import type { ActorRoundPenaltySource } from '../../../domain/value-objets/actor-round-penalty-source.vo';
+import type { ActorRoundPenaltySource } from '../../../domain/value-objects/actor-round-penalty-source.vo';
 
 @Schema({ _id: false })
 export class ActorRoundPenaltyModifier {

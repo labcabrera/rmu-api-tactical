@@ -1,10 +1,10 @@
 import { randomUUID } from 'crypto';
-import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.aggregate';
-import { DYING, UNCONSCIOUS } from '../../../actor-rounds/domain/value-objets/actor-round-effect.vo';
-import { HpLog } from '../../../actor-rounds/domain/value-objets/hp-log-entry.vo';
-import type { CharacterCondition, InjurySource } from '../../../actor-rounds/domain/value-objets/injury.vo';
-import { ValidationError } from '../../../shared/domain/errors';
-import { Game } from '../aggregates/game.aggregate';
+import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round';
+import { DYING, UNCONSCIOUS } from '../../../actor-rounds/domain/value-objects/actor-round-effect.vo';
+import { HpLog } from '../../../actor-rounds/domain/value-objects/hp-log-entry.vo';
+import type { CharacterCondition, InjurySource } from '../../../actor-rounds/domain/value-objects/injury.vo';
+import { ValidationError } from '../../../shared/domain/errors/errors';
+import { Game } from '../aggregates/game';
 import {
   ActorFate,
   AtRiskActor,

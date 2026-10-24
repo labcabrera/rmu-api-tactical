@@ -1,9 +1,9 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { ActorRound } from '../../../domain/aggregates/actor-round.aggregate';
+import { ActorRound } from '../../../domain/aggregates/actor-round';
 import { InjuryTreatmentRules } from '../../../domain/services/injury-treatment';
-import type { Injury, InjuryTreatment } from '../../../domain/value-objets/injury.vo';
-import type { ActorRoundRepository } from '../../ports/actor-round.repository';
+import type { Injury, InjuryTreatment } from '../../../domain/value-objects/injury.vo';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port';
 import { MedicalRoll, MedicalRollService } from '../../services/medical-roll.service';
 import { TreatInjuryCommand } from '../commands/treat-injury.command';
 
@@ -26,7 +26,7 @@ export class TreatInjuryHandler implements ICommandHandler<TreatInjuryCommand, T
   private readonly logger = new Logger(TreatInjuryHandler.name);
 
   constructor(
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
     private readonly medicalRollService: MedicalRollService,
   ) {}
 

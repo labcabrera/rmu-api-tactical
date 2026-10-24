@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActorRoundShield } from '../../../domain/value-objets/actor-round-shield.vo';
+import { ActorRoundShield } from '../../../domain/value-objects/actor-round-shield.vo';
 
 export class ActorRoundShieldDto {
   @ApiProperty({ description: 'Shield defensive bonus', example: 20 })

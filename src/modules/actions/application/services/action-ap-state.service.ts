@@ -1,11 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { ActorRoundRepository } from '../../../actor-rounds/application/ports/actor-round.repository';
-import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.aggregate';
-import type { GameRepository } from '../../../games/application/ports/game.repository';
-import { Game } from '../../../games/domain/aggregates/game.aggregate';
-import { openRoundsOf } from '../../../strategic/application/ports/strategic-game.port';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../actor-rounds/application/ports/actor-round-repository.port';
+import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round';
+import { type GameRepository, GAME_REPOSITORY } from '../../../games/application/ports/game-repository.port';
+import { Game } from '../../../games/domain/aggregates/game';
+import { openRoundsOf, STRATEGIC_GAME_PORT } from '../../../strategic/application/ports/strategic-game.port';
 import type { StrategicGamePort } from '../../../strategic/application/ports/strategic-game.port';
-import { Action } from '../../domain/aggregates/action.aggregate';
+import { Action } from '../../domain/aggregates/action';
 
 /** Past the action phases: no capacity left in the round. */
 const NO_PHASE_LEFT = 5;
@@ -18,9 +18,9 @@ const NO_PHASE_LEFT = 5;
 @Injectable()
 export class ActionApStateService {
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject('StrategicGameClient') private readonly strategicGameClient: StrategicGamePort,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(STRATEGIC_GAME_PORT) private readonly strategicGameClient: StrategicGamePort,
   ) {}
 
   async refresh(actions: Action[]): Promise<void> {

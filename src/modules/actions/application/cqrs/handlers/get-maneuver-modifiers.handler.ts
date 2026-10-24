@@ -1,8 +1,8 @@
 import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import type { GameRepository } from '../../../../games/application/ports/game.repository';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import type { ActionRepository } from '../../ports/action.repository';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port';
 import { ManeuverContextService, ManeuverModifiersListing } from '../../services/maneuver/maneuver-context.service';
 import { GetManeuverModifiersQuery } from '../queries/get-maneuver-modifiers.query';
 
@@ -10,8 +10,8 @@ import { GetManeuverModifiersQuery } from '../queries/get-maneuver-modifiers.que
 @QueryHandler(GetManeuverModifiersQuery)
 export class GetManeuverModifiersHandler implements IQueryHandler<GetManeuverModifiersQuery, ManeuverModifiersListing> {
   constructor(
-    @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
+    @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
     private readonly maneuverContextService: ManeuverContextService,
   ) {}
 

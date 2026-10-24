@@ -2,7 +2,7 @@ import { CombatContext } from './combat-context';
 import { CombatAttackPreparationModifiers, CombatAttackSourceSkill } from './combat-attack-calculation';
 import { CombatModifierBag } from './combat-modifier-bag';
 import { normalizeChargeSpeed } from '../../../domain/value-objects/action-attack-modifiers.vo';
-import { ActorRoundTrait, LIGHT_BONED } from '../../../../actor-rounds/domain/value-objets/actor-round-trait.vo';
+import { ActorRoundTrait, LIGHT_BONED } from '../../../../actor-rounds/domain/value-objects/actor-round-trait.vo';
 
 /**
  * Roll modifiers of the attack being processed, stamped with the running plugin. While preparing they are the

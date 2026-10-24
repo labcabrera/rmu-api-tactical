@@ -1,18 +1,18 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { DeleteEffectCommand } from '../../../../actor-rounds/application/cqrs/commands/delete-effect.command';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
-import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
-import type { GameRepository } from '../../../../games/application/ports/game.repository';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
-import { Action } from '../../../domain/aggregates/action.aggregate';
-import { ActionUpdatedEvent } from '../../../domain/events/action-events';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors';
+import { type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port';
+import { Action } from '../../../domain/aggregates/action';
+import { ActionUpdatedEvent } from '../../../domain/events/action.events';
 import { ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo';
 import { SIMPLE_ACTION_TYPES } from '../../../domain/value-objects/action-type.vo';
-import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
-import type { ActionRepository } from '../../ports/action.repository';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port';
 import { CompleteActionCommand } from '../commands/complete-action.command';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
 
 /** Full dodge or block: the whole round (§9.6). */
 const FULL_DEFENSE_ACTION_POINTS = ActionApProfile.forAction('dodge').max;
@@ -31,11 +31,11 @@ export class CompleteActionHandler implements ICommandHandler<CompleteActionComm
   private readonly logger = new Logger(CompleteActionHandler.name);
 
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
-    @Inject('CharacterClient') private readonly characterClient: CharacterPort,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
+    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
+    @Inject(CHARACTER_PORT) private readonly characterClient: CharacterPort,
     private readonly commandBus: CommandBus,
   ) {}
 
@@ -76,7 +76,7 @@ export class CompleteActionHandler implements ICommandHandler<CompleteActionComm
       await this.clearProne(actorRound, command);
     }
     const updated = await this.actionRepository.update(action.id, action);
-    await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
+    await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     updated.refreshApState(actorRound, currentPhase);
     return updated;
   }

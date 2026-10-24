@@ -1,5 +1,5 @@
 import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command';
-import { ValidationError } from '../../../../shared/domain/errors';
+import { ValidationError } from '../../../../shared/domain/errors/errors';
 
 export class AddFatigueCommand extends AuthenticatedCommand {
   constructor(

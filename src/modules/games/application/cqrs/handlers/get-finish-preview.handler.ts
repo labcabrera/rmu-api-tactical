@@ -1,9 +1,9 @@
 import { Inject, Logger } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
-import { NotFoundError } from '../../../../shared/domain/errors';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
+import { NotFoundError } from '../../../../shared/domain/errors/errors';
 import { FinishPreview, TacticalGameOutcomeCalculator } from '../../../domain/services/tactical-game-outcome.calculator';
-import type { GameRepository } from '../../ports/game.repository';
+import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port';
 import { GetFinishPreviewQuery } from '../queries/get-finish-preview.query';
 
 /** The data of the finish dialog: the outcome the game would finish with and the characters at risk (spec 013, §3). */
@@ -12,8 +12,8 @@ export class GetFinishPreviewHandler implements IQueryHandler<GetFinishPreviewQu
   private readonly logger = new Logger(GetFinishPreviewHandler.name);
 
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
   ) {}
 
   async execute(query: GetFinishPreviewQuery): Promise<FinishPreview> {

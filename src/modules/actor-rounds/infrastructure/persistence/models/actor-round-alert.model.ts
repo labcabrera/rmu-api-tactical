@@ -1,6 +1,6 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import type { ActorRoundAlertStatus } from '../../../domain/value-objets/actor-round-alert-status.vo';
-import type { ActorRoundAlertType } from '../../../domain/value-objets/actor-round-alert-type.vo';
+import type { ActorRoundAlertStatus } from '../../../domain/value-objects/actor-round-alert-status.vo';
+import type { ActorRoundAlertType } from '../../../domain/value-objects/actor-round-alert-type.vo';
 
 @Schema({ _id: false })
 export class ActorRoundAlertModifier {

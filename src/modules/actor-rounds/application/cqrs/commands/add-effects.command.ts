@@ -1,9 +1,9 @@
 import { AttackLocation } from '../../../../actions/domain/value-objects/attack-location.vo';
 import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command';
-import type { EffectApplication } from '../../../domain/aggregates/actor-round.aggregate';
-import { ActorRoundEffect } from '../../../domain/value-objets/actor-round-effect.vo';
-import type { HpChange } from '../../../domain/value-objets/hp-log-entry.vo';
-import type { Injury } from '../../../domain/value-objets/injury.vo';
+import type { EffectApplication } from '../../../domain/aggregates/actor-round';
+import { ActorRoundEffect } from '../../../domain/value-objects/actor-round-effect.vo';
+import type { HpChange } from '../../../domain/value-objects/hp-log-entry.vo';
+import type { Injury } from '../../../domain/value-objects/injury.vo';
 
 /**
  * Command to apply changes to HP and add status effects to an actor round.

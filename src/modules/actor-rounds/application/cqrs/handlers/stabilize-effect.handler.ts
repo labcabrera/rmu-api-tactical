@@ -1,10 +1,10 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import { ActorRound } from '../../../domain/aggregates/actor-round.aggregate';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors';
+import { ActorRound } from '../../../domain/aggregates/actor-round';
 import { InjuryTreatmentRules } from '../../../domain/services/injury-treatment';
-import { DYING } from '../../../domain/value-objets/actor-round-effect.vo';
-import type { ActorRoundRepository } from '../../ports/actor-round.repository';
+import { DYING } from '../../../domain/value-objects/actor-round-effect.vo';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port';
 import { MedicalRoll, MedicalRollService } from '../../services/medical-roll.service';
 import { StabilizeEffectCommand } from '../commands/stabilize-effect.command';
 
@@ -21,7 +21,7 @@ export class StabilizeEffectHandler implements ICommandHandler<StabilizeEffectCo
   private readonly logger = new Logger(StabilizeEffectHandler.name);
 
   constructor(
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
     private readonly medicalRollService: MedicalRollService,
   ) {}
 

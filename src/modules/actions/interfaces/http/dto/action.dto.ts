@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { PaginationDto } from '../../../../shared/interfaces/http/dto';
-import { Action } from '../../../domain/aggregates/action.aggregate';
-import type { ActionReadiness } from '../../../domain/aggregates/action.aggregate';
+import { PaginationDto } from '../../../../shared/interfaces/http/dto/page.dto';
+import { Action } from '../../../domain/aggregates/action';
+import type { ActionReadiness } from '../../../domain/aggregates/action';
 import { ActionResolution } from '../../../domain/value-objects/action-resolution.vo';
 import type { ForceReason, ForcedApSource, ResolutionMode } from '../../../domain/value-objects/action-resolution.vo';
 import { ACTION_STATUSES } from '../../../domain/value-objects/action-status.vo';

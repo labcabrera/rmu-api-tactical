@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ActionManeuverModifiers } from '../../../domain/value-objects/action-maneuver.vo';
-import { Difficulty } from '../../../domain/value-objects/dificulty.vo';
+import { Difficulty } from '../../../domain/value-objects/difficulty.vo';
 import type { ManeuverModifierSelection } from '../../../domain/value-objects/maneuver-profile.vo';
 import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo';
 

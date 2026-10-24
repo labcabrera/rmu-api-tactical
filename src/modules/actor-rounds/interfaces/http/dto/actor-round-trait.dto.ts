@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActorRoundTrait } from '../../../domain/value-objets/actor-round-trait.vo';
+import { ActorRoundTrait } from '../../../domain/value-objects/actor-round-trait.vo';
 
 export class ActorRoundTraitDto {
   @ApiProperty({ description: 'Trait identifier', example: 'foiler' })

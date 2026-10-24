@@ -3,8 +3,8 @@
 import { Logger } from '@nestjs/common';
 import type { QueryFilter, Model } from 'mongoose';
 import { BaseAggregateRoot } from '../../domain/aggregates/base-aggregate';
-import { Page } from '../../domain/entities/page.entity';
-import { NotFoundError } from '../../domain/errors';
+import { Page } from '../../application/pagination/page';
+import { NotFoundError } from '../../domain/errors/errors';
 import { RsqlParser } from './rsql-parser';
 
 export abstract class MongoBaseRepository<E extends BaseAggregateRoot<any>, D> {

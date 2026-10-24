@@ -1,9 +1,9 @@
-import { Body, Controller, Delete, Get, HttpCode, Logger, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Logger, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../../auth/jwt.auth.guard';
-import { Page } from '../../../shared/domain/entities/page.entity';
-import { ErrorDto, PagedQueryDto } from '../../../shared/interfaces/http/dto';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../../shared/infrastructure/security/jwt-auth.guard';
+import { Page } from '../../../shared/application/pagination/page';
+import { PagedQueryDto } from '../../../shared/interfaces/http/dto/paged-rsql-query';
 import { AddEffectsCommand } from '../../application/cqrs/commands/add-effects.command';
 import { AddFatigueCommand } from '../../application/cqrs/commands/add-fatigue.command';
 import { AdjustHpCommand } from '../../application/cqrs/commands/adjust-hp.command';
@@ -19,7 +19,7 @@ import { DeleteEffectCommand } from '../../application/cqrs/commands/delete-effe
 import { ResolveEnduranceCheckCommand } from '../../application/cqrs/commands/resolve-endurance-check.command';
 import { GetActorRoundQuery } from '../../application/cqrs/queries/get-actor-round.query';
 import { GetActorsRoundsQuery } from '../../application/cqrs/queries/get-actor-rounds.query';
-import { ActorRound } from '../../domain/aggregates/actor-round.aggregate';
+import { ActorRound } from '../../domain/aggregates/actor-round';
 import { DeclareDefenseModeDto } from './dto/actor-round-defense-mode.dto';
 import { ActorRoundDto, CharacterRoundPageDto } from './dto/actor-round.dto';
 import { AddEffectDto } from './dto/add-effect.dto';
@@ -30,7 +30,9 @@ import { ResolveEnduranceCheckDto } from './dto/resolve-endurance-check.dto';
 import { ResolveBreakageCheckDto } from './dto/resolve-breakage-check.dto';
 import { ResolveBreakageCheckCommand } from '../../application/cqrs/commands/resolve-breakage-check.command';
 import { MedicalResultDto, MedicalRollDto, TreatInjuryDto, UpdateInjuryDto } from './dto/treat-injury.dto';
-import type { AuthenticatedRequest } from '../../../shared/interfaces/http/authenticated-request';
+import { ApiErrors } from '../../../shared/interfaces/http/api-errors.decorator';
+import { CurrentUser } from '../../../shared/interfaces/http/current-user.decorator';
+import type { AuthenticatedUser } from '../../../shared/interfaces/http/authenticated-request';
 
 @UseGuards(JwtAuthGuard)
 @Controller('v1/actor-rounds')
@@ -46,10 +48,8 @@ export class ActorRoundController {
   @Get(':id')
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
   @ApiOperation({ operationId: 'findActorRoundById', summary: 'Find actor round by id' })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  @ApiNotFoundResponse({ description: 'Actor round not found', type: ErrorDto })
-  async findById(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
-    const user = req.user;
+  @ApiErrors({ 404: 'Actor round not found' })
+  async findById(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     const query = new GetActorRoundQuery(id, user.id, user.roles);
     const entity = await this.queryBus.execute<GetActorRoundQuery, ActorRound>(query);
     this.logger.debug(`Actor round found: ${JSON.stringify(entity)}`);
@@ -58,11 +58,10 @@ export class ActorRoundController {
 
   @Get('')
   @ApiOkResponse({ type: CharacterRoundPageDto, description: 'Success' })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
+  @ApiErrors()
   @ApiOperation({ operationId: 'findActorRounds', summary: 'Find actor rounds by RSQL' })
-  async find(@Query() dto: PagedQueryDto, @Request() req: AuthenticatedRequest) {
+  async find(@Query() dto: PagedQueryDto, @CurrentUser() user: AuthenticatedUser) {
     this.logger.debug(`Finding actor rounds with query: ${JSON.stringify(dto)}`);
-    const user = req.user;
     const query = new GetActorsRoundsQuery(dto.q, dto.page, dto.size, user.id, user.roles);
     const page = await this.queryBus.execute<GetActorsRoundsQuery, Page<ActorRound>>(query);
     const mapped = page.content.map(actorRound => ActorRoundDto.fromEntity(actorRound));
@@ -72,10 +71,8 @@ export class ActorRoundController {
   @Patch(':id/initiative')
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
   @ApiOperation({ operationId: 'declareInitiative', summary: 'Declare initiative' })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  @ApiNotFoundResponse({ description: 'Actor round not found', type: ErrorDto })
-  async declareInitiative(@Param('id') id: string, @Body() dto: DeclareInitiativeDto, @Request() req: AuthenticatedRequest) {
-    const user = req.user;
+  @ApiErrors({ 404: 'Actor round not found' })
+  async declareInitiative(@Param('id') id: string, @Body() dto: DeclareInitiativeDto, @CurrentUser() user: AuthenticatedUser) {
     const command = DeclareInitiativeDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<DeclareInitiativeCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
@@ -84,10 +81,8 @@ export class ActorRoundController {
   @Patch(':id/defense-mode')
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
   @ApiOperation({ operationId: 'declareDefenseMode', summary: 'Declare the dodge and shield block of the round' })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  @ApiNotFoundResponse({ description: 'Actor round not found', type: ErrorDto })
-  async declareDefenseMode(@Param('id') id: string, @Body() dto: DeclareDefenseModeDto, @Request() req: AuthenticatedRequest) {
-    const user = req.user;
+  @ApiErrors({ 404: 'Actor round not found' })
+  async declareDefenseMode(@Param('id') id: string, @Body() dto: DeclareDefenseModeDto, @CurrentUser() user: AuthenticatedUser) {
     const command = DeclareDefenseModeDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<DeclareDefenseModeCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
@@ -96,10 +91,8 @@ export class ActorRoundController {
   @Patch(':id/hp')
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
   @ApiOperation({ operationId: 'addHp', summary: 'Take (dmg > 0) or heal (dmg < 0) hits, up to the maximum' })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  @ApiNotFoundResponse({ description: 'Actor round not found', type: ErrorDto })
-  async addHp(@Param('id') id: string, @Body() dto: AddHpDto, @Request() req: AuthenticatedRequest) {
-    const user = req.user;
+  @ApiErrors({ 404: 'Actor round not found' })
+  async addHp(@Param('id') id: string, @Body() dto: AddHpDto, @CurrentUser() user: AuthenticatedUser) {
     const command = new AdjustHpCommand(id, dto.dmg, user.id, user.roles);
     const entity = await this.commandBus.execute<AdjustHpCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
@@ -108,10 +101,8 @@ export class ActorRoundController {
   @Patch(':id/fatigue-accumulator')
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
   @ApiOperation({ operationId: 'addFatigueAccumulator', summary: 'Add or subtract fatigue accumulator' })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  @ApiNotFoundResponse({ description: 'Actor round not found', type: ErrorDto })
-  async addFatigueAccumulator(@Param('id') id: string, @Body() dto: AddFatigueAccumulatorDto, @Request() req: AuthenticatedRequest) {
-    const user = req.user;
+  @ApiErrors({ 404: 'Actor round not found' })
+  async addFatigueAccumulator(@Param('id') id: string, @Body() dto: AddFatigueAccumulatorDto, @CurrentUser() user: AuthenticatedUser) {
     const command = AddFatigueAccumulatorDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<AddFatigueCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
@@ -120,10 +111,8 @@ export class ActorRoundController {
   @Patch(':id/endurance-check')
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
   @ApiOperation({ operationId: 'resolveEnduranceCheck', summary: 'Resolve an endurance roll and apply its fatigue and hits' })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  @ApiNotFoundResponse({ description: 'Actor round not found', type: ErrorDto })
-  async resolveEnduranceCheck(@Param('id') id: string, @Body() dto: ResolveEnduranceCheckDto, @Request() req: AuthenticatedRequest) {
-    const user = req.user;
+  @ApiErrors({ 404: 'Actor round not found' })
+  async resolveEnduranceCheck(@Param('id') id: string, @Body() dto: ResolveEnduranceCheckDto, @CurrentUser() user: AuthenticatedUser) {
     const command = ResolveEnduranceCheckDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<ResolveEnduranceCheckCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
@@ -133,10 +122,8 @@ export class ActorRoundController {
   @HttpCode(200)
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success, with the result in lastBreakageCheck' })
   @ApiOperation({ operationId: 'resolveBreakageCheck', summary: 'Resolve a breakage check of an item of the actor (spec 019)' })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  @ApiNotFoundResponse({ description: 'Actor round, item or alert not found', type: ErrorDto })
-  async resolveBreakageCheck(@Param('id') id: string, @Body() dto: ResolveBreakageCheckDto, @Request() req: AuthenticatedRequest) {
-    const user = req.user;
+  @ApiErrors({ 404: 'Actor round, item or alert not found' })
+  async resolveBreakageCheck(@Param('id') id: string, @Body() dto: ResolveBreakageCheckDto, @CurrentUser() user: AuthenticatedUser) {
     const command = ResolveBreakageCheckDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<ResolveBreakageCheckCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
@@ -145,10 +132,8 @@ export class ActorRoundController {
   @Post(':id/effects')
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
   @ApiOperation({ operationId: 'addEffect', summary: 'Add effect' })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  @ApiNotFoundResponse({ description: 'Actor round not found', type: ErrorDto })
-  async addEffect(@Param('id') id: string, @Body() dto: AddEffectDto, @Request() req: AuthenticatedRequest) {
-    const user = req.user;
+  @ApiErrors({ 404: 'Actor round not found' })
+  async addEffect(@Param('id') id: string, @Body() dto: AddEffectDto, @CurrentUser() user: AuthenticatedUser) {
     const command = AddEffectDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<AddEffectsCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
@@ -157,10 +142,8 @@ export class ActorRoundController {
   @Delete(':id/effects/:effectId')
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
   @ApiOperation({ operationId: 'deleteEffect', summary: 'Delete effect' })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  @ApiNotFoundResponse({ description: 'Actor round not found', type: ErrorDto })
-  async deleteEffect(@Param('id') id: string, @Param('effectId') effectId: string, @Request() req: AuthenticatedRequest) {
-    const user = req.user;
+  @ApiErrors({ 404: 'Actor round not found' })
+  async deleteEffect(@Param('id') id: string, @Param('effectId') effectId: string, @CurrentUser() user: AuthenticatedUser) {
     const command = new DeleteEffectCommand(id, effectId, user.id, user.roles);
     const entity = await this.commandBus.execute<DeleteEffectCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
@@ -170,15 +153,13 @@ export class ActorRoundController {
   @HttpCode(200)
   @ApiOkResponse({ type: MedicalResultDto, description: 'Success' })
   @ApiOperation({ operationId: 'treatInjury', summary: 'Treat an injury with a Medicine roll of a healer (spec 013)' })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  @ApiNotFoundResponse({ description: 'Actor round or injury not found', type: ErrorDto })
+  @ApiErrors({ 404: 'Actor round or injury not found' })
   async treatInjury(
     @Param('id') id: string,
     @Param('injuryId') injuryId: string,
     @Body() dto: TreatInjuryDto,
-    @Request() req: AuthenticatedRequest,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const user = req.user;
     const command = new TreatInjuryCommand(
       id,
       injuryId,
@@ -196,15 +177,13 @@ export class ActorRoundController {
   @Patch(':id/injuries/:injuryId')
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
   @ApiOperation({ operationId: 'updateInjury', summary: 'Edit an injury (game master)' })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  @ApiNotFoundResponse({ description: 'Actor round or injury not found', type: ErrorDto })
+  @ApiErrors({ 404: 'Actor round or injury not found' })
   async updateInjury(
     @Param('id') id: string,
     @Param('injuryId') injuryId: string,
     @Body() dto: UpdateInjuryDto,
-    @Request() req: AuthenticatedRequest,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const user = req.user;
     const command = new UpdateInjuryCommand(id, injuryId, { ...dto }, user.id, user.roles);
     const entity = await this.commandBus.execute<UpdateInjuryCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
@@ -213,10 +192,8 @@ export class ActorRoundController {
   @Delete(':id/injuries/:injuryId')
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
   @ApiOperation({ operationId: 'deleteInjury', summary: 'Remove an injury (game master)' })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  @ApiNotFoundResponse({ description: 'Actor round or injury not found', type: ErrorDto })
-  async deleteInjury(@Param('id') id: string, @Param('injuryId') injuryId: string, @Request() req: AuthenticatedRequest) {
-    const user = req.user;
+  @ApiErrors({ 404: 'Actor round or injury not found' })
+  async deleteInjury(@Param('id') id: string, @Param('injuryId') injuryId: string, @CurrentUser() user: AuthenticatedUser) {
     const command = new DeleteInjuryCommand(id, injuryId, user.id, user.roles);
     const entity = await this.commandBus.execute<DeleteInjuryCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
@@ -226,15 +203,13 @@ export class ActorRoundController {
   @HttpCode(200)
   @ApiOkResponse({ type: MedicalResultDto, description: 'Success' })
   @ApiOperation({ operationId: 'stabilizeEffect', summary: 'Stabilize a dying actor with a Medicine roll (spec 013)' })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  @ApiNotFoundResponse({ description: 'Actor round or effect not found', type: ErrorDto })
+  @ApiErrors({ 404: 'Actor round or effect not found' })
   async stabilize(
     @Param('id') id: string,
     @Param('effectId') effectId: string,
     @Body() dto: MedicalRollDto,
-    @Request() req: AuthenticatedRequest,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const user = req.user;
     const command = new StabilizeEffectCommand(
       id,
       effectId,

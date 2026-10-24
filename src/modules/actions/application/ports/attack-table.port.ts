@@ -14,3 +14,5 @@ export interface AttackTableLookupRequest {
 export interface AttackTablePort {
   lookup(request: AttackTableLookupRequest): Promise<AttackTableEntry>;
 }
+
+export const ATTACK_TABLE_PORT = Symbol('AttackTablePort');

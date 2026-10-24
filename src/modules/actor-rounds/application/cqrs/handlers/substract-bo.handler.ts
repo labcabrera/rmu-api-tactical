@@ -1,15 +1,15 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, IQueryHandler } from '@nestjs/cqrs';
-import { UnprocessableEntityError } from '../../../../shared/domain/errors';
-import { ActorRound } from '../../../domain/aggregates/actor-round.aggregate';
-import type { ActorRoundRepository } from '../../ports/actor-round.repository';
+import { UnprocessableEntityError } from '../../../../shared/domain/errors/errors';
+import { ActorRound } from '../../../domain/aggregates/actor-round';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port';
 import { SubstractBoCommand } from '../commands/substract-bo.command';
 
 @CommandHandler(SubstractBoCommand)
 export class SubstractBoHandler implements IQueryHandler<SubstractBoCommand> {
   private readonly logger = new Logger(SubstractBoHandler.name);
 
-  constructor(@Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository) {}
+  constructor(@Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository) {}
 
   async execute(command: SubstractBoCommand): Promise<ActorRound> {
     this.logger.debug(`Substracting bo << ${JSON.stringify(command)}`);

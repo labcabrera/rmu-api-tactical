@@ -5,31 +5,31 @@ import { AddEffectsCommand } from '../../../../actor-rounds/application/cqrs/com
 import { AddFatigueCommand } from '../../../../actor-rounds/application/cqrs/commands/add-fatigue.command';
 import { DeclareActorParryCommand } from '../../../../actor-rounds/application/cqrs/commands/declare-actor-parry.command';
 import { SubstractBoCommand } from '../../../../actor-rounds/application/cqrs/commands/substract-bo.command';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
-import { ActorRound, EffectApplication } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
-import { ActorRoundEffect, NON_VIOLENT, PRESSING_ADVANTAGE } from '../../../../actor-rounds/domain/value-objets/actor-round-effect.vo';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
+import { ActorRound, EffectApplication } from '../../../../actor-rounds/domain/aggregates/actor-round';
+import { ActorRoundEffect, NON_VIOLENT, PRESSING_ADVANTAGE } from '../../../../actor-rounds/domain/value-objects/actor-round-effect.vo';
 import {
   ActorRoundTrait,
   NON_VIOLENT_TRAIT,
   PRESSING_THE_ADVANTAGE,
   RAPID_BLEEDER,
   SLOW_BLEEDER,
-} from '../../../../actor-rounds/domain/value-objets/actor-round-trait.vo';
+} from '../../../../actor-rounds/domain/value-objects/actor-round-trait.vo';
 import { CriticalInjuryFactory } from '../../../../actor-rounds/domain/services/critical-injury.factory';
-import type { HpChange } from '../../../../actor-rounds/domain/value-objets/hp-log-entry.vo';
-import { InjurySource, sideOfRoll } from '../../../../actor-rounds/domain/value-objets/injury.vo';
-import type { GameRepository } from '../../../../games/application/ports/game.repository';
-import { Game } from '../../../../games/domain/aggregates/game.aggregate';
-import { NotFoundError, UnprocessableEntityError } from '../../../../shared/domain/errors';
-import { StrategicGame } from '../../../../strategic/application/ports/strategic-game.port';
+import type { HpChange } from '../../../../actor-rounds/domain/value-objects/hp-log-entry.vo';
+import { InjurySource, sideOfRoll } from '../../../../actor-rounds/domain/value-objects/injury.vo';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port';
+import { Game } from '../../../../games/domain/aggregates/game';
+import { NotFoundError, UnprocessableEntityError } from '../../../../shared/domain/errors/errors';
+import { StrategicGame, STRATEGIC_GAME_PORT } from '../../../../strategic/application/ports/strategic-game.port';
 import { StrategicGameApiClient } from '../../../../strategic/infrastructure/api-clients/api.strategic-game.adapter';
-import { Action } from '../../../domain/aggregates/action.aggregate';
-import { ActionUpdatedEvent } from '../../../domain/events/action-events';
+import { Action } from '../../../domain/aggregates/action';
+import { ActionUpdatedEvent } from '../../../domain/events/action.events';
 import { ActionAttack } from '../../../domain/value-objects/action-attack.vo';
 import { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
-import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
-import type { ActionRepository } from '../../ports/action.repository';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port';
 import { ApplyAttackCommand } from '../commands/apply-attack.command';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
 
 /** Location of a critical table result (limbs in singular) as an attack location. */
 const toAttackLocation = (location: string | undefined | null): AttackLocation | undefined => {
@@ -57,11 +57,11 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
   private readonly logger = new Logger(ApplyAttackHandler.name);
 
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject('StrategicGameClient') private readonly strategicGamePort: StrategicGameApiClient,
-    @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
+    @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(STRATEGIC_GAME_PORT) private readonly strategicGamePort: StrategicGameApiClient,
+    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
     private readonly commandBus: CommandBus,
   ) {}
 
@@ -112,7 +112,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     action.completeAttacks();
     action.close(sourceActor, game.getActionPhase());
     const updated = await this.actionRepository.update(action.id, action);
-    await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
+    await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     updated.refreshApState(sourceActor, game.getActionPhase());
     return updated;
   }

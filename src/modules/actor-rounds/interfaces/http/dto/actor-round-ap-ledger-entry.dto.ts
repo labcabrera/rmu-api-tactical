@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { ApLedgerKind } from '../../../domain/value-objets/ap-ledger-entry.vo';
-import { ApLedgerEntry } from '../../../domain/value-objets/ap-ledger-entry.vo';
+import type { ApLedgerKind } from '../../../domain/value-objects/ap-ledger-entry.vo';
+import { ApLedgerEntry } from '../../../domain/value-objects/ap-ledger-entry.vo';
 
 export class ActorRoundApLedgerEntryDto {
   @ApiProperty({ description: 'Action phase (1-4)', example: 2 })

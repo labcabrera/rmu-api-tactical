@@ -1,14 +1,14 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import type { ActionRepository } from '../../../../actions/application/ports/action.repository';
-import { Action } from '../../../../actions/domain/aggregates/action.aggregate';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
-import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import { Game } from '../../../domain/aggregates/game.aggregate';
-import type { GameEventBusPort } from '../../ports/game-event-bus.port';
-import type { GameRepository } from '../../ports/game.repository';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../../../actions/application/ports/action-repository.port';
+import { Action } from '../../../../actions/domain/aggregates/action';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors';
+import { Game } from '../../../domain/aggregates/game';
+import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port';
 import { StartPhaseCommand } from '../commands/start-phase.command';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
 
 const MAX_PAGE_SIZE = 1000;
 const ACTION_PHASES = 4;
@@ -18,10 +18,10 @@ export class StartPhaseHandler implements ICommandHandler<StartPhaseCommand, Gam
   private readonly logger = new Logger(StartPhaseHandler.name);
 
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('GameEventBus') private readonly gameEventBus: GameEventBusPort,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
+    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
   ) {}
 
   async execute(command: StartPhaseCommand): Promise<Game> {
@@ -43,7 +43,7 @@ export class StartPhaseHandler implements ICommandHandler<StartPhaseCommand, Gam
     game.startPhase();
     const updatedGame = await this.gameRepository.update(game.id, game);
     const events = game.getUncommittedEvents();
-    events.forEach(event => this.gameEventBus.publish(event));
+    void this.eventPublisher.publish('game', ...events);
     return updatedGame;
   }
 

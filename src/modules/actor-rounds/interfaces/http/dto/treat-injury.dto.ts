@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsArray, IsIn, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
-import type { InjuryPatch } from '../../../domain/aggregates/actor-round.aggregate';
+import type { InjuryPatch } from '../../../domain/aggregates/actor-round';
 import { TACTICAL_PROCEDURES } from '../../../domain/services/injury-treatment';
 import type { TacticalProcedure } from '../../../domain/services/injury-treatment';
 import {
@@ -11,7 +11,7 @@ import {
   INJURY_SEVERITIES,
   INJURY_STATUSES,
   INJURY_TYPES,
-} from '../../../domain/value-objets/injury.vo';
+} from '../../../domain/value-objects/injury.vo';
 import type {
   BleedingControl,
   BodyLocation,
@@ -20,7 +20,7 @@ import type {
   InjurySeverity,
   InjuryStatus,
   InjuryType,
-} from '../../../domain/value-objets/injury.vo';
+} from '../../../domain/value-objects/injury.vo';
 import type { StabilizeEffectResult } from '../../../application/cqrs/handlers/stabilize-effect.handler';
 import type { TreatInjuryResult } from '../../../application/cqrs/handlers/treat-injury.handler';
 import { ActorRoundDto } from './actor-round.dto';

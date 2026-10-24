@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
 
-import { TokenService } from '../../../auth/token.service';
-import { handleAxiosError } from '../../../shared/infrastructure/api-rest/axios.error.adapter';
+import { TokenService } from '../../../shared/infrastructure/security/token.service';
+import { HttpClient } from '../../../shared/infrastructure/http/http-client';
 import { ItemPort, StrategicItem } from '../../application/ports/item.port';
 
 /** Reads the strategic items of a character with the service token (spec 019). */
@@ -13,6 +12,7 @@ export class ItemApiClient implements ItemPort {
 
   constructor(
     private readonly tokenService: TokenService,
+    private readonly httpClient: HttpClient,
     configService: ConfigService,
   ) {
     this.baseUri = configService.get('RMU_API_STRATEGIC_URI') as string;
@@ -21,15 +21,7 @@ export class ItemApiClient implements ItemPort {
   async findByCharacterId(characterId: string): Promise<StrategicItem[]> {
     const token = await this.tokenService.getToken();
     const uri = `${this.baseUri}/items?q=characterId==${characterId}&page=0&size=1000`;
-    try {
-      const response = await axios.get<{ content?: StrategicItem[] }>(uri, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      return response.data?.content || [];
-    } catch (err) {
-      throw handleAxiosError(err, uri);
-    }
+    const data = await this.httpClient.get<{ content?: StrategicItem[] }>(uri, { token });
+    return data?.content || [];
   }
 }

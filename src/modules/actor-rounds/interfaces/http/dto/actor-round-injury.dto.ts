@@ -12,7 +12,7 @@ import type {
   InjuryStatus,
   InjuryTreatment,
   InjuryType,
-} from '../../../domain/value-objets/injury.vo';
+} from '../../../domain/value-objects/injury.vo';
 
 /** An injury of the actor (spec 013, §1), the model shared with the strategic API. */
 export class InjuryDto {

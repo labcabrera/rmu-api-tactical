@@ -1,22 +1,22 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { DeclareInitiativeCommand } from '../../../../actor-rounds/application/cqrs/commands/declare-initiative.command';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
-import { NotFoundError } from '../../../../shared/domain/errors';
-import { Game } from '../../../domain/aggregates/game.aggregate';
-import type { GameEventBusPort } from '../../ports/game-event-bus.port';
-import type { GameRepository } from '../../ports/game.repository';
-import { RandomizeInitiativesCommand } from '../commands/randomize-intiatives.command';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../../../actor-rounds/application/ports/actor-round-repository.port';
+import { NotFoundError } from '../../../../shared/domain/errors/errors';
+import { Game } from '../../../domain/aggregates/game';
+import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port';
+import { RandomizeInitiativesCommand } from '../commands/randomize-initiatives.command';
 import { StartRoundCommand } from '../commands/start-round.command';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port';
 
 @CommandHandler(RandomizeInitiativesCommand)
 export class RandomizeInitiativesHandler implements ICommandHandler<RandomizeInitiativesCommand, Game> {
   private readonly logger = new Logger(RandomizeInitiativesHandler.name);
 
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject('GameEventBus') private readonly gameEventBus: GameEventBusPort,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
     private readonly commandBus: CommandBus,
   ) {}
 

@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { ActorRoundAlertStatus } from '../../../domain/value-objets/actor-round-alert-status.vo';
-import type { ActorRoundAlertType } from '../../../domain/value-objets/actor-round-alert-type.vo';
-import { ActorRoundAlert } from '../../../domain/value-objets/actor-round-alert.vo';
+import type { ActorRoundAlertStatus } from '../../../domain/value-objects/actor-round-alert-status.vo';
+import type { ActorRoundAlertType } from '../../../domain/value-objects/actor-round-alert-type.vo';
+import { ActorRoundAlert } from '../../../domain/value-objects/actor-round-alert.vo';
 import { ActorRoundAlertModifierDto } from './actor-round-alert-modifier.dto';
 
 export class ActorRoundAlertDto {

@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
-import { BLEEDING, PENALTY } from '../value-objets/actor-round-effect.vo';
-import { BodySide, buildInjury, Injury, INJURY_FLAGS, InjuryFlag, InjurySource, toBodyLocation } from '../value-objets/injury.vo';
+import { BLEEDING, PENALTY } from '../value-objects/actor-round-effect.vo';
+import { BodySide, buildInjury, Injury, INJURY_FLAGS, InjuryFlag, InjurySource, toBodyLocation } from '../value-objects/injury.vo';
 import { InjuryTypeResolver } from './injury-type.resolver';
 
 export interface CriticalEffectData {

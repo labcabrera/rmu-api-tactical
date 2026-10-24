@@ -1,7 +1,7 @@
-import { AttackRange, WeaponCategory } from '../../../actor-rounds/domain/value-objets/actor-round-attack.vo';
-import { ActorRoundFaction } from '../../../actor-rounds/domain/value-objets/actor-round-faction.vo';
-import { ActorRoundShield } from '../../../actor-rounds/domain/value-objets/actor-round-shield.vo';
-import type { CharacterCondition, Injury } from '../../../actor-rounds/domain/value-objets/injury.vo';
+import { AttackRange, WeaponCategory } from '../../../actor-rounds/domain/value-objects/actor-round-attack.vo';
+import { ActorRoundFaction } from '../../../actor-rounds/domain/value-objects/actor-round-faction.vo';
+import { ActorRoundShield } from '../../../actor-rounds/domain/value-objects/actor-round-shield.vo';
+import type { CharacterCondition, Injury } from '../../../actor-rounds/domain/value-objects/injury.vo';
 
 export type AttackType = 'melee' | 'ranged';
 
@@ -10,6 +10,8 @@ export interface CharacterPort {
 
   findByGameId: (gameId: string) => Promise<Character[]>;
 }
+
+export const CHARACTER_PORT = Symbol('CharacterPort');
 
 export interface Character {
   id: string;
