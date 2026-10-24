@@ -1,0 +1,375 @@
+import request from 'supertest';
+import { character, ids, startApp, USERS, type E2eApp, type UserName } from './support/app.js';
+
+type GameBody = {
+  id: string;
+  strategicGameId: string;
+  name: string;
+  status: string;
+  round: number;
+  phase: string;
+  factions: string[];
+  actors: { id: string; name: string; type: string; faction: { id: string } }[];
+  environment?: { temperatureFatigueModifier?: number; altitudeFatigueModifier?: number };
+  description?: string;
+  imageUrl?: string;
+  owner: string;
+  outcome?: { appliedAt?: string; characters: { characterId: string; appliedAt?: string }[] };
+};
+
+type PageBody = { content: GameBody[]; pagination: { page: number; size: number; totalElements: number; totalPages: number } };
+
+let e2e: E2eApp;
+
+beforeAll(async () => {
+  e2e = await startApp();
+  e2e.world.strategicGames.set('sg-1', { id: 'sg-1', owner: USERS.owner.sub, options: null });
+  e2e.world.characters.set('aragorn', character('aragorn'));
+  e2e.world.characters.set('boromir', character('boromir', { faction: { id: 'faction-2', name: 'Gondor' } }));
+  e2e.world.npcs.set('orc-1', { id: 'orc-1', realmId: 'r-1', name: 'Orc' });
+});
+
+afterAll(async () => {
+  await e2e?.stop();
+});
+
+const as = (user: UserName) => ({
+  get: (url: string) => request(e2e.server).get(url).set('Authorization', e2e.auth(user)),
+  post: (url: string, body: object = {}) => request(e2e.server).post(url).set('Authorization', e2e.auth(user)).send(body),
+  patch: (url: string, body: object = {}) => request(e2e.server).patch(url).set('Authorization', e2e.auth(user)).send(body),
+  delete: (url: string, body?: object) => {
+    const req = request(e2e.server).delete(url).set('Authorization', e2e.auth(user));
+    return body ? req.send(body) : req;
+  },
+});
+
+const createGame = async (user: UserName = 'owner', body: object = {}) => {
+  const response = await as(user).post('/v1/tactical-games', {
+    strategicGameId: 'sg-1',
+    name: 'Moria',
+    description: 'Bridge of Khazad-dum',
+    factions: ['faction-1'],
+    actors: [{ id: 'aragorn', type: 'character' }],
+    ...body,
+  });
+  expect(response.status).toBe(201);
+  return response.body as GameBody;
+};
+
+describe('authentication', () => {
+  it('rejects a request without a token', async () => {
+    expect((await request(e2e.server).get('/v1/tactical-games')).status).toBe(401);
+  });
+
+  it('rejects a token signed with another key', async () => {
+    expect((await request(e2e.server).get('/v1/tactical-games').set('Authorization', 'Bearer a.b.c')).status).toBe(401);
+  });
+
+  it('rejects an expired token', async () => {
+    const token = e2e.jwks.token({ ...USERS.owner, exp: Math.floor(Date.now() / 1000) - 60 });
+    expect((await request(e2e.server).get('/v1/tactical-games').set('Authorization', `Bearer ${token}`)).status).toBe(401);
+  });
+
+  it('rejects a token of another issuer', async () => {
+    const token = e2e.jwks.token({ ...USERS.owner, iss: 'http://evil/realms/rmu' });
+    expect((await request(e2e.server).get('/v1/tactical-games').set('Authorization', `Bearer ${token}`)).status).toBe(401);
+  });
+});
+
+describe('create', () => {
+  it('creates a game with its characters, owned by the caller, and publishes it', async () => {
+    const game = await createGame();
+
+    expect(game).toMatchObject({
+      strategicGameId: 'sg-1',
+      name: 'Moria',
+      description: 'Bridge of Khazad-dum',
+      status: 'created',
+      round: 0,
+      phase: 'not_started',
+      owner: USERS.owner.sub,
+      actors: [{ id: 'aragorn', name: 'aragorn', type: 'character', faction: { id: 'faction-1' } }],
+    });
+    expect(game.factions).toEqual(['faction-1']);
+    expect(e2e.world.events.some(e => e.aggregateType === 'game' && e.event.eventType === 'created')).toBe(true);
+  });
+
+  it('takes an NPC with the faction given in the request', async () => {
+    const game = await createGame('owner', { actors: [{ id: 'orc-1', type: 'npc', faction: 'orcs' }] });
+    expect(game.actors).toEqual([
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- a nested asymmetric matcher is typed any
+      expect.objectContaining({ id: 'orc-1', name: 'Orc', type: 'npc', faction: expect.objectContaining({ id: 'orcs' }) }),
+    ]);
+  });
+
+  it('answers 400 when the strategic game does not exist', async () => {
+    const response = await as('owner').post('/v1/tactical-games', { strategicGameId: 'nope', name: 'x', description: 'x' });
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({ error: 'ValidationError', message: 'Strategic game nope not found' });
+  });
+
+  it('answers 400 when a character does not exist', async () => {
+    const response = await as('owner').post('/v1/tactical-games', {
+      strategicGameId: 'sg-1',
+      name: 'x',
+      description: 'x',
+      actors: [{ id: 'nobody', type: 'character' }],
+    });
+    expect(response.status).toBe(400);
+  });
+
+  it('validates the body', async () => {
+    const response = await as('owner').post('/v1/tactical-games', { name: 7 });
+    expect(response.status).toBe(400);
+    expect(Array.isArray((response.body as { message: unknown }).message)).toBe(true);
+  });
+
+  // The description has @IsString() without @IsOptional(), so it is required [F-tactical-12].
+  it('requires a description', async () => {
+    const response = await as('owner').post('/v1/tactical-games', { strategicGameId: 'sg-1', name: 'x' });
+    expect(response.status).toBe(400);
+  });
+});
+
+describe('read and list', () => {
+  let game: GameBody;
+
+  beforeAll(async () => {
+    game = await createGame('owner', { name: 'Listed' });
+  });
+
+  it('reads a game by id', async () => {
+    const response = await as('owner').get(`/v1/tactical-games/${game.id}`);
+    expect(response.status).toBe(200);
+    expect((response.body as GameBody).name).toBe('Listed');
+  });
+
+  it('answers 404 for an unknown game', async () => {
+    const response = await as('owner').get('/v1/tactical-games/00000000-0000-0000-0000-000000000000');
+    expect(response.status).toBe(404);
+    expect(response.body).toMatchObject({ error: 'NotFoundError' });
+  });
+
+  it('filters with RSQL and pages the result', async () => {
+    const response = await as('owner').get(`/v1/tactical-games?q=name==Listed&page=0&size=10`);
+    expect(response.status).toBe(200);
+    const page = response.body as PageBody;
+    expect(ids(page)).toEqual([game.id]);
+    expect(page.pagination).toMatchObject({ page: 0, size: 10, totalElements: 1, totalPages: 1 });
+  });
+
+  it('sorts by the allowed fields', async () => {
+    const response = await as('owner').get('/v1/tactical-games?sort=-createdAt&size=100');
+    expect(response.status).toBe(200);
+    expect((response.body as PageBody).content.length).toBeGreaterThan(1);
+  });
+
+  it('rejects an unknown sort', async () => {
+    expect((await as('owner').get('/v1/tactical-games?sort=owner')).status).toBe(400);
+  });
+
+  it('rejects an invalid RSQL expression', async () => {
+    expect((await as('owner').get('/v1/tactical-games?q=name===')).status).toBe(400);
+  });
+
+  // No maximum page size: 100000 answers 200 [F-tactical-13].
+  it('accepts any page size', async () => {
+    expect((await as('owner').get('/v1/tactical-games?size=100000')).status).toBe(200);
+  });
+});
+
+describe('update', () => {
+  it('changes the name, the description and the image', async () => {
+    const game = await createGame();
+    const response = await as('owner').patch(`/v1/tactical-games/${game.id}`, {
+      name: 'Moria II',
+      description: 'Second try',
+      imageUrl: 'images/moria.png',
+    });
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ name: 'Moria II', description: 'Second try', imageUrl: 'images/moria.png' });
+    expect((await as('owner').get(`/v1/tactical-games/${game.id}`)).body).toMatchObject({ name: 'Moria II' });
+  });
+
+  // PATCH needs name and description: both have @IsString() without @IsOptional() [F-tactical-12].
+  it('rejects a partial change without the name', async () => {
+    const game = await createGame();
+    expect((await as('owner').patch(`/v1/tactical-games/${game.id}`, { description: 'only this' })).status).toBe(400);
+  });
+
+  it.skip('keeps the temperature and the altitude modifiers in place [F-tactical-14]', async () => {
+    const game = await createGame();
+    const response = await as('owner').patch(`/v1/tactical-games/${game.id}`, {
+      name: 'x',
+      description: 'x',
+      environment: { temperatureFatigueModifier: -10, altitudeFatigueModifier: -20 },
+    });
+    expect(response.body).toMatchObject({ environment: { temperatureFatigueModifier: -10, altitudeFatigueModifier: -20 } });
+  });
+
+  it('swaps the temperature and the altitude modifiers [F-tactical-14]', async () => {
+    const game = await createGame();
+    const response = await as('owner').patch(`/v1/tactical-games/${game.id}`, {
+      name: 'x',
+      description: 'x',
+      environment: { temperatureFatigueModifier: -10, altitudeFatigueModifier: -20 },
+    });
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ environment: { temperatureFatigueModifier: -20, altitudeFatigueModifier: -10 } });
+  });
+
+  it('answers 404 for an unknown game', async () => {
+    const response = await as('owner').patch('/v1/tactical-games/00000000-0000-0000-0000-000000000000', { name: 'x', description: 'x' });
+    expect(response.status).toBe(404);
+  });
+});
+
+describe('factions and actors', () => {
+  it('adds and removes factions', async () => {
+    const game = await createGame();
+    const added = await as('owner').post(`/v1/tactical-games/${game.id}/factions`, { factions: ['Orcs'] });
+    expect(added.status).toBe(200);
+    expect((added.body as GameBody).factions).toEqual(['faction-1', 'Orcs']);
+
+    const removed = await as('owner').delete(`/v1/tactical-games/${game.id}/factions`, { factions: ['Orcs'] });
+    expect(removed.status).toBe(200);
+    expect((removed.body as GameBody).factions).not.toContain('Orcs');
+  });
+
+  it('adds and removes actors', async () => {
+    const game = await createGame();
+    await as('owner').post(`/v1/tactical-games/${game.id}/factions`, { factions: ['faction-2'] });
+    const added = await as('owner').post(`/v1/tactical-games/${game.id}/actors`, { actors: [{ id: 'boromir', type: 'character' }] });
+    expect(added.status).toBe(200);
+    expect((added.body as GameBody).actors.map(a => a.id)).toEqual(['aragorn', 'boromir']);
+
+    const removed = await as('owner').delete(`/v1/tactical-games/${game.id}/actors`, { actors: ['boromir'] });
+    expect(removed.status).toBe(200);
+    expect((removed.body as GameBody).actors.map(a => a.id)).toEqual(['aragorn']);
+  });
+});
+
+describe('lifecycle', () => {
+  it('starts the round, goes through the phases and creates the actor rounds', async () => {
+    const game = await createGame();
+    const started = await as('owner').post(`/v1/tactical-games/${game.id}/rounds/start`);
+    expect(started.status).toBe(200);
+    expect(started.body).toMatchObject({ status: 'in_progress', round: 1, phase: 'declare_initiative' });
+
+    const actorRounds = await as('owner').get(`/v1/actor-rounds?q=gameId==${game.id};round==1`);
+    expect(actorRounds.status).toBe(200);
+    expect((actorRounds.body as { content: { actorId: string }[] }).content.map(ar => ar.actorId)).toEqual(['aragorn']);
+
+    const randomized = await as('owner').post(`/v1/tactical-games/${game.id}/initiatives/randomize`);
+    expect(randomized.status).toBe(200);
+
+    const phases: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      const phase = await as('owner').post(`/v1/tactical-games/${game.id}/phases/start`);
+      expect(phase.status).toBe(200);
+      phases.push((phase.body as GameBody).phase);
+    }
+    expect(phases).toEqual(['phase_1', 'phase_2', 'phase_3', 'phase_4', 'upkeep']);
+
+    const next = await as('owner').post(`/v1/tactical-games/${game.id}/rounds/start`);
+    expect(next.status).toBe(200);
+    expect(next.body).toMatchObject({ round: 2, phase: 'declare_initiative' });
+    const round2 = await as('owner').get(`/v1/actor-rounds?q=gameId==${game.id};round==2`);
+    expect((round2.body as { content: unknown[] }).content).toHaveLength(1);
+  });
+
+  it('previews, finishes and applies the outcome to the strategic characters', async () => {
+    const game = await createGame();
+    await as('owner').post(`/v1/tactical-games/${game.id}/rounds/start`);
+
+    const preview = await as('owner').get(`/v1/tactical-games/${game.id}/finish-preview`);
+    expect(preview.status).toBe(200);
+
+    const finished = await as('owner').post(`/v1/tactical-games/${game.id}/finish`, { fates: [] });
+    expect(finished.status).toBe(200);
+    expect(finished.body).toMatchObject({ status: 'finished' });
+    expect((finished.body as GameBody).outcome?.characters.map(c => c.characterId)).toEqual(['aragorn']);
+
+    const applied = await as('owner').post(`/v1/tactical-games/${game.id}/apply`);
+    expect(applied.status).toBe(200);
+    expect((applied.body as GameBody).outcome?.appliedAt).toBeDefined();
+    expect(e2e.world.outcomes.filter(o => o.request.tacticalGameId === game.id).map(o => o.characterId)).toEqual(['aragorn']);
+  });
+
+  it('rejects changes to a finished game', async () => {
+    const game = await createGame();
+    await as('owner').post(`/v1/tactical-games/${game.id}/rounds/start`);
+    await as('owner').post(`/v1/tactical-games/${game.id}/finish`, { fates: [] });
+
+    const response = await as('owner').post(`/v1/tactical-games/${game.id}/rounds/start`);
+    expect(response.status).toBeGreaterThanOrEqual(400);
+    expect(response.status).toBeLessThan(500);
+  });
+
+  it('rejects applying a game that is not finished', async () => {
+    const game = await createGame();
+    const response = await as('owner').post(`/v1/tactical-games/${game.id}/apply`);
+    expect(response.status).toBeGreaterThanOrEqual(400);
+    expect(response.status).toBeLessThan(500);
+  });
+});
+
+describe('delete', () => {
+  it('deletes the game with its actor rounds and actions, and publishes it', async () => {
+    const game = await createGame();
+    await as('owner').post(`/v1/tactical-games/${game.id}/rounds/start`);
+
+    const response = await as('owner').delete(`/v1/tactical-games/${game.id}`);
+    expect(response.status).toBe(204);
+    expect((await as('owner').get(`/v1/tactical-games/${game.id}`)).status).toBe(404);
+    const actorRounds = await as('owner').get(`/v1/actor-rounds?q=gameId==${game.id}`);
+    expect((actorRounds.body as { content: unknown[] }).content).toEqual([]);
+    expect(e2e.world.events.some(e => e.event.eventType === 'deleted' && (e.event.data as { id: string }).id === game.id)).toBe(true);
+  });
+
+  it('answers 404 for an unknown game', async () => {
+    expect((await as('owner').delete('/v1/tactical-games/00000000-0000-0000-0000-000000000000')).status).toBe(404);
+  });
+});
+
+// No handler checks who calls (F-tactical-11): every authenticated user, with or without roles, reads, changes and
+// deletes any game. The tests below document it, and the expected matrix is skipped with the finding id.
+describe('permissions', () => {
+  let game: GameBody;
+
+  beforeEach(async () => {
+    game = await createGame('owner');
+  });
+
+  it.each(['owner', 'other', 'admin', 'noRole'] as const)('lets %s read the game', async user => {
+    expect((await as(user).get(`/v1/tactical-games/${game.id}`)).status).toBe(200);
+  });
+
+  it.each(['other', 'noRole'] as const)('lets %s change the game of another user', async user => {
+    expect((await as(user).patch(`/v1/tactical-games/${game.id}`, { name: 'x', description: 'x' })).status).toBe(200);
+  });
+
+  it.each(['other', 'noRole'] as const)('lets %s delete the game of another user', async user => {
+    expect((await as(user).delete(`/v1/tactical-games/${game.id}`)).status).toBe(204);
+  });
+
+  it('lets a user without roles create a game', async () => {
+    await createGame('noRole');
+  });
+
+  it('lets the admin change and delete any game', async () => {
+    expect((await as('admin').patch(`/v1/tactical-games/${game.id}`, { name: 'x', description: 'x' })).status).toBe(200);
+    expect((await as('admin').delete(`/v1/tactical-games/${game.id}`)).status).toBe(204);
+  });
+
+  it.skip('forbids another user to change, start or delete the game [F-tactical-11]', async () => {
+    expect((await as('other').patch(`/v1/tactical-games/${game.id}`, { name: 'x', description: 'x' })).status).toBe(403);
+    expect((await as('other').post(`/v1/tactical-games/${game.id}/rounds/start`)).status).toBe(403);
+    expect((await as('other').delete(`/v1/tactical-games/${game.id}`)).status).toBe(403);
+  });
+
+  it.skip('forbids a user without roles to create a game [F-tactical-11]', async () => {
+    const response = await as('noRole').post('/v1/tactical-games', { strategicGameId: 'sg-1', name: 'x', description: 'x' });
+    expect(response.status).toBe(403);
+  });
+});

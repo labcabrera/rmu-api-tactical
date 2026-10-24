@@ -1,0 +1,202 @@
+import request from 'supertest';
+import type { StrategicItem } from '../../src/modules/strategic/application/ports/item.port.js';
+import { character, ids, startApp, USERS, type E2eApp, type UserName } from './support/app.js';
+
+type ActorRoundBody = {
+  id: string;
+  gameId: string;
+  actorId: string;
+  round: number;
+  initiative: { base: number; penalty: number; roll?: number; total?: number };
+  hp: { max: number; current: number };
+  defenseMode: { dodge: string; block: string };
+  effects: { id: string; status: string; value?: number; rounds?: number }[];
+  injuries: { id: string; type: string; severity: string; status: string }[];
+  items: {
+    itemId: string;
+    kind: string;
+    slot?: string;
+    strength: number | null;
+    modifiers: { id: string; type: string; value: number }[];
+  }[];
+  lastBreakageCheck?: { itemId: string; result: string; total: number };
+  fatigue: { accumulator: number };
+};
+
+let e2e: E2eApp;
+
+const item = (id: string, props: Partial<StrategicItem>): StrategicItem => ({
+  id,
+  characterId: 'gimli',
+  itemTypeId: id,
+  name: id,
+  category: 'weapon',
+  carried: true,
+  weapon: {},
+  armor: null,
+  shield: null,
+  info: { strength: 80, stackable: false },
+  ...props,
+});
+
+beforeAll(async () => {
+  e2e = await startApp();
+  e2e.world.strategicGames.set('sg-1', { id: 'sg-1', owner: USERS.owner.sub, options: null });
+  e2e.world.characters.set(
+    'gimli',
+    character('gimli', {
+      equipment: { slots: { mainHand: 'axe' }, maneuverPenalty: 0, encumbrancePenalty: 0, movementBaseDifficulty: 'm' },
+    }),
+  );
+  e2e.world.items.set('gimli', [item('axe', {})]);
+});
+
+afterAll(async () => {
+  await e2e?.stop();
+});
+
+const as = (user: UserName) => ({
+  get: (url: string) => request(e2e.server).get(url).set('Authorization', e2e.auth(user)),
+  post: (url: string, body: object = {}) => request(e2e.server).post(url).set('Authorization', e2e.auth(user)).send(body),
+  patch: (url: string, body: object = {}) => request(e2e.server).patch(url).set('Authorization', e2e.auth(user)).send(body),
+  delete: (url: string) => request(e2e.server).delete(url).set('Authorization', e2e.auth(user)),
+});
+
+/** A game in round 1 with Gimli, and his actor round. */
+const startedGame = async () => {
+  const created = await as('owner').post('/v1/tactical-games', {
+    strategicGameId: 'sg-1',
+    name: 'Helm',
+    description: 'Deep',
+    factions: ['faction-1'],
+    actors: [{ id: 'gimli', type: 'character' }],
+  });
+  expect(created.status).toBe(201);
+  const gameId = (created.body as { id: string }).id;
+  expect((await as('owner').post(`/v1/tactical-games/${gameId}/rounds/start`)).status).toBe(200);
+  const page = await as('owner').get(`/v1/actor-rounds?q=gameId==${gameId};round==1`);
+  return { gameId, actorRound: (page.body as { content: ActorRoundBody[] }).content[0] };
+};
+
+describe('read and list', () => {
+  it('builds the actor round from the strategic character and its items', async () => {
+    const { gameId, actorRound } = await startedGame();
+    expect(actorRound).toMatchObject({ gameId, actorId: 'gimli', round: 1, hp: { max: 50, current: 50 } });
+    expect(actorRound.items).toEqual([expect.objectContaining({ itemId: 'axe', kind: 'weapon', slot: 'mainHand', strength: 80 })]);
+
+    const read = await as('owner').get(`/v1/actor-rounds/${actorRound.id}`);
+    expect(read.status).toBe(200);
+    expect((read.body as ActorRoundBody).id).toBe(actorRound.id);
+  });
+
+  it('lists by RSQL with paging', async () => {
+    const { gameId, actorRound } = await startedGame();
+    const page = await as('owner').get(`/v1/actor-rounds?q=gameId==${gameId}&page=0&size=100`);
+    expect(page.status).toBe(200);
+    expect(ids(page.body)).toEqual([actorRound.id]);
+  });
+
+  it('answers 404 for an unknown actor round', async () => {
+    expect((await as('owner').get('/v1/actor-rounds/00000000-0000-0000-0000-000000000000')).status).toBe(404);
+  });
+});
+
+describe('changes', () => {
+  let actorRound: ActorRoundBody;
+
+  beforeEach(async () => {
+    ({ actorRound } = await startedGame());
+  });
+
+  it('declares the initiative roll and adds the bonus', async () => {
+    const response = await as('owner').patch(`/v1/actor-rounds/${actorRound.id}/initiative`, { roll: 12 });
+    expect(response.status).toBe(200);
+    const initiative = (response.body as ActorRoundBody).initiative;
+    expect(initiative.roll).toBe(12);
+    expect(initiative.total).toBe(initiative.base + initiative.penalty + 12);
+  });
+
+  it('validates the initiative body', async () => {
+    expect((await as('owner').patch(`/v1/actor-rounds/${actorRound.id}/initiative`, { roll: 'x' })).status).toBe(400);
+  });
+
+  it('declares the defense mode and rejects an unknown level', async () => {
+    const response = await as('owner').patch(`/v1/actor-rounds/${actorRound.id}/defense-mode`, { dodge: 'passive' });
+    expect(response.status).toBe(200);
+    expect((response.body as ActorRoundBody).defenseMode.dodge).toBe('passive');
+    expect((await as('owner').patch(`/v1/actor-rounds/${actorRound.id}/defense-mode`, { dodge: 'heroic' })).status).toBe(400);
+  });
+
+  it('takes damage and heals through the hit points', async () => {
+    const hit = await as('owner').patch(`/v1/actor-rounds/${actorRound.id}/hp`, { dmg: 12 });
+    expect(hit.status).toBe(200);
+    expect((hit.body as ActorRoundBody).hp.current).toBe(38);
+    const healed = await as('owner').patch(`/v1/actor-rounds/${actorRound.id}/hp`, { dmg: -5 });
+    expect((healed.body as ActorRoundBody).hp.current).toBe(43);
+  });
+
+  it('adds and deletes an effect', async () => {
+    const added = await as('owner').post(`/v1/actor-rounds/${actorRound.id}/effects`, { status: 'stunned', rounds: 2 });
+    expect(added.status).toBe(201);
+    const effect = (added.body as ActorRoundBody).effects.find(e => e.status === 'stunned')!;
+    expect(effect).toMatchObject({ rounds: 2 });
+
+    const deleted = await as('owner').delete(`/v1/actor-rounds/${actorRound.id}/effects/${effect.id}`);
+    expect(deleted.status).toBe(200);
+    expect((deleted.body as ActorRoundBody).effects.some(e => e.id === effect.id)).toBe(false);
+  });
+
+  it('accumulates fatigue', async () => {
+    const response = await as('owner').patch(`/v1/actor-rounds/${actorRound.id}/fatigue-accumulator`, { fatigueAccumulator: 3 });
+    expect(response.status).toBe(200);
+  });
+
+  it('resolves a breakage check of an item and keeps the damage as a modifier', async () => {
+    const failed = await as('owner').post(`/v1/actor-rounds/${actorRound.id}/breakage-checks`, { itemId: 'axe', roll: -30 });
+    expect(failed.status).toBe(200);
+    const body = failed.body as ActorRoundBody;
+    expect(body.lastBreakageCheck).toMatchObject({ itemId: 'axe', result: 'failure' });
+    expect(body.items[0].modifiers).toEqual([expect.objectContaining({ type: 'breakage' })]);
+
+    const passed = await as('owner').post(`/v1/actor-rounds/${actorRound.id}/breakage-checks`, { itemId: 'axe', roll: 50 });
+    expect(passed.status).toBe(200);
+    expect((passed.body as ActorRoundBody).lastBreakageCheck).toMatchObject({ itemId: 'axe' });
+  });
+
+  it('rejects a breakage check of an item the actor does not have', async () => {
+    const response = await as('owner').post(`/v1/actor-rounds/${actorRound.id}/breakage-checks`, { itemId: 'nope', roll: 10 });
+    expect(response.status).toBe(404);
+  });
+
+  it('answers 404 for a change to an unknown actor round', async () => {
+    expect((await as('owner').patch('/v1/actor-rounds/00000000-0000-0000-0000-000000000000/hp', { dmg: 1 })).status).toBe(404);
+  });
+});
+
+describe('finished game', () => {
+  it('rejects changes once the game is finished', async () => {
+    const { gameId, actorRound } = await startedGame();
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/finish`, { fates: [] })).status).toBe(200);
+
+    const response = await as('owner').patch(`/v1/actor-rounds/${actorRound.id}/hp`, { dmg: 1 });
+    expect(response.status).toBe(409);
+  });
+});
+
+// No handler checks who calls [F-tactical-11]: any authenticated user changes the actor round of another user's game.
+describe('permissions', () => {
+  it.each(['other', 'noRole', 'admin'] as const)('lets %s damage the actor of another user', async user => {
+    const { actorRound } = await startedGame();
+    expect((await as(user).patch(`/v1/actor-rounds/${actorRound.id}/hp`, { dmg: 1 })).status).toBe(200);
+  });
+
+  it('rejects a request without a token', async () => {
+    const { actorRound } = await startedGame();
+    expect((await request(e2e.server).patch(`/v1/actor-rounds/${actorRound.id}/hp`).send({ dmg: 1 })).status).toBe(401);
+  });
+
+  it.skip('forbids another user to change the actor round [F-tactical-11]', async () => {
+    const { actorRound } = await startedGame();
+    expect((await as('other').patch(`/v1/actor-rounds/${actorRound.id}/hp`, { dmg: 1 })).status).toBe(403);
+  });
+});
