@@ -14,7 +14,6 @@ describe('HTTP setup', () => {
     await e2e?.stop();
   });
 
-  // The health check answers 503 here: it also pings rmu-api-core and rmu-api-strategic, which are not running [F-tactical-03].
   it('sends the helmet headers', async () => {
     const response = await request(e2e.server).get('/v1/health');
     expect(response.headers['x-content-type-options']).toBe('nosniff');
