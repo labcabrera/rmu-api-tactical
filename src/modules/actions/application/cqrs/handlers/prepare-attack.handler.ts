@@ -280,6 +280,10 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     if (!attack) {
       throw new UnprocessableEntityError(`Attack ${commandAttack.attackName} not found on actor`);
     }
+    // Spec 019, decision 8: the item of the attack broke in the game.
+    if (attack.broken) {
+      throw new ValidationError(`The item of attack ${attack.attackName} is broken`, 'err-attack-item-broken');
+    }
     if (commandAttack.modifiers.bo > attack.currentBo) {
       throw new ValidationError(`BO cannot be higher than current BO (${attack.currentBo})`);
     }

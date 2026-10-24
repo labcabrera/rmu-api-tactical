@@ -99,6 +99,12 @@ describe('PrepareAttackHandler', () => {
     expect(action.status).toBe('pending_roll');
   });
 
+  it('rejects an attack whose item broke in the game (spec 019)', async () => {
+    const { ctx, execute } = setup();
+    ctx.sourceActor!.attacks.find(attack => attack.attackName === 'Longsword')!.broken = true;
+    await expect(execute({})).rejects.toMatchObject({ errorCode: 'err-attack-item-broken' });
+  });
+
   it('accepts `spring` for `sprint`; the charge does not change the DB by size (§9.4)', async () => {
     const { execute } = setup();
 

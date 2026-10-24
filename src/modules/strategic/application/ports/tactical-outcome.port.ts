@@ -1,5 +1,6 @@
 import type { HpBySource, HpLogEntry } from '../../../actor-rounds/domain/value-objets/hp-log-entry.vo';
 import type { CharacterCondition, Injury } from '../../../actor-rounds/domain/value-objets/injury.vo';
+import type { TacticalItemOutcome } from '../../../games/domain/value-objects/tactical-game-outcome.vo';
 
 /** One character of a finished tactical game, as the strategic API takes it (spec 013, §3 and §4). */
 export interface TacticalOutcomeRequest {
@@ -18,6 +19,8 @@ export interface TacticalOutcomeRequest {
   injuriesHealed: string[];
   conditions: CharacterCondition[];
   fate?: 'dead' | 'permanent-unconscious';
+  /** Spec 019: the lasting breakage of its items; strategic adds it by modifier uuid. */
+  items?: TacticalItemOutcome[];
 }
 
 export interface TacticalOutcomePort {

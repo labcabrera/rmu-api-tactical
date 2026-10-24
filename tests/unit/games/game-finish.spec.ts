@@ -107,6 +107,29 @@ describe('TacticalGameOutcomeCalculator (spec 013, §3)', () => {
     expect(TacticalGameOutcomeCalculator.preview(game(), actorRounds).characters[1].hpLog).toEqual([]);
   });
 
+  it('sends the lasting breakage the items got in the game (spec 019)', () => {
+    const { actorRounds } = setup();
+    const last = actorRounds[1];
+    last.items = [
+      {
+        itemId: 'sword',
+        name: 'Sword',
+        kind: 'weapon',
+        slot: 'mainHand',
+        strength: 80,
+        modifiers: [
+          { id: 'old', type: 'breakage', value: -10, appliesTo: 'all', createdAt: '' },
+          { id: 'new', type: 'breakage', value: -20, appliesTo: 'all', createdAt: '' },
+          { id: 'tmp', type: 'breakage', value: -20, appliesTo: 'all', temporary: true, createdAt: '' },
+        ],
+        startModifierIds: ['old'],
+      },
+      { itemId: 'rope', name: 'Rope', kind: 'other', strength: 10, modifiers: [], startModifierIds: [] },
+    ];
+    const aragorn = TacticalGameOutcomeCalculator.preview(game(), actorRounds).characters[0];
+    expect(aragorn.items).toEqual([{ itemId: 'sword', name: 'Sword', modifiers: [expect.objectContaining({ id: 'new', value: -20 })] }]);
+  });
+
   it('requires a fate for every character at risk, listing them', () => {
     const { actorRounds } = setup();
 

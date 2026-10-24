@@ -76,7 +76,7 @@ export class ManeuverBaseModifiersService {
     const base: ManeuverBaseModifier[] = [];
     this.addActorPenalties(base, input.actorRound);
     if (input.profile.movement) {
-      this.addEquipmentPenalties(base, input.character);
+      this.addEquipmentPenalties(base, input.character, input.actorRound);
     }
     if (input.includePace) {
       this.addPacePenalty(base, input.pace, !!input.freeAction);
@@ -120,10 +120,14 @@ export class ManeuverBaseModifiersService {
     actorRound.getPenaltiesBySource().forEach(({ source, value }) => base.push({ key: `penalty-${source}`, value, source: 'actor-round' }));
   }
 
-  /** §5.1 and §7.2: the armor maneuver penalty and the encumbrance penalty of the sheet. */
-  private addEquipmentPenalties(base: ManeuverBaseModifier[], character: Character): void {
+  /**
+   * §5.1 and §7.2: the armor maneuver penalty and the encumbrance penalty of the sheet, and the breakage the armor took
+   * in the game (spec 019, decision 10), which the sheet does not count yet.
+   */
+  private addEquipmentPenalties(base: ManeuverBaseModifier[], character: Character, actorRound: ActorRound): void {
     base.push({ key: 'armor-maneuver', value: character.equipment?.maneuverPenalty || 0, source: 'equipment' });
     base.push({ key: 'encumbrance', value: character.equipment?.encumbrancePenalty || 0, source: 'equipment' });
+    base.push({ key: 'item-breakage', value: actorRound.getArmorBreakagePenalty?.() || 0, source: 'equipment' });
   }
 
   private addPacePenalty(base: ManeuverBaseModifier[], pace: Pace | null, freeAction: boolean): void {
