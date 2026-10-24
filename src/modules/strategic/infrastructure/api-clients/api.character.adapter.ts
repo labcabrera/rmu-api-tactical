@@ -32,7 +32,9 @@ export class CharacterApiClient implements CharacterPort {
 
   async findByGameId(gameId: string): Promise<Character[]> {
     const token = await this.tokenService.getToken();
-    const uri = `${this.baseUri}/characters?q=gameId==${gameId}&page=0&size=1000`;
-    return this.httpClient.get<Character[]>(uri, { token });
+    // strategic answers a page, and takes up to 1000 per page for these catalogs (spec 020) [F-tactical-20].
+    const uri = `${this.baseUri}/characters?q=gameId==${encodeURIComponent(gameId)}&page=0&size=1000`;
+    const data = await this.httpClient.get<{ content?: Character[] }>(uri, { token });
+    return data?.content || [];
   }
 }
