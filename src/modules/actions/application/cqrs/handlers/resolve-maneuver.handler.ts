@@ -18,10 +18,17 @@ import {
   type ManeuverRollCalculation,
 } from '../../services/maneuver/maneuver-context.service.js';
 import { ResolveManeuverCommand } from '../commands/resolve-maneuver.command.js';
+import { type PsychologyTablesPort, PSYCHOLOGY_TABLES_PORT } from '../../../../psychology/application/ports/psychology-tables.port.js';
+import { findBand } from '../../../../psychology/domain/value-objects/psychology-tables.vo.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 /** Unmodified roll of an unusual event (§5.1). */
 const UNUSUAL_EVENT_ROLL = 66;
+
+/** Price of a Trading maneuver: 200% less the result, from 50% to 200% (§14.2). */
+const PRICE_BASE = 200;
+const MIN_PRICE = 50;
+const MAX_PRICE = 200;
 
 /** Percent a task needs to be complete (§5.1). */
 const COMPLETED_PERCENT = 100;
@@ -40,6 +47,7 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
     @Inject(MANEUVER_PORT) private readonly maneuverPort: ManeuverPort,
     private readonly maneuverContextService: ManeuverContextService,
+    @Inject(PSYCHOLOGY_TABLES_PORT) private readonly psychologyTables: PsychologyTablesPort,
   ) {}
 
   async execute(command: ResolveManeuverCommand): Promise<Action> {
@@ -68,14 +76,29 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     action.apRange = range ? { min: range.min, max: range.max } : null;
     action.checkResolvable(context.actorRound, currentPhase);
     action.actionPoints = action.apOf(context.actorRound, currentPhase);
-    const calculation = this.maneuverContextService.calculate(context, request, command.roll.roll);
+    const passive = request.passive ? await this.maneuverContextService.passiveTotal(context, action, request.passive) : undefined;
+    const choices =
+      passive && (request.passiveTotal === undefined || request.passiveTotal === null)
+        ? { ...request, passiveTotal: passive.total }
+        : request;
+    const calculation = this.maneuverContextService.calculate(context, choices, command.roll.roll);
     this.updateModifiers(action, command, context, calculation);
+    action.maneuver!.modifiers.passiveTotal = choices.passiveTotal;
+    action.maneuver!.modifiers.targetActorId = request.passive?.targetActorId;
+    action.maneuver!.modifiers.passiveSkillId = passive?.skillId;
     action.maneuver!.roll = { modifiers: calculation.modifiers, roll: command.roll.roll, totalRoll: calculation.total };
 
-    const alert =
-      context.maneuverType === 'percent'
-        ? await this.resolvePercent(action, context, calculation.total)
-        : await this.resolveAbsolute(action, context, calculation.total, command.roll.unmodified === UNUSUAL_EVENT_ROLL);
+    const unusualEvent = command.roll.unmodified === UNUSUAL_EVENT_ROLL;
+    let alert: ActorRoundAlert | null = null;
+    if (context.maneuverType === 'percent' && context.profile.resultKind === 'price') {
+      await this.resolvePrice(action, calculation.total);
+    } else if (context.maneuverType === 'percent') {
+      alert = await this.resolvePercent(action, context, calculation.total);
+    } else if (context.profile.resultKind === 'morale') {
+      await this.resolveMorale(action, calculation.total, unusualEvent);
+    } else {
+      alert = await this.resolveAbsolute(action, context, calculation.total, unusualEvent);
+    }
 
     action.close(context.actorRound, currentPhase);
     const updated = await this.actionRepository.update(action);
@@ -139,6 +162,34 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
       unusualEvent || undefined,
     );
     return null;
+  }
+
+  /**
+   * Trading (§14.2, workspace spec 022, decision 11): an opposed percent maneuver whose percent gives the price, 200%
+   * less the result, between 50% and 200%. It takes no critical and adds no progress: a deal is struck in one roll.
+   */
+  private async resolvePrice(action: Action, total: number): Promise<void> {
+    const result = await this.maneuverPort.percent(total);
+    const percent = result.percent || 0;
+    const price = Math.min(MAX_PRICE, Math.max(MIN_PRICE, PRICE_BASE - percent));
+    const maneuverResult = new ActionManeuverResult(undefined, percent, result.message, undefined, null, true);
+    maneuverResult.price = price;
+    action.maneuver!.result = maneuverResult;
+  }
+
+  /**
+   * Leadership (§14.2, §14.3, workspace spec 022, decision 10): its result is read on the morale table of core's
+   * psychology tables, with the outcome key and the modifier to later morale rolls (a warning for the game master). An
+   * unmodified 66 is the unusual event of the table.
+   */
+  private async resolveMorale(action: Action, total: number, unusualEvent: boolean): Promise<void> {
+    const tables = await this.psychologyTables.find();
+    const row = findBand(tables.morale, total);
+    const result = new ActionManeuverResult(row?.result, undefined, undefined, [], undefined, undefined, unusualEvent || undefined);
+    result.outcome = unusualEvent && tables.moraleUnusualEvent ? tables.moraleUnusualEvent.outcome : row?.outcome;
+    result.moraleModifier = row?.moraleModifier ?? undefined;
+    result.moraleModifierDays = row?.moraleModifierDays ?? undefined;
+    action.maneuver!.result = result;
   }
 
   /**

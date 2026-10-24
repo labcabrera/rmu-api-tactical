@@ -4,6 +4,17 @@ import type { LightManeuverModifier } from '../../../domain/value-objects/light-
 import type { ManeuverModifierSelection } from '../../../domain/value-objects/maneuver-profile.vo.js';
 import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo.js';
 
+/** The passive side of a conflicting maneuver as an actor of the game (workspace spec 022, decision 12). */
+export interface PassiveSide {
+  targetActorId: string;
+  /** Open-ended roll of the target; required unless `passiveTotal` is sent. */
+  roll?: number;
+  /** Skill of the target: `social-awareness` by default, the active skill for Trading. */
+  skillId?: string;
+  /** Bonus of an actor without a sheet (NPC). */
+  bonus?: number;
+}
+
 /** What the client chose for the roll (spec 010 §4.1). The API computes every value. */
 export class ResolveManeuverRequest {
   constructor(
@@ -17,6 +28,8 @@ export class ResolveManeuverRequest {
     public readonly maneuverType?: ManeuverType | undefined,
     /** Legacy `modifiers` body: how the skill uses light, when its profile does not say. */
     public readonly lightUsage?: LightManeuverModifier | undefined,
+    /** Workspace spec 022, decision 12: the passive side as an actor of the game, and its roll. */
+    public readonly passive?: PassiveSide | undefined,
   ) {}
 }
 

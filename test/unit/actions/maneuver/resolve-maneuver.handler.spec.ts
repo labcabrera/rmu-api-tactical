@@ -7,6 +7,7 @@ import {
 import { ResolveManeuverHandler } from '../../../../src/modules/actions/application/cqrs/handlers/resolve-maneuver.handler.js';
 import { ResolveManeuverDto } from '../../../../src/modules/actions/interfaces/http/dto/resolve-maneuver.dto.js';
 import { breakdown, type ManeuverSetup, setupManeuver } from './maneuver-test.factory.js';
+import { load } from '../../actor-rounds/actor-round-test.factory.js';
 
 const handlerFor = (setup: ReturnType<typeof setupManeuver>) =>
   new ResolveManeuverHandler(
@@ -16,6 +17,7 @@ const handlerFor = (setup: ReturnType<typeof setupManeuver>) =>
     setup.eventBus,
     setup.maneuverPort,
     setup.contextService,
+    setup.psychologyTables,
   );
 
 const request = (overrides: Partial<ResolveManeuverRequest> = {}): ResolveManeuverRequest =>
@@ -256,5 +258,108 @@ describe('ResolveManeuverDto', () => {
   it('a legacy light usage applies when the skill profile does not use light', async () => {
     const { modifiers } = await resolve({ skillId: 'old-lore' }, { light: 'dark', lightUsage: 'helpful' });
     expect(modifiers.light).toBe(-25);
+  });
+});
+
+describe('social maneuvers (workspace spec 022, decisions 10-12)', () => {
+  const seller = () => {
+    const actorRound = Object.assign(load({ penalties: [['critical', -5]] }), {
+      actorId: 'seller',
+      characterId: 'seller',
+      actorName: 'Bree merchant',
+    });
+    const character = { id: 'seller', skills: [{ skillId: 'trading', specialization: null, totalBonus: 30, ranks: 3 }] } as never;
+    return { actorRound, character };
+  };
+
+  it('Trading is an opposed percent maneuver whose result is a price, without critical nor progress (D2p)', async () => {
+    const percent = { percent: 70, critical: 'B', message: 'Seventy' };
+    const { result, modifiers } = await resolve(
+      { skillId: 'trading', skills: [{ skillId: 'trading', specialization: null, totalBonus: 40 }], percent, targets: [seller()] },
+      { passive: { targetActorId: 'seller', roll: 60 } },
+      80,
+    );
+    // 60 + 30 - 5 = 85 passive total: the conflict modifier is 100 - 85.
+    expect(modifiers.conflict).toBe(15);
+    expect(result.maneuver!.result).toMatchObject({ percent: 70, price: 130, critical: null, completed: true });
+    expect(result.maneuver!.progress ?? 0).toBe(0);
+    expect(result.maneuver!.modifiers).toMatchObject({ passiveTotal: 85, targetActorId: 'seller', passiveSkillId: 'trading' });
+  });
+
+  it('keeps the price between 50% and 200%', async () => {
+    const high = await resolve({ skillId: 'trading', percent: { percent: 175, critical: null, message: '' } }, {}, 200);
+    const low = await resolve({ skillId: 'trading', percent: { percent: 0, critical: 'E', message: '' } }, {}, -200);
+    expect([high.result.maneuver!.result!.price, low.result.maneuver!.result!.price]).toEqual([50, 200]);
+  });
+
+  it('Leadership reads its result on the morale table of core (D1p)', async () => {
+    const { result, setup } = await resolve({ skillId: 'leadership' }, {}, 80);
+    expect(setup.absolute).not.toHaveBeenCalled();
+    expect(result.maneuver!.result).toMatchObject({ result: 'success', outcome: 'obeys' });
+    const inspired = await resolve({ skillId: 'leadership' }, {}, 130);
+    expect(inspired.result.maneuver!.result).toMatchObject({ outcome: 'inspired', moraleModifier: 4, moraleModifierDays: 20 });
+    const odd = await resolve({ skillId: 'leadership' }, {}, 30, 66);
+    expect(odd.result.maneuver!.result).toMatchObject({ result: 'failure', outcome: 'misunderstands-order', unusualEvent: true });
+  });
+
+  it('an Influence maneuver against an actor takes its Social Awareness from its sheet (D5p)', async () => {
+    const target = Object.assign(load(), { actorId: 'guard', characterId: 'guard', actorName: 'Guard' });
+    const sheet = { id: 'guard', skills: [{ skillId: 'social-awareness', specialization: null, totalBonus: 25 }] } as never;
+    const { modifiers, result, setup } = await resolve(
+      { skillId: 'influence', targets: [{ actorRound: target, character: sheet }] },
+      { passive: { targetActorId: 'guard', roll: 90 } },
+      70,
+    );
+    expect(modifiers.conflict).toBe(100 - 115);
+    expect(setup.absolute).toHaveBeenCalledWith(expect.any(Number), 'influence', false);
+    expect(result.maneuver!.modifiers).toMatchObject({ targetActorId: 'guard', passiveSkillId: 'social-awareness', passiveTotal: 115 });
+  });
+
+  it('a passive total sent wins over the target, and an NPC target needs its bonus', async () => {
+    const npc = Object.assign(load(), { actorId: 'orc', actorName: 'Orc', actorType: 'npc' as const });
+    const sent = await resolve(
+      { skillId: 'influence', targets: [{ actorRound: npc }] },
+      { passiveTotal: 120, passive: { targetActorId: 'orc', roll: 1, bonus: 5 } },
+    );
+    expect(sent.modifiers.conflict).toBe(-20);
+    const withBonus = await resolve(
+      { skillId: 'influence', targets: [{ actorRound: npc }] },
+      { passive: { targetActorId: 'orc', roll: 50, bonus: 10 } },
+    );
+    expect(withBonus.modifiers.conflict).toBe(40);
+    await expect(
+      resolve({ skillId: 'influence', targets: [{ actorRound: npc }] }, { passive: { targetActorId: 'orc', roll: 50 } }),
+    ).rejects.toThrow(expect.objectContaining({ code: 'err-maneuver-passive-bonus-required' }));
+  });
+
+  it('refuses a target without roll, unknown or the actor itself', async () => {
+    await expect(resolve({ skillId: 'influence' }, { passive: { targetActorId: 'guard' } })).rejects.toThrow(
+      expect.objectContaining({ code: 'err-maneuver-passive-roll-required' }),
+    );
+    await expect(resolve({ skillId: 'influence' }, { passive: { targetActorId: 'nobody', roll: 5 } })).rejects.toThrow(
+      expect.objectContaining({ code: 'err-maneuver-target-not-found' }),
+    );
+    await expect(resolve({ skillId: 'influence' }, { passive: { targetActorId: 'actor-1', roll: 5 } })).rejects.toThrow(
+      expect.objectContaining({ statusCode: 400 }),
+    );
+  });
+
+  it('reads the target fields of the request', () => {
+    const dto = Object.assign(new ResolveManeuverDto(), {
+      targetActorId: 'guard',
+      passiveRoll: 40,
+      passiveSkillId: 'perception',
+      passiveBonus: 3,
+      roll: { roll: 1 },
+    });
+    expect(ResolveManeuverDto.toCommand('a', dto, 'u', []).request.passive).toEqual({
+      targetActorId: 'guard',
+      roll: 40,
+      skillId: 'perception',
+      bonus: 3,
+    });
+    expect(
+      ResolveManeuverDto.toCommand('a', Object.assign(new ResolveManeuverDto(), { roll: { roll: 1 } }), 'u', []).request.passive,
+    ).toBeUndefined();
   });
 });

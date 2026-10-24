@@ -15,7 +15,10 @@ import { MANEUVER_PORT } from '../../../src/modules/actions/application/ports/ma
 import { SKILL_CATALOG_PORT } from '../../../src/modules/actions/application/ports/skill-catalog.port.js';
 import { AttackTableEntry, Fumble } from '../../../src/modules/actions/domain/value-objects/action-attack.vo.js';
 import { CriticalResult } from '../../../src/modules/actions/domain/value-objects/critical-result.vo.js';
-import { DEFAULT_MANEUVER_PROFILE } from '../../../src/modules/actions/domain/value-objects/maneuver-profile.vo.js';
+import {
+  DEFAULT_MANEUVER_PROFILE,
+  type SkillManeuverProfile,
+} from '../../../src/modules/actions/domain/value-objects/maneuver-profile.vo.js';
 import { HEALING_TABLES_PORT } from '../../../src/modules/actor-rounds/application/ports/healing-tables.port.js';
 import type { TreatmentTables } from '../../../src/modules/actor-rounds/domain/value-objects/treatment-difficulty.vo.js';
 import { PSYCHOLOGY_TABLES_PORT } from '../../../src/modules/psychology/application/ports/psychology-tables.port.js';
@@ -63,6 +66,8 @@ export type World = {
   treatmentTables: TreatmentTables | null;
   /** Psychology tables of core (workspace spec 022), with made-up numbers. */
   psychologyTables: PsychologyTables;
+  /** Maneuver profiles of core by skill; the default one for the rest. */
+  skillProfiles: Map<string, Partial<SkillManeuverProfile>>;
   lookups: { attack: AttackTableLookupRequest[]; critical: CriticalTableLookupRequest[]; fumble: FumbleTableLookupRequest[] };
   outcomes: { characterId: string; request: TacticalOutcomeRequest }[];
   /** Events published, as `<aggregateType>.<eventType>`. */
@@ -89,6 +94,7 @@ const newWorld = (): World => ({
   fumble: new Fumble('completed', 'Off balance.', undefined, 0, []),
   treatmentTables: null,
   psychologyTables: PSYCHOLOGY_TABLES,
+  skillProfiles: new Map(),
   lookups: { attack: [], critical: [], fumble: [] },
   outcomes: [],
   events: [],
@@ -159,7 +165,12 @@ function fakePorts(world: World) {
     [
       SKILL_CATALOG_PORT,
       {
-        findSkill: (skillId: string) => Promise.resolve({ id: skillId, categoryId: 'e2e', maneuver: DEFAULT_MANEUVER_PROFILE }),
+        findSkill: (skillId: string) =>
+          Promise.resolve({
+            id: skillId,
+            categoryId: 'e2e',
+            maneuver: { ...DEFAULT_MANEUVER_PROFILE, ...world.skillProfiles.get(skillId) },
+          }),
         findManeuverModifiers: () => Promise.resolve([]),
       },
     ],

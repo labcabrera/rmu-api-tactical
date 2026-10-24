@@ -33,6 +33,10 @@ export class ActionManeuverModifiers {
     public selections?: Record<string, ManeuverModifierSelection> | undefined,
     /** Conflicting maneuver: total of the passive side. */
     public passiveTotal?: number | undefined,
+    /** Actor the maneuver is against (workspace spec 022, decision 12): its sheet gives the passive total. */
+    public targetActorId?: string | undefined,
+    /** Skill of the passive side computed from the target actor. */
+    public passiveSkillId?: string | undefined,
   ) {}
 }
 
@@ -49,6 +53,12 @@ export class ActionManeuverResult {
     public completed?: boolean | undefined,
     /** Unmodified 66 on an absolute maneuver. */
     public unusualEvent?: boolean | undefined,
+    /** `price` maneuvers (Trading): price as a percent of the asked one (workspace spec 022, decision 11). */
+    public price?: number | undefined,
+    /** `morale` maneuvers (Leadership): outcome key of the morale table and its modifier to later morale rolls. */
+    public outcome?: string | undefined,
+    public moraleModifier?: number | undefined,
+    public moraleModifierDays?: number | undefined,
   ) {}
 }
 

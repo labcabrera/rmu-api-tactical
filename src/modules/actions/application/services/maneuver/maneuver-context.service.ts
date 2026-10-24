@@ -19,12 +19,16 @@ import {
   type SkillManeuverProfile,
 } from '../../../domain/value-objects/maneuver-profile.vo.js';
 import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo.js';
+import type { PassiveSide } from '../../cqrs/commands/resolve-maneuver.command.js';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
 import { type SkillCatalogPort, SKILL_CATALOG_PORT } from '../../ports/skill-catalog.port.js';
 import { type ManeuverBaseModifier, ManeuverBaseModifiersService, type ManeuverSkillBonus } from './maneuver-base-modifiers.service.js';
 import { ERR_INVALID_MODIFIER, resolveSelections } from './maneuver-selections.js';
 
 export const DEFAULT_DIFFICULTY: Difficulty = 'm';
+
+/** Skill that resists an Influence maneuver (§14.2). */
+export const SOCIAL_AWARENESS_SKILL_ID = 'social-awareness';
 
 /** Everything a maneuver of an action needs, read once per request. */
 export interface ManeuverContext {
@@ -153,7 +157,7 @@ export class ManeuverContextService {
         options: [...DIFFICULTY_MAP.entries()].map(([key, value]) => ({ key, value })),
       },
       skillModifiers: context.catalog,
-      conflicting: ManeuverContextService.isConflicting(context.maneuverType),
+      conflicting: ManeuverContextService.isConflicting(context.maneuverType, context.profile),
     };
     if (usage !== 'none') {
       listing.light = {
@@ -169,10 +173,37 @@ export class ManeuverContextService {
 
   /**
    * Conflicting maneuvers (chapter 3) are absolute ones against another actor's roll: every absolute maneuver offers
-   * the passive total, which is optional.
+   * the passive total, which is optional. A `price` maneuver (Trading) is an opposed percent one (workspace spec 022,
+   * decision 11).
    */
-  static isConflicting(maneuverType: ManeuverType): boolean {
-    return maneuverType === 'absolute';
+  static isConflicting(maneuverType: ManeuverType, profile?: SkillManeuverProfile): boolean {
+    return maneuverType === 'absolute' || (maneuverType === 'percent' && profile?.resultKind === 'price');
+  }
+
+  /**
+   * Passive total of a conflicting maneuver against an actor of the game (workspace spec 022, decision 12, D5p): its
+   * roll, the bonus of its skill (from its character sheet, or the one sent for an NPC) and its penalties. The skill is
+   * Social Awareness by default and, for a `price` maneuver, the seller's own Trading.
+   */
+  async passiveTotal(context: ManeuverContext, action: Action, passive: PassiveSide): Promise<{ total: number; skillId: string }> {
+    if (passive.targetActorId === action.actorId) {
+      throw new ValidationError('An actor cannot be the target of its own maneuver', ERR_INVALID_MODIFIER);
+    }
+    if (passive.roll === undefined || passive.roll === null || !Number.isFinite(passive.roll)) {
+      throw new ValidationError('The roll of the target actor is required', 'err-maneuver-passive-roll-required');
+    }
+    const target = await this.actorRoundRepository.findByActorIdAndRound(action.gameId, passive.targetActorId, action.round);
+    if (!target) throw new NotFoundError('Target actor', passive.targetActorId, 'err-maneuver-target-not-found');
+    const skillId = passive.skillId || (context.profile.resultKind === 'price' ? context.skill.skillId : SOCIAL_AWARENESS_SKILL_ID);
+    let bonus = passive.bonus;
+    if (bonus === undefined && target.actorType === 'character') {
+      const sheet = await this.characterClient.findById(target.characterId ?? target.actorId);
+      bonus = sheet ? ManeuverBaseModifiersService.skillBonus(sheet, skillId, null).bonus : undefined;
+    }
+    if (bonus === undefined) {
+      throw new ValidationError(`Send the ${skillId} bonus of ${target.actorName}`, 'err-maneuver-passive-bonus-required');
+    }
+    return { total: passive.roll + bonus + Math.min(0, target.getPenaltySum()), skillId };
   }
 
   /**
@@ -204,8 +235,8 @@ export class ManeuverContextService {
       modifiers.push(new KeyValueModifier('custom-bonus', choices.customBonus));
     }
     if (choices.passiveTotal !== undefined && choices.passiveTotal !== null) {
-      if (!ManeuverContextService.isConflicting(context.maneuverType)) {
-        throw new ValidationError('Only an absolute maneuver can be in conflict', ERR_INVALID_MODIFIER);
+      if (!ManeuverContextService.isConflicting(context.maneuverType, context.profile)) {
+        throw new ValidationError('Only an absolute or a price maneuver can be in conflict', ERR_INVALID_MODIFIER);
       }
       modifiers.push(new KeyValueModifier('conflict', 100 - choices.passiveTotal));
     }

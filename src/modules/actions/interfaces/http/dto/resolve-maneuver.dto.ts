@@ -91,6 +91,26 @@ export class ResolveManeuverDto {
   @IsNumber()
   passiveTotal?: number;
 
+  @ApiProperty({ description: 'Actor of the game the maneuver is against (its sheet gives the passive total)', required: false })
+  @IsOptional()
+  @IsString()
+  targetActorId?: string;
+
+  @ApiProperty({ description: 'Open-ended roll of the target actor, when there is no passiveTotal', required: false })
+  @IsOptional()
+  @IsNumber()
+  passiveRoll?: number;
+
+  @ApiProperty({ description: 'Skill of the target: social-awareness by default, the active skill for Trading', required: false })
+  @IsOptional()
+  @IsString()
+  passiveSkillId?: string;
+
+  @ApiProperty({ description: 'Skill bonus of a target without a sheet (NPC)', required: false })
+  @IsOptional()
+  @IsNumber()
+  passiveBonus?: number;
+
   @ApiProperty({ description: 'Roll', type: ManeuverRollDto })
   @ValidateNested()
   @Type(() => ManeuverRollDto)
@@ -125,6 +145,9 @@ export class ResolveManeuverDto {
       dto.specialization,
       dto.maneuverType,
       legacy.lightModifier,
+      dto.targetActorId
+        ? { targetActorId: dto.targetActorId, roll: dto.passiveRoll, skillId: dto.passiveSkillId, bonus: dto.passiveBonus }
+        : undefined,
     );
   }
 }

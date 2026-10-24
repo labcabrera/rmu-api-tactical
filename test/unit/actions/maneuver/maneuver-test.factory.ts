@@ -22,6 +22,8 @@ import type { GameRepository } from '../../../../src/modules/games/application/p
 import type { Game } from '../../../../src/modules/games/domain/aggregates/game.js';
 import type { Character, CharacterPort, CharacterSkill } from '../../../../src/modules/strategic/application/ports/character.port.js';
 import { load } from '../../actor-rounds/actor-round-test.factory.js';
+import type { PsychologyTablesPort } from '../../../../src/modules/psychology/application/ports/psychology-tables.port.js';
+import { PSYCHOLOGY_TABLES } from '../../../fixtures/psychology-tables.js';
 
 /*
  * Invented catalog data: skills, profiles and modifiers here are made up for the tests and are not the book's.
@@ -44,6 +46,9 @@ export const PROFILES: Record<string, SkillManeuverProfile> = {
   'creature-taming': profile({ resultTable: 'animal' }),
   'long-work': profile({ defaultType: 'percent', movement: true }),
   'desk-work': profile({ defaultType: 'percent' }),
+  trading: profile({ defaultType: 'percent', resultKind: 'price' }),
+  leadership: profile({ resultKind: 'morale' }),
+  influence: profile({ resultTable: 'influence' }),
 };
 
 export const CATALOG: Record<string, ManeuverModifierDefinition[]> = {
@@ -81,6 +86,8 @@ export interface ManeuverSetup {
   percent?: PercentManeuverResponse;
   otherActions?: Action[];
   fatigue?: number;
+  /** Other actor rounds of the round (targets), with their character sheets. */
+  targets?: { actorRound: ActorRound; character?: Character }[];
 }
 
 export const action = (props: Partial<ActionProps>): Action =>
@@ -154,12 +161,18 @@ export const setupManeuver = (options: ManeuverSetup = {}) => {
   } as unknown as ActionRepository;
   const actorRoundUpdate = vi.fn((updated: ActorRound) => Promise.resolve(updated));
   const actorRoundRepository = {
-    findByActorIdAndRound: vi.fn(() => Promise.resolve(actorRound)),
+    findByActorIdAndRound: vi.fn((_gameId: string, actorId: string) =>
+      Promise.resolve(
+        actorId === 'actor-1' ? actorRound : (options.targets?.find(t => t.actorRound.actorId === actorId)?.actorRound ?? null),
+      ),
+    ),
     update: actorRoundUpdate,
   } as unknown as ActorRoundRepository;
   const gameRepository = { findById: vi.fn(() => Promise.resolve(game)) } as unknown as GameRepository;
   const characterClient = {
-    findById: vi.fn(() => Promise.resolve(character)),
+    findById: vi.fn((id: string) =>
+      Promise.resolve(id === 'actor-1' ? character : options.targets?.find(t => t.actorRound.actorId === id)?.character),
+    ),
     findByGameId: vi.fn(() => Promise.resolve([character])),
   } as unknown as CharacterPort;
   const findSkill = vi.fn((id: string) =>
@@ -206,6 +219,7 @@ export const setupManeuver = (options: ManeuverSetup = {}) => {
     eventBus,
     publish,
     contextService,
+    psychologyTables: { find: vi.fn(() => Promise.resolve(PSYCHOLOGY_TABLES)) } as PsychologyTablesPort,
     actionUpdate,
     actorRoundUpdate,
   };
