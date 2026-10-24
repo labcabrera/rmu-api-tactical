@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { BadGatewayError, ValidationError } from '../../domain/errors/errors.js';
+import { ConfigService } from '@nestjs/config';
+import { BadGatewayError, GatewayTimeoutError, ValidationError } from '../../domain/errors/errors.js';
 
 /** Options of a call to another RMU API: the bearer token to send and any extra headers. */
 export interface HttpRequestOptions {
@@ -54,10 +55,17 @@ export function isUpstreamHttpError(error: unknown): error is UpstreamHttpError 
  * - no answer (ECONNREFUSED, ENOTFOUND, EAI_AGAIN, ECONNRESET, ETIMEDOUT): `BadGatewayError('<host><path> is not available (<code>)')`;
  * - 400 or 422: `ValidationError('<host><path> answered <status>: <upstream message>')` (UpstreamValidationError);
  * - any other non-2xx: `BadGatewayError` with the same message (UpstreamBadGatewayError).
- * There is no timeout, as with axios before it [F-tactical-08].
+ * - no answer within `RMU_HTTP_TIMEOUT_MS` (10000 by default): `GatewayTimeoutError('<host><path> did not answer in <ms> ms')`
+ *   (504, code `upstream-timeout`; spec 021, decision 7).
  */
 @Injectable()
 export class HttpClient {
+  private readonly timeoutMs: number;
+
+  constructor(config: ConfigService) {
+    this.timeoutMs = Number(config.get<number>('RMU_HTTP_TIMEOUT_MS') ?? 10_000);
+  }
+
   get<T>(url: string, options?: HttpRequestOptions): Promise<T> {
     return this.request<T>('GET', url, undefined, options);
   }
@@ -82,22 +90,29 @@ export class HttpClient {
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     if (options.token) headers.Authorization = `Bearer ${options.token}`;
-    const response = await sendRequest(url, {
-      method,
-      headers: { ...headers, ...options.headers },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
+    const response = await sendRequest(
+      url,
+      {
+        method,
+        headers: { ...headers, ...options.headers },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      },
+      this.timeoutMs,
+    );
     const data = await readBody(response);
     if (!response.ok) throw upstreamError(url, response.status, response.statusText, data);
     return data as T;
   }
 }
 
-/** fetch, with a network failure turned into a BadGatewayError. */
-export async function sendRequest(url: string, init: RequestInit): Promise<Response> {
+/** fetch with a timeout, with a network failure turned into a BadGatewayError and a timeout into a GatewayTimeoutError. */
+export async function sendRequest(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
   try {
-    return await fetch(url, init);
+    return await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
   } catch (error) {
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      throw new GatewayTimeoutError(`${describeTarget(url)} did not answer in ${timeoutMs} ms`);
+    }
     throw networkError(error, url);
   }
 }

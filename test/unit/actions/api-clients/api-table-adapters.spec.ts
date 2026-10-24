@@ -11,7 +11,7 @@ const BASE_URI = 'http://attack-tables/v1';
 const tokenService = { getToken: () => Promise.resolve('token') } as unknown as TokenService;
 const configService = { get: (key: string) => (key === 'RMU_API_ATTACK_TABLES_URI' ? BASE_URI : undefined) } as unknown as ConfigService;
 
-const httpClient = new HttpClient();
+const httpClient = new HttpClient(new ConfigService({}));
 // Stubs the global fetch that HttpClient uses with one answer.
 const answer = (status: number, body: unknown) => {
   const fetch = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(() =>

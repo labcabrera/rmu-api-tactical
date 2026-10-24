@@ -79,3 +79,12 @@ export class BadGatewayError extends DomainError {
     Object.setPrototypeOf(this, BadGatewayError.prototype);
   }
 }
+
+/** Another API did not answer in time (spec 021, decision 7): 504. */
+export class GatewayTimeoutError extends DomainError {
+  constructor(message: string, code = 'upstream-timeout') {
+    super(message, 504, code);
+    this.name = 'GatewayTimeoutError';
+    Object.setPrototypeOf(this, GatewayTimeoutError.prototype);
+  }
+}
