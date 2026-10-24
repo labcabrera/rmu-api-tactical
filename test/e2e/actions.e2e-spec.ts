@@ -196,9 +196,7 @@ describe('attack', () => {
   });
 });
 
-// Two attacks of one action: ApplyAttackHandler subtracts the OB of each from the attacker's actor round with parallel
-// commands (Promise.all), each on its own copy. Before spec 020 the last write won and one subtraction was lost; with
-// the version the second write is a 409 and the attack is left half applied [F-tactical-15].
+// Two attacks of one action subtract their OB from the same attacker's actor round [F-tactical-15].
 describe('attack with two weapons', () => {
   const twoAttacks = async () => {
     const gameId = await gameInPhase1('eomer');
@@ -219,18 +217,7 @@ describe('attack with two weapons', () => {
     return action;
   };
 
-  it('answers 409 version-conflict when applying it [F-tactical-15]', async () => {
-    const action = await twoAttacks();
-    const applied = await as('owner').patch(`/v1/actions/${action.id}/attack/apply`);
-    expect(applied.status).toBe(409);
-    expect(applied.body).toMatchObject({ code: 'version-conflict' });
-    // The conflict is on the attacker's actor round.
-    const rounds = await as('owner').get(`/v1/actor-rounds?q=gameId==${action.gameId};actorId==eomer`);
-    const eomer = (rounds.body as { content: { id: string }[] }).content[0];
-    expect((applied.body as { message: string }).message).toContain(eomer.id);
-  });
-
-  it.skip('applies both attacks [F-tactical-15]', async () => {
+  it('applies both attacks [F-tactical-15]', async () => {
     const action = await twoAttacks();
     expect((await as('owner').patch(`/v1/actions/${action.id}/attack/apply`)).status).toBe(200);
   });
