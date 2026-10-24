@@ -151,6 +151,8 @@ export interface CharacterAttack {
   wrongSize?: boolean;
   /** Skill of the weapon (`melee-weapon@blade`, `shield`...). Missing in older characters. */
   skillId?: string | null;
+  /** Strategic item of the attack (spec 019). Missing in older characters: the item in the slot of `attackName`. */
+  itemId?: string | null;
 }
 
 /** Conditions that keep a character out of a tactical game (spec 013, §3). */

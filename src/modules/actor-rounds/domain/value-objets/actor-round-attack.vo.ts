@@ -21,6 +21,12 @@ export class ActorRoundAttack {
   weaponCategory: WeaponCategory;
   /** Skill of the weapon (`melee-weapon@blade`, `shield`...), null for attacks stored before it existed. */
   skillId: string | null;
+  /** Item of the attack (spec 019): `ActorRound.items`. Null for attacks stored before it existed. */
+  itemId: string | null = null;
+  /** Breakage damage the item took in the game, applied to `currentBo` (the base OB counts the earlier one). */
+  breakagePenalty = 0;
+  /** The item broke in the game: the attack cannot be declared. */
+  broken = false;
 
   constructor(
     attackName: string,

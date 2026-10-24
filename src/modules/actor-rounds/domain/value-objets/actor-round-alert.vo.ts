@@ -4,6 +4,12 @@ import { ActorRoundAlertModifier } from './actor-round-alert-modifier.vo';
 import type { ActorRoundAlertStatus } from './actor-round-alert-status.vo';
 import { ActorRoundAlertType } from './actor-round-alert-type.vo';
 
+/** The fields of a stored alert. */
+export type ActorRoundAlertData = Pick<ActorRoundAlert, 'id' | 'type' | 'message' | 'modifiers' | 'status'>;
+
+/** What asks for a breakage check (spec 019, decision 6). */
+export type BreakageOrigin = 'attack-roll' | 'critical' | 'fumble';
+
 export class ActorRoundAlert {
   constructor(
     public readonly id: string,
@@ -13,20 +19,51 @@ export class ActorRoundAlert {
     public status: ActorRoundAlertStatus = 'pending',
   ) {}
 
+  /** An alert read from storage or built by hand, as an instance. */
+  static from(stored: ActorRoundAlert | ActorRoundAlertData): ActorRoundAlert {
+    if (stored instanceof ActorRoundAlert) {
+      return stored;
+    }
+    const alert = stored;
+    const modifiers = alert.modifiers
+      ? alert.modifiers.map(modifier => new ActorRoundAlertModifier(modifier.key, modifier.value ?? null, modifier.modifier ?? null))
+      : null;
+    return new ActorRoundAlert(alert.id, alert.type, alert.message, modifiers, alert.status ?? 'pending');
+  }
+
   static buildEndurance(message?: string): ActorRoundAlert {
     return new ActorRoundAlert(randomUUID(), 'endurance', message || `Endurance roll required`, null);
   }
 
-  static buildBreakageFromAttack(attackName: string): ActorRoundAlert {
-    return new ActorRoundAlert(randomUUID(), 'breakage', `Breakage roll from attack`, [
-      new ActorRoundAlertModifier('attackName', null, attackName),
-    ]);
+  /**
+   * A breakage check to make (spec 019, decision 6): its origin, the penalty of the critical or fumble, the location
+   * hit, the item to check by default and the ones the game master can choose.
+   */
+  static buildBreakage(
+    origin: BreakageOrigin,
+    props: { attackName?: string; location?: AttackLocation; penalty?: number; itemId?: string; candidates: string[] },
+  ): ActorRoundAlert {
+    const modifiers = [new ActorRoundAlertModifier('origin', null, origin)];
+    if (props.attackName) modifiers.push(new ActorRoundAlertModifier('attackName', null, props.attackName));
+    if (props.location) modifiers.push(new ActorRoundAlertModifier('location', null, props.location));
+    if (props.penalty) modifiers.push(new ActorRoundAlertModifier('penalty', props.penalty, null));
+    if (props.itemId) modifiers.push(new ActorRoundAlertModifier('itemId', null, props.itemId));
+    props.candidates.forEach(candidate => modifiers.push(new ActorRoundAlertModifier('candidate', null, candidate)));
+    return new ActorRoundAlert(randomUUID(), 'breakage', `Breakage roll from ${origin}`, modifiers);
   }
 
-  static buildBreakageFromCritical(location: AttackLocation): ActorRoundAlert {
-    return new ActorRoundAlert(randomUUID(), 'breakage', `Breakage roll from attack`, [
-      new ActorRoundAlertModifier('attackName', null, location),
-    ]);
+  getModifierValue(key: string): number | undefined {
+    return this.modifiers?.find(modifier => modifier.key === key)?.value ?? undefined;
+  }
+
+  /** The check is made: the item checked, its result and its total stay in the alert. */
+  resolveBreakage(itemId: string, result: string, total: number): void {
+    this.modifiers?.push(
+      new ActorRoundAlertModifier('checkedItemId', null, itemId),
+      new ActorRoundAlertModifier('result', null, result),
+      new ActorRoundAlertModifier('total', total, null),
+    );
+    this.status = 'resolved';
   }
 
   static buildCritical(criticalType: string, criticalSeverity: string, message?: string): ActorRoundAlert {

@@ -347,6 +347,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     }
     cmd.effects.push(...effects);
     cmd.injuries.push(...built.injuries);
+    cmd.fumbleAttackName = actionAttack.attackName;
   }
 
   /**

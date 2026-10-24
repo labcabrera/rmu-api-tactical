@@ -29,6 +29,8 @@ export class AddEffectsCommand extends AuthenticatedCommand {
      * Hits of `dmg` not accounted for are logged as a game master adjustment.
      */
     public readonly hpChanges: HpChange[] = [],
+    /** The attack of a fumble of the actor: its item takes the breakage roll of the fumble (spec 019). */
+    public fumbleAttackName?: string,
   ) {
     super(userId, roles);
   }
