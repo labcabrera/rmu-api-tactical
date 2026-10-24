@@ -17,7 +17,7 @@ const UNAVAILABLE_CODES = ['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'ECONNRESET
 export class UpstreamValidationError extends ValidationError {
   constructor(
     message: string,
-    public override readonly status: number,
+    public readonly status: number,
   ) {
     super(message);
     this.name = 'ValidationError';

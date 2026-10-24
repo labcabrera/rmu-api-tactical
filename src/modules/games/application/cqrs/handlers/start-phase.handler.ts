@@ -44,7 +44,7 @@ export class StartPhaseHandler implements ICommandHandler<StartPhaseCommand, Gam
     }
     await this.advanceActorRounds(game);
     game.startPhase();
-    const updatedGame = await this.gameRepository.update(game.id, game);
+    const updatedGame = await this.gameRepository.update(game);
     const events = game.getUncommittedEvents();
     void this.eventPublisher.publish('game', ...events);
     return updatedGame;
@@ -84,10 +84,10 @@ export class StartPhaseHandler implements ICommandHandler<StartPhaseCommand, Gam
       }
       const updatedActions = starting !== undefined ? this.carryOpenActions(actorRound, actorActions, starting, ending ?? starting) : [];
       if (changed || updatedActions.length > 0) {
-        await this.actorRoundRepository.update(actorRound.id, actorRound);
+        await this.actorRoundRepository.update(actorRound);
       }
       for (const action of updatedActions) {
-        await this.actionRepository.update(action.id, action);
+        await this.actionRepository.update(action);
       }
     }
   }

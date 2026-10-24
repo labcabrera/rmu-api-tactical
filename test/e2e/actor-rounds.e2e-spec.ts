@@ -4,6 +4,7 @@ import { character, ids, startApp, USERS, type E2eApp, type UserName } from './s
 
 type ActorRoundBody = {
   id: string;
+  version: number;
   gameId: string;
   actorId: string;
   round: number;
@@ -131,6 +132,8 @@ describe('changes', () => {
     const hit = await as('owner').patch(`/v1/actor-rounds/${actorRound.id}/hp`, { dmg: 12 });
     expect(hit.status).toBe(200);
     expect((hit.body as ActorRoundBody).hp.current).toBe(38);
+    // Each write moves the version of optimistic concurrency.
+    expect((hit.body as ActorRoundBody).version).toBe(actorRound.version + 1);
     const healed = await as('owner').patch(`/v1/actor-rounds/${actorRound.id}/hp`, { dmg: -5 });
     expect((healed.body as ActorRoundBody).hp.current).toBe(43);
   });

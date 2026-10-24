@@ -11,16 +11,16 @@ import { GameEnvironment } from '../../domain/value-objects/game-environment.vo.
 import { type GameDocument, GameModel } from '../persistence/models/game.model.js';
 
 @Injectable()
-export class MongoGameRepository extends MongoBaseRepository<Game, GameDocument> implements GameRepository {
-  constructor(@InjectModel(GameModel.name) gameModel: Model<GameDocument>, rsqlParser: RsqlParser) {
+export class MongoGameRepository extends MongoBaseRepository<Game, GameModel> implements GameRepository {
+  constructor(@InjectModel(GameModel.name) gameModel: Model<GameModel>, rsqlParser: RsqlParser) {
     super(gameModel, rsqlParser);
   }
 
   async findByStrategicId(strategicGameId: string): Promise<Game[]> {
-    return this.model.find({ strategicGameId }).then(games => games.map(doc => this.mapToEntity(doc)));
+    return this.model.find({ strategicGameId }).then(games => games.map(doc => this.toEntity(doc)));
   }
 
-  mapToEntity(doc: GameDocument): Game {
+  protected mapToEntity(doc: GameDocument): Game {
     if (!doc) {
       throw new NotFoundError('Game', 'unknown');
     }

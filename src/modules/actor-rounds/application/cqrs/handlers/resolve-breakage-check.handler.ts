@@ -36,7 +36,7 @@ export class ResolveBreakageCheckHandler implements ICommandHandler<ResolveBreak
       tacticalGameName: game?.name,
     });
     this.logger.debug(`Breakage check result: ${JSON.stringify(result)}`);
-    const updated = await this.actorRoundRepository.update(actorRound.id, actorRound);
+    const updated = await this.actorRoundRepository.update(actorRound);
     updated.lastBreakageCheck = result;
     return updated;
   }

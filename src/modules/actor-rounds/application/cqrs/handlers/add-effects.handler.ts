@@ -37,7 +37,7 @@ export class AddEffectsHandler implements ICommandHandler<AddEffectsCommand, Act
       command.fumbleAttackName,
     );
     this.heal(actorRound, command, application);
-    const updated = await this.actorRoundRepository.update(actorRound.id, actorRound);
+    const updated = await this.actorRoundRepository.update(actorRound);
     //TODO notify event bus
     return updated;
   }

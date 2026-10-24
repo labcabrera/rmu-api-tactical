@@ -115,7 +115,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     action.markPrepared();
 
     action.updatedAt = new Date();
-    const updated = await this.actionRepository.update(action.id, action);
+    const updated = await this.actionRepository.update(action);
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     updated.refreshApState(sourceActorRound, currentPhase);
     return updated;

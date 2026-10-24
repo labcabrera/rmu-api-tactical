@@ -1,135 +1,106 @@
-// NOSONAR
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/unbound-method */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Injectable, Logger } from '@nestjs/common';
 import { parse } from '@rsql/parser';
 import { InvalidSearchExpression } from '../../domain/errors/errors.js';
 
-type MongoQuery = Record<string, any>;
+type MongoQuery = Record<string, unknown>;
+type MongoValue = string | number | null;
+
+// @rsql/ast is only a transitive dependency, so its node types are derived from parse().
+type ExpressionNode = ReturnType<typeof parse>;
+type ComparisonNode = Extract<ExpressionNode, { type: 'COMPARISON' }>;
+
+/** Plain field paths only: no `$` operators, so a selector cannot inject a Mongo operator. */
+const SELECTOR_PATTERN = /^[A-Za-z_][A-Za-z0-9_.]*$/;
+const MAX_REGEX_LENGTH = 100;
 
 @Injectable()
 export class RsqlParser {
   private readonly logger = new Logger(RsqlParser.name);
 
-  public parse(rsql: string): MongoQuery {
+  public parse(rsql: string | undefined): MongoQuery {
     if (!rsql || rsql.trim() === '') {
       return {};
     }
-    this.logger.debug(`Converting RSQL to MongoDB query: ${rsql}`);
+    this.logger.verbose(`Converting RSQL to MongoDB query: ${rsql}`);
+    let node: ExpressionNode;
     try {
-      const node: any = parse(rsql);
-      const result = this.processNode(node);
-      this.logger.debug(`Converted MongoDB query: ${JSON.stringify(result)}`);
-      return result;
+      node = parse(rsql);
     } catch (error) {
       throw new InvalidSearchExpression(`Invalid RSQL query: ${rsql}. ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+    const result = this.processNode(node);
+    this.logger.verbose(`Converted MongoDB query: ${JSON.stringify(result)}`);
+    return result;
   }
 
-  private processNode(node: any): MongoQuery {
-    if (node.left === 'id') {
-      node.left = '_id';
+  private processNode(node: ExpressionNode): MongoQuery {
+    if (node.type === 'COMPARISON') return this.processComparison(node);
+    switch (node.operator) {
+      case ';':
+        return { $and: [this.processNode(node.left), this.processNode(node.right)] };
+      case ',':
+        return { $or: [this.processNode(node.left), this.processNode(node.right)] };
+      default:
+        throw new InvalidSearchExpression(`Unsupported logic operator: ${node.operator}`);
     }
+  }
 
-    switch (node.type) {
-      case 'LOGIC':
-        if (node.operator === ';') {
-          if (!node.left || !node.right) {
-            throw new InvalidSearchExpression('AND operator requires two operands');
-          }
-          return { $and: [this.processNode(node.left), this.processNode(node.right)] };
-        } else if (node.operator === ',') {
-          if (!node.left || !node.right) {
-            throw new InvalidSearchExpression('OR operator requires two operands');
-          }
-          return { $or: [this.processNode(node.left), this.processNode(node.right)] };
-        } else {
-          throw new InvalidSearchExpression(`Unsupported logic operator: ${node.operator}`);
-        }
-      case 'AND':
-        if (!node.args || node.args.length === 0) {
-          throw new InvalidSearchExpression('AND operator requires at least one argument');
-        }
-        return { $and: node.args.map(this.processNode) };
-      case 'OR':
-        if (!node.args || node.args.length === 0) {
-          throw new InvalidSearchExpression('OR operator requires at least one argument');
-        }
-        return { $or: node.args.map(this.processNode) };
-      case 'COMPARISON': {
-        // Handle different possible structures for comparison nodes
-        let field = node.left?.selector || node.selector;
-        // If the field is 'id', convert it to '_id' for MongoDB compatibility
-        if (field === 'id') {
-          field = '_id';
-        }
-        const op = node.operator || node.comparison;
-        const value = node.right?.value || (node.arguments ? node.arguments[0] : undefined);
-        if (!field) {
-          throw new InvalidSearchExpression(`Missing field selector in comparison`);
-        }
-        if (!op) {
-          throw new InvalidSearchExpression(`Missing operator in comparison for field ${field}`);
-        }
-        if (value === undefined) {
-          throw new InvalidSearchExpression(`Missing value for comparison operator ${op} on field ${field}`);
-        }
+  private processComparison(node: ComparisonNode): MongoQuery {
+    let field = node.left.selector;
+    if (!SELECTOR_PATTERN.test(field) || field.split('.').some(part => part === '')) {
+      throw new InvalidSearchExpression(`Invalid field selector: ${field}`);
+    }
+    if (field === 'id') field = '_id';
+    const raw = node.right.value;
+    const value = coerce(Array.isArray(raw) ? raw[0] : raw);
 
-        let processedValue = value;
-        if (typeof value === 'string' && !isNaN(Number(value)) && value.trim() !== '') {
-          const numValue = Number(value);
-          if (Number.isFinite(numValue)) {
-            processedValue = numValue;
-          }
+    switch (node.operator) {
+      case '==':
+        return { [field]: value };
+      case '!=':
+        // For null, require field exists and is not null (inverse of == null)
+        if (value === null) return { [field]: { $ne: null, $exists: true } };
+        return { [field]: { $ne: value } };
+      case '>':
+        return { [field]: { $gt: value } };
+      case '>=':
+        return { [field]: { $gte: value } };
+      case '<':
+        return { [field]: { $lt: value } };
+      case '<=':
+        return { [field]: { $lte: value } };
+      case '=in=':
+        return { [field]: { $in: toArray(raw).map(coerce) } };
+      case '=out=':
+        return { [field]: { $nin: toArray(raw).map(coerce) } };
+      case '=re=': {
+        if (value === null) throw new InvalidSearchExpression('Regex operator cannot be applied to null');
+        const text = String(value);
+        if (text.length > MAX_REGEX_LENGTH) {
+          throw new InvalidSearchExpression(`Regex value longer than ${MAX_REGEX_LENGTH} characters`);
         }
-        switch (op) {
-          case '==':
-            return { [field]: processedValue };
-          case '!=':
-            return { [field]: { $ne: processedValue } };
-          case '>':
-            return { [field]: { $gt: processedValue } };
-          case '>=':
-            return { [field]: { $gte: processedValue } };
-          case '<':
-            return { [field]: { $lt: processedValue } };
-          case '<=':
-            return { [field]: { $lte: processedValue } };
-          case '=in=': {
-            // For 'in' operations, we need to handle array values
-            const values = Array.isArray(value) ? value : [value];
-            const inValues = values.map((arg: any) => {
-              if (typeof arg === 'string' && !isNaN(Number(arg)) && arg.trim() !== '') {
-                const numValue = Number(arg);
-                return Number.isFinite(numValue) ? numValue : arg;
-              }
-              return arg;
-            });
-            return { [field]: { $in: inValues } };
-          }
-          case '=out=': {
-            // For 'not in' operations, we need to handle array values
-            const values = Array.isArray(value) ? value : [value];
-            const outValues = values.map((arg: any) => {
-              if (typeof arg === 'string' && !isNaN(Number(arg)) && arg.trim() !== '') {
-                const numValue = Number(arg);
-                return Number.isFinite(numValue) ? numValue : arg;
-              }
-              return arg;
-            });
-            return { [field]: { $nin: outValues } };
-          }
-          case '=re=':
-            return { [field]: { $regex: processedValue, $options: 'i' } };
-          default:
-            throw new Error(`Unsupported operator: ${op}`);
-        }
+        // Case-insensitive substring match: the value is text, not a pattern.
+        return { [field]: { $regex: escapeRegex(text), $options: 'i' } };
       }
       default:
-        throw new Error(`Unsupported node type: ${node.type}`);
+        throw new InvalidSearchExpression(`Unsupported operator: ${node.operator}`);
     }
   }
+}
+
+const toArray = (raw: string | string[]): string[] => (Array.isArray(raw) ? raw : [raw]);
+
+/** `null` (any case) becomes null and numeric strings become numbers; anything else stays a string. */
+function coerce(raw: string | undefined): MongoValue {
+  if (raw === undefined) throw new InvalidSearchExpression('Missing comparison value');
+  if (raw.trim().toLowerCase() === 'null') return null;
+  if (raw.trim() !== '') {
+    const num = Number(raw);
+    if (Number.isFinite(num)) return num;
+  }
+  return raw;
+}
+
+function escapeRegex(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

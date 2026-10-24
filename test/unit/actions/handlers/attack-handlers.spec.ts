@@ -37,7 +37,7 @@ const processor = () => new CombatProcessor(new CombatPluginRegistryService(COMB
 const repositories = (action: Action, actors = createCombatPluginContext().actors!) => {
   const actionRepository = {
     findById: vi.fn(() => Promise.resolve(action)),
-    update: vi.fn((_id: string, updated: Action) => Promise.resolve(updated)),
+    update: vi.fn((updated: Action) => Promise.resolve(updated)),
   } as unknown as ActionRepository;
   const gameRepository = {
     findById: vi.fn(() => Promise.resolve({ id: 'game-1', round: 1, checkNotFinished: () => undefined })),
@@ -126,7 +126,7 @@ describe('UpdateCriticalRollHandler', () => {
     await execute('s_e_1', 50);
 
     await expect(execute('s_a_2', 50)).resolves.toBeDefined();
-    await expect(execute('s_a_2', 70)).rejects.toMatchObject({ errorCode: 'err-critical-roll-mismatch' });
+    await expect(execute('s_a_2', 70)).rejects.toMatchObject({ code: 'err-critical-roll-mismatch' });
   });
 
   it('clamps the adjusted roll to 1..100 and moves the attack to pending_apply after the last critical', async () => {

@@ -14,6 +14,11 @@ export const envSchema = Joi.object({
   RMU_IAM_TOKEN_URI: Joi.string().uri().required(),
   RMU_IAM_CLIENT_ID: Joi.string().required(),
   RMU_IAM_CLIENT_SECRET: Joi.string().required(),
+  // HTTP hardening, as in rmu-api-core. No origins: CORS stays off, as the browser comes through the gateway.
+  RMU_CORS_ORIGINS: Joi.string().allow('').default(''),
+  RMU_THROTTLE_LIMIT: Joi.number().integer().min(0).default(300),
+  RMU_THROTTLE_TTL_MS: Joi.number().integer().min(1).default(60_000),
+  RMU_TRUST_PROXY: Joi.string().default('loopback, linklocal, uniquelocal'),
   RMU_KAFKA_BROKERS: Joi.string().required(),
   RMU_KAFKA_CLIENT_ID: Joi.string().required(),
   RMU_KAFKA_CONSUMER_GROUP_ID: Joi.string().default('rmu-api-tactical-group'),

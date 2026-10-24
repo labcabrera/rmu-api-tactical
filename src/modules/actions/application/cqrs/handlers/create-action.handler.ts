@@ -80,10 +80,10 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
 
     const saved = await this.actionRepository.save(action);
     if (plan.spend || plan.interrupted.length > 0) {
-      await this.actorRoundRepository.update(actorRound.id, actorRound);
+      await this.actorRoundRepository.update(actorRound);
     }
     for (const interrupted of plan.interrupted) {
-      const updated = await this.actionRepository.update(interrupted.id, interrupted);
+      const updated = await this.actionRepository.update(interrupted);
       await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     }
     for (const event of action.getUncommittedEvents()) {

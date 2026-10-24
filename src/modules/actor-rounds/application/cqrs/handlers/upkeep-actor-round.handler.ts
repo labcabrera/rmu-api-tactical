@@ -18,7 +18,7 @@ export class UpkeepActorRoundHandler implements ICommandHandler<UpkeepActorRound
       throw new NotFoundError('Actor round', command.actorRoundId);
     }
     actorRound.applyUpkeep();
-    const updated = await this.actorRoundRepository.update(actorRound.id, actorRound);
+    const updated = await this.actorRoundRepository.update(actorRound);
     //TODO notify event bus
     return updated;
   }

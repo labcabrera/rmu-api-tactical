@@ -25,12 +25,13 @@ export class UpdateActionHandler implements ICommandHandler<UpdateActionCommand,
     this.logger.log(`Execute << ${JSON.stringify(command)}`);
     const action = await this.actionRepository.findById(command.actionId);
     if (!action) throw new NotFoundError('Action', command.actionId);
+    action.checkVersion(command.expectedVersion);
     (await this.gameRepository.findById(action.gameId))?.checkNotFinished();
     if (command.description !== undefined) {
       action.description = command.description;
     }
     action.updatedAt = new Date();
-    const updated = await this.actionRepository.update(action.id, { description: action.description, updatedAt: action.updatedAt });
+    const updated = await this.actionRepository.update(action);
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     await this.apStateService.refresh([updated]);
     return updated;

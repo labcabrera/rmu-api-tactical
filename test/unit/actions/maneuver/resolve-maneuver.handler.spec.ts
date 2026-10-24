@@ -123,7 +123,7 @@ describe('ResolveManeuverHandler', () => {
 
   it('criterion 7: an invented selection is an unknown modifier', async () => {
     await expect(resolve({ skillId: 'creature-taming' }, { selections: { 'made-up': true } })).rejects.toMatchObject({
-      errorCode: 'err-maneuver-unknown-modifier',
+      code: 'err-maneuver-unknown-modifier',
     });
   });
 
@@ -135,7 +135,7 @@ describe('ResolveManeuverHandler', () => {
     [{ 'creature-habitat': -1 }],
   ])('rejects an invalid value %p', async selections => {
     await expect(resolve({ skillId: 'creature-taming' }, { selections })).rejects.toMatchObject({
-      errorCode: 'err-maneuver-invalid-modifier',
+      code: 'err-maneuver-invalid-modifier',
     });
   });
 
@@ -172,7 +172,7 @@ describe('ResolveManeuverHandler', () => {
   });
 
   it('rejects an unknown difficulty', async () => {
-    await expect(resolve({}, { difficulty: 'zz' as never })).rejects.toMatchObject({ errorCode: 'err-maneuver-invalid-modifier' });
+    await expect(resolve({}, { difficulty: 'zz' as never })).rejects.toMatchObject({ code: 'err-maneuver-invalid-modifier' });
   });
 
   describe('percent maneuvers across rounds', () => {
@@ -206,7 +206,7 @@ describe('ResolveManeuverHandler', () => {
 
     it('a percent maneuver offers no conflict', async () => {
       await expect(resolve({ skillId: 'desk-work' }, { passiveTotal: 100 })).rejects.toMatchObject({
-        errorCode: 'err-maneuver-invalid-modifier',
+        code: 'err-maneuver-invalid-modifier',
       });
     });
   });

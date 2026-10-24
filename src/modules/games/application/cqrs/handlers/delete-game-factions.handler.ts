@@ -22,7 +22,7 @@ export class DeleteGameFactionsHandler implements ICommandHandler<DeleteGameFact
       throw new NotFoundError('Game', command.gameId);
     }
     game.deleteFactions(command.factions);
-    const updated = await this.gameRepository.update(command.gameId, game);
+    const updated = await this.gameRepository.update(game);
     const events = game.getUncommittedEvents();
     void this.eventPublisher.publish('game', ...events);
     return updated;

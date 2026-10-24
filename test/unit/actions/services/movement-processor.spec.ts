@@ -22,7 +22,7 @@ describe('MovementProcessorService', () => {
   });
 
   it("rejects a pace above the actor's maximum pace", async () => {
-    await expect(move('dash', 'run')).rejects.toMatchObject({ errorCode: 'err-pace-above-max' });
+    await expect(move('dash', 'run')).rejects.toMatchObject({ code: 'err-pace-above-max' });
     await expect(move('run', 'run')).resolves.toMatchObject({ distance: 60 });
   });
 

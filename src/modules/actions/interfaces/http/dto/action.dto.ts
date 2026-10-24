@@ -57,6 +57,9 @@ export class ActionDto {
   @ApiProperty({ description: 'Action identifier', example: 'action-123' })
   id: string;
 
+  @ApiProperty({ type: Number, description: 'Version of optimistic concurrency: it goes up with each write', example: 0 })
+  version: number;
+
   @ApiProperty({ description: 'Game identifier', example: 'game-456' })
   gameId: string;
 
@@ -148,6 +151,7 @@ export class ActionDto {
   static fromEntity(entity: Action) {
     const dto = new ActionDto();
     dto.id = entity.id;
+    dto.version = entity.version;
     dto.gameId = entity.gameId;
     dto.actorId = entity.actorId;
     dto.status = entity.status;

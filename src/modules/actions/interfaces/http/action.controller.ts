@@ -3,7 +3,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../shared/infrastructure/security/jwt-auth.guard.js';
 import { Page } from '../../../shared/application/pagination/page.js';
-import { PagedQueryDto } from '../../../shared/interfaces/http/dto/paged-rsql-query.js';
+import { CatalogPagedQueryDto } from '../../../shared/interfaces/http/dto/paged-rsql-query.js';
 import { CompleteActionCommand } from '../../application/cqrs/commands/complete-action.command.js';
 import { CreateActionCommand } from '../../application/cqrs/commands/create-action.command.js';
 import { DeleteActionCommand } from '../../application/cqrs/commands/delete-action.command.js';
@@ -47,7 +47,8 @@ export class ActionController {
   @ApiOkResponse({ type: ActionPageDto, description: 'Success' })
   @ApiErrors()
   @ApiOperation({ operationId: 'findActions', summary: 'Find actions by RSQL' })
-  async find(@Query() dto: PagedQueryDto, @CurrentUser() user: AuthenticatedUser) {
+  // rmu-mfe-tactical loads every action of a round in one page (size=1000).
+  async find(@Query() dto: CatalogPagedQueryDto, @CurrentUser() user: AuthenticatedUser) {
     this.logger.debug(`Finding actions with query: ${JSON.stringify(dto)}`);
     const query = new GetActionsQuery(dto.q, dto.page, dto.size, user.id, user.roles);
     const page = await this.queryBus.execute<GetActionsQuery, Page<Action>>(query);

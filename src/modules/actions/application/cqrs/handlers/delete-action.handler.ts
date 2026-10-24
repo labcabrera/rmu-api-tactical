@@ -33,7 +33,7 @@ export class DeleteActionHandler implements ICommandHandler<DeleteActionCommand>
     await this.actionRepository.deleteById(command.actionId);
     const actorRound = await this.actorRoundRepository.findByActorIdAndRound(action.gameId, action.actorId, action.round);
     if (actorRound?.releaseAction(action.id)) {
-      await this.actorRoundRepository.update(actorRound.id, actorRound);
+      await this.actorRoundRepository.update(actorRound);
     }
     await this.eventPublisher.publish('action', new ActionDeletedEvent(action));
   }

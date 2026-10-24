@@ -78,10 +78,10 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
         : await this.resolveAbsolute(action, context, calculation.total, command.roll.unmodified === UNUSUAL_EVENT_ROLL);
 
     action.close(context.actorRound, currentPhase);
-    const updated = await this.actionRepository.update(action.id, action);
+    const updated = await this.actionRepository.update(action);
     if (alert) {
       context.actorRound.alerts.push(alert);
-      await this.actorRoundRepository.update(context.actorRound.id, context.actorRound);
+      await this.actorRoundRepository.update(context.actorRound);
     }
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     updated.refreshApState(context.actorRound, currentPhase);

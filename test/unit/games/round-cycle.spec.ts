@@ -73,7 +73,7 @@ const world = (initial: Game, actorRounds: ActorRound[], actions: Action[], open
   let current = initial;
   const gameRepository = {
     findById: vi.fn(() => Promise.resolve(current)),
-    update: vi.fn((_id: string, updated: Game) => {
+    update: vi.fn((updated: Game) => {
       current = updated;
       return Promise.resolve(updated);
     }),
@@ -83,7 +83,7 @@ const world = (initial: Game, actorRounds: ActorRound[], actions: Action[], open
     const content = items.filter(item => item.round === round);
     return Promise.resolve(new Page(content, 0, 1000, content.length));
   };
-  const actorRoundUpdate = vi.fn((_id: string, updated: ActorRound) => Promise.resolve(updated));
+  const actorRoundUpdate = vi.fn((updated: ActorRound) => Promise.resolve(updated));
   const actorRoundRepository = {
     findWithUndefinedInitiativeRoll: vi.fn(() => Promise.resolve([])),
     findByRsql: vi.fn((rsql: string) => byRound(actorRounds, rsql)),
@@ -93,7 +93,7 @@ const world = (initial: Game, actorRounds: ActorRound[], actions: Action[], open
     actions.push(saved);
     return Promise.resolve(saved);
   });
-  const actionUpdate = vi.fn((_id: string, updated: Action) => Promise.resolve(updated));
+  const actionUpdate = vi.fn((updated: Action) => Promise.resolve(updated));
   const actionRepository = {
     findByRsql: vi.fn((rsql: string) => byRound(actions, rsql)),
     save: actionSave,
@@ -156,7 +156,7 @@ describe('StartPhaseHandler: carrying open actions (spec 011, §5)', () => {
       { phase: 2, actionId: 'melee', ap: 1, kind: 'spent' },
     ]);
     expect(melee.readiness(actorRound, 2)).toMatchObject({ actionPoints: 2, readiness: 'ready', readinessPenalty: -50 });
-    expect(actionUpdate).toHaveBeenCalledWith('melee', melee);
+    expect(actionUpdate).toHaveBeenCalledWith(melee);
   });
 
   it('interrupts the open action of an unconscious actor (criterion 5)', async () => {
@@ -293,7 +293,7 @@ describe('StartRoundHandler (spec 011, §5)', () => {
     expect(continuation.attacks).toEqual(melee.attacks);
     expect(continuation.attacks).not.toBe(melee.attacks);
     expect(w.actionSave).toHaveBeenCalledWith(continuation);
-    expect(w.actionUpdate).toHaveBeenCalledWith('melee', melee);
+    expect(w.actionUpdate).toHaveBeenCalledWith(melee);
 
     const next = w.actorRound(2);
     expect(continuation.readiness(next, 1)).toMatchObject({ actionPoints: 1, readiness: 'blocked' });
@@ -314,7 +314,7 @@ describe('StartRoundHandler (spec 011, §5)', () => {
     expect(melee.status).toBe('expired');
     expect(melee.actionPoints).toBe(1);
     expect(w.continuationOf('melee')).toBeUndefined();
-    expect(w.actionUpdate).toHaveBeenCalledWith('melee', melee);
+    expect(w.actionUpdate).toHaveBeenCalledWith(melee);
   });
 
   it('carries a multi-round action whatever the option', async () => {
@@ -379,6 +379,6 @@ describe('StartRoundHandler (spec 011, §5)', () => {
 
     expect(legacy.status).toBe('carried');
     expect(w.continuationOf('legacy')).toMatchObject({ carriedAp: 2, resolution: ActionResolution.normal() });
-    expect(w.actorRoundUpdate).toHaveBeenCalledWith(actorRound.id, actorRound);
+    expect(w.actorRoundUpdate).toHaveBeenCalledWith(actorRound);
   });
 });

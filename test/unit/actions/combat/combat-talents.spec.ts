@@ -215,7 +215,7 @@ describe('Combat talents', () => {
     it('rejects the attack when the pace counts as sprint or dash', async () => {
       await expect(prepare({ pace: 'run', sourceTraits: [trait('uncoordinated', 1)] })).rejects.toThrow(ValidationError);
       await expect(prepare({ pace: 'run', sourceTraits: [trait('uncoordinated', 1)] })).rejects.toMatchObject({
-        errorCode: 'err-attack-invalid-pace',
+        code: 'err-attack-invalid-pace',
       });
     });
   });
@@ -225,7 +225,7 @@ describe('Combat talents', () => {
       const actionRepository = {
         findById: vi.fn(() => Promise.resolve(ctx.action)),
         findByRsql: vi.fn(() => Promise.resolve({ content: roundActions })),
-        update: vi.fn((_id: string, updated: Action) => Promise.resolve(updated)),
+        update: vi.fn((updated: Action) => Promise.resolve(updated)),
       } as unknown as ActionRepository;
       const game = {
         id: 'game-1',

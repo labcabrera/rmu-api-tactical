@@ -25,6 +25,6 @@ export class AdjustHpHandler implements ICommandHandler<AdjustHpCommand, ActorRo
     // The phase of the hits log (spec 013, §1.1), when the actor round is the one of the current round.
     const phase = game && game.round === actorRound.round ? game.getEffectPhase() : undefined;
     actorRound.adjustHp(command.dmg || 0, phase);
-    return this.actorRoundRepository.update(actorRound.id, actorRound);
+    return this.actorRoundRepository.update(actorRound);
   }
 }

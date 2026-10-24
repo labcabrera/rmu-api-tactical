@@ -20,15 +20,15 @@ import type { ActorType } from '../../domain/value-objects/actor-type.vo.js';
 import { type ActorRoundDocument, ActorRoundModel } from '../persistence/models/actor-round.model.js';
 
 @Injectable()
-export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, ActorRoundDocument> implements ActorRoundRepository {
-  constructor(@InjectModel(ActorRoundModel.name) actorRoundModel: Model<ActorRoundDocument>, rsqlParser: RsqlParser) {
+export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, ActorRoundModel> implements ActorRoundRepository {
+  constructor(@InjectModel(ActorRoundModel.name) actorRoundModel: Model<ActorRoundModel>, rsqlParser: RsqlParser) {
     super(actorRoundModel, rsqlParser);
   }
 
   async findByIds(ids: string[]): Promise<ActorRound[]> {
     if (!ids || ids.length === 0) return [];
     const docs = await this.model.find({ _id: { $in: ids } });
-    return docs.map(doc => this.mapToEntity(doc));
+    return docs.map(doc => this.toEntity(doc));
   }
 
   findByGameAndRoundAndActors(gameId: string, round: number, actorIds: string[]): Promise<ActorRound[]> {
@@ -37,12 +37,12 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
   }
 
   async findByActorIdAndRound(gameId: string, actorId: string, round: number): Promise<ActorRound | null> {
-    return this.model.findOne({ gameId, actorId, round }).then(readed => (readed ? this.mapToEntity(readed) : null));
+    return this.model.findOne({ gameId, actorId, round }).then(readed => (readed ? this.toEntity(readed) : null));
   }
 
   async findByGameId(gameId: string): Promise<ActorRound[]> {
     const docs = await this.model.find({ gameId }).sort({ round: 1 });
-    return docs.map(doc => this.mapToEntity(doc));
+    return docs.map(doc => this.toEntity(doc));
   }
 
   async deleteByGameId(gameId: string): Promise<void> {
@@ -56,7 +56,7 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
         round,
         $or: [{ 'initiative.roll': { $exists: false } }, { 'initiative.roll': null }],
       })
-      .then(docs => docs.map(doc => this.mapToEntity(doc)));
+      .then(docs => docs.map(doc => this.toEntity(doc)));
   }
 
   private static toHpLogEntry(entry: NonNullable<ActorRoundDocument['hpLog']>[number]): HpLogEntry {

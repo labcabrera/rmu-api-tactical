@@ -1,5 +1,6 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { UpdateGameCommand } from '../../../application/cqrs/commands/update-game.command.js';
 import { GameEnvironment } from '../../../domain/value-objects/game-environment.vo.js';
 import { GameEnvironmentDto } from './game-environment.dto.js';
@@ -22,10 +23,17 @@ export class UpdateGameDto {
   @IsOptional()
   imageUrl: string | undefined;
 
+  @ApiPropertyOptional({ description: 'Version the client read (from the GET); a different stored version is a 409', example: 3 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  version?: number;
+
   static toCommand(id: string, dto: UpdateGameDto, userId: string, roles: string[]) {
     const env = dto.environment
       ? new GameEnvironment(dto.environment.altitudeFatigueModifier, dto.environment.temperatureFatigueModifier)
       : undefined;
-    return new UpdateGameCommand(id, dto.name, env, dto.description, dto.imageUrl, userId, roles);
+    return new UpdateGameCommand(id, dto.name, env, dto.description, dto.imageUrl, userId, roles, dto.version);
   }
 }

@@ -38,7 +38,7 @@ const setup = (actionType: string, extra: Partial<ActionProps> = {}, options: { 
   });
   const actionRepository = {
     findById: vi.fn(() => Promise.resolve(action)),
-    update: vi.fn((_id: string, updated: Action) => Promise.resolve(updated)),
+    update: vi.fn((updated: Action) => Promise.resolve(updated)),
   } as unknown as ActionRepository;
   const gameRepository = {
     findById: vi.fn(() => Promise.resolve({ id: 'game-1', getActionPhase: () => 3 })),
@@ -94,7 +94,7 @@ describe('CompleteActionHandler', () => {
 
   it('rejects standing up with fewer than 2 AP, or 1 with Acrobatics ranks (Table 8-1)', async () => {
     await expect(setup('stand_up', { phaseStart: 3 }).run()).rejects.toMatchObject({
-      errorCode: 'err-stand-up-action-points',
+      code: 'err-stand-up-action-points',
     });
     await expect(setup('stand_up', { freeAction: true }).run()).rejects.toThrow('takes 2 action points');
     const acrobat = await setup('stand_up', { phaseStart: 3 }, { acrobaticsRanks: 2 }).run();
@@ -114,7 +114,7 @@ describe('CompleteActionHandler', () => {
   });
 
   it('rejects a dodge that cannot take the 4 AP, and a defence type on other actions', async () => {
-    await expect(setup('dodge').run()).rejects.toMatchObject({ errorCode: 'err-full-defense-action-points' });
+    await expect(setup('dodge').run()).rejects.toMatchObject({ code: 'err-full-defense-action-points' });
     await expect(setup('dodge', { phaseStart: 1 }).run(undefined, 'block')).rejects.toThrow('no shield');
     await expect(setup('other').run(undefined, 'dodge')).rejects.toThrow('only declared for dodge actions');
   });

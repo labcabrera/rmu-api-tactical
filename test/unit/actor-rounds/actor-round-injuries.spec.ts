@@ -136,7 +136,7 @@ describe('ActorRound injuries (spec 013, §3)', () => {
     round.deleteInjury(id);
     expect(round.injuries).toEqual([]);
     expect(injuryPenalty(round)).toBe(0);
-    expect(() => round.deleteInjury(id)).toThrow(expect.objectContaining({ errorCode: 'err-injury-not-found' }));
+    expect(() => round.deleteInjury(id)).toThrow(expect.objectContaining({ code: 'err-injury-not-found' }));
   });
 
   it('is at risk when bleeding or dying, and not when dead', () => {
@@ -186,6 +186,6 @@ describe('ActorRound stabilize (spec 013, §3)', () => {
     round.stabilize(dying.id, 2);
 
     expect(round.effects.find(e => e.id === dying.id)!.rounds).toBe(4);
-    expect(() => round.stabilize(stunned.id, 1)).toThrow(expect.objectContaining({ errorCode: 'err-effect-not-dying' }));
+    expect(() => round.stabilize(stunned.id, 1)).toThrow(expect.objectContaining({ code: 'err-effect-not-dying' }));
   });
 });

@@ -16,7 +16,8 @@ export interface GameRepository {
 
   save(entity: Game): Promise<Game>;
 
-  update(id: string, entity: Partial<Game>): Promise<Game>;
+  /** Writes the game, provided it is still at the version it was loaded with (else a `version-conflict`). */
+  update(entity: Game): Promise<Game>;
 
   deleteById(id: string): Promise<Game | null>;
 }

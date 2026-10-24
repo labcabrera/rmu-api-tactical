@@ -67,7 +67,7 @@ export class UpdateFumbleRollHandler implements ICommandHandler<UpdateFumbleRoll
     action.refreshAttackStatuses();
 
     action.updatedAt = new Date();
-    const updated = await this.actionRepository.update(action.id, action);
+    const updated = await this.actionRepository.update(action);
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     return updated;
   }

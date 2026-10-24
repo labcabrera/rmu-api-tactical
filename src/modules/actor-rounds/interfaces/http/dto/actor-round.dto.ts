@@ -25,6 +25,9 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Actor Round identifier', example: 'actor-round-123' })
   id: string;
 
+  @ApiProperty({ type: Number, description: 'Version of optimistic concurrency: it goes up with each write', example: 0 })
+  version: number;
+
   @ApiProperty({ description: 'Game identifier', example: 'game-001' })
   gameId: string;
 
@@ -130,6 +133,7 @@ export class ActorRoundDto {
   static fromEntity(entity: ActorRound) {
     const dto = new ActorRoundDto();
     dto.id = entity.id;
+    dto.version = entity.version;
     dto.gameId = entity.gameId;
     dto.actorType = entity.actorType;
     dto.actorId = entity.actorId;

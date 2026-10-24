@@ -73,12 +73,12 @@ export class CompleteActionHandler implements ICommandHandler<CompleteActionComm
     action.close(actorRound, currentPhase);
 
     if (action.actionType === 'dodge' || actorRound.apLedger.length !== ledgerSize) {
-      await this.actorRoundRepository.update(actorRound.id, actorRound);
+      await this.actorRoundRepository.update(actorRound);
     }
     if (action.actionType === 'stand_up') {
       await this.clearProne(actorRound, command);
     }
-    const updated = await this.actionRepository.update(action.id, action);
+    const updated = await this.actionRepository.update(action);
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     updated.refreshApState(actorRound, currentPhase);
     return updated;

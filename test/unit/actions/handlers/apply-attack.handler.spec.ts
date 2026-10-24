@@ -92,7 +92,7 @@ const setup = (attacks: ActionAttack[], parries: ActionParry[] = [], blocks: [nu
   const actionRepository = {
     findById: vi.fn(() => Promise.resolve(action)),
     findByRsql: vi.fn(() => Promise.resolve({ content: [] })),
-    update: vi.fn((_id: string, updated: Action) => Promise.resolve(updated)),
+    update: vi.fn((updated: Action) => Promise.resolve(updated)),
   } as unknown as ActionRepository;
   const update = vi.fn<(id: string, actor: unknown) => Promise<void>>(() => Promise.resolve());
   const actorRoundRepository = {
@@ -153,7 +153,7 @@ describe('ApplyAttackHandler', () => {
     await run();
 
     expect(target.defense.shield!.currentBlocks).toBe(1);
-    expect(update).toHaveBeenCalledWith(target.id, target);
+    expect(update).toHaveBeenCalledWith(target);
   });
 
   it('does not spend a block the shield no longer has', async () => {

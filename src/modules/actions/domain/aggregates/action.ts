@@ -1,8 +1,7 @@
-import { AggregateRoot } from '@nestjs/cqrs';
+import { BaseAggregateRoot } from '../../../shared/domain/aggregates/base-aggregate.js';
 import { randomUUID } from 'crypto';
 import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.js';
 import { UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors/errors.js';
-import { DomainEvent } from '../../../shared/domain/events/domain-event.js';
 import { ActionCreatedEvent } from '../events/action.events.js';
 import type { ProtectPosition } from '../value-objects/action-attack-modifiers.vo.js';
 import { ActionParry } from '../value-objects/action-attack-parry.vo.js';
@@ -88,7 +87,7 @@ export interface ActionProps {
   updatedAt: Date | null;
 }
 
-export class Action extends AggregateRoot<DomainEvent<Action>> {
+export class Action extends BaseAggregateRoot<ActionProps> {
   private constructor(
     public readonly id: string,
     public readonly gameId: string,
@@ -114,7 +113,7 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
     public continuesActionId: string | null = null,
     public carriedAp: number | null = null,
   ) {
-    super();
+    super(id);
   }
 
   /** AP and readiness computed for the response (see `refreshApState`); not stored. */
@@ -889,6 +888,10 @@ export class Action extends AggregateRoot<DomainEvent<Action>> {
       const totalParry = this.parries?.filter(p => p.targetActorId === targetId).reduce((sum, p) => sum + p.parry, 0) || 0;
       attack.modifiers.parry = totalParry;
     });
+  }
+
+  getProps(): ActionProps {
+    return this.toProps();
   }
 
   toProps(): ActionProps {

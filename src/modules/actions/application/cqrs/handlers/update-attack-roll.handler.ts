@@ -56,12 +56,12 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     // Raised when the roll is resolved; a repeated roll does not raise it again.
     if (attack.calculated?.breakageRoll && !previousBreakage) {
       sourceActor.addAttackBreakageAlert(attack.attackName);
-      await this.actorRoundRepository.update(sourceActor.id, sourceActor);
+      await this.actorRoundRepository.update(sourceActor);
     }
 
     action.updatedAt = new Date();
 
-    const updated = await this.actionRepository.update(action.id, action);
+    const updated = await this.actionRepository.update(action);
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     return updated;
   }

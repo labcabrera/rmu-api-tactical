@@ -43,7 +43,7 @@ export class TreatInjuryHandler implements ICommandHandler<TreatInjuryCommand, T
       roll: roll.roll,
       total: roll.total,
     });
-    const updated = await this.actorRoundRepository.update(patient.id, patient);
+    const updated = await this.actorRoundRepository.update(patient);
     return { actorRound: updated, injury: treated.injury, treatment: treated.treatment, roll, heatCritical: treated.effect.heatCritical };
   }
 }

@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { AttackTableEntry } from '../../src/modules/actions/domain/value-objects/action-attack.vo.js';
 import { character, ids, startApp, USERS, type E2eApp, type UserName } from './support/app.js';
 
 type ActionBody = {
@@ -9,6 +10,7 @@ type ActionBody = {
   actionType: string;
   phaseStart: number;
   status: string;
+  version: number;
   attacks?: { modifiers: { attackName: string; targetId: string }; roll?: { roll?: number }; results?: unknown; calculated?: unknown }[];
   [key: string]: unknown;
 };
@@ -24,6 +26,8 @@ beforeAll(async () => {
   e2e = await startApp();
   e2e.world.strategicGames.set('sg-1', { id: 'sg-1', owner: USERS.owner.sub, options: null });
   e2e.world.characters.set('aragorn', character('aragorn'));
+  const [mainHand] = character('eomer').attacks;
+  e2e.world.characters.set('eomer', character('eomer', { attacks: [mainHand, { ...mainHand, attackName: 'offHand' }] }));
   e2e.world.characters.set('lurtz', character('lurtz', { faction: { id: 'faction-2', name: 'Uruk-hai' } }));
 });
 
@@ -38,15 +42,15 @@ const as = (user: UserName) => ({
   delete: (url: string) => request(e2e.server).delete(url).set('Authorization', e2e.auth(user)),
 });
 
-/** A game with Aragorn against Lurtz, in phase 1 of round 1. */
-const gameInPhase1 = async () => {
+/** A game with Aragorn (or another attacker) against Lurtz, in phase 1 of round 1. */
+const gameInPhase1 = async (attacker = 'aragorn') => {
   const created = await as('owner').post('/v1/tactical-games', {
     strategicGameId: 'sg-1',
     name: 'Amon Hen',
     description: 'Parth Galen',
     factions: ['faction-1', 'faction-2'],
     actors: [
-      { id: 'aragorn', type: 'character' },
+      { id: attacker, type: 'character' },
       { id: 'lurtz', type: 'character' },
     ],
   });
@@ -58,8 +62,8 @@ const gameInPhase1 = async () => {
   return gameId;
 };
 
-const declareAttack = async (gameId: string) => {
-  const response = await as('owner').post('/v1/actions', { gameId, actorId: 'aragorn', actionType: 'melee_attack', phaseStart: 1 });
+const declareAttack = async (gameId: string, actorId = 'aragorn') => {
+  const response = await as('owner').post('/v1/actions', { gameId, actorId, actionType: 'melee_attack', phaseStart: 1 });
   expect(response.status).toBe(201);
   return response.body as ActionBody;
 };
@@ -93,6 +97,24 @@ describe('declare', () => {
     await as('owner').post(`/v1/tactical-games/${gameId}/rounds/start`);
     const response = await as('owner').post('/v1/actions', { gameId, actorId: 'aragorn', actionType: 'melee_attack', phaseStart: 1 });
     expect(response.status).toBe(400);
+  });
+
+  // rmu-mfe-tactical loads every action of a round in one page: actions go up to 1000 a page (spec 020).
+  it('limits the page size to 1000', async () => {
+    expect((await as('owner').get('/v1/actions?size=1000')).status).toBe(200);
+    expect((await as('owner').get('/v1/actions?size=1001')).status).toBe(400);
+  });
+
+  it('changes the description with the version it read, and rejects a stale one', async () => {
+    const gameId = await gameInPhase1();
+    const action = await declareAttack(gameId);
+    expect(action.version).toBe(0);
+    const changed = await as('owner').patch(`/v1/actions/${action.id}`, { description: 'Strike', version: 0 });
+    expect(changed.status).toBe(200);
+    expect(changed.body).toMatchObject({ description: 'Strike', version: 1 });
+    const stale = await as('owner').patch(`/v1/actions/${action.id}`, { description: 'Again', version: 0 });
+    expect(stale.status).toBe(409);
+    expect(stale.body).toMatchObject({ code: 'version-conflict' });
   });
 
   it('validates the body', async () => {
@@ -171,6 +193,46 @@ describe('attack', () => {
     const after = await as('owner').get(`/v1/actor-rounds/${lurtz.id}`);
     // 12 of the table plus 6 of the critical.
     expect((after.body as { hp: { current: number } }).hp.current).toBe(lurtz.hp.current - 18);
+  });
+});
+
+// Two attacks of one action: ApplyAttackHandler subtracts the OB of each from the attacker's actor round with parallel
+// commands (Promise.all), each on its own copy. Before spec 020 the last write won and one subtraction was lost; with
+// the version the second write is a 409 and the attack is left half applied [F-tactical-15].
+describe('attack with two weapons', () => {
+  const twoAttacks = async () => {
+    const gameId = await gameInPhase1('eomer');
+    const action = await declareAttack(gameId, 'eomer');
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/phases/start`)).status).toBe(200);
+    const prepared = await as('owner').patch(`/v1/actions/${action.id}/attack/prepare`, {
+      attacks: ['mainHand', 'offHand'].map(attackName => ({ attackName, modifiers: { targetId: 'lurtz', bo: 30 }, protectors: null })),
+    });
+    expect(prepared.status).toBe(200);
+    e2e.world.attackEntry = new AttackTableEntry('8', 8, undefined, undefined);
+    try {
+      for (const attackName of ['mainHand', 'offHand']) {
+        expect((await as('owner').patch(`/v1/actions/${action.id}/attack/roll`, { attackName, roll: 60 })).status).toBe(200);
+      }
+    } finally {
+      e2e.world.attackEntry = new AttackTableEntry('12CS', 12, 'S', 'C');
+    }
+    return action;
+  };
+
+  it('answers 409 version-conflict when applying it [F-tactical-15]', async () => {
+    const action = await twoAttacks();
+    const applied = await as('owner').patch(`/v1/actions/${action.id}/attack/apply`);
+    expect(applied.status).toBe(409);
+    expect(applied.body).toMatchObject({ code: 'version-conflict' });
+    // The conflict is on the attacker's actor round.
+    const rounds = await as('owner').get(`/v1/actor-rounds?q=gameId==${action.gameId};actorId==eomer`);
+    const eomer = (rounds.body as { content: { id: string }[] }).content[0];
+    expect((applied.body as { message: string }).message).toContain(eomer.id);
+  });
+
+  it.skip('applies both attacks [F-tactical-15]', async () => {
+    const action = await twoAttacks();
+    expect((await as('owner').patch(`/v1/actions/${action.id}/attack/apply`)).status).toBe(200);
   });
 });
 

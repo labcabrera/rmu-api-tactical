@@ -133,7 +133,7 @@ describe('TacticalGameOutcomeCalculator (spec 013, §3)', () => {
 
     expect(() => TacticalGameOutcomeCalculator.finish(game(), actorRounds, [])).toThrow(
       expect.objectContaining({
-        errorCode: 'err-finish-fate-required',
+        code: 'err-finish-fate-required',
         details: { atRisk: [expect.objectContaining({ actorId: 'aragorn' })] },
       }),
     );
@@ -168,10 +168,10 @@ describe('TacticalGameOutcomeCalculator (spec 013, §3)', () => {
 
   it('rejects actions on a finished game, and finishing it again', () => {
     const finished = game('finished');
-    expect(() => finished.checkValidActionManagement()).toThrow(expect.objectContaining({ errorCode: 'err-game-finished' }));
-    expect(() => finished.startRound()).toThrow(expect.objectContaining({ errorCode: 'err-game-finished' }));
-    expect(() => finished.startPhase()).toThrow(expect.objectContaining({ errorCode: 'err-game-finished' }));
-    expect(() => finished.finish({ finishedAt: '', characters: [] })).toThrow(expect.objectContaining({ errorCode: 'err-game-finished' }));
+    expect(() => finished.checkValidActionManagement()).toThrow(expect.objectContaining({ code: 'err-game-finished' }));
+    expect(() => finished.startRound()).toThrow(expect.objectContaining({ code: 'err-game-finished' }));
+    expect(() => finished.startPhase()).toThrow(expect.objectContaining({ code: 'err-game-finished' }));
+    expect(() => finished.finish({ finishedAt: '', characters: [] })).toThrow(expect.objectContaining({ code: 'err-game-finished' }));
   });
 });
 
@@ -188,7 +188,7 @@ describe('ApplyGameHandler (spec 013, §3)', () => {
   const setup = (finished: Game, failing: string[] = []) => {
     const gameRepository = {
       findById: vi.fn(() => Promise.resolve(finished)),
-      update: vi.fn((_id: string, updated: Game) => Promise.resolve(updated)),
+      update: vi.fn((updated: Game) => Promise.resolve(updated)),
     } as unknown as GameRepository;
     const apply = vi.fn((characterId: string) => (failing.includes(characterId) ? Promise.reject(new Error('boom')) : Promise.resolve()));
     const publish = vi.fn();
@@ -228,14 +228,14 @@ describe('ApplyGameHandler (spec 013, §3)', () => {
     expect(retry.publish).toHaveBeenCalledWith('game', expect.objectContaining({ eventType: 'applied' }));
 
     await expect(retry.handler.execute(new ApplyGameCommand('game-1', 'gm', []))).rejects.toThrow(
-      expect.objectContaining({ errorCode: 'err-outcome-already-applied' }),
+      expect.objectContaining({ code: 'err-outcome-already-applied' }),
     );
   });
 
   it('only applies a finished game', async () => {
     const { handler } = setup(game());
     await expect(handler.execute(new ApplyGameCommand('game-1', 'gm', []))).rejects.toThrow(
-      expect.objectContaining({ errorCode: 'err-game-not-finished' }),
+      expect.objectContaining({ code: 'err-game-not-finished' }),
     );
   });
 });

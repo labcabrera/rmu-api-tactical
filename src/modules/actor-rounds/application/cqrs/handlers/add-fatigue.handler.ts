@@ -30,7 +30,7 @@ export class AddFatigueHandler implements ICommandHandler<AddFatigueCommand, Act
 
     actorRound.addFatigue(command.fatigue);
 
-    const updated = await this.actorRoundRepository.update(actorRound.id, actorRound);
+    const updated = await this.actorRoundRepository.update(actorRound);
     //TODO notify event bus
     return updated;
   }

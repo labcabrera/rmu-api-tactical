@@ -89,7 +89,7 @@ describe('ResolveEnduranceCheckHandler', () => {
     round.alerts.push(alert);
     const actorRoundRepository = {
       findById: vi.fn(() => Promise.resolve(round)),
-      update: vi.fn((_id: string, updated: ActorRound) => Promise.resolve(updated)),
+      update: vi.fn((updated: ActorRound) => Promise.resolve(updated)),
     } as unknown as ActorRoundRepository;
     const enduranceFn = vi.fn<(roll: number) => Promise<EnduranceManeuverResult>>(() =>
       Promise.resolve({ result: 'failure', message: 'Tired', bonus: 0, ...endurance }),

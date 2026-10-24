@@ -146,13 +146,13 @@ export const setupManeuver = (options: ManeuverSetup = {}) => {
   } as unknown as Character;
   const game = { id: 'game-1', phase: options.phase ?? 'phase_1', round: 1, checkNotFinished: () => undefined } as unknown as Game;
 
-  const actionUpdate = vi.fn((_id: string, updated: Action) => Promise.resolve(updated));
+  const actionUpdate = vi.fn((updated: Action) => Promise.resolve(updated));
   const actionRepository = {
     findById: vi.fn((id: string) => Promise.resolve(roundActions.find(a => a.id === id) ?? null)),
     findByRsql: vi.fn(() => Promise.resolve({ content: roundActions, page: 0, size: 100, totalElements: roundActions.length })),
     update: actionUpdate,
   } as unknown as ActionRepository;
-  const actorRoundUpdate = vi.fn((_id: string, updated: ActorRound) => Promise.resolve(updated));
+  const actorRoundUpdate = vi.fn((updated: ActorRound) => Promise.resolve(updated));
   const actorRoundRepository = {
     findByActorIdAndRound: vi.fn(() => Promise.resolve(actorRound)),
     update: actorRoundUpdate,
