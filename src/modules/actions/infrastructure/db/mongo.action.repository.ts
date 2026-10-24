@@ -24,9 +24,6 @@ export class MongoActionRepository extends MongoBaseRepository<Action, ActionMod
   async deleteByGameId(gameId: string): Promise<void> {
     await this.model.deleteMany({ gameId });
   }
-  async deleteByCharacterId(characterId: string): Promise<void> {
-    await this.model.deleteMany({ characterId });
-  }
 
   protected mapToEntity(doc: ActionDocument): Action {
     return Action.fromProps({

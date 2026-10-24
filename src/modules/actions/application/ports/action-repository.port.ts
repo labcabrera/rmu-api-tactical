@@ -16,8 +16,6 @@ export interface ActionRepository {
   deleteById(id: string): Promise<Action | null>;
 
   deleteByGameId(gameId: string): Promise<void>;
-
-  deleteByCharacterId(characterId: string): Promise<void>;
 }
 
 export const ACTION_REPOSITORY = Symbol('ActionRepository');
