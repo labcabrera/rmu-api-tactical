@@ -102,8 +102,8 @@ describe('Items of the actor', () => {
 });
 
 describe('ResolveBreakageCheckHandler', () => {
-  const setup = (finished = false) => {
-    const round = new ActorRoundCharacterMapperAdapter().toActorRound('game-1', 1, character(), ITEMS);
+  const setup = (finished = false, items = ITEMS) => {
+    const round = new ActorRoundCharacterMapperAdapter().toActorRound('game-1', 1, character(), items);
     const update = vi.fn((entity: ActorRound) => Promise.resolve(ActorRound.fromProps(entity.getProps())));
     const actorRoundRepository = { findById: vi.fn(() => Promise.resolve(round)), update } as unknown as ActorRoundRepository;
     const checkNotFinished = vi.fn(() => {
@@ -125,6 +125,22 @@ describe('ResolveBreakageCheckHandler', () => {
       modifier: { value: -20, source: { tacticalGameName: 'Ambush' } },
     });
     expect(updated.attacks[0].currentBo).toBe(40);
+  });
+
+  it('adds the Strength of a crafted item to the check (workspace spec 023, decision 3)', async () => {
+    const masterwork = item('sword', {
+      weapon: {},
+      modifiers: [
+        { id: 'm-1', type: 'breakage', value: -10, appliesTo: 'all', createdAt: '' },
+        { id: 'm-2', type: 'quality', value: 10, appliesTo: 'breakage', source: { kind: 'crafting', ledgerEntryId: 'l-1' }, createdAt: '' },
+        { id: 'm-3', type: 'quality', value: 5, appliesTo: 'attack', source: { kind: 'crafting', ledgerEntryId: 'l-1' }, createdAt: '' },
+      ],
+    });
+    const { handler } = setup(false, [masterwork, ...ITEMS.slice(1)]);
+    const updated = await handler.execute(
+      new ResolveBreakageCheckCommand('ar-1', 'sword', -30, undefined, undefined, undefined, [], 'u', []),
+    );
+    expect(updated.lastBreakageCheck).toMatchObject({ total: 50 });
   });
 
   it('rejects checks in a finished game', async () => {

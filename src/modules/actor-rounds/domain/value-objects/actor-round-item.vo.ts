@@ -6,12 +6,14 @@ export type ItemModifierType = 'breakage' | 'quality' | 'custom';
 /** Uses of the item a modifier applies to. */
 export type ItemModifierTarget = 'all' | 'breakage' | 'attack' | 'defense' | 'maneuver';
 
+/** Where a modifier comes from; workspace spec 023 adds the crafting and repair of the item and its catalog type. */
 export interface ItemModifierSource {
-  kind: 'tactical' | 'manual';
+  kind: 'tactical' | 'manual' | 'crafting' | 'repair' | 'catalog';
   tacticalGameId?: string;
   tacticalGameName?: string;
   round?: number;
   actionId?: string;
+  ledgerEntryId?: string;
 }
 
 /** A modifier of an item: the same uuid in the tactical game and in the strategic item once applied. */
