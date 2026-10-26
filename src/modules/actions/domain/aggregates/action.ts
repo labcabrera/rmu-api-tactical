@@ -404,7 +404,8 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       const penalty = resolution.reason === 'effect' ? 0 : profile.penaltyFor(actionPoints);
       return { actionPoints, readiness: byStatus ?? (penalty === 0 ? 'optimal' : 'ready'), readinessPenalty: penalty };
     }
-    if (actionPoints >= profile.max) {
+    // A free action (an instantaneous spell...) takes no AP penalty, as its resolution does not apply one.
+    if (actionPoints >= profile.max || !this.takesApPenalty()) {
       return { actionPoints, readiness: byStatus ?? 'optimal', readinessPenalty: 0 };
     }
     if (profile.reachesMin(actionPoints)) {

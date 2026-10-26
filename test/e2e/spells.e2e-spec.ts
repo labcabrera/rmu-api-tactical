@@ -138,7 +138,8 @@ describe('declare a cast (spec 030)', () => {
   it('copies the spell and the caster from the spellbook of strategic', async () => {
     const gameId = await gameInPhase1();
     const action = await declared(gameId, 'sleep', true);
-    expect(action).toMatchObject({ actionType: 'cast_spell', freeAction: true, status: 'declared' });
+    // Instantaneous: no AP and no AP penalty
+    expect(action).toMatchObject({ actionType: 'cast_spell', freeAction: true, status: 'declared', readinessPenalty: 0 });
     expect(action.spell.spell).toMatchObject({ spellId: 'sleep', name: 'E2E Sleep', powerPoints: 1, type: 'force' });
     expect(action.spell.caster).toMatchObject({ ranks: 5, realmStatBonus: 8, level: 3 });
   });
