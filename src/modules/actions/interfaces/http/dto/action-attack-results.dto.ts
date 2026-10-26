@@ -40,6 +40,8 @@ export class ActionAttackResultsDto {
               value: number | undefined;
               delay: number | undefined;
               condition: string | undefined;
+              severity?: string;
+              dice?: string;
             }[]
           | undefined;
       }
@@ -69,6 +71,8 @@ export class ActionAttackResultsDto {
                 value: e.value,
                 delay: e.delay,
                 condition: e.condition,
+                severity: e.severity,
+                dice: e.dice,
               }))
             : undefined,
         }

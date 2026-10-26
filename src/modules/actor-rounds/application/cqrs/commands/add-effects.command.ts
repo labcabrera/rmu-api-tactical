@@ -31,6 +31,8 @@ export class AddEffectsCommand extends AuthenticatedCommand {
     public readonly hpChanges: HpChange[] = [],
     /** The attack of a fumble of the actor: its item takes the breakage roll of the fumble (spec 019). */
     public fumbleAttackName?: string,
+    /** Severities of the criticals the actor's fumbles give it, for the game master to roll (spec 034). */
+    public readonly fumbleCriticals: string[] = [],
   ) {
     super(userId, roles);
   }

@@ -4,21 +4,13 @@ import { TokenService } from '../../../shared/infrastructure/security/token.serv
 import { HttpClient } from '../../../shared/infrastructure/http/http-client.js';
 import type { FumbleTableLookupRequest, FumbleTablePort } from '../../application/ports/fumble-table.port.js';
 import { Fumble } from '../../domain/value-objects/action-attack.vo.js';
-import { CriticalEffect } from '../../domain/value-objects/critical-result.vo.js';
-
-interface FumbleTableEffect {
-  status: string;
-  rounds?: number;
-  value?: number;
-  delay?: number;
-  condition?: string;
-}
+import { CriticalEffect, type CriticalTableEffect } from '../../domain/value-objects/critical-result.vo.js';
 
 interface FumbleTableResponse {
   text?: string;
   additionalDamageText?: string;
   damage?: number;
-  effects?: FumbleTableEffect[];
+  effects?: CriticalTableEffect[];
 }
 
 const MIN_ROLL = 1;
@@ -46,7 +38,7 @@ export class ApiFumbleTableAdapter implements FumbleTablePort {
 
   /** The fumble tables have no damage yet: 0 unless the entry gives it, as the Python service did. */
   private mapResult(data: FumbleTableResponse): Fumble {
-    const effects = (data.effects || []).map(e => new CriticalEffect(e.status, e.rounds, e.value, e.delay, e.condition));
+    const effects = (data.effects || []).map(e => CriticalEffect.fromTable(e));
     return new Fumble('completed', data.text, data.additionalDamageText, data.damage || 0, effects);
   }
 }

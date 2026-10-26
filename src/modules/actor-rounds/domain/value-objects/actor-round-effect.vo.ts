@@ -52,6 +52,27 @@ export const FEAR_EFFECTS = [FEAR_BALK, FEAR_RETREAT, FEAR_ROUTED, FEAR_BROKEN];
 /** Fear states that keep the actor from declaring attacks. */
 export const FEAR_NO_ATTACK_EFFECTS = [FEAR_ROUTED, FEAR_BROKEN];
 
+/**
+ * Effects the critical and fumble tables only gave in the text (workspace spec 034, phase 4). `half_activity` caps the
+ * AP at 2 and `half_movement` halves the movement rate; `cannot_parry` and `cannot_attack` keep the actor from parrying
+ * and from declaring attacks; `disarmed` from attacking with an item until the game master removes it; `arm_useless`
+ * is both (a `limb_useless` arm; a leg is `half_movement`). `initiative_penalty` (negative `value`) lowers the
+ * initiative, `attack_penalty` (negative `value`) the OB, and `blinded` fights in pitch black (-100).
+ */
+export const HALF_ACTIVITY = 'half_activity';
+export const HALF_MOVEMENT = 'half_movement';
+export const CANNOT_PARRY = 'cannot_parry';
+export const CANNOT_ATTACK = 'cannot_attack';
+export const DISARMED = 'disarmed';
+export const ARM_USELESS = 'arm_useless';
+export const INITIATIVE_PENALTY = 'initiative_penalty';
+export const ATTACK_PENALTY = 'attack_penalty';
+export const BLINDED = 'blinded';
+/** AP cap of half activity. */
+export const HALF_ACTIVITY_AP = 2;
+/** OB modifier of a blinded attacker: the pitch black row of Table 5-1 where sight is required (ch. 15). */
+export const BLINDED_MODIFIER = -100;
+
 export const AP_EFFECT_STATUSES = [
   SURPRISED,
   FLATFOOTED,
@@ -82,12 +103,20 @@ export class ActorRoundEffect {
     public targetActorId?: string,
     /** Where the effect comes from: the critical or fumble, or the strategic condition it was copied from. */
     public source?: InjurySource,
+    /** First round the effect counts in (a delayed effect, spec 034): before it, it neither applies nor loses rounds. */
+    public fromRound?: number,
   ) {}
+
+  /** The effect is delayed and has not started by `round`. */
+  static isPending(effect: ActorRoundEffect, round: number): boolean {
+    return effect.fromRound !== undefined && effect.fromRound !== null && effect.fromRound > round;
+  }
 
   static isUnique(effect: ActorRoundEffect): boolean {
     switch (effect.status) {
       case DEAD:
       case UNCONSCIOUS:
+      case DISARMED:
       case 'surprised':
       case 'flatfooted':
         return true;

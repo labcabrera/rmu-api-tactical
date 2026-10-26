@@ -6,6 +6,7 @@ import {
   ACTOR_ROUND_REPOSITORY,
 } from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
+import type { ActorRoundAttack } from '../../../../actor-rounds/domain/value-objects/actor-round-attack.vo.js';
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../../shared/domain/errors/errors.js';
 import { type Character, type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port.js';
@@ -34,6 +35,9 @@ import type {
 import { COMBAT_SKILL_IDS, CombatModifierBag, CombatProcessor, sizeDifference, sourceAttackOf } from '../../services/combat/index.js';
 import { PrepareAttackCommand, PrepareAttackCommandItem } from '../commands/prepare-attack.command.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
+
+/** An attack with the body (natural weapons, unarmed skills), which a disarmed actor can still make. */
+const isBodyAttack = (attack: ActorRoundAttack): boolean => attack.weaponCategory === 'natural' || !!attack.skillId?.startsWith('unarmed');
 
 @CommandHandler(PrepareAttackCommand)
 export class PrepareAttackHandler implements ICommandHandler<PrepareAttackCommand, Action> {
@@ -298,7 +302,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
 
   /** Statuses of the actor's active effects; the statuses declared in the attack modifiers are read by the plugins. */
   private mapEffectStatuses(actorRound: ActorRound): string[] {
-    return actorRound.effects?.map(effect => effect.status) || [];
+    return actorRound.activeEffects().map(effect => effect.status);
   }
 
   private mapAttacks(commandAttack: PrepareAttackCommandItem, action: Action, source: ActorRound): ActionAttack {
@@ -309,6 +313,10 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     // Spec 019, decision 8: the item of the attack broke in the game.
     if (attack.broken) {
       throw new ValidationError(`The item of attack ${attack.attackName} is broken`, 'err-attack-item-broken');
+    }
+    // Spec 034: a disarmed actor (or one with a useless arm) only attacks with its body until the game master says so.
+    if (source.isDisarmed() && !isBodyAttack(attack)) {
+      throw new ValidationError(`The actor is disarmed: it cannot attack with ${attack.attackName}`, 'err-attack-disarmed');
     }
     if (commandAttack.modifiers.bo > attack.currentBo) {
       throw new ValidationError(`BO cannot be higher than current BO (${attack.currentBo})`);

@@ -36,6 +36,7 @@ import { CombatShieldPlugin } from './combat-shield.plugin.js';
 import { CombatSizeDifferencePlugin } from './combat-size-difference.plugin.js';
 import { CombatStunPlugin } from './combat-stun.plugin.js';
 import { CombatSurprisedPlugin } from './combat-surprised.plugin.js';
+import { CombatTextEffectsPlugin } from './combat-text-effects.plugin.js';
 import { CombatTwoHandedWeaponPlugin } from './combat-two-handed-weapon.plugin.js';
 
 export const COMBAT_PLUGIN_LIST: CombatPlugin[] = [
@@ -56,6 +57,7 @@ export const COMBAT_PLUGIN_LIST: CombatPlugin[] = [
   // prepare
   CombatRestrictedQuartersPlugin,
   CombatProneSourcePlugin,
+  CombatTextEffectsPlugin,
   CombatStunPlugin,
   CombatSurprisedPlugin,
   CombatFlatfootedTargetPlugin,

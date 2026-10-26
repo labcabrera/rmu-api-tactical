@@ -99,6 +99,14 @@ describe('Action declaration (§8.1, §8.3; spec 011, §2)', () => {
     expect(() => declare([], 1, false, { effects: [effect('fear-broken', 30)] })).not.toThrow();
   });
 
+  it('rejects an attack of an actor that cannot attack, not its other actions (workspace spec 034)', () => {
+    const options = { effects: [effect('cannot_attack', undefined, 2)] };
+    expect(() => Action.checkDeclaration(load(options), [], request(1, false, 'melee_attack'), 1)).toThrow(
+      expect.objectContaining({ code: 'err-action-cannot-attack' }),
+    );
+    expect(() => declare([], 1, false, options)).not.toThrow();
+  });
+
   it('frightens with the worst fear and refuses an unknown one (workspace spec 022)', () => {
     const round = load();
     expect(round.changeFear(1)).toBeUndefined();

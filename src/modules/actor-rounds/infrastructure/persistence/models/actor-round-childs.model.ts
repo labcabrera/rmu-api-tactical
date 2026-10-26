@@ -51,6 +51,10 @@ export class ActorRoundEffect {
   /** Spec 013: the critical, fumble or condition the effect comes from. */
   @Prop({ type: Object, required: false })
   source?: InjurySource;
+
+  /** Spec 034: first round a delayed effect counts in. */
+  @Prop({ type: Number, required: false })
+  fromRound?: number;
 }
 
 @Schema({ _id: false })

@@ -133,6 +133,7 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
             e.spentApBefore,
             e.targetActorId,
             e.source,
+            e.fromRound ?? undefined,
           ),
       ),
       traits: (doc.traits || []).map(trait => new ActorRoundTrait(trait.traitId, trait.tier || 1, trait.specialization ?? null)),

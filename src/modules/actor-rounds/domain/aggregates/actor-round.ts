@@ -12,14 +12,23 @@ import {
   ActorRoundEffect,
   ADRENAL_SPEED,
   AP_CAP,
+  ARM_USELESS,
+  ATTACK_PENALTY,
   BLEEDING,
+  CANNOT_ATTACK,
+  CANNOT_PARRY,
   DEAD,
+  DISARMED,
   DISTRACTION,
   DYING,
   FEAR_EFFECTS,
   FEAR_NO_ATTACK_EFFECTS,
   FLATFOOTED,
+  HALF_ACTIVITY,
+  HALF_ACTIVITY_AP,
+  HALF_MOVEMENT,
   INCAPACITATED,
+  INITIATIVE_PENALTY,
   PARALYZED,
   HASTE,
   HOLD,
@@ -1011,7 +1020,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    * always end with their round.
    */
   private getEffectsLosingARound(): ActorRoundEffect[] {
-    const timed = this.effects.filter(e => e.rounds !== undefined && e.rounds !== null);
+    const timed = this.activeEffects().filter(e => e.rounds !== undefined && e.rounds !== null);
     const worstStun = this.getWorstStun();
     return timed
       .filter(e => e.status !== 'stunned' || e === worstStun)
@@ -1122,6 +1131,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
 
   /** Most it can parry with its melee attacks: the OB left, with the penalties applied. */
   getAvailableParry(): number {
+    if (this.isParryForbidden()) {
+      return 0;
+    }
     const penalty = this.getPenaltySum();
     return this.attacks
       .filter(a => a.type === 'melee')
@@ -1141,8 +1153,50 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     return this.effects.some(e => e.status === DEAD);
   }
 
+  /** The actor has the effect, started (a delayed effect counts from its round, spec 034). */
   hasEffect(status: string): boolean {
-    return this.effects.some(e => e.status === status);
+    return this.activeEffects().some(e => e.status === status);
+  }
+
+  /** The effects that count this round: all but the delayed ones not started yet (spec 034). */
+  activeEffects(): ActorRoundEffect[] {
+    return (this.effects ?? []).filter(e => !ActorRoundEffect.isPending(e, this.round));
+  }
+
+  // --- Effects of the critical and fumble texts (workspace spec 034, phase 4) ---
+
+  /** `cannot_attack`: the actor cannot declare attacks. */
+  isAttackForbidden(): boolean {
+    return this.hasEffect(CANNOT_ATTACK);
+  }
+
+  /** `cannot_parry` or a useless arm: the actor cannot parry nor protect. */
+  isParryForbidden(): boolean {
+    return this.hasEffect(CANNOT_PARRY) || this.hasEffect(ARM_USELESS);
+  }
+
+  /** Disarmed or with a useless arm: the actor cannot attack with an item until the game master removes it. */
+  isDisarmed(): boolean {
+    return this.hasEffect(DISARMED) || this.hasEffect(ARM_USELESS);
+  }
+
+  /** Half movement rate. */
+  hasHalfMovement(): boolean {
+    return this.hasEffect(HALF_MOVEMENT);
+  }
+
+  /** Sum of the OB penalties of the `attack_penalty` effects (negative). */
+  getAttackPenalty(): number {
+    return this.activeEffects()
+      .filter(e => e.status === ATTACK_PENALTY)
+      .reduce((sum, e) => sum + Math.min(0, e.value ?? 0), 0);
+  }
+
+  /** Sum of the `initiative_penalty` effects (negative). */
+  private getInitiativeEffectPenalty(): number {
+    return this.activeEffects()
+      .filter(e => e.status === INITIATIVE_PENALTY)
+      .reduce((sum, e) => sum + Math.min(0, e.value ?? 0), 0);
   }
 
   /** Dead, dying, unconscious, incapacitated or paralyzed: the actor's open actions cannot go on (spec 011, §5). */
@@ -1166,7 +1220,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     if (strikeReflex && ActorRoundTrait.tierOf(this.traits, STRIKE_REFLEX) === 0) {
       throw new ValidationError('The actor has not the Strike Reflex talent', 'err-strike-reflex-without-trait');
     }
-    const penalty = Math.trunc(this.getPenaltySum() / 10) || 0;
+    const penalty = (Math.trunc(this.getPenaltySum() / 10) || 0) + this.getInitiativeEffectPenalty();
     const strikeReflexBonus = strikeReflex ? STRIKE_REFLEX_BONUS : 0;
     const reflexesBonus = this.getReflexesInitiativeBonus();
     const styleBonus = this.getStyleInitiativeBonus();
@@ -1460,7 +1514,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   /** AP modifiers of the effects (spec 011, §1, initial sources). */
   private deriveApModifiers(): ApModifier[] {
     const modifiers: ApModifier[] = [];
-    for (const effect of this.effects ?? []) {
+    for (const effect of this.activeEffects()) {
       const value = effect.value ?? 0;
       switch (effect.status) {
         case SURPRISED:
@@ -1496,6 +1550,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
           if (effect.value !== undefined && effect.value !== null) {
             modifiers.push(new ApModifier('cap', 'cap', effect.value, undefined, effect.id));
           }
+          break;
+        case HALF_ACTIVITY:
+          modifiers.push(new ApModifier('half-activity', 'cap', HALF_ACTIVITY_AP, undefined, effect.id));
           break;
         case MANUAL_AP:
           if (value > 0) {
@@ -1600,6 +1657,11 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   }
 
   /** A fumble breaks the item of the attack that fumbled. */
+  /** Spec 034: the fumble gives the fumbler a critical of that severity, for the game master to roll. */
+  addFumbleCriticalAlert(severity: string, attackName?: string): void {
+    this.alerts.push(ActorRoundAlert.buildFumbleCritical(severity, attackName));
+  }
+
   addFumbleBreakageAlert(attackName: string | undefined, penalty?: number) {
     const itemId = attackName ? this.attackItem(attackName)?.itemId : undefined;
     this.alerts.push(

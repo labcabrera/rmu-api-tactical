@@ -66,6 +66,16 @@ export class ActorRoundAlert {
     this.status = 'resolved';
   }
 
+  /** A fumble that gives the fumbler a critical (spec 034): the game master rolls it, of the type the text says. */
+  static buildFumbleCritical(criticalSeverity: string, attackName?: string): ActorRoundAlert {
+    const modifiers = [
+      new ActorRoundAlertModifier('origin', null, 'fumble'),
+      new ActorRoundAlertModifier('criticalSeverity', null, criticalSeverity),
+    ];
+    if (attackName) modifiers.push(new ActorRoundAlertModifier('attackName', null, attackName));
+    return new ActorRoundAlert(randomUUID(), 'critical', `Critical ${criticalSeverity} from a fumble`, modifiers);
+  }
+
   static buildCritical(criticalType: string, criticalSeverity: string, message?: string): ActorRoundAlert {
     return new ActorRoundAlert(randomUUID(), 'critical', message || `Critical ${criticalSeverity} on ${criticalType}`, [
       new ActorRoundAlertModifier('criticalType', null, criticalType),

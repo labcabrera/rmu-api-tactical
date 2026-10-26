@@ -10,7 +10,16 @@ import {
   ACTOR_ROUND_REPOSITORY,
 } from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
 import { ActorRound, type EffectApplication } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
-import { ActorRoundEffect, NON_VIOLENT, PRESSING_ADVANTAGE } from '../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
+import {
+  ActorRoundEffect,
+  ARM_USELESS,
+  CANNOT_PARRY,
+  HALF_ACTIVITY,
+  HALF_MOVEMENT,
+  INITIATIVE_PENALTY,
+  NON_VIOLENT,
+  PRESSING_ADVANTAGE,
+} from '../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
 import {
   ActorRoundTrait,
   NON_VIOLENT_TRAIT,
@@ -18,7 +27,7 @@ import {
   RAPID_BLEEDER,
   SLOW_BLEEDER,
 } from '../../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
-import { CriticalInjuryFactory } from '../../../../actor-rounds/domain/services/critical-injury.factory.js';
+import { type CriticalEffectData, CriticalInjuryFactory } from '../../../../actor-rounds/domain/services/critical-injury.factory.js';
 import type { HpChange } from '../../../../actor-rounds/domain/value-objects/hp-log-entry.vo.js';
 import { type InjurySource, sideOfRoll } from '../../../../actor-rounds/domain/value-objects/injury.vo.js';
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
@@ -28,6 +37,7 @@ import { type StrategicGame, STRATEGIC_GAME_PORT } from '../../../../strategic/a
 import { StrategicGameApiClient } from '../../../../strategic/infrastructure/api-clients/api.strategic-game.adapter.js';
 import { Action } from '../../../domain/aggregates/action.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
+import { ADDITIONAL_CRITICAL, FUMBLE_HITS } from '../../../domain/services/fumble-hits.js';
 import { ActionAttack } from '../../../domain/value-objects/action-attack.vo.js';
 import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo.js';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
@@ -49,6 +59,10 @@ interface AttackOrigin {
 }
 
 const HEAL = 'heal';
+/** A useless limb of the critical texts (spec 034): an arm is `arm_useless`, a leg half movement. */
+const LIMB_USELESS = 'limb_useless';
+/** Effects of the critical texts that start `delay` rounds later (spec 034); the delayed stuns follow the worst one. */
+const DELAYED_STATUSES = [HALF_ACTIVITY, CANNOT_PARRY, INITIATIVE_PENALTY];
 
 /** OB bonus per tier of Pressing the Advantage. */
 const PRESSING_BONUS_PER_TIER = 10;
@@ -300,11 +314,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
         source,
       });
       injuries.push(...built.injuries);
-      built.effects.forEach(e =>
-        criticalEffects.push(
-          new ActorRoundEffect(randomUUID(), e.status, e.value, e.rounds, undefined, undefined, undefined, undefined, source),
-        ),
-      );
+      criticalEffects.push(...this.toRoundEffects(built.effects, source, origin.game.round));
     });
     if (sourceHeal > 0) {
       const sourceCmd = this.commandFor(origin.sourceActor, applications, updateCommands, userId, roles);
@@ -354,17 +364,17 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     const fumble = actionAttack.results.fumble;
     const source = this.sourceOf(origin, 'fumble');
     const bleedingShift = ActorRoundTrait.tierOf(actor.traits, RAPID_BLEEDER) - ActorRoundTrait.tierOf(actor.traits, SLOW_BLEEDER);
+    // Spec 034: the hits of the entry are already in its damage, and an additional critical is an alert.
+    const fumbleCriticals = (fumble.effects || []).filter(e => e.status === ADDITIONAL_CRITICAL && e.severity).map(e => e.severity!);
     const built = CriticalInjuryFactory.build({
-      effects: fumble.effects || [],
+      effects: (fumble.effects || []).filter(e => e.status !== FUMBLE_HITS && e.status !== ADDITIONAL_CRITICAL),
       side: sideOfRoll(actionAttack.roll?.roll),
       bleedingShift,
       source,
     });
-    const effects = built.effects.map(
-      e => new ActorRoundEffect(randomUUID(), e.status, e.value, e.rounds, undefined, undefined, undefined, undefined, source),
-    );
+    const effects = this.toRoundEffects(built.effects, source, origin.game.round);
     const dmg = fumble.damage || 0;
-    if (dmg === 0 && effects.length === 0 && built.injuries.length === 0) {
+    if (dmg === 0 && effects.length === 0 && built.injuries.length === 0 && fumbleCriticals.length === 0) {
       return;
     }
     const cmd = this.commandFor(actor, applications, updateCommands, userId, roles);
@@ -374,7 +384,20 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     }
     cmd.effects.push(...effects);
     cmd.injuries.push(...built.injuries);
+    cmd.fumbleCriticals.push(...fumbleCriticals);
     cmd.fumbleAttackName = actionAttack.attackName;
+  }
+
+  /**
+   * The effects of a critical or fumble as effects of the actor round (spec 034): a useless arm is `arm_useless` and a
+   * useless leg half movement, and the delayed effects of the texts start `delay` rounds after this one.
+   */
+  private toRoundEffects(effects: CriticalEffectData[], source: InjurySource, round: number): ActorRoundEffect[] {
+    return effects.map(e => {
+      const status = e.status === LIMB_USELESS ? (e.location === 'leg' ? HALF_MOVEMENT : ARM_USELESS) : e.status;
+      const fromRound = e.delay && DELAYED_STATUSES.includes(status) ? round + e.delay : undefined;
+      return new ActorRoundEffect(randomUUID(), status, e.value, e.rounds, undefined, undefined, undefined, undefined, source, fromRound);
+    });
   }
 
   /**

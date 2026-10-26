@@ -17,7 +17,7 @@ import { AddEffectsCommand } from '../../../../src/modules/actor-rounds/applicat
 import { ActorRoundAttack } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-attack.vo.js';
 import { ActorRoundEffect } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-effect.vo.js';
 import { ActorRoundTrait } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-trait.vo.js';
-import { ActionAttackResult, AttackTableEntry } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo.js';
+import { ActionAttackResult, AttackTableEntry, Fumble } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo.js';
 import { Critical } from '../../../../src/modules/actions/domain/value-objects/critical.vo.js';
 import { CriticalEffect, CriticalResult } from '../../../../src/modules/actions/domain/value-objects/critical-result.vo.js';
 import { SpellCastingService } from '../../../../src/modules/actions/application/services/spell/spell-casting.service.js';
@@ -382,6 +382,54 @@ describe('ApplyAttackHandler', () => {
         { kind: 'attack', amount: -10, ...attacker },
         { kind: 'critical', amount: -3, criticalKey: 'S-B-91', ...attacker },
       ]);
+    });
+  });
+
+  describe('effects of the critical and fumble texts (workspace spec 034)', () => {
+    const textEffect = (status: string, props: Partial<CriticalEffect> = {}) => ({ status, ...props }) as unknown as CriticalEffect;
+
+    it('turns a useless arm into arm_useless, a useless leg into half movement, and delays the effects with a delay', async () => {
+      const { run, effectCommands } = setup([
+        criticalAttack([
+          textEffect('limb_useless', { location: 'arm', rounds: 3 }),
+          textEffect('limb_useless', { location: 'leg' }),
+          textEffect('half_activity', { rounds: 6, delay: 6 }),
+          textEffect('disarmed'),
+        ]),
+      ]);
+
+      await run();
+
+      expect(effectCommands().get('defender-round')!.effects).toEqual([
+        expect.objectContaining({ status: 'arm_useless', rounds: 3, fromRound: undefined }),
+        expect.objectContaining({ status: 'half_movement', fromRound: undefined }),
+        expect.objectContaining({ status: 'half_activity', rounds: 6, fromRound: 7 }),
+        expect.objectContaining({ status: 'disarmed' }),
+      ]);
+    });
+
+    it('gives the fumbler the hits of the fumble as damage and its additional critical as an alert', async () => {
+      const fumbleAttack = {
+        ...appliedAttack('mainHand', []),
+        modifiers: { targetId: 'defender', bo: 0 },
+        results: new ActionAttackResult(
+          undefined,
+          [],
+          new Fumble('completed', 'Ouch.', undefined, 7, [
+            CriticalEffect.fromTable({ status: 'hits', value: '2d10' }),
+            CriticalEffect.fromTable({ status: 'additional_critical', severity: 'A' }),
+            CriticalEffect.fromTable({ status: 'fatigue', value: -5 }),
+          ]),
+        ),
+      } as unknown as ActionAttack;
+      const { run, effectCommands } = setup([fumbleAttack]);
+
+      await run();
+
+      const cmd = effectCommands().get('attacker-round')!;
+      expect(cmd.dmg).toBe(7);
+      expect(cmd.fumbleCriticals).toEqual(['A']);
+      expect(cmd.effects.map(e => e.status)).toEqual(['fatigue']);
     });
   });
 });

@@ -20,6 +20,7 @@ import type { StrategicGameApiClient } from '../../../../src/modules/strategic/i
 import { createCombatPluginContext, type CombatPluginContextOptions } from '../combat/combat-plugin-test.factory.js';
 import { ActorRoundAttack } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-attack.vo.js';
 import { ActorRoundDefenseMode } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-defense-mode.vo.js';
+import { ActorRoundEffect } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-effect.vo.js';
 import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo.js';
 
 const SOURCE_SKILLS = [
@@ -104,6 +105,30 @@ describe('PrepareAttackHandler', () => {
     const { ctx, execute } = setup();
     ctx.sourceActor!.attacks.find(attack => attack.attackName === 'Longsword')!.broken = true;
     await expect(execute({})).rejects.toMatchObject({ code: 'err-attack-item-broken' });
+  });
+
+  it('rejects a weapon attack of a disarmed actor (workspace spec 034)', async () => {
+    const { ctx, execute } = setup();
+    ctx.sourceActor!.effects.push(new ActorRoundEffect('disarmed-1', 'disarmed', undefined, undefined));
+    await expect(execute({})).rejects.toMatchObject({ code: 'err-attack-disarmed' });
+  });
+
+  it('takes the attack penalties and the blindness of the attacker into the roll (workspace spec 034)', async () => {
+    const { ctx, execute } = setup();
+    ctx.sourceActor!.effects.push(
+      new ActorRoundEffect('penalty-1', 'attack_penalty', -25, 2),
+      new ActorRoundEffect('blinded-1', 'blinded', undefined, undefined),
+    );
+
+    const action = await execute({});
+
+    const modifiers = action.attacks![0].calculated!.rollModifiers.map(modifier => [modifier.key, modifier.value]);
+    expect(modifiers).toEqual(
+      expect.arrayContaining([
+        ['attack-penalty', -25],
+        ['blinded', -100],
+      ]),
+    );
   });
 
   it('accepts `spring` for `sprint`; the charge does not change the DB by size (§9.4)', async () => {

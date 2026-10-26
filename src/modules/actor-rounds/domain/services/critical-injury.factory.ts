@@ -16,6 +16,12 @@ export interface CriticalEffectData {
   status: string;
   value?: number;
   rounds?: number;
+  /** Rounds before the effect starts (spec 034). */
+  delay?: number;
+  /** Limb of a `limb_useless` effect (spec 034). */
+  location?: string;
+  /** Severity of the `additional_critical` of a fumble (spec 034). */
+  severity?: string;
 }
 
 export interface CriticalInjuryData {
