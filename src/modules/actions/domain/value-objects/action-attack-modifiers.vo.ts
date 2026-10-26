@@ -49,5 +49,7 @@ export class ActionAttackModifiers {
     public range: number | undefined,
     public customBonus: number | undefined,
     public chargeSpeed: ChargeSpeed | undefined,
+    /** Fighting style ability that changes the critical (workspace spec 032, group C). */
+    public styleCriticalOption?: string,
   ) {}
 }

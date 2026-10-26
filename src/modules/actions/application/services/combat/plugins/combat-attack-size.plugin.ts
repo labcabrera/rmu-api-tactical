@@ -1,6 +1,7 @@
 import { chargeSizeAdjustment, targetEffectiveSize } from '../combat-modifiers.js';
 import type { CombatContext } from '../combat-context.js';
 import type { CombatPlugin } from '../combat-plugin.js';
+import { styleSizeSteps } from './combat-fighting-style.plugin.js';
 
 const SEVERITIES = ['Z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
 
@@ -10,7 +11,10 @@ const SEVERITIES = ['Z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
  * size is taken off (one less per tier of Light-boned).
  */
 const sizeSteps = (ctx: CombatContext): number =>
-  (ctx.sourceAttack?.attackSize || 0) + chargeSizeAdjustment(ctx.attack?.modifiers.chargeSpeed) - targetEffectiveSize(ctx);
+  (ctx.sourceAttack?.attackSize || 0) +
+  chargeSizeAdjustment(ctx.attack?.modifiers.chargeSpeed) +
+  styleSizeSteps(ctx) -
+  targetEffectiveSize(ctx);
 
 /**
  * Shifts the critical severity one step per size (§9.4). The hits are not scaled: the optional Hits Adjustment Due

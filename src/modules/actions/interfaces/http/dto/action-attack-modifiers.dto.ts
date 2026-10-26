@@ -94,6 +94,9 @@ export class ActionAttackModifiersDto {
   })
   public chargeSpeed: ChargeSpeed | undefined;
 
+  @ApiProperty({ type: String, description: 'Fighting style ability that changes the critical', required: false })
+  public styleCriticalOption: string | undefined;
+
   static fromEntity(entity: ActionAttackModifiers): ActionAttackModifiersDto {
     const dto = new ActionAttackModifiersDto();
     dto.targetId = entity.targetId;
@@ -121,6 +124,7 @@ export class ActionAttackModifiersDto {
     dto.range = entity.range;
     dto.customBonus = entity.customBonus;
     dto.chargeSpeed = entity.chargeSpeed ? normalizeChargeSpeed(entity.chargeSpeed) : undefined;
+    dto.styleCriticalOption = entity.styleCriticalOption;
     return dto;
   }
 }

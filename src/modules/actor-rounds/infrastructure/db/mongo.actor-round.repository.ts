@@ -92,7 +92,12 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
           e.weaponCategory ?? 'standard',
           e.skillId ?? null,
         ),
-        { itemId: e.itemId ?? null, breakagePenalty: e.breakagePenalty ?? 0, broken: e.broken ?? false },
+        {
+          itemId: e.itemId ?? null,
+          breakagePenalty: e.breakagePenalty ?? 0,
+          broken: e.broken ?? false,
+          weaponTags: [...(e.weaponTags ?? [])],
+        },
       ),
     );
     return ActorRound.fromProps({
@@ -143,6 +148,8 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       hpLog: (doc.hpLog || []).map(entry => MongoActorRoundRepository.toHpLogEntry(entry)),
       characterId: doc.characterId,
       resistances: (doc.resistances || []).map(each => ({ resistance: each.resistance, totalBonus: each.totalBonus ?? 0 })),
+      fightingStyles: doc.fightingStyles || [],
+      activeStyle: doc.activeStyle ?? null,
       items: (doc.items || []).map(item =>
         ActorRoundItems.copy({ ...item, modifiers: item.modifiers || [], startModifierIds: item.startModifierIds || [] }),
       ),

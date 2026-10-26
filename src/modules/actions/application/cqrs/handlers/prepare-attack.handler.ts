@@ -1,3 +1,4 @@
+import { checkStyleCriticalOption } from '../../../domain/services/style-critical-option.js';
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import {
@@ -342,7 +343,11 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       commandAttack.modifiers.range,
       commandAttack.modifiers.customBonus,
       normalizeChargeSpeed(commandAttack.modifiers.chargeSpeed),
+      commandAttack.modifiers.styleCriticalOption,
     );
+    if (modifiers.styleCriticalOption) {
+      checkStyleCriticalOption(source.activeStyle, commandAttack.attackName, modifiers.styleCriticalOption);
+    }
     return new ActionAttack(
       commandAttack.attackName,
       attack.type,

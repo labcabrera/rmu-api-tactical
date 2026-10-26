@@ -115,6 +115,9 @@ export class Critical {
 
   @Prop({ type: CriticalResult, required: false })
   public result: CriticalResult | undefined;
+
+  @Prop({ type: Object, required: false })
+  public styleOption: { abilityId: string; originalType: string; originalSeverity: string } | undefined;
 }
 
 @Schema({ _id: false })

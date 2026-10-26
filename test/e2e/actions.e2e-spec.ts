@@ -215,6 +215,102 @@ describe('attack', () => {
   });
 });
 
+describe('fighting style critical options (workspace spec 032)', () => {
+  beforeAll(() => {
+    e2e.world.fightingStyles = {
+      styles: [{ id: 'made-up', skillId: 'battle-styles', abilities: [], equipment: [] }],
+      abilities: [
+        { id: 'leg-sweep', equipment: [] },
+        { id: 'redirect', equipment: [] },
+      ],
+    };
+    e2e.world.characters.set(
+      'gimli',
+      character('gimli', {
+        skills: [
+          {
+            skillId: 'battle-styles',
+            specialization: 'made-up',
+            totalBonus: 0,
+            ranks: 8,
+            styleFreeRanks: 0,
+            styleAbilities: [
+              { abilityId: 'leg-sweep', times: 1, cost: 4 },
+              { abilityId: 'redirect', times: 1, cost: 4 },
+            ],
+          },
+        ],
+      }),
+    );
+  });
+
+  const styledAttack = async (styleCriticalOption?: string) => {
+    const gameId = await gameInPhase1('gimli');
+    const rounds = await as('owner').get(`/v1/actor-rounds?q=gameId==${gameId};round==1`);
+    const gimli = (rounds.body as { content: { id: string; actorId: string }[] }).content.find(ar => ar.actorId === 'gimli')!;
+    const styled = await as('owner').patch(`/v1/actor-rounds/${gimli.id}/fighting-style`, { skillId: 'battle-styles', styleId: 'made-up' });
+    expect(styled.status).toBe(200);
+    const action = await declareAttack(gameId, 'gimli');
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/phases/start`)).status).toBe(200);
+    const prepared = await as('owner').patch(`/v1/actions/${action.id}/attack/prepare`, {
+      attacks: [{ attackName: 'mainHand', modifiers: { targetId: 'lurtz', bo: 60, styleCriticalOption }, protectors: null }],
+    });
+    expect(prepared.status).toBe(200);
+    expect((await as('owner').patch(`/v1/actions/${action.id}/attack/roll`, { attackName: 'mainHand', roll: 70 })).status).toBe(200);
+    return action;
+  };
+
+  type CriticalBody = { criticalType: string; criticalSeverity: string; styleOption?: { abilityId: string; originalSeverity: string } };
+  const firstCritical = (body: unknown) =>
+    (body as { attacks: { results: { criticals: CriticalBody[] } }[] }).attacks[0].results.criticals[0];
+
+  it('lowers the critical declared with Leg Sweep before looking it up', async () => {
+    const action = await styledAttack('leg-sweep');
+    const critical = await as('owner').patch(`/v1/actions/${action.id}/attack/critical-roll`, {
+      attackName: 'mainHand',
+      criticalKey: 's_c_1',
+      roll: 50,
+    });
+    expect(critical.status).toBe(200);
+    expect(firstCritical(critical.body)).toMatchObject({
+      criticalType: 'S',
+      criticalSeverity: 'B',
+      styleOption: { abilityId: 'leg-sweep', originalSeverity: 'C' },
+    });
+    expect(e2e.world.lookups.critical.at(-1)).toMatchObject({ criticalType: 'S', criticalSeverity: 'B' });
+  });
+
+  it('chooses Redirect before the critical roll, and rejects an option the style does not give', async () => {
+    const action = await styledAttack();
+    const rejected = await as('owner').patch(`/v1/actions/${action.id}/attack/critical-roll`, {
+      attackName: 'mainHand',
+      criticalKey: 's_c_1',
+      roll: 50,
+      styleOption: 'overbearing',
+    });
+    expect(rejected.status).toBe(400);
+    expect((rejected.body as { code: string }).code).toBe('err-style-critical-option');
+    const critical = await as('owner').patch(`/v1/actions/${action.id}/attack/critical-roll`, {
+      attackName: 'mainHand',
+      criticalKey: 's_c_1',
+      roll: 50,
+      styleOption: 'redirect',
+    });
+    expect(critical.status).toBe(200);
+    expect(firstCritical(critical.body)).toMatchObject({ criticalSeverity: 'B', styleOption: { abilityId: 'redirect' } });
+  });
+
+  it('rejects a critical option declared with the attack that the style does not give', async () => {
+    const gameId = await gameInPhase1();
+    const action = await declareAttack(gameId);
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/phases/start`)).status).toBe(200);
+    const prepared = await as('owner').patch(`/v1/actions/${action.id}/attack/prepare`, {
+      attacks: [{ attackName: 'mainHand', modifiers: { targetId: 'lurtz', bo: 60, styleCriticalOption: 'leg-sweep' }, protectors: null }],
+    });
+    expect(prepared.status).toBe(400);
+  });
+});
+
 // Two attacks of one action subtract their OB from the same attacker's actor round [F-tactical-15].
 describe('attack with two weapons', () => {
   const twoAttacks = async () => {

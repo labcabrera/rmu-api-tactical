@@ -8,6 +8,8 @@ import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-rou
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
 import { Action } from '../../../domain/aggregates/action.js';
+import { applyStyleCriticalOption, checkStyleCriticalOption } from '../../../domain/services/style-critical-option.js';
+import type { ActionAttack } from '../../../domain/value-objects/action-attack.vo.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo.js';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
@@ -69,6 +71,7 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
     }
     let location = attack.calculated?.location;
     const { sourceActor, targetActor } = await this.readActors(action, attack.modifiers.targetId);
+    this.applyStyleOption(command, attack, sourceActor);
     for (const each of attack.results.criticals) {
       const ctx = await this.combatProcessor.runPhase('criticalRoll', {
         action,
@@ -100,6 +103,23 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
     const updated = await this.actionRepository.update(action);
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     return updated;
+  }
+
+  /**
+   * Workspace spec 032, group C: the fighting style ability declared with the attack, or chosen now, changes the
+   * criticals before they are rolled. Only once: the criticals already changed are not changed again.
+   */
+  private applyStyleOption(command: UpdateCriticalRollCommand, attack: ActionAttack, sourceActor: ActorRound | undefined): void {
+    const criticals = attack.results!.criticals!;
+    if (criticals.some(critical => critical.styleOption)) return;
+    const declared = attack.modifiers.styleCriticalOption;
+    if (command.styleOption && declared && command.styleOption !== declared) {
+      throw new ValidationError(`The attack was declared with ${declared}`, 'err-style-critical-option');
+    }
+    const option = command.styleOption ?? declared;
+    if (!option) return;
+    checkStyleCriticalOption(sourceActor?.activeStyle, attack.attackName, option);
+    applyStyleCriticalOption(criticals, option);
   }
 
   /** Actor rounds of the attacker and the target, for the rules that read their traits or effects. */

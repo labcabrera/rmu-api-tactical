@@ -1,4 +1,5 @@
 import type { ActorRoundItem } from '../../../domain/value-objects/actor-round-item.vo.js';
+import type { ActorRoundActiveStyle, ActorRoundFightingStyle } from '../../../domain/value-objects/actor-round-fighting-style.vo.js';
 import type { ActorRoundResistance } from '../../../domain/value-objects/actor-round-resistance.vo.js';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import type { HydratedDocument } from 'mongoose';
@@ -133,6 +134,13 @@ export class ActorRoundModel {
   /** Workspace spec 022: resistance roll bonuses of the character. */
   @Prop({ type: [Object], required: false, default: [] })
   resistances?: ActorRoundResistance[];
+
+  /** Workspace spec 032: fighting styles of the character and the one it fights with. */
+  @Prop({ type: [Object], required: false, default: [] })
+  fightingStyles?: ActorRoundFightingStyle[];
+
+  @Prop({ type: Object, required: false, default: null })
+  activeStyle?: ActorRoundActiveStyle | null;
 
   @Prop({ type: ActorRoundSnapshot, required: false })
   snapshot?: ActorRoundSnapshot;

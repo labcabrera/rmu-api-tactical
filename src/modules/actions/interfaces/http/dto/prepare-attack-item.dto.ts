@@ -13,6 +13,7 @@ import {
   type ProtectPosition,
   type RestrictedQuarters,
 } from '../../../domain/value-objects/action-attack-modifiers.vo.js';
+import { STYLE_CRITICAL_OPTIONS } from '../../../domain/services/style-critical-option.js';
 
 export class PrepareAttackModifiersDto {
   @ApiProperty({ description: 'Target actor round identifier', example: 'actor-round-003' })
@@ -179,6 +180,16 @@ export class PrepareAttackModifiersDto {
   @IsIn(['none', 'jog', 'sprint', 'spring'])
   chargeSpeed: ChargeSpeed | 'spring' | undefined;
 
+  @ApiProperty({
+    description: 'Fighting style ability that changes the critical (workspace spec 032)',
+    required: false,
+    enum: STYLE_CRITICAL_OPTIONS,
+    example: 'leg-sweep',
+  })
+  @IsOptional()
+  @IsIn(STYLE_CRITICAL_OPTIONS)
+  styleCriticalOption: string | undefined;
+
   static toCommand(dto: PrepareAttackModifiersDto): PrepareAttackCommandModifiers {
     return new PrepareAttackCommandModifiers(
       dto.targetId,
@@ -205,6 +216,7 @@ export class PrepareAttackModifiersDto {
       dto.range,
       dto.customBonus,
       dto.chargeSpeed === undefined ? undefined : normalizeChargeSpeed(dto.chargeSpeed),
+      dto.styleCriticalOption,
     );
   }
 }

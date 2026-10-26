@@ -25,6 +25,10 @@ export class ActorRoundInitiativeDto {
   @IsOptional()
   reflexes?: number;
 
+  @ApiProperty({ description: 'Fighting style bonus (spec 032), already in the total', required: false, example: 5 })
+  @IsOptional()
+  style?: number;
+
   static fromEntity(model: ActorRoundInitiative): ActorRoundInitiativeDto {
     const dto = new ActorRoundInitiativeDto();
     dto.base = model.base;
@@ -33,6 +37,7 @@ export class ActorRoundInitiativeDto {
     dto.total = model.total;
     dto.strikeReflex = model.strikeReflex;
     dto.reflexes = model.reflexes;
+    dto.style = model.style;
     return dto;
   }
 }

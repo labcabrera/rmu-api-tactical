@@ -260,6 +260,105 @@ describe('treatments (workspace spec 022)', () => {
   });
 });
 
+describe('fighting styles (workspace spec 032)', () => {
+  type StyleBody = ActorRoundBody & {
+    fightingStyles: { skillId: string; styleId: string; ranks: number; freeRanks: number }[];
+    activeStyle: {
+      styleId: string;
+      met: boolean;
+      freeRanksBonus: number;
+      options: string[];
+      abilities: { abilityId: string; met: boolean }[];
+    } | null;
+    initiative: { style?: number; total?: number };
+  };
+
+  beforeAll(() => {
+    e2e.world.fightingStyles = {
+      styles: [
+        {
+          id: 'blade-dance',
+          skillId: 'combat-styles',
+          abilities: [],
+          equipment: [[{ kind: 'weapon-skill', value: 'melee-weapon@blade' }]],
+        },
+      ],
+      abilities: [{ id: 'lightning-reflexes', equipment: [] }],
+    };
+    e2e.world.characters.set(
+      'boromir',
+      character('boromir', {
+        skills: [
+          {
+            skillId: 'combat-styles',
+            specialization: 'blade-dance',
+            totalBonus: 0,
+            ranks: 4,
+            styleFreeRanks: 2,
+            styleAbilities: [{ abilityId: 'lightning-reflexes', times: 1, cost: 2 }],
+          },
+        ],
+      }),
+    );
+  });
+
+  const boromirRound = async () => {
+    const created = await as('owner').post('/v1/tactical-games', {
+      strategicGameId: 'sg-1',
+      name: 'Amon Hen',
+      description: 'Falls',
+      factions: ['faction-1'],
+      actors: [{ id: 'boromir', type: 'character' }],
+    });
+    const gameId = (created.body as { id: string }).id;
+    await as('owner').post(`/v1/tactical-games/${gameId}/rounds/start`);
+    const page = await as('owner').get(`/v1/actor-rounds?q=gameId==${gameId};round==1`);
+    return (page.body as { content: StyleBody[] }).content[0];
+  };
+
+  it('takes the styles of the character and declares the active one', async () => {
+    const actorRound = await boromirRound();
+    expect(actorRound.fightingStyles).toEqual([
+      expect.objectContaining({ skillId: 'combat-styles', styleId: 'blade-dance', ranks: 4, freeRanks: 2 }),
+    ]);
+    expect(actorRound.activeStyle).toBeNull();
+
+    const declared = await as('owner').patch(`/v1/actor-rounds/${actorRound.id}/fighting-style`, {
+      skillId: 'combat-styles',
+      styleId: 'blade-dance',
+    });
+    expect(declared.status).toBe(200);
+    const body = declared.body as StyleBody;
+    expect(body.activeStyle).toMatchObject({ styleId: 'blade-dance', met: true, freeRanksBonus: 4, options: [] });
+    expect(body.activeStyle?.abilities).toEqual([expect.objectContaining({ abilityId: 'lightning-reflexes', met: true })]);
+
+    const rolled = await as('owner').patch(`/v1/actor-rounds/${actorRound.id}/initiative`, { roll: 10 });
+    expect((rolled.body as StyleBody).initiative.style).toBe(5);
+
+    const cleared = await as('owner').patch(`/v1/actor-rounds/${actorRound.id}/fighting-style`, {});
+    expect((cleared.body as StyleBody).activeStyle).toBeNull();
+    expect((cleared.body as StyleBody).initiative.style).toBeUndefined();
+  });
+
+  it('rejects a style the actor has no ranks in and options the style does not give', async () => {
+    const actorRound = await boromirRound();
+    const unknown = await as('owner').patch(`/v1/actor-rounds/${actorRound.id}/fighting-style`, {
+      skillId: 'combat-styles',
+      styleId: 'other',
+    });
+    expect(unknown.status).toBe(400);
+    expect((unknown.body as { code: string }).code).toBe('err-fighting-style-not-known');
+    const option = await as('owner').patch(`/v1/actor-rounds/${actorRound.id}/fighting-style`, {
+      skillId: 'combat-styles',
+      styleId: 'blade-dance',
+      options: ['killing-strike'],
+    });
+    expect(option.status).toBe(400);
+    expect((option.body as { code: string }).code).toBe('err-fighting-style-option');
+    expect((await as('owner').patch(`/v1/actor-rounds/${actorRound.id}/fighting-style`, { skillId: 'karate' })).status).toBe(400);
+  });
+});
+
 describe('finished game', () => {
   it('rejects changes once the game is finished', async () => {
     const { gameId, actorRound } = await startedGame();

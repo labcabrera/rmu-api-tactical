@@ -38,6 +38,17 @@ export class CriticalResultDto {
   injury?: { type: string; secondary?: string[]; flags?: string[] };
 }
 
+export class CriticalStyleOptionDto {
+  @ApiProperty({ example: 'leg-sweep' })
+  abilityId: string;
+
+  @ApiProperty({ example: 'K' })
+  originalType: string;
+
+  @ApiProperty({ example: 'C' })
+  originalSeverity: string;
+}
+
 export class CriticalDto {
   @ApiProperty({ description: 'Critical key', example: 's_b_1' })
   key: string;
@@ -57,6 +68,13 @@ export class CriticalDto {
   @ApiProperty({ description: 'Critical result', type: CriticalResultDto, required: false })
   result: CriticalResultDto | undefined;
 
+  @ApiProperty({
+    description: 'Fighting style ability that changed the critical, with its type and severity before',
+    type: CriticalStyleOptionDto,
+    required: false,
+  })
+  styleOption?: CriticalStyleOptionDto;
+
   static fromEntity(entity: Critical): CriticalDto {
     const dto = new CriticalDto();
     dto.key = entity.key;
@@ -64,6 +82,7 @@ export class CriticalDto {
     dto.criticalType = entity.criticalType;
     dto.criticalSeverity = entity.criticalSeverity;
     dto.adjustedRoll = entity.adjustedRoll;
+    dto.styleOption = entity.styleOption ? { ...entity.styleOption } : undefined;
     dto.result = entity.result
       ? {
           text: entity.result.text,

@@ -19,4 +19,7 @@ export class ActorRoundInitiative {
 
   @Prop({ type: Number, required: false })
   reflexes?: number;
+
+  @Prop({ type: Number, required: false })
+  style?: number;
 }

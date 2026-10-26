@@ -52,6 +52,7 @@ export class PrepareAttackCommandModifiers {
     public range: number | undefined,
     public customBonus: number | undefined,
     public chargeSpeed: ChargeSpeed | undefined,
+    public styleCriticalOption?: string,
   ) {}
 }
 

@@ -77,4 +77,7 @@ export class ActionAttackModifiers {
 
   @Prop({ type: String, required: false })
   public chargeSpeed: ChargeSpeed | undefined;
+
+  @Prop({ type: String, required: false })
+  public styleCriticalOption: string | undefined;
 }

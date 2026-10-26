@@ -1,5 +1,6 @@
 import { ActorRoundItemDto } from './actor-round-item.dto.js';
 import { BreakageCheckResultDto } from './resolve-breakage-check.dto.js';
+import { ActorRoundActiveStyleDto, ActorRoundFightingStyleDto } from './actor-round-fighting-style.dto.js';
 import { ApiProperty } from '@nestjs/swagger';
 import { PaginationDto } from '../../../../shared/interfaces/http/dto/page.dto.js';
 import { ActorRound } from '../../../domain/aggregates/actor-round.js';
@@ -135,6 +136,12 @@ export class ActorRoundDto {
   })
   resistances: ActorRoundResistanceDto[];
 
+  @ApiProperty({ description: 'Fighting styles of the character (workspace spec 032); none for NPCs', type: [ActorRoundFightingStyleDto] })
+  fightingStyles: ActorRoundFightingStyleDto[];
+
+  @ApiProperty({ description: 'The fighting style the actor fights with (spec 032)', type: ActorRoundActiveStyleDto, nullable: true })
+  activeStyle: ActorRoundActiveStyleDto | null;
+
   @ApiProperty({ description: 'What the character brought into the game (only in the actor round built from it)', required: false })
   snapshot?: ActorRoundSnapshotDto;
 
@@ -180,6 +187,8 @@ export class ActorRoundDto {
     dto.items = (entity.items || []).map(item => ActorRoundItemDto.fromEntity(item));
     if (entity.lastBreakageCheck) dto.lastBreakageCheck = BreakageCheckResultDto.fromEntity(entity.lastBreakageCheck);
     dto.resistances = (entity.resistances || []).map(each => ({ resistance: each.resistance, totalBonus: each.totalBonus }));
+    dto.fightingStyles = (entity.fightingStyles || []).map(style => ActorRoundFightingStyleDto.fromEntity(style));
+    dto.activeStyle = entity.activeStyle ? ActorRoundActiveStyleDto.fromEntity(entity.activeStyle) : null;
     dto.snapshot = entity.snapshot ? ActorRoundSnapshotDto.fromEntity(entity.snapshot) : undefined;
     dto.bleeding = entity.getBleeding();
     dto.imageUrl = entity.imageUrl;
