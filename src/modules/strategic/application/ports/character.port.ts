@@ -86,6 +86,9 @@ export interface CharacterSkill {
   totalBonus: number;
   /** Missing in older characters: 0. */
   ranks?: number;
+  /** Fighting style skills only (workspace spec 032): abilities their ranks were allocated to, and the rest. */
+  styleAbilities?: { abilityId: string; times: number; cost: number }[];
+  styleFreeRanks?: number;
 }
 
 export interface CharacterResistance {
@@ -162,6 +165,8 @@ export interface CharacterAttack {
   skillId?: string | null;
   /** Strategic item of the attack (spec 019). Missing in older characters: the item in the slot of `attackName`. */
   itemId?: string | null;
+  /** Workspace spec 032: tags of the weapon type. Missing in older characters. */
+  weaponTags?: string[];
 }
 
 /** Conditions that keep a character out of a tactical game (spec 013, §3). */

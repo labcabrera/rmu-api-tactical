@@ -80,4 +80,7 @@ export class ActorRoundAttack {
 
   @Prop({ type: Boolean, required: false, default: false })
   broken?: boolean;
+
+  @Prop({ type: [String], required: false, default: [] })
+  weaponTags?: string[];
 }

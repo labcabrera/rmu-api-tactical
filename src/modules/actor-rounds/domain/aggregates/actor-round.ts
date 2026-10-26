@@ -61,8 +61,19 @@ import {
 } from '../value-objects/injury.vo.js';
 import type { ActorRoundProps, ActorRoundSnapshot } from './actor-round-props.js';
 import type { ActorRoundResistance } from '../value-objects/actor-round-resistance.vo.js';
+import {
+  activeStyleAbility,
+  type ActorRoundActiveStyle,
+  type ActorRoundFightingStyle,
+  OPTIONAL_STYLE_ABILITIES,
+} from '../value-objects/actor-round-fighting-style.vo.js';
+
 import { type ActorRoundItem, ActorRoundItems, type ItemModifier, UNARMORED_AT } from '../value-objects/actor-round-item.vo.js';
 import { type BreakageModifier, BreakageResolver, type BreakageResult } from '../services/breakage-resolver.js';
+
+/** Lightning Reflexes (workspace spec 032): initiative per time selected. */
+const LIGHTNING_REFLEXES = 'lightning-reflexes';
+const LIGHTNING_REFLEXES_BONUS = 5;
 
 /** A breakage check of an item of the actor (spec 019, §2). */
 export interface BreakageCheckInput {
@@ -205,6 +216,12 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   /** Resistance roll bonuses of its character (workspace spec 022): none for NPCs. */
   public resistances: ActorRoundResistance[] = [];
 
+  /** Fighting styles of its character (workspace spec 032): none for NPCs. */
+  public fightingStyles: ActorRoundFightingStyle[] = [];
+
+  /** The fighting style it fights with (workspace spec 032), kept from round to round. */
+  public activeStyle: ActorRoundActiveStyle | null = null;
+
   /** The last breakage check (spec 019), for the answer of the check; not stored. */
   public lastBreakageCheck: BreakageCheckResult | undefined;
 
@@ -345,6 +362,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.items = (props.items ?? []).map(item => ActorRoundItems.copy(item));
     actorRound.snapshot = props.snapshot;
     actorRound.resistances = (props.resistances ?? []).map(resistance => ({ ...resistance }));
+    actorRound.fightingStyles = (props.fightingStyles ?? []).map(style => ActorRound.copyStyle(style));
+    actorRound.activeStyle = props.activeStyle ? ActorRound.copyActiveStyle(props.activeStyle) : null;
     actorRound.normalizeLegacy();
     // Derived: recomputed so that values stored with the penalties folded in are corrected.
     actorRound.calculateCurrentBo();
@@ -413,6 +432,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.characterId = previous.characterId;
     actorRound.items = previous.items.map(item => ActorRoundItems.copy(item));
     actorRound.resistances = previous.resistances.map(resistance => ({ ...resistance }));
+    actorRound.fightingStyles = previous.fightingStyles.map(style => ActorRound.copyStyle(style));
+    // The style is kept until the player changes it; the optional abilities are declared each round.
+    actorRound.activeStyle = previous.activeStyle ? { ...ActorRound.copyActiveStyle(previous.activeStyle), options: [] } : null;
     actorRound.applyItemConditions();
     actorRound.calculateCurrentBo();
     // A penalty that starts in the new round (non-violent) is counted from its first moment.
@@ -1147,11 +1169,61 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     const penalty = Math.trunc(this.getPenaltySum() / 10) || 0;
     const strikeReflexBonus = strikeReflex ? STRIKE_REFLEX_BONUS : 0;
     const reflexesBonus = this.getReflexesInitiativeBonus();
+    const styleBonus = this.getStyleInitiativeBonus();
     this.initiative.penalty = penalty;
     this.initiative.roll = roll;
     this.initiative.strikeReflex = strikeReflexBonus || undefined;
     this.initiative.reflexes = reflexesBonus || undefined;
-    this.initiative.total = (this.initiative.base || 0) + penalty + strikeReflexBonus + reflexesBonus + roll;
+    this.initiative.style = styleBonus || undefined;
+    this.initiative.total = (this.initiative.base || 0) + penalty + strikeReflexBonus + reflexesBonus + styleBonus + roll;
+  }
+
+  // --- Fighting styles (workspace spec 032) ---
+
+  /** Lightning Reflexes: +5 initiative per time selected, when the round starts with suitable weapons. */
+  private getStyleInitiativeBonus(): number {
+    const ability = activeStyleAbility(this.activeStyle, LIGHTNING_REFLEXES);
+    return ability ? LIGHTNING_REFLEXES_BONUS * ability.times : 0;
+  }
+
+  /**
+   * Sets the fighting style of the actor, or none, already evaluated against its equipment (only one per round). An
+   * initiative already rolled is corrected with the new style bonus.
+   */
+  setActiveStyle(style: ActorRoundActiveStyle | null): void {
+    if (style && !this.fightingStyles.some(each => each.skillId === style.skillId && each.styleId === style.styleId)) {
+      throw new ValidationError(`The actor has no ranks in the fighting style ${style.styleId}`, 'err-fighting-style-not-known');
+    }
+    const invalid = (style?.options || []).find(
+      option => !OPTIONAL_STYLE_ABILITIES.includes(option) || !style!.abilities.some(ability => ability.abilityId === option),
+    );
+    if (invalid) {
+      throw new ValidationError(`The ability ${invalid} cannot be declared with the style`, 'err-fighting-style-option');
+    }
+    this.activeStyle = style;
+    if (this.initiative.total !== undefined) {
+      const previous = this.initiative.style || 0;
+      const current = this.getStyleInitiativeBonus();
+      this.initiative.style = current || undefined;
+      this.initiative.total += current - previous;
+    }
+  }
+
+  private static copyStyle(style: ActorRoundFightingStyle): ActorRoundFightingStyle {
+    return { ...style, abilities: style.abilities.map(ability => ({ ...ability })) };
+  }
+
+  private static copyActiveStyle(style: ActorRoundActiveStyle): ActorRoundActiveStyle {
+    return {
+      ...style,
+      attackNames: style.attackNames ? [...style.attackNames] : null,
+      abilities: (style.abilities || []).map(ability => ({
+        ...ability,
+        attackNames: ability.attackNames ? [...ability.attackNames] : null,
+      })),
+      warnings: [...(style.warnings || [])],
+      options: [...(style.options || [])],
+    };
   }
 
   /** Initiative bonus of the strongest Reflexes effect. */
@@ -1710,6 +1782,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       items: this.items,
       snapshot: this.snapshot,
       resistances: this.resistances,
+      fightingStyles: this.fightingStyles,
+      activeStyle: this.activeStyle,
       imageUrl: this.imageUrl,
       owner: this.owner,
       createdAt: this.createdAt,

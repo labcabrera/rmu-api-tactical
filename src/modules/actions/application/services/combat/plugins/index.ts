@@ -16,6 +16,7 @@ import { CombatDefensiveBonusPlugin } from './combat-defensive-bonus.plugin.js';
 import { CombatDodgePlugin } from './combat-dodge.plugin.js';
 import { CombatFlatfootedTargetPlugin } from './combat-flatfooted-target.plugin.js';
 import { CombatFoilerPlugin } from './combat-foiler.plugin.js';
+import { CombatFightingStyleSourcePlugin, CombatFightingStyleTargetPlugin } from './combat-fighting-style.plugin.js';
 import { CombatGameLethalityPlugin } from './combat-game-lethality.plugin.js';
 import { CombatHigherGroundPlugin } from './combat-higher-ground.plugin.js';
 import { CombatLocationArmorPlugin } from './combat-location-armor.plugin.js';
@@ -51,6 +52,7 @@ export const COMBAT_PLUGIN_LIST: CombatPlugin[] = [
   CombatDodgePlugin,
   // parry
   CombatParryPlugin,
+  CombatFightingStyleTargetPlugin,
   // prepare
   CombatRestrictedQuartersPlugin,
   CombatProneSourcePlugin,
@@ -63,6 +65,7 @@ export const COMBAT_PLUGIN_LIST: CombatPlugin[] = [
   CombatCoverPlugin,
   CombatRangeInMeleePlugin,
   CombatSizeDifferencePlugin,
+  CombatFightingStyleSourcePlugin,
   CombatCalledShotPlugin,
   CombatMultipleAttacksPlugin,
   CombatHigherGroundPlugin,
@@ -93,6 +96,7 @@ export * from './combat-custom-bonus.plugin.js';
 export * from './combat-defensive-bonus.plugin.js';
 export * from './combat-dodge.plugin.js';
 export * from './combat-flatfooted-target.plugin.js';
+export * from './combat-fighting-style.plugin.js';
 export * from './combat-foiler.plugin.js';
 export * from './combat-game-lethality.plugin.js';
 export * from './combat-higher-ground.plugin.js';

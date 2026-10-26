@@ -45,6 +45,9 @@ export class ActorRoundAttackDto {
   @ApiProperty({ description: 'The item broke in the game: the attack cannot be declared', example: false })
   broken: boolean;
 
+  @ApiProperty({ type: [String], description: 'Tags of the weapon type (spec 032)', example: ['fencing'] })
+  weaponTags: string[];
+
   static fromEntity(entity: ActorRoundAttack): ActorRoundAttackDto {
     const dto = new ActorRoundAttackDto();
     dto.attackName = entity.attackName;
@@ -63,6 +66,7 @@ export class ActorRoundAttackDto {
     dto.itemId = entity.itemId ?? null;
     dto.breakagePenalty = entity.breakagePenalty ?? 0;
     dto.broken = entity.broken ?? false;
+    dto.weaponTags = [...(entity.weaponTags ?? [])];
     dto.ranges = entity.ranges && entity.ranges.length > 0 ? entity.ranges.map(r => AttackRangeDto.fromEntity(r)) : undefined;
     return dto;
   }

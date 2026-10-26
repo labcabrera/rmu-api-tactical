@@ -27,6 +27,8 @@ export class ActorRoundAttack {
   breakagePenalty = 0;
   /** The item broke in the game: the attack cannot be declared. */
   broken = false;
+  /** Workspace spec 032: tags of the weapon type (fencing, quarterstaff...) for the fighting style requirements. */
+  weaponTags: string[] = [];
 
   constructor(
     attackName: string,

@@ -21,6 +21,8 @@ import { GetActorRoundQuery } from '../../application/cqrs/queries/get-actor-rou
 import { GetActorsRoundsQuery } from '../../application/cqrs/queries/get-actor-rounds.query.js';
 import { ActorRound } from '../../domain/aggregates/actor-round.js';
 import { DeclareDefenseModeDto } from './dto/actor-round-defense-mode.dto.js';
+import { DeclareFightingStyleDto } from './dto/actor-round-fighting-style.dto.js';
+import { DeclareFightingStyleCommand } from '../../application/cqrs/commands/declare-fighting-style.command.js';
 import { ActorRoundDto, CharacterRoundPageDto } from './dto/actor-round.dto.js';
 import { AddEffectDto } from './dto/add-effect.dto.js';
 import { AddFatigueAccumulatorDto } from './dto/add-fatigue-accumulator.dto.js';
@@ -89,6 +91,21 @@ export class ActorRoundController {
   async declareDefenseMode(@Param('id') id: string, @Body() dto: DeclareDefenseModeDto, @CurrentUser() user: AuthenticatedUser) {
     const command = DeclareDefenseModeDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<DeclareDefenseModeCommand, ActorRound>(command);
+    return ActorRoundDto.fromEntity(entity);
+  }
+
+  @ActorRoundAccess('act')
+  @Patch(':id/fighting-style')
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
+  @ApiOperation({
+    operationId: 'declareFightingStyle',
+    summary: 'Declare the fighting style the actor fights with (spec 032), or none',
+    description: 'Checked against the equipment of the actor; kept in the next rounds until it changes.',
+  })
+  @ApiErrors({ 400: 'The actor has no ranks in the style, or an invalid option', 404: 'Actor round not found' })
+  async declareFightingStyle(@Param('id') id: string, @Body() dto: DeclareFightingStyleDto, @CurrentUser() user: AuthenticatedUser) {
+    const command = DeclareFightingStyleDto.toCommand(id, dto, user.id, user.roles);
+    const entity = await this.commandBus.execute<DeclareFightingStyleCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
   }
 

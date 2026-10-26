@@ -17,6 +17,7 @@ import { ActorRoundTrait } from '../../domain/value-objects/actor-round-trait.vo
 import type { Injury } from '../../domain/value-objects/injury.vo.js';
 import type { ActorRoundItem, ActorRoundItemKind, ActorRoundItemSlot } from '../../domain/value-objects/actor-round-item.vo.js';
 import type { StrategicItem } from '../../../strategic/application/ports/item.port.js';
+import { type ActorRoundFightingStyle, FIGHTING_STYLE_SKILLS } from '../../domain/value-objects/actor-round-fighting-style.vo.js';
 
 const ACTOR_SIZES: Record<string, number> = { medium: 0, small: -1, big: 1 };
 const BODY_DEVELOPMENT_SKILL_ID = 'body-development';
@@ -85,6 +86,7 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
       conditionIds: conditions.map(condition => condition.id),
     });
     actorRound.initItems(this.mapItems(character, items));
+    actorRound.fightingStyles = this.mapFightingStyles(character);
     actorRound.resistances = (character.resistances || [])
       .filter(resistance => !!resistance.resistance)
       .map(resistance => ({ resistance: resistance.resistance, totalBonus: resistance.totalBonus || 0 }));
@@ -133,6 +135,19 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
     return bySlot[slot] ?? armor.at ?? undefined;
   }
 
+  /** Workspace spec 032: the fighting style skills of the sheet with ranks. */
+  private mapFightingStyles(character: Character): ActorRoundFightingStyle[] {
+    return (character.skills || [])
+      .filter(skill => FIGHTING_STYLE_SKILLS.includes(skill.skillId) && !!skill.specialization && (skill.ranks ?? 0) > 0)
+      .map(skill => ({
+        skillId: skill.skillId,
+        styleId: skill.specialization!,
+        ranks: skill.ranks ?? 0,
+        freeRanks: skill.styleFreeRanks ?? 0,
+        abilities: (skill.styleAbilities || []).map(ability => ({ abilityId: ability.abilityId, times: ability.times })),
+      }));
+  }
+
   /** Traits without an id (older sheets) are left out. */
   private mapTraits(character: Character): ActorRoundTrait[] {
     return (character.traits || [])
@@ -168,6 +183,7 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
         attack.skillId || null,
       );
       roundAttack.itemId = itemId && items.some(item => item.id === itemId) ? itemId : null;
+      roundAttack.weaponTags = [...(attack.weaponTags ?? [])];
       return roundAttack;
     });
   }

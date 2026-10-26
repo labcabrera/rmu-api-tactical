@@ -28,6 +28,9 @@ import { ActorRoundController } from './interfaces/http/actor-round.controller.j
 
 import { ACTOR_ROUND_CHARACTER_MAPPER_PORT } from './application/ports/actor-round-character-mapper.port.js';
 import { ACTOR_ROUND_REPOSITORY } from './application/ports/actor-round-repository.port.js';
+import { FIGHTING_STYLES_PORT } from './application/ports/fighting-styles.port.js';
+import { ApiFightingStylesAdapter } from './infrastructure/api-clients/api.fighting-styles.adapter.js';
+import { DeclareFightingStyleHandler } from './application/cqrs/handlers/declare-fighting-style.handler.js';
 @Module({
   imports: [
     TerminusModule,
@@ -51,6 +54,7 @@ import { ACTOR_ROUND_REPOSITORY } from './application/ports/actor-round-reposito
     SubstractBoHandler,
     DeclareActorParryHandler,
     DeclareDefenseModeHandler,
+    DeclareFightingStyleHandler,
     AddFatigueHandler,
     AdjustHpHandler,
     UpdateInjuryHandler,
@@ -58,6 +62,10 @@ import { ACTOR_ROUND_REPOSITORY } from './application/ports/actor-round-reposito
     {
       provide: ACTOR_ROUND_REPOSITORY,
       useClass: MongoActorRoundRepository,
+    },
+    {
+      provide: FIGHTING_STYLES_PORT,
+      useClass: ApiFightingStylesAdapter,
     },
     {
       provide: ACTOR_ROUND_CHARACTER_MAPPER_PORT,
