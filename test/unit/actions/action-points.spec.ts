@@ -8,6 +8,7 @@ import {
   PrepareAttackCommandModifiers,
 } from '../../../src/modules/actions/application/cqrs/commands/prepare-attack.command.js';
 import { CompleteActionHandler } from '../../../src/modules/actions/application/cqrs/handlers/complete-action.handler.js';
+import type { SpellCastingService } from '../../../src/modules/actions/application/services/spell/spell-casting.service.js';
 import { CreateActionHandler } from '../../../src/modules/actions/application/cqrs/handlers/create-action.handler.js';
 import { ManageActionPointsHandler } from '../../../src/modules/actions/application/cqrs/handlers/manage-action-points.handler.js';
 import { PrepareAttackHandler } from '../../../src/modules/actions/application/cqrs/handlers/prepare-attack.handler.js';
@@ -292,6 +293,7 @@ describe('Interruption (spec 011, §2; criterion 7)', () => {
       { publish: vi.fn(() => Promise.resolve()) },
       { findSkill: vi.fn(), findManeuverModifiers: vi.fn() },
       { findById: vi.fn(() => Promise.resolve(null)) } as unknown as CharacterPort,
+      {} as SpellCastingService,
     );
 
     const created = await handler.execute(

@@ -3,6 +3,7 @@ import type { HydratedDocument } from 'mongoose';
 
 import type { ActionStatus } from '../../../domain/value-objects/action-status.vo.js';
 import type { ActionType } from '../../../domain/value-objects/action-type.vo.js';
+import type { ActionSpell } from '../../../domain/value-objects/action-spell.vo.js';
 import { ActionAttack } from './action-attack.model.js';
 import { ActionManeuver } from './action-maneuver.model.js';
 import { ActionMovement } from './action-movement.model.js';
@@ -76,6 +77,10 @@ export class ActionModel {
 
   @Prop({ type: Number, required: false })
   carriedAp?: number | null;
+
+  /** Spec 030: the spell of a `cast_spell` action, stored as the domain value object. */
+  @Prop({ type: Object, required: false })
+  spell?: ActionSpell | null;
 
   @Prop({ required: true })
   owner: string;

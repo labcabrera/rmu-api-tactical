@@ -9,6 +9,7 @@ import { ActionAttack } from '../value-objects/action-attack.vo.js';
 import { ActionManeuver } from '../value-objects/action-maneuver.vo.js';
 import { ActionApProfile } from '../value-objects/action-ap-profile.vo.js';
 import { ActionMovement } from '../value-objects/action-movement.vo.js';
+import type { ActionSpell } from '../value-objects/action-spell.vo.js';
 import { ActionResolution, type ForceReason } from '../value-objects/action-resolution.vo.js';
 import { type ActionStatus, CLOSED_ACTION_STATUSES, IN_RESOLUTION_ACTION_STATUSES } from '../value-objects/action-status.vo.js';
 import type { ActionType } from '../value-objects/action-type.vo.js';
@@ -82,6 +83,8 @@ export interface ActionProps {
   continuesActionId?: string | null;
   /** AP the continued action had at the end of its round: they count toward this one's AP. */
   carriedAp?: number | null;
+  /** The spell of a `cast_spell` action (spec 030). */
+  spell?: ActionSpell | null;
   owner: string;
   createdAt: Date;
   updatedAt: Date | null;
@@ -112,6 +115,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     public apRange: ManeuverActionPoints | null = null,
     public continuesActionId: string | null = null,
     public carriedAp: number | null = null,
+    public spell: ActionSpell | null = null,
   ) {
     super(id);
   }
@@ -184,6 +188,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       props.apRange ?? null,
       props.continuesActionId ?? null,
       props.carriedAp ?? null,
+      props.spell ?? null,
     );
   }
 
@@ -217,6 +222,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       previous.apRange ? { ...previous.apRange } : null,
       previous.id,
       carriedAp,
+      previous.spell ? structuredClone(previous.spell) : null,
     );
     action.apply(new ActionCreatedEvent(action));
     return action;
@@ -398,7 +404,8 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       const penalty = resolution.reason === 'effect' ? 0 : profile.penaltyFor(actionPoints);
       return { actionPoints, readiness: byStatus ?? (penalty === 0 ? 'optimal' : 'ready'), readinessPenalty: penalty };
     }
-    if (actionPoints >= profile.max) {
+    // A free action (an instantaneous spell...) takes no AP penalty, as its resolution does not apply one.
+    if (actionPoints >= profile.max || !this.takesApPenalty()) {
       return { actionPoints, readiness: byStatus ?? 'optimal', readinessPenalty: 0 };
     }
     if (profile.reachesMin(actionPoints)) {
@@ -919,6 +926,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       apRange: this.apRange,
       continuesActionId: this.continuesActionId,
       carriedAp: this.carriedAp,
+      spell: this.spell,
       owner: this.owner,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,

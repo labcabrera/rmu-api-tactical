@@ -3,6 +3,7 @@ import {
   CreateActionCommand,
   CreateActionCommandManeuver,
 } from '../../../../src/modules/actions/application/cqrs/commands/create-action.command.js';
+import type { SpellCastingService } from '../../../../src/modules/actions/application/services/spell/spell-casting.service.js';
 import { CreateActionHandler } from '../../../../src/modules/actions/application/cqrs/handlers/create-action.handler.js';
 import type { DomainEventPublisher } from '../../../../src/modules/shared/application/ports/domain-event-publisher.port.js';
 import type { ActionRepository } from '../../../../src/modules/actions/application/ports/action-repository.port.js';
@@ -41,7 +42,15 @@ const declare = (maneuver: CreateActionCommandManeuver, existing: Action[] = [pr
   } as unknown as ActionRepository;
   const eventBus = { publish: vi.fn(() => Promise.resolve()) } as unknown as DomainEventPublisher;
   const characterClient = { findById: vi.fn(() => Promise.resolve(null)) } as unknown as CharacterPort;
-  const handler = new CreateActionHandler(gameRepository, actorRoundRepository, actionRepository, eventBus, skillCatalog, characterClient);
+  const handler = new CreateActionHandler(
+    gameRepository,
+    actorRoundRepository,
+    actionRepository,
+    eventBus,
+    skillCatalog,
+    characterClient,
+    {} as SpellCastingService,
+  );
   return handler.execute(new CreateActionCommand('game-1', 'actor-1', 'maneuver', false, 1, maneuver, '', 'user-1', []));
 };
 

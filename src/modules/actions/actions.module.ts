@@ -59,6 +59,17 @@ import { ACTION_REPOSITORY } from './application/ports/action-repository.port.js
 import { ATTACK_TABLE_PORT } from './application/ports/attack-table.port.js';
 import { CRITICAL_TABLE_PORT } from './application/ports/critical-table.port.js';
 import { FUMBLE_TABLE_PORT } from './application/ports/fumble-table.port.js';
+import { SPELLCASTING_TABLES_PORT } from './application/ports/spellcasting-tables.port.js';
+import { ApiSpellcastingTablesAdapter } from './infrastructure/api-clients/api.spellcasting-tables.adapter.js';
+import { SpellCastingService } from './application/services/spell/spell-casting.service.js';
+import {
+  ApplySpellHandler,
+  PreviewSpellHandler,
+  ResolveSpellResistanceHandler,
+  RollSpellFailureHandler,
+  RollSpellHandler,
+} from './application/cqrs/handlers/spell.handlers.js';
+import { SpellController } from './interfaces/http/spell.controller.js';
 import { MANEUVER_PORT } from './application/ports/maneuver.port.js';
 import { SKILL_CATALOG_PORT } from './application/ports/skill-catalog.port.js';
 @Module({
@@ -74,7 +85,7 @@ import { SKILL_CATALOG_PORT } from './application/ports/skill-catalog.port.js';
     ActorsRoundModule,
     PsychologyModule,
   ],
-  controllers: [ActionController, AttackController, MovementController, ManeuverController],
+  controllers: [ActionController, AttackController, MovementController, ManeuverController, SpellController],
   providers: [
     ActionApStateService,
     MovementProcessorService,
@@ -99,6 +110,12 @@ import { SKILL_CATALOG_PORT } from './application/ports/skill-catalog.port.js';
     UpdateCriticalRollHandler,
     UpdateFumbleRollHandler,
     ApplyAttackHandler,
+    SpellCastingService,
+    RollSpellHandler,
+    RollSpellFailureHandler,
+    ResolveSpellResistanceHandler,
+    ApplySpellHandler,
+    PreviewSpellHandler,
     // Live in actor-rounds but need the ManeuverPort of this module.
     ResolveEnduranceCheckHandler,
     ResolveBreakageCheckHandler,
@@ -120,6 +137,10 @@ import { SKILL_CATALOG_PORT } from './application/ports/skill-catalog.port.js';
     {
       provide: FUMBLE_TABLE_PORT,
       useClass: ApiFumbleTableAdapter,
+    },
+    {
+      provide: SPELLCASTING_TABLES_PORT,
+      useClass: ApiSpellcastingTablesAdapter,
     },
     {
       provide: MANEUVER_PORT,

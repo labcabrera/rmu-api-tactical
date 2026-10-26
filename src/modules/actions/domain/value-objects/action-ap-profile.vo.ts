@@ -32,6 +32,9 @@ export class ActionApProfile {
         return new ActionApProfile(1, 3, AP_PENALTY_PER_MISSING);
       case 'maneuver':
         return ActionApProfile.forManeuver(options.maneuver);
+      case 'cast_spell':
+        // Spell Law 4.2: a spell takes 4 AP, hastened down to 2 at -25 per AP (fast casting)
+        return new ActionApProfile(2, 4, AP_PENALTY_PER_MISSING);
       case 'stand_up':
         return options.acrobatics ? new ActionApProfile(1, 1, 0) : new ActionApProfile(2, 2, 0);
       case 'dodge':

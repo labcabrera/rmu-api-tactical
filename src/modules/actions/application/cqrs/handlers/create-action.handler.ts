@@ -19,6 +19,7 @@ import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.v
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
 import { type SkillCatalogPort, SKILL_CATALOG_PORT } from '../../ports/skill-catalog.port.js';
 import { CreateActionCommand } from '../commands/create-action.command.js';
+import { SpellCastingService } from '../../services/spell/spell-casting.service.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 /**
@@ -36,6 +37,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
     @Inject(SKILL_CATALOG_PORT) private readonly skillCatalog: SkillCatalogPort,
     @Inject(CHARACTER_PORT) private readonly characterClient: CharacterPort,
+    private readonly spellCasting: SpellCastingService,
   ) {}
 
   async execute(command: CreateActionCommand): Promise<Action> {
@@ -59,6 +61,10 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     );
     const { maneuver, apRange: maneuverRange } = await this.mapManeuver(command);
     const apRange = maneuverRange ?? (await this.standUpRange(command));
+    const spell =
+      command.actionType === 'cast_spell'
+        ? await this.spellCasting.declare(actorRound, actorActions, command.spell!.listCode, command.spell!.spellId, command.freeAction)
+        : null;
     const resolution = command.forced ? ActionResolution.forced(command.forced.reason, command.forced.note) : ActionResolution.normal();
     const action = Action.create(
       command.gameId,
@@ -73,6 +79,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       resolution,
       apRange,
     );
+    action.spell = spell;
     action.applyDeclaration(actorRound, plan, currentPhase);
     if (command.forced) {
       this.logger.log(`Action ${action.id} of ${command.actorId} forced: ${command.forced.reason} ${command.forced.note ?? ''}`);
@@ -121,6 +128,9 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
   private validateCommand(command: CreateActionCommand): void {
     if (command.actionType === 'maneuver' && !command.maneuver) {
       throw new ValidationError(`Maneuver must be provided`);
+    }
+    if (command.actionType === 'cast_spell' && !command.spell) {
+      throw new ValidationError('A spell cast needs its spell', 'err-spell-required');
     }
   }
 
