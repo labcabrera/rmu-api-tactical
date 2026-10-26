@@ -31,14 +31,14 @@ afterEach(() => {
 
 describe('ApiAttackTableAdapter', () => {
   const adapter = new ApiAttackTableAdapter(tokenService, httpClient, configService);
-  const request = { attackTable: 'arming-sword', attackSize: 0, location: undefined };
+  const request = { attackTable: 'arming-sword', location: undefined };
 
-  it('looks up the medium table with the token and maps the entry', async () => {
+  it('looks up the table without attack size, with the token, and maps the entry', async () => {
     const get = mockGet({ text: '12CS', damage: 12, criticalType: 'S', criticalSeverity: 'C' });
 
     const entry = await adapter.lookup({ ...request, roll: 98, armor: 4 });
 
-    expect(requestedUri(get)).toBe(`${BASE_URI}/attack-tables/arming-sword/medium/4/98`);
+    expect(requestedUri(get)).toBe(`${BASE_URI}/attack-tables/arming-sword/4/98`);
     expect(get.mock.calls[0][1]).toEqual(withToken);
     expect(entry).toEqual({ text: '12CS', damage: 12, criticalType: 'S', criticalSeverity: 'C' });
   });
@@ -52,7 +52,7 @@ describe('ApiAttackTableAdapter', () => {
 
     const entry = await adapter.lookup({ ...request, roll, armor });
 
-    expect(requestedUri(get)).toBe(`${BASE_URI}/attack-tables/arming-sword/medium/${path}`);
+    expect(requestedUri(get)).toBe(`${BASE_URI}/attack-tables/arming-sword/${path}`);
     expect(entry).toEqual({ text: '0', damage: 0, criticalType: undefined, criticalSeverity: undefined });
   });
 
