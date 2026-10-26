@@ -79,6 +79,12 @@ describe('ApiSkillCatalogAdapter', () => {
     expect(get.mock.calls[0][0]).toBe(`${BASE_URI}/maneuver-modifiers?skillId=creature-taming`);
   });
 
+  it('leaves out the reference-only modifiers', async () => {
+    const modifier = { id: 'm1', key: 'creature-herd', scope: { categoryIds: ['beasts'] }, type: 'flag', value: -15 };
+    mockGet([modifier, { ...modifier, id: 'm2', key: 'disarm-blade', reference: true }]);
+    expect(await adapter.findManeuverModifiers('disarm')).toEqual([modifier]);
+  });
+
   it('turns a failure of core into a domain error', async () => {
     answer(500, { message: 'x' });
     await expect(adapter.findManeuverModifiers('x')).rejects.toBeInstanceOf(BadGatewayError);
