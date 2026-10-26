@@ -20,6 +20,7 @@ import { ActorRoundTrait } from '../../../../src/modules/actor-rounds/domain/val
 import { ActionAttackResult, AttackTableEntry } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo.js';
 import { Critical } from '../../../../src/modules/actions/domain/value-objects/critical.vo.js';
 import { CriticalEffect, CriticalResult } from '../../../../src/modules/actions/domain/value-objects/critical-result.vo.js';
+import { SpellCastingService } from '../../../../src/modules/actions/application/services/spell/spell-casting.service.js';
 
 const appliedAttack = (attackName: string, modifiers: KeyValueModifier[]) =>
   ({
@@ -112,6 +113,7 @@ const setup = (attacks: ActionAttack[], parries: ActionParry[] = [], blocks: [nu
     strategicGame,
     { publish: vi.fn(() => Promise.resolve()) },
     { execute } as unknown as CommandBus,
+    {} as SpellCastingService,
   );
   const run = () => handler.execute(new ApplyAttackCommand('action-1', 'user', []));
   /** Effects commands sent to each actor round, by actor round id. */

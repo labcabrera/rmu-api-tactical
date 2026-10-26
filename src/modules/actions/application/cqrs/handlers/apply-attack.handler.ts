@@ -23,7 +23,7 @@ import type { HpChange } from '../../../../actor-rounds/domain/value-objects/hp-
 import { type InjurySource, sideOfRoll } from '../../../../actor-rounds/domain/value-objects/injury.vo.js';
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { Game } from '../../../../games/domain/aggregates/game.js';
-import { NotFoundError, UnprocessableEntityError } from '../../../../shared/domain/errors/errors.js';
+import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../../shared/domain/errors/errors.js';
 import { type StrategicGame, STRATEGIC_GAME_PORT } from '../../../../strategic/application/ports/strategic-game.port.js';
 import { StrategicGameApiClient } from '../../../../strategic/infrastructure/api-clients/api.strategic-game.adapter.js';
 import { Action } from '../../../domain/aggregates/action.js';
@@ -33,6 +33,7 @@ import type { AttackLocation } from '../../../domain/value-objects/attack-locati
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
 import { ApplyAttackCommand } from '../commands/apply-attack.command.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
+import { SpellCastingService } from '../../services/spell/spell-casting.service.js';
 
 /** Location of a critical table result (limbs in singular) as an attack location. */
 const toAttackLocation = (location: string | undefined | null): AttackLocation | undefined => {
@@ -66,6 +67,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     @Inject(STRATEGIC_GAME_PORT) private readonly strategicGamePort: StrategicGameApiClient,
     @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
     private readonly commandBus: CommandBus,
+    private readonly spellCasting: SpellCastingService,
   ) {}
 
   async execute(command: ApplyAttackCommand): Promise<Action> {
@@ -88,7 +90,13 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     if (actorRoundIds.length !== actors.length) {
       throw new NotFoundError('Actor rounds', `${actorRoundIds.join(', ')} in round ${game.round}`);
     }
-    const substractBoCommands = this.processAttackSourceSubstractBo(action, actors, command.userId, command.roles);
+    // An attack spell takes its power points when its attack is applied (spec 030, phase 4); first, in case the caster
+    // has no longer enough.
+    const sourceRound = actors.find(a => a.actorId === action.actorId)!;
+    if (action.actionType === 'cast_spell') await this.spendSpellPower(action, sourceRound);
+    // A spell is not a weapon: no OB of the actor round is used.
+    const substractBoCommands =
+      action.actionType === 'cast_spell' ? [] : this.processAttackSourceSubstractBo(action, actors, command.userId, command.roles);
     // One after another: two attacks of the same attacker update the same actor round, and each command reloads it.
     for (const cmd of substractBoCommands) {
       await this.commandBus.execute(cmd);
@@ -145,6 +153,19 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       applications.set(actor.id, { phase, spentAp: actor.getSpentAp(phase, spentInPhase) });
     });
     return applications;
+  }
+
+  private async spendSpellPower(action: Action, sourceActor: ActorRound): Promise<void> {
+    const spell = action.spell!;
+    if (spell.powerPointsSpent !== null && spell.powerPointsSpent !== undefined) return;
+    const spellcasting = await this.spellCasting.readSpellcasting(sourceActor);
+    const amount = spell.spell.powerPoints;
+    const current = spellcasting.power?.current ?? 0;
+    if (amount > current) {
+      throw new ValidationError(`The caster has ${current} power points, not ${amount}`, 'err-insufficient-power');
+    }
+    if (amount > 0) await this.spellCasting.spendPower(sourceActor, amount);
+    spell.powerPointsSpent = amount;
   }
 
   private processAttackSourceSubstractBo(action: Action, actors: ActorRound[], userId: string, roles: string[]): SubstractBoCommand[] {

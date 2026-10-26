@@ -853,7 +853,8 @@ export class Action extends BaseAggregateRoot<ActionProps> {
   }
 
   checkValidApplyResults() {
-    if (this.actionType !== 'melee_attack' && this.actionType !== 'ranged_attack') {
+    const spellAttack = this.actionType === 'cast_spell' && !!this.spell?.attack && (this.attacks?.length ?? 0) > 0;
+    if (this.actionType !== 'melee_attack' && this.actionType !== 'ranged_attack' && !spellAttack) {
       throw new ValidationError('Action is not an attack');
     }
     if (this.status === 'completed') {

@@ -1,6 +1,6 @@
 import { ActorRoundAttack, type WeaponCategory } from '../../../../../actor-rounds/domain/value-objects/actor-round-attack.vo.js';
 import type { CombatContext } from '../combat-context.js';
-import { isPreparing, rollModifiers, sourceSkill } from '../combat-modifiers.js';
+import { isPreparing, isSpellAttack, rollModifiers, sourceSkill } from '../combat-modifiers.js';
 import type { CombatPlugin } from '../combat-plugin.js';
 
 const SECOND_ATTACK_PENALTY = -75;
@@ -38,7 +38,8 @@ export const CombatMultipleAttacksPlugin: CombatPlugin = {
   hooks: {
     prepare: [
       {
-        condition: ctx => isPreparing(ctx) && ((ctx.attackNumber || 1) > 1 || (ctx.targetsNumber || 1) > 1),
+        // The targets of a ball take one attack each: no multiple attacks (RMCL 9.3).
+        condition: ctx => isPreparing(ctx) && !isSpellAttack(ctx) && ((ctx.attackNumber || 1) > 1 || (ctx.targetsNumber || 1) > 1),
         apply: ctx => {
           const attacks = ctx.attackNumber || 1;
           const targets = ctx.targetsNumber || 1;

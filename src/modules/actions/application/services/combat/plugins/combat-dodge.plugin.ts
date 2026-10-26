@@ -1,5 +1,6 @@
 import type { CombatContext } from '../combat-context.js';
 import {
+  isAreaSpellAttack,
   isMelee,
   isPreparing,
   rollModifiers,
@@ -49,8 +50,13 @@ export const CombatDodgePlugin: CombatPlugin = {
   hooks: {
     prepare: [
       {
+        // An area attack spell cannot be dodged (RMCL 9.3).
         condition: ctx =>
-          isPreparing(ctx) && !!ctx.targetActor?.defenseMode && ctx.targetActor.defenseMode.dodge !== 'none' && !targetIsFlatfooted(ctx),
+          isPreparing(ctx) &&
+          !isAreaSpellAttack(ctx) &&
+          !!ctx.targetActor?.defenseMode &&
+          ctx.targetActor.defenseMode.dodge !== 'none' &&
+          !targetIsFlatfooted(ctx),
         apply: ctx => void rollModifiers(ctx).add('dodge', -dodgeBonus(ctx)),
       },
     ],

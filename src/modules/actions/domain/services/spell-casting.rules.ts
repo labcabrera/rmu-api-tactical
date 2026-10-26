@@ -1,5 +1,6 @@
 import { KeyValueModifier } from '../value-objects/key-value-modifier.vo.js';
 import type {
+  ActionSpellAttack,
   ActionSpellCaster,
   ActionSpellInfo,
   ActionSpellOptions,
@@ -193,4 +194,79 @@ export function spellResistanceRoll(input: SpellRrInput): SpellRrResult {
 export function spellAllowsRr(spell: ActionSpellInfo): boolean {
   const kind = spell.resistance?.kind;
   return kind === 'realm' || kind === 'informational' || kind === 'willing';
+}
+
+/** The `attack` effect of a spell (spec 028), as rmu-api-spells returns it. */
+export interface SpellAttackEffect {
+  kind: 'attack';
+  attackTable: string;
+  attackSize?: 'small' | 'medium' | 'big' | null;
+  criticalType?: string | null;
+  ob?: 'directed-spells' | 'list-ranks' | null;
+  radius?: number | null;
+}
+
+/** The caster's Directed Spells skill for a specialization: its ranks and total bonus. */
+export interface DirectedSpellSkill {
+  ranks: number;
+  totalBonus: number;
+}
+
+const ATTACK_SIZE_STEPS = { small: -1, medium: 0, big: 1 };
+/** Bonus of a skill without ranks (Table 3-0b). */
+const UNSKILLED_BONUS = -25;
+/** Directed Spell attacks: medium range up to 2x the short range, then long, extreme and absurd (Spell Law 2.4). */
+const DIRECTED_RANGE_BONUSES = [0, -10, -25, -50, -100];
+const BOLT_FUMBLE = 2;
+/** Area spells fumble on an unmodified 01-02 (RMCL 9.3). */
+const BALL_FUMBLE = 2;
+const NO_RANGE_LIMIT = 10000;
+
+/** The `attack` effect of a spell, if it has one. */
+export function spellAttackEffect(effects: Record<string, unknown>[] | null | undefined): SpellAttackEffect | undefined {
+  return (effects ?? []).find(effect => effect.kind === 'attack' && typeof effect.attackTable === 'string') as
+    SpellAttackEffect | undefined;
+}
+
+/** Specialization of the Directed Spells skill that an attack table uses (core enumeration `skill-directed-spell`). */
+export function directedSpellSpecialization(attackTable: string): string | null {
+  if (attackTable.endsWith('-bolt')) return 'elemental-bolts';
+  if (attackTable === 'sling' || attackTable === 'unarmed-strikes') return 'hurling';
+  return null;
+}
+
+/**
+ * The attack of an attack spell (Spell Law 4.3, RMCL 9.3), read by the combat engine as a ranged weapon:
+ * - a bolt adds the caster's Directed Spells bonus for its table (unskilled -25), fumbles on 1-2 (one less per 5 ranks,
+ *   at least 1) and takes -10/-25/-50/-100 beyond its short range, one bracket per range increment;
+ * - a ball (or cone) adds only the ranks in the list, fumbles on 1-2 and has no range modifier up to its range.
+ */
+export function spellAttackProfile(
+  effect: SpellAttackEffect,
+  range: Record<string, unknown> | null,
+  listRanks: number,
+  directed: DirectedSpellSkill | null,
+): ActionSpellAttack {
+  const ball = effect.ob === 'list-ranks' || /-ball$/.test(effect.attackTable);
+  const specialization = directedSpellSpecialization(effect.attackTable);
+  const increment = typeof range?.increment === 'number' ? range.increment : null;
+  const distance = typeof range?.value === 'number' ? range.value : null;
+  const ranges = ball
+    ? [{ from: 0, to: distance ?? NO_RANGE_LIMIT, bonus: 0 }]
+    : increment
+      ? DIRECTED_RANGE_BONUSES.map((bonus, index) => ({ from: index * increment, to: (index + 1) * increment, bonus }))
+      : [{ from: 0, to: distance ?? NO_RANGE_LIMIT, bonus: 0 }];
+  return {
+    kind: ball ? 'ball' : 'bolt',
+    attackName: effect.attackTable,
+    attackTable: effect.attackTable,
+    attackSize: ATTACK_SIZE_STEPS[effect.attackSize ?? 'medium'] ?? 0,
+    criticalType: effect.criticalType ?? null,
+    fumbleTable: ball ? 'elemental-balls-cones' : 'elemental-bolts',
+    fumble: ball ? BALL_FUMBLE : Math.max(1, BOLT_FUMBLE - Math.floor((directed?.ranks ?? 0) / 5)),
+    bo: ball ? listRanks : (directed?.totalBonus ?? UNSKILLED_BONUS),
+    skillId: ball || !specialization ? null : `directed-spell@${specialization}`,
+    ranges,
+    radius: typeof effect.radius === 'number' ? effect.radius : null,
+  };
 }

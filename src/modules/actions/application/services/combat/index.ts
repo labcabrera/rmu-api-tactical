@@ -9,3 +9,4 @@ export * from './engine/combat-plugin-registry.service.js';
 export * from './engine/combat-plugin.tokens.js';
 export * from './engine/combat-processor.service.js';
 export * from './plugins/index.js';
+export * from './combat-source-attack.js';

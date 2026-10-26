@@ -123,3 +123,9 @@ export const targetIsFlatfooted = (ctx: CombatContext): boolean => targetHasStat
  * stun, fatigue). The defender's pace is not declared, so its pace penalty is not known here.
  */
 export const targetInjuryPenalty = (ctx: CombatContext): number => Math.min(0, ctx.targetActor?.getPenaltySum() || 0);
+
+/** The attack is a spell's (spec 030, phase 4). */
+export const isSpellAttack = (ctx: CombatContext): boolean => !!ctx.action?.spell?.attack && ctx.action.actionType === 'cast_spell';
+
+/** An area attack spell (ball or cone): no dodge (RMCL 9.3). */
+export const isAreaSpellAttack = (ctx: CombatContext): boolean => isSpellAttack(ctx) && ctx.action.spell!.attack!.kind === 'ball';

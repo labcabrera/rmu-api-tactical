@@ -9,6 +9,9 @@ import {
   scrModifiers,
   scrResult,
   spellAllowsRr,
+  spellAttackEffect,
+  spellAttackProfile,
+  directedSpellSpecialization,
   spellResistanceRoll,
   type SpellcastingTables,
 } from '../../../src/modules/actions/domain/services/spell-casting.rules.js';
@@ -210,5 +213,66 @@ describe('resistance rolls (Spell Law 4.5)', () => {
     expect(spellAllowsRr(spell({ resistance: { kind: 'realm', modifier: null, scaling: null } }))).toBe(true);
     expect(spellAllowsRr(spell({ resistance: { kind: 'none', modifier: null, scaling: null } }))).toBe(false);
     expect(spellAllowsRr(spell())).toBe(false);
+  });
+});
+
+describe('attack spells (spec 030, phase 4)', () => {
+  const bolt = {
+    kind: 'attack' as const,
+    attackTable: 'fire-bolt',
+    attackSize: 'medium' as const,
+    criticalType: 'H',
+    ob: 'directed-spells' as const,
+  };
+  const ball = {
+    kind: 'attack' as const,
+    attackTable: 'fire-ball',
+    attackSize: 'big' as const,
+    criticalType: 'H',
+    ob: 'list-ranks' as const,
+    radius: 10,
+  };
+
+  it('finds the attack effect of a spell and the Directed Spells specialization of its table', () => {
+    expect(spellAttackEffect([{ kind: 'condition' }, bolt])).toBe(bolt);
+    expect(spellAttackEffect([{ kind: 'condition' }])).toBeUndefined();
+    expect(directedSpellSpecialization('ice-bolt')).toBe('elemental-bolts');
+    expect(directedSpellSpecialization('sling')).toBe('hurling');
+    expect(directedSpellSpecialization('fire-ball')).toBeNull();
+  });
+
+  it('gives a bolt the Directed Spells bonus, a fumble range that shrinks with its ranks and range brackets', () => {
+    const attack = spellAttackProfile(bolt, { type: 'distance', increment: 25 }, 6, { ranks: 10, totalBonus: 45 });
+    expect(attack).toMatchObject({
+      kind: 'bolt',
+      attackName: 'fire-bolt',
+      attackSize: 0,
+      bo: 45,
+      fumble: 1,
+      fumbleTable: 'elemental-bolts',
+      skillId: 'directed-spell@elemental-bolts',
+    });
+    expect(attack.ranges.map(range => [range.to, range.bonus])).toEqual([
+      [25, 0],
+      [50, -10],
+      [75, -25],
+      [100, -50],
+      [125, -100],
+    ]);
+    // Without the skill, the unskilled bonus.
+    expect(spellAttackProfile(bolt, null, 6, null)).toMatchObject({ bo: -25, fumble: 2 });
+  });
+
+  it('gives a ball the list ranks as OB, its size step and no range modifier up to its range', () => {
+    expect(spellAttackProfile(ball, { type: 'distance', value: 100 }, 6, { ranks: 10, totalBonus: 45 })).toMatchObject({
+      kind: 'ball',
+      bo: 6,
+      attackSize: 1,
+      fumble: 2,
+      fumbleTable: 'elemental-balls-cones',
+      skillId: null,
+      radius: 10,
+      ranges: [{ from: 0, to: 100, bonus: 0 }],
+    });
   });
 });
