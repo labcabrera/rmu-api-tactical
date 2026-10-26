@@ -49,6 +49,7 @@ export class MongoActionRepository extends MongoBaseRepository<Action, ActionMod
       apRange: doc.apRange ? { min: doc.apRange.min, max: doc.apRange.max } : null,
       continuesActionId: doc.continuesActionId ?? null,
       carriedAp: doc.carriedAp ?? null,
+      spell: doc.spell ?? null,
       owner: doc.owner,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,

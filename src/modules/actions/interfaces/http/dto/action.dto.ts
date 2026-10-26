@@ -9,6 +9,7 @@ import type { ActionStatus } from '../../../domain/value-objects/action-status.v
 import type { ActionType } from '../../../domain/value-objects/action-type.vo.js';
 import { ActionAttackDto } from './action-attack.dto.js';
 import { ActionManeuverDto } from './action-maneuver.dto.js';
+import { ActionSpellDto } from './action-spell.dto.js';
 import { ActionMovementDto } from './action-movement.dto.js';
 import { ActionParryDto } from './action-parry.dto.js';
 
@@ -136,6 +137,9 @@ export class ActionDto {
   @ApiProperty({ description: 'Action maneuver', type: ActionManeuverDto, required: false })
   maneuver: ActionManeuverDto | null;
 
+  @ApiProperty({ description: 'Spell of a cast_spell action (spec 030)', type: ActionSpellDto, required: false })
+  spell: ActionSpellDto | null;
+
   @ApiProperty({ description: 'Action attacks', type: [ActionAttackDto], required: false })
   attacks: ActionAttackDto[] | null;
 
@@ -171,6 +175,7 @@ export class ActionDto {
     dto.carriedAp = entity.carriedAp ?? null;
     dto.movement = entity.movement ? ActionMovementDto.fromEntity(entity.movement) : null;
     dto.maneuver = entity.maneuver ? ActionManeuverDto.fromEntity(entity.maneuver) : null;
+    dto.spell = entity.spell ? ActionSpellDto.fromEntity(entity.spell) : null;
     dto.attacks = entity.attacks && entity.attacks.length > 0 ? entity.attacks.map(a => ActionAttackDto.fromEntity(a)) : null;
     dto.parries = entity.parries ? entity.parries.map(p => ActionParryDto.fromEntity(p)) : null;
     dto.fatigue = entity.fatigue;

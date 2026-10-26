@@ -6,8 +6,10 @@ import { CharacterApiClient } from './infrastructure/api-clients/api.character.a
 import { StrategicGameApiClient } from './infrastructure/api-clients/api.strategic-game.adapter.js';
 import { TacticalOutcomeApiClient } from './infrastructure/api-clients/api.tactical-outcome.adapter.js';
 import { ItemApiClient } from './infrastructure/api-clients/api.item.adapter.js';
+import { CharacterMagicApiClient } from './infrastructure/api-clients/api.character-magic.adapter.js';
 
 import { CHARACTER_PORT } from './application/ports/character.port.js';
+import { CHARACTER_MAGIC_PORT } from './application/ports/character-magic.port.js';
 import { ITEM_PORT } from './application/ports/item.port.js';
 import { STRATEGIC_GAME_PORT } from './application/ports/strategic-game.port.js';
 import { TACTICAL_OUTCOME_PORT } from './application/ports/tactical-outcome.port.js';
@@ -31,7 +33,11 @@ import { TACTICAL_OUTCOME_PORT } from './application/ports/tactical-outcome.port
       provide: ITEM_PORT,
       useClass: ItemApiClient,
     },
+    {
+      provide: CHARACTER_MAGIC_PORT,
+      useClass: CharacterMagicApiClient,
+    },
   ],
-  exports: [CHARACTER_PORT, STRATEGIC_GAME_PORT, TACTICAL_OUTCOME_PORT, ITEM_PORT],
+  exports: [CHARACTER_PORT, STRATEGIC_GAME_PORT, TACTICAL_OUTCOME_PORT, ITEM_PORT, CHARACTER_MAGIC_PORT],
 })
 export class StrategicModule {}

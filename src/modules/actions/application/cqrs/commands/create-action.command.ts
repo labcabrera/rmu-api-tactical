@@ -15,7 +15,15 @@ export class CreateActionCommand {
     public readonly roles: string[],
     /** A new action forced out of turn (spec 011, §6): an effect or the game master. */
     public readonly forced?: CreateActionCommandForced,
+    /** The spell of a `cast_spell` action (spec 030). */
+    public readonly spell?: CreateActionCommandSpell,
   ) {}
+}
+
+export class CreateActionCommandSpell {
+  /** Code of the list in the caster's spellbook. */
+  listCode: string;
+  spellId: string;
 }
 
 export class CreateActionCommandForced {

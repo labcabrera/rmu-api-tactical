@@ -50,6 +50,18 @@ export class ActionManeuverCreationDto {
   continuesActionId?: string;
 }
 
+export class ActionSpellCreationDto {
+  @ApiProperty({ description: 'Code of the spell list in the caster spellbook', example: 'fire-law' })
+  @IsString()
+  @IsNotEmpty()
+  listCode: string;
+
+  @ApiProperty({ description: 'Spell identifier (rmu-api-spells)' })
+  @IsString()
+  @IsNotEmpty()
+  spellId: string;
+}
+
 export class ForceActionDto {
   @ApiProperty({ type: String, description: 'Why the action is resolved out of turn', enum: FORCE_REASONS })
   @IsIn(FORCE_REASONS)
@@ -104,6 +116,13 @@ export class CreateActionDto {
   @IsObject()
   forced?: ForceActionDto;
 
+  @ApiProperty({ description: 'Spell of a cast_spell action (spec 030)', type: ActionSpellCreationDto, required: false })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ActionSpellCreationDto)
+  @IsObject()
+  spell?: ActionSpellCreationDto;
+
   static toCommand(dto: CreateActionDto, userId: string, roles: string[]) {
     return new CreateActionCommand(
       dto.gameId,
@@ -116,6 +135,7 @@ export class CreateActionDto {
       userId,
       roles,
       dto.forced ? { reason: dto.forced.reason, note: dto.forced.note } : undefined,
+      dto.spell ? { listCode: dto.spell.listCode, spellId: dto.spell.spellId } : undefined,
     );
   }
 }

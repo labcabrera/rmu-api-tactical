@@ -38,6 +38,12 @@ import {
   TACTICAL_OUTCOME_PORT,
   type TacticalOutcomeRequest,
 } from '../../../src/modules/strategic/application/ports/tactical-outcome.port.js';
+import { CHARACTER_MAGIC_PORT, type CharacterSpellcasting } from '../../../src/modules/strategic/application/ports/character-magic.port.js';
+import {
+  SPELLCASTING_TABLES_PORT,
+  type SpellFailureLookup,
+} from '../../../src/modules/actions/application/ports/spellcasting-tables.port.js';
+import type { SpellcastingTables } from '../../../src/modules/actions/domain/services/spell-casting.rules.js';
 import { AUDIENCE, ISSUER, LocalJwks } from './jwks.js';
 
 export type Server = Parameters<typeof request>[0];
@@ -70,6 +76,13 @@ export type World = {
   skillProfiles: Map<string, Partial<SkillManeuverProfile>>;
   lookups: { attack: AttackTableLookupRequest[]; critical: CriticalTableLookupRequest[]; fumble: FumbleTableLookupRequest[] };
   outcomes: { characterId: string; request: TacticalOutcomeRequest }[];
+  /** Spellbooks of strategic by character (spec 030), and the power points the suite spent. */
+  spellcasting: Map<string, CharacterSpellcasting>;
+  powerSpent: { characterId: string; amount: number }[];
+  /** Table 4-2 and the answer of every spell failure lookup, with made-up numbers. */
+  spellcastingTables: SpellcastingTables;
+  spellFailure: SpellFailureLookup;
+  spellFailureLookups: { realm: string; type: string; roll: number }[];
   /** Events published, as `<aggregateType>.<eventType>`. */
   events: { aggregateType: string; event: DomainEvent<unknown> }[];
 };
@@ -98,7 +111,33 @@ const newWorld = (): World => ({
   lookups: { attack: [], critical: [], fumble: [] },
   outcomes: [],
   events: [],
+  spellcasting: new Map(),
+  powerSpent: [],
+  spellcastingTables: SPELLCASTING_TABLES,
+  spellFailure: { text: 'The spell fizzles.', pp: 'half-down' },
+  spellFailureLookups: [],
 });
+
+/** Made-up Table 4-2 (not the book's numbers): one column per realm and per hybrid. */
+const column = (essence: number | null) => ({
+  channeling: essence,
+  essence,
+  mentalism: essence,
+  'channeling-essence': essence,
+  'channeling-mentalism': essence,
+  'essence-mentalism': essence,
+});
+const SPELLCASTING_TABLES: SpellcastingTables = {
+  columns: Object.keys(column(0)),
+  subtlety: { elemental: column(-7), force: column(-6), informational: column(-1), utility: column(-2) },
+  hands: { none: column(-11), one: column(-3), two: column(0) },
+  voice: { none: column(-9), whisper: column(-4), normal: column(0), shout: column(2) },
+  helmet: { light: column(-13), medium: column(-17), heavy: column(-19) },
+  armor: { leather: column(0), metal: { ...column(0), essence: { perEncumbrancePercent: -2 } } },
+  fastCastingPerAp: -25,
+  overcastingPerLevel: -20,
+  preparation: { perRound: 10, max: 20 },
+};
 
 /** The outbound ports of the API, answering from the world instead of calling core, strategic, npcs and attack-tables. */
 function fakePorts(world: World) {
@@ -175,6 +214,28 @@ function fakePorts(world: World) {
       },
     ],
     [PSYCHOLOGY_TABLES_PORT, { find: () => Promise.resolve(world.psychologyTables) }],
+    [
+      CHARACTER_MAGIC_PORT,
+      {
+        findSpellcasting: (id: string) => Promise.resolve(world.spellcasting.get(id)),
+        spendPower: (characterId: string, amount: number) => {
+          const book = world.spellcasting.get(characterId);
+          if (book?.power) book.power.current -= amount;
+          world.powerSpent.push({ characterId, amount });
+          return Promise.resolve();
+        },
+      },
+    ],
+    [
+      SPELLCASTING_TABLES_PORT,
+      {
+        findModifiers: () => Promise.resolve(world.spellcastingTables),
+        findFailure: (realm: string, type: string, roll: number) => {
+          world.spellFailureLookups.push({ realm, type, roll });
+          return Promise.resolve(world.spellFailure);
+        },
+      },
+    ],
     [HEALING_TABLES_PORT, { treatmentTables: () => Promise.resolve(world.treatmentTables) }],
     [
       TACTICAL_OUTCOME_PORT,
