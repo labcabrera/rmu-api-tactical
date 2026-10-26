@@ -133,6 +133,34 @@ export interface ActionSpellTarget {
   failure: number;
 }
 
+/** Directed (bolt) or area (ball, cone) attack spell (Spell Law 4.3). */
+export type SpellAttackKind = 'bolt' | 'ball';
+
+/**
+ * The attack of an attack spell, as the combat engine reads a weapon (`ActorRoundAttack`): computed at declaration
+ * from the spell's `attack` effect and the caster's skills (spec 030, phase 4).
+ */
+export interface ActionSpellAttack {
+  kind: SpellAttackKind;
+  /** Name of the attacks of the action: the attack table, with a suffix for the extra targets of a ball. */
+  attackName: string;
+  attackTable: string;
+  /** Severity steps of its criticals: small -1, medium 0, big +1. */
+  attackSize: number;
+  criticalType: string | null;
+  fumbleTable: string;
+  /** Fumble on an unmodified roll up to this. */
+  fumble: number;
+  /** Directed Spells skill bonus for a bolt, list ranks for a ball (RMCL 9.3). */
+  bo: number;
+  /** `directed-spell@<specialization>` for a bolt, null for a ball. */
+  skillId: string | null;
+  /** Range brackets in feet with their OB modifier. */
+  ranges: { from: number; to: number; bonus: number }[];
+  /** Radius of a ball in feet, when the spell gives one. */
+  radius: number | null;
+}
+
 export interface ActionSpell {
   spell: ActionSpellInfo;
   caster: ActionSpellCaster;
@@ -143,4 +171,6 @@ export interface ActionSpell {
   targets?: ActionSpellTarget[];
   /** Power points taken from the caster when the cast was applied. */
   powerPointsSpent?: number | null;
+  /** The attack of an attack spell; after a successful SCR it is resolved as the action's attacks. */
+  attack?: ActionSpellAttack | null;
 }

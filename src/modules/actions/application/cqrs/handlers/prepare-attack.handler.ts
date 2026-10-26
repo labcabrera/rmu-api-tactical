@@ -30,7 +30,7 @@ import type {
   CombatContext,
   CombatPrepareAttackInput,
 } from '../../services/combat/index.js';
-import { COMBAT_SKILL_IDS, CombatModifierBag, CombatProcessor, sizeDifference } from '../../services/combat/index.js';
+import { COMBAT_SKILL_IDS, CombatModifierBag, CombatProcessor, sizeDifference, sourceAttackOf } from '../../services/combat/index.js';
 import { PrepareAttackCommand, PrepareAttackCommandItem } from '../commands/prepare-attack.command.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
@@ -53,6 +53,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
 
     const action = await this.actionRepository.findById(command.actionId);
     if (!action) throw new NotFoundError('Action', command.actionId);
+    if (action.actionType === 'cast_spell') this.checkSpellAttack(action, command);
 
     const game = await this.gameRepository.findById(action.gameId);
     if (!game) throw new NotFoundError('Game', action.gameId);
@@ -81,7 +82,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const targets: Set<string> = new Set();
     command.attacks.forEach(a => targets.add(a.modifiers.targetId));
     const targetsNumber = targets.size;
-    const kataAttacks = actionAttacks.map(attack => sourceActorRound.attacks.find(a => a.attackName === attack.attackName)!);
+    const kataAttacks = actionAttacks.map(attack => sourceAttackOf(action, sourceActorRound, attack.attackName)!);
     const roundActions = await this.actionRepository
       .findByRsql(`gameId==${action.gameId};round==${game.round};actorId=in=(${Array.from(actorRoundIds).join(',')})`, 0, 1000)
       .then(res => res.content);
@@ -139,7 +140,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       targetActor: input.actors.find(a => a.actorId === input.attack.modifiers.targetId),
       trace: [],
     };
-    ctx.sourceAttack = ctx.sourceActor?.attacks?.find(a => a.attackName === input.attack.attackName);
+    ctx.sourceAttack = sourceAttackOf(input.action, ctx.sourceActor, input.attack.attackName);
     if (!ctx.sourceActor || !ctx.targetActor || !ctx.sourceAttack) throw new UnprocessableEntityError('Attack not found on actor');
     ctx.sourceTraits = ctx.sourceActor.traits || [];
     ctx.targetTraits = ctx.targetActor.traits || [];
@@ -160,6 +161,27 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     );
 
     return ctx;
+  }
+
+  /**
+   * The attack of a cast (spec 030, phase 4) follows a successful SCR of an attack spell and comes before the cast is
+   * applied: a bolt strikes one target, a ball one attack per target in its area.
+   */
+  private checkSpellAttack(action: Action, command: PrepareAttackCommand): void {
+    const spell = action.spell;
+    if (!spell?.attack || spell.result !== 'success') {
+      throw new ValidationError('Only a successful cast of an attack spell makes attacks', 'err-spell-no-attack');
+    }
+    if (spell.powerPointsSpent !== null && spell.powerPointsSpent !== undefined) {
+      throw new ValidationError('The cast is already applied', 'err-spell-invalid-step');
+    }
+    if (spell.attack.kind === 'bolt' && command.attacks.length > 1) {
+      throw new ValidationError('A bolt strikes a single target', 'err-spell-bolt-single-target');
+    }
+    const targets = command.attacks.map(attack => attack.modifiers.targetId);
+    if (new Set(targets).size !== targets.length) {
+      throw new ValidationError('A target takes a single attack of the spell', 'err-spell-invalid-target');
+    }
   }
 
   private getActorIds(action: Action, command: PrepareAttackCommand): string[] {
@@ -279,7 +301,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
   }
 
   private mapAttacks(commandAttack: PrepareAttackCommandItem, action: Action, source: ActorRound): ActionAttack {
-    const attack = source.attacks?.find(a => a.attackName === commandAttack.attackName);
+    const attack = sourceAttackOf(action, source, commandAttack.attackName);
     if (!attack) {
       throw new UnprocessableEntityError(`Attack ${commandAttack.attackName} not found on actor`);
     }

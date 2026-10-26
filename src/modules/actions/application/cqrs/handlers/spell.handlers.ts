@@ -203,6 +203,10 @@ export class ApplySpellHandler implements ICommandHandler<ApplySpellCommand, Act
 
   async execute(command: ApplySpellCommand): Promise<Action> {
     const context = await this.spellCasting.load(command.actionId);
+    // Once its attack is prepared, an attack spell is applied with its attack (spec 030, phase 4).
+    if ((context.action.attacks?.length ?? 0) > 0) {
+      throw new ValidationError('The attack of the spell is applied with the attack', 'err-spell-attack-pending');
+    }
     checkStatus(context, 'pending_apply', 'apply');
     const spell = context.spell;
     const spellcasting = await this.spellCasting.readSpellcasting(context.actorRound);

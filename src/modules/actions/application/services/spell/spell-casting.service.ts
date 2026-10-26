@@ -15,7 +15,16 @@ import {
   CHARACTER_MAGIC_PORT,
 } from '../../../../strategic/application/ports/character-magic.port.js';
 import { Action } from '../../../domain/aggregates/action.js';
-import { castingSpellType, needsPreparation, scrModifiers } from '../../../domain/services/spell-casting.rules.js';
+import { type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port.js';
+import {
+  castingSpellType,
+  type DirectedSpellSkill,
+  directedSpellSpecialization,
+  needsPreparation,
+  scrModifiers,
+  spellAttackEffect,
+  spellAttackProfile,
+} from '../../../domain/services/spell-casting.rules.js';
 import {
   type ActionSpell,
   type ActionSpellOptions,
@@ -52,6 +61,7 @@ export class SpellCastingService {
     @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
     @Inject(CHARACTER_MAGIC_PORT) private readonly characterMagic: CharacterMagicPort,
     @Inject(SPELLCASTING_TABLES_PORT) private readonly tables: SpellcastingTablesPort,
+    @Inject(CHARACTER_PORT) private readonly characters: CharacterPort,
   ) {}
 
   /**
@@ -82,7 +92,23 @@ export class SpellCastingService {
         'err-insufficient-power',
       );
     }
-    return SpellCastingService.toActionSpell(spellcasting, list, known);
+    const actionSpell = SpellCastingService.toActionSpell(spellcasting, list, known);
+    // An attack spell: its attack is fixed now, with the caster's Directed Spells skill (phase 4).
+    const effect = spellAttackEffect(actionSpell.spell.effects);
+    if (effect) {
+      const directed = await this.readDirectedSpell(actorRound, effect.attackTable);
+      actionSpell.attack = spellAttackProfile(effect, actionSpell.spell.range, list.ranks, directed);
+    }
+    return actionSpell;
+  }
+
+  /** The caster's Directed Spells skill for an attack table, if it has the specialization. */
+  private async readDirectedSpell(actorRound: ActorRound, attackTable: string): Promise<DirectedSpellSkill | null> {
+    const specialization = directedSpellSpecialization(attackTable);
+    if (!specialization) return null;
+    const character = await this.characters.findById(actorRound.characterId ?? actorRound.actorId);
+    const skill = character?.skills.find(each => each.skillId === 'directed-spell' && each.specialization === specialization);
+    return skill ? { ranks: skill.ranks ?? 0, totalBonus: skill.totalBonus } : null;
   }
 
   /** The action, its game and phase and its caster's round; the action has to be a cast. */

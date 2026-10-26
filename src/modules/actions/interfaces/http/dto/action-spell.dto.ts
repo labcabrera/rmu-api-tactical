@@ -223,6 +223,14 @@ export class ActionSpellDto {
   @ApiProperty({ type: Number, nullable: true, required: false })
   powerPointsSpent?: number | null;
 
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: true,
+    nullable: true,
+    description: 'Attack of an attack spell (bolt or ball), resolved with the attack endpoints after a successful SCR',
+  })
+  attack?: ActionSpell['attack'];
+
   static fromEntity(entity: ActionSpell): ActionSpellDto {
     return Object.assign(new ActionSpellDto(), structuredClone(entity));
   }

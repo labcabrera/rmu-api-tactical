@@ -10,7 +10,7 @@ import { Action } from '../../../domain/aggregates/action.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
 import { type FumbleTablePort, FUMBLE_TABLE_PORT } from '../../ports/fumble-table.port.js';
-import { CombatProcessor } from '../../services/combat/index.js';
+import { CombatProcessor, sourceAttackOf } from '../../services/combat/index.js';
 import { UpdateFumbleRollCommand } from '../commands/update-fumble-roll.command.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
@@ -44,7 +44,7 @@ export class UpdateFumbleRollHandler implements ICommandHandler<UpdateFumbleRoll
 
     const sourceActor = await this.actorRoundRepository.findByActorIdAndRound(action.gameId, action.actorId, action.round);
     if (!sourceActor) throw new NotFoundError('ActorRound', action.actorId);
-    const sourceAttack = sourceActor.attacks?.find(a => a.attackName === command.attackName);
+    const sourceAttack = sourceAttackOf(action, sourceActor, command.attackName);
     if (!sourceAttack) {
       throw new ValidationError(`Attack ${command.attackName} not found on actor ${action.actorId}`);
     }

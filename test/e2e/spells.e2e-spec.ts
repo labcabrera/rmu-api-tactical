@@ -50,6 +50,36 @@ const spellbook = (current = 10): CharacterSpellcasting => ({
         },
         {
           spell: {
+            id: 'firebolt',
+            name: 'E2E Firebolt',
+            level: 1,
+            modifiers: {
+              type: 'elemental',
+              instant: false,
+              range: { type: 'distance', value: null, increment: 25 },
+              resistance: { kind: 'none', modifier: null, scaling: null },
+            },
+            effects: [{ kind: 'attack', attackTable: 'fire-bolt', attackSize: 'medium', criticalType: 'H', ob: 'directed-spells' }],
+          },
+          powerPoints: 2,
+        },
+        {
+          spell: {
+            id: 'fireball',
+            name: 'E2E Fireball',
+            level: 3,
+            modifiers: {
+              type: 'elemental',
+              instant: false,
+              range: { type: 'distance', value: 100, increment: null },
+              resistance: { kind: 'none', modifier: null, scaling: null },
+            },
+            effects: [{ kind: 'attack', attackTable: 'fire-ball', attackSize: 'medium', criticalType: 'H', ob: 'list-ranks', radius: 10 }],
+          },
+          powerPoints: 3,
+        },
+        {
+          spell: {
             id: 'sleep',
             name: 'E2E Sleep',
             level: 1,
@@ -262,5 +292,96 @@ describe('resolve a cast', () => {
     ).toMatchObject({
       code: 'err-spell-no-resistance',
     });
+  });
+});
+
+type AttackBody = {
+  attackName: string;
+  status: string;
+  calculated: { rollModifiers: Modifier[] };
+  results?: { attackTableEntry?: { text: string }; criticals?: { key: string; status: string }[] };
+};
+type AttackActionBody = SpellActionBody & {
+  attacks?: AttackBody[];
+  spell: SpellActionBody['spell'] & { attack?: Record<string, unknown> | null };
+};
+
+describe('attack spells (phase 4)', () => {
+  /** A cast declared in phase 1 and rolled in phase 4, with its 4 AP. */
+  const castWithAllAp = async (spellId: string) => {
+    const gameId = await gameInPhase1();
+    const action = await declared(gameId, spellId);
+    for (let phase = 2; phase <= 4; phase++) await nextPhase(gameId);
+    const rolled = await as('owner').patch(`/v1/actions/${action.id}/spell/roll`, { roll: 60 });
+    expect(rolled.body).toMatchObject({ status: 'pending_apply', spell: { result: 'success' } });
+    return action.id;
+  };
+
+  it('resolves a bolt as a ranged attack with the Directed Spells bonus and spends the power points on apply', async () => {
+    const gandalf = character('gandalf');
+    gandalf.skills.push({ skillId: 'directed-spell', specialization: 'elemental-bolts', totalBonus: 40, ranks: 10 });
+    e2e.world.characters.set('gandalf', gandalf);
+    const gameId = await gameInPhase1();
+    const declaredBolt = (await declare(gameId, 'firebolt')).body as AttackActionBody;
+    expect(declaredBolt.spell.attack).toMatchObject({ kind: 'bolt', bo: 40, fumble: 1, skillId: 'directed-spell@elemental-bolts' });
+    for (let phase = 2; phase <= 4; phase++) await nextPhase(gameId);
+    const id = declaredBolt.id;
+    expect((await as('owner').patch(`/v1/actions/${id}/spell/roll`, { roll: 60 })).body).toMatchObject({ spell: { result: 'success' } });
+
+    const twoTargets = await as('owner').patch(`/v1/actions/${id}/attack/prepare`, {
+      attacks: [
+        { attackName: 'fire-bolt', modifiers: { targetId: 'lurtz', bo: 40, range: 30 }, protectors: null },
+        { attackName: 'fire-bolt-2', modifiers: { targetId: 'gandalf', bo: 40, range: 30 }, protectors: null },
+      ],
+    });
+    expect(twoTargets.body).toMatchObject({ code: 'err-spell-bolt-single-target' });
+    const prepared = await as('owner').patch(`/v1/actions/${id}/attack/prepare`, {
+      attacks: [{ attackName: 'fire-bolt', modifiers: { targetId: 'lurtz', bo: 40, range: 30 }, protectors: null }],
+    });
+    expect(prepared.status).toBe(200);
+    const attack = (prepared.body as AttackActionBody).attacks![0];
+    // Medium range of the bolt: -10.
+    expect(attack.calculated.rollModifiers).toEqual(
+      expect.arrayContaining([expect.objectContaining({ key: 'range-penalty', value: -10 })]),
+    );
+    expect((await as('owner').patch(`/v1/actions/${id}/spell/apply`)).body).toMatchObject({ code: 'err-spell-attack-pending' });
+
+    const rolled = await as('owner').patch(`/v1/actions/${id}/attack/roll`, { attackName: 'fire-bolt', roll: 70 });
+    expect(rolled.status).toBe(200);
+    expect(e2e.world.lookups.attack.at(-1)).toMatchObject({ attackTable: 'fire-bolt' });
+    const critical = (rolled.body as AttackActionBody).attacks![0].results!.criticals![0];
+    await as('owner').patch(`/v1/actions/${id}/attack/critical-roll`, { attackName: 'fire-bolt', criticalKey: critical.key, roll: 50 });
+
+    const applied = await as('owner').patch(`/v1/actions/${id}/attack/apply`);
+    expect(applied.status).toBe(200);
+    expect(applied.body).toMatchObject({ status: 'completed', spell: { powerPointsSpent: 2 } });
+    expect(e2e.world.powerSpent).toEqual([{ characterId: 'gandalf', amount: 2 }]);
+    e2e.world.characters.set('gandalf', character('gandalf'));
+  });
+
+  it('strikes every target of a ball with the list ranks as OB, without multiple attack penalties', async () => {
+    const id = await castWithAllAp('fireball');
+    const prepared = await as('owner').patch(`/v1/actions/${id}/attack/prepare`, {
+      attacks: [
+        { attackName: 'fire-ball', modifiers: { targetId: 'lurtz', bo: 5, range: 60 }, protectors: null },
+        { attackName: 'fire-ball-2', modifiers: { targetId: 'gandalf', bo: 5, range: 60 }, protectors: null },
+      ],
+    });
+    expect(prepared.status).toBe(200);
+    const attacks = (prepared.body as AttackActionBody).attacks!;
+    expect(attacks).toHaveLength(2);
+    for (const attack of attacks) {
+      const keys = attack.calculated.rollModifiers.map(modifier => modifier.key);
+      expect(keys).not.toContain('attack-number');
+      expect(keys).not.toContain('attack-targets');
+    }
+  });
+
+  it('makes no attack for a spell without one, nor before a successful SCR', async () => {
+    const id = await castWithAllAp('sleep');
+    const prepared = await as('owner').patch(`/v1/actions/${id}/attack/prepare`, {
+      attacks: [{ attackName: 'x', modifiers: { targetId: 'lurtz', bo: 5 }, protectors: null }],
+    });
+    expect(prepared.body).toMatchObject({ code: 'err-spell-no-attack' });
   });
 });

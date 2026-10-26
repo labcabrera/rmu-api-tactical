@@ -9,6 +9,7 @@ import { Critical } from '../../../domain/value-objects/critical.vo.js';
 import { type AttackTablePort, ATTACK_TABLE_PORT } from '../../ports/attack-table.port.js';
 import type { CombatContext } from './combat-context.js';
 import { CombatModifierBag } from './combat-modifier-bag.js';
+import { sourceAttackOf } from './combat-source-attack.js';
 import { CombatProcessor } from './engine/combat-processor.service.js';
 
 export interface ResolveAttackRollInput {
@@ -42,7 +43,7 @@ export class CombatAttackRollResolverService {
       targetActor: input.targetActor,
       sourceTraits: input.sourceActor.traits || [],
       targetTraits: input.targetActor.traits || [],
-      sourceAttack: this.getSourceAttack(input.sourceActor, attack.attackName),
+      sourceAttack: this.getSourceAttack(input.action, input.sourceActor, attack.attackName),
       armorType: input.targetActor.defense.at,
       trace: [],
     };
@@ -84,8 +85,8 @@ export class CombatAttackRollResolverService {
     ctx.attack!.status = 'pending_attack_roll';
   }
 
-  private getSourceAttack(sourceActor: ActorRound, attackName: string): ActorRoundAttack {
-    const attack = sourceActor.attacks?.find(a => a.attackName === attackName);
+  private getSourceAttack(action: Action, sourceActor: ActorRound, attackName: string): ActorRoundAttack {
+    const attack = sourceAttackOf(action, sourceActor, attackName);
     if (!attack) {
       throw new ValidationError(`Attack ${attackName} not found on actor ${sourceActor.actorId}`);
     }
