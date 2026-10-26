@@ -76,6 +76,8 @@ export interface ManeuverModifierDefinition {
   min?: number;
   max?: number;
   description?: string;
+  /** Reference only (OB/DB modifiers of a combat skill): never offered or added to a maneuver. */
+  reference?: boolean;
 }
 
 /** What the client chose for a catalog modifier: the option key, the flag or the number of units. */

@@ -46,6 +46,7 @@ export class ApiSkillCatalogAdapter implements SkillCatalogPort {
     const data = await this.httpClient.get<ManeuverModifierDefinition[] | { content: ManeuverModifierDefinition[] }>(uri, {
       token: await this.tokenService.getToken(),
     });
-    return Array.isArray(data) ? data : (data?.content ?? []);
+    const modifiers = Array.isArray(data) ? data : (data?.content ?? []);
+    return modifiers.filter(modifier => !modifier.reference);
   }
 }
