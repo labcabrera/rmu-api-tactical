@@ -21,6 +21,8 @@ const DEFAULT_CALLED_SHOT_PENALTY = -25;
 const KILLING_STRIKE_PENALTY = -10;
 const KILLING_STRIKE_CRITICAL = 5;
 const HEEDLESS_FURY_BONUS = 20;
+/** Binding Chain: the attack to bind the foe is at -10 (its criticals are Grapple). */
+const BINDING_CHAIN_PENALTY = -10;
 
 const sourceStyle = (ctx: CombatContext): ActorRoundActiveStyle | null | undefined => ctx.sourceActor?.activeStyle;
 const targetStyle = (ctx: CombatContext): ActorRoundActiveStyle | null | undefined => ctx.targetActor?.activeStyle;
@@ -78,6 +80,9 @@ export const CombatFightingStyleSourcePlugin: CombatPlugin = {
           }
           if (sourceAbility(ctx, 'evade-shield')) {
             modifiers.add('evade-shield', Math.floor(-(modifiers.value('shield') + modifiers.value('shield-block')) / 2));
+          }
+          if (ctx.attack?.modifiers.styleCriticalOption === 'binding-chain') {
+            modifiers.add('binding-chain', BINDING_CHAIN_PENALTY);
           }
           if (sourceOption(ctx, 'killing-strike')) {
             modifiers.add('killing-strike', KILLING_STRIKE_PENALTY);

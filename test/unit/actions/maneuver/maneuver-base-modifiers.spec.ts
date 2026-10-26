@@ -137,3 +137,44 @@ describe('ManeuverBaseModifiersService', () => {
     expect(ManeuverBaseModifiersService.roundPace(actions, 'other', 1)).toBeNull();
   });
 });
+
+describe('fighting style bonuses (workspace spec 032)', () => {
+  const styled = (abilities: { abilityId: string; met: boolean }[], met = true) => {
+    const actorRound = load();
+    actorRound.activeStyle = {
+      skillId: 'battle-styles',
+      styleId: 'made-up',
+      met,
+      attackNames: null,
+      freeRanksBonus: 0,
+      abilities: abilities.map(a => ({ ...a, times: 1, attackNames: null })),
+      warnings: [],
+      options: [],
+    };
+    return actorRound;
+  };
+
+  it('adds the fixed bonus of the active style to its skill', () => {
+    const actorRound = styled([{ abilityId: 'experienced-rider', met: true }]);
+    expect(keys({ actorRound, skillId: 'riding' })).toEqual({ 'style-ability-experienced-rider': 5 });
+    expect(keys({ actorRound, skillId: 'mounted-combat' })).toEqual({ 'style-ability-experienced-rider': 10 });
+    expect(keys({ actorRound, skillId: 'wall-scaling' })).toEqual({});
+  });
+
+  it('matches the specialization when the ability asks for one', () => {
+    const actorRound = styled([
+      { abilityId: 'aspect-of-fear', met: true },
+      { abilityId: 'sharp-words', met: true },
+    ]);
+    expect(keys({ actorRound, skillId: 'influence', specialization: 'intimidation' })).toEqual({
+      'style-ability-aspect-of-fear': 10,
+      'style-ability-sharp-words': 10,
+    });
+    expect(keys({ actorRound, skillId: 'influence', specialization: 'diplomacy' })).toEqual({ 'style-ability-sharp-words': 10 });
+  });
+
+  it('gives nothing without the equipment of the style or of the ability', () => {
+    expect(keys({ actorRound: styled([{ abilityId: 'disarming', met: true }], false), skillId: 'disarm' })).toEqual({});
+    expect(keys({ actorRound: styled([{ abilityId: 'disarming', met: false }]), skillId: 'disarm' })).toEqual({});
+  });
+});

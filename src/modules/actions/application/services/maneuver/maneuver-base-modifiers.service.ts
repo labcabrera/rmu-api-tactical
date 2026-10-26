@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
+import { activeStyleAbility } from '../../../../actor-rounds/domain/value-objects/actor-round-fighting-style.vo.js';
 import { ValidationError } from '../../../../shared/domain/errors/errors.js';
 import type { Character } from '../../../../strategic/application/ports/character.port.js';
 import { Action } from '../../../domain/aggregates/action.js';
@@ -26,6 +27,23 @@ const FULL_ROUND_PACES = new Set(['sprint', 'dash']);
 
 /** Paces from slowest to fastest. */
 const PACE_ORDER: Pace[] = ['creep', 'walk', 'jog', 'run', 'sprint', 'dash'];
+
+/**
+ * Fixed bonuses of fighting style abilities to a skill while the style is active (workspace spec 032, group A). The
+ * ones that depend on what the maneuver is for (Vigilant, Improved Frenzy, Dirty Fighting...) are left to the game
+ * master.
+ */
+const STYLE_SKILL_BONUSES: { abilityId: string; skillId: string; specialization?: string; value: number }[] = [
+  { abilityId: 'aspect-of-fear', skillId: 'influence', specialization: 'intimidation', value: 10 },
+  { abilityId: 'disarming', skillId: 'disarm', value: 10 },
+  { abilityId: 'experienced-rider', skillId: 'mounted-combat', value: 10 },
+  { abilityId: 'experienced-rider', skillId: 'riding', value: 5 },
+  { abilityId: 'gentle-tap', skillId: 'subduing', value: 10 },
+  { abilityId: 'loyal-protector', skillId: 'protect', value: 10 },
+  { abilityId: 'marshals-voice', skillId: 'leadership', value: 10 },
+  { abilityId: 'shadowblade', skillId: 'blind-fighting', value: 10 },
+  { abilityId: 'sharp-words', skillId: 'influence', value: 10 },
+];
 
 /** Where a base modifier comes from. */
 export type ManeuverBaseSource = 'actor-round' | 'equipment' | 'movement' | 'action';
@@ -82,6 +100,7 @@ export class ManeuverBaseModifiersService {
       this.addPacePenalty(base, input.pace, !!input.freeAction);
     }
     this.addActionPointsPenalty(base, input.profile, input.actionPoints);
+    this.addStyleBonuses(base, input.actorRound, input.skillId, input.specialization ?? null);
     return {
       skill: ManeuverBaseModifiersService.skillBonus(input.character, input.skillId, input.specialization ?? null),
       base: base.filter(modifier => modifier.value !== 0),
@@ -142,6 +161,15 @@ export class ManeuverBaseModifiersService {
       return;
     }
     base.push({ key: 'pace', value: PACE_PENALTIES[pace] ?? 0, source: 'movement' });
+  }
+
+  private addStyleBonuses(base: ManeuverBaseModifier[], actorRound: ActorRound, skillId: string, specialization: string | null): void {
+    STYLE_SKILL_BONUSES.filter(
+      bonus =>
+        bonus.skillId === skillId &&
+        (!bonus.specialization || bonus.specialization === specialization) &&
+        !!activeStyleAbility(actorRound.activeStyle, bonus.abilityId),
+    ).forEach(bonus => base.push({ key: `style-ability-${bonus.abilityId}`, value: bonus.value, source: 'actor-round' }));
   }
 
   /** §8.1: -25 per AP below the maximum of the profile's range (no penalty when the skill has no AP range). */
