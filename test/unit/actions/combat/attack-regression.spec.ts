@@ -685,9 +685,9 @@ describe('attack regression against the Python calculator (spec 003)', () => {
       } else {
         expect(lookup).toHaveBeenCalledTimes(1);
         const request = lookup.mock.calls[0][0];
-        expect({ attackTable: request.attackTable, size: request.attackSize, roll: request.roll, at: request.armor ?? null }).toEqual(
-          model.tableCall,
-        );
+        // The recorded call carries the attack size; the lookup no longer sends it (spec 033, Medium tables only)
+        const { attackTable, roll, at } = model.tableCall!;
+        expect({ attackTable: request.attackTable, roll: request.roll, at: request.armor ?? null }).toEqual({ attackTable, roll, at });
         expect(results.attackTableEntry!.text).toBe(model.tableEntry!.text);
         expect(results.attackTableEntry!.damage).toBe(model.damage);
         expect(results.attackTableEntry!.criticalSeverity ?? null).toBe(model.criticalSeverity);

@@ -35,8 +35,8 @@ export class ApiAttackTableAdapter implements AttackTablePort {
     const token = await this.tokenService.getToken();
     const armor = clamp(request.armor || MIN_ARMOR, MIN_ARMOR, MAX_ARMOR);
     const roll = clamp(request.roll, MIN_ROLL, MAX_ROLL);
-    // The size is applied by the attack-size combat plugin: the table is always read as medium.
-    const uri = `${this.apiAttackTablesUri}/attack-tables/${request.attackTable}/medium/${armor}/${roll}`;
+    // Only Medium tables (spec 033): the size is applied by the attack-size combat plugin.
+    const uri = `${this.apiAttackTablesUri}/attack-tables/${encodeURIComponent(request.attackTable)}/${armor}/${roll}`;
     const data = await this.httpClient.get<AttackTableResponse>(uri, { token });
     return new AttackTableEntry(data.text, data.damage || 0, data.criticalType || undefined, data.criticalSeverity || undefined);
   }

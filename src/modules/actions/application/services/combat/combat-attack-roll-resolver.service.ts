@@ -60,7 +60,6 @@ export class CombatAttackRollResolverService {
     } else {
       ctx.attackTableEntry = await this.attackTablePort.lookup({
         attackTable: ctx.sourceAttack!.attackTable,
-        attackSize: ctx.sourceAttack!.attackSize,
         roll: ctx.rollTotal,
         armor: ctx.armorType ?? undefined,
         location: ctx.location,
