@@ -19,6 +19,7 @@ import {
   INITIATIVE_PENALTY,
   NON_VIOLENT,
   PRESSING_ADVANTAGE,
+  UNCONSCIOUS,
 } from '../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
 import {
   ActorRoundTrait,
@@ -61,8 +62,11 @@ interface AttackOrigin {
 const HEAL = 'heal';
 /** A useless limb of the critical texts (spec 034): an arm is `arm_useless`, a leg half movement. */
 const LIMB_USELESS = 'limb_useless';
-/** Effects of the critical texts that start `delay` rounds later (spec 034); the delayed stuns follow the worst one. */
-const DELAYED_STATUSES = [HALF_ACTIVITY, CANNOT_PARRY, INITIATIVE_PENALTY];
+/**
+ * Effects that start `delay` rounds later (spec 034): those of the critical texts and the unconsciousness of a hold
+ * (G-B 98: "unconscious in six more rounds"). The delayed stuns follow the worst one.
+ */
+const DELAYED_STATUSES = [HALF_ACTIVITY, CANNOT_PARRY, INITIATIVE_PENALTY, UNCONSCIOUS];
 
 /** OB bonus per tier of Pressing the Advantage. */
 const PRESSING_BONUS_PER_TIER = 10;

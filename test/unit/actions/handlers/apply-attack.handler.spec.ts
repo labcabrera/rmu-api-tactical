@@ -145,6 +145,12 @@ const pressingEffect = (targetActorId: string) =>
   new ActorRoundEffect('pressing-1', 'pressing-advantage', 10, undefined, 1, undefined, undefined, targetActorId);
 
 describe('ApplyAttackHandler', () => {
+  it('rejects an attack not prepared or with rolls pending (spec 034)', async () => {
+    await expect(setup([]).run()).rejects.toMatchObject({ code: 'err-attack-not-prepared' });
+    const pending = { ...appliedAttack('mainHand', []), status: 'pending_critical_roll' } as unknown as ActionAttack;
+    await expect(setup([pending]).run()).rejects.toMatchObject({ code: 'err-attack-pending-rolls' });
+  });
+
   it('spends a shield block for each attack the shield covered (§9.6 Shields)', async () => {
     const { run, target, update } = setup(
       [appliedAttack('mainHand', [new KeyValueModifier('shield', -20)]), appliedAttack('offHand', [new KeyValueModifier('bo', 60)])],

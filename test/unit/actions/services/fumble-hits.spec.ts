@@ -10,6 +10,12 @@ describe('FumbleHits (workspace spec 034)', () => {
     expect(hits(5)).toMatchObject({ dice: undefined, value: 5 });
   });
 
+  it('turns a delay in minutes into rounds of 5 seconds', () => {
+    expect(CriticalEffect.fromTable({ status: 'unconscious', delayDuration: '1 minute' }).delay).toBe(12);
+    expect(CriticalEffect.fromTable({ status: 'unconscious', delay: 5 }).delay).toBe(5);
+    expect(CriticalEffect.fromTable({ status: 'dying', delayDuration: '2 hours' }).delay).toBeUndefined();
+  });
+
   it('takes fixed hits as they are, and nothing without hits', () => {
     expect(FumbleHits.resolve([hits(5)])).toBe(5);
     expect(FumbleHits.resolve([CriticalEffect.fromTable({ status: 'fatigue', value: -5 })])).toBe(0);

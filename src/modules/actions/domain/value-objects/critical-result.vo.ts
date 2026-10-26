@@ -15,11 +15,15 @@ export class CriticalEffect {
     public dice?: string,
   ) {}
 
-  /** An effect as the attack tables API gives it: a dice value goes to `dice`. */
+  /**
+   * An effect as the attack tables API gives it: a dice value goes to `dice`, and a delay in minutes (`delayDuration`)
+   * becomes rounds of 5 seconds.
+   */
   static fromTable(e: CriticalTableEffect): CriticalEffect {
     const dice = typeof e.value === 'string' ? e.value : undefined;
     const value = typeof e.value === 'number' ? e.value : undefined;
-    return new CriticalEffect(e.status, e.rounds, value, e.delay, e.condition, e.applyTo, e.location, e.severity, dice);
+    const delay = e.delay ?? roundsOf(e.delayDuration);
+    return new CriticalEffect(e.status, e.rounds, value, delay, e.condition, e.applyTo, e.location, e.severity, dice);
   }
 }
 
@@ -34,7 +38,15 @@ export interface CriticalTableEffect {
   applyTo?: 'source' | 'target';
   location?: string;
   severity?: string;
+  /** A delay given as time (`1 minute`). */
+  delayDuration?: string;
 }
+
+/** Rounds of 5 seconds (§8.1) in a time of whole minutes (`1 minute`, `2 minutes`); undefined for anything else. */
+const roundsOf = (duration: string | undefined): number | undefined => {
+  const match = duration ? /^(\d+) minutes?$/.exec(duration.trim()) : null;
+  return match ? Number(match[1]) * 12 : undefined;
+};
 
 /** Injury data of a critical entry (spec 013, §2): type, secondary injuries and marks. Missing: inferred. */
 export interface CriticalInjury {

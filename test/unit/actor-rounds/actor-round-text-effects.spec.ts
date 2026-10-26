@@ -40,6 +40,27 @@ describe('ActorRound effects of the critical and fumble texts (workspace spec 03
     expect(round.effects.map(e => e.status)).toEqual([]);
   });
 
+  it('knocks out a held actor only when its delay is over', () => {
+    let round = load({ round: 1 });
+    round.applyAttackResults(0, [delayed('unconscious', undefined, undefined as never, 3)], undefined, { phase: 1, spentAp: 0 });
+
+    expect(round.isIncapacitated()).toBe(false);
+    round = nextRound(round);
+    expect(round.isIncapacitated()).toBe(false);
+    round = nextRound(round);
+    expect(round.isIncapacitated()).toBe(true);
+  });
+
+  it('knocks out at once an actor brought to 0 hits while a delayed unconsciousness waits', () => {
+    const round = load({ round: 1, hp: [20, 20] });
+    round.applyAttackResults(0, [delayed('unconscious', undefined, undefined as never, 4)], undefined, { phase: 1, spentAp: 0 });
+
+    round.applyAttackResults(25, [], undefined, { phase: 2, spentAp: 1 });
+
+    expect(round.isIncapacitated()).toBe(true);
+    expect(round.effects.filter(e => e.status === 'unconscious')).toEqual([expect.objectContaining({ fromRound: undefined })]);
+  });
+
   it('takes the initiative penalty of the round it falls in', () => {
     let round = load({ round: 1, initiativeBase: 5 });
     round.applyAttackResults(0, [delayed('initiative_penalty', -5, 1, 2)], undefined, { phase: 1, spentAp: 0 });

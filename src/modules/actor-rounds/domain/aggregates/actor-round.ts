@@ -796,6 +796,12 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     const existing = this.effects.filter(e => e.status === effect.status);
     const isUnique = ActorRoundEffect.isUnique(effect);
     if (isUnique && existing.length > 0) {
+      // Spec 034: a unique effect that applies now replaces the delayed ones (unconscious by hits before the hold).
+      const pending = existing.filter(e => ActorRoundEffect.isPending(e, this.round));
+      if (pending.length === existing.length && !ActorRoundEffect.isPending(effect, this.round)) {
+        this.effects = this.effects.filter(e => !pending.includes(e));
+        this.effects.push(effect);
+      }
       return;
     }
     const isStackable = ActorRoundEffect.isStackable(effect);
