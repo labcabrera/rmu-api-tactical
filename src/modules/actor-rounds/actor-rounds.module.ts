@@ -16,6 +16,7 @@ import { CreateActorRoundHandler } from './application/cqrs/handlers/create-acto
 import { DeclareActorParryHandler } from './application/cqrs/handlers/declare-actor-parry.handler.js';
 import { DeclareDefenseModeHandler } from './application/cqrs/handlers/declare-defense-mode.handler.js';
 import { DeleteEffectHandler } from './application/cqrs/handlers/delete-effect.handler.js';
+import { ResolveAlertHandler } from './application/cqrs/handlers/resolve-alert.handler.js';
 import { GetActorRoundHandler } from './application/cqrs/handlers/get-actor-round.handler.js';
 import { GetActorRoundsHandler } from './application/cqrs/handlers/get-actor-rounds.handler.js';
 import { SubstractBoHandler } from './application/cqrs/handlers/substract-bo.handler.js';
@@ -50,6 +51,7 @@ import { DeclareFightingStyleHandler } from './application/cqrs/handlers/declare
     GetActorRoundsHandler,
     AddEffectsHandler,
     DeleteEffectHandler,
+    ResolveAlertHandler,
     UpkeepActorRoundHandler,
     SubstractBoHandler,
     DeclareActorParryHandler,

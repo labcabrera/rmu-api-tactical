@@ -1,7 +1,9 @@
 import { randomUUID } from 'crypto';
 import { describe, expect, it } from 'vitest';
 import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
+import { ActorRoundAlert } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-alert.vo.js';
 import { ActorRoundEffect } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-effect.vo.js';
+import { NotFoundError } from '../../../src/modules/shared/domain/errors/errors.js';
 import { attack, effect, load } from './actor-round-test.factory.js';
 
 /** Closes the round and opens the next one, as StartRoundHandler does. */
@@ -83,5 +85,19 @@ describe('ActorRound effects of the critical and fumble texts (workspace spec 03
       ['criticalSeverity', 'A'],
       ['attackName', 'mainHand'],
     ]);
+  });
+});
+
+describe('ActorRound alerts resolved by hand (workspace spec 034)', () => {
+  it('resolves the critical alert of a fumble, not the alerts with a roll', () => {
+    const round = load({});
+    round.addFumbleCriticalAlert('B');
+    round.alerts.push(ActorRoundAlert.buildEndurance());
+
+    round.resolveAlert(round.alerts[0].id);
+
+    expect(round.alerts[0].status).toBe('resolved');
+    expect(() => round.resolveAlert(round.alerts[1].id)).toThrow(expect.objectContaining({ code: 'err-alert-not-resolvable' }));
+    expect(() => round.resolveAlert('missing')).toThrow(NotFoundError);
   });
 });

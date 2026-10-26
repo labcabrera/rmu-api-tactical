@@ -1657,6 +1657,21 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   }
 
   /** A fumble breaks the item of the attack that fumbled. */
+  /**
+   * Spec 034: the game master is done with an alert handled by hand (the critical of a fumble). Endurance and breakage
+   * alerts are resolved with their rolls.
+   */
+  resolveAlert(alertId: string): void {
+    const alert = this.alerts.find(a => a.id === alertId);
+    if (!alert) {
+      throw new NotFoundError('Alert', alertId);
+    }
+    if (alert.type !== 'critical') {
+      throw new ValidationError(`A ${alert.type} alert is resolved with its roll`, 'err-alert-not-resolvable');
+    }
+    alert.status = 'resolved';
+  }
+
   /** Spec 034: the fumble gives the fumbler a critical of that severity, for the game master to roll. */
   addFumbleCriticalAlert(severity: string, attackName?: string): void {
     this.alerts.push(ActorRoundAlert.buildFumbleCritical(severity, attackName));
