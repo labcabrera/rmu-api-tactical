@@ -4,16 +4,12 @@ import { TokenService } from '../../../shared/infrastructure/security/token.serv
 import { HttpClient } from '../../../shared/infrastructure/http/http-client.js';
 import type { CriticalTableLookupRequest, CriticalTablePort } from '../../application/ports/critical-table.port.js';
 import type { AttackLocation } from '../../domain/value-objects/attack-location.vo.js';
-import { CriticalEffect, type CriticalInjury, CriticalResult } from '../../domain/value-objects/critical-result.vo.js';
-
-interface CriticalTableEffect {
-  status: string;
-  rounds?: number;
-  value?: number;
-  delay?: number;
-  condition?: string;
-  applyTo?: 'source' | 'target';
-}
+import {
+  CriticalEffect,
+  type CriticalInjury,
+  CriticalResult,
+  type CriticalTableEffect,
+} from '../../domain/value-objects/critical-result.vo.js';
 
 interface CriticalTableResponse {
   message: string;
@@ -59,7 +55,7 @@ export class ApiCriticalTableAdapter implements CriticalTablePort {
   }
 
   private mapResult(data: CriticalTableResponse): CriticalResult {
-    const effects = (data.effects || []).map(e => new CriticalEffect(e.status, e.rounds, e.value, e.delay, e.condition, e.applyTo));
+    const effects = (data.effects || []).map(e => CriticalEffect.fromTable(e));
     const injury = data.injury?.type ? { type: data.injury.type, secondary: data.injury.secondary, flags: data.injury.flags } : undefined;
     return new CriticalResult(data.message || '', data.dmg || 0, data.location || '', effects, injury);
   }

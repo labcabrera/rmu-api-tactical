@@ -605,6 +605,9 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     if (attack && actorRound.isFearBlockingAttacks()) {
       throw new ValidationError('A routed or broken actor cannot attack (workspace spec 022)', 'err-action-fear');
     }
+    if (attack && actorRound.isAttackForbidden()) {
+      throw new ValidationError('The actor cannot attack this round (workspace spec 034)', 'err-action-cannot-attack');
+    }
     if (actorRound.hasEffect('flatfooted')) {
       throw new ValidationError('A flatfooted actor cannot declare actions this round', 'err-action-flatfooted');
     }
@@ -859,6 +862,14 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     }
     if (this.status === 'completed') {
       throw new ValidationError('Attack already completed');
+    }
+    // Spec 034: an attack is applied once prepared and with all its rolls made.
+    if (!this.attacks || this.attacks.length === 0) {
+      throw new ValidationError('The attack is not prepared', 'err-attack-not-prepared');
+    }
+    const pending = ['pending_attack_roll', 'pending_fumble_roll', 'pending_critical_roll'];
+    if (this.attacks.some(attack => pending.includes(attack.status))) {
+      throw new ValidationError('The attack has rolls pending', 'err-attack-pending-rolls');
     }
   }
 

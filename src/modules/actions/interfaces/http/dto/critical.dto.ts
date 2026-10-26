@@ -19,6 +19,15 @@ export class CriticalEffectDto {
 
   @ApiProperty({ type: String, description: 'source: falls on the attacker', required: false, enum: ['source', 'target'] })
   applyTo?: 'source' | 'target';
+
+  @ApiProperty({ type: String, description: 'Limb of a limb_useless effect', required: false, example: 'arm' })
+  location?: string;
+
+  @ApiProperty({ type: String, description: 'Severity of an additional critical', required: false, example: 'A' })
+  severity?: string;
+
+  @ApiProperty({ type: String, description: 'Dice of the value', required: false, example: '2d10' })
+  dice?: string;
 }
 
 export class CriticalResultDto {
@@ -96,6 +105,9 @@ export class CriticalDto {
                 delay: effect.delay,
                 condition: effect.condition,
                 applyTo: effect.applyTo,
+                location: effect.location,
+                severity: effect.severity,
+                dice: effect.dice,
               }))
             : [],
           injury: entity.result.injury,

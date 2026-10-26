@@ -16,6 +16,7 @@ import type { TreatInjuryResult } from '../../application/cqrs/handlers/treat-in
 import { DeclareDefenseModeCommand } from '../../application/cqrs/commands/declare-defense-mode.command.js';
 import { DeclareInitiativeCommand } from '../../application/cqrs/commands/declare-initiative.command.js';
 import { DeleteEffectCommand } from '../../application/cqrs/commands/delete-effect.command.js';
+import { ResolveAlertCommand } from '../../application/cqrs/commands/resolve-alert.command.js';
 import { ResolveEnduranceCheckCommand } from '../../application/cqrs/commands/resolve-endurance-check.command.js';
 import { GetActorRoundQuery } from '../../application/cqrs/queries/get-actor-round.query.js';
 import { GetActorsRoundsQuery } from '../../application/cqrs/queries/get-actor-rounds.query.js';
@@ -173,6 +174,18 @@ export class ActorRoundController {
   async deleteEffect(@Param('id') id: string, @Param('effectId') effectId: string, @CurrentUser() user: AuthenticatedUser) {
     const command = new DeleteEffectCommand(id, effectId, user.id, user.roles);
     const entity = await this.commandBus.execute<DeleteEffectCommand, ActorRound>(command);
+    return ActorRoundDto.fromEntity(entity);
+  }
+
+  @ActorRoundAccess('act')
+  @Post(':id/alerts/:alertId/resolve')
+  @HttpCode(200)
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
+  @ApiOperation({ operationId: 'resolveAlert', summary: 'Resolve an alert handled by hand (the critical of a fumble)' })
+  @ApiErrors({ 404: 'Actor round or alert not found', 400: 'The alert is resolved with its roll' })
+  async resolveAlert(@Param('id') id: string, @Param('alertId') alertId: string, @CurrentUser() user: AuthenticatedUser) {
+    const command = new ResolveAlertCommand(id, alertId, user.id, user.roles);
+    const entity = await this.commandBus.execute<ResolveAlertCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
   }
 

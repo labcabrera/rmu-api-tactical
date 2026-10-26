@@ -13,6 +13,7 @@ export type ApModifierSource =
   | 'hold'
   | 'distraction'
   | 'cap'
+  | 'half-activity'
   | 'concentration'
   | 'manual';
 

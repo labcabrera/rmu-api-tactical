@@ -63,6 +63,15 @@ export class CriticalEffect {
 
   @Prop({ type: String, required: false })
   public applyTo?: 'source' | 'target';
+
+  @Prop({ type: String, required: false })
+  public location?: string;
+
+  @Prop({ type: String, required: false })
+  public severity?: string;
+
+  @Prop({ type: String, required: false })
+  public dice?: string;
 }
 
 @Schema({ _id: false })

@@ -11,6 +11,7 @@ import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
 import { type FumbleTablePort, FUMBLE_TABLE_PORT } from '../../ports/fumble-table.port.js';
 import { CombatProcessor, sourceAttackOf } from '../../services/combat/index.js';
+import { FumbleHits } from '../../../domain/services/fumble-hits.js';
 import { UpdateFumbleRollCommand } from '../commands/update-fumble-roll.command.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
@@ -60,10 +61,13 @@ export class UpdateFumbleRollHandler implements ICommandHandler<UpdateFumbleRoll
 
     // The raw roll is stored; the adapter clamps the one looked up to the table range.
     attack.roll!.fumbleRoll = command.fumbleRoll;
-    attack.results.fumble = await this.fumbleTablePort.lookup({
+    const fumble = await this.fumbleTablePort.lookup({
       fumbleTable: sourceAttack.fumbleTable,
       roll: ctx.fumbleRoll ?? command.fumbleRoll,
     });
+    // Spec 034: the hits of the entry (rolled here or given by the game master) are damage of the fumbler.
+    fumble.damage = (fumble.damage || 0) + FumbleHits.resolve(fumble.effects, command.fumbleHits);
+    attack.results.fumble = fumble;
     action.refreshAttackStatuses();
 
     action.updatedAt = new Date();

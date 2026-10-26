@@ -9,6 +9,7 @@ import { LIGHT_MAP } from '../../domain/value-objects/light-type.vo.js';
 import { MOVEMENT_MANEUVER_PROFILE } from '../../domain/value-objects/maneuver-profile.vo.js';
 import { type ManeuverPort, MANEUVER_PORT } from '../ports/maneuver.port.js';
 import { ManeuverBaseModifiersService } from './maneuver/maneuver-base-modifiers.service.js';
+import { BLINDED } from '../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
 
 @Injectable()
 export class MovementProcessorService {
@@ -73,7 +74,8 @@ export class MovementProcessorService {
         new KeyValueModifier(skillId, skill.bonus),
         new KeyValueModifier('difficulty', difficultyBonus),
         ...base.map(modifier => new KeyValueModifier(modifier.key, modifier.value)),
-        ...this.lightModifier(action.movement.modifiers.light),
+        // Spec 034: a blinded actor moves in pitch black.
+        ...this.lightModifier(actorRound.hasEffect(BLINDED) ? 'pitch_black' : action.movement.modifiers.light),
         new KeyValueModifier('custom-bonus', action.movement.modifiers.customBonus || 0),
         new KeyValueModifier('roll', roll),
       ];
@@ -89,7 +91,8 @@ export class MovementProcessorService {
       critical = maneuverResult.critical ?? null;
       message = maneuverResult.message;
     }
-    const bmr = actorRound.movement.bmr;
+    // Spec 034: half movement rate (a crippled leg, frostbite...).
+    const bmr = actorRound.movement.bmr * (actorRound.hasHalfMovement() ? 0.5 : 1);
     const paceMultiplier = this.getPaceMultiplier(action.movement.modifiers.pace);
     const distance = (bmr * percent * actionPoints * paceMultiplier) / 100;
     action.movement.calculated = {
