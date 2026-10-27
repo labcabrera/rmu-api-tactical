@@ -4,6 +4,7 @@ import type { ActorRoundResistance } from '../../../domain/value-objects/actor-r
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import type { HydratedDocument } from 'mongoose';
 import type { Injury } from '../../../domain/value-objects/injury.vo.js';
+import type { PoisonExposure } from '../../../domain/value-objects/poison.vo.js';
 import { ActorRoundAlert } from './actor-round-alert.model.js';
 import { ActorRoundAttack } from './actor-round-attack.model.js';
 import { ActorRoundDefense } from './actor-round-defense.model.js';
@@ -119,6 +120,10 @@ export class ActorRoundModel {
   /** Spec 013, §1: injuries as the shared model (stored as documents of their own shape). */
   @Prop({ type: [Object], required: false, default: [] })
   injuries?: Injury[];
+
+  /** Workspace spec 042: poisons waiting for their RR (stored as documents of their own shape). */
+  @Prop({ type: [Object], required: false, default: [] })
+  poisonExposures?: PoisonExposure[];
 
   /** Spec 013, §1.1: the changes of the hits in this round. */
   @Prop({ type: [ActorRoundHpLogEntry], required: false, default: [] })

@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { InjuryPoisonDto } from './poison.dto.js';
 import type { ActorRoundSnapshot } from '../../../domain/aggregates/actor-round-props.js';
 import type {
   BleedingControl,
@@ -61,6 +62,9 @@ export class InjuryDto {
   @ApiProperty({ type: Object, required: false })
   permanent?: { penalty: number; roll?: number };
 
+  @ApiProperty({ type: InjuryPoisonDto, required: false, description: 'A poisoning (workspace spec 042)' })
+  poison?: InjuryPoisonDto;
+
   @ApiProperty({ type: String, enum: ['active', 'recovering', 'permanent', 'healed'] })
   status: InjuryStatus;
 
@@ -74,7 +78,9 @@ export class InjuryDto {
   healedAt?: string;
 
   static fromEntity(entity: Injury): InjuryDto {
-    return Object.assign(new InjuryDto(), entity, { treatments: [...(entity.treatments || [])] });
+    const dto = Object.assign(new InjuryDto(), entity, { treatments: [...(entity.treatments || [])] });
+    if (entity.poison) dto.poison = InjuryPoisonDto.fromEntity(entity.poison);
+    return dto;
   }
 }
 

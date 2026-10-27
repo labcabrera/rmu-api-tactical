@@ -14,6 +14,7 @@ import { ActorRoundDefenseDto } from './actor-round-defense.dto.js';
 import { ActorRoundFatigueDto } from './actor-round-fatigue.dto.js';
 import { ActorRoundHPDto } from './actor-round-hp.dto.js';
 import { ActorRoundSnapshotDto, InjuryDto } from './actor-round-injury.dto.js';
+import { PoisonExposureDto } from './poison.dto.js';
 import { ActorRoundInitiativeDto } from './actor-round-initiative.dto.js';
 import { ActorRoundMovementDto } from './actor-round-movement.dto.js';
 import { HpLogEntryDto } from './hp-log-entry.dto.js';
@@ -118,6 +119,9 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Injuries of the actor (spec 013): brought from its character and taken in the game', type: [InjuryDto] })
   injuries: InjuryDto[];
 
+  @ApiProperty({ description: 'Poisons waiting for their RR (workspace spec 042)', type: [PoisonExposureDto] })
+  poisonExposures: PoisonExposureDto[];
+
   @ApiProperty({ description: 'Changes of the hits in this round, with their origin (spec 013)', type: [HpLogEntryDto] })
   hpLog: HpLogEntryDto[];
 
@@ -182,6 +186,7 @@ export class ActorRoundDto {
     dto.alerts = entity.alerts.map(a => ActorRoundAlertDto.fromEntity(a));
     dto.traits = (entity.traits || []).map(t => ActorRoundTraitDto.fromEntity(t));
     dto.injuries = (entity.injuries || []).map(injury => InjuryDto.fromEntity(injury));
+    dto.poisonExposures = (entity.poisonExposures || []).map(exposure => PoisonExposureDto.fromEntity(exposure));
     dto.hpLog = (entity.hpLog || []).map(entry => HpLogEntryDto.fromEntity(entry));
     dto.characterId = entity.characterId;
     dto.items = (entity.items || []).map(item => ActorRoundItemDto.fromEntity(item));

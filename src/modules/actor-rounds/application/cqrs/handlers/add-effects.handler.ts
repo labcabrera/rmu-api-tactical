@@ -38,6 +38,7 @@ export class AddEffectsHandler implements ICommandHandler<AddEffectsCommand, Act
     );
     this.heal(actorRound, command, application);
     (command.fumbleCriticals || []).forEach(severity => actorRound.addFumbleCriticalAlert(severity, command.fumbleAttackName));
+    (command.poisonExposures || []).forEach(exposure => actorRound.exposeToPoison(exposure.poison, exposure.source));
     const updated = await this.actorRoundRepository.update(actorRound);
     //TODO notify event bus
     return updated;

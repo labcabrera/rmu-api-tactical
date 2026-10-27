@@ -117,6 +117,7 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
           startModifierIds: modifiers.map(modifier => modifier.id),
         };
         if (slot) result.slot = slot;
+        if (item.coating) result.coating = structuredClone(item.coating);
         const baseValue = this.getBaseValue(character, kind, slot);
         if (baseValue !== undefined) result.baseValue = baseValue;
         return result;

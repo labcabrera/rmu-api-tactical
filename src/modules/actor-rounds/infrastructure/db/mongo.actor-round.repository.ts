@@ -147,6 +147,7 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
         entry => new ApLedgerEntry(entry.phase, entry.actionId ?? undefined, entry.ap, entry.kind as ApLedgerKind),
       ),
       injuries: (doc.injuries || []).map(injury => ({ ...injury, treatments: injury.treatments || [] })),
+      poisonExposures: doc.poisonExposures || [],
       hpLog: (doc.hpLog || []).map(entry => MongoActorRoundRepository.toHpLogEntry(entry)),
       characterId: doc.characterId,
       resistances: (doc.resistances || []).map(each => ({ resistance: each.resistance, totalBonus: each.totalBonus ?? 0 })),

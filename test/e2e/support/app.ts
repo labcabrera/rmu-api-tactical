@@ -25,6 +25,8 @@ import type { FightingStyleCatalog } from '../../../src/modules/actor-rounds/dom
 import type { TreatmentTables } from '../../../src/modules/actor-rounds/domain/value-objects/treatment-difficulty.vo.js';
 import { PSYCHOLOGY_TABLES_PORT } from '../../../src/modules/psychology/application/ports/psychology-tables.port.js';
 import type { PsychologyTables } from '../../../src/modules/psychology/domain/value-objects/psychology-tables.vo.js';
+import { POISON_TABLES_PORT } from '../../../src/modules/poisons/application/ports/poison-tables.port.js';
+import type { PoisonTables } from '../../../src/modules/actor-rounds/domain/value-objects/poison.vo.js';
 import { PSYCHOLOGY_TABLES } from '../../fixtures/psychology-tables.js';
 import { NPC_PORT, type Npc } from '../../../src/modules/games/application/ports/npc.port.js';
 import {
@@ -76,6 +78,8 @@ export type World = {
   fightingStyles: FightingStyleCatalog;
   /** Psychology tables of core (workspace spec 022), with made-up numbers. */
   psychologyTables: PsychologyTables;
+  /** Poison tables of core (workspace spec 042), made up. */
+  poisonTables: PoisonTables;
   /** Maneuver profiles of core by skill; the default one for the rest. */
   skillProfiles: Map<string, Partial<SkillManeuverProfile>>;
   lookups: { attack: AttackTableLookupRequest[]; critical: CriticalTableLookupRequest[]; fumble: FumbleTableLookupRequest[] };
@@ -112,6 +116,7 @@ const newWorld = (): World => ({
   treatmentTables: null,
   fightingStyles: { styles: [], abilities: [] },
   psychologyTables: PSYCHOLOGY_TABLES,
+  poisonTables: POISON_TABLES,
   skillProfiles: new Map(),
   lookups: { attack: [], critical: [], fumble: [] },
   outcomes: [],
@@ -122,6 +127,23 @@ const newWorld = (): World => ({
   spellFailure: { text: 'The spell fizzles.', pp: 'half-down' },
   spellFailureLookups: [],
 });
+
+/** Made-up Table 15-6a: one muscle row per severity, starting at once. */
+const POISON_TABLES: PoisonTables = {
+  rows: (['mild', 'moderate', 'severe', 'extreme'] as const).map((severity, i) => ({
+    category: 'muscle',
+    severity,
+    start: { min: i, max: i, unit: 'round' },
+    duration: { min: 1, max: 1, unit: 'minute' },
+    penalty: { min: -5 * (i + 1), max: -5 * (i + 1) },
+    hitsPerRound: severity === 'severe' ? { min: 2, max: 2 } : null,
+    hitsRounds: null,
+    condition: null,
+    conditionDelay: null,
+    conditionDuration: null,
+    permanent: false,
+  })),
+};
 
 /** Made-up Table 4-2 (not the book's numbers): one column per realm and per hybrid. */
 const column = (essence: number | null) => ({
@@ -219,6 +241,7 @@ function fakePorts(world: World) {
       },
     ],
     [PSYCHOLOGY_TABLES_PORT, { find: () => Promise.resolve(world.psychologyTables) }],
+    [POISON_TABLES_PORT, { find: () => Promise.resolve(world.poisonTables) }],
     [
       CHARACTER_MAGIC_PORT,
       {

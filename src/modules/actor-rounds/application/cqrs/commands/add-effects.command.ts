@@ -3,7 +3,8 @@ import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authen
 import type { EffectApplication } from '../../../domain/aggregates/actor-round.js';
 import { ActorRoundEffect } from '../../../domain/value-objects/actor-round-effect.vo.js';
 import type { HpChange } from '../../../domain/value-objects/hp-log-entry.vo.js';
-import type { Injury } from '../../../domain/value-objects/injury.vo.js';
+import type { Injury, InjurySource } from '../../../domain/value-objects/injury.vo.js';
+import type { PoisonData } from '../../../domain/value-objects/poison.vo.js';
 
 /**
  * Command to apply changes to HP and add status effects to an actor round.
@@ -33,6 +34,8 @@ export class AddEffectsCommand extends AuthenticatedCommand {
     public fumbleAttackName?: string,
     /** Severities of the criticals the actor's fumbles give it, for the game master to roll (spec 034). */
     public readonly fumbleCriticals: string[] = [],
+    /** Poisons of coated weapons that reached the actor with a critical (workspace spec 042, decision 11). */
+    public readonly poisonExposures: { poison: PoisonData; source: InjurySource }[] = [],
   ) {
     super(userId, roles);
   }
