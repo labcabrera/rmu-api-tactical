@@ -78,6 +78,39 @@ describe('ResistanceRollHandler', () => {
     );
   });
 
+  // Workspace spec 040, decision 14
+  it('kills a frenzy-dying actor that fails its physical RR, at attack level 0 and without penalties', async () => {
+    const actorRound = Object.assign(
+      load({ hp: [50, 5, 20], penalties: [['critical', -30]], resistances: [{ resistance: 'physical', totalBonus: 10 }] }),
+      { id: 'round-1', actorId: 'frodo', actorName: 'Frodo' },
+    );
+    actorRound.enterFrenzy(1);
+    actorRound.adjustHp(40);
+    actorRound.applyUpkeep();
+    expect(actorRound.alerts).toContainEqual(expect.objectContaining({ type: 'frenzy-dying', status: 'pending' }));
+    const update = vi.fn((updated: unknown) => Promise.resolve(updated));
+    const repository = { findById: vi.fn(() => Promise.resolve(actorRound)), update } as unknown as ActorRoundRepository;
+    const handler = new ResistanceRollHandler(repository, { find: vi.fn(() => Promise.resolve(PSYCHOLOGY_TABLES)) });
+
+    const resisted = await handler.execute(new ResistanceRollCommand('round-1', 'physical', 9, 60, [], undefined, 'u', [], 'frenzy-dying'));
+    expect(resisted.attackLevel).toBe(0);
+    expect(resisted.result).toMatchObject({ total: 70, resisted: true });
+    expect(actorRound.isDead()).toBe(false);
+    expect(actorRound.alerts.find(alert => alert.type === 'frenzy-dying')?.status).toBe('resolved');
+
+    const failed = await handler.execute(new ResistanceRollCommand('round-1', 'physical', 0, 20, [], undefined, 'u', [], 'frenzy-dying'));
+    expect(failed.result.resisted).toBe(false);
+    expect(actorRound.isDead()).toBe(true);
+    expect(update).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects a frenzy-dying RR that is not physical', async () => {
+    const handler = setup([{ resistance: 'fear', totalBonus: 20 }]);
+    await expect(
+      handler.execute(new ResistanceRollCommand('round-1', 'fear', 0, 40, [], undefined, 'u', [], 'frenzy-dying')),
+    ).rejects.toThrow(expect.objectContaining({ code: 'err-resistance-roll-invalid' }));
+  });
+
   it('answers 404 for an unknown actor round', async () => {
     const repository = { findById: vi.fn(() => Promise.resolve(null)) } as unknown as ActorRoundRepository;
     const handler = new ResistanceRollHandler(repository, { find: vi.fn() });

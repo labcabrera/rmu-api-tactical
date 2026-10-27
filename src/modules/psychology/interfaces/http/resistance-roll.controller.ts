@@ -20,10 +20,23 @@ export class ResistanceRollController {
   @Post(':id/resistance-rolls')
   @HttpCode(200)
   @ApiOkResponse({ type: ResistanceRollResultDto, description: 'Success' })
-  @ApiOperation({ operationId: 'resistanceRoll', summary: 'Resistance roll of the actor (workspace spec 022): only fear for now' })
+  @ApiOperation({
+    operationId: 'resistanceRoll',
+    summary: 'Resistance roll of the actor (workspace specs 022 and 040): fear, and physical',
+  })
   @ApiErrors({ 400: 'No RR bonus for the actor', 404: 'Actor round not found' })
   async resistanceRoll(@Param('id') id: string, @Body() dto: ResistanceRollDto, @CurrentUser() user: AuthenticatedUser) {
-    const command = new ResistanceRollCommand(id, dto.kind, dto.attackLevel, dto.roll, dto.modifiers ?? [], dto.bonus, user.id, user.roles);
+    const command = new ResistanceRollCommand(
+      id,
+      dto.kind,
+      dto.attackLevel,
+      dto.roll,
+      dto.modifiers ?? [],
+      dto.bonus,
+      user.id,
+      user.roles,
+      dto.reason,
+    );
     const result = await this.commandBus.execute<ResistanceRollCommand, ActorResistanceRoll>(command);
     return ResistanceRollResultDto.from(result);
   }

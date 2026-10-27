@@ -1,9 +1,16 @@
 import { ValidationError } from '../../../shared/domain/errors/errors.js';
 import { type FailureSeverity, type FearState, findBand, type PsychologyTables } from '../value-objects/psychology-tables.vo.js';
 
-/** Kinds of resistance roll tactical makes (workspace spec 022, decision 8): only fear for now. */
-export type ResistanceKind = 'fear';
-export const RESISTANCE_KINDS: ResistanceKind[] = ['fear'];
+/**
+ * Kinds of resistance roll tactical makes (workspace spec 022, decision 8): fear, and physical for an actor dying in
+ * frenzy (workspace spec 040).
+ */
+export type ResistanceKind = 'fear' | 'physical';
+export const RESISTANCE_KINDS: ResistanceKind[] = ['fear', 'physical'];
+
+/** What a resistance roll is for, when it changes the actor (workspace spec 040: the RR of a frenzy-dying actor). */
+export type ResistanceReason = 'frenzy-dying';
+export const RESISTANCE_REASONS: ResistanceReason[] = ['frenzy-dying'];
 
 export interface ResistanceModifier {
   key: string;

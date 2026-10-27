@@ -773,8 +773,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
 
   /** Healed back to the death threshold, the frenzy-dying actor is no longer dying; it stays unconscious. */
   private endFrenzyDyingWhenHealed(): void {
-    if (!this.isBeyondDeathThreshold()) {
+    if (!this.isBeyondDeathThreshold() && this.effects.some(effect => effect.status === FRENZY_DYING)) {
       this.effects = this.effects.filter(effect => effect.status !== FRENZY_DYING);
+      this.alerts.filter(alert => alert.type === 'frenzy-dying').forEach(alert => (alert.status = 'resolved'));
     }
   }
 
@@ -790,6 +791,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       this.effects = this.effects.filter(effect => effect.status !== FRENZY_DYING);
       this.addEffect(new ActorRoundEffect(randomUUID(), DEAD, undefined, undefined), undefined);
     }
+    this.alerts.filter(alert => alert.type === 'frenzy-dying').forEach(alert => (alert.status = 'resolved'));
     this.applyPenalties();
     this.refreshActionPoints();
   }
@@ -1074,6 +1076,10 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     this.checkHitsState();
     if (this.isDead()) {
       this.effects = this.effects.filter(e => e.status !== DYING);
+    }
+    // Workspace spec 040, decision 14: a physical RR in every upkeep while dying in frenzy.
+    if (this.hasEffect(FRENZY_DYING) && !this.alerts.some(alert => alert.type === 'frenzy-dying' && alert.status === 'pending')) {
+      this.alerts.push(ActorRoundAlert.buildFrenzyDying());
     }
     this.applyPenalties();
     this.refreshActionPoints();

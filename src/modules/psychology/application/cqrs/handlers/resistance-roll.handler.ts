@@ -20,7 +20,8 @@ export interface ActorResistanceRoll {
 /**
  * A resistance roll of an actor (workspace spec 022, decision 8): its bonus of the kind from its sheet (or the game
  * master's), the roll and the modifiers against the attack level, resolved with core's psychology tables. It changes
- * nothing: the fear checks of a group put the effects.
+ * nothing (the fear checks of a group put the effects), except the RR of a frenzy-dying actor (spec 040), which kills
+ * it when failed.
  */
 @CommandHandler(ResistanceRollCommand)
 export class ResistanceRollHandler implements ICommandHandler<ResistanceRollCommand, ActorResistanceRoll> {
@@ -39,18 +40,29 @@ export class ResistanceRollHandler implements ICommandHandler<ResistanceRollComm
     if (bonus === undefined) {
       throw new ValidationError(`${actorRound.actorName} has no ${command.kind} RR bonus: send one`, 'err-resistance-bonus-required');
     }
+    const frenzyDying = command.reason === 'frenzy-dying';
+    if (frenzyDying && command.kind !== 'physical') {
+      throw new ValidationError('The RR of a frenzy-dying actor is physical', 'err-resistance-roll-invalid');
+    }
+    // Workspace spec 040, decision 14: attack level 0 and no penalties (the actor is unconscious).
+    const attackLevel = frenzyDying ? 0 : command.attackLevel;
     const tables = await this.psychologyTables.find();
     const result = ResistanceRollCalculator.resolve(
       {
         kind: command.kind,
         roll: command.roll,
         bonus,
-        attackLevel: command.attackLevel,
+        attackLevel,
         modifiers: command.modifiers,
-        penalty: actorRound.getPenaltySum(),
+        penalty: frenzyDying ? undefined : actorRound.getPenaltySum(),
       },
       tables,
     );
-    return { actorRound, bonus, attackLevel: command.attackLevel, result };
+    if (frenzyDying) {
+      actorRound.resolveFrenzyDyingRr(result.resisted);
+      const updated = await this.actorRoundRepository.update(actorRound);
+      return { actorRound: updated, bonus, attackLevel, result };
+    }
+    return { actorRound, bonus, attackLevel, result };
   }
 }
