@@ -21,6 +21,7 @@ import { CombatGameLethalityPlugin } from './combat-game-lethality.plugin.js';
 import { CombatHigherGroundPlugin } from './combat-higher-ground.plugin.js';
 import { CombatLocationArmorPlugin } from './combat-location-armor.plugin.js';
 import { CombatMultipleAttacksPlugin } from './combat-multiple-attacks.plugin.js';
+import { CombatNonViolentPlugin } from './combat-non-violent.plugin.js';
 import { CombatOffensiveBonusPlugin } from './combat-offensive-bonus.plugin.js';
 import { CombatPacePlugin } from './combat-pace.plugin.js';
 import { CombatParryPlugin } from './combat-parry.plugin.js';
@@ -46,6 +47,7 @@ export const COMBAT_PLUGIN_LIST: CombatPlugin[] = [
   CombatActorPenaltiesPlugin,
   CombatPacePlugin,
   CombatPressingAdvantagePlugin,
+  CombatNonViolentPlugin,
   CombatRangePlugin,
   CombatActionPointsPlugin,
   CombatDefensiveBonusPlugin,
@@ -86,6 +88,7 @@ export const COMBAT_PLUGIN_LIST: CombatPlugin[] = [
 ];
 
 export * from './combat-actor-penalties.plugin.js';
+export * from './combat-non-violent.plugin.js';
 export * from './combat-absolute-hit.plugin.js';
 export * from './combat-action-points.plugin.js';
 export * from './combat-attack-size.plugin.js';

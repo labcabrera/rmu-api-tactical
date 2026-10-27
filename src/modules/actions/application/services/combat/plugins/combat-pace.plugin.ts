@@ -1,4 +1,4 @@
-import { UNCOORDINATED } from '../../../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
+import { GRACEFUL_GAIT, UNCOORDINATED } from '../../../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
 import { ValidationError } from '../../../../../shared/domain/errors/errors.js';
 import { isMelee, isPreparing, preparation, rollModifiers, sourceSkill, sourceTraitTier } from '../combat-modifiers.js';
 import type { CombatContext } from '../combat-context.js';
@@ -47,13 +47,16 @@ export const CombatPacePlugin: CombatPlugin = {
                 : `Cannot perform attack at pace '${pace}': an uncoordinated actor counts it as '${effective}'`;
             throw new ValidationError(message, 'err-attack-invalid-pace');
           }
+          // Graceful Gait (workspace spec 039): no penalty at walk, normal ones from jog
+          const graceful = effective === 'walk' && sourceTraitTier(ctx, GRACEFUL_GAIT) > 0;
           const penalty = paceModifiers[pace] || 0;
-          const effectivePenalty = paceModifiers[effective] || 0;
+          const effectivePenalty = graceful ? 0 : paceModifiers[effective] || 0;
           // Footwork offsets the pace penalty of melee and thrown attacks (§8.2), not of fired ones.
           const footwork = isMelee(ctx) || ctx.attack?.type === 'thrown' ? sourceSkill(ctx, 'footwork') : 0;
           rollModifiers(ctx)
             .add('pace-penalty', penalty)
-            .add('uncoordinated', effectivePenalty - penalty)
+            .add('uncoordinated', graceful ? 0 : effectivePenalty - penalty)
+            .add('graceful-gait', graceful ? -penalty : 0)
             .add('pace-penalty-skill', effectivePenalty ? Math.min(Math.abs(effectivePenalty), footwork) : 0);
         },
       },

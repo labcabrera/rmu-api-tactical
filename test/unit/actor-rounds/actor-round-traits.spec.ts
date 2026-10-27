@@ -4,6 +4,8 @@ import { DeclareInitiativeDto } from '../../../src/modules/actor-rounds/interfac
 import { ActorRoundDto } from '../../../src/modules/actor-rounds/interfaces/http/dto/actor-round.dto.js';
 import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
 import { ActorRoundEffect } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-effect.vo.js';
+import { ActorRoundPenalty } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-penalty.vo.js';
+import { ActorRoundPenaltyModifier } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-penalty-modifier.vo.js';
 import { ActorRoundTrait } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-trait.vo.js';
 import { ActorRoundCharacterMapperAdapter } from '../../../src/modules/actor-rounds/infrastructure/mappers/actor-round-character-mapper.adapter.js';
 import type { Character } from '../../../src/modules/strategic/application/ports/character.port.js';
@@ -146,37 +148,46 @@ describe('ActorRound traits', () => {
 });
 
 describe('Non-violent', () => {
-  it('does not penalize the round the critical was inflicted in', () => {
+  it('does not penalize the general actions, only the attacks through its combat plugin', () => {
     const round = load({ round: 2 });
 
-    round.applyAttackResults(0, [nonViolent(2, -40)], undefined, { phase: 2, spentAp: 1 });
+    round.applyAttackResults(0, [nonViolent(2, -10)], undefined, { phase: 2, spentAp: 1 });
 
-    expect(round.effects.map(e => [e.status, e.value])).toEqual([['non-violent', -40]]);
+    expect(round.effects.map(e => [e.status, e.value])).toEqual([['non-violent', -10]]);
     expect(nonViolentPenalty(round)).toBe(0);
   });
 
-  it('penalizes every action of the following round only', () => {
+  it('lasts for the rest of the combat', () => {
     const round = load({ round: 2, initiativeBase: 10 });
-    round.applyAttackResults(0, [nonViolent(2, -40)], undefined, { phase: 4, spentAp: 3 });
+    round.applyAttackResults(0, [nonViolent(2, -10)], undefined, { phase: 4, spentAp: 3 });
     round.applyUpkeep();
 
     const next = ActorRound.createFromPrevious(round);
-    expect(nonViolentPenalty(next)).toBe(-40);
-    next.declareInitiative(10);
-    expect(next.initiative.penalty).toBe(-4);
-
     next.applyUpkeep();
-    expect(next.effects).toEqual([]);
-    expect(nonViolentPenalty(next)).toBe(0);
-    expect(nonViolentPenalty(ActorRound.createFromPrevious(next))).toBe(0);
+    const later = ActorRound.createFromPrevious(next);
+    expect(later.effects.map(e => [e.status, e.value])).toEqual([['non-violent', -10]]);
+    expect(nonViolentPenalty(later)).toBe(0);
   });
 
-  it('keeps one penalty per round, the most severe', () => {
+  it('keeps one penalty, the most severe', () => {
     const round = load({ round: 2 });
 
-    round.applyAttackResults(0, [nonViolent(2, -20), nonViolent(2, -40)], undefined, { phase: 1, spentAp: 0 });
+    round.applyAttackResults(0, [nonViolent(2, -5), nonViolent(2, -10)], undefined, { phase: 1, spentAp: 0 });
+    round.applyAttackResults(0, [nonViolent(3, -5)], undefined, { phase: 2, spentAp: 1 });
 
-    expect(round.effects.map(e => e.value)).toEqual([-40]);
+    expect(round.effects.map(e => e.value)).toEqual([-10]);
+  });
+
+  it('drops the general penalty of actor rounds stored with the old rule', () => {
+    const stored = load({ round: 3 });
+    const props = stored.getProps();
+    const round = ActorRound.fromProps({
+      ...props,
+      effects: [nonViolent(2, -20)],
+      penalty: new ActorRoundPenalty([...props.penalty.modifiers, new ActorRoundPenaltyModifier('old', 'non-violent', -20)]),
+    });
+
+    expect(nonViolentPenalty(round)).toBe(0);
   });
 });
 

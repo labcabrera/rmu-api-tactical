@@ -24,9 +24,11 @@ import {
 import {
   ActorRoundTrait,
   NON_VIOLENT_TRAIT,
+  PAIN_RESISTANCE,
   PRESSING_THE_ADVANTAGE,
   RAPID_BLEEDER,
   SLOW_BLEEDER,
+  STUN_RESISTANCE,
 } from '../../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
 import { type CriticalEffectData, CriticalInjuryFactory } from '../../../../actor-rounds/domain/services/critical-injury.factory.js';
 import type { HpChange } from '../../../../actor-rounds/domain/value-objects/hp-log-entry.vo.js';
@@ -40,6 +42,7 @@ import { Action } from '../../../domain/aggregates/action.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { ADDITIONAL_CRITICAL, FUMBLE_HITS } from '../../../domain/services/fumble-hits.js';
 import { ActionAttack } from '../../../domain/value-objects/action-attack.vo.js';
+import type { CriticalEffect } from '../../../domain/value-objects/critical-result.vo.js';
 import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo.js';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
 import { ApplyAttackCommand } from '../commands/apply-attack.command.js';
@@ -71,8 +74,15 @@ const DELAYED_STATUSES = [HALF_ACTIVITY, CANNOT_PARRY, INITIATIVE_PENALTY, UNCON
 /** OB bonus per tier of Pressing the Advantage. */
 const PRESSING_BONUS_PER_TIER = 10;
 
-/** Penalty per tier of Non-violent. */
-const NON_VIOLENT_PENALTY_PER_TIER = -20;
+/** Penalty per tier of Non-violent (Character Companion, workspace spec 039). */
+const NON_VIOLENT_PENALTY_PER_TIER = -5;
+
+/** Pain Resistance (workspace spec 039): each hit damage taken is reduced by 1 per tier, never below 1. */
+const reducePainDamage = (damage: number, tier: number): number => (damage > 0 && tier > 0 ? Math.max(1, damage - tier) : damage);
+
+/** Stun Resistance (workspace spec 039): a Stun[-75] counts as Stun[-50] and a Stun[-50] as Stun[-25]. */
+const reduceStuns = (effects: CriticalEffect[], stunResistance: boolean): CriticalEffect[] =>
+  stunResistance ? effects.map(e => (e.status === 'stunned' && (e.value ?? 0) <= -50 ? { ...e, value: (e.value ?? 0) + 25 } : e)) : effects;
 
 @CommandHandler(ApplyAttackCommand)
 export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, Action> {
@@ -289,7 +299,8 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     }
     let dmg = 0;
     let sourceHeal = 0;
-    dmg += actionAttack.results?.attackTableEntry?.damage || 0;
+    const painTier = ActorRoundTrait.tierOf(target.traits, PAIN_RESISTANCE);
+    dmg += reducePainDamage(actionAttack.results?.attackTableEntry?.damage || 0, painTier);
     const hpChanges: HpChange[] = [{ kind: 'attack', amount: -dmg, ...this.hpOrigin(origin, true) }];
     const sourceHeals: HpChange[] = [];
     const criticalEffects: ActorRoundEffect[] = [];
@@ -298,7 +309,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     const side = sideOfRoll(actionAttack.roll?.roll);
     let location: AttackLocation | undefined = actionAttack.calculated?.location;
     actionAttack.results?.criticals?.forEach(cr => {
-      const criticalDmg = cr.result?.damage || 0;
+      const criticalDmg = reducePainDamage(cr.result?.damage || 0, painTier);
       dmg += criticalDmg;
       location = location ?? toAttackLocation(cr.result?.location);
       const criticalKey = `${cr.criticalType}-${cr.criticalSeverity}-${cr.adjustedRoll ?? ''}`;
@@ -309,7 +320,10 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       sourceHeal += heal;
       sourceHeals.push({ kind: 'treatment', amount: heal, criticalKey, ...this.hpOrigin(origin, false) });
       const built = CriticalInjuryFactory.build({
-        effects: (cr.result?.effects || []).filter(e => e.applyTo !== 'source'),
+        effects: reduceStuns(
+          (cr.result?.effects || []).filter(e => e.applyTo !== 'source'),
+          ActorRoundTrait.tierOf(target.traits, STUN_RESISTANCE) > 0,
+        ),
         criticalType: cr.criticalType,
         location: cr.result?.location,
         side,
@@ -407,7 +421,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
   /**
    * Effects of the attacker's talents once its attacks are applied. A `pressing-advantage` against a foe of this
    * action is used up; inflicting a critical with a melee attack gives a new one (Pressing the Advantage) and a penalty
-   * for the next round (Non-violent).
+   * to its attacks for the rest of the combat (Non-violent).
    */
   private processSourceTalents(
     action: Action,
