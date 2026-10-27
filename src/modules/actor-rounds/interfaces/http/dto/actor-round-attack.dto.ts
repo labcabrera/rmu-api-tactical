@@ -48,6 +48,9 @@ export class ActorRoundAttackDto {
   @ApiProperty({ type: [String], description: 'Tags of the weapon type (spec 032)', example: ['fencing'] })
   weaponTags: string[];
 
+  @ApiProperty({ type: Number, nullable: true, description: 'Times St enters the skill bonus of the attack (spec 040)', example: 2 })
+  strengthWeight: number | null;
+
   static fromEntity(entity: ActorRoundAttack): ActorRoundAttackDto {
     const dto = new ActorRoundAttackDto();
     dto.attackName = entity.attackName;
@@ -67,6 +70,7 @@ export class ActorRoundAttackDto {
     dto.breakagePenalty = entity.breakagePenalty ?? 0;
     dto.broken = entity.broken ?? false;
     dto.weaponTags = [...(entity.weaponTags ?? [])];
+    dto.strengthWeight = entity.strengthWeight ?? null;
     dto.ranges = entity.ranges && entity.ranges.length > 0 ? entity.ranges.map(r => AttackRangeDto.fromEntity(r)) : undefined;
     return dto;
   }

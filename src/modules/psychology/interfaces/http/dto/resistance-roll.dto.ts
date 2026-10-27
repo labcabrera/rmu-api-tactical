@@ -2,7 +2,12 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsArray, IsIn, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 import type { ActorResistanceRoll } from '../../../application/cqrs/handlers/resistance-roll.handler.js';
-import { RESISTANCE_KINDS, type ResistanceKind } from '../../../domain/services/resistance-roll.calculator.js';
+import {
+  RESISTANCE_KINDS,
+  RESISTANCE_REASONS,
+  type ResistanceKind,
+  type ResistanceReason,
+} from '../../../domain/services/resistance-roll.calculator.js';
 import { FEAR_STATES } from '../../../domain/value-objects/psychology-tables.vo.js';
 
 export class ResistanceModifierDto {
@@ -39,6 +44,16 @@ export class ResistanceRollDto {
   @IsOptional()
   @IsNumber()
   bonus?: number;
+
+  @ApiProperty({
+    type: String,
+    enum: RESISTANCE_REASONS,
+    required: false,
+    description: 'frenzy-dying (spec 040): physical RR at attack level 0 of a frenzy-dying actor, that dies when it fails',
+  })
+  @IsOptional()
+  @IsIn(RESISTANCE_REASONS)
+  reason?: ResistanceReason;
 }
 
 export class ResistanceRollResultDto {

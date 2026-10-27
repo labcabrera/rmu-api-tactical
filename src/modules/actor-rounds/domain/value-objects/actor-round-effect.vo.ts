@@ -32,6 +32,17 @@ export const UNCONSCIOUS = 'unconscious';
 export const DEAD = 'dead';
 /** Dies when its rounds run out unless stabilized (spec 013, §3). */
 export const DYING = 'dying';
+/**
+ * Frenzy (workspace spec 040, decision 7): `value` 1 (Frenzy) or 2 (Greater Frenzy), no rounds. It lasts until the
+ * actor leaves it with an Adrenal Focus maneuver, falls unconscious or the combat ends.
+ */
+export const FRENZY = 'frenzy';
+export const FRENZY_LEVELS = [1, 2];
+/**
+ * Fell beyond the death threshold while in frenzy (decision 14): unconscious, a physical RR every upkeep until it fails
+ * (dead) or the hits are healed back to the threshold.
+ */
+export const FRENZY_DYING = 'frenzy-dying';
 /** Critical states that keep the actor from acting (enriched critical data). */
 export const INCAPACITATED = 'incapacitated';
 export const PARALYZED = 'paralyzed';
@@ -117,6 +128,8 @@ export class ActorRoundEffect {
       case DEAD:
       case UNCONSCIOUS:
       case DISARMED:
+      case FRENZY:
+      case FRENZY_DYING:
       case 'surprised':
       case 'flatfooted':
         return true;

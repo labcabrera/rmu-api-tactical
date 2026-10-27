@@ -1,3 +1,5 @@
+import { frenzyManeuverModifiers } from '../../../domain/services/frenzy-maneuver.js';
+import type { FrenzyPurpose } from '../../../domain/value-objects/frenzy-purpose.vo.js';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   type ActorRoundRepository,
@@ -69,6 +71,8 @@ export interface ManeuverChoices {
   selections?: Record<string, ManeuverModifierSelection>;
   customBonus?: number;
   passiveTotal?: number;
+  /** Workspace spec 040: the frenzy maneuver adds its own modifiers. */
+  purpose?: FrenzyPurpose;
 }
 
 export interface ManeuverRollCalculation {
@@ -231,6 +235,9 @@ export class ManeuverContextService {
       modifiers.push(new KeyValueModifier('light', ManeuverContextService.lightValue(lightValue, lightUsage)));
     }
     modifiers.push(...resolveSelections(context.catalog, choices.selections));
+    if (choices.purpose) {
+      modifiers.push(...frenzyManeuverModifiers(context.actorRound, choices.purpose));
+    }
     if (choices.customBonus) {
       modifiers.push(new KeyValueModifier('custom-bonus', choices.customBonus));
     }

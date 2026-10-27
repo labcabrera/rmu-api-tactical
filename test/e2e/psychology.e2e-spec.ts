@@ -8,6 +8,7 @@ let e2e: E2eApp;
 const as = (user: UserName) => ({
   get: (url: string) => request(e2e.server).get(url).set('Authorization', e2e.auth(user)),
   post: (url: string, body: object = {}) => request(e2e.server).post(url).set('Authorization', e2e.auth(user)).send(body),
+  patch: (url: string, body: object = {}) => request(e2e.server).patch(url).set('Authorization', e2e.auth(user)).send(body),
 });
 
 beforeAll(async () => {
@@ -72,6 +73,42 @@ describe('resistance rolls (workspace spec 022, decision 8)', () => {
     expect(
       (await as('other').post(`/v1/actor-rounds/${rounds.sam.id}/resistance-rolls`, { kind: 'fear', attackLevel: 1, roll: 50 })).status,
     ).toBe(200);
+  });
+});
+
+describe('physical RR of a frenzy-dying actor (workspace spec 040)', () => {
+  it('kills the actor when it fails, at attack level 0', async () => {
+    e2e.world.characters.set('frodo', character('frodo', { resistances: [{ resistance: 'physical', totalBonus: 10 }] }));
+    try {
+      const { rounds } = await startedGame();
+      const url = `/v1/actor-rounds/${rounds.frodo.id}`;
+      const effects = async () => ((await as('owner').get(url)).body as ActorRoundBody).effects.map(e => e.status);
+      expect((await as('owner').post(`${url}/effects`, { status: 'frenzy' })).status).toBeLessThan(300);
+      // 50 hits and a death threshold of 50 (no Body Development in the fixture): -60 is beyond it.
+      expect((await as('owner').patch(`${url}/hp`, { dmg: 110 })).status).toBe(200);
+      expect(await effects()).toEqual(expect.arrayContaining(['frenzy-dying', 'unconscious']));
+
+      const resisted = await as('owner').post(`${url}/resistance-rolls`, {
+        kind: 'physical',
+        attackLevel: 7,
+        roll: 60,
+        reason: 'frenzy-dying',
+      });
+      expect(resisted.status).toBe(200);
+      expect(resisted.body).toMatchObject({ kind: 'physical', attackLevel: 0, total: 70, resisted: true });
+      expect(await effects()).not.toContain('dead');
+
+      const failed = await as('owner').post(`${url}/resistance-rolls`, {
+        kind: 'physical',
+        attackLevel: 0,
+        roll: 5,
+        reason: 'frenzy-dying',
+      });
+      expect(failed.body).toMatchObject({ resisted: false });
+      expect(await effects()).toContain('dead');
+    } finally {
+      e2e.world.characters.set('frodo', character('frodo', { resistances: [{ resistance: 'fear', totalBonus: 10 }] }));
+    }
   });
 });
 

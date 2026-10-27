@@ -29,6 +29,11 @@ export class ActorRoundAttack {
   broken = false;
   /** Workspace spec 032: tags of the weapon type (fencing, quarterstaff...) for the fighting style requirements. */
   weaponTags: string[] = [];
+  /**
+   * Workspace spec 040: times St enters the skill bonus of the attack, for the Strength bonus of Frenzy. Null for
+   * attacks of characters not recalculated since: the rules then count 2 for melee and 1 for ranged.
+   */
+  strengthWeight: number | null = null;
 
   constructor(
     attackName: string,

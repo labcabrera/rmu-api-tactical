@@ -88,6 +88,8 @@ export interface ManeuverSetup {
   fatigue?: number;
   /** Other actor rounds of the round (targets), with their character sheets. */
   targets?: { actorRound: ActorRound; character?: Character }[];
+  /** Changes to the actor round of the maneuver (traits, effects, style...). */
+  actorRound?: (actorRound: ActorRound) => void;
 }
 
 export const action = (props: Partial<ActionProps>): Action =>
@@ -141,6 +143,7 @@ export const setupManeuver = (options: ManeuverSetup = {}) => {
   if (options.fatigue) {
     actorRound.applyEnduranceResult(options.fatigue, 0);
   }
+  options.actorRound?.(actorRound);
   const character = {
     id: 'actor-1',
     skills: options.skills ?? [{ skillId, specialization: null, totalBonus: 40, ranks: 5 }],

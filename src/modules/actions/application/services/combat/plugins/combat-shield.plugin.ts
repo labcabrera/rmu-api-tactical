@@ -4,7 +4,7 @@ import {
   preparation,
   rollModifiers,
   targetInjuryPenalty,
-  targetIsFlatfooted,
+  targetIgnoresDefense,
   targetSkill,
   targetSkillRanks,
 } from '../combat-modifiers.js';
@@ -19,7 +19,7 @@ const MAX_PASSIVE_SHIELD_DB = 50;
  */
 const shieldCovers = (ctx: CombatContext): boolean => {
   const shield = ctx.targetActor?.defense?.shield;
-  if (!isPreparing(ctx) || !shield || preparation(ctx).situationalModifiers.disabledShield || targetIsFlatfooted(ctx)) {
+  if (!isPreparing(ctx) || !shield || preparation(ctx).situationalModifiers.disabledShield || targetIgnoresDefense(ctx)) {
     return false;
   }
   if (preparation(ctx).situationalModifiers.positionalTarget !== 'none') {

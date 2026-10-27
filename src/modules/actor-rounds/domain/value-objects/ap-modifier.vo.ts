@@ -1,7 +1,7 @@
 /** How a modifier changes the action points of a round (spec 011, §1). */
 export type ApModifierKind = 'bonus' | 'loss' | 'cap' | 'cost-multiplier';
 
-/** What a modifier comes from: an effect of the actor round, or the game master. */
+/** What a modifier comes from: an effect of the actor round, a talent (Natural Haste), or the game master. */
 export type ApModifierSource =
   | 'surprised'
   | 'flatfooted'
@@ -15,6 +15,7 @@ export type ApModifierSource =
   | 'cap'
   | 'half-activity'
   | 'concentration'
+  | 'natural-haste'
   | 'manual';
 
 /** A change to the action point capacity of an actor round, with its origin. */

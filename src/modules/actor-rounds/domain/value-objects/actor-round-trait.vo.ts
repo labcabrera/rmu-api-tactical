@@ -11,6 +11,11 @@ export const STRIKE_REFLEX = 'strike-reflex';
 export const PAIN_RESISTANCE = 'pain-resistance';
 export const STUN_RESISTANCE = 'stun-resistance';
 export const GRACEFUL_GAIT = 'graceful-gait';
+// Combat state of the Character Companion talents (workspace spec 040)
+export const NATURAL_HASTE = 'natural-haste';
+export const SURVIVAL_INSTINCT = 'survival-instinct';
+export const FRENZY_TRAIT = 'frenzy';
+export const FRENZY_GREATER_TRAIT = 'frenzy-greater';
 
 /** Talent or flaw of the actor, copied from its character sheet. */
 export class ActorRoundTrait {

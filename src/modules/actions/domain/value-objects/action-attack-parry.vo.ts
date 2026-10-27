@@ -24,5 +24,10 @@ export class ActionParry {
      * of that foe and its OB is only spent once (§9.6 Parrying), so it is fixed and not spent again.
      */
     public readonly carriedOver?: boolean,
+    /**
+     * Workspace spec 040 (Survival Instinct): a carried-over parry came from one that used all the OB available then,
+     * since its own `parry` and `parryAvailable` are both the OB carried.
+     */
+    public readonly fullParry?: boolean,
   ) {}
 }

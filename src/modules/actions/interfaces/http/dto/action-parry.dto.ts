@@ -15,6 +15,8 @@ export class ActionParryDto {
   protectPosition: ProtectPosition | undefined;
   /** Parry declared against this attacker in an earlier action: fixed, and its OB is not spent again. */
   carriedOver: boolean | undefined;
+  /** A carried-over parry that used all the OB available in its first action (spec 040). */
+  fullParry: boolean | undefined;
 
   static fromEntity(entity: ActionParry): ActionParryDto {
     const dto = new ActionParryDto();
@@ -27,6 +29,7 @@ export class ActionParryDto {
     dto.penalty = entity.penalty;
     dto.protectPosition = entity.protectPosition;
     dto.carriedOver = entity.carriedOver;
+    dto.fullParry = entity.fullParry;
     return dto;
   }
 }

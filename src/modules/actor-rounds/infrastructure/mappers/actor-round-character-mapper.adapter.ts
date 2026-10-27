@@ -184,6 +184,7 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
       );
       roundAttack.itemId = itemId && items.some(item => item.id === itemId) ? itemId : null;
       roundAttack.weaponTags = [...(attack.weaponTags ?? [])];
+      roundAttack.strengthWeight = attack.strengthWeight ?? null;
       return roundAttack;
     });
   }

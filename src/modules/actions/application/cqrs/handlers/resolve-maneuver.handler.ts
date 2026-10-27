@@ -18,6 +18,7 @@ import {
   type ManeuverRollCalculation,
 } from '../../services/maneuver/maneuver-context.service.js';
 import { ResolveManeuverCommand } from '../commands/resolve-maneuver.command.js';
+import { applyFrenzyManeuver, validateFrenzyPurpose } from '../../../domain/services/frenzy-maneuver.js';
 import { type PsychologyTablesPort, PSYCHOLOGY_TABLES_PORT } from '../../../../psychology/application/ports/psychology-tables.port.js';
 import { findBand } from '../../../../psychology/domain/value-objects/psychology-tables.vo.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
@@ -75,6 +76,9 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     const range = context.profile.actionPoints;
     action.apRange = range ? { min: range.min, max: range.max } : null;
     action.checkResolvable(context.actorRound, currentPhase);
+    if (request.purpose) {
+      validateFrenzyPurpose(context.actorRound, context.skill.skillId, request.purpose);
+    }
     action.actionPoints = action.apOf(context.actorRound, currentPhase);
     const passive = request.passive ? await this.maneuverContextService.passiveTotal(context, action, request.passive) : undefined;
     const choices =
@@ -86,6 +90,7 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     action.maneuver!.modifiers.passiveTotal = choices.passiveTotal;
     action.maneuver!.modifiers.targetActorId = request.passive?.targetActorId;
     action.maneuver!.modifiers.passiveSkillId = passive?.skillId;
+    action.maneuver!.modifiers.purpose = request.purpose;
     action.maneuver!.roll = { modifiers: calculation.modifiers, roll: command.roll.roll, totalRoll: calculation.total };
 
     const unusualEvent = command.roll.unmodified === UNUSUAL_EVENT_ROLL;
@@ -100,10 +105,18 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
       alert = await this.resolveAbsolute(action, context, calculation.total, unusualEvent);
     }
 
+    const frenzyChanged = request.purpose
+      ? applyFrenzyManeuver(context.actorRound, request.purpose, action.maneuver!.result?.result, {
+          phase: currentPhase,
+          spentAp: context.actorRound.getSpentAp(currentPhase),
+        })
+      : false;
     action.close(context.actorRound, currentPhase);
     const updated = await this.actionRepository.update(action);
     if (alert) {
       context.actorRound.alerts.push(alert);
+    }
+    if (alert || frenzyChanged) {
       await this.actorRoundRepository.update(context.actorRound);
     }
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));

@@ -52,6 +52,14 @@ export class ActorRoundAlert {
     return new ActorRoundAlert(randomUUID(), 'breakage', `Breakage roll from ${origin}`, modifiers);
   }
 
+  /** Workspace spec 040: the physical RR an actor dying in frenzy makes in the upkeep. */
+  static buildFrenzyDying(): ActorRoundAlert {
+    return new ActorRoundAlert(randomUUID(), 'frenzy-dying', 'Physical resistance roll of a frenzy-dying actor', [
+      new ActorRoundAlertModifier('resistance', null, 'physical'),
+      new ActorRoundAlertModifier('attackLevel', 0, null),
+    ]);
+  }
+
   getModifierValue(key: string): number | undefined {
     return this.modifiers?.find(modifier => modifier.key === key)?.value ?? undefined;
   }

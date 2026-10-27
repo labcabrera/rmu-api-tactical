@@ -33,4 +33,7 @@ export class ActionParry {
 
   @Prop({ type: Boolean, required: false })
   carriedOver?: boolean;
+
+  @Prop({ type: Boolean, required: false })
+  fullParry?: boolean;
 }

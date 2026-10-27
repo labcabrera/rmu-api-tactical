@@ -97,6 +97,7 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
           breakagePenalty: e.breakagePenalty ?? 0,
           broken: e.broken ?? false,
           weaponTags: [...(e.weaponTags ?? [])],
+          strengthWeight: e.strengthWeight ?? null,
         },
       ),
     );

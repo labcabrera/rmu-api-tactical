@@ -5,7 +5,7 @@ import {
   isPreparing,
   rollModifiers,
   targetInjuryPenalty,
-  targetIsFlatfooted,
+  targetIgnoresDefense,
   targetSkill,
   targetSkillRanks,
 } from '../combat-modifiers.js';
@@ -56,7 +56,7 @@ export const CombatDodgePlugin: CombatPlugin = {
           !isAreaSpellAttack(ctx) &&
           !!ctx.targetActor?.defenseMode &&
           ctx.targetActor.defenseMode.dodge !== 'none' &&
-          !targetIsFlatfooted(ctx),
+          !targetIgnoresDefense(ctx),
         apply: ctx => void rollModifiers(ctx).add('dodge', -dodgeBonus(ctx)),
       },
     ],

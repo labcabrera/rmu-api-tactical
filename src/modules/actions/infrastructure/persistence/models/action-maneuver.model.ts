@@ -1,3 +1,4 @@
+import type { FrenzyPurpose } from '../../../domain/value-objects/frenzy-purpose.vo.js';
 import { Prop, Schema } from '@nestjs/mongoose';
 import { Schema as MongooseSchema } from 'mongoose';
 import type { Difficulty } from '../../../domain/value-objects/difficulty.vo.js';
@@ -44,6 +45,9 @@ export class ActionManeuverModifiers {
 
   @Prop({ type: String, required: false })
   passiveSkillId: string | undefined;
+
+  @Prop({ type: String, required: false })
+  purpose: FrenzyPurpose | undefined;
 }
 
 @Schema({ _id: false })
