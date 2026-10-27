@@ -24,6 +24,9 @@ import {
   FEAR_EFFECTS,
   FEAR_NO_ATTACK_EFFECTS,
   FLATFOOTED,
+  FRENZY,
+  FRENZY_DYING,
+  FRENZY_LEVELS,
   HALF_ACTIVITY,
   HALF_ACTIVITY_AP,
   HALF_MOVEMENT,
@@ -50,7 +53,7 @@ import type { ActorRoundPenaltySource } from '../value-objects/actor-round-penal
 import { ActorRoundPenalty } from '../value-objects/actor-round-penalty.vo.js';
 import { ActorRoundPhaseLog } from '../value-objects/actor-round-phase-log.vo.js';
 import { ActorRoundShield } from '../value-objects/actor-round-shield.vo.js';
-import { ActorRoundTrait, STRIKE_REFLEX } from '../value-objects/actor-round-trait.vo.js';
+import { ActorRoundTrait, NATURAL_HASTE, STRIKE_REFLEX } from '../value-objects/actor-round-trait.vo.js';
 import { ActorRoundUsedBo } from '../value-objects/actor-round-used-bo.vo.js';
 import type { ActorType } from '../value-objects/actor-type.vo.js';
 import { ApLedgerEntry, type ApLedgerKind } from '../value-objects/ap-ledger-entry.vo.js';
@@ -83,6 +86,9 @@ import { type BreakageModifier, BreakageResolver, type BreakageResult } from '..
 /** Lightning Reflexes (workspace spec 032): initiative per time selected. */
 const LIGHTNING_REFLEXES = 'lightning-reflexes';
 const LIGHTNING_REFLEXES_BONUS = 5;
+/** Raging Wind (workspace spec 040, decision 16): initiative when the round starts in frenzy. */
+const RAGING_WIND = 'raging-wind';
+const RAGING_WIND_BONUS = 5;
 
 /** A breakage check of an item of the actor (spec 019, §2). */
 export interface BreakageCheckInput {
@@ -554,8 +560,26 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     this.refreshActionPoints();
   }
 
-  /** Dead beyond the death threshold, unconscious at 0 or fewer hits. */
+  /**
+   * Dead beyond the death threshold, unconscious at 0 or fewer hits. In frenzy (workspace spec 040, decision 14) the
+   * actor fights on below 0 hits: it falls unconscious at the threshold, the frenzy ends, and beyond it it is dying in
+   * frenzy instead of dead. A frenzy-dying actor does not die from its hits, only from a failed physical RR.
+   */
   private checkHitsState(): void {
+    if (this.hasEffect(FRENZY)) {
+      if (!this.isAtDeathThreshold()) {
+        return;
+      }
+      if (this.isBeyondDeathThreshold()) {
+        this.addEffect(new ActorRoundEffect(randomUUID(), FRENZY_DYING, undefined, undefined), undefined);
+      }
+      this.addEffect(new ActorRoundEffect(randomUUID(), UNCONSCIOUS, undefined, undefined), undefined);
+      return;
+    }
+    if (this.hasEffect(FRENZY_DYING)) {
+      this.endFrenzyDyingWhenHealed();
+      return;
+    }
     if (this.isBeyondDeathThreshold()) {
       this.addEffect(new ActorRoundEffect(randomUUID(), DEAD, undefined, undefined), undefined);
     } else if (this.hp.current < 1) {
@@ -585,6 +609,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       this.hp.current = Math.min(this.hp.max, this.hp.current + hits);
       this.logHp({ ...origin, amount: this.hp.current - before });
     }
+    this.endFrenzyDyingWhenHealed();
     if (this.hp.current > 0) {
       this.effects = this.effects.filter(effect => effect.status !== UNCONSCIOUS || ActorRound.isFromCritical(effect));
     }
@@ -729,13 +754,49 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
 
   /** At risk when the game ends (spec 013, §3): bleeding or dying, and not dead yet. */
   isAtRisk(): boolean {
-    return !this.isDead() && (this.getBleeding() > 0 || this.hasEffect(DYING));
+    return !this.isDead() && (this.getBleeding() > 0 || this.hasEffect(DYING) || this.hasEffect(FRENZY_DYING));
   }
 
   /** §9.8 Hits: dead when the hits below zero exceed the Body Development bonus (`max` for older actor rounds). */
   private isBeyondDeathThreshold(): boolean {
-    const threshold = this.hp.deathThreshold ?? this.hp.max;
-    return this.hp.current < -threshold;
+    return this.hp.current < -this.deathThreshold();
+  }
+
+  /** Workspace spec 040: the frenzy ends when the hits below zero reach the Body Development bonus. */
+  private isAtDeathThreshold(): boolean {
+    return this.hp.current <= -this.deathThreshold();
+  }
+
+  private deathThreshold(): number {
+    return this.hp.deathThreshold ?? this.hp.max;
+  }
+
+  /** Healed back to the death threshold, the frenzy-dying actor is no longer dying; it stays unconscious. */
+  private endFrenzyDyingWhenHealed(): void {
+    if (!this.isBeyondDeathThreshold()) {
+      this.effects = this.effects.filter(effect => effect.status !== FRENZY_DYING);
+    }
+  }
+
+  /**
+   * Physical RR of a frenzy-dying actor in the upkeep (workspace spec 040, decision 14): failed, it dies; resisted, it
+   * stays dying until the next one.
+   */
+  resolveFrenzyDyingRr(resisted: boolean): void {
+    if (!this.hasEffect(FRENZY_DYING)) {
+      throw new UnprocessableEntityError('The actor is not dying in frenzy', 'err-frenzy-not-dying');
+    }
+    if (!resisted) {
+      this.effects = this.effects.filter(effect => effect.status !== FRENZY_DYING);
+      this.addEffect(new ActorRoundEffect(randomUUID(), DEAD, undefined, undefined), undefined);
+    }
+    this.applyPenalties();
+    this.refreshActionPoints();
+  }
+
+  /** The actor is in frenzy: 0 when not, 1 for Frenzy and 2 for Greater Frenzy (workspace spec 040). */
+  frenzyLevel(): number {
+    return this.activeEffects().find(effect => effect.status === FRENZY)?.value ?? 0;
   }
 
   private addEffect(effect: ActorRoundEffect, location: AttackLocation | undefined): void {
@@ -764,6 +825,17 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     }
     if (this.isDead() && effect.status === DYING) {
       return;
+    }
+    if (effect.status === FRENZY) {
+      effect.value = effect.value ?? 1;
+      effect.rounds = undefined;
+      if (!FRENZY_LEVELS.includes(effect.value)) {
+        throw new ValidationError('A frenzy effect takes the value 1 (frenzy) or 2 (greater frenzy)', 'err-effect-invalid-value');
+      }
+    }
+    // Workspace spec 040, decision 14: falling unconscious (or dead) ends the frenzy.
+    if (effect.status === UNCONSCIOUS || effect.status === DEAD) {
+      this.effects = this.effects.filter(e => e.status !== FRENZY);
     }
     if (effect.status === SURPRISED) {
       this.normalizeSurprise(effect);
@@ -848,9 +920,38 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   }
 
   deleteEffect(effectId: string) {
+    const frenzy = this.effects.some(e => e.id === effectId && e.status === FRENZY);
     this.effects = this.effects.filter(e => e.id !== effectId);
+    if (frenzy) {
+      this.checkHitsState();
+    }
     this.applyPenalties();
     this.refreshActionPoints();
+  }
+
+  /**
+   * Workspace spec 040, decision 8: the actor enters frenzy (`level` 1) or greater frenzy (2), stamped with `application`
+   * (the phase of the maneuver). Already in frenzy, the new level replaces the old one.
+   */
+  enterFrenzy(level: number, application?: EffectApplication): ActorRoundEffect {
+    this.effects = this.effects.filter(e => e.status !== FRENZY);
+    const effect = new ActorRoundEffect(randomUUID(), FRENZY, level, undefined, application ? this.round : undefined);
+    if (application) {
+      effect.appliedPhase = application.phase;
+      effect.spentApBefore = application.spentAp;
+    }
+    this.addEffect(effect, undefined);
+    this.applyPenalties();
+    this.refreshActionPoints();
+    return effect;
+  }
+
+  /** Leaves the frenzy: the hits penalty is back, and at 0 or fewer hits the actor falls unconscious. */
+  leaveFrenzy(): void {
+    const frenzy = this.effects.find(e => e.status === FRENZY);
+    if (frenzy) {
+      this.deleteEffect(frenzy.id);
+    }
   }
 
   /** Removes the effects used up by an action, such as a `pressing-advantage` once its attack is applied. */
@@ -970,11 +1071,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       this.addEffect(new ActorRoundEffect(randomUUID(), DEAD, undefined, undefined), undefined);
     }
     this.effects = this.effects.filter(e => e.rounds === undefined || e.rounds === null || e.rounds > 0);
-    if (this.isBeyondDeathThreshold()) {
-      this.addEffect(new ActorRoundEffect(randomUUID(), DEAD, undefined, undefined), undefined);
-    } else if (this.hp.current < 1) {
-      this.addEffect(new ActorRoundEffect(randomUUID(), UNCONSCIOUS, undefined, undefined), undefined);
-    }
+    this.checkHitsState();
     if (this.isDead()) {
       this.effects = this.effects.filter(e => e.status !== DYING);
     }
@@ -1083,8 +1180,15 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     }
   }
 
-  /** Table 9-8b: same thresholds by hits lost (over 25 %, 50 % and 75 %), penalties of -10, -20 and -30. */
+  /**
+   * Table 9-8b: same thresholds by hits lost (over 25 %, 50 % and 75 %), penalties of -10, -20 and -30. None in frenzy
+   * (workspace spec 040, decision 12).
+   */
   private applyHpPenalty() {
+    if (this.hasEffect(FRENZY)) {
+      this.penalty.modifiers = this.penalty.modifiers.filter(m => m.source !== 'hp');
+      return;
+    }
     const hpPercent = this.hp.current / this.hp.max;
     let hpPenalty = 0;
     if (hpPercent < 0.25) {
@@ -1166,9 +1270,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     return this.hasEffect(CANNOT_ATTACK);
   }
 
-  /** `cannot_parry` or a useless arm: the actor cannot parry nor protect. */
+  /** `cannot_parry`, a useless arm or frenzy (workspace spec 040, decision 13): the actor cannot parry nor protect. */
   isParryForbidden(): boolean {
-    return this.hasEffect(CANNOT_PARRY) || this.hasEffect(ARM_USELESS);
+    return this.hasEffect(CANNOT_PARRY) || this.hasEffect(ARM_USELESS) || this.hasEffect(FRENZY);
   }
 
   /** Disarmed or with a useless arm: the actor cannot attack with an item until the game master removes it. */
@@ -1230,10 +1334,22 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
 
   // --- Fighting styles (workspace spec 032) ---
 
-  /** Lightning Reflexes: +5 initiative per time selected, when the round starts with suitable weapons. */
+  /**
+   * Lightning Reflexes: +5 initiative per time selected, when the round starts with suitable weapons. Raging Wind
+   * (workspace spec 040, decision 16): +5 when the round starts in frenzy.
+   */
   private getStyleInitiativeBonus(): number {
     const ability = activeStyleAbility(this.activeStyle, LIGHTNING_REFLEXES);
-    return ability ? LIGHTNING_REFLEXES_BONUS * ability.times : 0;
+    const lightningReflexes = ability ? LIGHTNING_REFLEXES_BONUS * ability.times : 0;
+    const ragingWind = this.startedInFrenzy() && activeStyleAbility(this.activeStyle, RAGING_WIND) ? RAGING_WIND_BONUS : 0;
+    return lightningReflexes + ragingWind;
+  }
+
+  /** The frenzy comes from an earlier round (or was set by the game master before the round's actions). */
+  private startedInFrenzy(): boolean {
+    const frenzy = this.activeEffects().find(effect => effect.status === FRENZY);
+    if (!frenzy) return false;
+    return frenzy.appliedRound === undefined || frenzy.appliedRound === null || frenzy.appliedRound < this.round || !frenzy.appliedPhase;
   }
 
   /**
@@ -1507,7 +1623,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     this.apPendingByEffect = result.pendingByEffect;
   }
 
-  /** AP modifiers of the effects (spec 011, §1, initial sources). */
+  /** AP modifiers of the effects (spec 011, §1, initial sources) and of the talents. */
   private deriveApModifiers(): ApModifier[] {
     const modifiers: ApModifier[] = [];
     for (const effect of this.activeEffects()) {
@@ -1558,6 +1674,11 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
           }
           break;
       }
+    }
+    // Workspace spec 040, decisions 1-2: Natural Haste adds its tier every round, on top of any other extra AP.
+    const naturalHaste = ActorRoundTrait.tierOf(this.traits, NATURAL_HASTE);
+    if (naturalHaste > 0) {
+      modifiers.push(new ApModifier('natural-haste', 'bonus', naturalHaste));
     }
     return modifiers;
   }

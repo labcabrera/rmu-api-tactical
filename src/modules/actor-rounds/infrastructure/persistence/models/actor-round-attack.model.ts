@@ -83,4 +83,7 @@ export class ActorRoundAttack {
 
   @Prop({ type: [String], required: false, default: [] })
   weaponTags?: string[];
+
+  @Prop({ type: Number, required: false })
+  strengthWeight?: number | null;
 }

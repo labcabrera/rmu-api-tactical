@@ -167,6 +167,8 @@ export interface CharacterAttack {
   itemId?: string | null;
   /** Workspace spec 032: tags of the weapon type. Missing in older characters. */
   weaponTags?: string[];
+  /** Workspace spec 040: times St enters the skill bonus of the attack. Missing in older characters. */
+  strengthWeight?: number;
 }
 
 /** Conditions that keep a character out of a tactical game (spec 013, §3). */
