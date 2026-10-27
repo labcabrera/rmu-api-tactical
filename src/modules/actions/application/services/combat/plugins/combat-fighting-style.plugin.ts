@@ -38,8 +38,12 @@ const sourceOption = (ctx: CombatContext, abilityId: string): boolean =>
 const targetOption = (ctx: CombatContext, abilityId: string): boolean =>
   !!activeStyleAbility(targetStyle(ctx), abilityId) && !!targetStyle(ctx)?.options.includes(abilityId);
 
-/** Heedless Fury: the attack counts one size larger (Table 9-4b), read by the attack-size plugin. */
-export const styleSizeSteps = (ctx: CombatContext): number => (isMelee(ctx) && sourceAbility(ctx, 'heedless-fury') ? 1 : 0);
+/**
+ * Heedless Fury: the attack counts one size larger (Table 9-4b), read by the attack-size plugin. Frenzy adds one size
+ * per level (workspace spec 040, decision 11), only to melee and unarmed attacks.
+ */
+export const styleSizeSteps = (ctx: CombatContext): number =>
+  isMelee(ctx) ? (sourceAbility(ctx, 'heedless-fury') ? 1 : 0) + (ctx.sourceActor?.frenzyLevel() ?? 0) : 0;
 
 const offHandAbility = (ctx: CombatContext): string | undefined => {
   const attack = ctx.sourceAttack;

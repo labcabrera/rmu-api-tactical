@@ -119,6 +119,12 @@ export const targetHasStatus = (ctx: CombatContext, status: string): boolean =>
 export const targetIsFlatfooted = (ctx: CombatContext): boolean => targetHasStatus(ctx, 'flatfooted');
 
 /**
+ * The target has no DB of its own: it is flatfooted, or in frenzy (workspace spec 040, decision 13). Its Quickness,
+ * shield and dodge DB are left out; the magical DB, not modelled, would stay.
+ */
+export const targetIgnoresDefense = (ctx: CombatContext): boolean => targetIsFlatfooted(ctx) || targetHasStatus(ctx, 'frenzy');
+
+/**
  * Penalties of the target that reduce its partial and full dodge and block (§9.6): its injuries (hits, criticals,
  * stun, fatigue). The defender's pace is not declared, so its pace penalty is not known here.
  */

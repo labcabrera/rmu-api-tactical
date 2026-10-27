@@ -16,6 +16,7 @@ import { CombatDefensiveBonusPlugin } from './combat-defensive-bonus.plugin.js';
 import { CombatDodgePlugin } from './combat-dodge.plugin.js';
 import { CombatFlatfootedTargetPlugin } from './combat-flatfooted-target.plugin.js';
 import { CombatFoilerPlugin } from './combat-foiler.plugin.js';
+import { CombatFrenzyPlugin } from './combat-frenzy.plugin.js';
 import { CombatFightingStyleSourcePlugin, CombatFightingStyleTargetPlugin } from './combat-fighting-style.plugin.js';
 import { CombatGameLethalityPlugin } from './combat-game-lethality.plugin.js';
 import { CombatHigherGroundPlugin } from './combat-higher-ground.plugin.js';
@@ -37,6 +38,7 @@ import { CombatShieldPlugin } from './combat-shield.plugin.js';
 import { CombatSizeDifferencePlugin } from './combat-size-difference.plugin.js';
 import { CombatStunPlugin } from './combat-stun.plugin.js';
 import { CombatSurprisedPlugin } from './combat-surprised.plugin.js';
+import { CombatSurvivalInstinctPlugin } from './combat-survival-instinct.plugin.js';
 import { CombatTextEffectsPlugin } from './combat-text-effects.plugin.js';
 import { CombatTwoHandedWeaponPlugin } from './combat-two-handed-weapon.plugin.js';
 
@@ -48,6 +50,7 @@ export const COMBAT_PLUGIN_LIST: CombatPlugin[] = [
   CombatPacePlugin,
   CombatPressingAdvantagePlugin,
   CombatNonViolentPlugin,
+  CombatFrenzyPlugin,
   CombatRangePlugin,
   CombatActionPointsPlugin,
   CombatDefensiveBonusPlugin,
@@ -56,6 +59,7 @@ export const COMBAT_PLUGIN_LIST: CombatPlugin[] = [
   // parry
   CombatParryPlugin,
   CombatFightingStyleTargetPlugin,
+  CombatSurvivalInstinctPlugin,
   // prepare
   CombatRestrictedQuartersPlugin,
   CombatProneSourcePlugin,
@@ -103,6 +107,7 @@ export * from './combat-dodge.plugin.js';
 export * from './combat-flatfooted-target.plugin.js';
 export * from './combat-fighting-style.plugin.js';
 export * from './combat-foiler.plugin.js';
+export * from './combat-frenzy.plugin.js';
 export * from './combat-game-lethality.plugin.js';
 export * from './combat-higher-ground.plugin.js';
 export * from './combat-location-armor.plugin.js';
@@ -122,4 +127,5 @@ export * from './combat-shield.plugin.js';
 export * from './combat-size-difference.plugin.js';
 export * from './combat-stun.plugin.js';
 export * from './combat-surprised.plugin.js';
+export * from './combat-survival-instinct.plugin.js';
 export * from './combat-two-handed-weapon.plugin.js';

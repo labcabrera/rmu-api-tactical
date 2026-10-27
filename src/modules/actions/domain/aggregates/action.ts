@@ -703,18 +703,19 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       const hasParry = this.parries.some(p => p.actorId === attackTarget.actorId && p.parryType === 'parry');
       if (!hasParry && Action.canParry(attackTarget.actorId, actions, phase)) {
         const carried = this.findCarriedOverParry(attackTarget.actorId, actions);
-        if (carried > 0) {
+        if (carried) {
           this.parries.push(
             new ActionParry(
               randomUUID(),
               attackTarget.actorId,
               attackTarget.actorId,
               'parry',
-              carried,
-              carried,
+              carried.parry,
+              carried.parry,
               undefined,
               undefined,
               true,
+              carried.full || undefined,
             ),
           );
         } else {
@@ -763,13 +764,17 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     return last?.actionType === 'melee_attack';
   }
 
-  /** OB the defender already gave to parry this attacker in an earlier, applied action of the round (0 if none). */
-  private findCarriedOverParry(defenderId: string, actions: Action[]): number {
+  /**
+   * OB the defender already gave to parry this attacker in an earlier, applied action of the round (undefined if none),
+   * and whether it was all the OB it had available then (spec 040).
+   */
+  private findCarriedOverParry(defenderId: string, actions: Action[]): { parry: number; full: boolean } | undefined {
     return actions
       .filter(a => a.id !== this.id && a.actorId === this.actorId && a.round === this.round && a.status === 'completed')
       .flatMap(a => a.parries || [])
-      .filter(p => p.actorId === defenderId && p.targetActorId === defenderId && p.parryType === 'parry')
-      .reduce((max, p) => Math.max(max, p.parry || 0), 0);
+      .filter(p => p.actorId === defenderId && p.targetActorId === defenderId && p.parryType === 'parry' && (p.parry || 0) > 0)
+      .map(p => ({ parry: p.parry, full: p.carriedOver ? !!p.fullParry : p.parry >= p.parryAvailable }))
+      .reduce<{ parry: number; full: boolean } | undefined>((max, p) => (!max || p.parry > max.parry ? p : max), undefined);
   }
 
   hasPendingAttackRolls(): boolean {
