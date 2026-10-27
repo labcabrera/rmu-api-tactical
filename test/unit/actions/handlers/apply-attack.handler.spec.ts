@@ -468,3 +468,55 @@ describe('ApplyAttackHandler', () => {
     });
   });
 });
+
+describe('ApplyAttackHandler: coated weapons (workspace spec 042, decision 11)', () => {
+  const POISON = { name: 'Test venom', category: 'muscle' as const, level: 3 };
+
+  const coated = (attack: ActionAttack) => {
+    const ctx = setup([attack]);
+    ctx.source.attacks[0].itemId = 'dagger';
+    ctx.source.items = [
+      {
+        itemId: 'dagger',
+        name: 'Dagger',
+        kind: 'weapon',
+        slot: 'mainHand',
+        strength: null,
+        modifiers: [],
+        startModifierIds: [],
+        coating: { name: 'Test venom', poison: POISON, appliedAt: '2026-10-27T00:00:00.000Z' },
+      },
+    ];
+    return ctx;
+  };
+
+  it('a critical exposes the target and spends the coating', async () => {
+    const ctx = coated(criticalAttack([]));
+    await ctx.run();
+    const exposures = ctx.effectCommands().get('defender-round')?.poisonExposures;
+    expect(exposures).toHaveLength(1);
+    expect(exposures?.[0]).toMatchObject({ poison: POISON, source: { kind: 'critical', attackerId: 'attacker' } });
+    expect(ctx.source.items[0]).toMatchObject({ coating: null, coatingSpent: true });
+  });
+
+  it('a hit without a critical spends the coating and exposes nobody', async () => {
+    const attack = {
+      ...appliedAttack('mainHand', []),
+      results: new ActionAttackResult(new AttackTableEntry('5', 5, undefined, undefined), [], undefined),
+    } as unknown as ActionAttack;
+    const ctx = coated(attack);
+    await ctx.run();
+    expect(ctx.effectCommands().get('defender-round')?.poisonExposures ?? []).toHaveLength(0);
+    expect(ctx.source.items[0].coatingSpent).toBe(true);
+  });
+
+  it('a miss keeps the coating', async () => {
+    const attack = {
+      ...appliedAttack('mainHand', []),
+      results: new ActionAttackResult(new AttackTableEntry('0', 0, undefined, undefined), [], undefined),
+    } as unknown as ActionAttack;
+    const ctx = coated(attack);
+    await ctx.run();
+    expect(ctx.source.items[0].coating).toMatchObject({ name: 'Test venom' });
+  });
+});

@@ -1,3 +1,5 @@
+import type { InjuryPoison } from './poison.vo.js';
+
 /**
  * Injuries (spec 013, §1): the model shared with the strategic API. An injury has a stable uuid: it comes from the
  * character into round 1 and goes back to it when the finished game is applied.
@@ -9,7 +11,8 @@ export type BodySide = 'left' | 'right';
 export type BleedingControl = 'pressure' | 'stitches' | 'tourniquet' | 'cauterized' | 'magic';
 export type InjuryFlag = 'permanent-risk' | 'limb-loss' | 'blinding' | 'paralysis';
 export type InjuryStatus = 'active' | 'recovering' | 'permanent' | 'healed';
-export type InjurySourceKind = 'critical' | 'fumble' | 'fatigue' | 'manual';
+/** `poison`: the effects a poisoning puts on the actor (workspace spec 042). */
+export type InjurySourceKind = 'critical' | 'fumble' | 'fatigue' | 'manual' | 'poison';
 
 export const INJURY_TYPES: InjuryType[] = ['bone', 'cut-burn', 'muscle-tendon', 'organ', 'poison-disease', 'skin-tissue', 'unknown'];
 export const INJURY_SEVERITIES: InjurySeverity[] = ['light', 'medium', 'severe'];
@@ -31,6 +34,8 @@ export interface InjurySource {
   attackerName?: string;
   /** `${table}-${severity}-${roll}`, such as `S-C-91`. */
   criticalKey?: string;
+  /** The poisoning an effect of kind `poison` comes from (workspace spec 042). */
+  injuryId?: string;
 }
 
 export type TreatmentProcedure =
@@ -94,6 +99,8 @@ export interface Injury {
   treatments: InjuryTreatment[];
   recovery?: InjuryRecovery;
   permanent?: { penalty: number; roll?: number };
+  /** A poisoning (workspace spec 042): only in `poison-disease` injuries. */
+  poison?: InjuryPoison;
   status: InjuryStatus;
   createdAt: string;
   updatedAt?: string;

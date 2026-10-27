@@ -140,6 +140,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       this.processSourceEffects(actionAttack, origin, applications, updateCommands, command.userId, command.roles);
     });
     this.processSourceTalents(action, sourceActor, game.round, applications, updateCommands, command.userId, command.roles);
+    const coatingsSpent = this.processCoatings(actionAttacks, actors, origin, applications, updateCommands, command.userId, command.roles);
 
     // Apply all effects and damages sinchronously to avoid multiple updates
     for (const cmd of updateCommands.values()) {
@@ -147,6 +148,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     }
 
     await this.useShieldBlocks(action, actors);
+    await this.spendCoatings(sourceActor.id, coatingsSpent);
     await this.processDeclareActorParry(action, command.userId, command.roles);
     await this.processFatigue(action, game.round, strategicGame, command.userId, command.roles);
 
@@ -239,6 +241,45 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       }
       await this.actorRoundRepository.update(target);
     }
+  }
+
+  /**
+   * Workspace spec 042, decision 11: an attack with a coated weapon that hits spends the coating; with a critical, the
+   * target is exposed to the poison (it waits for its RR). Returns the items whose coating was spent.
+   */
+  private processCoatings(
+    actionAttacks: ActionAttack[],
+    actors: ActorRound[],
+    origin: AttackOrigin,
+    applications: Map<string, EffectApplication>,
+    updateCommands: Map<string, AddEffectsCommand>,
+    userId: string,
+    roles: string[],
+  ): string[] {
+    const spent: string[] = [];
+    actionAttacks.forEach(actionAttack => {
+      const coated = origin.sourceActor.attackCoating(actionAttack.attackName);
+      if (!coated || spent.includes(coated.itemId)) return;
+      const criticals = actionAttack.results?.criticals ?? [];
+      const hit = (actionAttack.results?.attackTableEntry?.damage ?? 0) > 0 || criticals.length > 0;
+      if (!hit) return;
+      spent.push(coated.itemId);
+      const target = actors.find(a => a.actorId === actionAttack.modifiers.targetId);
+      if (!target || criticals.length === 0) return;
+      const first = criticals[0];
+      const source = this.sourceOf(origin, 'critical', `${first.criticalType}-${first.criticalSeverity}-${first.adjustedRoll ?? ''}`);
+      this.commandFor(target, applications, updateCommands, userId, roles).poisonExposures.push({ poison: coated.coating.poison, source });
+    });
+    return spent;
+  }
+
+  /** The coatings spent, on the attacker's actor round read again (the effects of the attack were already saved). */
+  private async spendCoatings(sourceRoundId: string, itemIds: string[]): Promise<void> {
+    if (itemIds.length === 0) return;
+    const source = await this.actorRoundRepository.findById(sourceRoundId);
+    if (!source) return;
+    itemIds.forEach(itemId => source.spendCoating(itemId));
+    await this.actorRoundRepository.update(source);
   }
 
   private async processDeclareActorParry(action: Action, userId: string, roles: string[]): Promise<void> {

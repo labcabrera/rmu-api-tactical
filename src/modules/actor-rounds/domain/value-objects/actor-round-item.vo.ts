@@ -1,4 +1,5 @@
 import type { AttackLocation } from '../../../actions/domain/value-objects/attack-location.vo.js';
+import type { PoisonData } from './poison.vo.js';
 
 /** Kind of modifier of an item, as in the strategic items (spec 019, decision 2). */
 export type ItemModifierType = 'breakage' | 'quality' | 'custom';
@@ -45,6 +46,18 @@ export type ActorRoundItemSlot = 'mainHand' | 'offHand' | 'body' | 'head' | 'arm
  * An item of the actor in the game (spec 019, §2): an equipped or carried item of its character, with the modifiers
  * it brought and the ones of the game.
  */
+/**
+ * Poison on a weapon (workspace spec 042, decision 11): the next hit spends it, and a critical exposes the target to
+ * the poison. Strategic counts its hours left.
+ */
+export interface ItemCoating {
+  itemTypeId?: string;
+  name: string;
+  poison: PoisonData;
+  appliedAt: string;
+  hoursLeft?: number | null;
+}
+
 export interface ActorRoundItem {
   itemId: string;
   name: string;
@@ -59,6 +72,10 @@ export interface ActorRoundItem {
   startModifierIds: string[];
   /** Armor: the AT of its area when the game started. Shield: its DB then. */
   baseValue?: number;
+  /** Poison on the weapon (workspace spec 042); null once a hit spent it. */
+  coating?: ItemCoating | null;
+  /** The coating it brought was spent in the game. */
+  coatingSpent?: boolean;
 }
 
 /** Breakage damage beyond which an armor piece leaves its area unprotected (§6.1). */
@@ -110,6 +127,7 @@ export const ActorRoundItems = {
       ...item,
       modifiers: item.modifiers.map(modifier => ({ ...modifier, ...(modifier.source ? { source: { ...modifier.source } } : {}) })),
       startModifierIds: [...item.startModifierIds],
+      ...(item.coating ? { coating: structuredClone(item.coating) } : {}),
     };
   },
 };

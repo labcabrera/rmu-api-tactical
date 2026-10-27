@@ -72,6 +72,16 @@ import {
   toBodyLocation,
 } from '../value-objects/injury.vo.js';
 import type { ActorRoundProps, ActorRoundSnapshot } from './actor-round-props.js';
+import { PoisonStages, type Random } from '../services/poison-stages.js';
+import type {
+  AntidoteData,
+  InjuryPoison,
+  PoisonCondition,
+  PoisonData,
+  PoisonExposure,
+  PoisonSeverity,
+  PoisonSeverityRow,
+} from '../value-objects/poison.vo.js';
 import type { ActorRoundResistance } from '../value-objects/actor-round-resistance.vo.js';
 import {
   activeStyleAbility,
@@ -80,7 +90,13 @@ import {
   OPTIONAL_STYLE_ABILITIES,
 } from '../value-objects/actor-round-fighting-style.vo.js';
 
-import { type ActorRoundItem, ActorRoundItems, type ItemModifier, UNARMORED_AT } from '../value-objects/actor-round-item.vo.js';
+import {
+  type ActorRoundItem,
+  ActorRoundItems,
+  type ItemCoating,
+  type ItemModifier,
+  UNARMORED_AT,
+} from '../value-objects/actor-round-item.vo.js';
 import { type BreakageModifier, BreakageResolver, type BreakageResult } from '../services/breakage-resolver.js';
 
 /** Lightning Reflexes (workspace spec 032): initiative per time selected. */
@@ -162,6 +178,25 @@ export interface LedgerSourceAction {
 
 /** Phase number of the upkeep (see `Game.getEffectPhase`). */
 const UPKEEP_PHASE = 5;
+
+/** Effect each condition of a poisoning puts (workspace spec 042, decision 7). */
+const POISON_CONDITION_EFFECTS: Record<PoisonCondition, string> = {
+  unconscious: UNCONSCIOUS,
+  coma: UNCONSCIOUS,
+  paralyzed: PARALYZED,
+  incapacitated: INCAPACITATED,
+  dead: DEAD,
+};
+
+/** What the poisoning needs of a resistance roll. */
+export interface PoisonRrResult {
+  roll: number;
+  bonus: number;
+  total: number;
+  failure: number;
+  resisted: boolean;
+  severity?: PoisonSeverity;
+}
 
 /** Initiative bonus of an actor with Strike Reflex when the game master declares it. */
 const STRIKE_REFLEX_BONUS = 20;
@@ -245,6 +280,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
 
   /** What the actor brought into the game (only in the actor round built from its character). */
   public snapshot: ActorRoundSnapshot | undefined;
+
+  /** Poisons waiting for their RR (workspace spec 042, decision 9). */
+  public poisonExposures: PoisonExposure[] = [];
 
   static create(
     gameId: string,
@@ -371,7 +409,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       props.createdAt,
       props.updatedAt,
     );
-    actorRound.injuries = (props.injuries ?? []).map(injury => ({ ...injury, treatments: [...(injury.treatments ?? [])] }));
+    actorRound.injuries = (props.injuries ?? []).map(injury => ActorRound.copyInjury(injury));
+    actorRound.poisonExposures = (props.poisonExposures ?? []).map(exposure => structuredClone(exposure));
     actorRound.hpLog = (props.hpLog ?? []).map(entry => ({ ...entry }));
     actorRound.characterId = props.characterId ?? (props.actorType === 'character' ? props.actorId : undefined);
     actorRound.items = (props.items ?? []).map(item => ActorRoundItems.copy(item));
@@ -443,7 +482,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       new Date(),
       null,
     );
-    actorRound.injuries = previous.injuries.map(injury => ({ ...injury, treatments: [...injury.treatments] }));
+    actorRound.injuries = previous.injuries.map(injury => ActorRound.copyInjury(injury));
+    actorRound.poisonExposures = previous.poisonExposures.map(exposure => structuredClone(exposure));
     actorRound.characterId = previous.characterId;
     actorRound.items = previous.items.map(item => ActorRoundItems.copy(item));
     actorRound.resistances = previous.resistances.map(resistance => ({ ...resistance }));
@@ -463,7 +503,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    */
   initFromCharacter(characterId: string, injuries: Injury[], conditionEffects: ActorRoundEffect[], snapshot: ActorRoundSnapshot): void {
     this.characterId = characterId;
-    this.injuries = injuries.map(injury => ({ ...injury, treatments: [...(injury.treatments ?? [])] }));
+    this.injuries = injuries.map(injury => ActorRound.copyInjury(injury));
     conditionEffects.forEach(effect => this.addEffect(effect, undefined));
     this.snapshot = snapshot;
     this.applyPenalties();
@@ -642,7 +682,14 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    */
   private static isFromCritical(effect: ActorRoundEffect): boolean {
     const kind = effect.source?.kind;
-    return kind === 'critical' || kind === 'fumble';
+    return kind === 'critical' || kind === 'fumble' || kind === 'poison';
+  }
+
+  /** A copy of an injury that shares nothing with it (the poison block changes every round). */
+  private static copyInjury(injury: Injury): Injury {
+    const copy: Injury = { ...injury, treatments: [...(injury.treatments ?? [])] };
+    if (injury.poison) copy.poison = structuredClone(injury.poison);
+    return copy;
   }
 
   // --- Injuries (spec 013, §3) ---
@@ -688,6 +735,184 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     this.findInjury(injuryId);
     this.injuries = this.injuries.filter(injury => injury.id !== injuryId);
     this.applyPenalties();
+  }
+
+  // --- Poisons (workspace spec 042) ---
+
+  /** A poison reaches the actor (decision 9): it waits for its RR. */
+  exposeToPoison(poison: PoisonData, source?: InjurySource): PoisonExposure {
+    const exposure: PoisonExposure = {
+      id: randomUUID(),
+      poison: structuredClone(poison),
+      source: source ?? { kind: 'manual', tacticalGameId: this.gameId, round: this.round },
+      createdAt: new Date().toISOString(),
+    };
+    this.poisonExposures.push(exposure);
+    return exposure;
+  }
+
+  findPoisonExposure(exposureId: string): PoisonExposure {
+    const exposure = this.poisonExposures.find(each => each.id === exposureId);
+    if (!exposure) {
+      throw new NotFoundError('Poison exposure', exposureId, 'err-poison-exposure-not-found');
+    }
+    return exposure;
+  }
+
+  /** The game master drops an exposure without an RR. */
+  dismissPoisonExposure(exposureId: string): void {
+    this.findPoisonExposure(exposureId);
+    this.poisonExposures = this.poisonExposures.filter(each => each.id !== exposureId);
+  }
+
+  /**
+   * The RR of an exposure (decisions 4-7): resisted, the exposure just goes. Failed, it becomes a `poison-disease`
+   * injury with its stages up to the severity reached and the poison's immediate hits; the stages that start at once
+   * start now. Irritants have no general effects: the game master applies theirs by hand.
+   */
+  resolvePoisonExposure(
+    exposureId: string,
+    rr: PoisonRrResult,
+    rows: PoisonSeverityRow[],
+    random: Random = Math.random,
+    phase?: number,
+  ): Injury | undefined {
+    const exposure = this.findPoisonExposure(exposureId);
+    this.poisonExposures = this.poisonExposures.filter(each => each.id !== exposureId);
+    if (rr.resisted || !rr.severity || exposure.poison.category === 'irritant') {
+      return undefined;
+    }
+    const { poison } = exposure;
+    const severity = PoisonStages.severityOf(rr.severity, poison);
+    const now = new Date();
+    const injury = buildInjury({
+      id: randomUUID(),
+      type: 'poison-disease',
+      penalty: 0,
+      source: exposure.source,
+      severity: PoisonStages.injurySeverity(severity),
+      description: poison.name,
+      createdAt: now,
+    });
+    injury.poison = PoisonStages.poisoning(
+      poison,
+      { roll: rr.roll, bonus: rr.bonus, total: rr.total, failure: rr.failure },
+      severity,
+      rows,
+      exposure.createdAt,
+      random,
+    );
+    this.addInjury(injury);
+    const hits = poison.immediateHits ? PoisonStages.rollHits(poison.immediateHits, random) : 0;
+    if (hits > 0) {
+      this.takePoisonHits(hits, injury.id, phase);
+    }
+    this.stepPoisoning(injury, 0, phase);
+    this.applyPenalties();
+    this.refreshActionPoints();
+    return injury;
+  }
+
+  /**
+   * An antidote for a poisoning (decision 10): it neutralizes the poison when it fits, and the conditions the poisoning
+   * put end. Whether it worked or not, it is kept in the poison block.
+   */
+  giveAntidote(injuryId: string, antidote: AntidoteData): { injury: Injury; neutralized: boolean } {
+    const injury = this.findInjury(injuryId);
+    const poison = injury.poison;
+    if (!poison) {
+      throw new ValidationError('The injury is not a poisoning', 'err-injury-not-poisoned');
+    }
+    const neutralized = PoisonStages.neutralizes(antidote, poison);
+    const now = new Date().toISOString();
+    poison.antidotes = [
+      ...(poison.antidotes ?? []),
+      {
+        at: now,
+        source: antidote.source,
+        name: antidote.name,
+        ...(antidote.itemTypeId ? { itemTypeId: antidote.itemTypeId } : {}),
+        ...(antidote.level !== undefined && antidote.level !== null ? { level: antidote.level } : {}),
+        neutralized,
+      },
+    ];
+    if (neutralized) {
+      PoisonStages.neutralize(poison);
+      this.effects = this.effects.filter(effect => !(effect.source?.kind === 'poison' && effect.source.injuryId === injury.id));
+      this.syncPoisonInjury(injury);
+      this.applyPenalties();
+      this.refreshActionPoints();
+    }
+    injury.updatedAt = now;
+    return { injury, neutralized };
+  }
+
+  /** The poisonings in progress advance one round (§8.3 Upkeep). */
+  private advancePoisonings(phase: number): void {
+    this.injuries
+      .filter(injury => injury.poison && !injury.poison.finished && injury.status !== 'healed')
+      .forEach(injury => this.stepPoisoning(injury, injury.poison!.elapsedRounds + 1, phase));
+  }
+
+  private stepPoisoning(injury: Injury, elapsed: number, phase: number | undefined): void {
+    const poison = injury.poison as InjuryPoison;
+    const step = PoisonStages.step(poison, elapsed, this.hasEffect(UNCONSCIOUS) || this.isDead());
+    step.conditions.forEach(({ condition, rounds }) =>
+      this.addEffect(this.poisonConditionEffect(condition, rounds, injury, phase), undefined),
+    );
+    if (step.hits > 0 && !this.isDead()) {
+      this.takePoisonHits(step.hits, injury.id, phase);
+    }
+    this.syncPoisonInjury(injury);
+    if (step.started.length > 0 || step.ended.length > 0 || step.conditions.length > 0 || step.hits > 0 || poison.finished) {
+      injury.updatedAt = new Date().toISOString();
+    }
+  }
+
+  /**
+   * The injury follows its poisoning: the penalty of the stages in progress; once it is over (decision 12), the
+   * penalty of the permanent stages, which leave the injury permanent.
+   */
+  private syncPoisonInjury(injury: Injury): void {
+    const poison = injury.poison as InjuryPoison;
+    if (poison.finished) {
+      const permanent = PoisonStages.permanentPenalty(poison);
+      injury.penalty = permanent;
+      if (permanent < 0) {
+        injury.status = 'permanent';
+        injury.permanent = { penalty: permanent };
+      }
+    } else {
+      injury.penalty = PoisonStages.penalty(poison);
+    }
+    injury.initialPenalty = Math.min(injury.initialPenalty, injury.penalty);
+  }
+
+  /** Decision 7: coma is an unconsciousness with no end. */
+  private poisonConditionEffect(
+    condition: PoisonCondition,
+    rounds: number | undefined,
+    injury: Injury,
+    phase: number | undefined,
+  ): ActorRoundEffect {
+    const status = POISON_CONDITION_EFFECTS[condition];
+    return new ActorRoundEffect(
+      randomUUID(),
+      status,
+      undefined,
+      condition === 'coma' || condition === 'dead' ? undefined : rounds,
+      this.round,
+      phase,
+      this.totalSpent(),
+      undefined,
+      { kind: 'poison', tacticalGameId: this.gameId, round: this.round, injuryId: injury.id },
+    );
+  }
+
+  private takePoisonHits(hits: number, injuryId: string, phase: number | undefined): void {
+    this.hp.current -= hits;
+    this.logHp({ kind: 'poison', amount: -hits, phase, injuryId });
+    this.checkHitsState();
   }
 
   /**
@@ -1047,8 +1272,11 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    * when bleeding takes it beyond its death threshold or a dying effect runs out.
    */
   applyUpkeep() {
+    // Workspace spec 042: the poisonings advance one round before the bleeding.
+    this.advancePoisonings(UPKEEP_PHASE);
     const bleeding = this.getBleeding();
     if (this.effects.length === 0 && bleeding === 0) {
+      this.applyPenalties();
       return;
     }
     this.applyStaggeredUpkeep();
@@ -1807,6 +2035,22 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     );
   }
 
+  /** The poison on the weapon of an attack (workspace spec 042, decision 11). */
+  attackCoating(attackName: string): { itemId: string; coating: ItemCoating } | undefined {
+    const item = this.attackItem(attackName);
+    return item?.coating ? { itemId: item.itemId, coating: item.coating } : undefined;
+  }
+
+  /** A hit spends the poison on the weapon. */
+  spendCoating(itemId: string): void {
+    const item = (this.items ?? []).find(each => each.itemId === itemId);
+    if (!item?.coating) {
+      return;
+    }
+    item.coating = null;
+    item.coatingSpent = true;
+  }
+
   private attackItem(attackName: string): ActorRoundItem | undefined {
     const itemId = this.attacks.find(attack => attack.attackName === attackName)?.itemId;
     return itemId ? (this.items ?? []).find(item => item.itemId === itemId) : undefined;
@@ -1977,6 +2221,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       apLedger: this.apLedger,
       traits: this.traits,
       injuries: this.injuries,
+      poisonExposures: this.poisonExposures,
       hpLog: this.hpLog,
       characterId: this.characterId,
       items: this.items,

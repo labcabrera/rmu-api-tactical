@@ -116,17 +116,24 @@ export class TacticalGameOutcomeCalculator {
     return outcome;
   }
 
-  /** Spec 019, decision 12: the modifiers the items got in the game, without the temporary ones; items without any are left out. */
+  /**
+   * Spec 019, decision 12: the modifiers the items got in the game, without the temporary ones, and the coatings spent
+   * (workspace spec 042); items without either are left out.
+   */
   private static items(last: ActorRound): TacticalItemOutcome[] {
     return (last.items || [])
-      .map(item => ({
-        itemId: item.itemId,
-        name: item.name,
-        modifiers: item.modifiers
-          .filter(modifier => !item.startModifierIds.includes(modifier.id) && !modifier.temporary)
-          .map(modifier => ({ ...modifier })),
-      }))
-      .filter(item => item.modifiers.length > 0);
+      .map(item => {
+        const outcome: TacticalItemOutcome = {
+          itemId: item.itemId,
+          name: item.name,
+          modifiers: item.modifiers
+            .filter(modifier => !item.startModifierIds.includes(modifier.id) && !modifier.temporary)
+            .map(modifier => ({ ...modifier })),
+        };
+        if (item.coatingSpent) outcome.coatingSpent = true;
+        return outcome;
+      })
+      .filter(item => item.modifiers.length > 0 || item.coatingSpent);
   }
 
   /** Dead (by its effects or its fate), permanently unconscious (its fate) or unconscious at the end. */

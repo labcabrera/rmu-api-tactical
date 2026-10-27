@@ -16,6 +16,8 @@ export interface TacticalItemOutcome {
   itemId: string;
   name: string;
   modifiers: ItemModifier[];
+  /** The poison on the weapon was spent in the game (workspace spec 042). */
+  coatingSpent?: boolean;
 }
 
 /** The outcome of one character of a finished game, sent to the strategic API by `apply`. */

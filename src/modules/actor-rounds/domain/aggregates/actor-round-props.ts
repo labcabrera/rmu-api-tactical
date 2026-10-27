@@ -16,6 +16,7 @@ import { ApLedgerEntry } from '../value-objects/ap-ledger-entry.vo.js';
 import { ApModifier } from '../value-objects/ap-modifier.vo.js';
 import type { HpLogEntry } from '../value-objects/hp-log-entry.vo.js';
 import type { Injury } from '../value-objects/injury.vo.js';
+import type { PoisonExposure } from '../value-objects/poison.vo.js';
 import type { ActorRoundItem } from '../value-objects/actor-round-item.vo.js';
 import type { ActorRoundActiveStyle, ActorRoundFightingStyle } from '../value-objects/actor-round-fighting-style.vo.js';
 import type { ActorRoundResistance } from '../value-objects/actor-round-resistance.vo.js';
@@ -64,6 +65,8 @@ export interface ActorRoundProps {
   apLedger?: ApLedgerEntry[];
   /** Missing in actor rounds stored before spec 013: none (legacy bleeding effects and critical penalties are read as injuries). */
   injuries?: Injury[];
+  /** Poisons waiting for their RR (workspace spec 042). Missing in older actor rounds: none. */
+  poisonExposures?: PoisonExposure[];
   /** Changes of the hits in this round (spec 013, §1.1). Missing in actor rounds stored before it existed: empty. */
   hpLog?: HpLogEntry[];
   /** Strategic character of a character actor. */
