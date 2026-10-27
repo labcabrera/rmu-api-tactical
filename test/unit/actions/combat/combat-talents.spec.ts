@@ -13,6 +13,7 @@ import {
   CombatAttackSizePlugin,
   type CombatContext,
   CombatFoilerPlugin,
+  CombatNonViolentPlugin,
   CombatPacePlugin,
   CombatPluginRegistryService,
   CombatPressingAdvantagePlugin,
@@ -74,7 +75,13 @@ const pressing = (targetActorId: string, value: number) =>
 
 const prepare = async (options: CombatPluginContextOptions) => {
   const ctx = createCombatPluginContext(options);
-  for (const plugin of [CombatPacePlugin, CombatPressingAdvantagePlugin, CombatSizeDifferencePlugin, CombatFoilerPlugin]) {
+  for (const plugin of [
+    CombatPacePlugin,
+    CombatPressingAdvantagePlugin,
+    CombatNonViolentPlugin,
+    CombatSizeDifferencePlugin,
+    CombatFoilerPlugin,
+  ]) {
     await runPluginHook(plugin, 'prepare', ctx);
   }
   return ctx;
@@ -188,6 +195,14 @@ describe('Combat talents', () => {
     });
   });
 
+  describe('non-violent (workspace spec 039)', () => {
+    it('adds the penalty of the effect to every attack', async () => {
+      const ctx = await prepare({ sourceEffects: [new ActorRoundEffect(randomUUID(), 'non-violent', -10, undefined, 1)] });
+
+      expect(rollModifierValues(ctx)).toEqual({ 'non-violent': -10 });
+    });
+  });
+
   describe('uncoordinated', () => {
     it('counts the pace one step faster per tier', () => {
       expect(effectivePace('walk', 1)).toBe('jog');
@@ -217,6 +232,20 @@ describe('Combat talents', () => {
       await expect(prepare({ pace: 'run', sourceTraits: [trait('uncoordinated', 1)] })).rejects.toMatchObject({
         code: 'err-attack-invalid-pace',
       });
+    });
+  });
+
+  describe('graceful-gait (workspace spec 039)', () => {
+    it('cancels the walk pace penalty', async () => {
+      const ctx = await prepare({ pace: 'walk', sourceTraits: [trait('graceful-gait')] });
+
+      expect(rollModifierValues(ctx)).toEqual({ 'pace-penalty': -25, 'graceful-gait': 25 });
+    });
+
+    it('keeps the penalties from jog, also when Uncoordinated makes a walk count as jog', async () => {
+      expect(rollModifierValues(await prepare({ pace: 'jog', sourceTraits: [trait('graceful-gait')] }))).toEqual({ 'pace-penalty': -50 });
+      const ctx = await prepare({ pace: 'walk', sourceTraits: [trait('graceful-gait'), trait('uncoordinated', 1)] });
+      expect(rollModifierValues(ctx)).toEqual({ 'pace-penalty': -25, uncoordinated: -25 });
     });
   });
 

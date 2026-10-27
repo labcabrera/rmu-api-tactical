@@ -3,7 +3,7 @@ import type { InjurySource } from './injury.vo.js';
 /** Bonus of the attacker against the foe it inflicted a critical on (Pressing the Advantage). */
 export const PRESSING_ADVANTAGE = 'pressing-advantage';
 
-/** Penalty to all actions in the round after inflicting a critical (Non-violent). */
+/** Penalty to the attacks for the rest of the combat after inflicting a critical (Non-violent, workspace spec 039). */
 export const NON_VIOLENT = 'non-violent';
 
 /** Effects that change the action points of the round (spec 011, §1). */

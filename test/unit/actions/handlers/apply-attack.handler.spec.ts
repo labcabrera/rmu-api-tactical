@@ -258,6 +258,35 @@ describe('ApplyAttackHandler', () => {
       expect(effectCommands().get('attacker-round')).toBeUndefined();
     });
 
+    it('lowers each hit damage of a Pain Resistant target by its tier, never below 1', async () => {
+      const { run, effectCommands } = setup([criticalAttack([])], [], [1, 0], {
+        targetTraits: [new ActorRoundTrait('pain-resistance', 5, null)],
+      });
+
+      await run();
+
+      // 10 hits of the table and 3 of the critical
+      expect(effectCommands().get('defender-round')!.dmg).toBe(6);
+    });
+
+    it('lowers each stun of a Stun Resistant target by one level', async () => {
+      const stun = (value: number) => ({ status: 'stunned', value, rounds: 1 }) as unknown as CriticalEffect;
+      const { run, effectCommands } = setup([criticalAttack([stun(-75)]), criticalAttack([stun(-25)])], [], [1, 0], {
+        targetTraits: [new ActorRoundTrait('stun-resistance', 1, null)],
+      });
+
+      await run();
+
+      expect(
+        effectCommands()
+          .get('defender-round')!
+          .effects.map(e => [e.status, e.value]),
+      ).toEqual([
+        ['stunned', -50],
+        ['stunned', -25],
+      ]);
+    });
+
     it('gives a Non-violent attacker a penalty stamped with the round of the critical', async () => {
       const { run, effectCommands } = setup([criticalAttack([])], [], [1, 0], {
         sourceTraits: [new ActorRoundTrait('non-violent', 2, null)],
@@ -266,10 +295,10 @@ describe('ApplyAttackHandler', () => {
       await run();
 
       const effects = effectCommands().get('attacker-round')!.effects;
-      expect(effects.map(e => [e.status, e.value, e.rounds, e.appliedRound])).toEqual([['non-violent', -40, undefined, 1]]);
+      expect(effects.map(e => [e.status, e.value, e.rounds, e.appliedRound])).toEqual([['non-violent', -10, undefined, 1]]);
     });
 
-    it('uses up the effect and applies the penalty in the next round only, through the actor round', async () => {
+    it('uses up the effect and keeps the Non-violent penalty out of the general penalties', async () => {
       const { run, source, effectCommands } = setup([criticalAttack([])], [], [1, 0], {
         sourceTraits: [new ActorRoundTrait('non-violent', 1, null)],
         sourceEffects: [pressingEffect('defender')],

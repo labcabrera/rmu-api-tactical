@@ -446,7 +446,6 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.activeStyle = previous.activeStyle ? { ...ActorRound.copyActiveStyle(previous.activeStyle), options: [] } : null;
     actorRound.applyItemConditions();
     actorRound.calculateCurrentBo();
-    // A penalty that starts in the new round (non-violent) is counted from its first moment.
     actorRound.applyPenalties();
     actorRound.apply(new ActorRoundCreatedEvent(actorRound));
     return actorRound;
@@ -777,11 +776,11 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     if (effect.status === PRESSING_ADVANTAGE) {
       this.effects = this.effects.filter(e => e.status !== PRESSING_ADVANTAGE);
     }
-    // Several in the same round give one penalty, the most severe.
+    // Non-Violent (workspace spec 039): one penalty for the rest of the combat, the most severe.
     if (effect.status === NON_VIOLENT) {
-      const sameRound = this.effects.find(e => e.status === NON_VIOLENT && e.appliedRound === effect.appliedRound);
-      if (sameRound) {
-        sameRound.value = Math.min(sameRound.value ?? 0, effect.value ?? 0);
+      const current = this.effects.find(e => e.status === NON_VIOLENT);
+      if (current) {
+        current.value = Math.min(current.value ?? 0, effect.value ?? 0);
         return;
       }
     }
@@ -979,8 +978,6 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     if (this.isDead()) {
       this.effects = this.effects.filter(e => e.status !== DYING);
     }
-    // A non-violent penalty lasts the round after the one it was gained in.
-    this.effects = this.effects.filter(e => e.status !== NON_VIOLENT || !this.isFromEarlierRound(e));
     this.applyPenalties();
     this.refreshActionPoints();
   }
@@ -1013,10 +1010,6 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
 
   private isFromLaterRound(effect: ActorRoundEffect): boolean {
     return effect.appliedRound !== undefined && effect.appliedRound !== null && effect.appliedRound > this.round;
-  }
-
-  private isFromEarlierRound(effect: ActorRoundEffect): boolean {
-    return effect.appliedRound !== undefined && effect.appliedRound !== null && effect.appliedRound < this.round;
   }
 
   /**
@@ -1073,15 +1066,12 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     }
   }
 
-  /** Non-violent: the penalty gained by inflicting a critical counts in the following round only. */
+  /**
+   * Non-Violent no longer penalizes every action (workspace spec 039): only the attacks, through its combat plugin.
+   * Actor rounds stored with the old penalty drop it.
+   */
   private applyNonViolentPenalty() {
     this.penalty.modifiers = this.penalty.modifiers.filter(m => m.source !== NON_VIOLENT);
-    const value = this.effects
-      .filter(e => e.status === NON_VIOLENT && this.isFromEarlierRound(e))
-      .reduce((sum, e) => sum + Math.min(0, e.value ?? 0), 0);
-    if (value !== 0) {
-      this.penalty.addModifier(NON_VIOLENT, value);
-    }
   }
 
   /** §9.8 Stun: the penalty of the most severe active stun, to every action. */

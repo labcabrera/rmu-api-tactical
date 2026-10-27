@@ -7,6 +7,10 @@ export const SLOW_BLEEDER = 'slow-bleeder';
 export const RAPID_BLEEDER = 'rapid-bleeder';
 export const UNCOORDINATED = 'uncoordinated';
 export const STRIKE_REFLEX = 'strike-reflex';
+// Character Companion (workspace spec 039)
+export const PAIN_RESISTANCE = 'pain-resistance';
+export const STUN_RESISTANCE = 'stun-resistance';
+export const GRACEFUL_GAIT = 'graceful-gait';
 
 /** Talent or flaw of the actor, copied from its character sheet. */
 export class ActorRoundTrait {
