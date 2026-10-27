@@ -11,6 +11,7 @@ import type { LightType } from '../../../domain/value-objects/light-type.vo.js';
 import type { LightManeuverModifier } from '../../../domain/value-objects/light-maneuver-modifier.vo.js';
 import type { ManeuverModifierSelection } from '../../../domain/value-objects/maneuver-profile.vo.js';
 import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo.js';
+import { FRENZY_PURPOSES, type FrenzyPurpose } from '../../../domain/value-objects/frenzy-purpose.vo.js';
 
 export class ManeuverRollDto {
   @ApiProperty({ description: 'Total of the open-ended roll', example: 87 })
@@ -111,6 +112,16 @@ export class ResolveManeuverDto {
   @IsNumber()
   passiveBonus?: number;
 
+  @ApiProperty({
+    type: String,
+    description: 'Adrenal Focus maneuver to enter or leave the frenzy (spec 040)',
+    enum: FRENZY_PURPOSES,
+    required: false,
+  })
+  @IsOptional()
+  @IsIn(FRENZY_PURPOSES)
+  purpose?: FrenzyPurpose;
+
   @ApiProperty({ description: 'Roll', type: ManeuverRollDto })
   @ValidateNested()
   @Type(() => ManeuverRollDto)
@@ -148,6 +159,7 @@ export class ResolveManeuverDto {
       dto.targetActorId
         ? { targetActorId: dto.targetActorId, roll: dto.passiveRoll, skillId: dto.passiveSkillId, bonus: dto.passiveBonus }
         : undefined,
+      dto.purpose,
     );
   }
 }

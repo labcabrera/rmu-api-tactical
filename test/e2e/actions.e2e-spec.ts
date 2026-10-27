@@ -439,3 +439,67 @@ describe('social maneuvers (workspace spec 022)', () => {
     e2e.world.characters.set('lurtz', character('lurtz', { faction: { id: 'faction-2', name: 'Uruk-hai' } }));
   });
 });
+
+describe('frenzy maneuvers (workspace spec 040)', () => {
+  type RoundBody = { id: string; actorId: string; effects: { status: string; value?: number }[] };
+
+  const aragornRound = async (gameId: string) => {
+    const rounds = await as('owner').get(`/v1/actor-rounds?q=gameId==${gameId};round==1`);
+    return (rounds.body as { content: RoundBody[] }).content.find(round => round.actorId === 'aragorn')!;
+  };
+
+  /** One maneuver per phase: each one takes the AP of its phase. */
+  const frenzyManeuver = async (gameId: string, purpose: string, roll: number, phase = 1) => {
+    if (phase > 1) {
+      expect((await as('owner').post(`/v1/tactical-games/${gameId}/phases/start`)).status).toBe(200);
+    }
+    const declared = await as('owner').post('/v1/actions', {
+      gameId,
+      actorId: 'aragorn',
+      actionType: 'maneuver',
+      phaseStart: phase,
+      maneuver: { skillId: 'adrenal-focus' },
+    });
+    expect(declared.status).toBe(201);
+    return as('owner').patch(`/v1/actions/${(declared.body as ActionBody).id}/maneuver/resolve`, { roll: { roll }, purpose });
+  };
+
+  afterEach(() => {
+    e2e.world.characters.set('aragorn', character('aragorn'));
+  });
+
+  it('enters the frenzy on a success, stays out of it on a failure, and leaves it', async () => {
+    e2e.world.characters.set(
+      'aragorn',
+      character('aragorn', {
+        traits: [{ traitId: 'frenzy', traitName: 'Frenzy', isTalent: true, cost: 10 }],
+        skills: [{ skillId: 'adrenal-focus', specialization: null, totalBonus: 30, ranks: 3 }],
+      }),
+    );
+    const gameId = await gameInPhase1();
+
+    const failed = await frenzyManeuver(gameId, 'frenzy-enter', 10);
+    expect(failed.status).toBe(200);
+    expect((await aragornRound(gameId)).effects.map(e => e.status)).not.toContain('frenzy');
+
+    const entered = await frenzyManeuver(gameId, 'frenzy-enter', 120, 2);
+    expect(entered.status).toBe(200);
+    expect((entered.body as { maneuver: { modifiers: object } }).maneuver.modifiers).toMatchObject({ purpose: 'frenzy-enter' });
+    expect((await aragornRound(gameId)).effects).toContainEqual(expect.objectContaining({ status: 'frenzy', value: 1 }));
+
+    const left = await frenzyManeuver(gameId, 'frenzy-exit', 120, 3);
+    expect(left.status).toBe(200);
+    expect((await aragornRound(gameId)).effects.map(e => e.status)).not.toContain('frenzy');
+  });
+
+  it('rejects an actor without the Frenzy talent', async () => {
+    e2e.world.characters.set(
+      'aragorn',
+      character('aragorn', { skills: [{ skillId: 'adrenal-focus', specialization: null, totalBonus: 30, ranks: 3 }] }),
+    );
+    const gameId = await gameInPhase1();
+    const rejected = await frenzyManeuver(gameId, 'frenzy-enter', 120);
+    expect(rejected.status).toBe(422);
+    expect(rejected.body).toMatchObject({ code: 'err-frenzy-without-trait' });
+  });
+});

@@ -4,6 +4,7 @@ import type { LightType } from './light-type.vo.js';
 import type { LightManeuverModifier } from './light-maneuver-modifier.vo.js';
 import type { ManeuverModifierSelection } from './maneuver-profile.vo.js';
 import type { ManeuverType } from './maneuver-type.vo.js';
+import type { FrenzyPurpose } from './frenzy-purpose.vo.js';
 
 export class ActionManeuver {
   constructor(
@@ -37,6 +38,8 @@ export class ActionManeuverModifiers {
     public targetActorId?: string | undefined,
     /** Skill of the passive side computed from the target actor. */
     public passiveSkillId?: string | undefined,
+    /** Workspace spec 040: an Adrenal Focus maneuver to enter or leave the frenzy. */
+    public purpose?: FrenzyPurpose | undefined,
   ) {}
 }
 

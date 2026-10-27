@@ -3,6 +3,7 @@ import type { LightType } from '../../../domain/value-objects/light-type.vo.js';
 import type { LightManeuverModifier } from '../../../domain/value-objects/light-maneuver-modifier.vo.js';
 import type { ManeuverModifierSelection } from '../../../domain/value-objects/maneuver-profile.vo.js';
 import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo.js';
+import type { FrenzyPurpose } from '../../../domain/value-objects/frenzy-purpose.vo.js';
 
 /** The passive side of a conflicting maneuver as an actor of the game (workspace spec 022, decision 12). */
 export interface PassiveSide {
@@ -30,6 +31,8 @@ export class ResolveManeuverRequest {
     public readonly lightUsage?: LightManeuverModifier | undefined,
     /** Workspace spec 022, decision 12: the passive side as an actor of the game, and its roll. */
     public readonly passive?: PassiveSide | undefined,
+    /** Workspace spec 040: an Adrenal Focus maneuver to enter or leave the frenzy. */
+    public readonly purpose?: FrenzyPurpose | undefined,
   ) {}
 }
 
