@@ -850,7 +850,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   /** The poisonings in progress advance one round (§8.3 Upkeep). */
   private advancePoisonings(phase: number): void {
     this.injuries
-      .filter(injury => injury.poison && !injury.poison.finished && injury.status !== 'healed')
+      .filter(injury => injury.poison && !injury.poison.finished)
       .forEach(injury => this.stepPoisoning(injury, injury.poison!.elapsedRounds + 1, phase));
   }
 
@@ -870,8 +870,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   }
 
   /**
-   * The injury follows its poisoning: the penalty of the stages in progress; once it is over (decision 12), the
-   * penalty of the permanent stages, which leave the injury permanent.
+   * The injury follows its poisoning: the penalty of the stages in progress. Once it is over (decision 12), the stages
+   * already were its course: the permanent ones leave the injury permanent, and without them it is healed.
    */
   private syncPoisonInjury(injury: Injury): void {
     const poison = injury.poison as InjuryPoison;
@@ -881,6 +881,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       if (permanent < 0) {
         injury.status = 'permanent';
         injury.permanent = { penalty: permanent };
+      } else if (injury.status !== 'healed') {
+        injury.status = 'healed';
+        injury.healedAt = new Date().toISOString();
       }
     } else {
       injury.penalty = PoisonStages.penalty(poison);

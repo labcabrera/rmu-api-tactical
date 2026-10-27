@@ -79,7 +79,7 @@ describe('poisonings (workspace spec 042)', () => {
     expect(antidote.status).toBe(200);
     expect(antidote.body).toMatchObject({ injuryId: body.injuryId, neutralized: true });
     const cured = (antidote.body as { actorRound: ActorRoundBody }).actorRound.injuries.find(each => each.id === body.injuryId);
-    expect(cured).toMatchObject({ penalty: 0, poison: { neutralized: true, finished: true } });
+    expect(cured).toMatchObject({ penalty: 0, status: 'healed', poison: { neutralized: true, finished: true } });
   });
 
   it('validates the poison, the exposure and the injury', async () => {

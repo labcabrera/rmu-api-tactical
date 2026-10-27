@@ -140,14 +140,15 @@ describe('Poisoning an actor round (workspace spec 042)', () => {
     expect(actorRound.findInjury(injury.id).poison?.elapsedRounds).toBe(5);
   });
 
-  it('ends the stages and keeps the injury for the recovery when the last one ends', () => {
+  it('heals the injury when the last stage ends', () => {
     const { actorRound, injury } = poisoned('moderate');
     for (let round = 0; round < 8; round++) actorRound.applyUpkeep();
     const healed = actorRound.findInjury(injury.id);
     expect(healed.poison?.finished).toBe(true);
     expect(healed.penalty).toBe(0);
     expect(healed.initialPenalty).toBe(-30);
-    expect(healed.status).toBe('active');
+    expect(healed.status).toBe('healed');
+    expect(healed.healedAt).toBeDefined();
   });
 
   it('a permanent stage leaves a permanent injury', () => {
