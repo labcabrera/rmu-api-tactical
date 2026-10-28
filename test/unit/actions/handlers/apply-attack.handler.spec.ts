@@ -496,7 +496,7 @@ describe('ApplyAttackHandler: coated weapons (workspace spec 042, decision 11)',
     const exposures = ctx.effectCommands().get('defender-round')?.poisonExposures;
     expect(exposures).toHaveLength(1);
     expect(exposures?.[0]).toMatchObject({ poison: POISON, source: { kind: 'critical', attackerId: 'attacker' } });
-    expect(ctx.source.items[0]).toMatchObject({ coating: null, coatingSpent: true });
+    expect(ctx.source.items[0]).toMatchObject({ coating: null, coatingSpent: { appliedAt: '2026-10-27T00:00:00.000Z' } });
   });
 
   it('a hit without a critical spends the coating and exposes nobody', async () => {
@@ -507,7 +507,7 @@ describe('ApplyAttackHandler: coated weapons (workspace spec 042, decision 11)',
     const ctx = coated(attack);
     await ctx.run();
     expect(ctx.effectCommands().get('defender-round')?.poisonExposures ?? []).toHaveLength(0);
-    expect(ctx.source.items[0].coatingSpent).toBe(true);
+    expect(ctx.source.items[0].coatingSpent).toEqual({ appliedAt: '2026-10-27T00:00:00.000Z' });
   });
 
   it('a miss keeps the coating', async () => {

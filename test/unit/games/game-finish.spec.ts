@@ -128,6 +128,30 @@ describe('TacticalGameOutcomeCalculator (spec 013, §3)', () => {
     expect(aragorn.items).toEqual([{ itemId: 'sword', name: 'Sword', modifiers: [expect.objectContaining({ id: 'new', value: -20 })] }]);
   });
 
+  // Spec 044, decision 3: the outcome names the spent coating by its appliedAt; a round stored before it says only true
+  it('sends the appliedAt of each spent coating, and the legacy true of an older round', () => {
+    const { actorRounds } = setup();
+    const last = actorRounds[1];
+    const weapon = (itemId: string) => ({
+      itemId,
+      name: itemId,
+      kind: 'weapon' as const,
+      strength: 80,
+      modifiers: [],
+      startModifierIds: [],
+    });
+    last.items = [
+      { ...weapon('dagger'), coating: null, coatingSpent: { appliedAt: '2026-10-27T10:00:00.000Z' } },
+      { ...weapon('old-dagger'), coating: null, coatingSpent: true },
+      { ...weapon('coated'), coating: { name: 'Venom', poison: {} as never, appliedAt: '2026-10-27T12:00:00.000Z' } },
+    ];
+    const aragorn = TacticalGameOutcomeCalculator.preview(game(), actorRounds).characters[0];
+    expect(aragorn.items).toEqual([
+      { itemId: 'dagger', name: 'dagger', modifiers: [], coatingSpent: { appliedAt: '2026-10-27T10:00:00.000Z' } },
+      { itemId: 'old-dagger', name: 'old-dagger', modifiers: [], coatingSpent: true },
+    ]);
+  });
+
   it('requires a fate for every character at risk, listing them', () => {
     const { actorRounds } = setup();
 

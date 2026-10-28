@@ -2050,8 +2050,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     if (!item?.coating) {
       return;
     }
+    // Spec 044, decision 3: which coating was spent, so strategic keeps one applied during the game
+    item.coatingSpent = { appliedAt: item.coating.appliedAt };
     item.coating = null;
-    item.coatingSpent = true;
   }
 
   private attackItem(attackName: string): ActorRoundItem | undefined {

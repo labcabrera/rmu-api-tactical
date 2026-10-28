@@ -74,9 +74,15 @@ export interface ActorRoundItem {
   baseValue?: number;
   /** Poison on the weapon (workspace spec 042); null once a hit spent it. */
   coating?: ItemCoating | null;
-  /** The coating it brought was spent in the game. */
-  coatingSpent?: boolean;
+  /**
+   * The coating it brought was spent in the game, by the `appliedAt` of that coating, so strategic removes that one and
+   * not one applied later (spec 044, decision 3). `true` in rounds stored before it.
+   */
+  coatingSpent?: SpentCoating;
 }
+
+/** The identity of a spent coating; `true` is the legacy form, without it. */
+export type SpentCoating = { appliedAt: string } | true;
 
 /** Breakage damage beyond which an armor piece leaves its area unprotected (§6.1). */
 export const UNPROTECTED_ARMOR_PENALTY = -50;
@@ -128,6 +134,7 @@ export const ActorRoundItems = {
       modifiers: item.modifiers.map(modifier => ({ ...modifier, ...(modifier.source ? { source: { ...modifier.source } } : {}) })),
       startModifierIds: [...item.startModifierIds],
       ...(item.coating ? { coating: structuredClone(item.coating) } : {}),
+      ...(item.coatingSpent && item.coatingSpent !== true ? { coatingSpent: { ...item.coatingSpent } } : {}),
     };
   },
 };
