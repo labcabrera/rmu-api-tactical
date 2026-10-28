@@ -121,12 +121,34 @@ describe('UpdateCriticalRollHandler', () => {
     expect(attack.status).toBe('pending_apply');
   });
 
-  it('accepts the shared roll again and rejects a different one for another critical', async () => {
-    const { execute } = setup([pendingCritical('s_e_1', 'E'), pendingCritical('s_a_2', 'A')]);
+  it('resolves every critical again with a new roll until the attack is applied', async () => {
+    const { ctx, lookup, execute } = setup([pendingCritical('s_e_1', 'E'), pendingCritical('s_a_2', 'A')]);
+    ctx.attack!.calculated!.location = undefined;
     await execute('s_e_1', 50);
+    lookup.mockClear();
 
-    await expect(execute('s_a_2', 50)).resolves.toBeDefined();
-    await expect(execute('s_a_2', 70)).rejects.toMatchObject({ code: 'err-critical-roll-mismatch' });
+    await execute('s_a_2', 70);
+
+    const attack = ctx.attack!;
+    // From the attack's location again: the arm of the first result is not carried over to the new roll.
+    expect(lookup.mock.calls.map(([request]) => request)).toEqual([
+      { criticalType: 'S', criticalSeverity: 'E', roll: 73, location: undefined },
+      { criticalType: 'S', criticalSeverity: 'A', roll: 73, location: 'arms' },
+    ]);
+    expect(Array.from(attack.roll!.criticalRolls!.values())).toEqual([70, 70]);
+    expect(attack.results!.criticals!.map(critical => critical.adjustedRoll)).toEqual([73, 73]);
+    expect(attack.status).toBe('pending_apply');
+  });
+
+  it('rejects a critical roll once the attack has been applied', async () => {
+    const { ctx, lookup, execute } = setup([pendingCritical('s_c_1', 'C')]);
+    await execute('s_c_1', 50);
+    ctx.attack!.status = 'completed';
+    ctx.action.status = 'completed';
+    lookup.mockClear();
+
+    await expect(execute('s_c_1', 70)).rejects.toMatchObject({ code: 'err-attack-completed' });
+    expect(lookup).not.toHaveBeenCalled();
   });
 
   it('clamps the adjusted roll to 1..100 and moves the attack to pending_apply after the last critical', async () => {
