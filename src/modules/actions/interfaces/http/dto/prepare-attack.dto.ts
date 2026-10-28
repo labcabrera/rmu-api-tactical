@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import { IsArray, ValidateNested } from 'class-validator';
 import { PrepareAttackCommand } from '../../../application/cqrs/commands/prepare-attack.command.js';
 import { PrepareAttackItemDto } from './prepare-attack-item.dto.js';
@@ -7,6 +8,7 @@ export class PrepareAttackDto {
   @ApiProperty({ description: 'List of attacks to prepare', type: [PrepareAttackItemDto] })
   @IsArray()
   @ValidateNested({ each: true })
+  @Type(() => PrepareAttackItemDto)
   attacks: PrepareAttackItemDto[];
 
   static toCommand(actionId: string, dto: PrepareAttackDto, userId: string, roles: string[]): PrepareAttackCommand {
