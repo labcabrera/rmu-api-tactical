@@ -1,6 +1,6 @@
 import type { HpBySource, HpLogEntry } from '../../../actor-rounds/domain/value-objects/hp-log-entry.vo.js';
 import type { CharacterCondition, Injury } from '../../../actor-rounds/domain/value-objects/injury.vo.js';
-import type { ItemModifier } from '../../../actor-rounds/domain/value-objects/actor-round-item.vo.js';
+import type { ItemModifier, SpentCoating } from '../../../actor-rounds/domain/value-objects/actor-round-item.vo.js';
 
 /** What a character at risk (bleeding or dying) ends the game as, chosen when it is finished (spec 013, §3). */
 export type CharacterFate = 'dead' | 'permanent-unconscious';
@@ -16,8 +16,11 @@ export interface TacticalItemOutcome {
   itemId: string;
   name: string;
   modifiers: ItemModifier[];
-  /** The poison on the weapon was spent in the game (workspace spec 042). */
-  coatingSpent?: boolean;
+  /**
+   * The poison on the weapon was spent in the game (workspace spec 042): the `appliedAt` of the spent coating (spec 044,
+   * decision 3), or `true` in outcomes computed before it. Strategic accepts both.
+   */
+  coatingSpent?: SpentCoating;
 }
 
 /** The outcome of one character of a finished game, sent to the strategic API by `apply`. */

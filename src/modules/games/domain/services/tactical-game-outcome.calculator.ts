@@ -130,7 +130,8 @@ export class TacticalGameOutcomeCalculator {
             .filter(modifier => !item.startModifierIds.includes(modifier.id) && !modifier.temporary)
             .map(modifier => ({ ...modifier })),
         };
-        if (item.coatingSpent) outcome.coatingSpent = true;
+        // The appliedAt of the spent coating (spec 044, decision 3); a legacy round still says only `true`
+        if (item.coatingSpent) outcome.coatingSpent = item.coatingSpent === true ? true : { appliedAt: item.coatingSpent.appliedAt };
         return outcome;
       })
       .filter(item => item.modifiers.length > 0 || item.coatingSpent);
