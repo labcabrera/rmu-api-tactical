@@ -58,17 +58,15 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
       throw new ValidationError(`Critical ${command.criticalKey} not found in attack ${command.attackName}`);
     }
 
+    // Nothing is applied until the attack is: until then the roll can change, as the attack and fumble rolls.
+    if (action.status === 'completed' || attack.status === 'completed') {
+      throw new ValidationError(`Attack ${command.attackName} has already been applied`, 'err-attack-completed');
+    }
+
     const criticalRolls = attack.roll!.criticalRolls;
     attack.roll!.criticalRolls = criticalRolls instanceof Map ? criticalRolls : new Map(Object.entries(criticalRolls || {}));
-    // §9.8: every critical of the attack uses the same roll and the same location. The first roll resolves all of
-    // them; a different roll for another one is rejected.
-    const previous = [...attack.roll!.criticalRolls.values()].find(roll => roll !== undefined && roll !== null);
-    if (previous !== undefined && previous !== command.roll) {
-      throw new ValidationError(
-        `The criticals of attack ${command.attackName} share the roll ${previous}, not ${command.roll}`,
-        'err-critical-roll-mismatch',
-      );
-    }
+    // §9.8: every critical of the attack uses the same roll and the same location. Each roll, the first or a new one,
+    // resolves all of them again from the location of the attack.
     let location = attack.calculated?.location;
     const { sourceActor, targetActor } = await this.readActors(action, attack.modifiers.targetId);
     this.applyStyleOption(command, attack, sourceActor);

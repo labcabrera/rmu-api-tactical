@@ -206,9 +206,25 @@ describe('attack', () => {
     });
     expect(critical.status).toBe(200);
     expect(e2e.world.lookups.critical.length).toBeGreaterThan(0);
+    // The critical roll can change until the attack is applied, as the attack and fumble rolls.
+    const changed = await as('owner').patch(`/v1/actions/${action.id}/attack/critical-roll`, {
+      attackName: 'mainHand',
+      criticalKey: 's_c_1',
+      roll: 60,
+    });
+    expect(changed.status).toBe(200);
+    expect(changed.body).toMatchObject({ attacks: [{ roll: { criticalRolls: { s_c_1: 60 } } }] });
+    expect(e2e.world.lookups.critical.length).toBeGreaterThan(1);
 
     const applied = await as('owner').patch(`/v1/actions/${action.id}/attack/apply`);
     expect(applied.status).toBe(200);
+    const late = await as('owner').patch(`/v1/actions/${action.id}/attack/critical-roll`, {
+      attackName: 'mainHand',
+      criticalKey: 's_c_1',
+      roll: 70,
+    });
+    expect(late.status).toBe(400);
+    expect(late.body).toMatchObject({ code: 'err-attack-completed' });
     const after = await as('owner').get(`/v1/actor-rounds/${lurtz.id}`);
     // 12 of the table plus 6 of the critical.
     expect((after.body as { hp: { current: number } }).hp.current).toBe(lurtz.hp.current - 18);
