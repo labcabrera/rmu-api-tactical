@@ -126,6 +126,11 @@ describe('ManeuverBaseModifiersService', () => {
     expect(service.compute(input({ skillId: 'unknown' })).skill).toMatchObject({ bonus: -25, ranks: 0, unskilled: true });
   });
 
+  it('matches the specialization by its key, whatever its spelling (spec 050)', () => {
+    expect(service.compute(input({ skillId: 'old-lore', specialization: 'Runes' })).skill.bonus).toBe(60);
+    expect(service.compute(input({ skillId: 'old-lore', specialization: ' runes ' })).skill.bonus).toBe(60);
+  });
+
   it('matches a skill the sheet keeps without specializations for any specialization', () => {
     expect(service.compute(input({ skillId: 'wall-scaling', specialization: 'trees' })).skill.bonus).toBe(35);
   });

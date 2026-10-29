@@ -7,6 +7,7 @@ import { Action } from '../../../domain/aggregates/action.js';
 import { AP_PENALTY_PER_MISSING, ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo.js';
 import type { SkillManeuverProfile } from '../../../domain/value-objects/maneuver-profile.vo.js';
 import type { Pace } from '../../../domain/value-objects/pace.vo.js';
+import { toOptionalKey } from '../../../../shared/domain/services/key.js';
 
 /** Bonus of a character without the skill (chapter 3). */
 export const UNSKILLED_BONUS = -25;
@@ -113,8 +114,10 @@ export class ManeuverBaseModifiersService {
    */
   static skillBonus(character: Character, skillId: string, specialization: string | null): ManeuverSkillBonus {
     const entries = (character.skills || []).filter(s => s.skillId === skillId);
+    // Spec 050: sheets store catalog keys; a caller or a sheet not yet migrated may send the name (`Black Speech`)
+    const wanted = toOptionalKey(specialization);
     const skill =
-      entries.find(s => (s.specialization || null) === (specialization || null)) ??
+      entries.find(s => toOptionalKey(s.specialization) === wanted) ??
       (specialization ? entries.find(s => !s.specialization && !entries.some(other => !!other.specialization)) : undefined);
     if (!skill) {
       return { skillId, specialization, bonus: UNSKILLED_BONUS, ranks: 0, unskilled: true };
