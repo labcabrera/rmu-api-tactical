@@ -18,6 +18,10 @@ export class Actor {
 
   @Prop({ required: true })
   owner: string;
+
+  /** Spec 055: the NPC an NPC actor is a specimen of. */
+  @Prop({ type: String, required: false })
+  npcId?: string;
 }
 
 @Schema({ _id: false })

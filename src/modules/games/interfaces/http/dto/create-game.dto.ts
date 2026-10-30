@@ -1,8 +1,9 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { CreateGameCommand, CreateGameCommandActor } from '../../../application/cqrs/commands/create-game.command.js';
 import type { ActorType } from '../../../domain/value-objects/actor-type.vo.js';
+import { CreateEnvironmentFactionDto, GameNpcRequestDto } from './environment-faction.dto.js';
 
 export class CreateGameActorDto {
   constructor(id: string, type: ActorType, faction: string | undefined) {
@@ -11,7 +12,7 @@ export class CreateGameActorDto {
     this.faction = faction;
   }
 
-  @ApiProperty({ description: 'Actor identifier (character or NPC id)', example: 'actor-123' })
+  @ApiProperty({ description: 'Character id; an NPC id is one specimen of it (use `npcs` since spec 055)', example: 'actor-123' })
   @IsString()
   @IsNotEmpty()
   id: string;
@@ -104,6 +105,24 @@ export class CreateGameDto {
   @IsOptional()
   imageUrl: string | undefined;
 
+  @ApiPropertyOptional({ description: 'The NPCs of the strategic factions become actors too (spec 055)', default: true })
+  @IsOptional()
+  @IsBoolean()
+  includeFactionNpcs?: boolean;
+
+  @ApiPropertyOptional({ description: 'NPCs for the factions of the game, one actor per specimen (spec 055)', type: [GameNpcRequestDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => GameNpcRequestDto)
+  npcs?: GameNpcRequestDto[];
+
+  @ApiPropertyOptional({ description: 'The environment faction and its NPCs (spec 055)', type: CreateEnvironmentFactionDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateEnvironmentFactionDto)
+  environmentFaction?: CreateEnvironmentFactionDto;
+
   static toCommand(dto: CreateGameDto, userId: string, roles: string[]) {
     const actors: CreateGameCommandActor[] | undefined = dto.actors
       ? dto.actors.map(actor => new CreateGameCommandActor(actor.id, actor.type, actor.faction))
@@ -124,6 +143,14 @@ export class CreateGameDto {
       dto.imageUrl,
       userId,
       roles,
+      dto.includeFactionNpcs,
+      (dto.npcs || []).map(npc => ({ npcId: npc.npcId, factionId: npc.factionId, count: npc.count, name: npc.name })),
+      dto.environmentFaction
+        ? {
+            name: dto.environmentFaction.name,
+            npcs: dto.environmentFaction.npcs.map(npc => ({ npcId: npc.npcId, count: npc.count, name: npc.name })),
+          }
+        : undefined,
     );
   }
 }

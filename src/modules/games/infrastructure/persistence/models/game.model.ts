@@ -2,6 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import type { HydratedDocument } from 'mongoose';
 import type { GamePhase } from '../../../domain/value-objects/game-phase.vo.js';
 import type { GameStatus } from '../../../domain/value-objects/game-status.vo.js';
+import type { EnvironmentFaction } from '../../../domain/value-objects/environment-faction.vo.js';
 import type { TacticalGameOutcome } from '../../../domain/value-objects/tactical-game-outcome.vo.js';
 import { Actor, GameEnvironment } from './game-childs.model.js';
 
@@ -39,6 +40,10 @@ export class GameModel {
 
   @Prop({ type: GameEnvironment, required: false })
   environment?: GameEnvironment;
+
+  /** Spec 055: the environment faction, `{factionId, name, npcs}`. Missing in games without one. */
+  @Prop({ type: Object, required: false })
+  environmentFaction?: EnvironmentFaction | null;
 
   @Prop({ required: false })
   description: string;

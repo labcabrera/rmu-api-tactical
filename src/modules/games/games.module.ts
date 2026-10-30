@@ -18,13 +18,16 @@ import { DeleteGameActorsHandler } from './application/cqrs/handlers/delete-game
 import { DeleteGameFactionsHandler } from './application/cqrs/handlers/delete-game-factions.handler.js';
 import { DeleteGameHandler } from './application/cqrs/handlers/delete-game.handler.js';
 import { DeleteGamesByStrategicIdHandler } from './application/cqrs/handlers/delete-games-by-strategic-id.handler.js';
+import { RemoveDeletedFactionHandler } from './application/cqrs/handlers/remove-deleted-faction.handler.js';
 import { GetGameHandler } from './application/cqrs/handlers/get-game.handler.js';
 import { GetGamesHandler } from './application/cqrs/handlers/get-games.handler.js';
 import { RandomizeInitiativesHandler } from './application/cqrs/handlers/randomize-initiatives.handler.js';
 import { StartPhaseHandler } from './application/cqrs/handlers/start-phase.handler.js';
 import { StartRoundHandler } from './application/cqrs/handlers/start-round.handler.js';
 import { UpdateGameHandler } from './application/cqrs/handlers/update-game.handler.js';
-import { ApiNpcAdapter } from './infrastructure/api-clients/api.npc.adapter.js';
+import { ApiRealmAdapter } from './infrastructure/api-clients/api.realm.adapter.js';
+import { GameNpcsService } from './application/services/game-npcs.service.js';
+import { NpcsModule } from '../npcs/npcs.module.js';
 import { MongoGameRepository } from './infrastructure/db/mongo.game.repository.js';
 import { GameModel, GameSchema } from './infrastructure/persistence/models/game.model.js';
 import { GameActorController } from './interfaces/http/game-actor.controller.js';
@@ -35,7 +38,7 @@ import { StrategicGameKafkaConsumer } from './interfaces/messaging/kafka.strateg
 import { GAME_REPOSITORY } from './application/ports/game-repository.port.js';
 import { GAME_GUARD } from './application/ports/game-guard.port.js';
 import { GameGuardAdapter } from './infrastructure/security/game-guard.adapter.js';
-import { NPC_PORT } from './application/ports/npc.port.js';
+import { REALM_PORT } from './application/ports/realm.port.js';
 @Module({
   imports: [
     TerminusModule,
@@ -45,6 +48,7 @@ import { NPC_PORT } from './application/ports/npc.port.js';
     AuthModule,
     SharedModule,
     StrategicModule,
+    NpcsModule,
     forwardRef(() => ActorsRoundModule),
     forwardRef(() => ActionsModule),
   ],
@@ -62,6 +66,7 @@ import { NPC_PORT } from './application/ports/npc.port.js';
     DeleteGameFactionsHandler,
     DeleteGameActorsHandler,
     DeleteGamesByStrategicIdHandler,
+    RemoveDeletedFactionHandler,
     RandomizeInitiativesHandler,
     GetFinishPreviewHandler,
     FinishGameHandler,
@@ -75,9 +80,10 @@ import { NPC_PORT } from './application/ports/npc.port.js';
       useClass: GameGuardAdapter,
     },
     {
-      provide: NPC_PORT,
-      useClass: ApiNpcAdapter,
+      provide: REALM_PORT,
+      useClass: ApiRealmAdapter,
     },
+    GameNpcsService,
   ],
   exports: [GAME_REPOSITORY, GAME_GUARD],
 })

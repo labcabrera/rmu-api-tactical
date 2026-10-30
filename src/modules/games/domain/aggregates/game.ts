@@ -11,6 +11,12 @@ import {
 } from '../events/game.events.js';
 import { Actor } from '../value-objects/actor.vo.js';
 import { GameEnvironment } from '../value-objects/game-environment.vo.js';
+import {
+  ENVIRONMENT_FACTION_ID,
+  type EnvironmentFaction,
+  EnvironmentFactions,
+  type GameNpc,
+} from '../value-objects/environment-faction.vo.js';
 import type { GamePhase } from '../value-objects/game-phase.vo.js';
 import type { GameStatus } from '../value-objects/game-status.vo.js';
 import type { TacticalGameOutcome, TacticalGameOutcomeCharacter } from '../value-objects/tactical-game-outcome.vo.js';
@@ -53,6 +59,9 @@ export class Game extends BaseAggregateRoot<GameProps> {
   /** `accessType` of the strategic game (spec 021): `public` lets every user read the game. */
   public accessType = 'private';
 
+  /** The environment faction (spec 055, decision 2): the NPCs of no player, owned by the game master. */
+  public environmentFaction: EnvironmentFaction | null = null;
+
   static create(
     strategicGameId: string,
     name: string,
@@ -64,6 +73,7 @@ export class Game extends BaseAggregateRoot<GameProps> {
     owner: string,
     strategicGameOwner?: string,
     accessType?: string,
+    environmentFaction?: EnvironmentFaction | null,
   ) {
     const game = new Game(
       randomUUID(),
@@ -83,6 +93,8 @@ export class Game extends BaseAggregateRoot<GameProps> {
     );
     game.strategicGameOwner = strategicGameOwner;
     game.accessType = accessType || 'private';
+    game.environmentFaction = environmentFaction ? EnvironmentFactions.copy(environmentFaction) : null;
+    game.syncEnvironmentFaction();
     game.apply(new GameCreatedEvent(game));
     return game;
   }
@@ -107,6 +119,7 @@ export class Game extends BaseAggregateRoot<GameProps> {
     game.outcome = props.outcome;
     game.strategicGameOwner = props.strategicGameOwner;
     game.accessType = props.accessType || 'private';
+    game.environmentFaction = props.environmentFaction ? EnvironmentFactions.copy(props.environmentFaction) : null;
     return game;
   }
 
@@ -168,11 +181,13 @@ export class Game extends BaseAggregateRoot<GameProps> {
     description: string | undefined,
     environment: GameEnvironment | undefined,
     imageUrl: string | undefined,
+    environmentFactionName?: string,
   ) {
     if (name) this.name = name;
     if (description) this.description = description;
     if (environment) this.environment = environment;
     if (imageUrl !== undefined) this.imageUrl = imageUrl;
+    if (environmentFactionName !== undefined) this.renameEnvironmentFaction(environmentFactionName);
     // A PATCH that changes nothing is a 200 with the game as it is, and no event (spec 021, decision 9).
     if (!this.hasChanges()) return;
     this.updatedAt = new Date();
@@ -185,6 +200,9 @@ export class Game extends BaseAggregateRoot<GameProps> {
       throw new ValidationError(`No factions provided`);
     }
     for (const faction of factions) {
+      if (faction === ENVIRONMENT_FACTION_ID) {
+        throw new ValidationError(`Faction ${faction} is reserved for the environment`, 'err-environment-faction-reserved');
+      }
       if (this.factions.includes(faction)) {
         throw new ValidationError(`Faction ${faction} already exists in the game`);
       }
@@ -209,14 +227,27 @@ export class Game extends BaseAggregateRoot<GameProps> {
     }
     this.factions = this.factions.filter(f => !factions.includes(f));
     this.actors = this.actors.filter(a => !factions.includes(a.faction.id));
+    if (factions.includes(ENVIRONMENT_FACTION_ID) && this.environmentFaction) {
+      this.environmentFaction.npcs = [];
+    }
     this.updatedAt = new Date();
     this.apply(new GameUpdatedEvent(this));
   }
 
-  addActors(actors: Actor[]) {
+  /**
+   * Adds characters and NPC specimens. An NPC actor has an id of its own, so there can be several specimens of one NPC
+   * (spec 055). The environment NPCs (`environmentNpcs`, the entries their actors come from) create the environment
+   * faction when the game has none.
+   */
+  addActors(actors: Actor[], environmentNpcs: GameNpc[] = []) {
     this.checkNotFinished();
     if (actors.length === 0) {
       throw new ValidationError(`No actors provided`);
+    }
+    if (environmentNpcs.length > 0) {
+      this.environmentFaction = this.environmentFaction ?? EnvironmentFactions.create(undefined);
+      this.environmentFaction.npcs = EnvironmentFactions.merge(this.environmentFaction.npcs, environmentNpcs);
+      this.syncEnvironmentFaction();
     }
     for (const actor of actors) {
       if (this.actors.find(a => a.id === actor.id && a.type === actor.type)) {
@@ -231,6 +262,7 @@ export class Game extends BaseAggregateRoot<GameProps> {
     this.apply(new GameUpdatedEvent(this));
   }
 
+  /** Removes actors; a specimen of the environment is taken off its entry too (spec 055). */
   deleteActors(ids: string[]) {
     this.checkNotFinished();
     if (this.status !== 'created') {
@@ -241,10 +273,43 @@ export class Game extends BaseAggregateRoot<GameProps> {
       if (index === -1) {
         throw new ValidationError(`Actor ${id} does not exist in the game`);
       }
-      this.actors.splice(index, 1);
+      const [removed] = this.actors.splice(index, 1);
+      if (removed.faction.id === ENVIRONMENT_FACTION_ID && removed.npcId && this.environmentFaction) {
+        this.environmentFaction.npcs = EnvironmentFactions.removeSpecimen(this.environmentFaction.npcs, removed.npcId, removed.name);
+      }
     });
+    this.syncEnvironmentFaction();
     this.updatedAt = new Date();
     this.apply(new GameUpdatedEvent(this));
+  }
+
+  /** Renames the environment faction and its actors, creating it if the game has none (spec 055). */
+  renameEnvironmentFaction(name: string): void {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      throw new ValidationError('The environment faction needs a name', 'err-environment-faction-name');
+    }
+    if (this.environmentFaction?.name === trimmed) {
+      return;
+    }
+    this.checkNotFinished();
+    if (this.status !== 'created') {
+      throw new ValidationError(`Cannot rename the environment of a game that is not in 'created' status`, 'err-game-not-created');
+    }
+    this.environmentFaction = { ...(this.environmentFaction ?? EnvironmentFactions.create(trimmed)), name: trimmed };
+    this.actors = this.actors.map(actor => (actor.faction.id === ENVIRONMENT_FACTION_ID ? actor.withFactionName(trimmed) : actor));
+  }
+
+  /** `factions` has the environment while it has NPCs (spec 055, decision 2), so the front treats it as any other. */
+  private syncEnvironmentFaction(): void {
+    const hasNpcs =
+      (this.environmentFaction?.npcs.length ?? 0) > 0 || this.actors.some(actor => actor.faction.id === ENVIRONMENT_FACTION_ID);
+    const listed = this.factions.includes(ENVIRONMENT_FACTION_ID);
+    if (hasNpcs && !listed) {
+      this.factions = [...this.factions, ENVIRONMENT_FACTION_ID];
+    } else if (!hasNpcs && listed) {
+      this.factions = this.factions.filter(faction => faction !== ENVIRONMENT_FACTION_ID);
+    }
   }
 
   startRound() {
@@ -309,6 +374,7 @@ export class Game extends BaseAggregateRoot<GameProps> {
       factions: this.factions,
       actors: this.actors,
       environment: this.environment,
+      environmentFaction: this.environmentFaction,
       description: this.description,
       imageUrl: this.imageUrl,
       owner: this.owner,

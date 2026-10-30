@@ -1,4 +1,5 @@
 import { Actor } from '../value-objects/actor.vo.js';
+import type { EnvironmentFaction } from '../value-objects/environment-faction.vo.js';
 import { GameEnvironment } from '../value-objects/game-environment.vo.js';
 import type { GamePhase } from '../value-objects/game-phase.vo.js';
 import type { GameStatus } from '../value-objects/game-status.vo.js';
@@ -14,6 +15,8 @@ export type GameProps = {
   factions: string[];
   actors: Actor[];
   environment?: GameEnvironment;
+  /** The environment faction of the game (spec 055); missing or null in games without one. */
+  environmentFaction?: EnvironmentFaction | null;
   description?: string;
   imageUrl?: string;
   owner: string;

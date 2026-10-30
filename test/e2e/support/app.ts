@@ -28,7 +28,9 @@ import type { PsychologyTables } from '../../../src/modules/psychology/domain/va
 import { POISON_TABLES_PORT } from '../../../src/modules/poisons/application/ports/poison-tables.port.js';
 import type { PoisonTables } from '../../../src/modules/actor-rounds/domain/value-objects/poison.vo.js';
 import { PSYCHOLOGY_TABLES } from '../../fixtures/psychology-tables.js';
-import { NPC_PORT, type Npc } from '../../../src/modules/games/application/ports/npc.port.js';
+import { NPC_PORT, type Npc } from '../../../src/modules/npcs/application/ports/npc.port.js';
+import { REALM_PORT, type Realm } from '../../../src/modules/games/application/ports/realm.port.js';
+import { FACTION_PORT, type StrategicFaction } from '../../../src/modules/strategic/application/ports/faction.port.js';
 import {
   DOMAIN_EVENT_PUBLISHER,
   type DomainEventPublisher,
@@ -68,6 +70,10 @@ export type World = {
   characters: Map<string, Character>;
   items: Map<string, StrategicItem[]>;
   npcs: Map<string, Npc>;
+  /** Factions of strategic with their NPCs (spec 055). */
+  factions: Map<string, StrategicFaction>;
+  /** Realms of core: a generic one lends its NPCs to any campaign (spec 055). */
+  realms: Map<string, Realm>;
   /** The attack table answers this entry to every lookup. */
   attackEntry: AttackTableEntry;
   critical: CriticalResult;
@@ -110,6 +116,8 @@ const newWorld = (): World => ({
   characters: new Map(),
   items: new Map(),
   npcs: new Map(),
+  factions: new Map(),
+  realms: new Map(),
   attackEntry: new AttackTableEntry('12CS', 12, 'S', 'C'),
   critical: new CriticalResult('Strike to the leg.', 6, 'leg', [], undefined),
   fumble: new Fumble('completed', 'Off balance.', undefined, 0, []),
@@ -186,6 +194,8 @@ function fakePorts(world: World) {
     ],
     [ITEM_PORT, { findByCharacterId: (id: string) => Promise.resolve(world.items.get(id) ?? []) }],
     [NPC_PORT, { findById: (id: string) => Promise.resolve(world.npcs.get(id)) }],
+    [FACTION_PORT, { findById: (id: string) => Promise.resolve(world.factions.get(id) ?? null) }],
+    [REALM_PORT, { findById: (id: string) => Promise.resolve(world.realms.get(id) ?? null) }],
     [
       ATTACK_TABLE_PORT,
       {
@@ -373,3 +383,44 @@ export const character = (id: string, overrides: Partial<Character> = {}): Chara
     owner: USERS.owner.sub,
     ...overrides,
   }) as unknown as Character;
+
+/**
+ * An NPC of the npcs API (spec 054), an invented wolf-like creature: medium, 40 hits dying at 60 of damage, one bite.
+ * Not a creature of any book.
+ */
+export const npc = (id: string, overrides: Partial<Npc> = {}): Npc => ({
+  id,
+  realmId: 'realm-1',
+  accessType: 'public',
+  name: id,
+  category: 'animal',
+  type: 'canine',
+  level: 2,
+  movement: [{ mode: 'walk-quadruped', baseRate: 30, maxPace: 'dash' }],
+  size: 'medium',
+  hp: 40,
+  deathHits: 60,
+  at: 3,
+  db: 20,
+  shield: null,
+  initiative: 4,
+  attacks: [{ ob: 50, size: 5, attackTable: 'bite', fumbleTable: 'animals' }],
+  resistances: { channeling: 5, essence: 5, mentalism: 5, physical: 15, fear: 10 },
+  skills: [
+    { skillId: 'perception', specialization: null, ranks: 6, bonus: 40 },
+    { skillId: 'acrobatics', specialization: null, ranks: 2, bonus: 15 },
+  ],
+  imageUrl: null,
+  owner: USERS.owner.sub,
+  ...overrides,
+});
+
+/** A faction of strategic (spec 055), owned by the owner of the suite, with its NPCs. */
+export const faction = (id: string, overrides: Partial<StrategicFaction> = {}): StrategicFaction => ({
+  id,
+  gameId: 'sg-1',
+  name: id,
+  owner: USERS.owner.sub,
+  npcs: [],
+  ...overrides,
+});

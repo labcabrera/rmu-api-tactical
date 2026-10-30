@@ -20,6 +20,10 @@ export class MongoGameRepository extends MongoBaseRepository<Game, GameModel> im
     return this.model.find({ strategicGameId }).then(games => games.map(doc => this.toEntity(doc)));
   }
 
+  async findCreatedByFaction(factionId: string): Promise<Game[]> {
+    return this.model.find({ factions: factionId, status: 'created' }).then(games => games.map(doc => this.toEntity(doc)));
+  }
+
   async findIds(filter: Record<string, unknown>): Promise<string[]> {
     const docs = await this.model.find(filter, { _id: 1 }).lean();
     return docs.map(doc => doc._id);
@@ -42,6 +46,7 @@ export class MongoGameRepository extends MongoBaseRepository<Game, GameModel> im
       factions: doc.factions,
       actors: doc.actors ? doc.actors.map(actor => Actor.fromProps(actor)) : [],
       environment: environment,
+      environmentFaction: doc.environmentFaction ?? null,
       imageUrl: doc.imageUrl,
       description: doc.description,
       owner: doc.owner,
