@@ -24,10 +24,10 @@ describe('GetManeuverModifiersHandler', () => {
     expect(listing.maneuverType).toBe('absolute');
     expect(listing.resultTable).toBe('gymnastic');
     expect(listing.base).toEqual([
-      { key: 'penalty-injury', value: -20, source: 'actor-round' },
-      { key: 'armor-maneuver', value: -30, source: 'equipment' },
-      { key: 'encumbrance', value: -10, source: 'equipment' },
-      { key: 'pace', value: -25, source: 'movement' },
+      { key: 'penalty-injury', value: -20, source: 'actor-round', group: 'penalty' },
+      { key: 'armor-maneuver', value: -30, source: 'equipment', group: 'penalty', rule: '§7.2' },
+      { key: 'encumbrance', value: -10, source: 'equipment', group: 'penalty', rule: '§5.4' },
+      { key: 'pace', value: -25, source: 'movement', group: 'situation', rule: 'Table 5-3', params: { pace: 'walk' } },
     ]);
     expect(listing.difficulty.default).toBe('m');
     expect(listing.difficulty.options).toEqual(
@@ -69,7 +69,16 @@ describe('GetManeuverModifiersHandler', () => {
 
   it('counts the AP the action would take if it ended in the current phase', async () => {
     const { listing } = await list({ skillId: 'quick-fix', phaseStart: 2, phase: 'phase_3' });
-    expect(listing.base).toEqual([{ key: 'action-points', value: -50, source: 'action' }]);
+    expect(listing.base).toEqual([
+      {
+        key: 'action-points',
+        value: -50,
+        source: 'action',
+        group: 'situation',
+        rule: '§8.1',
+        params: { ap: expect.any(Number) as number, max: expect.any(Number) as number },
+      },
+    ]);
   });
 
   it('switches to another skill and specialization, and marks an unskilled actor', async () => {

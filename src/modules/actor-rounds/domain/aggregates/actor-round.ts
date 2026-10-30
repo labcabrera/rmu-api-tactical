@@ -2111,10 +2111,11 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     }
     const condition = ActorRoundItems.condition(item.modifiers);
     const breakdown: BreakageModifier[] = [
-      { key: 'strength', value: strength },
-      { key: 'quality', value: ActorRoundItems.breakageBonus(item) },
-      { key: 'item-damage', value: condition.breakagePenalty },
-      { key: 'origin', value: alert?.getModifierValue('penalty') ?? 0 },
+      // Workspace spec 052: the rule each entry comes from (§6.1, Table 6-1)
+      { key: 'strength', value: strength, rule: '§6.1' },
+      { key: 'quality', value: ActorRoundItems.breakageBonus(item), rule: 'Table 6-1' },
+      { key: 'item-damage', value: condition.breakagePenalty, rule: '§6.1' },
+      { key: 'origin', value: alert?.getModifierValue('penalty') ?? 0, rule: 'Table 6-1' },
       ...(input.modifiers || []).map(modifier => ({ key: modifier.key, value: modifier.value || 0 })),
     ].filter(modifier => modifier.key === 'strength' || modifier.value !== 0);
     const outcome = BreakageResolver.resolve(

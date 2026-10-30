@@ -459,9 +459,14 @@ describe('social maneuvers (workspace spec 022)', () => {
       passiveRoll: 40,
     });
     expect(resolved.status).toBe(200);
-    const maneuver = (resolved.body as { maneuver: { modifiers: object; result: object } }).maneuver;
+    type Entry = { key: string; group?: string; rule?: string; params?: Record<string, unknown> };
+    const maneuver = (resolved.body as { maneuver: { modifiers: object; result: object; roll: { modifiers: Entry[] } } }).maneuver;
     // 70 + 20 + (100 - 50) = 140: the fake percent table answers 100, so the price is 100%.
     expect(maneuver.modifiers).toMatchObject({ targetActorId: 'lurtz', passiveSkillId: 'trading', passiveTotal: 50 });
+    // Workspace spec 052: the breakdown explains itself
+    const entry = (key: string) => maneuver.roll.modifiers.find(each => each.key === key);
+    expect(entry('trading')).toMatchObject({ group: 'skill', rule: 'Table 3-0b', params: { ranks: 2 } });
+    expect(entry('conflict')).toMatchObject({ group: 'situation', rule: '§8.2', params: { passive: 50 } });
     expect(maneuver.result).toMatchObject({ percent: 100, price: 100 });
     e2e.world.skillProfiles.clear();
     e2e.world.characters.set('aragorn', character('aragorn'));

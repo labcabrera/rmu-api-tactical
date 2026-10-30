@@ -6,6 +6,8 @@ export type BreakageResult = 'absolute-failure' | 'failure' | 'partial-success' 
 export interface BreakageModifier {
   key: string;
   value: number;
+  /** Rule reference of the entry (workspace spec 052). */
+  rule?: string;
 }
 
 export interface BreakageCheckInput {

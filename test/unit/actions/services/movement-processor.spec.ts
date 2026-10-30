@@ -65,7 +65,7 @@ describe('MovementProcessorService movement roll', () => {
   it('takes the base modifiers without the pace penalty, and -25 when unskilled (M7)', async () => {
     const { modifiers, percent } = await roll([]);
     expect(modifiers).toEqual({
-      running: -25,
+      unskilled: -25,
       difficulty: -10,
       'penalty-injury': -10,
       'armor-maneuver': -15,

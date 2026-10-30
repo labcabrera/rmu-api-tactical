@@ -6,8 +6,10 @@ import {
   failureRollModifier,
   needsPreparation,
   rrConditionModifiers,
+  rrSkipped,
   scrModifiers,
   scrResult,
+  scrSkipped,
   spellAllowsRr,
   spellAttackEffect,
   spellAttackProfile,
@@ -135,6 +137,35 @@ describe('Spellcasting Roll modifiers (Spell Law 4.2)', () => {
     expect(keys(helmet)).toMatchObject({ helmet: -41 });
   });
 
+  it('spec 052: gives every SCR modifier its group and rule, and the table ones the column and choice read', () => {
+    const options = { ...DEFAULT_SPELL_OPTIONS, subtle: true, hands: 'one' as const, armor: 'metal' as const, armorEncumbrance: 12 };
+    const input = { spell: spell({ level: 7 }), caster: caster(), options, apPenalty: -25, penalties: [], actionPoints: 3 };
+    const byKey = Object.fromEntries(scrModifiers(input, TABLES).map(m => [m.key, m]));
+    expect(byKey.ranks).toMatchObject({ group: 'skill', rule: 'Spell Law §4.2' });
+    expect(byKey.hands).toMatchObject({ group: 'casting', rule: 'Spell Law Table 4-2', params: { hands: 'one', column: 'essence' } });
+    expect(byKey.armor).toMatchObject({ params: { armor: 'metal', encumbrance: 12, column: 'essence' } });
+    expect(byKey.subtlety).toMatchObject({ params: { type: 'elemental', column: 'essence' } });
+    expect(byKey['fast-casting']).toMatchObject({ group: 'casting', params: { ap: 3 } });
+    expect(byKey.overcasting).toMatchObject({ params: { levels: 2, spellLevel: 7, casterLevel: 5 } });
+  });
+
+  it('spec 052: says why a helmet, an armor or the subtlety do not count for the caster realm', () => {
+    const options = { ...DEFAULT_SPELL_OPTIONS, helmet: 'heavy' as const, armor: 'leather' as const };
+    const priest = caster({ realms: ['channeling'] });
+    const skipped = scrSkipped({ spell: spell(), caster: priest, options, apPenalty: 0, penalties: [] }, TABLES);
+    expect(skipped.map(rule => [rule.source, rule.reason])).toEqual([
+      ['subtlety', 'subtlety-not-requested'],
+      ['helmet', 'helmet-no-penalty'],
+      ['armor', 'armor-no-penalty'],
+    ]);
+    expect(skipped[1].params).toEqual({ helmet: 'heavy', column: 'channeling' });
+    const mentalist = scrSkipped(
+      { spell: spell(), caster: caster({ realms: ['mentalism'] }), options: { ...options, subtle: true }, apPenalty: 0, penalties: [] },
+      TABLES,
+    );
+    expect(mentalist.map(rule => rule.reason)).toEqual(['armor-no-penalty']);
+  });
+
   it('reads the result and the overcast preparation', () => {
     expect([scrResult(1), scrResult(0), scrResult(-1)]).toEqual(['success', 'no-effect', 'failure']);
     expect(needsPreparation(spell({ level: 6 }), caster())).toBe(true);
@@ -179,7 +210,8 @@ describe('resistance rolls (Spell Law 4.5)', () => {
       helmet: 'metal' as const,
       range: 'touch' as const,
     };
-    expect(rrConditionModifiers(conditions, 'essence')).toEqual([
+    const kv = (modifiers: { key: string; value: number }[]) => modifiers.map(({ key, value }) => ({ key, value }));
+    expect(kv(rrConditionModifiers(conditions, 'essence'))).toEqual([
       { key: 'willing', value: -50 },
       { key: 'surprised-stunned', value: -5 },
       { key: 'cover', value: 10 },
@@ -187,15 +219,37 @@ describe('resistance rolls (Spell Law 4.5)', () => {
       { key: 'range', value: -15 },
     ]);
     expect(rrConditionModifiers({ armor: 'organic' }, 'channeling')).toEqual([]);
-    expect(rrConditionModifiers({ armor: 'metal', range: 'far' }, 'channeling')).toEqual([
+    expect(kv(rrConditionModifiers({ armor: 'metal', range: 'far' }, 'channeling'))).toEqual([
       { key: 'armor', value: 15 },
       { key: 'range', value: 10 },
     ]);
-    expect(rrConditionModifiers({ helmet: 'organic', cover: 'partial', range: 'close' }, 'mentalism')).toEqual([
+    expect(kv(rrConditionModifiers({ helmet: 'organic', cover: 'partial', range: 'close' }, 'mentalism'))).toEqual([
       { key: 'cover', value: 5 },
       { key: 'helmet', value: 10 },
       { key: 'range', value: -5 },
     ]);
+  });
+
+  it('spec 052: explains each modifier with its rule and inputs, and the conditions that do not count', () => {
+    const rr = spellResistanceRoll({
+      roll: 40,
+      casterLevel: 4,
+      spellModifier: -10,
+      conditions: { helmet: 'metal', armor: 'organic', cover: 'partial' },
+      scr: 60,
+      bonuses: { channeling: 12 },
+      listRealms: ['channeling'],
+    });
+    const byKey = Object.fromEntries(rr.breakdown.map(m => [m.key, m]));
+    expect(byKey['channeling-rr']).toMatchObject({ group: 'target', rule: 'Spell Law §4.5', params: { realm: 'channeling' } });
+    expect(byKey['caster-level']).toMatchObject({ value: -8, group: 'casting', params: { level: 4 } });
+    expect(byKey.spell).toMatchObject({ group: 'casting', rule: 'Spell Law §4.5' });
+    expect(byKey.cover).toMatchObject({ group: 'target', rule: 'Spell Law Table 4-5', params: { cover: 'partial' } });
+    expect(rr.skipped.map(rule => rule.reason)).toEqual(['rr-helmet-only-mentalism', 'rr-organic-only-essence']);
+    expect(rrSkipped({ armor: 'metal' }, 'mentalism')).toEqual([
+      expect.objectContaining({ source: 'armor', reason: 'rr-armor-not-mentalism', params: { armor: 'metal', realm: 'mentalism' } }),
+    ]);
+    expect(rrSkipped({ armor: 'organic' }, 'essence')).toEqual([]);
   });
 
   it('resists when it reaches the SCR, and takes the better realm against a hybrid list', () => {

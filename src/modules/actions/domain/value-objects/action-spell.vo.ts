@@ -1,3 +1,5 @@
+import type { SpellRollModifier } from '../services/spell-casting.rules.js';
+import type { SkippedRule } from './skipped-rule.vo.js';
 import type { ActionRoll } from './action-roll.vo.js';
 
 /** Realms of magic (Spell Law 2.1). */
@@ -124,7 +126,10 @@ export interface ActionSpellTarget {
   rolled: boolean;
   roll: number | null;
   conditions: SpellTargetConditions;
-  breakdown: { key: string; value: number }[];
+  /** The roll and its modifiers, each with its group, rule and inputs since workspace spec 052. */
+  breakdown: SpellRollModifier[];
+  /** Conditions of the target that do not count against the spell's realm, and why (spec 052). */
+  skipped?: SkippedRule[];
   total: number | null;
   /** The SCR the RR has to reach. */
   required: number;

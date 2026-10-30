@@ -24,6 +24,7 @@ import type {
 import type { StabilizeEffectResult } from '../../../application/cqrs/handlers/stabilize-effect.handler.js';
 import type { TreatInjuryResult } from '../../../application/cqrs/handlers/treat-injury.handler.js';
 import { ActorRoundDto } from './actor-round.dto.js';
+import { KeyValueModifierDto } from '../../../../actions/interfaces/http/dto/key-value-modifier.dto.js';
 
 export class ExternalHealerDto {
   @ApiProperty({ description: 'Name of the healer' })
@@ -182,6 +183,9 @@ export class MedicalResultDto {
   @ApiProperty({ description: 'roll + bonus + difficulty + healer penalty' })
   total: number;
 
+  @ApiProperty({ type: [KeyValueModifierDto], description: 'The total, entry by entry, with its rules (workspace spec 052)' })
+  breakdown: KeyValueModifierDto[];
+
   @ApiProperty({ description: 'Message of the medical maneuver table', required: false })
   message?: string;
 
@@ -228,6 +232,7 @@ export class MedicalResultDto {
     dto.healerPenalty = roll.healerPenalty;
     dto.difficulty = roll.difficulty;
     dto.total = roll.total;
+    dto.breakdown = roll.breakdown.map(modifier => KeyValueModifierDto.fromEntity(modifier));
     dto.message = roll.outcome.message;
     dto.recoveryModifier = roll.outcome.recoveryModifier;
     return dto;

@@ -167,6 +167,43 @@ describe('ResolveManeuverHandler', () => {
     expect(setup.findSkill).toHaveBeenCalledWith('wall-scaling');
   });
 
+  it('spec 052: every modifier of the breakdown carries its group and, when the books give one, its rule', async () => {
+    const { result } = await resolve(
+      { skillId: 'wall-scaling', maneuverPenalty: -30, encumbrancePenalty: -10, pace: 'walk' },
+      { difficulty: 'h', customBonus: 7 },
+    );
+    const byKey = Object.fromEntries(result.maneuver!.roll!.modifiers.map(m => [m.key, m]));
+    expect(byKey['wall-scaling']).toMatchObject({
+      group: 'skill',
+      source: 'skill',
+      rule: 'Table 3-0b',
+      params: { ranks: expect.any(Number) as number },
+    });
+    expect(byKey.difficulty).toMatchObject({ group: 'situation', rule: '§5.1', params: { difficulty: 'h' } });
+    expect(byKey['armor-maneuver']).toMatchObject({ group: 'penalty', rule: '§7.2' });
+    expect(byKey.encumbrance).toMatchObject({ group: 'penalty', rule: '§5.4' });
+    expect(byKey.pace).toMatchObject({ group: 'situation', rule: 'Table 5-3', params: { pace: 'walk' } });
+    expect(byKey['custom-bonus']).toMatchObject({ group: 'situation', source: 'custom' });
+    expect(result.maneuver!.roll!.modifiers.filter(m => m.key !== 'roll').every(m => !!m.group)).toBe(true);
+  });
+
+  it('spec 052: an unskilled actor rolls with an unskilled -25 that names the skill', async () => {
+    const { modifiers, result } = await resolve({ skills: [] }, { skillId: 'wall-scaling', specialization: 'trees' });
+    expect(modifiers.unskilled).toBe(-25);
+    expect(modifiers['wall-scaling']).toBeUndefined();
+    expect(result.maneuver!.roll!.modifiers.find(m => m.key === 'unskilled')).toMatchObject({
+      group: 'skill',
+      params: { skill: 'wall-scaling', specialization: 'trees' },
+    });
+  });
+
+  it('spec 052: a light chosen for a skill that does not use it is a rule not applied', async () => {
+    const lore = await resolve({ skillId: 'old-lore' }, { light: 'dark' });
+    expect(lore.result.maneuver!.roll!.skipped).toEqual([
+      expect.objectContaining({ source: 'light', reason: 'light-not-needed', rule: 'Table 15-7', params: { light: 'dark' } }),
+    ]);
+  });
+
   it('reads the core catalog once per request', async () => {
     const { setup } = await resolve({ skillId: 'creature-taming' });
     expect(setup.findSkill).toHaveBeenCalledTimes(1);

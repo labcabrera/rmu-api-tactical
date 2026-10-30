@@ -231,6 +231,14 @@ describe('treatments (workspace spec 022)', () => {
     expect(response.status).toBe(200);
     const body = response.body as { result: string; difficulty: number; actorRound: { injuries: Record<string, unknown>[] } };
     expect([body.result, body.difficulty]).toEqual(['success', -10]);
+    // Workspace spec 052: the total entry by entry
+    const breakdown = (response.body as { breakdown: { key: string; value: number; rule?: string }[] }).breakdown;
+    expect(breakdown.map(({ key, value }) => [key, value])).toEqual([
+      ['roll', 40],
+      ['medicine', 80],
+      ['difficulty', -10],
+    ]);
+    expect(breakdown[1]).toMatchObject({ rule: 'Table 3-15' });
     expect(body.actorRound.injuries.find(i => i.id === 'medium-cut')).toMatchObject({ bleeding: 0, penalty: -15, initialPenalty: -15 });
   });
 

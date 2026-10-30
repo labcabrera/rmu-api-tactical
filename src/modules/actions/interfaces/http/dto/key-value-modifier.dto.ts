@@ -12,7 +12,7 @@ export class KeyValueModifierDto {
   @ApiProperty({
     type: String,
     description: 'Breakdown group of the modifier',
-    enum: ['offense', 'defense', 'situation', 'critical', 'resolution'],
+    enum: ['offense', 'defense', 'situation', 'critical', 'resolution', 'skill', 'casting', 'target', 'penalty'],
     required: false,
   })
   group?: ModifierGroup;

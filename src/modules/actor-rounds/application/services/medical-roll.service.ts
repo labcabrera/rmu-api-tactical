@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type ManeuverPort, MANEUVER_PORT } from '../../../actions/application/ports/maneuver.port.js';
+import { KeyValueModifier, type ModifierParams } from '../../../actions/domain/value-objects/key-value-modifier.vo.js';
 import { type GameRepository, GAME_REPOSITORY } from '../../../games/application/ports/game-repository.port.js';
 import { Game } from '../../../games/domain/aggregates/game.js';
 import { NotFoundError, ValidationError } from '../../../shared/domain/errors/errors.js';
@@ -29,7 +30,12 @@ export interface MedicalRoll {
   difficulty: number;
   total: number;
   outcome: MedicalOutcome;
+  /** The roll, the healer's Medicine and penalties and the difficulty, each with its rule (workspace spec 052). */
+  breakdown: KeyValueModifier[];
 }
+
+/** Rule references of the medical roll (Core Law). */
+export const MEDICAL_RULES = { medicine: 'Table 3-15', difficulty: '§5.1', healing: '§13.1' } as const;
 
 /**
  * A medical roll in a tactical game (spec 013, §3): the healer's Medicine bonus (`skills['medicine'].totalBonus` of its
@@ -55,7 +61,14 @@ export class MedicalRollService {
     return { patient, game };
   }
 
-  async roll(patient: ActorRound, request: HealerRequest, roll: number, difficulty: number): Promise<MedicalRoll> {
+  /** `difficultyParams` says where the difficulty comes from (the procedure and the injury), for its explanation. */
+  async roll(
+    patient: ActorRound,
+    request: HealerRequest,
+    roll: number,
+    difficulty: number,
+    difficultyParams?: ModifierParams,
+  ): Promise<MedicalRoll> {
     if (typeof roll !== 'number' || !Number.isFinite(roll)) {
       throw new ValidationError('Required roll value');
     }
@@ -67,12 +80,22 @@ export class MedicalRollService {
       throw new ValidationError(`Unexpected medical result ${response.result}`);
     }
     const effectValue = (status: string) => response.effects?.find(effect => effect.status === status)?.value ?? 0;
+    const breakdown = [
+      new KeyValueModifier('roll', roll),
+      new KeyValueModifier('medicine', healer.bonus, 'skill', 'healer', MEDICAL_RULES.medicine, {
+        healer: healer.name,
+        ...(healer.external ? { external: true } : {}),
+      }),
+      new KeyValueModifier('difficulty', difficulty, 'situation', 'injury', MEDICAL_RULES.difficulty, difficultyParams),
+      new KeyValueModifier('healer-penalty', penalty, 'penalty', 'healer'),
+    ].filter((modifier, index) => index < 3 || modifier.value !== 0);
     return {
       healer,
       healerPenalty: penalty,
       roll,
       difficulty,
       total,
+      breakdown,
       outcome: {
         result,
         recoveryModifier: effectValue('recoveryRollModifier'),

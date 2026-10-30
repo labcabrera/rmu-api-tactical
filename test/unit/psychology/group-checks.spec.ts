@@ -80,7 +80,7 @@ describe('FearCheckHandler (workspace spec 022, decision 9)', () => {
     expect(result.actors.map(each => each.actorId)).toEqual(['aragorn', 'boromir', 'orc', 'fallen']);
     expect(byId(result.actors, 'aragorn')).toMatchObject({ status: 'afraid', total: 55, failure: 5, effect: 'fear-balk' });
     expect(byId(result.actors, 'boromir')).toMatchObject({ status: 'resisted', total: 69, failure: 0, effect: undefined });
-    expect(byId(result.actors, 'boromir').breakdown).toContainEqual({ key: 'leader', value: 14 });
+    expect(byId(result.actors, 'boromir').breakdown).toContainEqual({ key: 'leader', value: 14, group: 'situation' });
     expect(byId(result.actors, 'orc')).toMatchObject({
       status: 'afraid',
       bonus: 0,

@@ -1,4 +1,5 @@
-import { KeyValueModifier } from '../value-objects/key-value-modifier.vo.js';
+import { KeyValueModifier, type ModifierGroup, type ModifierParams } from '../value-objects/key-value-modifier.vo.js';
+import { SkippedRule } from '../value-objects/skipped-rule.vo.js';
 import type {
   ActionSpellAttack,
   ActionSpellCaster,
@@ -32,6 +33,30 @@ export interface SpellcastingTables {
   preparation: { perRound: number; max: number };
 }
 
+/** Rule references of the spell rolls (Spell Law), shown with their explanation (workspace spec 052). */
+export const SPELL_RULES = {
+  casting: 'Spell Law §4.2',
+  castingTable: 'Spell Law Table 4-2',
+  fastCasting: 'Spell Law §4.2, Core Law §8.1',
+  failure: 'Spell Law §4.4',
+  resistance: 'Spell Law §4.5',
+  resistanceTable: 'Spell Law Table 4-5',
+} as const;
+
+/** Phases of the rules a spell roll skips, as `SkippedRule.phase`. */
+export const SPELL_CAST_PHASE = 'spell-cast';
+export const SPELL_RR_PHASE = 'spell-rr';
+
+/** A breakdown entry of a spell roll, with its explanation (workspace spec 052). */
+export interface SpellRollModifier {
+  key: string;
+  value: number;
+  group?: ModifierGroup;
+  source?: string;
+  rule?: string;
+  params?: ModifierParams;
+}
+
 /** Modifier keys that are not "other modifiers" of the SCR: the spell failure roll leaves them out (Spell Law 4.4). */
 const BASE_KEYS = ['ranks', 'realm-stat'];
 
@@ -53,6 +78,8 @@ export interface ScrInput {
   apPenalty: number;
   /** General penalties of the actor (injuries, fatigue, hits, stun), one per source. */
   penalties: { source: string; value: number }[];
+  /** AP of the action, for the explanation of the fast casting penalty. */
+  actionPoints?: number;
 }
 
 /**
@@ -71,22 +98,73 @@ export function scrModifiers(input: ScrInput, tables: SpellcastingTables): KeyVa
   };
   const overcastLevels = Math.max(0, spell.level - caster.level);
   const preparation = Math.min(tables.preparation.max, Math.max(0, options.preparationRounds || 0) * tables.preparation.perRound);
+  // Workspace spec 052: each modifier says its group, its rule and, for the table ones, the column read
+  const skill = (key: string, value: number, params?: ModifierParams) =>
+    new KeyValueModifier(key, value, 'skill', 'caster', SPELL_RULES.casting, params);
+  const table = (key: string, value: number, params: ModifierParams) =>
+    new KeyValueModifier(key, value, 'casting', 'casting-table', SPELL_RULES.castingTable, { ...params, column });
+  const armorParams: ModifierParams = { armor: options.armor };
+  if (typeof tables.armor[options.armor]?.[column] === 'object') armorParams.encumbrance = options.armorEncumbrance || 0;
   const modifiers: KeyValueModifier[] = [
-    new KeyValueModifier('ranks', caster.ranks),
-    new KeyValueModifier('realm-stat', caster.realmStatBonus),
-    new KeyValueModifier('list-type', caster.listTypeModifier),
-    new KeyValueModifier('subtlety', options.subtle ? cell(tables.subtlety, spell.type) : 0),
-    new KeyValueModifier('hands', cell(tables.hands, options.hands)),
-    new KeyValueModifier('voice', cell(tables.voice, options.voice)),
-    new KeyValueModifier('helmet', options.helmet === 'none' ? 0 : cell(tables.helmet, options.helmet)),
-    new KeyValueModifier('armor', options.armor === 'none' ? 0 : cell(tables.armor, options.armor)),
-    new KeyValueModifier('fast-casting', input.apPenalty),
-    new KeyValueModifier('overcasting', overcastLevels * tables.overcastingPerLevel),
-    new KeyValueModifier('preparation', preparation),
-    ...input.penalties.map(penalty => new KeyValueModifier(`penalty-${penalty.source}`, penalty.value)),
-    new KeyValueModifier('custom', options.customBonus || 0),
+    skill('ranks', caster.ranks, { ranks: caster.ranks, list: caster.listSkillId }),
+    skill('realm-stat', caster.realmStatBonus, { realm: column }),
+    skill('list-type', caster.listTypeModifier, { list: caster.listSkillId }),
+    table('subtlety', options.subtle ? cell(tables.subtlety, spell.type) : 0, { type: spell.type }),
+    table('hands', cell(tables.hands, options.hands), { hands: options.hands }),
+    table('voice', cell(tables.voice, options.voice), { voice: options.voice }),
+    table('helmet', options.helmet === 'none' ? 0 : cell(tables.helmet, options.helmet), { helmet: options.helmet }),
+    table('armor', options.armor === 'none' ? 0 : cell(tables.armor, options.armor), armorParams),
+    new KeyValueModifier(
+      'fast-casting',
+      input.apPenalty,
+      'casting',
+      'action-points',
+      SPELL_RULES.fastCasting,
+      input.actionPoints !== undefined ? { ap: input.actionPoints } : undefined,
+    ),
+    new KeyValueModifier('overcasting', overcastLevels * tables.overcastingPerLevel, 'casting', 'overcasting', SPELL_RULES.casting, {
+      levels: overcastLevels,
+      spellLevel: spell.level,
+      casterLevel: caster.level,
+    }),
+    new KeyValueModifier('preparation', preparation, 'casting', 'preparation', SPELL_RULES.casting, {
+      rounds: Math.max(0, options.preparationRounds || 0),
+    }),
+    ...input.penalties.map(penalty => new KeyValueModifier(`penalty-${penalty.source}`, penalty.value, 'penalty', 'actor-round')),
+    new KeyValueModifier('custom', options.customBonus || 0, 'situation', 'custom'),
   ];
   return modifiers.filter(modifier => modifier.key === 'ranks' || modifier.value !== 0);
+}
+
+/**
+ * Rules of the SCR the caster could expect that do not apply (workspace spec 052): a helmet or an armor that the
+ * caster's realm column does not penalize, and the subtlety when the cast is not subtle.
+ */
+export function scrSkipped(input: ScrInput, tables: SpellcastingTables): SkippedRule[] {
+  const { options } = input;
+  const column = castingColumn(input.caster.realms);
+  const skipped: SkippedRule[] = [];
+  const free = (group: Partial<Record<string, ByColumn>>, key: string) => {
+    const value = group[key]?.[column];
+    return value === null || value === undefined || value === 0;
+  };
+  if (!options.subtle) {
+    skipped.push(new SkippedRule('subtlety', 'casting', 'subtlety-not-requested', SPELL_CAST_PHASE, SPELL_RULES.castingTable));
+  }
+  if (options.helmet !== 'none' && free(tables.helmet, options.helmet)) {
+    skipped.push(
+      new SkippedRule('helmet', 'casting', 'helmet-no-penalty', SPELL_CAST_PHASE, SPELL_RULES.castingTable, {
+        helmet: options.helmet,
+        column,
+      }),
+    );
+  }
+  if (options.armor !== 'none' && free(tables.armor, options.armor)) {
+    skipped.push(
+      new SkippedRule('armor', 'casting', 'armor-no-penalty', SPELL_CAST_PHASE, SPELL_RULES.castingTable, { armor: options.armor, column }),
+    );
+  }
+  return skipped;
 }
 
 /** An overcast spell (above the caster's level) that is not instantaneous needs a preparation round (Spell Law 4.2). */
@@ -129,22 +207,51 @@ const RR_STATUS = { willing: -50, surprisedOrStunned: -5 };
 const RR_COVER = { none: 0, partial: 5, full: 10 };
 const RR_RANGE = { touch: -15, close: -5, normal: 0, far: 10 };
 
-/** Table 4-5 modifiers of a target against a spell of `realm`. */
-export function rrConditionModifiers(conditions: SpellTargetConditions, realm: SpellRealm): { key: string; value: number }[] {
-  const modifiers: { key: string; value: number }[] = [];
-  if (conditions.willing) modifiers.push({ key: 'willing', value: RR_STATUS.willing });
-  if (conditions.surprisedOrStunned) modifiers.push({ key: 'surprised-stunned', value: RR_STATUS.surprisedOrStunned });
-  modifiers.push({ key: 'cover', value: RR_COVER[conditions.cover ?? 'none'] });
+/** Table 4-5 modifiers of a target against a spell of `realm`, with the condition that gives each one (spec 052). */
+export function rrConditionModifiers(conditions: SpellTargetConditions, realm: SpellRealm): SpellRollModifier[] {
+  const modifiers: SpellRollModifier[] = [];
+  const target = (key: string, value: number, params?: ModifierParams): SpellRollModifier => ({
+    key,
+    value,
+    group: 'target',
+    source: 'target-conditions',
+    rule: SPELL_RULES.resistanceTable,
+    ...(params ? { params } : {}),
+  });
+  if (conditions.willing) modifiers.push(target('willing', RR_STATUS.willing));
+  if (conditions.surprisedOrStunned) modifiers.push(target('surprised-stunned', RR_STATUS.surprisedOrStunned));
+  const cover = conditions.cover ?? 'none';
+  modifiers.push(target('cover', RR_COVER[cover], { cover }));
   if (realm === 'mentalism') {
     const helmet = conditions.helmet ?? 'none';
-    modifiers.push({ key: 'helmet', value: helmet === 'metal' ? 15 : helmet === 'organic' ? 10 : 0 });
+    modifiers.push(target('helmet', helmet === 'metal' ? 15 : helmet === 'organic' ? 10 : 0, { helmet, realm }));
   } else {
     const armor = conditions.armor ?? 'none';
     const organic = realm === 'essence' ? 10 : 0;
-    modifiers.push({ key: 'armor', value: armor === 'metal' ? 15 : armor === 'organic' ? organic : 0 });
+    modifiers.push(target('armor', armor === 'metal' ? 15 : armor === 'organic' ? organic : 0, { armor, realm }));
   }
-  modifiers.push({ key: 'range', value: RR_RANGE[conditions.range ?? 'normal'] });
+  const range = conditions.range ?? 'normal';
+  modifiers.push(target('range', RR_RANGE[range], { range }));
   return modifiers.filter(modifier => modifier.value !== 0);
+}
+
+/**
+ * Table 4-5 conditions the target has that do not count against a spell of `realm` (spec 052): a helmet only protects
+ * against Mentalism, a torso armor only against the other realms, and an organic one only against Essence.
+ */
+export function rrSkipped(conditions: SpellTargetConditions, realm: SpellRealm): SkippedRule[] {
+  const skip = (source: string, reason: string, params: ModifierParams) =>
+    new SkippedRule(source, 'target', reason, SPELL_RR_PHASE, SPELL_RULES.resistanceTable, params);
+  const helmet = conditions.helmet ?? 'none';
+  const armor = conditions.armor ?? 'none';
+  const skipped: SkippedRule[] = [];
+  if (realm === 'mentalism') {
+    if (armor !== 'none') skipped.push(skip('armor', 'rr-armor-not-mentalism', { armor, realm }));
+  } else {
+    if (helmet !== 'none') skipped.push(skip('helmet', 'rr-helmet-only-mentalism', { helmet, realm }));
+    if (armor === 'organic' && realm !== 'essence') skipped.push(skip('armor', 'rr-organic-only-essence', { armor, realm }));
+  }
+  return skipped;
 }
 
 export interface SpellRrInput {
@@ -162,7 +269,8 @@ export interface SpellRrInput {
 
 export interface SpellRrResult {
   realm: SpellRealm;
-  breakdown: { key: string; value: number }[];
+  breakdown: SpellRollModifier[];
+  skipped: SkippedRule[];
   total: number;
   resisted: boolean;
   failure: number;
@@ -175,15 +283,24 @@ export interface SpellRrResult {
  */
 export function spellResistanceRoll(input: SpellRrInput): SpellRrResult {
   const results = input.listRealms.map(realm => {
-    const breakdown = [
+    const rule = SPELL_RULES.resistance;
+    const entries: SpellRollModifier[] = [
       { key: 'roll', value: input.roll },
-      { key: `${realm}-rr`, value: input.bonuses[realm] ?? 0 },
-      { key: 'caster-level', value: -2 * input.casterLevel },
-      { key: 'spell', value: input.spellModifier },
+      { key: `${realm}-rr`, value: input.bonuses[realm] ?? 0, group: 'target', source: 'resistance', rule, params: { realm } },
+      {
+        key: 'caster-level',
+        value: -2 * input.casterLevel,
+        group: 'casting',
+        source: 'caster',
+        rule,
+        params: { level: input.casterLevel },
+      },
+      { key: 'spell', value: input.spellModifier, group: 'casting', source: 'spell', rule },
       ...rrConditionModifiers(input.conditions, realm),
-    ].filter(modifier => modifier.key === 'roll' || modifier.value !== 0);
+    ];
+    const breakdown = entries.filter(modifier => modifier.key === 'roll' || modifier.value !== 0);
     const total = breakdown.reduce((sum, modifier) => sum + modifier.value, 0);
-    return { realm, breakdown, total };
+    return { realm, breakdown, total, skipped: rrSkipped(input.conditions, realm) };
   });
   const best = results.reduce((a, b) => (b.total > a.total ? b : a));
   const failure = Math.max(0, input.scr - best.total);

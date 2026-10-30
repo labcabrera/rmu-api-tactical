@@ -25,9 +25,9 @@ describe('ResistanceRollCalculator (workspace spec 022, decision 8)', () => {
     expect(result).toMatchObject({ total: 65, required: 60, resisted: true, failure: 0 });
     expect(result.breakdown).toEqual([
       { key: 'roll', value: 50 },
-      { key: 'fear-rr', value: 25 },
-      { key: 'attack-level', value: -15 },
-      { key: 'custom', value: 5 },
+      { key: 'fear-rr', value: 25, group: 'skill', rule: '§14.3' },
+      { key: 'attack-level', value: -15, group: 'target', rule: 'Table 5-6' },
+      { key: 'custom', value: 5, group: 'situation' },
     ]);
     expect(result.severity).toBeUndefined();
   });

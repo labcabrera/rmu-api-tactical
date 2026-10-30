@@ -40,8 +40,8 @@ describe('ManeuverBaseModifiersService', () => {
     const result = service.compute(input({ actorRound }));
     expect(result.base).toEqual(
       expect.arrayContaining([
-        { key: 'penalty-hp', value: -20, source: 'actor-round' },
-        { key: 'penalty-injury', value: -15, source: 'actor-round' },
+        { key: 'penalty-hp', value: -20, source: 'actor-round', group: 'penalty' },
+        { key: 'penalty-injury', value: -15, source: 'actor-round', group: 'penalty' },
       ]),
     );
   });
@@ -98,6 +98,16 @@ describe('ManeuverBaseModifiersService', () => {
     expect(() => service.compute(input({ pace: 'sprint' }))).toThrow(expect.objectContaining({ code: 'err-maneuver-invalid-pace' }));
     expect(() => service.compute(input({ pace: 'dash' }))).toThrow(expect.objectContaining({ code: 'err-maneuver-invalid-pace' }));
     expect(keys({ pace: 'dash', freeAction: true }).pace).toBeUndefined();
+  });
+
+  it('spec 052: says why the pace does not count for an instantaneous action or for the movement roll itself', () => {
+    expect(service.compute(input({ pace: 'dash', freeAction: true })).skipped).toEqual([
+      expect.objectContaining({ source: 'pace', reason: 'pace-instant-action', rule: 'Table 5-3', params: { pace: 'dash' } }),
+    ]);
+    expect(service.compute(input({ pace: 'jog', includePace: false })).skipped).toEqual([
+      expect.objectContaining({ source: 'pace', reason: 'pace-movement-roll', params: { pace: 'jog' } }),
+    ]);
+    expect(service.compute(input({ pace: 'jog' })).skipped).toEqual([]);
   });
 
   it('takes -25 per AP below the maximum of the profile (criterion 4)', () => {

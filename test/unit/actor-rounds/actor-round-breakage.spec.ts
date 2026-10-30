@@ -120,9 +120,9 @@ describe('ActorRound breakage', () => {
     const round = actor([sword([damage('old', -20), quality])]);
     const result = round.resolveBreakageCheck({ itemId: 'sword', roll: 50, modifiers: [{ key: 'gm', value: -5 }] });
     expect(result.breakdown).toEqual([
-      { key: 'strength', value: 80 },
-      { key: 'quality', value: 10 },
-      { key: 'item-damage', value: -20 },
+      { key: 'strength', value: 80, rule: '§6.1' },
+      { key: 'quality', value: 10, rule: 'Table 6-1' },
+      { key: 'item-damage', value: -20, rule: '§6.1' },
       { key: 'gm', value: -5 },
     ]);
     expect(result.total).toBe(115);
@@ -173,7 +173,7 @@ describe('ActorRound breakage', () => {
     );
     expect(alert.modifiers!.filter(each => each.key === 'candidate').map(each => each.modifier)).toEqual(['greaves', 'shield', 'sword']);
     const result = round.resolveBreakageCheck({ itemId: 'greaves', roll: 50, alertId: alert.id });
-    expect(result.breakdown).toContainEqual({ key: 'origin', value: -25 });
+    expect(result.breakdown).toContainEqual({ key: 'origin', value: -25, rule: 'Table 6-1' });
     expect(alert.status).toBe('resolved');
     expect(() => round.resolveBreakageCheck({ itemId: 'greaves', roll: 50, alertId: alert.id })).toThrow(ValidationError);
     expect(() => round.resolveBreakageCheck({ itemId: 'greaves', roll: 50, alertId: 'other' })).toThrow(NotFoundError);

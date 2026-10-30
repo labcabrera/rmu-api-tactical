@@ -13,6 +13,11 @@ export class BreakageModifierDto {
   @ApiProperty({ example: -10 })
   @IsNumber()
   value: number;
+
+  @ApiProperty({ required: false, description: 'Rule reference (responses only)', example: '§6.1' })
+  @IsOptional()
+  @IsString()
+  rule?: string;
 }
 
 export class ResolveBreakageCheckDto {
