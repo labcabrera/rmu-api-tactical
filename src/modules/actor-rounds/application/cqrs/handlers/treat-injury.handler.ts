@@ -79,7 +79,11 @@ export class TreatInjuryHandler implements ICommandHandler<TreatInjuryCommand, T
       // Translation keys of the values, as the MFE labels them
       procedure: `procedure-${command.procedure}`,
       ...(injury
-        ? { injuryType: `injury-type-${injury.type}`, severity: injury.severity, ...(injury.location ? { location: injury.location } : {}) }
+        ? {
+            injuryType: `injury-type-${injury.type}`,
+            severity: `injury-severity-${injury.severity}`,
+            ...(injury.location ? { location: injury.location } : {}),
+          }
         : {}),
       ...(command.difficulty === undefined || command.difficulty === null ? {} : { chosen: true }),
     });
