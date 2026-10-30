@@ -5,7 +5,7 @@ import { UNCONSCIOUS } from '../../../actor-rounds/domain/value-objects/actor-ro
 import { type GameRepository, GAME_REPOSITORY } from '../../../games/application/ports/game-repository.port.js';
 import { Game } from '../../../games/domain/aggregates/game.js';
 import { NotFoundError, ValidationError } from '../../../shared/domain/errors/errors.js';
-import { type Character, type CharacterPort, CHARACTER_PORT } from '../../../strategic/application/ports/character.port.js';
+import { type ActorSheet, ActorSheetService } from '../../../actor-rounds/application/services/actor-sheet.service.js';
 import { openEndedRoll } from '../../domain/services/open-ended-roll.js';
 
 /** Skill of the leader (§14.2, §14.3) and of the source of an intimidation (§14.2): strategic skill ids. */
@@ -57,7 +57,7 @@ export class GroupCheckService {
   constructor(
     @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
     @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject(CHARACTER_PORT) private readonly characterClient: CharacterPort,
+    private readonly sheets: ActorSheetService,
   ) {}
 
   /** The game in progress and the actor rounds of its current round. */
@@ -116,7 +116,10 @@ export class GroupCheckService {
     return { actorRound, recognized, leadershipRanks, leadershipBonus, lookOfEaglesTier, fearRrBonus };
   }
 
-  /** Intimidation ranks of an actor (§14.2: the fright level of its threats), or the ones sent for an NPC. */
+  /**
+   * Intimidation ranks of an actor (§14.2: the fright level of its threats), or the ones sent: an NPC whose stat block
+   * does not give them has to send them (spec 055).
+   */
   async intimidationRanks(rounds: ActorRound[], actorId: string, ranks: number | undefined): Promise<number> {
     const actorRound = GroupCheckService.find(rounds, actorId);
     if (!actorRound) throw new NotFoundError('Intimidating actor', actorId, 'err-intimidator-not-found');
@@ -128,7 +131,7 @@ export class GroupCheckService {
     const skill =
       skills.find(each => each.skillId === INFLUENCE_SKILL_ID && each.specialization === INTIMIDATION_SPECIALIZATION) ??
       skills.find(each => each.skillId === INTIMIDATION_SPECIALIZATION);
-    if (!sheet) {
+    if (!sheet || (sheet.npc && skill?.ranks === undefined)) {
       throw new ValidationError(`Send the Intimidation ranks of ${actorRound.actorName}`, 'err-intimidation-ranks-required');
     }
     return skill?.ranks ?? 0;
@@ -152,10 +155,8 @@ export class GroupCheckService {
     return saved;
   }
 
-  private async sheet(actorRound: ActorRound): Promise<Character | undefined> {
-    if (actorRound.actorType !== 'character') {
-      return undefined;
-    }
-    return this.characterClient.findById(actorRound.characterId ?? actorRound.actorId);
+  /** The character sheet, or the stat block of an NPC (spec 055). */
+  private sheet(actorRound: ActorRound): Promise<ActorSheet | undefined> {
+    return this.sheets.find(actorRound);
   }
 }

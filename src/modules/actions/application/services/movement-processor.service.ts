@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.js';
 import { NotFoundError, ValidationError } from '../../../shared/domain/errors/errors.js';
-import { type CharacterPort, CHARACTER_PORT } from '../../../strategic/application/ports/character.port.js';
+import { ActorSheetService } from '../../../actor-rounds/application/services/actor-sheet.service.js';
 import { Action } from '../../domain/aggregates/action.js';
 import { DIFFICULTY_MAP } from '../../domain/value-objects/difficulty.vo.js';
 import { KeyValueModifier } from '../../domain/value-objects/key-value-modifier.vo.js';
@@ -28,7 +28,7 @@ export class MovementProcessorService {
 
   constructor(
     @Inject(MANEUVER_PORT) private readonly maneuverPort: ManeuverPort,
-    @Inject(CHARACTER_PORT) private readonly characterClient: CharacterPort,
+    private readonly sheets: ActorSheetService,
     private readonly baseModifiersService: ManeuverBaseModifiersService,
   ) {}
 
@@ -51,8 +51,9 @@ export class MovementProcessorService {
         throw new ValidationError('Roll is required for movement with requiredManeuver');
       }
       const skillId = action.movement.modifiers.skillId || 'running';
-      const character = await this.characterClient.findById(actorRound.actorId);
-      if (!character) throw new NotFoundError('Character', actorRound.actorId);
+      // Spec 055: an NPC takes its skills from its stat block.
+      const character = await this.sheets.find(actorRound);
+      if (!character) throw new NotFoundError(actorRound.actorType === 'npc' ? 'NPC' : 'Character', actorRound.npcId ?? actorRound.actorId);
       // The movement roll takes the base modifiers of any maneuver needing freedom of movement, but not the pace
       // penalty (§5.3), nor the AP one: its AP give the distance.
       const { skill, base } = this.baseModifiersService.compute({

@@ -8,7 +8,7 @@ import {
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
-import { type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port.js';
+import { ActorSheetService } from '../../../../actor-rounds/application/services/actor-sheet.service.js';
 import { Action } from '../../../domain/aggregates/action.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo.js';
@@ -38,7 +38,7 @@ export class CompleteActionHandler implements ICommandHandler<CompleteActionComm
     @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
     @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
     @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
-    @Inject(CHARACTER_PORT) private readonly characterClient: CharacterPort,
+    private readonly sheets: ActorSheetService,
     private readonly commandBus: CommandBus,
   ) {}
 
@@ -86,7 +86,7 @@ export class CompleteActionHandler implements ICommandHandler<CompleteActionComm
 
   /** Standing up (Table 8-1, §9.8 Prone): 2 AP, or 1 with Acrobatics ranks. */
   private async checkStandUpCost(action: Action, actorRound: ActorRound, currentPhase: number): Promise<void> {
-    const character = await this.characterClient.findById(action.actorId);
+    const character = await this.sheets.find(actorRound);
     const acrobatics = character?.skills?.find(skill => skill.skillId === 'acrobatics')?.ranks || 0;
     const profile = ActionApProfile.forAction('stand_up', { acrobatics: acrobatics > 0 });
     action.apRange = { min: profile.min, max: profile.max };

@@ -12,6 +12,7 @@ import type { GameRepository } from '../../../../src/modules/games/application/p
 import { ActorRound } from '../../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
 import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo.js';
 import type { CharacterPort } from '../../../../src/modules/strategic/application/ports/character.port.js';
+import { sheetsOf } from '../../support/actor-sheets.js';
 
 const setup = (actionType: string, extra: Partial<ActionProps> = {}, options: { acrobaticsRanks?: number; shield?: boolean } = {}) => {
   const action = Action.fromProps({
@@ -63,7 +64,14 @@ const setup = (actionType: string, extra: Partial<ActionProps> = {}, options: { 
   const execute = vi.fn(() => Promise.resolve());
   const eventBus = { publish } as unknown as DomainEventPublisher;
   const commandBus = { execute } as unknown as CommandBus;
-  const handler = new CompleteActionHandler(gameRepository, actorRoundRepository, actionRepository, eventBus, characterClient, commandBus);
+  const handler = new CompleteActionHandler(
+    gameRepository,
+    actorRoundRepository,
+    actionRepository,
+    eventBus,
+    sheetsOf(characterClient),
+    commandBus,
+  );
   const run = (note?: string, defenseType?: 'dodge' | 'block') =>
     handler.execute(new CompleteActionCommand('action-1', note, 'user-1', [], defenseType));
   return { run, publish, execute, actorRound, updateActorRound };

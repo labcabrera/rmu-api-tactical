@@ -4,7 +4,7 @@ import { KeyValueModifier, type ModifierParams } from '../../../actions/domain/v
 import { type GameRepository, GAME_REPOSITORY } from '../../../games/application/ports/game-repository.port.js';
 import { Game } from '../../../games/domain/aggregates/game.js';
 import { NotFoundError, ValidationError } from '../../../shared/domain/errors/errors.js';
-import { type CharacterPort, CHARACTER_PORT } from '../../../strategic/application/ports/character.port.js';
+import { ActorSheetService } from './actor-sheet.service.js';
 import { ActorRound } from '../../domain/aggregates/actor-round.js';
 import { MEDICAL_RESULTS, type MedicalOutcome } from '../../domain/services/injury-treatment.js';
 import type { InjuryHealer } from '../../domain/value-objects/injury.vo.js';
@@ -47,7 +47,7 @@ export class MedicalRollService {
   constructor(
     @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
     @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
-    @Inject(CHARACTER_PORT) private readonly characterClient: CharacterPort,
+    private readonly sheets: ActorSheetService,
     @Inject(MANEUVER_PORT) private readonly maneuverPort: ManeuverPort,
   ) {}
 
@@ -117,7 +117,8 @@ export class MedicalRollService {
       if (healerRound.isIncapacitated()) {
         throw new ValidationError(`Healer ${healerRound.actorName} cannot act`, 'err-healer-not-able');
       }
-      const bonus = healerRound.actorType === 'character' ? await this.medicineBonus(healerRound.characterId ?? healerRound.actorId) : 0;
+      // Spec 055: an NPC healer takes its Medicine from its stat block, 0 when it does not list it.
+      const bonus = await this.medicineBonus(healerRound);
       return {
         healer: { actorId: healerRound.actorId, characterId: healerRound.characterId, name: healerRound.actorName, bonus },
         penalty: Math.min(0, healerRound.getPenaltySum()),
@@ -129,8 +130,8 @@ export class MedicalRollService {
     throw new ValidationError('A healer actor or an external healer is required', 'err-healer-required');
   }
 
-  private async medicineBonus(characterId: string): Promise<number> {
-    const character = await this.characterClient.findById(characterId);
+  private async medicineBonus(healerRound: ActorRound): Promise<number> {
+    const character = await this.sheets.find(healerRound);
     return character?.skills?.find(skill => skill.skillId === MEDICINE_SKILL_ID)?.totalBonus ?? 0;
   }
 }

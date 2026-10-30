@@ -132,6 +132,10 @@ export class ActorRoundModel {
   @Prop({ type: String, required: false })
   characterId?: string;
 
+  /** Spec 055: the NPC an NPC actor is a specimen of. */
+  @Prop({ type: String, required: false })
+  npcId?: string;
+
   /** Spec 019: the items of the actor, with their modifiers (stored as documents of their own shape). */
   @Prop({ type: [Object], required: false, default: [] })
   items?: ActorRoundItem[];

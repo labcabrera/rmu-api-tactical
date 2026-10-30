@@ -33,6 +33,7 @@ import type { CharacterPort } from '../../../src/modules/strategic/application/p
 import type { StrategicGameApiClient } from '../../../src/modules/strategic/infrastructure/api-clients/api.strategic-game.adapter.js';
 import { effect, load } from '../actor-rounds/actor-round-test.factory.js';
 import { createCombatPluginContext } from './combat/combat-plugin-test.factory.js';
+import { sheetsOf } from '../support/actor-sheets.js';
 
 /** An action declared after spec 011: its AP come only from the ledger. */
 const action = (id: string, actionType: ActionType, phaseStart: number, extra: Partial<ActionProps> = {}): Action =>
@@ -101,7 +102,7 @@ const prepareAttack = async (options: { phase: number; ledger: number[]; resolut
     { findById: vi.fn(() => Promise.resolve(game)) } as unknown as GameRepository,
     { findByGameAndRoundAndActors: vi.fn(() => Promise.resolve(ctx.actors)) } as unknown as ActorRoundRepository,
     actionRepository,
-    { findById: vi.fn(() => Promise.resolve({ skills: [], traits: [] })) } as unknown as CharacterPort,
+    sheetsOf({ findById: vi.fn(() => Promise.resolve({ skills: [], traits: [] })) } as unknown as CharacterPort),
     { findById: vi.fn(() => Promise.resolve({ options: {} })) } as unknown as StrategicGameApiClient,
     { publish: vi.fn(() => Promise.resolve()) },
     new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST)),
@@ -292,7 +293,7 @@ describe('Interruption (spec 011, §2; criterion 7)', () => {
       actionRepository,
       { publish: vi.fn(() => Promise.resolve()) },
       { findSkill: vi.fn(), findManeuverModifiers: vi.fn() },
-      { findById: vi.fn(() => Promise.resolve(null)) } as unknown as CharacterPort,
+      sheetsOf({ findById: vi.fn(() => Promise.resolve(null)) } as unknown as CharacterPort),
       {} as SpellCastingService,
     );
 
@@ -398,7 +399,7 @@ describe('Validation of the minimum AP when resolving (spec 011, §4)', () => {
         update: vi.fn((updated: Action) => Promise.resolve(updated)),
       } as unknown as ActionRepository,
       { publish: vi.fn(() => Promise.resolve()) },
-      { findById: vi.fn(() => Promise.resolve({ skills: [] })) } as unknown as CharacterPort,
+      sheetsOf({ findById: vi.fn(() => Promise.resolve({ skills: [] })) } as unknown as CharacterPort),
       { execute: vi.fn(() => Promise.resolve()) } as unknown as CommandBus,
     );
     return () => handler.execute(new CompleteActionCommand(target.id, undefined, 'user', []));
