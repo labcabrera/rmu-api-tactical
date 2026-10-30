@@ -10,6 +10,7 @@ import { GamesModule } from './modules/games/games.module.js';
 import { PoisonsModule } from './modules/poisons/poisons.module.js';
 import { PsychologyModule } from './modules/psychology/psychology.module.js';
 import { SharedModule } from './modules/shared/shared.module.js';
+import { StatsModule } from './modules/stats/stats.module.js';
 import { StrategicModule } from './modules/strategic/strategic.module.js';
 
 @Module({
@@ -27,6 +28,7 @@ import { StrategicModule } from './modules/strategic/strategic.module.js';
       inject: [ConfigService],
     }),
     SharedModule,
+    StatsModule,
     StrategicModule,
     AuthModule,
     GamesModule,

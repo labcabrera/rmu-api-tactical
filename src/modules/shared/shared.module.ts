@@ -13,6 +13,7 @@ import { DOMAIN_EVENT_PUBLISHER } from './application/ports/domain-event-publish
 import { KafkaDomainEventPublisher } from './infrastructure/messaging/kafka.domain-event.publisher.js';
 import { KafkaProducerService } from './infrastructure/messaging/kafka-producer.service.js';
 import { HealthController } from './interfaces/http/health.controller.js';
+import { InfoController } from './interfaces/http/info.controller.js';
 
 @Module({
   imports: [
@@ -29,7 +30,7 @@ import { HealthController } from './interfaces/http/health.controller.js';
       },
     }),
   ],
-  controllers: [HealthController],
+  controllers: [HealthController, InfoController],
   providers: [
     { provide: APP_GUARD, useClass: HttpThrottlerGuard },
     RsqlParser,
