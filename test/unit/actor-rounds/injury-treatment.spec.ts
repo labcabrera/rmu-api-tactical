@@ -252,6 +252,27 @@ describe('TreatInjuryHandler and StabilizeEffectHandler', () => {
     ]);
   });
 
+  it('spec 052: returns the breakdown of the total, each entry with its group and rule', async () => {
+    const { treat } = setup('success', []);
+
+    const result = await treat.execute(
+      new TreatInjuryCommand('patient-round', 'wound', 'stitches', { healerActorId: 'healer' }, 60, undefined, 'user', []),
+    );
+
+    expect(result.roll.breakdown.map(({ key, value }) => [key, value])).toEqual([
+      ['roll', 60],
+      ['medicine', 45],
+      ['difficulty', 0],
+      ['healer-penalty', -10],
+    ]);
+    expect(result.roll.breakdown[1]).toMatchObject({ group: 'skill', rule: 'Table 3-15', params: { healer: 'Elrond' } });
+    expect(result.roll.breakdown[2]).toMatchObject({
+      group: 'situation',
+      params: { procedure: 'procedure-stitches', injuryType: 'injury-type-cut-burn' },
+    });
+    expect(result.roll.breakdown[3]).toMatchObject({ group: 'penalty', source: 'healer' });
+  });
+
   it('takes an external healer and the recovery modifier of the result', async () => {
     const { treat, absolute, patient } = setup('absolute-success', [{ status: 'recoveryRollModifier', value: 25 }]);
 

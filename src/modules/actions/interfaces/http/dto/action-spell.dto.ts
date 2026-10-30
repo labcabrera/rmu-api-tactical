@@ -18,6 +18,7 @@ import {
   type SpellVoice,
 } from '../../../domain/value-objects/action-spell.vo.js';
 import { KeyValueModifierDto } from './key-value-modifier.dto.js';
+import { SkippedRuleDto } from './skipped-rule.dto.js';
 
 export class SpellOptionsDto implements Partial<ActionSpellOptions> {
   @ApiProperty({ description: 'Cast subtly (Table 4-2 subtlety for the spell type)', required: false })
@@ -181,6 +182,9 @@ export class SpellPreviewDto {
   @ApiProperty({ description: 'Sum of the modifiers: the SCR is the roll plus this', example: 18 })
   bonus: number;
 
+  @ApiProperty({ type: [SkippedRuleDto], description: 'Rules of Table 4-2 that do not apply to these choices, and why' })
+  skipped: SkippedRuleDto[];
+
   @ApiProperty({ description: 'An overcast spell: the choices need a preparation round' })
   needsPreparation: boolean;
 
@@ -191,6 +195,7 @@ export class SpellPreviewDto {
     const dto = new SpellPreviewDto();
     dto.modifiers = preview.modifiers.map(modifier => KeyValueModifierDto.fromEntity(modifier));
     dto.bonus = preview.bonus;
+    dto.skipped = preview.skipped.map(rule => SkippedRuleDto.fromEntity(rule));
     dto.needsPreparation = preview.needsPreparation;
     dto.actionPoints = preview.actionPoints;
     return dto;

@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import type { SkippedRule } from '../../../domain/value-objects/skipped-rule.vo.js';
 import {
   type ActorRoundRepository,
   ACTOR_ROUND_REPOSITORY,
@@ -22,6 +23,7 @@ import {
   directedSpellSpecialization,
   needsPreparation,
   scrModifiers,
+  scrSkipped,
   spellAttackEffect,
   spellAttackProfile,
 } from '../../../domain/services/spell-casting.rules.js';
@@ -50,6 +52,8 @@ export interface ScrCalculation {
   modifiers: KeyValueModifier[];
   /** Sum of the modifiers: the SCR is the roll plus this. */
   bonus: number;
+  /** Rules of Table 4-2 that do not apply to these choices, and why (workspace spec 052). */
+  skipped: SkippedRule[];
 }
 
 /** Declaring and resolving `cast_spell` actions (spec 030). */
@@ -132,11 +136,22 @@ export class SpellCastingService {
     const { action, actorRound, currentPhase } = context;
     const actionPoints = action.apOf(actorRound, currentPhase);
     const apPenalty = action.takesApPenalty() ? action.apProfile().penaltyFor(actionPoints) : 0;
-    const modifiers = scrModifiers(
-      { spell: context.spell.spell, caster: context.spell.caster, options, apPenalty, penalties: actorRound.getPenaltiesBySource() },
-      await this.tables.findModifiers(),
-    );
-    return { options, modifiers, bonus: modifiers.reduce((sum, modifier) => sum + modifier.value, 0) };
+    const input = {
+      spell: context.spell.spell,
+      caster: context.spell.caster,
+      options,
+      apPenalty,
+      penalties: actorRound.getPenaltiesBySource(),
+      actionPoints,
+    };
+    const tables = await this.tables.findModifiers();
+    const modifiers = scrModifiers(input, tables);
+    return {
+      options,
+      modifiers,
+      bonus: modifiers.reduce((sum, modifier) => sum + modifier.value, 0),
+      skipped: scrSkipped(input, tables),
+    };
   }
 
   /** An overcast spell that is not instantaneous needs a preparation round (Spell Law 4.2). */

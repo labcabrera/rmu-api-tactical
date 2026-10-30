@@ -22,7 +22,9 @@ export const resolveSelections = (
       if (!definition) {
         throw new ValidationError(`Unknown maneuver modifier '${key}' for the skill`, ERR_UNKNOWN_MODIFIER);
       }
-      return new KeyValueModifier(key, selectionValue(definition, selection));
+      // Workspace spec 052: the catalog's modifiers explain themselves by the option chosen
+      const params = typeof selection === 'boolean' ? undefined : { [definition.type === 'number' ? 'units' : 'option']: selection };
+      return new KeyValueModifier(key, selectionValue(definition, selection), 'situation', 'catalog', undefined, params);
     })
     .filter(modifier => modifier.value !== 0);
 };

@@ -1,4 +1,5 @@
 import { Inject, Logger } from '@nestjs/common';
+import type { SkippedRule } from '../../../domain/value-objects/skipped-rule.vo.js';
 import { CommandHandler, type ICommandHandler, type IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import {
   type ActorRoundRepository,
@@ -74,7 +75,7 @@ export class RollSpellHandler implements ICommandHandler<RollSpellCommand, Actio
     const total = command.roll + calculation.bonus;
     const result = scrResult(total);
     context.spell.options = calculation.options;
-    context.spell.roll = { modifiers: calculation.modifiers, roll: command.roll, totalRoll: total };
+    context.spell.roll = { modifiers: calculation.modifiers, roll: command.roll, totalRoll: total, skipped: calculation.skipped };
     context.spell.result = result;
     context.spell.failure = undefined;
     context.spell.targets = undefined;
@@ -177,6 +178,7 @@ export class ResolveSpellResistanceHandler implements ICommandHandler<ResolveSpe
         roll: request.roll!,
         conditions,
         breakdown: rr.breakdown,
+        skipped: rr.skipped,
         total: rr.total,
         required: scr,
         resisted: rr.resisted,
@@ -241,6 +243,8 @@ export class ApplySpellHandler implements ICommandHandler<ApplySpellCommand, Act
 export interface SpellPreview {
   modifiers: KeyValueModifier[];
   bonus: number;
+  /** Rules of Table 4-2 that do not apply to these choices (workspace spec 052). */
+  skipped: SkippedRule[];
   /** The SCR needs a preparation round with these choices (an overcast spell). */
   needsPreparation: boolean;
   actionPoints: number;
@@ -263,6 +267,7 @@ export class PreviewSpellHandler implements IQueryHandler<PreviewSpellQuery, Spe
     return {
       modifiers: calculation.modifiers,
       bonus: calculation.bonus,
+      skipped: calculation.skipped,
       needsPreparation,
       actionPoints: context.action.apOf(context.actorRound, context.currentPhase),
     };

@@ -24,7 +24,14 @@ import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.v
 import type { PassiveSide } from '../../cqrs/commands/resolve-maneuver.command.js';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
 import { type SkillCatalogPort, SKILL_CATALOG_PORT } from '../../ports/skill-catalog.port.js';
-import { type ManeuverBaseModifier, ManeuverBaseModifiersService, type ManeuverSkillBonus } from './maneuver-base-modifiers.service.js';
+import { SkippedRule } from '../../../domain/value-objects/skipped-rule.vo.js';
+import {
+  MANEUVER_PHASE,
+  MANEUVER_RULES,
+  type ManeuverBaseModifier,
+  ManeuverBaseModifiersService,
+  type ManeuverSkillBonus,
+} from './maneuver-base-modifiers.service.js';
 import { ERR_INVALID_MODIFIER, resolveSelections } from './maneuver-selections.js';
 
 export const DEFAULT_DIFFICULTY: Difficulty = 'm';
@@ -40,6 +47,8 @@ export interface ManeuverContext {
   catalog: ManeuverModifierDefinition[];
   skill: ManeuverSkillBonus;
   base: ManeuverBaseModifier[];
+  /** Rules of the base modifiers that do not apply, and why (workspace spec 052). */
+  skipped: SkippedRule[];
   maneuverType: ManeuverType;
 }
 
@@ -60,6 +69,8 @@ export interface ManeuverModifiersListing {
   conflicting: boolean;
   /** Percent maneuvers: progress accumulated before this roll. */
   progress?: number;
+  /** Rules of the base modifiers that do not apply, and why (workspace spec 052). */
+  skipped: SkippedRule[];
 }
 
 /** The choices of a maneuver roll. */
@@ -77,6 +88,7 @@ export interface ManeuverChoices {
 
 export interface ManeuverRollCalculation {
   modifiers: KeyValueModifier[];
+  skipped: SkippedRule[];
   total: number;
   lightUsage: LightManeuverModifier;
 }
@@ -122,7 +134,11 @@ export class ManeuverContextService {
     const profile = skill.maneuver ?? DEFAULT_MANEUVER_PROFILE;
     const actionPoints =
       options.actionPoints !== undefined ? options.actionPoints : ManeuverContextService.expectedActionPoints(action, game, actorRound);
-    const { skill: skillBonus, base } = this.baseModifiersService.compute({
+    const {
+      skill: skillBonus,
+      base,
+      skipped,
+    } = this.baseModifiersService.compute({
       actorRound,
       character,
       profile,
@@ -134,7 +150,7 @@ export class ManeuverContextService {
       includePace: true,
     });
     const maneuverType = options.maneuverType || action.maneuver.modifiers.maneuverType || profile.defaultType;
-    return { actorRound, character, profile, catalog, skill: skillBonus, base, maneuverType };
+    return { actorRound, character, profile, catalog, skill: skillBonus, base, skipped, maneuverType };
   }
 
   /**
@@ -162,6 +178,7 @@ export class ManeuverContextService {
       },
       skillModifiers: context.catalog,
       conflicting: ManeuverContextService.isConflicting(context.maneuverType, context.profile),
+      skipped: context.skipped,
     };
     if (usage !== 'none') {
       listing.light = {
@@ -220,11 +237,14 @@ export class ManeuverContextService {
     if (difficultyValue === undefined) {
       throw new ValidationError(`Unknown difficulty '${difficulty}'`, ERR_INVALID_MODIFIER);
     }
+    const skipped = [...context.skipped];
     const modifiers: KeyValueModifier[] = [
       new KeyValueModifier('roll', roll),
-      new KeyValueModifier(context.skill.skillId, context.skill.bonus),
-      new KeyValueModifier('difficulty', difficultyValue),
-      ...context.base.map(modifier => new KeyValueModifier(modifier.key, modifier.value)),
+      ManeuverBaseModifiersService.skillModifier(context.skill),
+      new KeyValueModifier('difficulty', difficultyValue, 'situation', 'difficulty', MANEUVER_RULES.difficulty, { difficulty }),
+      ...context.base.map(
+        modifier => new KeyValueModifier(modifier.key, modifier.value, modifier.group, modifier.source, modifier.rule, modifier.params),
+      ),
     ];
     const lightUsage = context.profile.light !== 'none' ? context.profile.light : (choices.lightUsage ?? 'none');
     if (lightUsage !== 'none' && choices.light) {
@@ -232,24 +252,45 @@ export class ManeuverContextService {
       if (lightValue === undefined) {
         throw new ValidationError(`Unknown light '${choices.light}'`, ERR_INVALID_MODIFIER);
       }
-      modifiers.push(new KeyValueModifier('light', ManeuverContextService.lightValue(lightValue, lightUsage)));
+      modifiers.push(
+        new KeyValueModifier(
+          'light',
+          ManeuverContextService.lightValue(lightValue, lightUsage),
+          'situation',
+          'light',
+          MANEUVER_RULES.light,
+          {
+            light: choices.light,
+            usage: lightUsage,
+            base: lightValue,
+          },
+        ),
+      );
+    } else if (choices.light) {
+      skipped.push(
+        new SkippedRule('light', 'situation', 'light-not-needed', MANEUVER_PHASE, MANEUVER_RULES.light, { light: choices.light }),
+      );
     }
     modifiers.push(...resolveSelections(context.catalog, choices.selections));
     if (choices.purpose) {
       modifiers.push(...frenzyManeuverModifiers(context.actorRound, choices.purpose));
     }
     if (choices.customBonus) {
-      modifiers.push(new KeyValueModifier('custom-bonus', choices.customBonus));
+      modifiers.push(new KeyValueModifier('custom-bonus', choices.customBonus, 'situation', 'custom'));
     }
     if (choices.passiveTotal !== undefined && choices.passiveTotal !== null) {
       if (!ManeuverContextService.isConflicting(context.maneuverType, context.profile)) {
         throw new ValidationError('Only an absolute or a price maneuver can be in conflict', ERR_INVALID_MODIFIER);
       }
-      modifiers.push(new KeyValueModifier('conflict', 100 - choices.passiveTotal));
+      modifiers.push(
+        new KeyValueModifier('conflict', 100 - choices.passiveTotal, 'situation', 'conflict', MANEUVER_RULES.conflict, {
+          passive: choices.passiveTotal,
+        }),
+      );
     }
     const filtered = modifiers.filter((modifier, index) => index < 3 || modifier.value !== 0);
     const total = filtered.reduce((sum, modifier) => sum + modifier.value, 0);
-    return { modifiers: filtered, total, lightUsage };
+    return { modifiers: filtered, skipped, total, lightUsage };
   }
 
   private static lightValue(value: number, usage: LightManeuverModifier): number {

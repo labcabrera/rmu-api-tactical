@@ -45,10 +45,10 @@ export const frenzyManeuverModifiers = (actorRound: ActorRound, purpose: FrenzyP
   const modifiers: KeyValueModifier[] = [];
   const greater = purpose === 'frenzy-enter-greater' || (purpose === 'frenzy-exit' && actorRound.frenzyLevel() === 2);
   if (greater) {
-    modifiers.push(new KeyValueModifier('frenzy-greater', GREATER_FRENZY_MODIFIER));
+    modifiers.push(new KeyValueModifier('frenzy-greater', GREATER_FRENZY_MODIFIER, 'situation', 'frenzy', '§3.4'));
   }
   if (activeStyleAbility(actorRound.activeStyle, IMPROVED_FRENZY)) {
-    modifiers.push(new KeyValueModifier(IMPROVED_FRENZY, IMPROVED_FRENZY_BONUS));
+    modifiers.push(new KeyValueModifier(IMPROVED_FRENZY, IMPROVED_FRENZY_BONUS, 'situation', 'frenzy'));
   }
   return modifiers;
 };

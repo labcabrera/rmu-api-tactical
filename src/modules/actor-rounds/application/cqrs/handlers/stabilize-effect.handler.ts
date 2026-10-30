@@ -31,7 +31,9 @@ export class StabilizeEffectHandler implements ICommandHandler<StabilizeEffectCo
     const effect = patient.effects.find(each => each.id === command.effectId);
     if (!effect) throw new NotFoundError('Effect', command.effectId, 'err-effect-not-found');
     if (effect.status !== DYING) throw new ValidationError(`Effect ${command.effectId} is not a dying effect`, 'err-effect-not-dying');
-    const roll = await this.medicalRollService.roll(patient, command.healer, command.roll, command.difficulty ?? 0);
+    const roll = await this.medicalRollService.roll(patient, command.healer, command.roll, command.difficulty ?? 0, {
+      procedure: 'stabilize',
+    });
     const roundsGained = InjuryTreatmentRules.stabilizationRounds(roll.outcome.result);
     patient.stabilize(command.effectId, roundsGained);
     const updated = await this.actorRoundRepository.update(patient);

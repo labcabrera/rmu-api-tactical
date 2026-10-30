@@ -2,7 +2,7 @@ import request from 'supertest';
 import type { CharacterSpellcasting } from '../../src/modules/strategic/application/ports/character-magic.port.js';
 import { character, startApp, USERS, type E2eApp, type UserName } from './support/app.js';
 
-type Modifier = { key: string; value: number };
+type Modifier = { key: string; value: number; group?: string; rule?: string; params?: Record<string, unknown> };
 type SpellActionBody = {
   id: string;
   status: string;
@@ -220,6 +220,8 @@ describe('resolve a cast', () => {
     expect((rr.body as SpellActionBody).spell.targets).toEqual([
       expect.objectContaining({ actorId: 'lurtz', total: 29, required: 68, resisted: false, failure: 39 }),
     ]);
+    const rrEntries = (rr.body as SpellActionBody).spell.targets![0].breakdown;
+    expect(rrEntries.find(each => each.key === 'caster-level')).toMatchObject({ group: 'casting', params: { level: 3 } });
 
     const applied = await as('owner').patch(`/v1/actions/${action.id}/spell/apply`);
     expect(applied.status).toBe(200);
@@ -239,6 +241,14 @@ describe('resolve a cast', () => {
     expect(preview.status).toBe(200);
     // 18 base, subtle elemental -7, one hand -3, fast casting with 2 of 4 AP -50
     expect(preview.body).toMatchObject({ bonus: -42, needsPreparation: false, actionPoints: 2 });
+    // Workspace spec 052: the table modifiers say which column and choice they read
+    const modifiers = (preview.body as { modifiers: Modifier[] }).modifiers;
+    expect(modifiers.find(each => each.key === 'hands')).toMatchObject({
+      group: 'casting',
+      rule: 'Spell Law Table 4-2',
+      params: { hands: 'one', column: 'essence' },
+    });
+    expect(modifiers.find(each => each.key === 'fast-casting')).toMatchObject({ params: { ap: 2 } });
 
     const rolled = await as('owner').patch(`/v1/actions/${action.id}/spell/roll`, { roll: 30, options });
     expect(rolled.body).toMatchObject({ status: 'pending_roll', spell: { result: 'failure', roll: { totalRoll: -12 } } });

@@ -8,7 +8,7 @@ import { KeyValueModifier } from '../../domain/value-objects/key-value-modifier.
 import { LIGHT_MAP } from '../../domain/value-objects/light-type.vo.js';
 import { MOVEMENT_MANEUVER_PROFILE } from '../../domain/value-objects/maneuver-profile.vo.js';
 import { type ManeuverPort, MANEUVER_PORT } from '../ports/maneuver.port.js';
-import { ManeuverBaseModifiersService } from './maneuver/maneuver-base-modifiers.service.js';
+import { MANEUVER_RULES, ManeuverBaseModifiersService } from './maneuver/maneuver-base-modifiers.service.js';
 import { BLINDED } from '../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
 
 @Injectable()
@@ -71,12 +71,17 @@ export class MovementProcessorService {
         throw new ValidationError(`Unknown difficulty: ${action.movement.modifiers.difficulty}`);
       }
       const modifiers: KeyValueModifier[] = [
-        new KeyValueModifier(skillId, skill.bonus),
-        new KeyValueModifier('difficulty', difficultyBonus),
-        ...base.map(modifier => new KeyValueModifier(modifier.key, modifier.value)),
+        // Workspace spec 052: the same explanations as any maneuver
+        ManeuverBaseModifiersService.skillModifier(skill),
+        new KeyValueModifier('difficulty', difficultyBonus, 'situation', 'difficulty', MANEUVER_RULES.difficulty, {
+          difficulty: action.movement.modifiers.difficulty!,
+        }),
+        ...base.map(
+          modifier => new KeyValueModifier(modifier.key, modifier.value, modifier.group, modifier.source, modifier.rule, modifier.params),
+        ),
         // Spec 034: a blinded actor moves in pitch black.
         ...this.lightModifier(actorRound.hasEffect(BLINDED) ? 'pitch_black' : action.movement.modifiers.light),
-        new KeyValueModifier('custom-bonus', action.movement.modifiers.customBonus || 0),
+        new KeyValueModifier('custom-bonus', action.movement.modifiers.customBonus || 0, 'situation', 'custom'),
         new KeyValueModifier('roll', roll),
       ];
       const totalRoll = modifiers.reduce((acc, mod) => acc + mod.value, 0);
@@ -113,7 +118,9 @@ export class MovementProcessorService {
     if (value === undefined) {
       throw new ValidationError(`Unknown light: ${light}`, 'err-maneuver-invalid-modifier');
     }
-    return value === 0 ? [] : [new KeyValueModifier('light', value)];
+    return value === 0
+      ? []
+      : [new KeyValueModifier('light', value, 'situation', 'light', MANEUVER_RULES.light, { light, usage: 'helpful' })];
   }
 
   /** Table 5-3: the encumbrance or the creature caps the pace. An unknown maximum (older actor rounds) is not checked. */

@@ -6,7 +6,10 @@ export class SkippedRuleDto {
   @ApiProperty({ description: 'Combat plugin of the rule', example: 'shield' })
   source: string;
 
-  @ApiProperty({ description: 'Breakdown group of the plugin', enum: ['offense', 'defense', 'situation', 'critical', 'resolution'] })
+  @ApiProperty({
+    description: 'Breakdown group of the plugin',
+    enum: ['offense', 'defense', 'situation', 'critical', 'resolution', 'skill', 'casting', 'target', 'penalty'],
+  })
   group: ModifierGroup;
 
   @ApiProperty({ description: 'Why the rule does not apply: the key of its explanation', example: 'shield-not-front' })

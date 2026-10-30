@@ -18,6 +18,16 @@ export class ResistanceModifierDto {
   @ApiProperty({ example: 5 })
   @IsNumber()
   value: number;
+
+  @ApiProperty({ required: false, description: 'Breakdown group (responses only)', example: 'skill' })
+  @IsOptional()
+  @IsString()
+  group?: 'skill' | 'target' | 'penalty' | 'situation';
+
+  @ApiProperty({ required: false, description: 'Rule reference (responses only)', example: '§14.3' })
+  @IsOptional()
+  @IsString()
+  rule?: string;
 }
 
 export class ResistanceRollDto {

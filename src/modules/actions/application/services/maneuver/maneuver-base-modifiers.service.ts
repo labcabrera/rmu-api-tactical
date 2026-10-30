@@ -4,6 +4,8 @@ import { activeStyleAbility } from '../../../../actor-rounds/domain/value-object
 import { ValidationError } from '../../../../shared/domain/errors/errors.js';
 import type { Character } from '../../../../strategic/application/ports/character.port.js';
 import { Action } from '../../../domain/aggregates/action.js';
+import { KeyValueModifier, type ModifierGroup, type ModifierParams } from '../../../domain/value-objects/key-value-modifier.vo.js';
+import { SkippedRule } from '../../../domain/value-objects/skipped-rule.vo.js';
 import { AP_PENALTY_PER_MISSING, ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo.js';
 import type { SkillManeuverProfile } from '../../../domain/value-objects/maneuver-profile.vo.js';
 import type { Pace } from '../../../domain/value-objects/pace.vo.js';
@@ -53,7 +55,29 @@ export interface ManeuverBaseModifier {
   key: string;
   value: number;
   source: ManeuverBaseSource;
+  /** Workspace spec 052: breakdown group, rule reference and the inputs of its explanation. */
+  group?: ModifierGroup;
+  rule?: string;
+  params?: ModifierParams;
 }
+
+/** Phase of the rules a maneuver skips, as `SkippedRule.phase`. */
+export const MANEUVER_PHASE = 'maneuver';
+
+/** Rule references of the maneuver modifiers (Core Law), shown with their explanation (workspace spec 052). */
+export const MANEUVER_RULES = {
+  skill: 'Table 3-0b',
+  unskilled: 'Ch. 3, Skill Bonus',
+  difficulty: '§5.1',
+  armor: '§7.2',
+  encumbrance: '§5.4',
+  breakage: '§6.1',
+  pace: 'Table 5-3',
+  actionPoints: '§8.1',
+  light: 'Table 15-7',
+  conflict: '§8.2',
+  frenzy: '§3.4',
+} as const;
 
 export interface ManeuverSkillBonus {
   skillId: string;
@@ -83,6 +107,8 @@ export interface ManeuverBaseInput {
 export interface ManeuverBaseResult {
   skill: ManeuverSkillBonus;
   base: ManeuverBaseModifier[];
+  /** Rules the player could expect that do not apply, and why (workspace spec 052). */
+  skipped: SkippedRule[];
 }
 
 /**
@@ -93,18 +119,22 @@ export interface ManeuverBaseResult {
 export class ManeuverBaseModifiersService {
   compute(input: ManeuverBaseInput): ManeuverBaseResult {
     const base: ManeuverBaseModifier[] = [];
+    const skipped: SkippedRule[] = [];
     this.addActorPenalties(base, input.actorRound);
     if (input.profile.movement) {
       this.addEquipmentPenalties(base, input.character, input.actorRound);
     }
     if (input.includePace) {
-      this.addPacePenalty(base, input.pace, !!input.freeAction);
+      this.addPacePenalty(base, skipped, input.pace, !!input.freeAction);
+    } else if (input.pace) {
+      skipped.push(new SkippedRule('pace', 'situation', 'pace-movement-roll', MANEUVER_PHASE, MANEUVER_RULES.pace, { pace: input.pace }));
     }
     this.addActionPointsPenalty(base, input.profile, input.actionPoints);
     this.addStyleBonuses(base, input.actorRound, input.skillId, input.specialization ?? null);
     return {
       skill: ManeuverBaseModifiersService.skillBonus(input.character, input.skillId, input.specialization ?? null),
       base: base.filter(modifier => modifier.value !== 0),
+      skipped,
     };
   }
 
@@ -125,6 +155,20 @@ export class ManeuverBaseModifiersService {
     return { skillId, specialization, bonus: skill.totalBonus, ranks: skill.ranks ?? 0, unskilled: false };
   }
 
+  /**
+   * The skill in the breakdown (workspace spec 052): by its id with its ranks, or `unskilled` (-25) when the sheet
+   * does not have it. Both come from the `skill` source, whose explanation says where the bonus comes from.
+   */
+  static skillModifier(skill: ManeuverSkillBonus): KeyValueModifier {
+    const specialization: ModifierParams = skill.specialization ? { specialization: skill.specialization } : {};
+    return skill.unskilled
+      ? new KeyValueModifier('unskilled', skill.bonus, 'skill', 'skill', MANEUVER_RULES.unskilled, {
+          skill: skill.skillId,
+          ...specialization,
+        })
+      : new KeyValueModifier(skill.skillId, skill.bonus, 'skill', 'skill', MANEUVER_RULES.skill, { ranks: skill.ranks, ...specialization });
+  }
+
   /** Fastest pace of the actor's movement actions in the round (only resolved ones carry a pace). */
   static roundPace(actions: Action[], actorId: string, round: number): Pace | null {
     const paces = actions
@@ -139,7 +183,9 @@ export class ManeuverBaseModifiersService {
 
   /** Hit points, stun, criticals, fatigue, non-violent…: one `penalty-<source>` entry per source, as in attacks. */
   private addActorPenalties(base: ManeuverBaseModifier[], actorRound: ActorRound): void {
-    actorRound.getPenaltiesBySource().forEach(({ source, value }) => base.push({ key: `penalty-${source}`, value, source: 'actor-round' }));
+    actorRound
+      .getPenaltiesBySource()
+      .forEach(({ source, value }) => base.push({ key: `penalty-${source}`, value, source: 'actor-round', group: 'penalty' }));
   }
 
   /**
@@ -147,12 +193,14 @@ export class ManeuverBaseModifiersService {
    * in the game (spec 019, decision 10), which the sheet does not count yet.
    */
   private addEquipmentPenalties(base: ManeuverBaseModifier[], character: Character, actorRound: ActorRound): void {
-    base.push({ key: 'armor-maneuver', value: character.equipment?.maneuverPenalty || 0, source: 'equipment' });
-    base.push({ key: 'encumbrance', value: character.equipment?.encumbrancePenalty || 0, source: 'equipment' });
-    base.push({ key: 'item-breakage', value: actorRound.getArmorBreakagePenalty?.() || 0, source: 'equipment' });
+    const equipment = { source: 'equipment' as const, group: 'penalty' as const };
+    base.push({ key: 'armor-maneuver', value: character.equipment?.maneuverPenalty || 0, ...equipment, rule: MANEUVER_RULES.armor });
+    base.push({ key: 'encumbrance', value: character.equipment?.encumbrancePenalty || 0, ...equipment, rule: MANEUVER_RULES.encumbrance });
+    base.push({ key: 'item-breakage', value: actorRound.getArmorBreakagePenalty?.() || 0, ...equipment, rule: MANEUVER_RULES.breakage });
   }
 
-  private addPacePenalty(base: ManeuverBaseModifier[], pace: Pace | null, freeAction: boolean): void {
+  /** Table 5-3: the fastest pace of the round. An instantaneous action skips it, and says so. */
+  private addPacePenalty(base: ManeuverBaseModifier[], skipped: SkippedRule[], pace: Pace | null, freeAction: boolean): void {
     if (!pace) {
       return;
     }
@@ -161,9 +209,17 @@ export class ManeuverBaseModifiersService {
       if (!freeAction) {
         throw new ValidationError(`An actor moving at pace '${pace}' cannot perform other actions`, 'err-maneuver-invalid-pace');
       }
+      skipped.push(new SkippedRule('pace', 'situation', 'pace-instant-action', MANEUVER_PHASE, MANEUVER_RULES.pace, { pace }));
       return;
     }
-    base.push({ key: 'pace', value: PACE_PENALTIES[pace] ?? 0, source: 'movement' });
+    base.push({
+      key: 'pace',
+      value: PACE_PENALTIES[pace] ?? 0,
+      source: 'movement',
+      group: 'situation',
+      rule: MANEUVER_RULES.pace,
+      params: { pace },
+    });
   }
 
   private addStyleBonuses(base: ManeuverBaseModifier[], actorRound: ActorRound, skillId: string, specialization: string | null): void {
@@ -172,7 +228,15 @@ export class ManeuverBaseModifiersService {
         bonus.skillId === skillId &&
         (!bonus.specialization || bonus.specialization === specialization) &&
         !!activeStyleAbility(actorRound.activeStyle, bonus.abilityId),
-    ).forEach(bonus => base.push({ key: `style-ability-${bonus.abilityId}`, value: bonus.value, source: 'actor-round' }));
+    ).forEach(bonus =>
+      base.push({
+        key: `style-ability-${bonus.abilityId}`,
+        value: bonus.value,
+        source: 'actor-round',
+        group: 'situation',
+        params: { style: bonus.abilityId },
+      }),
+    );
   }
 
   /** §8.1: -25 per AP below the maximum of the profile's range (no penalty when the skill has no AP range). */
@@ -181,6 +245,13 @@ export class ManeuverBaseModifiersService {
       return;
     }
     const apProfile = ActionApProfile.forManeuver(profile.actionPoints);
-    base.push({ key: 'action-points', value: apProfile.penaltyFor(actionPoints), source: 'action' });
+    base.push({
+      key: 'action-points',
+      value: apProfile.penaltyFor(actionPoints),
+      source: 'action',
+      group: 'situation',
+      rule: MANEUVER_RULES.actionPoints,
+      params: { ap: actionPoints, max: profile.actionPoints.max },
+    });
   }
 }

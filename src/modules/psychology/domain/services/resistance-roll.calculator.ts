@@ -15,7 +15,13 @@ export const RESISTANCE_REASONS: ResistanceReason[] = ['frenzy-dying'];
 export interface ResistanceModifier {
   key: string;
   value: number;
+  /** Workspace spec 052: the breakdown group and rule reference of the entry. */
+  group?: 'skill' | 'target' | 'penalty' | 'situation';
+  rule?: string;
 }
+
+/** Rule references of the resistance rolls (Core Law): the RR itself, and the fear RR. */
+const RR_RULES: Record<ResistanceKind, string> = { fear: '§14.3', physical: '§5.6', poison: '§15.6' };
 
 export interface ResistanceRollInput {
   kind: ResistanceKind;
@@ -62,14 +68,16 @@ export class ResistanceRollCalculator {
     const rules = tables.resistanceRoll;
     const breakdown: ResistanceModifier[] = [
       { key: 'roll', value: input.roll },
-      { key: `${input.kind}-rr`, value: input.bonus },
-      { key: 'attack-level', value: rules.attackLevelMultiplier * input.attackLevel },
+      { key: `${input.kind}-rr`, value: input.bonus, group: 'skill', rule: RR_RULES[input.kind] },
+      { key: 'attack-level', value: rules.attackLevelMultiplier * input.attackLevel, group: 'target', rule: 'Table 5-6' },
     ];
     const ignoresPenalties = input.kind === 'fear' && rules.fearIgnoresInjuryPenalties !== false;
     if (!ignoresPenalties && input.penalty) {
-      breakdown.push({ key: 'penalty', value: Math.min(0, input.penalty) });
+      breakdown.push({ key: 'penalty', value: Math.min(0, input.penalty), group: 'penalty' });
     }
-    (input.modifiers ?? []).filter(modifier => modifier.value).forEach(modifier => breakdown.push({ ...modifier }));
+    (input.modifiers ?? [])
+      .filter(modifier => modifier.value)
+      .forEach(modifier => breakdown.push({ key: modifier.key, value: modifier.value, group: 'situation' }));
     const total = breakdown.reduce((sum, modifier) => sum + modifier.value, 0);
     const required = rules.requiredTotal;
     const failure = Math.max(0, required - total);

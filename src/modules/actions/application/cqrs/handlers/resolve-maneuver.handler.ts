@@ -91,7 +91,12 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     action.maneuver!.modifiers.targetActorId = request.passive?.targetActorId;
     action.maneuver!.modifiers.passiveSkillId = passive?.skillId;
     action.maneuver!.modifiers.purpose = request.purpose;
-    action.maneuver!.roll = { modifiers: calculation.modifiers, roll: command.roll.roll, totalRoll: calculation.total };
+    action.maneuver!.roll = {
+      modifiers: calculation.modifiers,
+      roll: command.roll.roll,
+      totalRoll: calculation.total,
+      skipped: calculation.skipped,
+    };
 
     const unusualEvent = command.roll.unmodified === UNUSUAL_EVENT_ROLL;
     let alert: ActorRoundAlert | null = null;

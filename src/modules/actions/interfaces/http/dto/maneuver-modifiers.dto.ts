@@ -1,6 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import type { ManeuverModifiersListing } from '../../../application/services/maneuver/maneuver-context.service.js';
+import type { ModifierParams } from '../../../domain/value-objects/key-value-modifier.vo.js';
 import type { ManeuverModifierDefinition } from '../../../domain/value-objects/maneuver-profile.vo.js';
+import { SkippedRuleDto } from './skipped-rule.dto.js';
 
 export class ManeuverOptionDto {
   @ApiProperty({ example: 'h' })
@@ -36,6 +38,15 @@ export class ManeuverBaseModifierDto {
 
   @ApiProperty({ enum: ['actor-round', 'equipment', 'movement', 'action'] })
   source: string;
+
+  @ApiProperty({ required: false, description: 'Breakdown group', example: 'penalty' })
+  group?: string;
+
+  @ApiProperty({ required: false, description: 'Rule reference', example: '§7.2' })
+  rule?: string;
+
+  @ApiProperty({ required: false, description: 'Inputs of the value, for its explanation', type: Object })
+  params?: ModifierParams;
 }
 
 export class ManeuverDifficultyDto {
@@ -129,6 +140,9 @@ export class ManeuverModifiersDto {
   @ApiProperty({ required: false, description: 'Percent maneuvers: progress accumulated' })
   progress?: number;
 
+  @ApiProperty({ type: [SkippedRuleDto], description: 'Rules of the base modifiers that do not apply, and why' })
+  skipped: SkippedRuleDto[];
+
   static fromListing(listing: ManeuverModifiersListing): ManeuverModifiersDto {
     const dto = new ManeuverModifiersDto();
     dto.skill = { ...listing.skill };
@@ -142,6 +156,7 @@ export class ManeuverModifiersDto {
     dto.skillModifiers = listing.skillModifiers.map(modifier => ManeuverModifierDefinitionDto.fromEntity(modifier));
     dto.conflicting = listing.conflicting;
     dto.progress = listing.progress;
+    dto.skipped = listing.skipped.map(rule => SkippedRuleDto.fromEntity(rule));
     return dto;
   }
 }
