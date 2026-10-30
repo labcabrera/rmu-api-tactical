@@ -76,8 +76,11 @@ export class TreatInjuryHandler implements ICommandHandler<TreatInjuryCommand, T
     const difficulty =
       command.difficulty ?? InjuryTreatmentRules.defaultDifficulty(command.procedure, injury, await this.healingTables.treatmentTables());
     const roll = await this.medicalRollService.roll(patient, command.healer, command.roll, difficulty, {
-      procedure: command.procedure,
-      ...(injury ? { injury: injury.type, severity: injury.severity, ...(injury.location ? { location: injury.location } : {}) } : {}),
+      // Translation keys of the values, as the MFE labels them
+      procedure: `procedure-${command.procedure}`,
+      ...(injury
+        ? { injuryType: `injury-type-${injury.type}`, severity: injury.severity, ...(injury.location ? { location: injury.location } : {}) }
+        : {}),
       ...(command.difficulty === undefined || command.difficulty === null ? {} : { chosen: true }),
     });
     const treated = patient.treatInjury(

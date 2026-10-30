@@ -266,7 +266,10 @@ describe('TreatInjuryHandler and StabilizeEffectHandler', () => {
       ['healer-penalty', -10],
     ]);
     expect(result.roll.breakdown[1]).toMatchObject({ group: 'skill', rule: 'Table 3-15', params: { healer: 'Elrond' } });
-    expect(result.roll.breakdown[2]).toMatchObject({ group: 'situation', params: { procedure: 'stitches', injury: 'cut-burn' } });
+    expect(result.roll.breakdown[2]).toMatchObject({
+      group: 'situation',
+      params: { procedure: 'procedure-stitches', injuryType: 'injury-type-cut-burn' },
+    });
     expect(result.roll.breakdown[3]).toMatchObject({ group: 'penalty', source: 'healer' });
   });
 
