@@ -8,6 +8,7 @@ import type { CombatPlugin } from '../combat-plugin.js';
 export const CombatCriticalAdjustmentPlugin: CombatPlugin = {
   id: 'critical-adjustment',
   group: 'critical',
+  rule: '§9.8',
   hooks: {
     prepare: [
       {

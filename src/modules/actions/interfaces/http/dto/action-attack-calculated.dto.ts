@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { ActionAttackCalculated } from '../../../domain/value-objects/action-attack-calculated.vo.js';
 import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo.js';
 import { KeyValueModifierDto } from './key-value-modifier.dto.js';
+import { SkippedRuleDto } from './skipped-rule.dto.js';
 
 export class ActionAttackCalculatedDto {
   @ApiProperty({ description: 'Modifiers of the attack roll, with the plugin that added each one', type: [KeyValueModifierDto] })
@@ -35,6 +36,9 @@ export class ActionAttackCalculatedDto {
   })
   fumble: number | undefined;
 
+  @ApiProperty({ description: 'Rules that did not apply to the attack, and why', type: [SkippedRuleDto], required: false })
+  skipped: SkippedRuleDto[];
+
   static fromEntity(entity: ActionAttackCalculated): ActionAttackCalculatedDto {
     const dto = new ActionAttackCalculatedDto();
     dto.rollModifiers = entity.rollModifiers ? entity.rollModifiers.map(mod => KeyValueModifierDto.fromEntity(mod)) : [];
@@ -44,6 +48,7 @@ export class ActionAttackCalculatedDto {
     dto.criticalAdjustment = entity.criticalAdjustment;
     dto.breakageRoll = entity.breakageRoll;
     dto.fumble = entity.fumble;
+    dto.skipped = (entity.skipped ?? []).map(rule => SkippedRuleDto.fromEntity(rule));
     return dto;
   }
 }

@@ -4,6 +4,7 @@ import type { CombatPlugin } from '../combat-plugin.js';
 export const CombatHigherGroundPlugin: CombatPlugin = {
   id: 'higher-ground',
   group: 'situation',
+  rule: 'Table 9-5',
   hooks: {
     prepare: [
       {

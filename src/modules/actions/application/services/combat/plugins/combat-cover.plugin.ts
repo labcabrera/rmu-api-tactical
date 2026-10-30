@@ -18,6 +18,7 @@ const rangedCoverModifiers: Record<CoverLevel, number> = {
 export const CombatCoverPlugin: CombatPlugin = {
   id: 'cover',
   group: 'situation',
+  rule: '§9.6',
   hooks: {
     prepare: [
       {

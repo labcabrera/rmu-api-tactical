@@ -1,3 +1,4 @@
+import type { ModifierParams } from '../../../domain/value-objects/key-value-modifier.vo.js';
 import type { CombatContext } from './combat-context.js';
 
 /**
@@ -10,11 +11,25 @@ export type CombatPhase = 'prepare' | 'parry' | 'beforeAttackRoll' | 'afterAttac
 /** Phase run when the parries are declared (named so that callers do not spell a modifier key). */
 export const PARRY_PHASE: CombatPhase = 'parry';
 
+/**
+ * A rule that does not apply for a reason the player could miss (the target has a shield, but the attack comes from
+ * its flank): a hook's condition returns it instead of `false`, and the attack keeps it to explain (spec 051).
+ */
+export interface CombatSkip {
+  skip: string;
+  params?: ModifierParams;
+}
+
+export const skip = (reason: string, params?: ModifierParams): CombatSkip => ({ skip: reason, ...(params ? { params } : {}) });
+
 export interface CombatHook<TContext extends CombatContext = CombatContext> {
   /** Higher runs first; hooks with the same priority run in registration order. */
   priority?: number;
-  /** When the rule applies. Guards belong here so that apply() only computes. */
-  condition?: (ctx: TContext) => boolean | Promise<boolean>;
+  /**
+   * When the rule applies. Guards belong here so that apply() only computes. A `skip()` instead of `false` records
+   * why it does not.
+   */
+  condition?: (ctx: TContext) => boolean | CombatSkip | Promise<boolean | CombatSkip>;
   apply: (ctx: TContext) => TContext | void | Promise<TContext | void>;
 }
 

@@ -7,7 +7,7 @@ import type { ActionSpell } from '../../../domain/value-objects/action-spell.vo.
 import { ActionAttack } from './action-attack.model.js';
 import { ActionManeuver } from './action-maneuver.model.js';
 import { ActionMovement } from './action-movement.model.js';
-import { ActionParry } from './action-parry.model.js';
+import { ActionParry, ParryExclusionModel } from './action-parry.model.js';
 import { ActionApRangeModel, ActionResolutionModel } from './action-resolution.model.js';
 
 export type ActionDocument = HydratedDocument<ActionModel>;
@@ -59,6 +59,9 @@ export class ActionModel {
 
   @Prop({ type: [ActionParry], required: false })
   public parries: ActionParry[] | null;
+
+  @Prop({ type: [ParryExclusionModel], required: false })
+  public parryExclusions: ParryExclusionModel[] | null;
 
   @Prop({ type: Number, required: false })
   fatigue: number | null;

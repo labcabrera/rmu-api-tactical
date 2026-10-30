@@ -14,4 +14,10 @@ export class Modifier {
 
   @Prop({ type: String, required: false })
   public source?: string;
+
+  @Prop({ type: String, required: false })
+  public rule?: string;
+
+  @Prop({ type: Object, required: false })
+  public params?: Record<string, number | string | boolean>;
 }

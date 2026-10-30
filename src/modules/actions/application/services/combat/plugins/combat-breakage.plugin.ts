@@ -5,6 +5,7 @@ const BREAKAGE_ROLLS = new Set([33, 77]);
 export const CombatBreakagePlugin: CombatPlugin = {
   id: 'breakage',
   group: 'resolution',
+  rule: '§9.8',
   hooks: {
     beforeAttackRoll: [
       {

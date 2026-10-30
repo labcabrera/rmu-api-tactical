@@ -1,5 +1,6 @@
 import type { CombatContext } from '../combat-context.js';
 import {
+  ignoredDefenseSkip,
   isAreaSpellAttack,
   isMelee,
   isPreparing,
@@ -9,6 +10,8 @@ import {
   targetSkill,
   targetSkillRanks,
 } from '../combat-modifiers.js';
+import type { ModifierParams } from '../../../../domain/value-objects/key-value-modifier.vo.js';
+import { skip } from '../combat-phase.js';
 import type { CombatPlugin } from '../combat-plugin.js';
 
 /** Most DB a passive dodge gives (§9.6 Dodging). */
@@ -22,42 +25,52 @@ const DODGE_SKILL = 'running';
  * injury penalties the partial and full ones. Against a ranged or thrown attack the result is halved after the
  * penalties. It never turns into a DB penalty.
  */
-const dodgeBonus = (ctx: CombatContext): number => {
+const dodgeBonus = (ctx: CombatContext): { value: number; params: ModifierParams } => {
   const target = ctx.targetActor!;
-  const armorPenalty = Math.min(0, target.movement?.penalty || 0);
+  const mode = target.defenseMode?.dodge ?? 'none';
+  const armor = Math.min(0, target.movement?.penalty || 0);
+  const injury = targetInjuryPenalty(ctx);
+  const ranks = targetSkillRanks(ctx, DODGE_SKILL);
+  const skill = targetSkill(ctx, DODGE_SKILL);
   let value: number;
-  switch (target.defenseMode?.dodge) {
+  switch (mode) {
     case 'passive':
-      value = Math.min(targetSkillRanks(ctx, DODGE_SKILL), MAX_PASSIVE_DODGE) + armorPenalty;
+      value = Math.min(ranks, MAX_PASSIVE_DODGE) + armor;
       break;
     case 'partial':
-      value = Math.floor(targetSkill(ctx, DODGE_SKILL) / 2) + armorPenalty + targetInjuryPenalty(ctx);
+      value = Math.floor(skill / 2) + armor + injury;
       break;
     case 'full':
-      value = targetSkill(ctx, DODGE_SKILL) + armorPenalty + targetInjuryPenalty(ctx);
+      value = skill + armor + injury;
       break;
     default:
-      return 0;
+      return { value: 0, params: {} };
   }
   value = Math.max(0, value);
-  return isMelee(ctx) ? value : Math.floor(value / 2);
+  const halved = !isMelee(ctx);
+  const params: ModifierParams = mode === 'passive' ? { mode, ranks, armor, halved } : { mode, skill, armor, injury, halved };
+  return { value: halved ? Math.floor(value / 2) : value, params };
 };
 
 /** The target's dodge of the round, from its defence mode. A flatfooted target is not aware of the attack. */
 export const CombatDodgePlugin: CombatPlugin = {
   id: 'dodge',
   group: 'defense',
+  rule: '§9.6',
   hooks: {
     prepare: [
       {
         // An area attack spell cannot be dodged (RMCL 9.3).
-        condition: ctx =>
-          isPreparing(ctx) &&
-          !isAreaSpellAttack(ctx) &&
-          !!ctx.targetActor?.defenseMode &&
-          ctx.targetActor.defenseMode.dodge !== 'none' &&
-          !targetIgnoresDefense(ctx),
-        apply: ctx => void rollModifiers(ctx).add('dodge', -dodgeBonus(ctx)),
+        condition: ctx => {
+          const dodge = ctx.targetActor?.defenseMode?.dodge;
+          if (!isPreparing(ctx) || !dodge || dodge === 'none') return false;
+          if (isAreaSpellAttack(ctx)) return skip('dodge-area-spell');
+          return targetIgnoresDefense(ctx) ? ignoredDefenseSkip(ctx) : true;
+        },
+        apply: ctx => {
+          const { value, params } = dodgeBonus(ctx);
+          rollModifiers(ctx).add('dodge', -value, params);
+        },
       },
     ],
   },

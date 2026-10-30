@@ -12,5 +12,7 @@ export interface CombatPlugin<TContext extends CombatContext = CombatContext> {
   id: string;
   /** Breakdown group of the modifiers it adds. */
   group: ModifierGroup;
+  /** Reference of the rule in the books (`§9.6`, `Table 9-5`), shown with its explanation (workspace spec 051). */
+  rule?: string;
   hooks: CombatPhaseHooks<TContext>;
 }

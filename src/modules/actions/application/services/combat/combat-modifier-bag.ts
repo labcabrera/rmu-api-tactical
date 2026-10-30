@@ -1,9 +1,11 @@
-import { KeyValueModifier, type ModifierGroup } from '../../../domain/value-objects/key-value-modifier.vo.js';
+import { KeyValueModifier, type ModifierGroup, type ModifierParams } from '../../../domain/value-objects/key-value-modifier.vo.js';
 
 /** Plugin that adds the modifiers: stamped on each entry so the breakdown shows where every value comes from. */
 export interface CombatModifierOrigin {
   source: string;
   group: ModifierGroup;
+  /** Rule reference of the plugin. */
+  rule?: string;
 }
 
 /** Mutable view over a list of modifiers (it edits the list in place). Zero values are never added. */
@@ -17,11 +19,12 @@ export class CombatModifierBag {
     return new CombatModifierBag(modifiers || [], origin);
   }
 
-  add(key: string, value: number): CombatModifierBag {
+  /** Adds a modifier; `params` are the inputs of its value, for the explanation (workspace spec 051). */
+  add(key: string, value: number, params?: ModifierParams): CombatModifierBag {
     if (!value) {
       return this;
     }
-    this.modifiers.push(new KeyValueModifier(key, value, this.origin?.group, this.origin?.source));
+    this.modifiers.push(new KeyValueModifier(key, value, this.origin?.group, this.origin?.source, this.origin?.rule, params));
     return this;
   }
 

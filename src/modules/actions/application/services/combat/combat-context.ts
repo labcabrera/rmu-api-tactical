@@ -10,6 +10,7 @@ import type {
   CombatAttackSourceTrait,
 } from './combat-attack-calculation.js';
 import type { CombatModifierOrigin } from './combat-modifier-bag.js';
+import type { SkippedRule } from '../../../domain/value-objects/skipped-rule.vo.js';
 
 export interface CombatTraceEntry {
   source: string;
@@ -56,6 +57,8 @@ export interface CombatContext {
   fumbleRoll?: number;
   /** Plugin whose hook is running; set by the processor so the modifiers it adds carry their origin. */
   plugin?: CombatModifierOrigin;
+  /** Rules that did not apply, with the reason (spec 051). */
+  skipped?: SkippedRule[];
   /** Plugins applied, in order, with the phase. */
   trace: CombatTraceEntry[];
 }

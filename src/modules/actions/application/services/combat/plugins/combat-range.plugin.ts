@@ -5,6 +5,7 @@ import type { CombatPlugin } from '../combat-plugin.js';
 export const CombatRangePlugin: CombatPlugin = {
   id: 'range',
   group: 'situation',
+  rule: 'Table 9-5',
   hooks: {
     prepare: [
       {

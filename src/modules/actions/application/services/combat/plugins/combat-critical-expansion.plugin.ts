@@ -22,6 +22,7 @@ const CRITICALS_BY_SEVERITY: Record<string, string[]> = {
 export const CombatCriticalExpansionPlugin: CombatPlugin = {
   id: 'critical-expansion',
   group: 'resolution',
+  rule: '§9.4',
   hooks: {
     afterAttackRoll: [
       {

@@ -1,5 +1,27 @@
 import type { ProtectPosition } from './action-attack-modifiers.vo.js';
+import type { ModifierParams } from './key-value-modifier.vo.js';
 import type { ParryType } from './parry-type.vo.js';
+
+/**
+ * Where the most an actor can parry comes from (spec 051): the OB left on the melee attack it parries with (its
+ * earlier uses and parries of the round taken off) and its penalties; for a protector, also the protect penalty.
+ */
+export interface ParryBreakdown {
+  attackName: string;
+  bo: number;
+  penalty: number;
+  protectPenalty?: number;
+}
+
+/** An actor who cannot parry or protect against the attack, and why (spec 051). */
+export interface ParryExclusion {
+  actorId: string;
+  targetActorId: string;
+  parryType: ParryType;
+  /** `parry-forbidden`, `parry-last-action` or `parry-no-ob`: the key of its explanation. */
+  reason: string;
+  params?: ModifierParams;
+}
 
 export class ActionParry {
   constructor(
@@ -29,5 +51,7 @@ export class ActionParry {
      * since its own `parry` and `parryAvailable` are both the OB carried.
      */
     public readonly fullParry?: boolean,
+    /** Where `parryAvailable` comes from (spec 051). */
+    public readonly breakdown?: ParryBreakdown,
   ) {}
 }

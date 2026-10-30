@@ -170,12 +170,38 @@ describe('Combat plugins', () => {
       const ctx = createCombatPluginContext({ shield: new ActorRoundShield(20, 2, 0), situationalModifiers: { positionalTarget } });
 
       expect((await prepare(CombatShieldPlugin, ctx)).applied).toBe(false);
+      expect(ctx.skipped).toEqual([
+        expect.objectContaining({ reason: 'shield-not-front', rule: '§9.6', params: { position: positionalTarget } }),
+      ]);
     });
 
     it('does not cover a flatfooted target', async () => {
       const ctx = createCombatPluginContext({ shield: new ActorRoundShield(20, 2, 0), ...flatfooted });
 
       expect((await prepare(CombatShieldPlugin, ctx)).applied).toBe(false);
+      expect(ctx.skipped!.map(rule => rule.reason)).toEqual(['target-flatfooted']);
+    });
+
+    it('explains the block with its inputs, and gives no reason when there is no shield (spec 051)', async () => {
+      const partial = createCombatPluginContext({
+        shield: new ActorRoundShield(25, 3, 0),
+        defenseMode: ActorRoundDefenseMode.of('none', 'partial'),
+        targetSkills: skill('shield', 78, 15),
+        targetPenalties: [{ source: 'hp', value: -10 }],
+      });
+      const none = createCombatPluginContext();
+      const noBlocks = createCombatPluginContext({ shield: new ActorRoundShield(25, 2, 2) });
+
+      await prepare(CombatShieldPlugin, partial);
+      await prepare(CombatShieldPlugin, none);
+      await prepare(CombatShieldPlugin, noBlocks);
+
+      expect(partial.attackPreparation!.modifiers.rollModifiers.map(m => [m.key, m.params])).toEqual([
+        ['shield', { db: 25 }],
+        ['shield-block', { mode: 'partial', skill: 78, injury: -10 }],
+      ]);
+      expect(none.skipped).toBeUndefined();
+      expect(noBlocks.skipped!.map(rule => [rule.reason, rule.params])).toEqual([['shield-no-blocks', { blocks: 2 }]]);
     });
 
     it('is skipped with no blocks left, no shield or the shield disabled', async () => {
@@ -229,7 +255,23 @@ describe('Combat plugins', () => {
 
     it('is skipped without a dodge or for a flatfooted target', async () => {
       expect((await prepare(CombatDodgePlugin, createCombatPluginContext())).applied).toBe(false);
-      expect((await prepare(CombatDodgePlugin, dodging('full', flatfooted))).applied).toBe(false);
+      const unaware = dodging('full', flatfooted);
+      expect((await prepare(CombatDodgePlugin, unaware)).applied).toBe(false);
+      expect(unaware.skipped!.map(rule => rule.reason)).toEqual(['target-flatfooted']);
+    });
+
+    it('explains a partial dodge with the Running skill and the penalties (spec 051)', async () => {
+      const ctx = dodging('partial');
+
+      await prepare(CombatDodgePlugin, ctx);
+
+      expect(ctx.attackPreparation!.modifiers.rollModifiers[0].params).toEqual({
+        mode: 'partial',
+        skill: 40,
+        armor: 0,
+        injury: 0,
+        halved: false,
+      });
     });
   });
 

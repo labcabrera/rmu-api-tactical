@@ -8,6 +8,7 @@ const ROLL_PER_CRITICAL_POINT = 5;
 export const CombatAbsoluteHitPlugin: CombatPlugin = {
   id: 'absolute-hit',
   group: 'resolution',
+  rule: '§9',
   hooks: {
     afterAttackRoll: [
       {

@@ -12,6 +12,7 @@ const REAR_BONUS = 35;
 export const CombatFlatfootedTargetPlugin: CombatPlugin = {
   id: 'flatfooted-target',
   group: 'defense',
+  rule: '§9.5',
   hooks: {
     prepare: [
       {

@@ -7,6 +7,7 @@ const TWO_HANDED_BONUS = 10;
 export const CombatTwoHandedWeaponPlugin: CombatPlugin = {
   id: 'two-handed-weapon',
   group: 'offense',
+  rule: 'Table 9-5',
   hooks: {
     prepare: [
       {

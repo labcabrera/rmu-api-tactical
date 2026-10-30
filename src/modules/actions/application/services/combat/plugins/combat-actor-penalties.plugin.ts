@@ -8,6 +8,7 @@ import type { CombatPlugin } from '../combat-plugin.js';
 export const CombatActorPenaltiesPlugin: CombatPlugin = {
   id: 'actor-penalties',
   group: 'offense',
+  rule: '§9.8',
   hooks: {
     prepare: [
       {

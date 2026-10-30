@@ -35,6 +35,7 @@ const kataAttacks = (ctx: CombatContext): ActorRoundAttack[] => ctx.kataAttacks 
 export const CombatMultipleAttacksPlugin: CombatPlugin = {
   id: 'multiple-attacks',
   group: 'offense',
+  rule: '§9.7',
   hooks: {
     prepare: [
       {

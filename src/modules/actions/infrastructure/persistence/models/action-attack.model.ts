@@ -2,8 +2,30 @@ import { Prop, Schema } from '@nestjs/mongoose';
 import { Modifier } from '../../../../shared/infrastructure/persistence/models/modifier.model.js';
 import type { AttackType, ProtectPosition } from '../../../domain/value-objects/action-attack-modifiers.vo.js';
 import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo.js';
+import type { ModifierGroup } from '../../../domain/value-objects/key-value-modifier.vo.js';
 import type { AttackStatus } from '../../../domain/value-objects/attack-status.vo.js';
 import { ActionAttackModifiers } from './action-attack-modifiers.model.js';
+
+@Schema({ _id: false })
+export class SkippedRuleModel {
+  @Prop({ type: String, required: true })
+  public source: string;
+
+  @Prop({ type: String, required: true })
+  public group: ModifierGroup;
+
+  @Prop({ type: String, required: true })
+  public reason: string;
+
+  @Prop({ type: String, required: true })
+  public phase: string;
+
+  @Prop({ type: String, required: false })
+  public rule?: string;
+
+  @Prop({ type: Object, required: false })
+  public params?: Record<string, number | string | boolean>;
+}
 
 @Schema({ _id: false })
 export class ActionAttackCalculated {
@@ -27,6 +49,9 @@ export class ActionAttackCalculated {
 
   @Prop({ type: Number, required: false })
   public fumble: number | undefined;
+
+  @Prop({ type: [SkippedRuleModel], required: false })
+  public skipped: SkippedRuleModel[] | undefined;
 }
 
 @Schema({ _id: false })

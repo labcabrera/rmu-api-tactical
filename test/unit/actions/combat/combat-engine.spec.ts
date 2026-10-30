@@ -5,6 +5,7 @@ import {
   CombatPluginRegistryService,
   CombatProcessor,
   rollModifiers,
+  skip,
 } from '../../../../src/modules/actions/application/services/combat/index.js';
 import { createCombatPluginContext } from './combat-plugin-test.factory.js';
 
@@ -45,6 +46,36 @@ describe('CombatProcessor', () => {
     const added = ctx.attackPreparation!.modifiers.rollModifiers.find(modifier => modifier.key === 'cover');
     expect(added).toMatchObject({ key: 'cover', value: 1, source: 'cover', group: 'situation' });
     expect(ctx.plugin).toBeUndefined();
+  });
+
+  it('keeps the reason of a hook that skips, with the rule of its plugin (spec 051)', async () => {
+    const shield: CombatPlugin = {
+      id: 'shield',
+      group: 'defense',
+      rule: '§9.6',
+      hooks: { prepare: [{ condition: () => skip('shield-not-front', { position: 'flank' }), apply: () => undefined }] },
+    };
+    const ctx = await run(
+      shield,
+      plugin('silent', 0, () => false),
+    );
+
+    expect(ctx.skipped).toEqual([
+      { source: 'shield', group: 'defense', reason: 'shield-not-front', phase: 'prepare', rule: '§9.6', params: { position: 'flank' } },
+    ]);
+    expect(ctx.trace).toEqual([]);
+  });
+
+  it('stamps the rule of the plugin and the params of the value on the modifier', async () => {
+    const bd: CombatPlugin = {
+      id: 'defensive-bonus',
+      group: 'defense',
+      rule: '§9.6',
+      hooks: { prepare: [{ apply: ctx => void rollModifiers(ctx).add('bd', -30, { bd: 30 }) }] },
+    };
+    const ctx = await run(bd);
+
+    expect(ctx.attackPreparation!.modifiers.rollModifiers[0]).toMatchObject({ key: 'bd', value: -30, rule: '§9.6', params: { bd: 30 } });
   });
 
   it('records the phase in the trace', async () => {
