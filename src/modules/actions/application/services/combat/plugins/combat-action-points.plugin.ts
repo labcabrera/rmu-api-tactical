@@ -9,6 +9,7 @@ import type { CombatPlugin } from '../combat-plugin.js';
 export const CombatActionPointsPlugin: CombatPlugin = {
   id: 'action-points',
   group: 'offense',
+  rule: '§8.1',
   hooks: {
     prepare: [
       {

@@ -1,3 +1,4 @@
+import { SkippedRule } from '../../../../src/modules/actions/domain/value-objects/skipped-rule.vo.js';
 import { ActorRound } from '../../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
 import {
   ActorRoundAttack,
@@ -156,7 +157,10 @@ export function createCombatPluginContext(options: CombatPluginContextOptions = 
 /** Runs the hook of a plugin as the processor does: apply() only when its condition holds. Returns whether it ran. */
 export async function runPluginHook(plugin: CombatPlugin, phase: CombatPhase, ctx: CombatContext, index = 0): Promise<boolean> {
   const hook = plugin.hooks[phase]![index];
-  if (hook.condition && !(await hook.condition(ctx))) {
+  const applies = hook.condition ? await hook.condition(ctx) : true;
+  if (applies !== true) {
+    // A skip with its reason is kept, as the processor does (spec 051)
+    if (applies) (ctx.skipped ??= []).push(new SkippedRule(plugin.id, plugin.group, applies.skip, phase, plugin.rule, applies.params));
     return false;
   }
   ctx.plugin = { source: plugin.id, group: plugin.group };

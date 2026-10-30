@@ -4,6 +4,7 @@ import type { CombatPlugin } from '../combat-plugin.js';
 export const CombatStunPlugin: CombatPlugin = {
   id: 'stunned-target',
   group: 'defense',
+  rule: 'Table 9-5',
   hooks: {
     prepare: [
       {

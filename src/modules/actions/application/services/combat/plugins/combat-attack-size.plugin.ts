@@ -23,6 +23,7 @@ const sizeSteps = (ctx: CombatContext): number =>
 export const CombatAttackSizePlugin: CombatPlugin = {
   id: 'attack-size',
   group: 'resolution',
+  rule: '§9.4',
   hooks: {
     afterAttackRoll: [
       {

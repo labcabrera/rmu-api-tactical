@@ -104,7 +104,9 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     if (!attack.calculated) {
       return;
     }
-    await this.combatProcessor.runPhase(PARRY_PHASE, { action, attack, trace: [] });
+    const ctx = await this.combatProcessor.runPhase(PARRY_PHASE, { action, attack, trace: [], skipped: [] });
+    // A parry declared again replaces the rules its phase skipped
+    attack.calculated.skipped = [...(attack.calculated.skipped ?? []).filter(rule => rule.phase !== PARRY_PHASE), ...ctx.skipped!];
     attack.calculated.rollTotal = CombatModifierBag.from(attack.calculated.rollModifiers).sum();
   }
 }

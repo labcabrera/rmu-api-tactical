@@ -4,6 +4,7 @@ import type { CombatPlugin } from '../combat-plugin.js';
 export const CombatProneSourcePlugin: CombatPlugin = {
   id: 'prone-source',
   group: 'offense',
+  rule: 'Table 9-5',
   hooks: {
     prepare: [
       {

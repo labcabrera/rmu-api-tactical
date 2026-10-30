@@ -217,3 +217,68 @@ describe('Parry and protect options', () => {
     expect(Action.protectPenalty('protector_between', 40)).toBe(0);
   });
 });
+
+describe('Parry explanations (workspace spec 051)', () => {
+  it('gives each option where its most comes from: the OB of the parrying attack and the penalties', () => {
+    const defender = actor('defender', { penalties: [['critical', -15]] });
+    const attackAction = action('attacker', 'melee_attack', 1, { attacks: [meleeAttack('defender')] });
+
+    attackAction.processParryOptions([defender], [action('defender', 'melee_attack', 1)], 2);
+
+    expect(attackAction.parries).toEqual([
+      expect.objectContaining({ parryAvailable: 85, breakdown: { attackName: 'mainHand', bo: 100, penalty: -15 } }),
+    ]);
+    expect(attackAction.parryExclusions).toEqual([]);
+  });
+
+  it('lists a defender whose last action is not a melee attack, with that action', () => {
+    const defender = actor('defender');
+    const attackAction = action('attacker', 'melee_attack', 1, { attacks: [meleeAttack('defender')] });
+
+    attackAction.processParryOptions([defender], [action('defender', 'maneuver', 1)], 2);
+
+    expect(attackAction.parries).toEqual([]);
+    expect(attackAction.parryExclusions).toEqual([
+      {
+        actorId: 'defender',
+        targetActorId: 'defender',
+        parryType: 'parry',
+        reason: 'parry-last-action',
+        params: { actionType: 'maneuver' },
+      },
+    ]);
+  });
+
+  it('lists a defender kept from parrying by an effect, and one whose penalties take all its OB', () => {
+    const stunned = actor('stunned', { effects: [effect('cannot_parry')] });
+    const exhausted = actor('exhausted', { penalties: [['critical', -120]] });
+    const attackAction = action('attacker', 'melee_attack', 1, { attacks: [meleeAttack('stunned'), meleeAttack('exhausted')] });
+
+    attackAction.processParryOptions(
+      [stunned, exhausted],
+      [action('stunned', 'melee_attack', 1), action('exhausted', 'melee_attack', 1)],
+      2,
+    );
+
+    expect(attackAction.parryExclusions!.map(e => [e.actorId, e.reason, e.params])).toEqual([
+      ['stunned', 'parry-forbidden', { effect: 'cannot_parry' }],
+      ['exhausted', 'parry-no-ob', { bo: 100, penalty: -120 }],
+    ]);
+  });
+
+  it('gives a protector its protect penalty in the breakdown, and lists one that cannot protect', () => {
+    const anika = actor('anika', { protect: 25 });
+    const busy = actor('busy');
+    const talen = actor('talen');
+    const attackAction = action('ogre', 'melee_attack', 1, { attacks: [meleeAttack('talen', ['anika', 'busy'])] });
+
+    attackAction.processParryOptions([anika, busy, talen], [action('anika', 'melee_attack', 1)], 1);
+
+    const protect = attackAction.parries!.find(parry => parry.parryType === 'protect')!;
+    expect(protect.breakdown).toEqual({ attackName: 'mainHand', bo: 100, penalty: 0, protectPenalty: -25 });
+    expect(attackAction.parryExclusions!.map(e => [e.actorId, e.targetActorId, e.parryType, e.reason])).toEqual([
+      ['talen', 'talen', 'parry', 'parry-last-action'],
+      ['busy', 'talen', 'protect', 'parry-last-action'],
+    ]);
+  });
+});

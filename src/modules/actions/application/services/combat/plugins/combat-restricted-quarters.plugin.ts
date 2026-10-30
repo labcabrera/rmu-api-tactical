@@ -13,6 +13,7 @@ const restrictedQuartersModifiers: Record<RestrictedQuarters, number> = {
 export const CombatRestrictedQuartersPlugin: CombatPlugin = {
   id: 'restricted-quarters',
   group: 'situation',
+  rule: '§9.5',
   hooks: {
     prepare: [
       {

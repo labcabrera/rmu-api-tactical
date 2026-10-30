@@ -1,5 +1,6 @@
 import type { AttackLocation } from './attack-location.vo.js';
 import { KeyValueModifier } from './key-value-modifier.vo.js';
+import type { SkippedRule } from './skipped-rule.vo.js';
 
 export class ActionAttackCalculated {
   constructor(
@@ -12,5 +13,7 @@ export class ActionAttackCalculated {
     public breakageRoll?: boolean,
     /** Fumble range used when rolling: the weapon's, widened by the target's Foiler. Missing in older actions. */
     public fumble?: number,
+    /** Rules that did not apply, and why (spec 051). Missing in older actions. */
+    public skipped?: SkippedRule[],
   ) {}
 }

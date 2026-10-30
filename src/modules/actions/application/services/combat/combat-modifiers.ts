@@ -1,4 +1,5 @@
 import type { CombatContext } from './combat-context.js';
+import { skip, type CombatSkip } from './combat-phase.js';
 import type { CombatAttackPreparationModifiers, CombatAttackSourceSkill } from './combat-attack-calculation.js';
 import { CombatModifierBag } from './combat-modifier-bag.js';
 import { normalizeChargeSpeed } from '../../../domain/value-objects/action-attack-modifiers.vo.js';
@@ -123,6 +124,9 @@ export const targetIsFlatfooted = (ctx: CombatContext): boolean => targetHasStat
  * shield and dodge DB are left out; the magical DB, not modelled, would stay.
  */
 export const targetIgnoresDefense = (ctx: CombatContext): boolean => targetIsFlatfooted(ctx) || targetHasStatus(ctx, 'frenzy');
+
+/** Why a defence of the target does not count when it ignores its defence: flatfooted or in frenzy (spec 051). */
+export const ignoredDefenseSkip = (ctx: CombatContext): CombatSkip => skip(targetIsFlatfooted(ctx) ? 'target-flatfooted' : 'target-frenzy');
 
 /**
  * Penalties of the target that reduce its partial and full dodge and block (§9.6): its injuries (hits, criticals,

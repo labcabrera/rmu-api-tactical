@@ -4,7 +4,7 @@ import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.
 import { UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors/errors.js';
 import { ActionCreatedEvent } from '../events/action.events.js';
 import type { ProtectPosition } from '../value-objects/action-attack-modifiers.vo.js';
-import { ActionParry } from '../value-objects/action-attack-parry.vo.js';
+import { ActionParry, type ParryExclusion } from '../value-objects/action-attack-parry.vo.js';
 import { ActionAttack } from '../value-objects/action-attack.vo.js';
 import { ActionManeuver } from '../value-objects/action-maneuver.vo.js';
 import { ActionApProfile } from '../value-objects/action-ap-profile.vo.js';
@@ -13,6 +13,8 @@ import type { ActionSpell } from '../value-objects/action-spell.vo.js';
 import { ActionResolution, type ForceReason } from '../value-objects/action-resolution.vo.js';
 import { type ActionStatus, CLOSED_ACTION_STATUSES, IN_RESOLUTION_ACTION_STATUSES } from '../value-objects/action-status.vo.js';
 import type { ActionType } from '../value-objects/action-type.vo.js';
+import type { ParryType } from '../value-objects/parry-type.vo.js';
+import type { ModifierParams } from '../value-objects/key-value-modifier.vo.js';
 import type { ManeuverActionPoints } from '../value-objects/maneuver-profile.vo.js';
 
 /** Action phases of a round (§8.3). */
@@ -85,6 +87,8 @@ export interface ActionProps {
   carriedAp?: number | null;
   /** The spell of a `cast_spell` action (spec 030). */
   spell?: ActionSpell | null;
+  /** Actors who cannot parry or protect against the attacks, and why (spec 051). */
+  parryExclusions?: ParryExclusion[] | null;
   owner: string;
   createdAt: Date;
   updatedAt: Date | null;
@@ -116,6 +120,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     public continuesActionId: string | null = null,
     public carriedAp: number | null = null,
     public spell: ActionSpell | null = null,
+    public parryExclusions: ParryExclusion[] | null = null,
   ) {
     super(id);
   }
@@ -189,6 +194,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       props.continuesActionId ?? null,
       props.carriedAp ?? null,
       props.spell ?? null,
+      props.parryExclusions ?? null,
     );
   }
 
@@ -695,13 +701,34 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       return;
     }
     this.parries = [];
+    this.parryExclusions = [];
+    const exclude = (actor: ActorRound, targetActorId: string, parryType: ParryType, reason: string, params?: ModifierParams) => {
+      const listed = this.parryExclusions!.some(
+        e => e.actorId === actor.actorId && e.targetActorId === targetActorId && e.parryType === parryType,
+      );
+      if (!listed) this.parryExclusions!.push({ actorId: actor.actorId, targetActorId, parryType, reason, ...(params ? { params } : {}) });
+    };
+    // Why an actor cannot parry or protect at all: an effect, or its last action is not a melee attack
+    const blocked = (actor: ActorRound, targetActorId: string, parryType: ParryType): boolean => {
+      const effect = actor.parryForbiddenBy();
+      if (effect) {
+        exclude(actor, targetActorId, parryType, 'parry-forbidden', { effect });
+        return true;
+      }
+      if (!Action.canParry(actor.actorId, actions, phase)) {
+        const last = Action.lastApAction(actor.actorId, actions, phase);
+        exclude(actor, targetActorId, parryType, 'parry-last-action', last ? { actionType: last.actionType } : undefined);
+        return true;
+      }
+      return false;
+    };
     for (const attack of this.attacks) {
       if (attack.type !== 'melee') {
         continue;
       }
       const attackTarget = actorRounds.find(t => t.actorId === attack.modifiers.targetId)!;
       const hasParry = this.parries.some(p => p.actorId === attackTarget.actorId && p.parryType === 'parry');
-      if (!hasParry && Action.canParry(attackTarget.actorId, actions, phase)) {
+      if (!hasParry && !blocked(attackTarget, attackTarget.actorId, 'parry')) {
         const carried = this.findCarriedOverParry(attackTarget.actorId, actions);
         if (carried) {
           this.parries.push(
@@ -721,8 +748,31 @@ export class Action extends BaseAggregateRoot<ActionProps> {
         } else {
           // The penalties of the defender cap its parry.
           const maxBo = attackTarget.getAvailableParry();
+          const breakdown = attackTarget.getParryBreakdown();
           if (maxBo > 0) {
-            this.parries.push(new ActionParry(randomUUID(), attackTarget.actorId, attackTarget.actorId, 'parry', maxBo, 0));
+            this.parries.push(
+              new ActionParry(
+                randomUUID(),
+                attackTarget.actorId,
+                attackTarget.actorId,
+                'parry',
+                maxBo,
+                0,
+                undefined,
+                undefined,
+                undefined,
+                undefined,
+                breakdown,
+              ),
+            );
+          } else {
+            exclude(
+              attackTarget,
+              attackTarget.actorId,
+              'parry',
+              'parry-no-ob',
+              breakdown && { bo: breakdown.bo, penalty: breakdown.penalty },
+            );
           }
         }
       }
@@ -731,15 +781,36 @@ export class Action extends BaseAggregateRoot<ActionProps> {
         const duplicated = this.parries.some(
           p => p.actorId === protectorId && p.targetActorId === attackTarget.actorId && p.parryType === 'protect',
         );
-        if (duplicated || !Action.canParry(protector.actorId, actions, phase)) {
+        if (duplicated || blocked(protector, attackTarget.actorId, 'protect')) {
           continue;
         }
         const position = attack.protectorPositions?.[protectorId] ?? 'other';
         const penalty = Action.protectPenalty(position, protector.defense.protect || 0);
         const protectValue = Math.max(0, protector.getAvailableParry() + penalty);
+        const breakdown = protector.getParryBreakdown();
         if (protectValue > 0) {
           this.parries.push(
-            new ActionParry(randomUUID(), protector.actorId, attackTarget.actorId, 'protect', protectValue, 0, penalty, position),
+            new ActionParry(
+              randomUUID(),
+              protector.actorId,
+              attackTarget.actorId,
+              'protect',
+              protectValue,
+              0,
+              penalty,
+              position,
+              undefined,
+              undefined,
+              breakdown && { ...breakdown, protectPenalty: penalty },
+            ),
+          );
+        } else {
+          exclude(
+            protector,
+            attackTarget.actorId,
+            'protect',
+            'parry-no-ob',
+            breakdown && { bo: breakdown.bo, penalty: breakdown.penalty, protectPenalty: penalty },
           );
         }
       }
@@ -757,11 +828,15 @@ export class Action extends BaseAggregateRoot<ActionProps> {
    * AP.
    */
   static canParry(actorId: string, actions: Action[], phase: number): boolean {
+    return Action.lastApAction(actorId, actions, phase)?.actionType === 'melee_attack';
+  }
+
+  /** The last action the actor spent AP on up to this phase (movement and free actions left out). */
+  static lastApAction(actorId: string, actions: Action[], phase: number): Action | undefined {
     const lastPhase = (action: Action) => Math.min(action.phaseEnd ?? phase, phase);
-    const last = actions
+    return actions
       .filter(a => a.actorId === actorId && !a.freeAction && a.actionType !== 'movement' && a.phaseStart <= phase)
       .sort((a, b) => lastPhase(b) - lastPhase(a) || b.phaseStart - a.phaseStart)[0];
-    return last?.actionType === 'melee_attack';
   }
 
   /**
@@ -944,6 +1019,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       continuesActionId: this.continuesActionId,
       carriedAp: this.carriedAp,
       spell: this.spell,
+      parryExclusions: this.parryExclusions,
       owner: this.owner,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,

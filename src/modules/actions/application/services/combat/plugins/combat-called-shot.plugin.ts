@@ -7,6 +7,7 @@ const DEFAULT_PENALTY = -25;
 export const CombatCalledShotPlugin: CombatPlugin = {
   id: 'called-shot',
   group: 'offense',
+  rule: '§9.7',
   hooks: {
     prepare: [
       {

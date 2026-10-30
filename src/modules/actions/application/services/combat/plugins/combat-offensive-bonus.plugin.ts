@@ -4,6 +4,7 @@ import type { CombatPlugin } from '../combat-plugin.js';
 export const CombatOffensiveBonusPlugin: CombatPlugin = {
   id: 'offensive-bonus',
   group: 'offense',
+  rule: '§9.5',
   hooks: {
     prepare: [
       {

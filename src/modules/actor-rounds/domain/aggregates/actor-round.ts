@@ -1478,6 +1478,22 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       .reduce((max, value) => Math.max(max, value), 0);
   }
 
+  /**
+   * The melee attack the actor parries with, the one with the most OB left, and its penalties (spec 051): the
+   * numbers `getAvailableParry` comes from. Undefined without a melee attack.
+   */
+  getParryBreakdown(): { attackName: string; bo: number; penalty: number } | undefined {
+    const best = this.attacks
+      .filter(a => a.type === 'melee')
+      .reduce<ActorRoundAttack | undefined>((max, a) => (!max || a.currentBo > max.currentBo ? a : max), undefined);
+    return best ? { attackName: best.attackName, bo: best.currentBo, penalty: this.getPenaltySum() } : undefined;
+  }
+
+  /** The effect that keeps the actor from parrying (undefined if none). */
+  parryForbiddenBy(): string | undefined {
+    return [CANNOT_PARRY, ARM_USELESS, FRENZY].find(effect => this.hasEffect(effect));
+  }
+
   getCurrentBo(attackName: string): number {
     const attack = this.attacks.find(a => a.attackName === attackName);
     if (!attack) {

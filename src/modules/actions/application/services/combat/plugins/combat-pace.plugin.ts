@@ -33,6 +33,7 @@ const uncoordinatedPace = (ctx: CombatContext): string => effectivePace(preparat
 export const CombatPacePlugin: CombatPlugin = {
   id: 'pace',
   group: 'offense',
+  rule: '§8.2',
   hooks: {
     prepare: [
       {

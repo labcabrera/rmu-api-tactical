@@ -11,6 +11,7 @@ const ROLL_PER_SIZE = 5;
 export const CombatSizeDifferencePlugin: CombatPlugin = {
   id: 'size-difference',
   group: 'situation',
+  rule: '§9.4',
   hooks: {
     prepare: [
       {

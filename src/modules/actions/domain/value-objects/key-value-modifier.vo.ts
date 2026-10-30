@@ -1,6 +1,9 @@
 /** Where a modifier comes from in the attack breakdown: who it favours, or which stage of the resolution adds it. */
 export type ModifierGroup = 'offense' | 'defense' | 'situation' | 'critical' | 'resolution';
 
+/** Numbers a rule's explanation shows: the inputs of its formula (workspace spec 051). */
+export type ModifierParams = Record<string, number | string | boolean>;
+
 export class KeyValueModifier {
   constructor(
     public key: string,
@@ -9,5 +12,9 @@ export class KeyValueModifier {
     public group?: ModifierGroup,
     /** Id of the combat plugin that added it. */
     public source?: string,
+    /** Rule reference of the plugin (`§9.6`, `Table 9-5`), shown with the explanation. */
+    public rule?: string,
+    /** Inputs of the value, for its explanation. */
+    public params?: ModifierParams,
   ) {}
 }

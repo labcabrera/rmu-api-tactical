@@ -50,6 +50,7 @@ export class MongoActionRepository extends MongoBaseRepository<Action, ActionMod
       continuesActionId: doc.continuesActionId ?? null,
       carriedAp: doc.carriedAp ?? null,
       spell: doc.spell ?? null,
+      parryExclusions: doc.parryExclusions ?? null,
       owner: doc.owner,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,

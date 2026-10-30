@@ -2,6 +2,8 @@ import request from 'supertest';
 import { AttackTableEntry } from '../../src/modules/actions/domain/value-objects/action-attack.vo.js';
 import { character, ids, startApp, USERS, type E2eApp, type UserName } from './support/app.js';
 
+type Modifier = { key: string; value: number; source?: string; rule?: string };
+
 type ActionBody = {
   id: string;
   gameId: string;
@@ -186,6 +188,17 @@ describe('attack', () => {
     });
     expect(prepared.status).toBe(200);
     expect((prepared.body as ActionBody).attacks).toHaveLength(1);
+    // Spec 051: each modifier carries its rule, and whoever cannot parry is listed with the reason
+    const calculated = (prepared.body as ActionBody).attacks![0].calculated as { rollModifiers: Modifier[]; skipped: unknown[] };
+    expect(calculated.rollModifiers.find(modifier => modifier.key === 'bo')).toMatchObject({
+      value: 60,
+      source: 'offensive-bonus',
+      rule: '§9.5',
+    });
+    expect(Array.isArray(calculated.skipped)).toBe(true);
+    expect((prepared.body as ActionBody).parryExclusions).toEqual([
+      expect.objectContaining({ actorId: 'lurtz', targetActorId: 'lurtz', parryType: 'parry', reason: 'parry-last-action' }),
+    ]);
 
     const rolled = await as('owner').patch(`/v1/actions/${action.id}/attack/roll`, { attackName: 'mainHand', roll: 70 });
     expect(rolled.status).toBe(200);

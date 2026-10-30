@@ -31,6 +31,7 @@ const armorByLocation = (armor: Omit<CombatAttackArmor, 'at'>, location: string 
 export const CombatLocationArmorPlugin: CombatPlugin = {
   id: 'location-armor',
   group: 'resolution',
+  rule: '§9.7',
   hooks: {
     beforeAttackRoll: [
       {

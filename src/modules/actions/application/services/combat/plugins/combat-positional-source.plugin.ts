@@ -11,6 +11,7 @@ const positionalSourceModifiers: Record<PositionalSource, number> = {
 export const CombatPositionalSourcePlugin: CombatPlugin = {
   id: 'positional-source',
   group: 'situation',
+  rule: '§9.5',
   hooks: {
     prepare: [
       {

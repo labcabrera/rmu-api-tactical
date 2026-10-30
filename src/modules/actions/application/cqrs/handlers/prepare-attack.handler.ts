@@ -163,6 +163,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       ctx.attackCalculation.calculated.criticalModifiers,
       undefined,
       ctx.attackCalculation.calculated.fumble,
+      ctx.skipped ?? [],
     );
 
     return ctx;
