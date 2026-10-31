@@ -9,6 +9,7 @@ import {
 import { ActionAttackCalculated } from '../../../../src/modules/actions/domain/value-objects/action-attack-calculated.vo.js';
 import { AttackTableEntry } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo.js';
 import { KeyValueModifier } from '../../../../src/modules/actions/domain/value-objects/key-value-modifier.vo.js';
+import { ValidationError } from '../../../../src/modules/shared/domain/errors/errors.js';
 import { createCombatPluginContext, type CombatPluginContextOptions } from './combat-plugin-test.factory.js';
 
 const setup = (entry: AttackTableEntry, options: CombatPluginContextOptions = {}) => {
@@ -26,13 +27,14 @@ const setup = (entry: AttackTableEntry, options: CombatPluginContextOptions = {}
   });
   const processor = new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST));
   const resolver = new CombatAttackRollResolverService(processor, { lookup });
-  const resolve = (roll: number) =>
+  const resolve = (roll: number, unmodified?: number) =>
     resolver.resolve({
       action: ctx.action,
       attack: ctx.attack!,
       sourceActor: ctx.sourceActor!,
       targetActor: ctx.targetActor!,
       roll,
+      unmodified,
     });
   return { ctx, attack: ctx.attack!, action: ctx.action, lookup, resolve };
 };
@@ -150,6 +152,34 @@ describe('CombatAttackRollResolverService', () => {
     expect(attack.results?.fumble?.status).toBe('pending_roll');
     expect(attack.status).toBe('pending_fumble_roll');
     expect(action.status).toBe('pending_roll');
+  });
+
+  it('decides the fumble with the unmodified die, not the open-ended total (spec 056, B-01)', async () => {
+    const { attack, lookup, resolve } = setup(new AttackTableEntry('8', 8, undefined, undefined), { fumble: 3 });
+
+    await resolve(-54, 4);
+
+    expect(attack.results?.fumble).toBeUndefined();
+    expect(lookup).toHaveBeenCalledWith(expect.objectContaining({ roll: 6 }));
+    expect(attack.roll).toMatchObject({ roll: -54, unmodified: 4 });
+  });
+
+  it('fumbles on an unmodified die inside the range whatever the total', async () => {
+    const { attack, lookup, resolve } = setup(new AttackTableEntry('8', 8, undefined, undefined), { fumble: 3 });
+
+    await resolve(2, 2);
+
+    expect(lookup).not.toHaveBeenCalled();
+    expect(attack.results?.fumble?.status).toBe('pending_roll');
+    expect(attack.roll?.unmodified).toBe(2);
+  });
+
+  it('rejects a total below 1 without the unmodified die: the attack is only open-ended upwards', async () => {
+    const { lookup, resolve } = setup(new AttackTableEntry('8', 8, undefined, undefined), { fumble: 3 });
+
+    await expect(resolve(-54)).rejects.toMatchObject({ statusCode: 400, code: 'validation' });
+    await expect(resolve(0)).rejects.toBeInstanceOf(ValidationError);
+    expect(lookup).not.toHaveBeenCalled();
   });
 
   it('keeps the action pending while another attack has not been rolled', async () => {

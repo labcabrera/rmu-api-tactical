@@ -128,6 +128,9 @@ export class ActionAttackRoll {
 
   @Prop({ type: Number, required: false })
   public fumbleRoll: number | undefined;
+
+  @Prop({ type: Number, required: false })
+  public unmodified?: number;
 }
 
 @Schema({ _id: false })

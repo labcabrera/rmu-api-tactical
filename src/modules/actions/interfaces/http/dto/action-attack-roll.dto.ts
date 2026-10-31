@@ -10,11 +10,16 @@ export class ActionAttackRollDto {
 
   @ApiProperty({ type: Number, description: 'The fumble roll value if required', required: false, example: 3 })
   fumbleRoll: number | undefined;
+
+  @ApiProperty({ type: Number, description: 'First die of the open-ended attack roll, unmodified', required: false, example: 4 })
+  unmodified?: number;
+
   static fromEntity(entity: ActionAttackRoll): ActionAttackRollDto {
     const dto = new ActionAttackRollDto();
     dto.roll = entity.roll;
     dto.criticalRolls = entity.criticalRolls ? entity.criticalRolls : undefined;
     dto.fumbleRoll = entity.fumbleRoll;
+    dto.unmodified = entity.unmodified;
     return dto;
   }
 }

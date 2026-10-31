@@ -244,6 +244,45 @@ describe('attack', () => {
   });
 });
 
+describe('attack roll with the unmodified die (workspace spec 056, B-01)', () => {
+  const preparedAttack = async () => {
+    const gameId = await gameInPhase1();
+    const action = await declareAttack(gameId);
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/phases/start`)).status).toBe(200);
+    const prepared = await as('owner').patch(`/v1/actions/${action.id}/attack/prepare`, {
+      attacks: [{ attackName: 'mainHand', modifiers: { targetId: 'lurtz', bo: 60 }, protectors: null }],
+    });
+    expect(prepared.status).toBe(200);
+    return action;
+  };
+
+  it('rejects a total below 1 without the unmodified die, and checks the fumble on the die it sends', async () => {
+    const action = await preparedAttack();
+    const roll = (body: Record<string, unknown>) =>
+      as('owner').patch(`/v1/actions/${action.id}/attack/roll`, { attackName: 'mainHand', ...body });
+
+    const negative = await roll({ roll: -54 });
+    expect(negative.status).toBe(400);
+    expect(negative.body).toMatchObject({ code: 'validation' });
+    expect((await roll({ roll: 50, unmodified: 0 })).status).toBe(400);
+    expect((await roll({ roll: 50, unmodified: 101 })).status).toBe(400);
+
+    // An unmodified 4 with fumble range 3 follows the table, whatever the total.
+    const rolled = await roll({ roll: -54, unmodified: 4 });
+    expect(rolled.status).toBe(200);
+    expect(rolled.body).toMatchObject({ attacks: [{ roll: { roll: -54, unmodified: 4 } }] });
+    expect((rolled.body as ActionBody).attacks![0]).not.toMatchObject({ status: 'pending_fumble_roll' });
+    expect(((await as('owner').get(`/v1/actions/${action.id}`)).body as ActionBody).attacks![0]).toMatchObject({
+      roll: { roll: -54, unmodified: 4 },
+    });
+
+    // An unmodified 2 fumbles.
+    const fumbled = await roll({ roll: 2, unmodified: 2 });
+    expect(fumbled.status).toBe(200);
+    expect(fumbled.body).toMatchObject({ attacks: [{ status: 'pending_fumble_roll', roll: { unmodified: 2 } }] });
+  });
+});
+
 describe('fighting style critical options (workspace spec 032)', () => {
   beforeAll(() => {
     e2e.world.fightingStyles = {

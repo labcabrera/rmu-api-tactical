@@ -295,14 +295,14 @@ describe('attack spells (spec 030, phase 4)', () => {
     expect(directedSpellSpecialization('fire-ball')).toBeNull();
   });
 
-  it('gives a bolt the Directed Spells bonus, a fumble range that shrinks with its ranks and range brackets', () => {
+  it('gives a bolt the Directed Spells bonus, a fumble range of 01-02 whatever its ranks and range brackets', () => {
     const attack = spellAttackProfile(bolt, { type: 'distance', increment: 25 }, 6, { ranks: 10, totalBonus: 45 });
     expect(attack).toMatchObject({
       kind: 'bolt',
       attackName: 'fire-bolt',
       attackSize: 0,
       bo: 45,
-      fumble: 1,
+      fumble: 2,
       fumbleTable: 'elemental-bolts',
       skillId: 'directed-spell@elemental-bolts',
     });
