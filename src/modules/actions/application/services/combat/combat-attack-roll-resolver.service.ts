@@ -18,6 +18,10 @@ export interface ResolveAttackRollInput {
   sourceActor: ActorRound;
   targetActor: ActorRound;
   roll: number;
+  /** First die of the high open-ended roll; `roll` when it is missing. */
+  unmodified?: number;
+  /** Every die of the open-ended roll, in order, when the client sends them. */
+  dice?: number[];
 }
 
 @Injectable()
@@ -33,12 +37,15 @@ export class CombatAttackRollResolverService {
    * The rules (armour by location, absolute hit, size, critical expansion...) are plugins.
    */
   async resolve(input: ResolveAttackRollInput): Promise<CombatContext> {
+    this.validateRoll(input);
     const attack = input.attack;
     const calculated = attack.calculated!;
     let ctx: CombatContext = {
       action: input.action,
       attack,
       attackRoll: input.roll,
+      unmodifiedRoll: input.unmodified,
+      attackDice: input.dice,
       sourceActor: input.sourceActor,
       targetActor: input.targetActor,
       sourceTraits: input.sourceActor.traits || [],
@@ -53,7 +60,7 @@ export class CombatAttackRollResolverService {
     ctx.rollTotal = ctx.attackRoll! + CombatModifierBag.from(calculated.rollModifiers).sum();
     calculated.location = ctx.location;
     calculated.rollTotal = ctx.rollTotal;
-    attack.roll = new ActionAttackRoll(ctx.attackRoll!, undefined, undefined);
+    attack.roll = new ActionAttackRoll(ctx.attackRoll!, undefined, undefined, input.unmodified);
 
     if (this.isFumble(ctx)) {
       attack.results = new ActionAttackResult(undefined, undefined, new Fumble('pending_roll', undefined, undefined, undefined, undefined));
@@ -75,6 +82,16 @@ export class CombatAttackRollResolverService {
     return ctx;
   }
 
+  /**
+   * The attack is a high open-ended d100 (Arms Law, ch. 7), so its total is never below 1. A lower total only comes from a
+   * roll that was also open-ended downwards, and without its first die the fumble cannot be told.
+   */
+  private validateRoll(input: ResolveAttackRollInput): void {
+    if (input.unmodified === undefined && input.roll < 1) {
+      throw new ValidationError(`Attack roll ${input.roll} is below 1 and has no unmodified roll`);
+    }
+  }
+
   /** A new roll replaces the previous one: its results and what the roll phases added. */
   private resetPreviousRoll(ctx: CombatContext): void {
     const calculated = ctx.attack!.calculated!;
@@ -92,10 +109,13 @@ export class CombatAttackRollResolverService {
     return attack;
   }
 
-  /** The fumble range computed when preparing (with the target's Foiler); the weapon's for older actions. */
+  /**
+   * The fumble range computed when preparing (with the target's Foiler); the weapon's for older actions. It is
+   * checked against the unmodified die (Fumbling, ch. 9), not the open-ended total.
+   */
   private isFumble(ctx: CombatContext): boolean {
     const fumble = ctx.attack?.calculated?.fumble ?? (ctx.sourceAttack!.fumble || 0);
-    return fumble > 0 && ctx.attackRoll! <= fumble;
+    return fumble > 0 && (ctx.unmodifiedRoll ?? ctx.attackRoll!) <= fumble;
   }
 
   private createCriticals(ctx: CombatContext): void {

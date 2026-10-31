@@ -1,6 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import type { Actor } from '../../../games/domain/value-objects/actor.vo.js';
-import { MEDIUM_SIZE_CLASS, type Npc, type NpcAttack, sizeClassOf } from '../../../npcs/application/ports/npc.port.js';
+import {
+  MEDIUM_SIZE_CLASS,
+  type Npc,
+  type NpcAttack,
+  type NpcShield,
+  SHIELD_TYPES,
+  sizeClassOf,
+} from '../../../npcs/application/ports/npc.port.js';
 import { ValidationError } from '../../../shared/domain/errors/errors.js';
 import type { ActorRoundNpcMapperPort } from '../../application/ports/actor-round-npc-mapper.port.js';
 import { ActorRound, BASE_ACTION_POINTS } from '../../domain/aggregates/actor-round.js';
@@ -18,8 +25,8 @@ import { ActorRoundShield } from '../../domain/value-objects/actor-round-shield.
 const DEFAULT_FUMBLE_TABLE = 'animals';
 /** Fumble range of a creature attack: the stat block gives none, so only an unmodified 01 fumbles. */
 const NPC_FUMBLE = 1;
-/** Shield blocks per round of an NPC with a shield (§9.6 Shields), as a normal shield. */
-const NPC_SHIELD_BLOCKS = 1;
+/** Shield blocks per round of a shield type Table 9-6 does not list. */
+const UNKNOWN_SHIELD_BLOCKS = 1;
 /** Movement base difficulty of an unarmored character (casual), as the stat block has no armor penalties. */
 const UNARMORED_MOVEMENT_DIFFICULTY = 'c';
 /** Attack tables of natural weapons, which a disarmed creature still attacks with. */
@@ -50,7 +57,7 @@ export class ActorRoundNpcMapperAdapter implements ActorRoundNpcMapperPort {
     if (sizeClass === undefined) {
       throw new ValidationError(`NPC size ${npc.size} not supported`);
     }
-    const shield = npc.shield ? new ActorRoundShield(npc.shield.bonus, NPC_SHIELD_BLOCKS, 0) : null;
+    const shield = npc.shield ? ActorRoundNpcMapperAdapter.mapShield(npc.shield) : null;
     const actorRound = ActorRound.create(
       gameId,
       round,
@@ -86,6 +93,15 @@ export class ActorRoundNpcMapperAdapter implements ActorRoundNpcMapperPort {
    */
   static deathThreshold(npc: Npc): number | undefined {
     return npc.deathHits === null || npc.deathHits === undefined ? undefined : npc.deathHits - npc.hp - 1;
+  }
+
+  /**
+   * The shield of the stat block (ADR 0010): its DB, or the one of its type for an NPC stored without it, and the
+   * blocks of its type (Table 9-6). The Shield skill goes to the sheet (`ActorSheetService.fromNpc`), not here.
+   */
+  static mapShield(shield: NpcShield): ActorRoundShield {
+    const type = SHIELD_TYPES[shield.type];
+    return new ActorRoundShield(shield.db ?? type?.db ?? 0, type?.blocks ?? UNKNOWN_SHIELD_BLOCKS, 0);
   }
 
   /** The first mode of movement of the stat block (the main one), with no armor penalty. */

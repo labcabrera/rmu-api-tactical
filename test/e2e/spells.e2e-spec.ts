@@ -333,7 +333,8 @@ describe('attack spells (phase 4)', () => {
     e2e.world.characters.set('gandalf', gandalf);
     const gameId = await gameInPhase1();
     const declaredBolt = (await declare(gameId, 'firebolt')).body as AttackActionBody;
-    expect(declaredBolt.spell.attack).toMatchObject({ kind: 'bolt', bo: 40, fumble: 1, skillId: 'directed-spell@elemental-bolts' });
+    // A bolt fumbles on 01-02 whatever the ranks (RMCL 9.2, spec 056).
+    expect(declaredBolt.spell.attack).toMatchObject({ kind: 'bolt', bo: 40, fumble: 2, skillId: 'directed-spell@elemental-bolts' });
     for (let phase = 2; phase <= 4; phase++) await nextPhase(gameId);
     const id = declaredBolt.id;
     expect((await as('owner').patch(`/v1/actions/${id}/spell/roll`, { roll: 60 })).body).toMatchObject({ spell: { result: 'success' } });

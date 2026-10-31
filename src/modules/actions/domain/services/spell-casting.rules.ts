@@ -334,6 +334,7 @@ const ATTACK_SIZE_STEPS = { small: -1, medium: 0, big: 1 };
 const UNSKILLED_BONUS = -25;
 /** Directed Spell attacks: medium range up to 2x the short range, then long, extreme and absurd (Spell Law 2.4). */
 const DIRECTED_RANGE_BONUSES = [0, -10, -25, -50, -100];
+/** Bolts fumble on an unmodified 01-02, not reduced by the caster's ranks (RMCL 9.2). */
 const BOLT_FUMBLE = 2;
 /** Area spells fumble on an unmodified 01-02 (RMCL 9.3). */
 const BALL_FUMBLE = 2;
@@ -354,8 +355,8 @@ export function directedSpellSpecialization(attackTable: string): string | null 
 
 /**
  * The attack of an attack spell (Spell Law 4.3, RMCL 9.3), read by the combat engine as a ranged weapon:
- * - a bolt adds the caster's Directed Spells bonus for its table (unskilled -25), fumbles on 1-2 (one less per 5 ranks,
- *   at least 1) and takes -10/-25/-50/-100 beyond its short range, one bracket per range increment;
+ * - a bolt adds the caster's Directed Spells bonus for its table (unskilled -25), fumbles on an unmodified 1-2
+ *   whatever its ranks (RMCL 9.2) and takes -10/-25/-50/-100 beyond its short range, one bracket per range increment;
  * - a ball (or cone) adds only the ranks in the list, fumbles on 1-2 and has no range modifier up to its range.
  */
 export function spellAttackProfile(
@@ -380,7 +381,7 @@ export function spellAttackProfile(
     attackSize: ATTACK_SIZE_STEPS[effect.attackSize ?? 'medium'] ?? 0,
     criticalType: effect.criticalType ?? null,
     fumbleTable: ball ? 'elemental-balls-cones' : 'elemental-bolts',
-    fumble: ball ? BALL_FUMBLE : Math.max(1, BOLT_FUMBLE - Math.floor((directed?.ranks ?? 0) / 5)),
+    fumble: ball ? BALL_FUMBLE : BOLT_FUMBLE,
     bo: ball ? listRanks : (directed?.totalBonus ?? UNSKILLED_BONUS),
     skillId: ball || !specialization ? null : `directed-spell@${specialization}`,
     ranges,

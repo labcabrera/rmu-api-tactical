@@ -66,11 +66,24 @@ export interface NpcMovement {
   maxPace: string;
 }
 
+/**
+ * The shield of the stat block (ADR 0010): its type of Table 9-6 (`target`, `normal`, `full`, `wall`), the DB it adds
+ * and the Shield skill of the creature. NPCs stored before spec 056 have no `db`: it is the one of the type.
+ */
 export interface NpcShield {
   type: string;
-  ranks: number;
-  bonus: number;
+  db?: number | null;
+  ranks: number | null;
+  bonus: number | null;
 }
+
+/** Table 9-6: DB and attacks blocked per round of each shield type. */
+export const SHIELD_TYPES: Readonly<Record<string, { db: number; blocks: number }>> = {
+  target: { db: 15, blocks: 1 },
+  normal: { db: 20, blocks: 2 },
+  full: { db: 25, blocks: 3 },
+  wall: { db: 30, blocks: 4 },
+};
 
 export interface NpcAttack {
   ob: number;

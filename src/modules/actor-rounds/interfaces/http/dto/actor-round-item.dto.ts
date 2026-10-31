@@ -2,8 +2,10 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   type ActorRoundItem,
   ActorRoundItems,
+  type ItemCoating,
   type ItemCondition,
   type ItemModifier,
+  type SpentCoating,
 } from '../../../domain/value-objects/actor-round-item.vo.js';
 
 export class ActorRoundItemDto {
@@ -34,6 +36,16 @@ export class ActorRoundItemDto {
   @ApiProperty({ description: 'Breakage state with every modifier', type: Object })
   condition: ItemCondition;
 
+  @ApiProperty({ description: 'Poison on the weapon; null once a hit spent it', type: Object, nullable: true, required: false })
+  coating?: ItemCoating | null;
+
+  @ApiProperty({
+    description: 'The coating it brought, spent in the game, by its appliedAt (`true` in rounds stored before spec 044)',
+    type: Object,
+    required: false,
+  })
+  coatingSpent?: SpentCoating;
+
   static fromEntity(entity: ActorRoundItem): ActorRoundItemDto {
     const dto = new ActorRoundItemDto();
     dto.itemId = entity.itemId;
@@ -45,6 +57,8 @@ export class ActorRoundItemDto {
     dto.modifiers = entity.modifiers.map(modifier => ({ ...modifier }));
     dto.startModifierIds = [...entity.startModifierIds];
     dto.condition = ActorRoundItems.condition(entity.modifiers);
+    if (entity.coating !== undefined) dto.coating = entity.coating && structuredClone(entity.coating);
+    if (entity.coatingSpent !== undefined) dto.coatingSpent = entity.coatingSpent === true ? true : { ...entity.coatingSpent };
     return dto;
   }
 }

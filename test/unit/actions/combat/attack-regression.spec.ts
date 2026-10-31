@@ -97,6 +97,8 @@ interface CaseInput {
   customBonus: number;
   armor: CaseArmor;
   roll: number;
+  /** First die of the open-ended roll (spec 056): not in the Python fixtures, where it is `roll`. */
+  unmodified?: number;
   location: string | null;
   criticalRoll: number;
 }
@@ -229,7 +231,7 @@ const removeKeys = (modifiers: Mod[], ...keys: string[]) => modifiers.filter(mod
 const resolution = (c: RegressionCase, exp: Expectation): Resolution => {
   const input = c.input;
   const rawTotal = input.roll + sumOf(exp.rollModifiers);
-  const fumble = input.fumble > 0 && input.roll <= input.fumble;
+  const fumble = input.fumble > 0 && (input.unmodified ?? input.roll) <= input.fumble;
   if (fumble) {
     return {
       fumble,
@@ -570,6 +572,7 @@ const resolve = async (input: CaseInput, prepared: PreparedAttack) => {
     sourceActor: ctx.sourceActor!,
     targetActor: ctx.targetActor!,
     roll: input.roll,
+    unmodified: input.unmodified,
   });
   return lookup;
 };
@@ -721,6 +724,26 @@ describe('attack regression against the Python calculator (spec 003)', () => {
         // The difference reaches the resolution: tactical's result is not Python's.
         expect(model).not.toEqual(pythonResolution(c));
       }
+    });
+  });
+
+  // Spec 056 (B-01): the fumble is checked on the unmodified die of the high open-ended roll.
+  describe('fumble with the unmodified die (spec 056)', () => {
+    const base = CASES.find(c => c.id === 'fumble')!;
+    it.each([
+      ['an unmodified die above the range does not fumble, whatever the total', { roll: -54, unmodified: 4 }, false],
+      ['an unmodified die inside the range fumbles', { roll: 2, unmodified: 2 }, true],
+    ])('%s', async (_label, roll, fumble) => {
+      const c = { ...base, input: { ...base.input, ...roll } };
+      const prepared = await prepare(c.input);
+      const model = resolution(c, expectationOf(c));
+      const lookup = await resolve(c.input, prepared);
+
+      expect(model.fumble).toBe(fumble);
+      expect(!!prepared.attack.results!.fumble).toBe(fumble);
+      expect(prepared.attack.status).toBe(model.status);
+      expect(lookup).toHaveBeenCalledTimes(fumble ? 0 : 1);
+      expect(prepared.attack.roll).toMatchObject(roll);
     });
   });
 });

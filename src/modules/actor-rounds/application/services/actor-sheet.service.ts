@@ -19,6 +19,9 @@ export interface ActorSheet {
   npc?: boolean;
 }
 
+/** Skill of the passive, partial and full blocks (§9.6 Shields). */
+const SHIELD_SKILL_ID = 'shield';
+
 /** The actor in the shape the sheet readers need: an actor round, or what identifies its sheet. */
 export type SheetActor = Pick<ActorRound, 'actorType' | 'actorId' | 'characterId' | 'npcId'>;
 
@@ -42,17 +45,26 @@ export class ActorSheetService {
     return this.characterClient.findById(actor.characterId || actor.actorId);
   }
 
-  /** The skills of a stat block, with their total bonus; ranks it does not give stay unknown. */
+  /**
+   * The skills of a stat block, with their total bonus; ranks it does not give stay unknown. The Shield ranks and bonus
+   * of its shield (ADR 0010) become the `shield` skill the blocks read, unless the block lists that skill itself.
+   */
   static fromNpc(npc: Npc): ActorSheet {
+    const skills: CharacterSkill[] = (npc.skills || []).map(skill =>
+      ActorSheetService.skillOf(skill.skillId, skill.bonus, skill.ranks, skill.specialization),
+    );
+    if (npc.shield && !skills.some(skill => skill.skillId === SHIELD_SKILL_ID)) {
+      skills.push(ActorSheetService.skillOf(SHIELD_SKILL_ID, npc.shield.bonus ?? 0, npc.shield.ranks));
+    }
+    return { npc: true, skills, equipment: { maneuverPenalty: 0, encumbrancePenalty: 0 } };
+  }
+
+  private static skillOf(skillId: string, bonus: number, ranks: number | null | undefined, specialization?: string | null): CharacterSkill {
     return {
-      npc: true,
-      skills: (npc.skills || []).map(skill => ({
-        skillId: skill.skillId,
-        specialization: skill.specialization ?? null,
-        totalBonus: skill.bonus,
-        ...(skill.ranks !== null && skill.ranks !== undefined ? { ranks: skill.ranks } : {}),
-      })),
-      equipment: { maneuverPenalty: 0, encumbrancePenalty: 0 },
+      skillId,
+      specialization: specialization ?? null,
+      totalBonus: bonus,
+      ...(ranks !== null && ranks !== undefined ? { ranks } : {}),
     };
   }
 }

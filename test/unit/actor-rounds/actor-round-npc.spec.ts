@@ -5,6 +5,7 @@ import type { ActorRoundCharacterMapperPort } from '../../../src/modules/actor-r
 import type { ActorRoundRepository } from '../../../src/modules/actor-rounds/application/ports/actor-round-repository.port.js';
 import { ActorSheetService } from '../../../src/modules/actor-rounds/application/services/actor-sheet.service.js';
 import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
+import { ActorRoundDefenseMode } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-defense-mode.vo.js';
 import { ActorRoundNpcMapperAdapter } from '../../../src/modules/actor-rounds/infrastructure/mappers/actor-round-npc-mapper.adapter.js';
 import type { GameRepository } from '../../../src/modules/games/application/ports/game-repository.port.js';
 import { Actor } from '../../../src/modules/games/domain/value-objects/actor.vo.js';
@@ -13,8 +14,11 @@ import { GroupCheckService } from '../../../src/modules/psychology/application/s
 import type { CharacterPort } from '../../../src/modules/strategic/application/ports/character.port.js';
 import type { ItemPort } from '../../../src/modules/strategic/application/ports/item.port.js';
 import { load } from './actor-round-test.factory.js';
+import { CombatShieldPlugin } from '../../../src/modules/actions/application/services/combat/index.js';
+import { COMBAT_SKILL_IDS } from '../../../src/modules/actions/application/services/combat/combat-modifiers.js';
+import { createCombatPluginContext, rollModifierValues, runPluginHook } from '../actions/combat/combat-plugin-test.factory.js';
 
-/** An invented creature, not of any book: a big beast with a bite, a claw and a hide shield. */
+/** An invented creature, not of any book: a big beast with a bite, a scimitar and a normal shield (`N20+8/+60`). */
 const beast = (overrides: Partial<Npc> = {}): Npc => ({
   id: 'beast',
   realmId: 'realm-1',
@@ -31,7 +35,7 @@ const beast = (overrides: Partial<Npc> = {}): Npc => ({
   deathHits: 100,
   at: 8,
   db: 15,
-  shield: { type: 'hide', ranks: 0, bonus: 20 },
+  shield: { type: 'normal', db: 20, ranks: 8, bonus: 60 },
   initiative: -2,
   attacks: [
     { ob: 70, size: 7, attackTable: 'bite', fumbleTable: null },
@@ -86,7 +90,7 @@ describe('ActorRoundNpcMapperAdapter (spec 055)', () => {
         bodyAt: 8,
         armsAt: 8,
         legsAt: 8,
-        shield: { db: 20, blockCount: 1, currentBlocks: 0 },
+        shield: { db: 20, blockCount: 2, currentBlocks: 0 },
         protect: 0,
       },
     });
@@ -127,6 +131,18 @@ describe('ActorRoundNpcMapperAdapter (spec 055)', () => {
     expect(round.defense.shield).toBeNull();
     expect(round.resistances).toEqual([]);
     expect(round.attacks).toEqual([]);
+  });
+
+  it('gives the shield the DB and the blocks of its type (Table 9-6, ADR 0010)', () => {
+    const shieldOf = (shield: Npc['shield']) => mapper.toActorRound('g', 1, specimen(), beast({ shield })).defense.shield;
+    expect(shieldOf({ type: 'normal', db: 20, ranks: 8, bonus: 60 })).toEqual({ db: 20, blockCount: 2, currentBlocks: 0 });
+    // Stored before spec 056: the DB of the type.
+    expect(shieldOf({ type: 'target', ranks: 0, bonus: 0 })).toMatchObject({ db: 15, blockCount: 1 });
+    expect(shieldOf({ type: 'full', db: null, ranks: 0, bonus: 0 })).toMatchObject({ db: 25, blockCount: 3 });
+    expect(shieldOf({ type: 'wall', db: 35, ranks: 0, bonus: 0 })).toMatchObject({ db: 35, blockCount: 4 });
+    // Not the Shield skill bonus, the bug of spec 055.
+    expect(shieldOf({ type: 'normal', ranks: 8, bonus: 60 })).toMatchObject({ db: 20 });
+    expect(shieldOf({ type: 'made-up', ranks: 0, bonus: 0 })).toMatchObject({ db: 0, blockCount: 1 });
   });
 
   it('rejects a size it does not know', () => {
@@ -174,6 +190,7 @@ describe('ActorSheetService (spec 055)', () => {
       skills: [
         { skillId: 'perception', specialization: null, totalBonus: 35 },
         { skillId: 'influence', specialization: 'intimidation', totalBonus: 30, ranks: 4 },
+        { skillId: 'shield', specialization: null, totalBonus: 60, ranks: 8 },
       ],
       equipment: { maneuverPenalty: 0, encumbrancePenalty: 0 },
     });
@@ -187,6 +204,35 @@ describe('ActorSheetService (spec 055)', () => {
       id: 'aragorn',
       skills: [],
     });
+  });
+
+  it('gives the Shield skill of the shield only to an NPC with one, and keeps a Shield skill the block lists', () => {
+    expect(ActorSheetService.fromNpc(beast({ shield: null })).skills.map(skill => skill.skillId)).toEqual(['perception', 'influence']);
+    const listed = ActorSheetService.fromNpc(beast({ skills: [{ skillId: 'shield', specialization: null, ranks: 3, bonus: 40 }] })).skills;
+    expect(listed).toEqual([{ skillId: 'shield', specialization: null, totalBonus: 40, ranks: 3 }]);
+    expect(ActorSheetService.fromNpc(beast({ shield: { type: 'target', ranks: null, bonus: null }, skills: [] })).skills).toEqual([
+      { skillId: 'shield', specialization: null, totalBonus: 0 },
+    ]);
+  });
+
+  it('blocks with the shield DB and the Shield skill of the stat block (§9.6, ADR 0010)', async () => {
+    const npc = beast();
+    const round = mapper.toActorRound('g', 1, specimen(), npc);
+    const targetSkills = ActorSheetService.fromNpc(npc)
+      .skills.filter(skill => COMBAT_SKILL_IDS.includes(skill.skillId))
+      .map(skill => ({ skillId: skill.skillId, bonus: skill.totalBonus, ranks: skill.ranks ?? 0 }));
+    const block = async (mode: 'passive' | 'full') => {
+      const ctx = createCombatPluginContext({
+        shield: round.defense.shield,
+        defenseMode: ActorRoundDefenseMode.of('none', mode),
+        targetSkills,
+      });
+      await runPluginHook(CombatShieldPlugin, 'prepare', ctx);
+      return rollModifierValues(ctx);
+    };
+
+    expect(await block('passive')).toEqual({ shield: -20, 'shield-block': -8 });
+    expect(await block('full')).toEqual({ shield: -20, 'shield-block': -60 });
   });
 
   it('counts a skill the stat block does not list as 0, not unskilled', () => {

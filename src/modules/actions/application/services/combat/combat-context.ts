@@ -22,6 +22,10 @@ export interface CombatContext {
   action: Action;
   attack?: ActionAttack;
   attackRoll?: number;
+  /** First die of the open-ended attack roll; `attackRoll` when the client did not send it. */
+  unmodifiedRoll?: number;
+  /** Every die of the open-ended attack roll, in order, when the client sent them. */
+  attackDice?: number[];
   rollTotal?: number;
   location?: AttackLocation;
   sourceActor?: ActorRound;
