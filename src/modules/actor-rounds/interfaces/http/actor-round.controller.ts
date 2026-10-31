@@ -28,6 +28,9 @@ import { ActorRoundDto, CharacterRoundPageDto } from './dto/actor-round.dto.js';
 import { AddEffectDto } from './dto/add-effect.dto.js';
 import { AddFatigueAccumulatorDto } from './dto/add-fatigue-accumulator.dto.js';
 import { AddHpDto } from './dto/add-hp.dto.js';
+import { UseHerbDto, UseHerbResultDto } from './dto/use-herb.dto.js';
+import { UseHerbCommand } from '../../application/cqrs/commands/use-herb.command.js';
+import type { UseHerbResult } from '../../application/cqrs/handlers/use-herb.handler.js';
 import { DeclareInitiativeDto } from './dto/declare-initiative.dto.js';
 import { ResolveEnduranceCheckDto } from './dto/resolve-endurance-check.dto.js';
 import { ResolveBreakageCheckDto } from './dto/resolve-breakage-check.dto.js';
@@ -119,6 +122,21 @@ export class ActorRoundController {
     const command = new AdjustHpCommand(id, dto.dmg, user.id, user.roles);
     const entity = await this.commandBus.execute<AdjustHpCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
+  }
+
+  @ActorRoundAccess('act')
+  @Post(':id/herbs')
+  @HttpCode(200)
+  @ApiOkResponse({ type: UseHerbResultDto, description: 'Success' })
+  @ApiOperation({
+    operationId: 'useHerb',
+    summary: 'Use a herb of the character of the actor: heals hits and removes stun rounds (spec 062)',
+    description: 'The herb is read from strategic. As the antidotes of spec 042, tactical spends no dose.',
+  })
+  @ApiErrors({ 400: 'Not a herb of the character, or herb-without-effect', 404: 'Actor round or item not found' })
+  async useHerb(@Param('id') id: string, @Body() dto: UseHerbDto, @CurrentUser() user: AuthenticatedUser) {
+    const command = new UseHerbCommand(id, dto.itemId, dto.roll, user.id, user.roles);
+    return UseHerbResultDto.from(await this.commandBus.execute<UseHerbCommand, UseHerbResult>(command));
   }
 
   @ActorRoundAccess('act')
