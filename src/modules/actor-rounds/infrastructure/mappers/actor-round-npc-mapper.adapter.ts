@@ -47,8 +47,9 @@ const NATURAL_ATTACK_TABLES = [
 /**
  * The actor round of a specimen of an NPC (spec 055, decision 4), from the Combat Stat Block of rmu-api-npcs (spec
  * 054), in the units of the character mapper: the size and the attack sizes are steps from medium, the death
- * threshold is the hits below zero it survives. The sequences, cooperation, katas, critical codes and poisons of the
- * attacks are not applied (spec 056 candidate); the game master picks the attack.
+ * threshold is the hits below zero it survives. The attacks with no table are left out (spec 060). The sequences,
+ * cooperation, katas, critical codes and poisons of the attacks are not applied (spec 056 candidate); the game master
+ * picks the attack.
  */
 @Injectable()
 export class ActorRoundNpcMapperAdapter implements ActorRoundNpcMapperPort {
@@ -75,7 +76,7 @@ export class ActorRoundNpcMapperAdapter implements ActorRoundNpcMapperPort {
       ActorRoundFatigue.empty(),
       ActorRoundPenalty.empty(),
       new ActorRoundDefense(npc.db, npc.at, npc.at, npc.at, npc.at, npc.at, shield, 0),
-      (npc.attacks || []).map((attack, index) => this.mapAttack(attack, index)),
+      (npc.attacks || []).flatMap((attack, index) => (attack.attackTable ? [this.mapAttack(attack, attack.attackTable, index)] : [])),
       [],
       [],
       npc.imageUrl ?? undefined,
@@ -111,18 +112,21 @@ export class ActorRoundNpcMapperAdapter implements ActorRoundNpcMapperPort {
   }
 
   /**
-   * One attack per line of the stat block, named after its table and its place (`bite-1`). Its size, as the attack size
-   * of a character sheet, is its size class against medium: the attack size plugin takes the target's size off.
+   * One attack per line of the stat block, named after its table and its place in the stat block (`bite-1`). An attack
+   * with no table (`we`, `rw`, special attacks) is skipped (spec 060, decision 6), and the others keep the line number
+   * of the stat block, not a renumbered one, so `claw-3` is still the third line the game master reads. Its size, as
+   * the attack size of a character sheet, is its size class against medium: the attack size plugin takes the target's
+   * size off.
    */
-  private mapAttack(attack: NpcAttack, index: number): ActorRoundAttack {
-    const weaponCategory: WeaponCategory = NATURAL_ATTACK_TABLES.includes(attack.attackTable) ? 'natural' : 'standard';
+  private mapAttack(attack: NpcAttack, attackTable: string, index: number): ActorRoundAttack {
+    const weaponCategory: WeaponCategory = NATURAL_ATTACK_TABLES.includes(attackTable) ? 'natural' : 'standard';
     return new ActorRoundAttack(
-      `${attack.attackTable}-${index + 1}`,
+      `${attackTable}-${index + 1}`,
       [],
       attack.ob,
       attack.ob,
       'melee',
-      attack.attackTable,
+      attackTable,
       attack.fumbleTable || DEFAULT_FUMBLE_TABLE,
       attack.size - MEDIUM_SIZE_CLASS,
       NPC_FUMBLE,
