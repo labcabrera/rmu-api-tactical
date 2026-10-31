@@ -111,6 +111,36 @@ describe('ActorRoundNpcMapperAdapter (spec 055)', () => {
     ]);
   });
 
+  it('skips the attacks with no table and keeps the stat block line in the names (spec 060)', () => {
+    const round = mapper.toActorRound(
+      'game-1',
+      1,
+      specimen(),
+      beast({
+        attacks: [
+          { ob: 80, size: 5, attackTable: null, fumbleTable: null },
+          { ob: 70, size: 7, attackTable: 'bite', fumbleTable: null },
+          { ob: 60, size: 5, attackTable: null, fumbleTable: 'melee-one-hand' },
+          { ob: 55, size: 6, attackTable: 'claw', fumbleTable: null },
+        ],
+      }),
+    );
+    expect(round.attacks.map(a => [a.attackName, a.attackTable, a.baseBo])).toEqual([
+      ['bite-2', 'bite', 70],
+      ['claw-4', 'claw', 55],
+    ]);
+  });
+
+  it('builds an actor round with no attacks when none has a table (spec 060)', () => {
+    const round = mapper.toActorRound(
+      'game-1',
+      1,
+      specimen(),
+      beast({ attacks: [{ ob: 80, size: 5, attackTable: null, fumbleTable: null }] }),
+    );
+    expect(round.attacks).toEqual([]);
+  });
+
   it('dies when the damage reaches the death hits, not before', () => {
     const round = mapper.toActorRound('game-1', 1, specimen(), beast());
     round.adjustHp(99);

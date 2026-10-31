@@ -224,4 +224,28 @@ describe('a round of a character against NPCs', () => {
     const [next] = await rounds(gameId, 2);
     expect(next).toMatchObject({ actorId: warg.actorId, actorType: 'npc', npcId: 'warg', hp: { max: 40, deathThreshold: 19 } });
   });
+
+  it('leaves out the attacks with no table of the stat block (spec 060)', async () => {
+    e2e.world.npcs.set(
+      'ogre',
+      npc('ogre', {
+        name: 'Ogre',
+        attacks: [
+          { ob: 70, size: 5, attackTable: null, fumbleTable: null },
+          { ob: 60, size: 6, attackTable: 'bite', fumbleTable: null },
+        ],
+      }),
+    );
+    const created = await as('owner').post('/v1/tactical-games', {
+      strategicGameId: 'sg-1',
+      name: 'Cave',
+      factions: ['faction-1'],
+      environmentFaction: { npcs: [{ npcId: 'ogre' }] },
+    });
+    expect(created.status).toBe(201);
+    const gameId = (created.body as { id: string }).id;
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/rounds/start`)).status).toBe(200);
+    const [ogre] = await rounds(gameId);
+    expect(ogre.attacks.map(attack => [attack.attackName, attack.attackTable, attack.baseBo])).toEqual([['bite-2', 'bite', 60]]);
+  });
 });

@@ -89,7 +89,8 @@ export interface NpcAttack {
   ob: number;
   /** Size class of the attack, 1-13 (medium = 5). */
   size: number;
-  attackTable: string;
+  /** Null for an attack with no table of its own (`we`, `rw`, special attacks; spec 060). */
+  attackTable: string | null;
   fumbleTable: string | null;
 }
 
