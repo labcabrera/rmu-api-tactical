@@ -5,10 +5,10 @@ import {
   type ActorRoundRepository,
   ACTOR_ROUND_REPOSITORY,
 } from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
+import { type ActorSheet, ActorSheetService } from '../../../../actor-rounds/application/services/actor-sheet.service.js';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
 import { Game } from '../../../../games/domain/aggregates/game.js';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
-import { type Character, type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port.js';
 import { Action } from '../../../domain/aggregates/action.js';
 import { DIFFICULTY_MAP, type Difficulty } from '../../../domain/value-objects/difficulty.vo.js';
 import { KeyValueModifier } from '../../../domain/value-objects/key-value-modifier.vo.js';
@@ -42,7 +42,8 @@ export const SOCIAL_AWARENESS_SKILL_ID = 'social-awareness';
 /** Everything a maneuver of an action needs, read once per request. */
 export interface ManeuverContext {
   actorRound: ActorRound;
-  character: Character;
+  /** The character sheet, or the stat block of an NPC (spec 055). */
+  character: ActorSheet;
   profile: SkillManeuverProfile;
   catalog: ManeuverModifierDefinition[];
   skill: ManeuverSkillBonus;
@@ -107,7 +108,7 @@ export class ManeuverContextService {
   constructor(
     @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
     @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
-    @Inject(CHARACTER_PORT) private readonly characterClient: CharacterPort,
+    private readonly sheets: ActorSheetService,
     @Inject(SKILL_CATALOG_PORT) private readonly skillCatalog: SkillCatalogPort,
     private readonly baseModifiersService: ManeuverBaseModifiersService,
   ) {}
@@ -121,15 +122,16 @@ export class ManeuverContextService {
       ? (options.specialization ?? null)
       : (options.specialization ?? action.maneuver.modifiers.specialization ?? null);
     const rsql = `gameId==${action.gameId};actorId==${action.actorId};round==${action.round}`;
-    const [actorRound, character, skill, catalog, roundActions] = await Promise.all([
+    const [actorRound, skill, catalog, roundActions] = await Promise.all([
       this.actorRoundRepository.findByActorIdAndRound(action.gameId, action.actorId, action.round),
-      this.characterClient.findById(action.actorId),
       this.skillCatalog.findSkill(skillId),
       this.skillCatalog.findManeuverModifiers(skillId),
       this.actionRepository.findByRsql(rsql, 0, 100),
     ]);
     if (!actorRound) throw new NotFoundError('ActorRound', `${action.actorId} - ${action.round}`);
-    if (!character) throw new NotFoundError('Character', action.actorId);
+    // Spec 055: an NPC takes its skills from its stat block.
+    const character = await this.sheets.find(actorRound);
+    if (!character) throw new NotFoundError(actorRound.actorType === 'npc' ? 'NPC' : 'Character', actorRound.npcId ?? action.actorId);
     if (!skill) throw new NotFoundError('Skill', skillId);
     const profile = skill.maneuver ?? DEFAULT_MANEUVER_PROFILE;
     const actionPoints =
@@ -203,7 +205,7 @@ export class ManeuverContextService {
 
   /**
    * Passive total of a conflicting maneuver against an actor of the game (workspace spec 022, decision 12, D5p): its
-   * roll, the bonus of its skill (from its character sheet, or the one sent for an NPC) and its penalties. The skill is
+   * roll, the bonus of its skill (from its character sheet or the NPC's stat block, else the one sent) and its penalties. The skill is
    * Social Awareness by default and, for a `price` maneuver, the seller's own Trading.
    */
   async passiveTotal(context: ManeuverContext, action: Action, passive: PassiveSide): Promise<{ total: number; skillId: string }> {
@@ -217,9 +219,11 @@ export class ManeuverContextService {
     if (!target) throw new NotFoundError('Target actor', passive.targetActorId, 'err-maneuver-target-not-found');
     const skillId = passive.skillId || (context.profile.resultKind === 'price' ? context.skill.skillId : SOCIAL_AWARENESS_SKILL_ID);
     let bonus = passive.bonus;
-    if (bonus === undefined && target.actorType === 'character') {
-      const sheet = await this.characterClient.findById(target.characterId ?? target.actorId);
-      bonus = sheet ? ManeuverBaseModifiersService.skillBonus(sheet, skillId, null).bonus : undefined;
+    if (bonus === undefined) {
+      // Spec 055: an NPC's stat block gives the bonus when it lists the skill; otherwise it is sent.
+      const sheet = await this.sheets.find(target);
+      const listed = !!sheet && (!sheet.npc || sheet.skills.some(skill => skill.skillId === skillId));
+      bonus = listed ? ManeuverBaseModifiersService.skillBonus(sheet, skillId, null).bonus : undefined;
     }
     if (bonus === undefined) {
       throw new ValidationError(`Send the ${skillId} bonus of ${target.actorName}`, 'err-maneuver-passive-bonus-required');

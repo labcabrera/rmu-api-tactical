@@ -260,6 +260,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   /** Strategic character of a character actor. */
   public characterId: string | undefined;
 
+  /** NPC of rmu-api-npcs an NPC actor is a specimen of (spec 055): its stat block gives its skills. */
+  public npcId: string | undefined;
+
   /** Items of the actor (spec 019): those of its character, or the attacks and shield of an NPC. */
   public items: ActorRoundItem[] = [];
 
@@ -413,6 +416,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.poisonExposures = (props.poisonExposures ?? []).map(exposure => structuredClone(exposure));
     actorRound.hpLog = (props.hpLog ?? []).map(entry => ({ ...entry }));
     actorRound.characterId = props.characterId ?? (props.actorType === 'character' ? props.actorId : undefined);
+    actorRound.npcId = props.npcId;
     actorRound.items = (props.items ?? []).map(item => ActorRoundItems.copy(item));
     actorRound.snapshot = props.snapshot;
     actorRound.resistances = (props.resistances ?? []).map(resistance => ({ ...resistance }));
@@ -485,6 +489,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.injuries = previous.injuries.map(injury => ActorRound.copyInjury(injury));
     actorRound.poisonExposures = previous.poisonExposures.map(exposure => structuredClone(exposure));
     actorRound.characterId = previous.characterId;
+    actorRound.npcId = previous.npcId;
     actorRound.items = previous.items.map(item => ActorRoundItems.copy(item));
     actorRound.resistances = previous.resistances.map(resistance => ({ ...resistance }));
     actorRound.fightingStyles = previous.fightingStyles.map(style => ActorRound.copyStyle(style));
@@ -2245,6 +2250,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       poisonExposures: this.poisonExposures,
       hpLog: this.hpLog,
       characterId: this.characterId,
+      npcId: this.npcId,
       items: this.items,
       snapshot: this.snapshot,
       resistances: this.resistances,

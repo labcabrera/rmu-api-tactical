@@ -19,6 +19,7 @@ import { buildInjury, type Injury, type MedicalResult } from '../../../src/modul
 import type { GameRepository } from '../../../src/modules/games/application/ports/game-repository.port.js';
 import type { CharacterPort } from '../../../src/modules/strategic/application/ports/character.port.js';
 import { effect, load } from './actor-round-test.factory.js';
+import { sheetsOf } from '../support/actor-sheets.js';
 
 const wound = (bleeding: number, overrides: Partial<Injury> = {}): Injury => ({
   ...buildInjury({ id: 'wound', type: 'cut-burn', location: 'arm', penalty: -10, bleeding, source: { kind: 'critical' } }),
@@ -205,7 +206,7 @@ describe('TreatInjuryHandler and StabilizeEffectHandler', () => {
     } as unknown as CharacterPort;
     const absolute = vi.fn((total: number, table?: string) => Promise.resolve({ result, message: `${table} ${total}`, effects }));
     const maneuverPort = { absolute } as unknown as ManeuverPort;
-    const service = new MedicalRollService(actorRoundRepository, gameRepository, characterClient, maneuverPort);
+    const service = new MedicalRollService(actorRoundRepository, gameRepository, sheetsOf(characterClient), maneuverPort);
     const healingTables: HealingTablesPort = { treatmentTables: vi.fn(() => Promise.resolve(tables)) };
     const lookup = vi.fn((request: CriticalTableLookupRequest) =>
       Promise.resolve(

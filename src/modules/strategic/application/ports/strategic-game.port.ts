@@ -8,6 +8,8 @@ export interface StrategicGame {
   id: string;
   options: StrategicGameOptions | null;
   owner: string;
+  /** Realm of the campaign: the NPCs of its games are of this realm or of a generic one (spec 055). */
+  realmId?: string;
   /** `public` or `private`; strategic sends it since spec 021 (F-strategic-05). Missing means private. */
   accessType?: string;
 }

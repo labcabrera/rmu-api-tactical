@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
 import { activeStyleAbility } from '../../../../actor-rounds/domain/value-objects/actor-round-fighting-style.vo.js';
 import { ValidationError } from '../../../../shared/domain/errors/errors.js';
-import type { Character } from '../../../../strategic/application/ports/character.port.js';
+import type { ActorSheet } from '../../../../actor-rounds/application/services/actor-sheet.service.js';
 import { Action } from '../../../domain/aggregates/action.js';
 import { KeyValueModifier, type ModifierGroup, type ModifierParams } from '../../../domain/value-objects/key-value-modifier.vo.js';
 import { SkippedRule } from '../../../domain/value-objects/skipped-rule.vo.js';
@@ -90,7 +90,8 @@ export interface ManeuverSkillBonus {
 
 export interface ManeuverBaseInput {
   actorRound: ActorRound;
-  character: Character;
+  /** The character sheet, or the stat block of an NPC (spec 055). */
+  character: ActorSheet;
   profile: SkillManeuverProfile;
   skillId: string;
   specialization?: string | null;
@@ -140,9 +141,10 @@ export class ManeuverBaseModifiersService {
 
   /**
    * The skill bonus of the sheet with its specialization (a skill the sheet keeps without specializations matches any).
-   * A character without the skill, or without that specialization, rolls with -25.
+   * A character without the skill, or without that specialization, rolls with -25; an NPC whose stat block does not
+   * list it, with 0 (spec 055).
    */
-  static skillBonus(character: Character, skillId: string, specialization: string | null): ManeuverSkillBonus {
+  static skillBonus(character: ActorSheet, skillId: string, specialization: string | null): ManeuverSkillBonus {
     const entries = (character.skills || []).filter(s => s.skillId === skillId);
     // Spec 050: sheets store catalog keys; a caller or a sheet not yet migrated may send the name (`Black Speech`)
     const wanted = toOptionalKey(specialization);
@@ -150,7 +152,9 @@ export class ManeuverBaseModifiersService {
       entries.find(s => toOptionalKey(s.specialization) === wanted) ??
       (specialization ? entries.find(s => !s.specialization && !entries.some(other => !!other.specialization)) : undefined);
     if (!skill) {
-      return { skillId, specialization, bonus: UNSKILLED_BONUS, ranks: 0, unskilled: true };
+      return character.npc
+        ? { skillId, specialization, bonus: 0, ranks: 0, unskilled: false }
+        : { skillId, specialization, bonus: UNSKILLED_BONUS, ranks: 0, unskilled: true };
     }
     return { skillId, specialization, bonus: skill.totalBonus, ranks: skill.ranks ?? 0, unskilled: false };
   }
@@ -192,7 +196,7 @@ export class ManeuverBaseModifiersService {
    * §5.1 and §7.2: the armor maneuver penalty and the encumbrance penalty of the sheet, and the breakage the armor took
    * in the game (spec 019, decision 10), which the sheet does not count yet.
    */
-  private addEquipmentPenalties(base: ManeuverBaseModifier[], character: Character, actorRound: ActorRound): void {
+  private addEquipmentPenalties(base: ManeuverBaseModifier[], character: ActorSheet, actorRound: ActorRound): void {
     const equipment = { source: 'equipment' as const, group: 'penalty' as const };
     base.push({ key: 'armor-maneuver', value: character.equipment?.maneuverPenalty || 0, ...equipment, rule: MANEUVER_RULES.armor });
     base.push({ key: 'encumbrance', value: character.equipment?.encumbrancePenalty || 0, ...equipment, rule: MANEUVER_RULES.encumbrance });

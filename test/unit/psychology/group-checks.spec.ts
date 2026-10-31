@@ -18,6 +18,7 @@ import { openEndedRoll } from '../../../src/modules/psychology/domain/services/o
 import type { CharacterPort } from '../../../src/modules/strategic/application/ports/character.port.js';
 import { PSYCHOLOGY_TABLES } from '../../fixtures/psychology-tables.js';
 import { effect, load } from '../actor-rounds/actor-round-test.factory.js';
+import { sheetsOf } from '../support/actor-sheets.js';
 
 type Options = Parameters<typeof load>[0] & { actorId: string; character?: boolean };
 
@@ -56,7 +57,7 @@ const setup = (extra: { round?: number; effects?: Record<string, ReturnType<type
   const update = vi.fn((round: ActorRound) => Promise.resolve(round));
   const actorRounds = { findByRsql: vi.fn(() => Promise.resolve({ content: rounds })), update } as unknown as ActorRoundRepository;
   const characters = { findById: vi.fn((id: string) => Promise.resolve(sheets[id])) } as unknown as CharacterPort;
-  const service = new GroupCheckService(games, actorRounds, characters);
+  const service = new GroupCheckService(games, actorRounds, sheetsOf(characters));
   const tables = { find: vi.fn(() => Promise.resolve(PSYCHOLOGY_TABLES)) };
   return {
     rounds,

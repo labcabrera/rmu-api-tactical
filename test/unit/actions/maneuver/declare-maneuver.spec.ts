@@ -13,6 +13,7 @@ import type { GameRepository } from '../../../../src/modules/games/application/p
 import type { CharacterPort } from '../../../../src/modules/strategic/application/ports/character.port.js';
 import { load } from '../../actor-rounds/actor-round-test.factory.js';
 import { action, setupManeuver } from './maneuver-test.factory.js';
+import { sheetsOf } from '../../support/actor-sheets.js';
 
 const previous = (overrides: Partial<Action> = {}, progress = 60, completed = false): Action =>
   action({
@@ -48,7 +49,7 @@ const declare = (maneuver: CreateActionCommandManeuver, existing: Action[] = [pr
     actionRepository,
     eventBus,
     skillCatalog,
-    characterClient,
+    sheetsOf(characterClient),
     {} as SpellCastingService,
   );
   return handler.execute(new CreateActionCommand('game-1', 'actor-1', 'maneuver', false, 1, maneuver, '', 'user-1', []));

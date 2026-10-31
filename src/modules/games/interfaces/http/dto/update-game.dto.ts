@@ -4,6 +4,7 @@ import { IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validato
 import { UpdateGameCommand } from '../../../application/cqrs/commands/update-game.command.js';
 import { GameEnvironment } from '../../../domain/value-objects/game-environment.vo.js';
 import { GameEnvironmentDto } from './game-environment.dto.js';
+import { UpdateEnvironmentFactionDto } from './environment-faction.dto.js';
 
 export class UpdateGameDto {
   // Every field is optional: a PATCH changes what it sends (rmu-mfe-tactical sends only imageUrl) [F-tactical-12].
@@ -28,6 +29,15 @@ export class UpdateGameDto {
   @IsOptional()
   imageUrl: string | undefined;
 
+  @ApiPropertyOptional({
+    type: UpdateEnvironmentFactionDto,
+    description: 'Renames the environment faction (spec 055), only in a created game',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => UpdateEnvironmentFactionDto)
+  environmentFaction?: UpdateEnvironmentFactionDto;
+
   @ApiPropertyOptional({ description: 'Version the client read (from the GET); a different stored version is a 409', example: 3 })
   @Type(() => Number)
   @IsInt()
@@ -39,6 +49,16 @@ export class UpdateGameDto {
     const env = dto.environment
       ? new GameEnvironment(dto.environment.temperatureFatigueModifier, dto.environment.altitudeFatigueModifier)
       : undefined;
-    return new UpdateGameCommand(id, dto.name, env, dto.description, dto.imageUrl, userId, roles, dto.version);
+    return new UpdateGameCommand(
+      id,
+      dto.name,
+      env,
+      dto.description,
+      dto.imageUrl,
+      userId,
+      roles,
+      dto.version,
+      dto.environmentFaction?.name,
+    );
   }
 }

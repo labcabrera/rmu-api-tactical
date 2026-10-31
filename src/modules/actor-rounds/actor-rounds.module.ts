@@ -24,10 +24,14 @@ import { DeclareInitiativeCommandHandler } from './application/cqrs/handlers/upd
 import { UpkeepActorRoundHandler } from './application/cqrs/handlers/upkeep-actor-round.handler.js';
 import { MongoActorRoundRepository } from './infrastructure/db/mongo.actor-round.repository.js';
 import { ActorRoundCharacterMapperAdapter } from './infrastructure/mappers/actor-round-character-mapper.adapter.js';
+import { ActorRoundNpcMapperAdapter } from './infrastructure/mappers/actor-round-npc-mapper.adapter.js';
+import { ActorSheetService } from './application/services/actor-sheet.service.js';
+import { NpcsModule } from '../npcs/npcs.module.js';
 import { ActorRoundModel, ActorRoundSchema } from './infrastructure/persistence/models/actor-round.model.js';
 import { ActorRoundController } from './interfaces/http/actor-round.controller.js';
 
 import { ACTOR_ROUND_CHARACTER_MAPPER_PORT } from './application/ports/actor-round-character-mapper.port.js';
+import { ACTOR_ROUND_NPC_MAPPER_PORT } from './application/ports/actor-round-npc-mapper.port.js';
 import { ACTOR_ROUND_REPOSITORY } from './application/ports/actor-round-repository.port.js';
 import { FIGHTING_STYLES_PORT } from './application/ports/fighting-styles.port.js';
 import { ApiFightingStylesAdapter } from './infrastructure/api-clients/api.fighting-styles.adapter.js';
@@ -42,6 +46,7 @@ import { DeclareFightingStyleHandler } from './application/cqrs/handlers/declare
     SharedModule,
     GamesModule,
     StrategicModule,
+    NpcsModule,
   ],
   controllers: [ActorRoundController],
   providers: [
@@ -73,7 +78,12 @@ import { DeclareFightingStyleHandler } from './application/cqrs/handlers/declare
       provide: ACTOR_ROUND_CHARACTER_MAPPER_PORT,
       useClass: ActorRoundCharacterMapperAdapter,
     },
+    {
+      provide: ACTOR_ROUND_NPC_MAPPER_PORT,
+      useClass: ActorRoundNpcMapperAdapter,
+    },
+    ActorSheetService,
   ],
-  exports: [ACTOR_ROUND_REPOSITORY],
+  exports: [ACTOR_ROUND_REPOSITORY, ActorSheetService],
 })
 export class ActorsRoundModule {}

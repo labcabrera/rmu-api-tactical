@@ -12,6 +12,8 @@ export class UpdateGameCommand extends AuthenticatedCommand {
     roles: string[],
     /** The version the client read; undefined applies the change to the current one. */
     public readonly expectedVersion?: number,
+    /** Spec 055: the new name of the environment faction. */
+    public readonly environmentFactionName?: string,
   ) {
     super(userId, roles);
   }

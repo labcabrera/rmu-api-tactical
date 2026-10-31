@@ -40,6 +40,7 @@ import {
   rollModifierValues,
   runPluginHook,
 } from './combat-plugin-test.factory.js';
+import { sheetsOf } from '../../support/actor-sheets.js';
 
 const trait = (traitId: string, tier = 1, specialization: string | null = null) => new ActorRoundTrait(traitId, tier, specialization);
 
@@ -267,7 +268,7 @@ describe('Combat talents', () => {
         { findById: vi.fn(() => Promise.resolve(game)) } as unknown as GameRepository,
         { findByGameAndRoundAndActors: vi.fn(() => Promise.resolve(ctx.actors)) } as unknown as ActorRoundRepository,
         actionRepository,
-        { findById: vi.fn(() => Promise.resolve({ skills: [], traits: [{ traitId: 'ignored' }] })) } as unknown as CharacterPort,
+        sheetsOf({ findById: vi.fn(() => Promise.resolve({ skills: [], traits: [{ traitId: 'ignored' }] })) } as unknown as CharacterPort),
         { findById: vi.fn(() => Promise.resolve({ options: {} })) } as unknown as StrategicGameApiClient,
         { publish: vi.fn(() => Promise.resolve()) },
         new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST)),

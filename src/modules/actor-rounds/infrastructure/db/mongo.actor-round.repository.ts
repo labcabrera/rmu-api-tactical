@@ -150,6 +150,7 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       poisonExposures: doc.poisonExposures || [],
       hpLog: (doc.hpLog || []).map(entry => MongoActorRoundRepository.toHpLogEntry(entry)),
       characterId: doc.characterId,
+      npcId: doc.npcId,
       resistances: (doc.resistances || []).map(each => ({ resistance: each.resistance, totalBonus: each.totalBonus ?? 0 })),
       fightingStyles: doc.fightingStyles || [],
       activeStyle: doc.activeStyle ?? null,

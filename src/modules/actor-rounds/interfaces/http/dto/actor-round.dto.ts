@@ -128,6 +128,9 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Strategic character of a character actor', required: false })
   characterId?: string;
 
+  @ApiProperty({ description: 'NPC an NPC actor is a specimen of (spec 055)', required: false })
+  npcId?: string;
+
   @ApiProperty({ description: 'Items of the actor, with their breakage (spec 019)', type: [ActorRoundItemDto] })
   items: ActorRoundItemDto[];
 
@@ -189,6 +192,7 @@ export class ActorRoundDto {
     dto.poisonExposures = (entity.poisonExposures || []).map(exposure => PoisonExposureDto.fromEntity(exposure));
     dto.hpLog = (entity.hpLog || []).map(entry => HpLogEntryDto.fromEntity(entry));
     dto.characterId = entity.characterId;
+    dto.npcId = entity.npcId;
     dto.items = (entity.items || []).map(item => ActorRoundItemDto.fromEntity(item));
     if (entity.lastBreakageCheck) dto.lastBreakageCheck = BreakageCheckResultDto.fromEntity(entity.lastBreakageCheck);
     dto.resistances = (entity.resistances || []).map(each => ({ resistance: each.resistance, totalBonus: each.totalBonus }));

@@ -5,11 +5,11 @@ import {
   type ActorRoundRepository,
   ACTOR_ROUND_REPOSITORY,
 } from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
+import { type ActorSheet, ActorSheetService } from '../../../../actor-rounds/application/services/actor-sheet.service.js';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
 import type { ActorRoundAttack } from '../../../../actor-rounds/domain/value-objects/actor-round-attack.vo.js';
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../../shared/domain/errors/errors.js';
-import { type Character, type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port.js';
 import { lethalityOf, STRATEGIC_GAME_PORT } from '../../../../strategic/application/ports/strategic-game.port.js';
 import { StrategicGameApiClient } from '../../../../strategic/infrastructure/api-clients/api.strategic-game.adapter.js';
 import { Action } from '../../../domain/aggregates/action.js';
@@ -47,7 +47,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
     @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
     @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
-    @Inject(CHARACTER_PORT) private readonly characterClient: CharacterPort,
+    private readonly sheets: ActorSheetService,
     @Inject(STRATEGIC_GAME_PORT) private readonly strategicGameClient: StrategicGameApiClient,
     @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
     private readonly combatProcessor: CombatProcessor,
@@ -79,7 +79,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     action.actionPoints = action.apOf(sourceActorRound, currentPhase);
     const actionAttacks = command.attacks.map(attack => this.mapAttacks(attack, action, sourceActorRound));
 
-    const characters = await this.readCharacters(actors, action.actorId);
+    const characters = await this.readSheets(actors);
     const sourceCharacter = characters.get(action.actorId);
     const skills = this.mapSkills(sourceCharacter);
     const gameLethality = lethalityOf(strategicGame);
@@ -197,19 +197,18 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
   }
 
   /**
-   * Character sheets of the actors with one (NPCs have none), by actor id: the source's skills, and the
-   * targets' defensive skills. The source's is always read.
+   * Sheets of the actors, by actor id: the source's skills, and the targets' defensive skills. A character's is its
+   * strategic sheet, an NPC's its stat block (spec 055).
    */
-  private async readCharacters(actors: ActorRound[], sourceId: string): Promise<Map<string, Character>> {
-    const characters = new Map<string, Character>();
-    const ids = actors.filter(actor => actor.actorId === sourceId || actor.actorType !== 'npc').map(actor => actor.actorId);
-    const found = await Promise.all(ids.map(id => this.characterClient.findById(id)));
-    found.forEach((character, index) => character && characters.set(ids[index], character));
-    return characters;
+  private async readSheets(actors: ActorRound[]): Promise<Map<string, ActorSheet>> {
+    const sheets = new Map<string, ActorSheet>();
+    const found = await Promise.all(actors.map(actor => this.sheets.find(actor)));
+    found.forEach((sheet, index) => sheet && sheets.set(actors[index].actorId, sheet));
+    return sheets;
   }
 
-  /** Combat skills of a sheet, with their ranks (0 for older sheets). */
-  private mapSkills(character: Character | undefined): CombatAttackSourceSkill[] {
+  /** Combat skills of a sheet, with their ranks (0 for older sheets and stat blocks without them). */
+  private mapSkills(character: ActorSheet | undefined): CombatAttackSourceSkill[] {
     return (
       character?.skills
         ?.filter(skill => this.isCombatSkill(skill.skillId))

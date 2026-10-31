@@ -4,11 +4,11 @@ import {
   type ActorRoundRepository,
   ACTOR_ROUND_REPOSITORY,
 } from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
+import { ActorSheetService } from '../../../../actor-rounds/application/services/actor-sheet.service.js';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { Game } from '../../../../games/domain/aggregates/game.js';
 import { ValidationError, NotFoundError } from '../../../../shared/domain/errors/errors.js';
-import { type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port.js';
 import { Action } from '../../../domain/aggregates/action.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo.js';
@@ -36,7 +36,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
     @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
     @Inject(SKILL_CATALOG_PORT) private readonly skillCatalog: SkillCatalogPort,
-    @Inject(CHARACTER_PORT) private readonly characterClient: CharacterPort,
+    private readonly sheets: ActorSheetService,
     private readonly spellCasting: SpellCastingService,
   ) {}
 
@@ -60,7 +60,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       roundActions,
     );
     const { maneuver, apRange: maneuverRange } = await this.mapManeuver(command);
-    const apRange = maneuverRange ?? (await this.standUpRange(command));
+    const apRange = maneuverRange ?? (await this.standUpRange(command, actorRound));
     const spell =
       command.actionType === 'cast_spell'
         ? await this.spellCasting.declare(actorRound, actorActions, command.spell!.listCode, command.spell!.spellId, command.freeAction)
@@ -177,11 +177,11 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
   }
 
   /** Standing up takes 1 AP to an actor with Acrobatics ranks (Table 8-1, §9.8 Prone). */
-  private async standUpRange(command: CreateActionCommand): Promise<ManeuverActionPoints | null> {
+  private async standUpRange(command: CreateActionCommand, actorRound: ActorRound): Promise<ManeuverActionPoints | null> {
     if (command.actionType !== 'stand_up') {
       return null;
     }
-    const character = await this.characterClient.findById(command.actorId);
+    const character = await this.sheets.find(actorRound);
     const acrobatics = character?.skills?.find(skill => skill.skillId === 'acrobatics')?.ranks || 0;
     const profile = ActionApProfile.forAction('stand_up', { acrobatics: acrobatics > 0 });
     return { min: profile.min, max: profile.max };

@@ -7,6 +7,7 @@ import type { GameStatus } from '../../../domain/value-objects/game-status.vo.js
 import { TacticalGameOutcomeDto } from './tactical-game-outcome.dto.js';
 import { ActorDto } from './actor.dto.js';
 import { GameEnvironmentDto } from './game-environment.dto.js';
+import { EnvironmentFactionDto } from './environment-faction.dto.js';
 
 export class GameDto {
   @ApiProperty({ description: 'Game identifier', example: 'lotr' })
@@ -46,6 +47,13 @@ export class GameDto {
   @ApiProperty({ description: 'Environment configuration for the game', required: false })
   environment: GameEnvironmentDto | undefined;
 
+  @ApiProperty({
+    description: 'The environment faction (spec 055): the NPCs of no player, owned by the game master',
+    type: EnvironmentFactionDto,
+    nullable: true,
+  })
+  environmentFaction: EnvironmentFactionDto | null;
+
   @ApiProperty({ type: String, description: 'Description of the game', required: false, example: 'Tactical battle in Mordor' })
   description: string | undefined;
 
@@ -81,6 +89,7 @@ export class GameDto {
     dto.factions = entity.factions;
     dto.actors = entity.actors.map(actor => ActorDto.fromEntity(actor));
     dto.environment = entity.environment ? GameEnvironmentDto.fromEntity(entity.environment) : undefined;
+    dto.environmentFaction = entity.environmentFaction ? EnvironmentFactionDto.fromEntity(entity.environmentFaction) : null;
     dto.description = entity.description;
     dto.imageUrl = entity.imageUrl;
     dto.owner = entity.owner;

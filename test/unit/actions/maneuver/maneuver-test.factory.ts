@@ -24,6 +24,7 @@ import type { Character, CharacterPort, CharacterSkill } from '../../../../src/m
 import { load } from '../../actor-rounds/actor-round-test.factory.js';
 import type { PsychologyTablesPort } from '../../../../src/modules/psychology/application/ports/psychology-tables.port.js';
 import { PSYCHOLOGY_TABLES } from '../../../fixtures/psychology-tables.js';
+import { sheetsOf } from '../../support/actor-sheets.js';
 
 /*
  * Invented catalog data: skills, profiles and modifiers here are made up for the tests and are not the book's.
@@ -201,7 +202,7 @@ export const setupManeuver = (options: ManeuverSetup = {}) => {
   const contextService = new ManeuverContextService(
     actorRoundRepository,
     actionRepository,
-    characterClient,
+    sheetsOf(characterClient),
     skillCatalog,
     new ManeuverBaseModifiersService(),
   );

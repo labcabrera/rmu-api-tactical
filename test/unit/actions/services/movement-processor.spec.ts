@@ -6,8 +6,9 @@ import type { Action } from '../../../../src/modules/actions/domain/aggregates/a
 import type { ActorRound } from '../../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
 import type { CharacterPort } from '../../../../src/modules/strategic/application/ports/character.port.js';
 import { load } from '../../actor-rounds/actor-round-test.factory.js';
+import { sheetsOf } from '../../support/actor-sheets.js';
 
-const service = new MovementProcessorService({} as ManeuverPort, {} as CharacterPort, new ManeuverBaseModifiersService());
+const service = new MovementProcessorService({} as ManeuverPort, sheetsOf({} as CharacterPort), new ManeuverBaseModifiersService());
 
 const move = (pace: string, maxPace: string | undefined, actionPoints = 4, halfMovement = false) => {
   const action = { actionPoints, movement: { modifiers: { pace, requiredManeuver: false } } } as unknown as Action;
@@ -50,7 +51,7 @@ describe('MovementProcessorService movement roll', () => {
     } as unknown as CharacterPort;
     const processor = new MovementProcessorService(
       { percent } as unknown as ManeuverPort,
-      characterClient,
+      sheetsOf(characterClient),
       new ManeuverBaseModifiersService(),
     );
     const action = {

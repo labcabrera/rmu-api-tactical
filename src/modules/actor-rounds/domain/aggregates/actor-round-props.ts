@@ -71,6 +71,8 @@ export interface ActorRoundProps {
   hpLog?: HpLogEntry[];
   /** Strategic character of a character actor. */
   characterId?: string;
+  /** NPC of rmu-api-npcs an NPC actor is a specimen of (spec 055). */
+  npcId?: string;
   /** Items of the actor (spec 019). Missing in actor rounds stored before it: none. */
   items?: ActorRoundItem[];
   /** Resistance roll bonuses of its character (workspace spec 022). Missing for NPCs and older actor rounds: none. */

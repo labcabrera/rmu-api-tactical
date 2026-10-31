@@ -6,6 +6,9 @@ export interface GameRepository {
 
   findByStrategicId(strategicGameId: string): Promise<Game[]>;
 
+  /** The games still in `created` that have the faction (spec 055: a faction deleted in strategic leaves them). */
+  findCreatedByFaction(factionId: string): Promise<Game[]>;
+
   findByRsql(
     rsql: string | undefined,
     page: number,

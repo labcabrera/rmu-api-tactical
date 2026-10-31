@@ -22,6 +22,7 @@ import { ActorRoundAttack } from '../../../../src/modules/actor-rounds/domain/va
 import { ActorRoundDefenseMode } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-defense-mode.vo.js';
 import { ActorRoundEffect } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-effect.vo.js';
 import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo.js';
+import { sheetsOf } from '../../support/actor-sheets.js';
 
 const SOURCE_SKILLS = [
   { skillId: 'restricted-quarters', totalBonus: 20 },
@@ -57,7 +58,7 @@ const setup = (
     gameRepository,
     actorRoundRepository,
     actionRepository,
-    characterClient,
+    sheetsOf(characterClient),
     strategicGameClient,
     actionEventBus,
     new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST)),

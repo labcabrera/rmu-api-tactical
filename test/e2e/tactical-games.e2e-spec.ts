@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { character, ids, startApp, USERS, type E2eApp, type UserName } from './support/app.js';
+import { character, faction, ids, npc, startApp, USERS, type E2eApp, type UserName } from './support/app.js';
 
 type GameBody = {
   id: string;
@@ -10,7 +10,8 @@ type GameBody = {
   round: number;
   phase: string;
   factions: string[];
-  actors: { id: string; name: string; type: string; faction: { id: string } }[];
+  actors: { id: string; name: string; type: string; faction: { id: string; name: string }; owner: string; npcId?: string }[];
+  environmentFaction: { factionId: string; name: string; npcs: { npcId: string; count: number; name: string }[] } | null;
   environment?: { temperatureFatigueModifier?: number; altitudeFatigueModifier?: number };
   description?: string;
   imageUrl?: string;
@@ -26,13 +27,25 @@ let e2e: E2eApp;
 
 beforeAll(async () => {
   e2e = await startApp();
-  e2e.world.strategicGames.set('sg-1', { id: 'sg-1', owner: USERS.owner.sub, options: null });
+  e2e.world.strategicGames.set('sg-1', { id: 'sg-1', owner: USERS.owner.sub, options: null, realmId: 'realm-1' });
   e2e.world.strategicGames.set('sg-public', { id: 'sg-public', owner: USERS.owner.sub, options: null, accessType: 'public' });
   e2e.world.strategicGames.set('sg-other', { id: 'sg-other', owner: USERS.other.sub, options: null, accessType: 'private' });
   e2e.world.characters.set('aragorn', character('aragorn'));
   e2e.world.characters.set('faramir', character('faramir', { owner: USERS.other.sub }));
   e2e.world.characters.set('boromir', character('boromir', { faction: { id: 'faction-2', name: 'Gondor' } }));
-  e2e.world.npcs.set('orc-1', { id: 'orc-1', realmId: 'r-1', name: 'Orc' });
+  e2e.world.npcs.set('orc-1', npc('orc-1', { name: 'Orc', category: 'race' }));
+  e2e.world.npcs.set('wolf', npc('wolf', { name: 'Wolf', realmId: 'realm-core' }));
+  e2e.world.npcs.set('guard', npc('guard', { name: 'Guard', category: 'race' }));
+  e2e.world.npcs.set('elsewhere', npc('elsewhere', { realmId: 'realm-2' }));
+  e2e.world.npcs.set('secret', npc('secret', { accessType: 'private', owner: USERS.other.sub }));
+  e2e.world.realms.set('realm-core', { id: 'realm-core', name: 'Core', generic: true });
+  e2e.world.realms.set('realm-2', { id: 'realm-2', name: 'Other' });
+  e2e.world.factions.set('orcs', faction('orcs', { name: 'Orcs of Moria', owner: USERS.other.sub }));
+  e2e.world.factions.set('faction-1', faction('faction-1', { name: 'Fellowship' }));
+  e2e.world.factions.set(
+    'guards',
+    faction('guards', { name: 'Gate', npcs: [{ id: 'entry-1', npcId: 'guard', name: 'Gate guard', count: 2, notes: null }] }),
+  );
 });
 
 afterAll(async () => {
@@ -100,12 +113,21 @@ describe('create', () => {
     expect(e2e.world.events.some(e => e.aggregateType === 'game' && e.event.eventType === 'created')).toBe(true);
   });
 
-  it('takes an NPC with the faction given in the request', async () => {
-    const game = await createGame('owner', { actors: [{ id: 'orc-1', type: 'npc', faction: 'orcs' }] });
+  it('takes an NPC sent as an actor as one specimen of it, with the faction given in the request', async () => {
+    const game = await createGame('owner', {
+      factions: ['orcs'],
+      actors: [{ id: 'orc-1', type: 'npc', faction: 'orcs' }],
+    });
     expect(game.actors).toEqual([
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- a nested asymmetric matcher is typed any
-      expect.objectContaining({ id: 'orc-1', name: 'Orc', type: 'npc', faction: expect.objectContaining({ id: 'orcs' }) }),
+      expect.objectContaining({
+        npcId: 'orc-1',
+        name: 'Orc',
+        type: 'npc',
+        owner: USERS.other.sub,
+        faction: { id: 'orcs', name: 'Orcs of Moria' },
+      }),
     ]);
+    expect(game.actors[0].id).not.toBe('orc-1');
   });
 
   it('answers 400 when the strategic game does not exist', async () => {
@@ -286,6 +308,119 @@ describe('factions and actors', () => {
     const removed = await as('owner').delete(`/v1/tactical-games/${game.id}/actors`, { actors: ['boromir'] });
     expect(removed.status).toBe(200);
     expect((removed.body as GameBody).actors.map(a => a.id)).toEqual(['aragorn']);
+  });
+});
+
+// Spec 055: the NPCs of the factions, the requested ones and the environment, one actor per specimen.
+describe('NPCs (spec 055)', () => {
+  const actorsOf = (game: GameBody) => game.actors.map(({ name, npcId, owner, faction: { id } }) => ({ name, npcId, owner, faction: id }));
+
+  it('adds the NPCs of the factions by default, the requested ones and the environment ones', async () => {
+    const game = await createGame('owner', {
+      factions: ['faction-1', 'guards', 'orcs'],
+      npcs: [{ npcId: 'orc-1', factionId: 'orcs', count: 2 }],
+      environmentFaction: { name: 'Dark forest', npcs: [{ npcId: 'wolf', count: 3 }] },
+    });
+    expect(actorsOf(game)).toEqual([
+      { name: 'aragorn', npcId: undefined, owner: USERS.owner.sub, faction: 'faction-1' },
+      { name: 'Gate guard 1', npcId: 'guard', owner: USERS.owner.sub, faction: 'guards' },
+      { name: 'Gate guard 2', npcId: 'guard', owner: USERS.owner.sub, faction: 'guards' },
+      { name: 'Orc 1', npcId: 'orc-1', owner: USERS.other.sub, faction: 'orcs' },
+      { name: 'Orc 2', npcId: 'orc-1', owner: USERS.other.sub, faction: 'orcs' },
+      { name: 'Wolf 1', npcId: 'wolf', owner: USERS.owner.sub, faction: 'environment' },
+      { name: 'Wolf 2', npcId: 'wolf', owner: USERS.owner.sub, faction: 'environment' },
+      { name: 'Wolf 3', npcId: 'wolf', owner: USERS.owner.sub, faction: 'environment' },
+    ]);
+    expect(new Set(game.actors.map(actor => actor.id)).size).toBe(game.actors.length);
+    expect(game.actors.find(actor => actor.npcId === 'wolf')!.faction.name).toBe('Dark forest');
+    expect(game.factions).toEqual(['faction-1', 'guards', 'orcs', 'environment']);
+    expect(game.environmentFaction).toEqual({
+      factionId: 'environment',
+      name: 'Dark forest',
+      npcs: [{ npcId: 'wolf', count: 3, name: 'Wolf' }],
+    });
+    // Stored as answered
+    expect((await as('owner').get(`/v1/tactical-games/${game.id}`)).body).toMatchObject({ environmentFaction: game.environmentFaction });
+  });
+
+  it('leaves the NPCs of the factions out with includeFactionNpcs false, and has no environment without one', async () => {
+    const game = await createGame('owner', { factions: ['faction-1', 'guards'], includeFactionNpcs: false });
+    expect(game.actors.map(actor => actor.name)).toEqual(['aragorn']);
+    expect(game.environmentFaction).toBeNull();
+    expect(game.factions).toEqual(['faction-1', 'guards']);
+  });
+
+  it.each([
+    ['an unknown NPC', { npcId: 'nope', factionId: 'faction-1' }, 'err-npc-not-found'],
+    ['an NPC of another realm, not generic', { npcId: 'elsewhere', factionId: 'faction-1' }, 'err-npc-realm'],
+    ['a private NPC of another user', { npcId: 'secret', factionId: 'faction-1' }, 'err-npc-not-readable'],
+    ['a faction not in the game', { npcId: 'orc-1', factionId: 'orcs' }, 'err-npc-faction-not-in-game'],
+    ['too many specimens', { npcId: 'orc-1', factionId: 'faction-1', count: 51 }, undefined],
+  ])('rejects %s', async (_, entry, code) => {
+    const response = await as('owner').post('/v1/tactical-games', {
+      strategicGameId: 'sg-1',
+      name: 'x',
+      factions: ['faction-1'],
+      npcs: [entry],
+    });
+    expect(response.status).toBe(400);
+    if (code) expect(response.body).toMatchObject({ code });
+  });
+
+  it('rejects the reserved environment faction among the factions', async () => {
+    const response = await as('owner').post('/v1/tactical-games', { strategicGameId: 'sg-1', name: 'x', factions: ['environment'] });
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({ code: 'err-environment-faction-reserved' });
+  });
+
+  it('adds NPCs to a created game without repeating names, and keeps the environment in step when they go', async () => {
+    const game = await createGame('owner', { includeFactionNpcs: false, environmentFaction: { npcs: [{ npcId: 'wolf' }] } });
+    expect(game.environmentFaction).toMatchObject({ name: 'Environment', npcs: [{ npcId: 'wolf', count: 1, name: 'Wolf' }] });
+    const added = await as('owner').post(`/v1/tactical-games/${game.id}/actors`, {
+      npcs: [
+        { npcId: 'wolf', factionId: 'environment', count: 2 },
+        { npcId: 'guard', factionId: 'faction-1', name: 'Sentry' },
+      ],
+    });
+    expect(added.status).toBe(200);
+    const body = added.body as GameBody;
+    expect(body.actors.map(actor => actor.name)).toEqual(['aragorn', 'Wolf', 'Wolf 1', 'Wolf 2', 'Sentry']);
+    expect(body.environmentFaction!.npcs).toEqual([{ npcId: 'wolf', count: 3, name: 'Wolf' }]);
+
+    const wolves = body.actors.filter(actor => actor.npcId === 'wolf').map(actor => actor.id);
+    const removed = await as('owner').delete(`/v1/tactical-games/${game.id}/actors`, { actors: wolves.slice(0, 2) });
+    expect(removed.status).toBe(200);
+    expect((removed.body as GameBody).environmentFaction!.npcs).toEqual([{ npcId: 'wolf', count: 1, name: 'Wolf' }]);
+    expect((removed.body as GameBody).factions).toContain('environment');
+    const empty = await as('owner').delete(`/v1/tactical-games/${game.id}/actors`, { actors: wolves.slice(2) });
+    expect((empty.body as GameBody).environmentFaction!.npcs).toEqual([]);
+    expect((empty.body as GameBody).factions).toEqual(['faction-1']);
+  });
+
+  it('renames the environment and its actors while the game is created', async () => {
+    const game = await createGame('owner', { includeFactionNpcs: false, environmentFaction: { npcs: [{ npcId: 'wolf' }] } });
+    const renamed = await as('owner').patch(`/v1/tactical-games/${game.id}`, { environmentFaction: { name: 'Mirkwood' } });
+    expect(renamed.status).toBe(200);
+    expect(renamed.body).toMatchObject({
+      environmentFaction: { name: 'Mirkwood' },
+      actors: [{}, { faction: { id: 'environment', name: 'Mirkwood' } }],
+    });
+  });
+
+  it('neither renames the environment nor adds NPCs once the game started', async () => {
+    const game = await createGame('owner', { includeFactionNpcs: false });
+    expect((await as('owner').post(`/v1/tactical-games/${game.id}/rounds/start`)).status).toBe(200);
+    const late = await as('owner').patch(`/v1/tactical-games/${game.id}`, { environmentFaction: { name: 'Fangorn' } });
+    expect(late.status).toBe(400);
+    expect(late.body).toMatchObject({ code: 'err-game-not-created' });
+    const addLate = await as('owner').post(`/v1/tactical-games/${game.id}/actors`, { npcs: [{ npcId: 'wolf', factionId: 'environment' }] });
+    expect(addLate.status).toBe(400);
+    expect(addLate.body).toMatchObject({ code: 'err-game-not-created' });
+  });
+
+  it('lets the owner of the faction NPCs read the game and act for them', async () => {
+    const game = await createGame('owner', { factions: ['faction-1', 'orcs'], npcs: [{ npcId: 'orc-1', factionId: 'orcs' }] });
+    expect((await as('other').get(`/v1/tactical-games/${game.id}`)).status).toBe(200);
   });
 });
 
