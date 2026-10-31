@@ -192,7 +192,13 @@ function fakePorts(world: World) {
         findByGameId: (gameId: string) => Promise.resolve([...world.characters.values()].filter(c => c.gameId === gameId)),
       },
     ],
-    [ITEM_PORT, { findByCharacterId: (id: string) => Promise.resolve(world.items.get(id) ?? []) }],
+    [
+      ITEM_PORT,
+      {
+        findByCharacterId: (id: string) => Promise.resolve(world.items.get(id) ?? []),
+        findById: (id: string) => Promise.resolve([...world.items.values()].flat().find(item => item.id === id)),
+      },
+    ],
     [NPC_PORT, { findById: (id: string) => Promise.resolve(world.npcs.get(id)) }],
     [FACTION_PORT, { findById: (id: string) => Promise.resolve(world.factions.get(id) ?? null) }],
     [REALM_PORT, { findById: (id: string) => Promise.resolve(world.realms.get(id) ?? null) }],

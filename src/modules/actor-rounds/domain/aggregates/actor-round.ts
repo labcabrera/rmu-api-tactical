@@ -201,6 +201,9 @@ export interface PoisonRrResult {
 /** Initiative bonus of an actor with Strike Reflex when the game master declares it. */
 const STRIKE_REFLEX_BONUS = 20;
 
+/** Stun relief of a herb that removes every stun (workspace spec 062). */
+export const ALL_STUN_ROUNDS = 999;
+
 export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   private constructor(
     id: string,
@@ -660,6 +663,44 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     }
     this.applyPenalties();
     this.refreshActionPoints();
+  }
+
+  /**
+   * A dose of a herb in combat (workspace spec 062): `hits` healed up to the maximum (logged as a treatment) and
+   * `stunRounds` rounds of stun removed, the most severe stun first (999: every stun). Returns what it did.
+   */
+  useHerb(effects: { hits: number; stunRounds: number }, phase?: number): { healed: number; stunRoundsRemoved: number } {
+    const before = this.hp.current;
+    if (effects.hits > 0) this.heal(effects.hits, { kind: 'treatment', phase });
+    const stunRoundsRemoved = this.relieveStun(effects.stunRounds);
+    if (stunRoundsRemoved > 0) {
+      this.applyPenalties();
+      this.refreshActionPoints();
+    }
+    return { healed: this.hp.current - before, stunRoundsRemoved };
+  }
+
+  /** Removes rounds of stun, from the most severe stun on; a stun without rounds left ends. */
+  private relieveStun(rounds: number): number {
+    if (!(rounds > 0)) return 0;
+    const stuns = this.effects.filter(effect => effect.status === 'stunned').sort((a, b) => (a.value ?? 0) - (b.value ?? 0));
+    if (rounds >= ALL_STUN_ROUNDS) {
+      const removed = stuns.reduce((sum, stun) => sum + (stun.rounds ?? 1), 0);
+      this.effects = this.effects.filter(effect => effect.status !== 'stunned');
+      return removed;
+    }
+    let left = rounds;
+    let removed = 0;
+    for (const stun of stuns) {
+      if (left <= 0) break;
+      const current = stun.rounds ?? 1;
+      const taken = Math.min(current, left);
+      stun.rounds = current - taken;
+      left -= taken;
+      removed += taken;
+    }
+    this.effects = this.effects.filter(effect => effect.status !== 'stunned' || (effect.rounds ?? 1) > 0);
+    return removed;
   }
 
   /** Logs `dmg` hits taken by their origins; what they do not account for is a game master adjustment. */

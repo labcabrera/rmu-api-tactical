@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { TokenService } from '../../../shared/infrastructure/security/token.service.js';
-import { HttpClient } from '../../../shared/infrastructure/http/http-client.js';
+import { HttpClient, isUpstreamHttpError } from '../../../shared/infrastructure/http/http-client.js';
 import type { ItemPort, StrategicItem } from '../../application/ports/item.port.js';
 
 /** Reads the strategic items of a character with the service token (spec 019). */
@@ -23,5 +23,15 @@ export class ItemApiClient implements ItemPort {
     const uri = `${this.baseUri}/items?q=characterId==${encodeURIComponent(characterId)}&page=0&size=1000`;
     const data = await this.httpClient.get<{ content?: StrategicItem[] }>(uri, { token });
     return data?.content || [];
+  }
+
+  async findById(itemId: string): Promise<StrategicItem | undefined> {
+    const token = await this.tokenService.getToken();
+    try {
+      return await this.httpClient.get<StrategicItem>(`${this.baseUri}/items/${encodeURIComponent(itemId)}`, { token });
+    } catch (err) {
+      if (isUpstreamHttpError(err) && err.status === 404) return undefined;
+      throw err;
+    }
   }
 }

@@ -6,6 +6,7 @@ import { TerminusModule } from '@nestjs/terminus';
 import { AuthModule } from '../shared/infrastructure/security/auth.module.js';
 import { GamesModule } from '../games/games.module.js';
 import { SharedModule } from '../shared/shared.module.js';
+import { UseHerbHandler } from './application/cqrs/handlers/use-herb.handler.js';
 import { StrategicModule } from '../strategic/strategic.module.js';
 import { AddEffectsHandler } from './application/cqrs/handlers/add-effects.handler.js';
 import { AddFatigueHandler } from './application/cqrs/handlers/add-fatigue.handler.js';
@@ -51,6 +52,7 @@ import { DeclareFightingStyleHandler } from './application/cqrs/handlers/declare
   controllers: [ActorRoundController],
   providers: [
     CreateActorRoundHandler,
+    UseHerbHandler,
     DeclareInitiativeCommandHandler,
     GetActorRoundHandler,
     GetActorRoundsHandler,
