@@ -7,5 +7,7 @@ export class UpdateAttackRollCommand {
     public readonly roles: string[],
     /** First die of the open-ended roll; `roll` when it is missing. */
     public readonly unmodified?: number,
+    /** Every die of the open-ended roll, in order. */
+    public readonly rolls?: number[],
   ) {}
 }

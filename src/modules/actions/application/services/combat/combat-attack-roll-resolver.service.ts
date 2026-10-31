@@ -20,6 +20,8 @@ export interface ResolveAttackRollInput {
   roll: number;
   /** First die of the high open-ended roll; `roll` when it is missing. */
   unmodified?: number;
+  /** Every die of the open-ended roll, in order, when the client sends them. */
+  dice?: number[];
 }
 
 @Injectable()
@@ -43,6 +45,7 @@ export class CombatAttackRollResolverService {
       attack,
       attackRoll: input.roll,
       unmodifiedRoll: input.unmodified,
+      attackDice: input.dice,
       sourceActor: input.sourceActor,
       targetActor: input.targetActor,
       sourceTraits: input.sourceActor.traits || [],

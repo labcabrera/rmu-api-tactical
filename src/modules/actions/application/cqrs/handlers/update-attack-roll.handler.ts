@@ -52,6 +52,7 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
       targetActor,
       roll: command.roll,
       unmodified: command.unmodified,
+      dice: command.rolls,
     });
 
     // Raised when the roll is resolved; a repeated roll does not raise it again.

@@ -281,6 +281,22 @@ describe('attack roll with the unmodified die (workspace spec 056, B-01)', () =>
     expect(fumbled.status).toBe(200);
     expect(fumbled.body).toMatchObject({ attacks: [{ status: 'pending_fumble_roll', roll: { unmodified: 2 } }] });
   });
+
+  it('calls for a breakage check on a 33 or 77 of any die of the open-ended roll', async () => {
+    const action = await preparedAttack();
+    const roll = (body: Record<string, unknown>) =>
+      as('owner').patch(`/v1/actions/${action.id}/attack/roll`, { attackName: 'mainHand', ...body });
+
+    expect((await roll({ roll: 50, unmodified: 50, rolls: [101] })).status).toBe(400);
+
+    const plain = await roll({ roll: 131, unmodified: 96, rolls: [96, 35] });
+    expect(plain.status).toBe(200);
+    expect((plain.body as ActionBody).attacks![0]).not.toMatchObject({ calculated: { breakageRoll: true } });
+
+    const broken = await roll({ roll: 173, unmodified: 96, rolls: [96, 77] });
+    expect(broken.status).toBe(200);
+    expect(broken.body).toMatchObject({ attacks: [{ calculated: { breakageRoll: true } }] });
+  });
 });
 
 describe('fighting style critical options (workspace spec 032)', () => {

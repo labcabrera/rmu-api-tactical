@@ -796,6 +796,32 @@ describe('Combat plugins', () => {
       expect(await runPluginHook(CombatBreakagePlugin, 'beforeAttackRoll', ctx)).toBe(false);
       expect(ctx.attack!.calculated!.breakageRoll).toBeUndefined();
     });
+
+    it('flags a 33 or 77 on an extra die of an open-ended roll', async () => {
+      const ctx = preparedContext();
+      ctx.attackRoll = 96 + 77;
+      ctx.unmodifiedRoll = 96;
+      ctx.attackDice = [96, 77];
+
+      expect(await runPluginHook(CombatBreakagePlugin, 'beforeAttackRoll', ctx)).toBe(true);
+    });
+
+    it('is skipped for an open-ended roll without a 33 or 77', async () => {
+      const ctx = preparedContext();
+      ctx.attackRoll = 96 + 33 + 2;
+      ctx.unmodifiedRoll = 96;
+      ctx.attackDice = [96, 35];
+
+      expect(await runPluginHook(CombatBreakagePlugin, 'beforeAttackRoll', ctx)).toBe(false);
+    });
+
+    it('reads the unmodified roll when the dice are missing', async () => {
+      const ctx = preparedContext();
+      ctx.attackRoll = 129;
+      ctx.unmodifiedRoll = 33;
+
+      expect(await runPluginHook(CombatBreakagePlugin, 'beforeAttackRoll', ctx)).toBe(true);
+    });
   });
 
   describe('location-armor', () => {
