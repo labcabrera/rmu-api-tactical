@@ -5,6 +5,7 @@ import {
   ACTOR_ROUND_REPOSITORY,
 } from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
+import { MedicalAbortService } from '../../../../actor-rounds/application/services/medical-abort.service.js';
 import { NotFoundError } from '../../../../shared/domain/errors/errors.js';
 import { ActionDeletedEvent } from '../../../domain/events/action.events.js';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
@@ -21,6 +22,7 @@ export class DeleteActionHandler implements ICommandHandler<DeleteActionCommand>
     @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
     @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
     @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
+    private readonly medicalAbort: MedicalAbortService,
   ) {}
 
   async execute(command: DeleteActionCommand): Promise<void> {
@@ -32,8 +34,10 @@ export class DeleteActionHandler implements ICommandHandler<DeleteActionCommand>
 
     await this.actionRepository.deleteById(command.actionId);
     const actorRound = await this.actorRoundRepository.findByActorIdAndRound(action.gameId, action.actorId, action.round);
-    if (actorRound?.releaseAction(action.id)) {
-      await this.actorRoundRepository.update(actorRound);
+    // Workspace spec 068: deleting an open medical action stops its treatment on the patient
+    const aborted = actorRound ? await this.medicalAbort.abort([action], { known: [actorRound] }) : [];
+    if (actorRound?.releaseAction(action.id) || aborted.length > 0) {
+      await this.actorRoundRepository.update(actorRound!);
     }
     await this.eventPublisher.publish('action', new ActionDeletedEvent(action));
   }

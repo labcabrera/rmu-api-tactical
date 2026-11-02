@@ -80,11 +80,17 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
     const conditionEffects = conditions
       .filter(condition => condition.status === 'unconscious')
       .map(condition => new ActorRoundEffect(condition.id, UNCONSCIOUS, undefined, undefined, round, 0, 0, undefined, condition.source));
-    actorRound.initFromCharacter(character.id, injuries, conditionEffects, {
-      hp: character.hp.current,
-      injuryIds: injuries.map(injury => injury.id),
-      conditionIds: conditions.map(condition => condition.id),
-    });
+    actorRound.initFromCharacter(
+      character.id,
+      injuries,
+      conditionEffects,
+      {
+        hp: character.hp.current,
+        injuryIds: injuries.map(injury => injury.id),
+        conditionIds: conditions.map(condition => condition.id),
+      },
+      character.temporaryModifiers ?? [],
+    );
     actorRound.initItems(this.mapItems(character, items));
     actorRound.fightingStyles = this.mapFightingStyles(character);
     actorRound.resistances = (character.resistances || [])

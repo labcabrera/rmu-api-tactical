@@ -1,3 +1,4 @@
+import type { TemporaryModifier } from '../../../actor-rounds/domain/value-objects/temporary-modifier.vo.js';
 import type { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.js';
 import type { FailureSeverity, UnusualEventRow } from '../../domain/value-objects/psychology-tables.vo.js';
 import type { ResistanceModifier } from '../../domain/services/resistance-roll.calculator.js';
@@ -59,6 +60,8 @@ export interface GroupCheckResult {
   moraleModifierDays?: number;
   /** Rally: severity steps the fear of each follower changed by. */
   fearSeverityChange?: number;
+  /** Workspace spec 068, decision 19: temporary modifiers the check gave to the leader. */
+  temporaryModifiers?: TemporaryModifier[];
   actors: ActorCheckResult[];
   /** Actor rounds written by the check. */
   actorRounds: ActorRound[];

@@ -1,3 +1,4 @@
+import type { ItemConsumed, TemporaryModifier } from '../../../actor-rounds/domain/value-objects/temporary-modifier.vo.js';
 import type { HpBySource, HpLogEntry } from '../../../actor-rounds/domain/value-objects/hp-log-entry.vo.js';
 import type { CharacterCondition, Injury } from '../../../actor-rounds/domain/value-objects/injury.vo.js';
 import type { ItemModifier, SpentCoating } from '../../../actor-rounds/domain/value-objects/actor-round-item.vo.js';
@@ -46,6 +47,10 @@ export interface TacticalGameOutcomeCharacter {
   fate?: CharacterFate;
   /** Spec 019: missing in outcomes stored before it. */
   items?: TacticalItemOutcome[];
+  /** Workspace spec 068: units of strategic items spent in the game; missing in outcomes stored before it. */
+  itemsConsumed?: ItemConsumed[];
+  /** Workspace spec 068: the temporary modifiers created in this game. */
+  temporaryModifiers?: TemporaryModifier[];
   appliedAt?: string;
   error?: string;
 }

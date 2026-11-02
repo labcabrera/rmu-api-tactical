@@ -62,6 +62,12 @@ export class Game extends BaseAggregateRoot<GameProps> {
   /** The environment faction (spec 055, decision 2): the NPCs of no player, owned by the game master. */
   public environmentFaction: EnvironmentFaction | null = null;
 
+  /**
+   * Workspace spec 068, decision 16: the thresholds of fallen allies (Table 14-3a) each faction already crossed, so the
+   * suggested fear check is alerted once per game.
+   */
+  public fearThresholdsAlerted: Record<string, string[]> = {};
+
   static create(
     strategicGameId: string,
     name: string,
@@ -120,6 +126,7 @@ export class Game extends BaseAggregateRoot<GameProps> {
     game.strategicGameOwner = props.strategicGameOwner;
     game.accessType = props.accessType || 'private';
     game.environmentFaction = props.environmentFaction ? EnvironmentFactions.copy(props.environmentFaction) : null;
+    game.fearThresholdsAlerted = props.fearThresholdsAlerted ? structuredClone(props.fearThresholdsAlerted) : {};
     return game;
   }
 
@@ -341,6 +348,12 @@ export class Game extends BaseAggregateRoot<GameProps> {
    * Phase number stamped on the effects applied now: 0 before the action phases, 1-4 in them and 5 in the upkeep
    * (see `ActorRoundEffect.appliedPhase`).
    */
+  /** Records the thresholds of fallen allies a faction crossed (decision 16). */
+  markFearThresholds(factionId: string, keys: string[]): void {
+    const alerted = new Set([...(this.fearThresholdsAlerted[factionId] ?? []), ...keys]);
+    this.fearThresholdsAlerted = { ...this.fearThresholdsAlerted, [factionId]: [...alerted] };
+  }
+
   getEffectPhase(): number {
     if (this.phase === 'upkeep') {
       return 5;
@@ -375,6 +388,7 @@ export class Game extends BaseAggregateRoot<GameProps> {
       actors: this.actors,
       environment: this.environment,
       environmentFaction: this.environmentFaction,
+      fearThresholdsAlerted: this.fearThresholdsAlerted,
       description: this.description,
       imageUrl: this.imageUrl,
       owner: this.owner,

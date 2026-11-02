@@ -1,3 +1,4 @@
+import type { MedicalDeclaration } from '../../services/medical/medical-action.service.js';
 import type { ActionType } from '../../../domain/value-objects/action-type.vo.js';
 import type { ForceReason } from '../../../domain/value-objects/action-resolution.vo.js';
 import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo.js';
@@ -17,7 +18,19 @@ export class CreateActionCommand {
     public readonly forced?: CreateActionCommandForced,
     /** The spell of a `cast_spell` action (spec 030). */
     public readonly spell?: CreateActionCommandSpell,
+    /** The procedure of a `medical` action (workspace spec 068). */
+    public readonly medical?: MedicalDeclaration,
+    /** The item of a `use_item` action (workspace spec 068). */
+    public readonly useItem?: CreateActionCommandUseItem,
+    /** The declaration goes on despite its warnings that need a confirmation (workspace spec 068). */
+    public readonly confirm?: boolean,
   ) {}
+}
+
+export class CreateActionCommandUseItem {
+  itemId: string;
+  targetActorId: string;
+  roll?: number | null;
 }
 
 export class CreateActionCommandSpell {

@@ -14,6 +14,9 @@ import type { CharacterPort } from '../../../../src/modules/strategic/applicatio
 import { load } from '../../actor-rounds/actor-round-test.factory.js';
 import { action, setupManeuver } from './maneuver-test.factory.js';
 import { sheetsOf } from '../../support/actor-sheets.js';
+import type { HealingTablesPort } from '../../../../src/modules/actor-rounds/application/ports/healing-tables.port.js';
+import { MedicalAbortService } from '../../../../src/modules/actor-rounds/application/services/medical-abort.service.js';
+import type { MedicalActionService } from '../../../../src/modules/actions/application/services/medical/medical-action.service.js';
 
 const previous = (overrides: Partial<Action> = {}, progress = 60, completed = false): Action =>
   action({
@@ -51,6 +54,9 @@ const declare = (maneuver: CreateActionCommandManeuver, existing: Action[] = [pr
     skillCatalog,
     sheetsOf(characterClient),
     {} as SpellCastingService,
+    {} as HealingTablesPort,
+    {} as MedicalActionService,
+    new MedicalAbortService({} as ActorRoundRepository),
   );
   return handler.execute(new CreateActionCommand('game-1', 'actor-1', 'maneuver', false, 1, maneuver, '', 'user-1', []));
 };

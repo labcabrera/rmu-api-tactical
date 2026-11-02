@@ -45,6 +45,10 @@ export class GameModel {
   @Prop({ type: Object, required: false })
   environmentFaction?: EnvironmentFaction | null;
 
+  /** Workspace spec 068: thresholds of fallen allies already alerted, by faction. */
+  @Prop({ type: Object, required: false })
+  fearThresholdsAlerted?: Record<string, string[]> | null;
+
   @Prop({ required: false })
   description: string;
 

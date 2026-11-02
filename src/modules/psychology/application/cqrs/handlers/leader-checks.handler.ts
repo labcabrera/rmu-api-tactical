@@ -1,4 +1,6 @@
 import { Inject, Logger } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import { type TemporaryModifier, temporaryModifierLines } from '../../../../actor-rounds/domain/value-objects/temporary-modifier.vo.js';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { DIFFICULTY_MAP } from '../../../../actions/domain/value-objects/difficulty.vo.js';
 import type { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
@@ -13,6 +15,21 @@ import { actorResult, type GroupCheckResult, type LeaderCheckRoll } from '../gro
 
 /** Unmodified roll of an unusual event (§5.1). */
 const UNUSUAL_EVENT_ROLL = 66;
+
+/** The unusual event of a rally when core gives no numbers: +20 to the fear RR for 1 day and +5 hits (decision 19). */
+const RALLY_UNUSUAL_DEFAULTS = { leaderFearRrBonus: 20, leaderHits: 5, durationDays: 1 };
+
+const numberOf = (row: UnusualEventRow | undefined, key: keyof typeof RALLY_UNUSUAL_DEFAULTS): number =>
+  typeof row?.[key] === 'number' ? row[key] : RALLY_UNUSUAL_DEFAULTS[key];
+
+/** A temporary modifier created by a check of the game (workspace spec 068, decision 19). */
+const temporaryModifier = (
+  gameId: string,
+  kind: TemporaryModifier['kind'],
+  value: number,
+  source: TemporaryModifier['source'],
+  days: number | null,
+): TemporaryModifier => ({ id: randomUUID(), kind, value, source, days, createdAt: new Date().toISOString(), tacticalGameId: gameId });
 
 interface LeaderContext {
   game: { id: string; round: number };
@@ -104,14 +121,33 @@ export class MoraleCheckHandler implements ICommandHandler<MoraleCheckCommand, G
     if (difficulty === undefined) {
       throw new ValidationError(`Unknown difficulty '${request.difficulty}'`, 'err-morale-invalid-difficulty');
     }
+    const leaderRound = context.leader.actorRound;
     const rolled = leaderRoll(request, context.leader, [
       { key: 'followers-fear-rr', value: average },
       { key: 'difficulty', value: difficulty },
+      // Workspace spec 068, decision 19: the lasting morale modifiers of the leader
+      ...temporaryModifierLines(leaderRound.temporaryModifiers, 'morale'),
     ]);
     const row = findBand(context.tables.morale, rolled.total);
     const event = unusualEvent(rolled.unusual, context.tables.moraleUnusualEvent);
     const leaderCheck: LeaderCheckRoll = { ...MoraleCheckHandler.roll(rolled), result: row?.result, unusualEvent: event };
     const skipped = context.skipped.map(each => actorResult(each, 'skipped'));
+    // A result with a lasting modifier keeps it on the leader: a penalty lasts until the game master removes it
+    const value = event ? 0 : (row?.moraleModifier ?? 0);
+    const created = value
+      ? [
+          leaderRound.addTemporaryModifier(
+            temporaryModifier(
+              context.game.id,
+              'morale',
+              value,
+              value > 0 ? 'morale-absolute-success' : 'morale-absolute-failure',
+              value > 0 ? (row?.moraleModifierDays ?? null) : null,
+            ),
+          ),
+        ]
+      : [];
+    const actorRounds = created.length > 0 ? await this.groupCheckService.save([leaderRound]) : [];
     return {
       kind: 'morale',
       gameId: context.game.id,
@@ -121,8 +157,9 @@ export class MoraleCheckHandler implements ICommandHandler<MoraleCheckCommand, G
       outcome: event?.outcome ?? row?.outcome,
       moraleModifier: row?.moraleModifier ?? undefined,
       moraleModifierDays: row?.moraleModifierDays ?? undefined,
+      ...(created.length > 0 ? { temporaryModifiers: created } : {}),
       actors: [...actors, ...skipped],
-      actorRounds: [],
+      actorRounds,
     };
   }
 
@@ -173,7 +210,24 @@ export class RallyCheckHandler implements ICommandHandler<RallyCheckCommand, Gro
       return result;
     });
     const calm = context.followers.filter(follower => !follower.fearEffect() && !afraid.includes(follower));
-    const actorRounds = steps ? await this.groupCheckService.save(afraid) : [];
+    // Workspace spec 068, decision 19: the unusual event of a rally inspires the leader (fear RR bonus and hits)
+    const event = unusualEvent(rolled.unusual, context.tables.rallyUnusualEvent);
+    const leaderRound = context.leader.actorRound;
+    const created = event
+      ? [
+          leaderRound.addTemporaryModifier(
+            temporaryModifier(
+              context.game.id,
+              'fear-rr',
+              numberOf(event, 'leaderFearRrBonus'),
+              'rally-unusual',
+              numberOf(event, 'durationDays'),
+            ),
+          ),
+        ]
+      : [];
+    if (event) leaderRound.raiseHits(numberOf(event, 'leaderHits'));
+    const actorRounds = await this.groupCheckService.save([...(steps ? afraid : []), ...(event ? [leaderRound] : [])]);
     return {
       kind: 'rally',
       gameId: context.game.id,
@@ -182,9 +236,10 @@ export class RallyCheckHandler implements ICommandHandler<RallyCheckCommand, Gro
       leaderRoll: {
         ...MoraleCheckHandler.roll(rolled),
         result: row?.result,
-        unusualEvent: unusualEvent(rolled.unusual, context.tables.rallyUnusualEvent),
+        unusualEvent: event,
       },
       fearSeverityChange: steps,
+      ...(created.length > 0 ? { temporaryModifiers: created } : {}),
       actors: [...actors, ...calm.map(each => actorResult(each, 'follower')), ...context.skipped.map(each => actorResult(each, 'skipped'))],
       actorRounds,
     };

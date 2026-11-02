@@ -44,4 +44,11 @@ export const PSYCHOLOGY_TABLES: PsychologyTables = {
     stats: { physical: 'co', fear: 'sd', channeling: 'in', essence: 'em', mentalism: 'pr' },
     fearIgnoresInjuryPenalties: true,
   },
+  // Workspace spec 068: made-up thresholds of fallen allies and corpse level
+  fallenThresholds: [
+    { minShare: 0.4, exclusive: false, frightLevel: 3 },
+    { minShare: 0.4, exclusive: true, frightLevel: 6 },
+    { minShare: 0.7, exclusive: true, frightLevel: 9 },
+  ],
+  revulsion: { corpseLevel: 7 },
 };

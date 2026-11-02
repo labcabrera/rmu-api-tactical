@@ -2,8 +2,9 @@ import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import type { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
 import type { InjurySource } from '../../../../actor-rounds/domain/value-objects/injury.vo.js';
-import { ValidationError } from '../../../../shared/domain/errors/errors.js';
-import { ResistanceRollCalculator } from '../../../domain/services/resistance-roll.calculator.js';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { temporaryModifierLines } from '../../../../actor-rounds/domain/value-objects/temporary-modifier.vo.js';
+import { type ResistanceModifier, ResistanceRollCalculator } from '../../../domain/services/resistance-roll.calculator.js';
 import { type PsychologyTablesPort, PSYCHOLOGY_TABLES_PORT } from '../../ports/psychology-tables.port.js';
 import { GroupCheckService, type Leader } from '../../services/group-check.service.js';
 import { FearCheckCommand } from '../commands/group-check.commands.js';
@@ -43,7 +44,10 @@ export class FearCheckHandler implements ICommandHandler<FearCheckCommand, Group
         bonus = 0;
         result.warnings.push('no-fear-rr-bonus');
       }
-      const modifiers = [...(request.modifiers ?? [])];
+      const modifiers: ResistanceModifier[] = [
+        ...(request.modifiers ?? []),
+        ...temporaryModifierLines(member.temporaryModifiers, 'fear-rr'),
+      ];
       const leaderBonus = FearCheckHandler.leaderBonus(leader, member);
       if (leaderBonus) {
         modifiers.push({ key: 'leader', value: leaderBonus });
@@ -82,6 +86,17 @@ export class FearCheckHandler implements ICommandHandler<FearCheckCommand, Group
     const request = command.request;
     if (request.frightLevel !== undefined && request.frightLevel !== null) {
       return request.frightLevel;
+    }
+    // Workspace spec 068, decision 17: the fright level of the stat block of the NPC that frightens, and its extra
+    if (request.frightSourceActorId) {
+      const sourceRound = rounds.find(round => round.actorId === request.frightSourceActorId);
+      if (!sourceRound) {
+        throw new NotFoundError('Fright source actor', request.frightSourceActorId, 'err-actor-not-found');
+      }
+      if (sourceRound.frightLevel === null || sourceRound.frightLevel === undefined) {
+        throw new ValidationError(`${sourceRound.actorName} has no fright level: send one`, 'err-fright-level-required');
+      }
+      return sourceRound.frightLevel + (request.frightLevelModifier ?? 0);
     }
     if (request.intimidatorActorId) {
       return this.groupCheckService.intimidationRanks(rounds, request.intimidatorActorId, request.intimidationRanks);

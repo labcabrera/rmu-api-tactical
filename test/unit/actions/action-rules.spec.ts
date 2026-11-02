@@ -96,7 +96,27 @@ describe('Action declaration (§8.1, §8.3; spec 011, §2)', () => {
     expect(() => attackOf('fear-routed')).toThrow(expect.objectContaining({ code: 'err-action-fear' }));
     expect(() => attackOf('fear-broken')).toThrow(expect.objectContaining({ code: 'err-action-fear' }));
     expect(() => attackOf('fear-retreat')).not.toThrow();
-    expect(() => declare([], 1, false, { effects: [effect('fear-broken', 30)] })).not.toThrow();
+    // Workspace spec 068, decision 14: a broken actor only moves, dodges or takes an action of 0 AP
+    expect(() => declare([], 1, false, { effects: [effect('fear-broken', 30)] })).toThrow(
+      expect.objectContaining({ code: 'err-action-fear', details: { state: 'fear-broken' } }),
+    );
+  });
+
+  it('lets a routed or broken actor only move, dodge or take an action of 0 AP (workspace spec 068)', () => {
+    const fear = { effects: [effect('fear-routed', 30)] };
+    const declareAs = (actionType: ActionType, freeAction = false, actions: Action[] = []) =>
+      Action.checkDeclaration(load(fear), actions, request(1, freeAction, actionType), 1);
+    expect(() => declareAs('movement')).not.toThrow();
+    expect(() => declareAs('dodge')).not.toThrow();
+    expect(() => declareAs('other', true)).not.toThrow();
+    expect(() => declareAs('medical')).toThrow(expect.objectContaining({ code: 'err-action-fear', details: { state: 'fear-routed' } }));
+    // A second instantaneous action takes 1 AP
+    const first = action('actor-1', 'other', 1, { freeAction: true });
+    expect(() => declareAs('other', true, [first])).toThrow(expect.objectContaining({ code: 'err-action-fear' }));
+    // Balk and retreat declare anything: their limits are warnings or are checked when moving or charging
+    expect(() =>
+      Action.checkDeclaration(load({ effects: [effect('fear-retreat', 30)] }), [], request(1, false, 'maneuver'), 1),
+    ).not.toThrow();
   });
 
   it('rejects an attack of an actor that cannot attack, not its other actions (workspace spec 034)', () => {

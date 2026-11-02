@@ -7,6 +7,11 @@ import { PagedQueryDto } from '../../../shared/interfaces/http/dto/paged-rsql-qu
 import { AddEffectsCommand } from '../../application/cqrs/commands/add-effects.command.js';
 import { AddFatigueCommand } from '../../application/cqrs/commands/add-fatigue.command.js';
 import { AdjustHpCommand } from '../../application/cqrs/commands/adjust-hp.command.js';
+import {
+  DeleteTemporaryModifierCommand,
+  DropItemsCommand,
+  LoosenTourniquetCommand,
+} from '../../application/cqrs/commands/combat-healing.commands.js';
 import { DeleteInjuryCommand } from '../../application/cqrs/commands/delete-injury.command.js';
 import { StabilizeEffectCommand } from '../../application/cqrs/commands/stabilize-effect.command.js';
 import { TreatInjuryCommand } from '../../application/cqrs/commands/treat-injury.command.js';
@@ -228,7 +233,13 @@ export class ActorRoundController {
       dto.difficulty,
       user.id,
       user.roles,
-      { unmodifiedRoll: dto.unmodifiedRoll, heatHitsRoll: dto.heatHitsRoll, heatCriticalRoll: dto.heatCriticalRoll },
+      {
+        unmodifiedRoll: dto.unmodifiedRoll,
+        heatHitsRoll: dto.heatHitsRoll,
+        heatCriticalRoll: dto.heatCriticalRoll,
+        castSupport: dto.castSupport,
+        salveModifier: dto.salveModifier,
+      },
     );
     const result = await this.commandBus.execute<TreatInjuryCommand, TreatInjuryResult>(command);
     return MedicalResultDto.fromTreatment(result);
@@ -284,5 +295,40 @@ export class ActorRoundController {
     );
     const result = await this.commandBus.execute<StabilizeEffectCommand, StabilizeEffectResult>(command);
     return MedicalResultDto.fromStabilize(result);
+  }
+
+  @ActorRoundAccess('act')
+  @Post(':id/injuries/:injuryId/tourniquet/loosen')
+  @HttpCode(200)
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
+  @ApiOperation({
+    operationId: 'loosenTourniquet',
+    summary: 'Loosen the tourniquet of an injury (0 AP, spec 068): it bleeds this round and is tight again from the next',
+  })
+  @ApiErrors({ 400: 'The injury has no tourniquet', 404: 'Actor round or injury not found' })
+  async loosenTourniquet(@Param('id') id: string, @Param('injuryId') injuryId: string, @CurrentUser() user: AuthenticatedUser) {
+    const command = new LoosenTourniquetCommand(id, injuryId, user.id, user.roles);
+    return ActorRoundDto.fromEntity(await this.commandBus.execute<LoosenTourniquetCommand, ActorRound>(command));
+  }
+
+  @ActorRoundAccess('act')
+  @Post(':id/drop-items')
+  @HttpCode(200)
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
+  @ApiOperation({ operationId: 'dropItems', summary: 'A broken actor drops what it holds in its hands (0 AP, spec 068)' })
+  @ApiErrors({ 400: 'The actor is not broken (err-action-fear)', 404: 'Actor round not found' })
+  async dropItems(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    const command = new DropItemsCommand(id, user.id, user.roles);
+    return ActorRoundDto.fromEntity(await this.commandBus.execute<DropItemsCommand, ActorRound>(command));
+  }
+
+  @ActorRoundAccess('act')
+  @Delete(':id/temporary-modifiers/:modifierId')
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
+  @ApiOperation({ operationId: 'deleteTemporaryModifier', summary: 'Remove a temporary modifier of the actor (spec 068)' })
+  @ApiErrors({ 404: 'Actor round or modifier not found' })
+  async deleteTemporaryModifier(@Param('id') id: string, @Param('modifierId') modifierId: string, @CurrentUser() user: AuthenticatedUser) {
+    const command = new DeleteTemporaryModifierCommand(id, modifierId, user.id, user.roles);
+    return ActorRoundDto.fromEntity(await this.commandBus.execute<DeleteTemporaryModifierCommand, ActorRound>(command));
   }
 }

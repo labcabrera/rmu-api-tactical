@@ -54,6 +54,12 @@ export class GameDto {
   })
   environmentFaction: EnvironmentFactionDto | null;
 
+  @ApiProperty({
+    type: Object,
+    description: 'Workspace spec 068: thresholds of fallen allies already alerted by faction (`{factionId: [key]}`)',
+  })
+  fearThresholdsAlerted: Record<string, string[]>;
+
   @ApiProperty({ type: String, description: 'Description of the game', required: false, example: 'Tactical battle in Mordor' })
   description: string | undefined;
 
@@ -90,6 +96,7 @@ export class GameDto {
     dto.actors = entity.actors.map(actor => ActorDto.fromEntity(actor));
     dto.environment = entity.environment ? GameEnvironmentDto.fromEntity(entity.environment) : undefined;
     dto.environmentFaction = entity.environmentFaction ? EnvironmentFactionDto.fromEntity(entity.environmentFaction) : null;
+    dto.fearThresholdsAlerted = entity.fearThresholdsAlerted ?? {};
     dto.description = entity.description;
     dto.imageUrl = entity.imageUrl;
     dto.owner = entity.owner;

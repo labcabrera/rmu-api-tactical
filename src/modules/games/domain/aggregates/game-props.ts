@@ -17,6 +17,8 @@ export type GameProps = {
   environment?: GameEnvironment;
   /** The environment faction of the game (spec 055); missing or null in games without one. */
   environmentFaction?: EnvironmentFaction | null;
+  /** Workspace spec 068, decision 16: thresholds of fallen allies already alerted, by faction. */
+  fearThresholdsAlerted?: Record<string, string[]> | null;
   description?: string;
   imageUrl?: string;
   owner: string;

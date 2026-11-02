@@ -1,3 +1,4 @@
+import { PsychologyModule } from '../psychology/psychology.module.js';
 import { forwardRef, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
@@ -51,6 +52,7 @@ import { REALM_PORT } from './application/ports/realm.port.js';
     NpcsModule,
     forwardRef(() => ActorsRoundModule),
     forwardRef(() => ActionsModule),
+    forwardRef(() => PsychologyModule),
   ],
   controllers: [GameController, GameActorController, GameFactionController, StrategicGameKafkaConsumer],
   providers: [

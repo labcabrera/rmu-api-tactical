@@ -1,3 +1,4 @@
+import { TemporaryModifierDto } from '../../../../actor-rounds/interfaces/http/dto/temporary-modifier.dto.js';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsArray, IsBoolean, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
@@ -72,6 +73,19 @@ export class FearCheckDto extends GroupCheckDto {
   @IsInt()
   @Min(0)
   frightLevel?: number;
+
+  @ApiProperty({
+    required: false,
+    description: 'Spec 068: actor (an NPC) whose fright level is the attack level when frightLevel is missing',
+  })
+  @IsOptional()
+  @IsString()
+  frightSourceActorId?: string;
+
+  @ApiProperty({ required: false, description: 'Spec 068: added to the fright level of frightSourceActorId (+3, +5)', example: 3 })
+  @IsOptional()
+  @IsInt()
+  frightLevelModifier?: number;
 
   @ApiProperty({ required: false, description: 'Actor whose Intimidation ranks are the attack level' })
   @IsOptional()
@@ -277,6 +291,9 @@ export class GroupCheckResultDto {
 
   @ApiProperty({ required: false })
   moraleModifierDays?: number;
+
+  @ApiProperty({ type: [TemporaryModifierDto], required: false, description: 'Spec 068: temporary modifiers given to the leader' })
+  temporaryModifiers?: TemporaryModifierDto[];
 
   @ApiProperty({ required: false, description: 'Rally: severity steps (negative calms)' })
   fearSeverityChange?: number;

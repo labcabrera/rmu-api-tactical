@@ -4,6 +4,7 @@ import type { HydratedDocument } from 'mongoose';
 import type { ActionStatus } from '../../../domain/value-objects/action-status.vo.js';
 import type { ActionType } from '../../../domain/value-objects/action-type.vo.js';
 import type { ActionSpell } from '../../../domain/value-objects/action-spell.vo.js';
+import type { ActionMedical, ActionUseItem } from '../../../domain/value-objects/action-medical.vo.js';
 import { ActionAttack } from './action-attack.model.js';
 import { ActionManeuver } from './action-maneuver.model.js';
 import { ActionMovement } from './action-movement.model.js';
@@ -84,6 +85,14 @@ export class ActionModel {
   /** Spec 030: the spell of a `cast_spell` action, stored as the domain value object. */
   @Prop({ type: Object, required: false })
   spell?: ActionSpell | null;
+
+  /** Workspace spec 068: the procedure of a `medical` action, stored as the domain value object. */
+  @Prop({ type: Object, required: false })
+  medical?: ActionMedical | null;
+
+  /** Workspace spec 068: the item of a `use_item` action. */
+  @Prop({ type: Object, required: false })
+  useItem?: ActionUseItem | null;
 
   @Prop({ required: true })
   owner: string;

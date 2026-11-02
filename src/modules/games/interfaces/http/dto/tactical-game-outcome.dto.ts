@@ -1,3 +1,4 @@
+import { ItemConsumedDto, TemporaryModifierDto } from '../../../../actor-rounds/interfaces/http/dto/temporary-modifier.dto.js';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { ArrayUnique, IsArray, IsIn, IsString, ValidateNested } from 'class-validator';
@@ -66,6 +67,12 @@ export class TacticalGameOutcomeCharacterDto {
   @ApiProperty({ type: [Object], description: 'Modifiers the items of the character got in the game (spec 019)' })
   items: TacticalItemOutcome[];
 
+  @ApiProperty({ type: [ItemConsumedDto], description: 'Spec 068: units of strategic items spent in the game' })
+  itemsConsumed: ItemConsumedDto[];
+
+  @ApiProperty({ type: [TemporaryModifierDto], description: 'Spec 068: temporary modifiers created in the game' })
+  temporaryModifiers: TemporaryModifierDto[];
+
   @ApiProperty({ required: false })
   appliedAt?: string;
 
@@ -80,6 +87,8 @@ export class TacticalGameOutcomeCharacterDto {
       injuries: (entity.injuries || []).map(injury => InjuryDto.fromEntity(injury)),
       conditionsResolved: entity.conditionsResolved || [],
       items: (entity.items || []).map(item => ({ ...item, modifiers: item.modifiers.map(modifier => ({ ...modifier })) })),
+      itemsConsumed: (entity.itemsConsumed || []).map(each => ItemConsumedDto.fromEntity(each)),
+      temporaryModifiers: (entity.temporaryModifiers || []).map(each => TemporaryModifierDto.fromEntity(each)),
     });
   }
 }

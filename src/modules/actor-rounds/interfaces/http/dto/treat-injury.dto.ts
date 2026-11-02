@@ -5,6 +5,8 @@ import type { InjuryPatch } from '../../../domain/aggregates/actor-round.js';
 import { TACTICAL_PROCEDURES } from '../../../domain/services/injury-treatment.js';
 import type { TacticalProcedure } from '../../../domain/services/injury-treatment.js';
 import {
+  CAST_SUPPORTS,
+  type CastSupport,
   BLEEDING_CONTROLS,
   BODY_LOCATIONS,
   INJURY_FLAGS,
@@ -81,6 +83,16 @@ export class TreatInjuryDto extends MedicalRollDto {
   @IsOptional()
   @IsNumber()
   heatCriticalRoll?: number;
+
+  @ApiProperty({ type: String, enum: CAST_SUPPORTS, required: false, description: 'Cast on a leg: support of the pace limit (spec 068)' })
+  @IsOptional()
+  @IsIn(CAST_SUPPORTS)
+  castSupport?: CastSupport;
+
+  @ApiProperty({ required: false, description: 'Salve: recovery modifier set by the game master, in the range of core (spec 068)' })
+  @IsOptional()
+  @IsNumber()
+  salveModifier?: number;
 }
 
 /** What a cauterization did besides the bleeding (Table 13-1c). */
@@ -207,6 +219,9 @@ export class MedicalResultDto {
   @ApiProperty({ required: false, description: 'Rounds the dying effect gained (stabilize)' })
   roundsGained?: number;
 
+  @ApiProperty({ required: false, description: 'Stabilize (spec 068): its cause was treated, and the success removed the dying effect' })
+  removed?: boolean;
+
   static fromTreatment(result: TreatInjuryResult): MedicalResultDto {
     const dto = MedicalResultDto.base(result.actorRound, result.roll);
     dto.treatment = result.treatment;
@@ -220,6 +235,7 @@ export class MedicalResultDto {
   static fromStabilize(result: StabilizeEffectResult): MedicalResultDto {
     const dto = MedicalResultDto.base(result.actorRound, result.roll);
     dto.roundsGained = result.roundsGained;
+    if (result.removed) dto.removed = true;
     return dto;
   }
 

@@ -13,6 +13,8 @@ import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../
 import { lethalityOf, STRATEGIC_GAME_PORT } from '../../../../strategic/application/ports/strategic-game.port.js';
 import { StrategicGameApiClient } from '../../../../strategic/infrastructure/api-clients/api.strategic-game.adapter.js';
 import { Action } from '../../../domain/aggregates/action.js';
+import { FEAR_BALK, FEAR_RETREAT } from '../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
+import type { ActionWarning } from '../../../domain/value-objects/action-medical.vo.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { ActionAttackCalculated } from '../../../domain/value-objects/action-attack-calculated.vo.js';
 import {
@@ -76,6 +78,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const sourceActorRound = actors.find(a => a.actorId === action.actorId)!;
     // The AP of the attack come from the ledger; below the minimum it cannot be prepared unless forced (spec 011, §4).
     action.checkResolvable(sourceActorRound, currentPhase);
+    const warnings = PrepareAttackHandler.chargeWarnings(command, sourceActorRound);
     action.actionPoints = action.apOf(sourceActorRound, currentPhase);
     const actionAttacks = command.attacks.map(attack => this.mapAttacks(attack, action, sourceActorRound));
 
@@ -124,7 +127,24 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const updated = await this.actionRepository.update(action);
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     updated.refreshApState(sourceActorRound, currentPhase);
+    updated.warnings = warnings;
     return updated;
+  }
+
+  /**
+   * A charge of a frightened attacker (workspace spec 068, decision 14): a retreating one cannot charge
+   * (`err-action-fear`); a balking one is warned.
+   */
+  static chargeWarnings(command: PrepareAttackCommand, attacker: ActorRound): ActionWarning[] {
+    const charging = command.attacks.some(attack => normalizeChargeSpeed(attack.modifiers.chargeSpeed) !== 'none');
+    const fear = attacker.fearEffect()?.status;
+    if (!charging || !fear) {
+      return [];
+    }
+    if (fear === FEAR_RETREAT) {
+      throw new ValidationError('A retreating actor cannot charge (workspace spec 068)', 'err-action-fear', { state: fear });
+    }
+    return fear === FEAR_BALK ? [{ code: 'fear-balk-charge', params: { state: fear }, requiresConfirm: false }] : [];
   }
 
   private async prepareAttack(input: CombatPrepareAttackInput): Promise<CombatContext> {

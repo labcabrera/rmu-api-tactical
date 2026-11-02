@@ -263,3 +263,44 @@ describe('ApplyGameHandler (spec 013, §3)', () => {
     );
   });
 });
+
+describe('outcome of the treatments, items and modifiers (workspace spec 068)', () => {
+  it('completes a treatment in progress with a note, and carries the items consumed and the modifiers of the game', () => {
+    const wound = buildInjury({ id: 'cut', type: 'cut-burn', penalty: -10, bleeding: 2, source: { kind: 'critical' } });
+    const actorRounds = rounds('aragorn', 50, 50, [wound], []);
+    const last = actorRounds[1];
+    last.startTreatment('cut', {
+      actionId: 'medical-1',
+      healerActorId: 'boromir',
+      procedure: 'stitches',
+      startedRound: 2,
+      rounds: 6,
+      roll: 80,
+      total: 120,
+      result: 'success',
+      healer: { name: 'Boromir', bonus: 40 },
+      difficulty: 0,
+    });
+    last.recordItemConsumed('leaf', 2);
+    const base = { days: null, createdAt: '2026-11-02T00:00:00.000Z' };
+    last.addTemporaryModifier({
+      id: 'here',
+      kind: 'morale',
+      value: -10,
+      source: 'morale-absolute-failure',
+      tacticalGameId: 'game-1',
+      ...base,
+    });
+    last.addTemporaryModifier({ id: 'brought', kind: 'morale', value: 5, source: 'manual', tacticalGameId: null, ...base });
+
+    const outcome = TacticalGameOutcomeCalculator.finish(game(), [...actorRounds, ...rounds('boromir', 50, 50, [], [])], []);
+    const aragorn = outcome.characters.find(each => each.actorId === 'aragorn')!;
+    expect(aragorn.injuries[0].treatmentInProgress).toBeNull();
+    expect(aragorn.injuries[0].treatments).toEqual([
+      expect.objectContaining({ procedure: 'stitches', result: 'success', note: 'completed-after-combat' }),
+    ]);
+    expect(aragorn.injuries[0].bleeding).toBe(0);
+    expect(aragorn.itemsConsumed).toEqual([{ itemId: 'leaf', amount: 2 }]);
+    expect(aragorn.temporaryModifiers!.map(each => each.id)).toEqual(['here']);
+  });
+});

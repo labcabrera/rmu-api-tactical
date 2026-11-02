@@ -20,6 +20,8 @@ import type { GameRepository } from '../../../src/modules/games/application/port
 import type { CharacterPort } from '../../../src/modules/strategic/application/ports/character.port.js';
 import { effect, load } from './actor-round-test.factory.js';
 import { sheetsOf } from '../support/actor-sheets.js';
+import { HEALING_COMBAT_RULES } from '../../fixtures/healing-tables.js';
+import { CauterizationBurnService } from '../../../src/modules/actor-rounds/application/services/cauterization-burn.service.js';
 
 const wound = (bleeding: number, overrides: Partial<Injury> = {}): Injury => ({
   ...buildInjury({ id: 'wound', type: 'cut-burn', location: 'arm', penalty: -10, bleeding, source: { kind: 'critical' } }),
@@ -103,9 +105,15 @@ describe('InjuryTreatmentRules (spec 013, §3 and workspace spec 022)', () => {
 
   it('cauterizing follows Table 13-1c: bleeding, heat critical, d10 of extra hits and no recovery modifier (D7)', () => {
     const results: MedicalResult[] = ['absolute-failure', 'failure', 'partial-success', 'success', 'absolute-success'];
-    const rows = results.map(result => {
+    const totals = [-5, 50, 90, 150, 200];
+    const rows = results.map((result, index) => {
       const injury = wound(5);
-      const effect = InjuryTreatmentRules.apply('cauterize', injury, { result, recoveryModifier: -25, injuryPenalty: 10 });
+      const effect = InjuryTreatmentRules.apply(
+        'cauterize',
+        injury,
+        { result, recoveryModifier: -25, injuryPenalty: 10 },
+        { total: totals[index], rules: HEALING_COMBAT_RULES },
+      );
       return [
         result,
         injury.bleeding,
@@ -126,8 +134,16 @@ describe('InjuryTreatmentRules (spec 013, §3 and workspace spec 022)', () => {
   });
 
   it('an unmodified 66 on a cauterization is an unusual event', () => {
-    expect(InjuryTreatmentRules.apply('cauterize', wound(5), outcome('success'), 66).unusualEvent).toBe(true);
-    expect(InjuryTreatmentRules.apply('cauterize', wound(5), outcome('success'), 65).unusualEvent).toBeUndefined();
+    expect(InjuryTreatmentRules.apply('cauterize', wound(5), outcome('success'), { unmodifiedRoll: 66 }).unusualEvent).toBe(true);
+    expect(InjuryTreatmentRules.apply('cauterize', wound(5), outcome('success'), { unmodifiedRoll: 65 }).unusualEvent).toBeUndefined();
+  });
+
+  it('without Table 13-1c from core, a cauterization falls back to the medical result and gives no heat (spec 068)', () => {
+    const failed = wound(5);
+    const partial = wound(5);
+    const effect = InjuryTreatmentRules.apply('cauterize', failed, outcome('failure'));
+    InjuryTreatmentRules.apply('cauterize', partial, outcome('partial-success'));
+    expect([failed.bleeding, effect.heatCritical, partial.bleeding]).toEqual([5, undefined, 2]);
   });
 
   it('takes the difficulty of the procedure without a table, one step harder on the head and by the bleeding when cauterizing', () => {
@@ -207,7 +223,10 @@ describe('TreatInjuryHandler and StabilizeEffectHandler', () => {
     const absolute = vi.fn((total: number, table?: string) => Promise.resolve({ result, message: `${table} ${total}`, effects }));
     const maneuverPort = { absolute } as unknown as ManeuverPort;
     const service = new MedicalRollService(actorRoundRepository, gameRepository, sheetsOf(characterClient), maneuverPort);
-    const healingTables: HealingTablesPort = { treatmentTables: vi.fn(() => Promise.resolve(tables)) };
+    const healingTables: HealingTablesPort = {
+      treatmentTables: vi.fn(() => Promise.resolve(tables)),
+      combatRules: vi.fn(() => Promise.resolve(HEALING_COMBAT_RULES)),
+    };
     const lookup = vi.fn((request: CriticalTableLookupRequest) =>
       Promise.resolve(
         new CriticalResult(`Burn ${request.criticalSeverity}`, 4, 'arm', [
@@ -222,8 +241,8 @@ describe('TreatInjuryHandler and StabilizeEffectHandler', () => {
       absolute,
       lookup,
       healingTables,
-      treat: new TreatInjuryHandler(actorRoundRepository, service, healingTables, criticalTable),
-      stabilize: new StabilizeEffectHandler(actorRoundRepository, service),
+      treat: new TreatInjuryHandler(actorRoundRepository, service, healingTables, new CauterizationBurnService(criticalTable)),
+      stabilize: new StabilizeEffectHandler(actorRoundRepository, service, healingTables),
     };
   };
 

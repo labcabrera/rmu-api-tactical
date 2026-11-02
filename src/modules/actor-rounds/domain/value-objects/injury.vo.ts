@@ -39,7 +39,73 @@ export interface InjurySource {
 }
 
 export type TreatmentProcedure =
-  'pressure' | 'stitches' | 'tourniquet' | 'cauterize' | 'dress' | 'splint' | 'cast' | 'salve' | 'surgery' | 'magic' | 'herbs';
+  | 'pressure'
+  | 'stitches'
+  | 'tourniquet'
+  | 'cauterize'
+  | 'dress'
+  | 'splint'
+  | 'cast'
+  | 'salve'
+  | 'surgery'
+  | 'magic'
+  | 'herbs'
+  | 'stabilize';
+
+/** Movement paces (Table 5-3), slowest first. */
+export type Pace = 'creep' | 'walk' | 'jog' | 'run' | 'sprint' | 'dash';
+export const PACES: Pace[] = ['creep', 'walk', 'jog', 'run', 'sprint', 'dash'];
+
+/** Support of a cast leg (workspace spec 068, decision 10): the pace limit depends on it. */
+export type CastSupport = 'none' | 'cane' | 'crutches';
+export const CAST_SUPPORTS: CastSupport[] = ['none', 'cane', 'crutches'];
+
+/**
+ * What a splint or a cast leaves on the injury (workspace spec 068, decision 10): the pace limit of a leg, a useless arm
+ * and the factor of the maneuver penalty (a cast halves it). Copied from the character into round 1.
+ */
+export interface InjuryLimits {
+  pace?: Pace | null;
+  limbUnusable?: boolean;
+  maneuverPenaltyFactor?: number | null;
+}
+
+/** When a treated wound opens again (decision 5): pressure with exertion, stitches with a failed roll. */
+export type InjuryReopenOn = 'exertion' | 'failed-roll';
+
+/** A tourniquet on the injury (decision 5), by round numbers of the game. */
+export interface InjuryTourniquet {
+  tightSince: number;
+  loosenedAt: number | null;
+  /** Bleeding it stopped: the wound bleeds it the round it is loosened. */
+  bleeding?: number;
+}
+
+/**
+ * A treatment declared as a `medical` action and not finished yet (workspace spec 068, §2): the Medicine roll is made
+ * when the action is first resolved, and the effect is applied when its rounds are done.
+ */
+export interface TreatmentInProgress {
+  /** The first action of the treatment (its continuations keep it). */
+  actionId: string;
+  healerActorId: string;
+  procedure: TreatmentProcedure;
+  startedRound: number;
+  rounds: number;
+  roll: number;
+  total: number;
+  result: MedicalResult;
+  /** What the completion needs of the medical table and the roll. */
+  recoveryModifier?: number;
+  injuryPenalty?: number;
+  difficulty?: number;
+  healer?: InjuryHealer;
+  unmodifiedRoll?: number;
+  castSupport?: CastSupport;
+  salveModifier?: number | null;
+  /** Bleeding before the procedure: pressure keeps it stopped while it is held. */
+  bleeding?: number;
+}
 
 export type MedicalResult = 'absolute-failure' | 'failure' | 'partial-success' | 'success' | 'absolute-success';
 
@@ -68,6 +134,10 @@ export interface InjuryTreatment {
   at: string;
   context: 'tactical' | 'strategic';
   tacticalGameId?: string;
+  /** `completed-after-combat`: a treatment in progress when the game finished (workspace spec 068, decision 4). */
+  note?: string;
+  castSupport?: CastSupport;
+  salveModifier?: number;
 }
 
 export interface InjuryRecovery {
@@ -105,6 +175,13 @@ export interface Injury {
   createdAt: string;
   updatedAt?: string;
   healedAt?: string;
+  /** Workspace spec 068: limits of a splint or a cast. */
+  limits?: InjuryLimits | null;
+  reopenOn?: InjuryReopenOn | null;
+  /** Bleeding the wound takes again when it reopens (tactical only). */
+  reopenBleeding?: number | null;
+  tourniquet?: InjuryTourniquet | null;
+  treatmentInProgress?: TreatmentInProgress | null;
 }
 
 export interface CharacterCondition {
@@ -136,8 +213,13 @@ const severityRank = (value: number, lightMax: number, mediumMax: number): numbe
 /** The injury still penalizes. */
 export const isPenalizing = (injury: Injury): boolean => PENALIZING_INJURY_STATUSES.includes(injury.status);
 
+/** Pressure held on the injury by a healer stops its bleeding while the treatment goes on (workspace spec 068). */
+export const isPressureHeld = (injury: Injury): boolean =>
+  injury.treatmentInProgress?.procedure === 'pressure' &&
+  (injury.treatmentInProgress.result === 'success' || injury.treatmentInProgress.result === 'absolute-success');
+
 /** The injury bleeds now. */
-export const isBleeding = (injury: Injury): boolean => injury.status !== 'healed' && (injury.bleeding ?? 0) > 0;
+export const isBleeding = (injury: Injury): boolean => injury.status !== 'healed' && (injury.bleeding ?? 0) > 0 && !isPressureHeld(injury);
 
 export interface NewInjury {
   id: string;

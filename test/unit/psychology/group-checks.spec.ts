@@ -232,3 +232,55 @@ describe('openEndedRoll', () => {
     expect(GroupCheckService.roll(undefined, sequence(42))).toEqual({ roll: 42, unmodified: 42, rolledByServer: true });
   });
 });
+
+describe('temporary modifiers of the checks (workspace spec 068, decision 19)', () => {
+  it('a morale result with a lasting modifier keeps it on the leader: a penalty until removed, a bonus for its days', async () => {
+    const { morale, rounds } = setup();
+    const low = await morale({ leader: { actorId: 'aragorn' }, roll: -100, bonuses: { orc: 10 } });
+    expect(low.temporaryModifiers).toEqual([
+      expect.objectContaining({ kind: 'morale', value: -5, source: 'morale-absolute-failure', days: null, tacticalGameId: 'game-1' }),
+    ]);
+    expect(low.actorRounds.map(round => round.actorId)).toEqual(['aragorn']);
+    // The next check of the leader takes it, with its rule
+    const next = await morale({ leader: { actorId: 'aragorn' }, roll: 50 });
+    expect(next.leaderRoll?.breakdown).toContainEqual({
+      key: 'temporary-morale-absolute-failure',
+      value: -5,
+      group: 'situation',
+      rule: '§14.3 Table 14-3b',
+    });
+    const high = await morale({ leader: { actorId: 'aragorn' }, roll: 200 });
+    expect(high.temporaryModifiers).toEqual([expect.objectContaining({ value: 4, source: 'morale-absolute-success', days: 20 })]);
+    expect(byId(rounds, 'aragorn').temporaryModifiers).toHaveLength(2);
+  });
+
+  it('the unusual event of a rally gives the leader its fear RR bonus for a day and hits; the fear RR takes it', async () => {
+    const { rally, fear, rounds } = setup({ effects: { orc: [effect('fear-routed', 30)] } });
+    const odd = await rally({ leader: { actorId: 'aragorn' }, roll: 140, unmodifiedRoll: 66 });
+    // Made-up event row: +15 to the fear RR for 1 day and 4 hits
+    expect(odd.temporaryModifiers).toEqual([expect.objectContaining({ kind: 'fear-rr', value: 15, source: 'rally-unusual', days: 1 })]);
+    const aragorn = byId(rounds, 'aragorn');
+    expect([aragorn.hp.max, aragorn.hp.current]).toEqual([54, 54]);
+    const check = await fear({ frightLevel: 5, group: { factionIds: ['fellowship'] }, rolls: { aragorn: 30, boromir: 50, orc: 10 } });
+    expect(byId(check.actors, 'aragorn').breakdown).toContainEqual(
+      expect.objectContaining({ key: 'temporary-rally-unusual', value: 15, rule: '§14.3 Table 14-3c' }),
+    );
+  });
+});
+
+describe('fright level of an NPC (workspace spec 068, decision 17)', () => {
+  it('takes the fright level of the source actor and its extra when the request sends none', async () => {
+    const { fear, rounds } = setup();
+    byId(rounds, 'troll').frightLevel = 4;
+    const result = await fear({
+      frightSourceActorId: 'troll',
+      frightLevelModifier: 3,
+      group: { factionIds: ['fellowship'] },
+      rolls: { aragorn: 30, boromir: 50, orc: 10 },
+    });
+    expect(result.frightLevel).toBe(7);
+    await expect(fear({ frightSourceActorId: 'witch', group: { factionIds: ['fellowship'] } })).rejects.toThrow(
+      expect.objectContaining({ code: 'err-fright-level-required' }),
+    );
+  });
+});

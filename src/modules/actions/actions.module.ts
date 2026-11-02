@@ -1,3 +1,6 @@
+import { MedicalController } from './interfaces/http/medical.controller.js';
+import { MedicalActionService } from './application/services/medical/medical-action.service.js';
+import { ResolveMedicalHandler, ResolveUseItemHandler } from './application/cqrs/handlers/medical-action.handlers.js';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
@@ -8,9 +11,8 @@ import { ResolveEnduranceCheckHandler } from '../actor-rounds/application/cqrs/h
 import { ResolveBreakageCheckHandler } from '../actor-rounds/application/cqrs/handlers/resolve-breakage-check.handler.js';
 import { StabilizeEffectHandler } from '../actor-rounds/application/cqrs/handlers/stabilize-effect.handler.js';
 import { TreatInjuryHandler } from '../actor-rounds/application/cqrs/handlers/treat-injury.handler.js';
+import { CauterizationBurnService } from '../actor-rounds/application/services/cauterization-burn.service.js';
 import { MedicalRollService } from '../actor-rounds/application/services/medical-roll.service.js';
-import { HEALING_TABLES_PORT } from '../actor-rounds/application/ports/healing-tables.port.js';
-import { ApiHealingTablesAdapter } from '../actor-rounds/infrastructure/api-clients/api.healing-tables.adapter.js';
 import { ActorsRoundModule } from '../actor-rounds/actor-rounds.module.js';
 import { GamesModule } from '../games/games.module.js';
 import { PsychologyModule } from '../psychology/psychology.module.js';
@@ -85,7 +87,7 @@ import { SKILL_CATALOG_PORT } from './application/ports/skill-catalog.port.js';
     ActorsRoundModule,
     PsychologyModule,
   ],
-  controllers: [ActionController, AttackController, MovementController, ManeuverController, SpellController],
+  controllers: [ActionController, AttackController, MovementController, ManeuverController, SpellController, MedicalController],
   providers: [
     ActionApStateService,
     MovementProcessorService,
@@ -121,7 +123,11 @@ import { SKILL_CATALOG_PORT } from './application/ports/skill-catalog.port.js';
     ResolveBreakageCheckHandler,
     MedicalRollService,
     TreatInjuryHandler,
+    CauterizationBurnService,
     StabilizeEffectHandler,
+    MedicalActionService,
+    ResolveMedicalHandler,
+    ResolveUseItemHandler,
     {
       provide: ACTION_REPOSITORY,
       useClass: MongoActionRepository,
@@ -145,10 +151,6 @@ import { SKILL_CATALOG_PORT } from './application/ports/skill-catalog.port.js';
     {
       provide: MANEUVER_PORT,
       useClass: ApiManeuverAdapter,
-    },
-    {
-      provide: HEALING_TABLES_PORT,
-      useClass: ApiHealingTablesAdapter,
     },
     {
       provide: SKILL_CATALOG_PORT,

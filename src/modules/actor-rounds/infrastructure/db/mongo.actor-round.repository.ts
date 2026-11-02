@@ -135,6 +135,7 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
             e.targetActorId,
             e.source,
             e.fromRound ?? undefined,
+            e.causeTreated ?? undefined,
           ),
       ),
       traits: (doc.traits || []).map(trait => new ActorRoundTrait(trait.traitId, trait.tier || 1, trait.specialization ?? null)),
@@ -157,6 +158,9 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       items: (doc.items || []).map(item =>
         ActorRoundItems.copy({ ...item, modifiers: item.modifiers || [], startModifierIds: item.startModifierIds || [] }),
       ),
+      itemsConsumed: (doc.itemsConsumed || []).map(each => ({ itemId: each.itemId, amount: each.amount })),
+      temporaryModifiers: (doc.temporaryModifiers || []).map(each => ({ ...each })),
+      frightLevel: doc.frightLevel ?? null,
       snapshot: doc.snapshot
         ? { hp: doc.snapshot.hp, injuryIds: [...(doc.snapshot.injuryIds || [])], conditionIds: [...(doc.snapshot.conditionIds || [])] }
         : undefined,

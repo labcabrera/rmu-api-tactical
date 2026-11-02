@@ -22,7 +22,11 @@ import {
 import { HEALING_TABLES_PORT } from '../../../src/modules/actor-rounds/application/ports/healing-tables.port.js';
 import { FIGHTING_STYLES_PORT } from '../../../src/modules/actor-rounds/application/ports/fighting-styles.port.js';
 import type { FightingStyleCatalog } from '../../../src/modules/actor-rounds/domain/value-objects/fighting-style-catalog.vo.js';
-import type { TreatmentTables } from '../../../src/modules/actor-rounds/domain/value-objects/treatment-difficulty.vo.js';
+import {
+  DEFAULT_HEALING_COMBAT_RULES,
+  type HealingCombatRules,
+  type TreatmentTables,
+} from '../../../src/modules/actor-rounds/domain/value-objects/treatment-difficulty.vo.js';
 import { PSYCHOLOGY_TABLES_PORT } from '../../../src/modules/psychology/application/ports/psychology-tables.port.js';
 import type { PsychologyTables } from '../../../src/modules/psychology/domain/value-objects/psychology-tables.vo.js';
 import { POISON_TABLES_PORT } from '../../../src/modules/poisons/application/ports/poison-tables.port.js';
@@ -80,6 +84,8 @@ export type World = {
   fumble: Fumble;
   /** Treatment tables of core's healing tables (workspace spec 022); null is a core without them. */
   treatmentTables: TreatmentTables | null;
+  /** Combat rules of core's healing tables (workspace spec 068), made up; the defaults of an older core by default. */
+  healingCombatRules: HealingCombatRules;
   /** Fighting styles of core (workspace spec 032), made up. */
   fightingStyles: FightingStyleCatalog;
   /** Psychology tables of core (workspace spec 022), with made-up numbers. */
@@ -122,6 +128,7 @@ const newWorld = (): World => ({
   critical: new CriticalResult('Strike to the leg.', 6, 'leg', [], undefined),
   fumble: new Fumble('completed', 'Off balance.', undefined, 0, []),
   treatmentTables: null,
+  healingCombatRules: DEFAULT_HEALING_COMBAT_RULES,
   fightingStyles: { styles: [], abilities: [] },
   psychologyTables: PSYCHOLOGY_TABLES,
   poisonTables: POISON_TABLES,
@@ -280,7 +287,10 @@ function fakePorts(world: World) {
         },
       },
     ],
-    [HEALING_TABLES_PORT, { treatmentTables: () => Promise.resolve(world.treatmentTables) }],
+    [
+      HEALING_TABLES_PORT,
+      { treatmentTables: () => Promise.resolve(world.treatmentTables), combatRules: () => Promise.resolve(world.healingCombatRules) },
+    ],
     [FIGHTING_STYLES_PORT, { getFightingStyles: () => Promise.resolve(world.fightingStyles) }],
     [
       TACTICAL_OUTCOME_PORT,

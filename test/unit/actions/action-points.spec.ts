@@ -34,6 +34,9 @@ import type { StrategicGameApiClient } from '../../../src/modules/strategic/infr
 import { effect, load } from '../actor-rounds/actor-round-test.factory.js';
 import { createCombatPluginContext } from './combat/combat-plugin-test.factory.js';
 import { sheetsOf } from '../support/actor-sheets.js';
+import type { HealingTablesPort } from '../../../src/modules/actor-rounds/application/ports/healing-tables.port.js';
+import { MedicalAbortService } from '../../../src/modules/actor-rounds/application/services/medical-abort.service.js';
+import type { MedicalActionService } from '../../../src/modules/actions/application/services/medical/medical-action.service.js';
 
 /** An action declared after spec 011: its AP come only from the ledger. */
 const action = (id: string, actionType: ActionType, phaseStart: number, extra: Partial<ActionProps> = {}): Action =>
@@ -295,6 +298,9 @@ describe('Interruption (spec 011, §2; criterion 7)', () => {
       { findSkill: vi.fn(), findManeuverModifiers: vi.fn() },
       sheetsOf({ findById: vi.fn(() => Promise.resolve(null)) } as unknown as CharacterPort),
       {} as SpellCastingService,
+      {} as HealingTablesPort,
+      {} as MedicalActionService,
+      new MedicalAbortService({} as ActorRoundRepository),
     );
 
     const created = await handler.execute(

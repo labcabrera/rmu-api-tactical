@@ -1,3 +1,4 @@
+import type { TemporaryModifier } from '../../../actor-rounds/domain/value-objects/temporary-modifier.vo.js';
 import { AttackRange, type WeaponCategory } from '../../../actor-rounds/domain/value-objects/actor-round-attack.vo.js';
 import { ActorRoundFaction } from '../../../actor-rounds/domain/value-objects/actor-round-faction.vo.js';
 import { ActorRoundShield } from '../../../actor-rounds/domain/value-objects/actor-round-shield.vo.js';
@@ -33,6 +34,8 @@ export interface Character {
   attacks: CharacterAttack[];
   /** Spec 013: missing in strategic versions before it. */
   injuries?: Injury[];
+  /** Workspace spec 068, decision 19: lasting morale and fear RR modifiers, expired by strategic. */
+  temporaryModifiers?: TemporaryModifier[];
   /** Spec 013: missing in strategic versions before it. */
   conditions?: CharacterCondition[];
   /** `dead` once a tactical game killed it (spec 013); missing in older versions. */

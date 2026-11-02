@@ -79,6 +79,8 @@ export interface ActorRoundItem {
    * not one applied later (spec 044, decision 3). `true` in rounds stored before it.
    */
   coatingSpent?: SpentCoating;
+  /** Dropped by a broken actor (workspace spec 068, decision 14): out of its hands, still in its inventory. */
+  dropped?: boolean;
 }
 
 /** The identity of a spent coating; `true` is the legacy form, without it. */

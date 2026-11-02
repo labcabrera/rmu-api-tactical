@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { HEALING_COMBAT_RULES } from '../fixtures/healing-tables.js';
 import type { StrategicItem } from '../../src/modules/strategic/application/ports/item.port.js';
 import { character, ids, startApp, USERS, type E2eApp, type UserName } from './support/app.js';
 
@@ -254,6 +255,8 @@ describe('treatments (workspace spec 022)', () => {
   });
 
   it('cauterizes: extra hits and the heat critical left as an alert', async () => {
+    // Workspace spec 068: Table 13-1c comes from core (made-up bands)
+    e2e.world.healingCombatRules = HEALING_COMBAT_RULES;
     const round = await boromirRound();
     const response = await as('owner').post(`/v1/actor-rounds/${round.id}/injuries/severe-cut/treatments`, {
       procedure: 'cauterize',

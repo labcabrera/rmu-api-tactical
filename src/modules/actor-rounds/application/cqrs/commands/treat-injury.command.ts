@@ -1,5 +1,6 @@
 import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command.js';
 import type { TacticalProcedure } from '../../../domain/services/injury-treatment.js';
+import type { CastSupport } from '../../../domain/value-objects/injury.vo.js';
 import type { HealerRequest } from '../../services/medical-roll.service.js';
 
 /** Rolls of a cauterization (Table 13-1c, workspace spec 022, D7), made by the client like every other roll. */
@@ -10,6 +11,9 @@ export interface TreatInjuryRolls {
   heatHitsRoll?: number;
   /** Roll of the heat critical (1-100); without it the critical is left as an alert for the game master. */
   heatCriticalRoll?: number;
+  /** Workspace spec 068: support of a cast leg, and the recovery modifier of a salve. */
+  castSupport?: CastSupport;
+  salveModifier?: number;
 }
 
 /** `POST /v1/actor-rounds/:id/injuries/:injuryId/treatments` (spec 013, §3). */

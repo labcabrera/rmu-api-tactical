@@ -77,7 +77,9 @@ export class ResistanceRollCalculator {
     }
     (input.modifiers ?? [])
       .filter(modifier => modifier.value)
-      .forEach(modifier => breakdown.push({ key: modifier.key, value: modifier.value, group: 'situation' }));
+      .forEach(modifier =>
+        breakdown.push({ key: modifier.key, value: modifier.value, group: 'situation', ...(modifier.rule ? { rule: modifier.rule } : {}) }),
+      );
     const total = breakdown.reduce((sum, modifier) => sum + modifier.value, 0);
     const required = rules.requiredTotal;
     const failure = Math.max(0, required - total);

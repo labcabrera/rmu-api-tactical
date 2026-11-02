@@ -54,6 +54,8 @@ export interface Npc {
   initiative: number;
   attacks: NpcAttack[];
   resistances: NpcResistances | null;
+  /** Workspace spec 068, decision 17: fright level of the creature (Table 14-3a); null or missing when it has none. */
+  frightLevel?: number | null;
   skills: NpcSkill[];
   imageUrl?: string | null;
   owner: string;

@@ -46,6 +46,9 @@ export class ActorRoundItemDto {
   })
   coatingSpent?: SpentCoating;
 
+  @ApiProperty({ description: 'Dropped by a broken actor (spec 068): out of its hands, still in its inventory', required: false })
+  dropped?: boolean;
+
   static fromEntity(entity: ActorRoundItem): ActorRoundItemDto {
     const dto = new ActorRoundItemDto();
     dto.itemId = entity.itemId;
@@ -58,6 +61,7 @@ export class ActorRoundItemDto {
     dto.startModifierIds = [...entity.startModifierIds];
     dto.condition = ActorRoundItems.condition(entity.modifiers);
     if (entity.coating !== undefined) dto.coating = entity.coating && structuredClone(entity.coating);
+    if (entity.dropped) dto.dropped = true;
     if (entity.coatingSpent !== undefined) dto.coatingSpent = entity.coatingSpent === true ? true : { ...entity.coatingSpent };
     return dto;
   }
