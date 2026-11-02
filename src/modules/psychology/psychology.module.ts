@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import { ActorsRoundModule } from '../actor-rounds/actor-rounds.module.js';
@@ -17,7 +17,15 @@ import { ResistanceRollController } from './interfaces/http/resistance-roll.cont
 
 /** Resistance rolls and fear, morale and rally checks (workspace spec 022, Core Law ch. 14). */
 @Module({
-  imports: [CqrsModule, ConfigModule, AuthModule, SharedModule, GamesModule, StrategicModule, ActorsRoundModule],
+  imports: [
+    CqrsModule,
+    ConfigModule,
+    AuthModule,
+    SharedModule,
+    forwardRef(() => GamesModule),
+    StrategicModule,
+    forwardRef(() => ActorsRoundModule),
+  ],
   controllers: [ResistanceRollController, GroupCheckController],
   providers: [
     ResistanceRollHandler,

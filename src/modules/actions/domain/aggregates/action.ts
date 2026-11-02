@@ -10,6 +10,7 @@ import { ActionManeuver } from '../value-objects/action-maneuver.vo.js';
 import { ActionApProfile } from '../value-objects/action-ap-profile.vo.js';
 import { ActionMovement } from '../value-objects/action-movement.vo.js';
 import type { ActionSpell } from '../value-objects/action-spell.vo.js';
+import type { ActionMedical, ActionUseItem, ActionWarning } from '../value-objects/action-medical.vo.js';
 import { ActionResolution, type ForceReason } from '../value-objects/action-resolution.vo.js';
 import { type ActionStatus, CLOSED_ACTION_STATUSES, IN_RESOLUTION_ACTION_STATUSES } from '../value-objects/action-status.vo.js';
 import type { ActionType } from '../value-objects/action-type.vo.js';
@@ -44,6 +45,8 @@ export interface DeclarationPlan {
   spend: DeclarationSpend | null;
   /** Open actions of the actor that the new one interrupts. */
   interrupted: Action[];
+  /** Interrupted medical actions whose AP of the phase go back to the new one (workspace spec 068). */
+  released?: string[];
 }
 
 export interface DeclarationRequest {
@@ -89,6 +92,10 @@ export interface ActionProps {
   spell?: ActionSpell | null;
   /** Actors who cannot parry or protect against the attacks, and why (spec 051). */
   parryExclusions?: ParryExclusion[] | null;
+  /** The procedure of a `medical` action (workspace spec 068). */
+  medical?: ActionMedical | null;
+  /** The item of a `use_item` action (workspace spec 068). */
+  useItem?: ActionUseItem | null;
   owner: string;
   createdAt: Date;
   updatedAt: Date | null;
@@ -121,12 +128,17 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     public carriedAp: number | null = null,
     public spell: ActionSpell | null = null,
     public parryExclusions: ParryExclusion[] | null = null,
+    public medical: ActionMedical | null = null,
+    public useItem: ActionUseItem | null = null,
   ) {
     super(id);
   }
 
   /** AP and readiness computed for the response (see `refreshApState`); not stored. */
   apState?: ActionApState;
+
+  /** Warnings of the declaration or resolution that did not need a confirmation (workspace spec 068); not stored. */
+  warnings?: ActionWarning[];
 
   static create(
     gameId: string,
@@ -195,6 +207,8 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       props.carriedAp ?? null,
       props.spell ?? null,
       props.parryExclusions ?? null,
+      props.medical ?? null,
+      props.useItem ?? null,
     );
   }
 
@@ -229,6 +243,9 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       previous.id,
       carriedAp,
       previous.spell ? structuredClone(previous.spell) : null,
+      null,
+      previous.medical ? structuredClone(previous.medical) : null,
+      previous.useItem ? structuredClone(previous.useItem) : null,
     );
     action.apply(new ActionCreatedEvent(action));
     return action;
@@ -609,7 +626,9 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       return { spend: null, interrupted: [] };
     }
     if (attack && actorRound.isFearBlockingAttacks()) {
-      throw new ValidationError('A routed or broken actor cannot attack (workspace spec 022)', 'err-action-fear');
+      throw new ValidationError('A routed or broken actor cannot attack (workspace spec 022)', 'err-action-fear', {
+        state: actorRound.fearEffect()?.status ?? null,
+      });
     }
     if (attack && actorRound.isAttackForbidden()) {
       throw new ValidationError('The actor cannot attack this round (workspace spec 034)', 'err-action-cannot-attack');
@@ -627,16 +646,34 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     if (actorRound.capacityOf(phase) === 0) {
       throw new ValidationError(`The actor has no action points in phase ${phase}`, 'err-action-surprised-phase');
     }
+    // Workspace spec 068, decision 4: an action that takes AP interrupts a medical action, whose AP of the phase go back
+    const medical = actions.filter(action => action.actionType === 'medical' && action.isInterruptible());
+    const releasable = medical.filter(action =>
+      actorRound.ledgerOf(action.id).some(entry => entry.phase === phase && entry.kind === 'spent'),
+    );
     if (request.freeAction) {
       const first = !actions.some(action => action.freeAction && !action.isAttack());
-      if (!first && actorRound.freeCapacity(phase) < 1) {
+      if (first) {
+        Action.checkFearDeclaration(actorRound, request, 0);
+        return { spend: { phase, ap: 0, kind: 'instant' }, interrupted: [] };
+      }
+      Action.checkFearDeclaration(actorRound, request, 1);
+      if (actorRound.freeCapacity(phase) + releasable.length < 1) {
         throw new ValidationError(`The actor has no action points left in phase ${phase}`, 'err-action-points-exceeded');
       }
-      return { spend: { phase, ap: first ? 0 : 1, kind: 'instant' }, interrupted: [] };
+      const released = actorRound.freeCapacity(phase) < 1 ? releasable.slice(0, 1) : [];
+      return {
+        spend: { phase, ap: 1, kind: 'instant' },
+        interrupted: medical,
+        ...(released.length > 0 ? { released: released.map(action => action.id) } : {}),
+      };
     }
-    if (actorRound.freeCapacity(phase) < 1) {
+    Action.checkFearDeclaration(actorRound, request, 1);
+    const canRelease = request.actionType !== 'movement';
+    if (actorRound.freeCapacity(phase) + (canRelease ? releasable.length : 0) < 1) {
       throw new ValidationError(`The actor has no action points left in phase ${phase}`, 'err-action-points-exceeded');
     }
+    const released = canRelease && actorRound.freeCapacity(phase) < 1 ? releasable.slice(0, 1).map(action => action.id) : [];
     const interrupted = request.actionType === 'movement' ? [] : actions.filter(action => action.isInterruptible());
     const parried = interrupted.find(action => Action.parriedWith(action, roundActions));
     if (parried) {
@@ -645,7 +682,33 @@ export class Action extends BaseAggregateRoot<ActionProps> {
         'err-action-must-complete-parried',
       );
     }
-    return { spend: { phase, ap: 1, kind: 'spent' }, interrupted };
+    return { spend: { phase, ap: 1, kind: 'spent' }, interrupted, ...(released.length > 0 ? { released } : {}) };
+  }
+
+  /**
+   * What a fear state lets the actor declare (workspace spec 068, decision 14; `err-action-fear` with `details.state`):
+   * routed and broken actors only move, dodge or take actions of 0 AP. The pace limits and the warnings of balk and
+   * retreat are checked when the movement or the charge is resolved.
+   */
+  static checkFearDeclaration(actorRound: ActorRound, request: DeclarationRequest, ap: number): void {
+    if (!actorRound.isFearBlockingAttacks()) {
+      return;
+    }
+    const allowed = request.actionType === 'movement' || request.actionType === 'dodge' || (request.freeAction && ap === 0);
+    if (!allowed) {
+      const state = actorRound.fearEffect()?.status ?? null;
+      throw new ValidationError(`A ${state} actor only moves, dodges or takes actions of 0 AP (workspace spec 068)`, 'err-action-fear', {
+        state,
+      });
+    }
+  }
+
+  /**
+   * A declaration that exerts the actor and reopens a completed pressure (workspace spec 068, decision 5): an attack or
+   * a maneuver. A movement exerts above walking pace, checked when it is resolved.
+   */
+  static isExertion(actionType: ActionType): boolean {
+    return actionType === 'melee_attack' || actionType === 'ranged_attack' || actionType === 'maneuver';
   }
 
   /** An open action that a new one interrupts: declared, not instantaneous, forced nor a movement (spec 011, §2). */
@@ -673,6 +736,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
 
   /** Records on the actor round the AP of the new action and closes the actions it interrupts. */
   applyDeclaration(actorRound: ActorRound, plan: DeclarationPlan, currentPhase: number): void {
+    (plan.released ?? []).forEach(actionId => actorRound.releaseActionPhase(actionId, currentPhase));
     plan.interrupted.forEach(action => {
       action.fillLegacyLedger(actorRound, currentPhase - 1);
       action.close(actorRound, currentPhase, 'interrupted');
@@ -1020,6 +1084,8 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       carriedAp: this.carriedAp,
       spell: this.spell,
       parryExclusions: this.parryExclusions,
+      medical: this.medical,
+      useItem: this.useItem,
       owner: this.owner,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,

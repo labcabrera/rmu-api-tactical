@@ -68,12 +68,15 @@ export class MedicalRollService {
     roll: number,
     difficulty: number,
     difficultyParams?: ModifierParams,
+    /** Bonuses besides the healer's, such as the Herbalism of a `medical` action (workspace spec 068), with their rule. */
+    extraModifiers: KeyValueModifier[] = [],
   ): Promise<MedicalRoll> {
     if (typeof roll !== 'number' || !Number.isFinite(roll)) {
       throw new ValidationError('Required roll value');
     }
     const { healer, penalty } = await this.resolveHealer(patient, request);
-    const total = roll + healer.bonus + difficulty + penalty;
+    const extra = extraModifiers.reduce((sum, modifier) => sum + modifier.value, 0);
+    const total = roll + healer.bonus + difficulty + penalty + extra;
     const response = await this.maneuverPort.absolute(total, MEDICAL_TABLE);
     const result = MEDICAL_RESULTS.find(each => each === response.result);
     if (!result) {
@@ -88,7 +91,9 @@ export class MedicalRollService {
       }),
       new KeyValueModifier('difficulty', difficulty, 'situation', 'injury', MEDICAL_RULES.difficulty, difficultyParams),
       new KeyValueModifier('healer-penalty', penalty, 'penalty', 'healer'),
-    ].filter((modifier, index) => index < 3 || modifier.value !== 0);
+    ]
+      .filter((modifier, index) => index < 3 || modifier.value !== 0)
+      .concat(extraModifiers);
     return {
       healer,
       healerPenalty: penalty,
@@ -131,7 +136,18 @@ export class MedicalRollService {
   }
 
   private async medicineBonus(healerRound: ActorRound): Promise<number> {
-    const character = await this.sheets.find(healerRound);
-    return character?.skills?.find(skill => skill.skillId === MEDICINE_SKILL_ID)?.totalBonus ?? 0;
+    return this.skillBonus(healerRound, MEDICINE_SKILL_ID);
+  }
+
+  /** Total bonus of a skill of the actor's sheet (character or NPC), 0 when it has none. */
+  async skillBonus(actorRound: ActorRound, skillId: string): Promise<number> {
+    const character = await this.sheets.find(actorRound);
+    return character?.skills?.find(skill => skill.skillId === skillId)?.totalBonus ?? 0;
+  }
+
+  /** An absolute maneuver of the generic table of core (a Herbalism roll, workspace spec 068). */
+  async absolute(total: number): Promise<string> {
+    const response = await this.maneuverPort.absolute(total);
+    return response.result;
   }
 }

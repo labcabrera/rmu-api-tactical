@@ -47,6 +47,7 @@ export class MongoGameRepository extends MongoBaseRepository<Game, GameModel> im
       actors: doc.actors ? doc.actors.map(actor => Actor.fromProps(actor)) : [],
       environment: environment,
       environmentFaction: doc.environmentFaction ?? null,
+      fearThresholdsAlerted: doc.fearThresholdsAlerted ?? null,
       imageUrl: doc.imageUrl,
       description: doc.description,
       owner: doc.owner,

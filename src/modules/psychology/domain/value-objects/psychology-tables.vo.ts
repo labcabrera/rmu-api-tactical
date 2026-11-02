@@ -63,6 +63,21 @@ export interface ResistanceRollRules {
   fearIgnoresInjuryPenalties: boolean;
 }
 
+/**
+ * A threshold of fallen allies of Table 14-3a (workspace spec 068, decision 16): a faction whose share of fallen actors
+ * is above `minShare` (`exclusive`) or at least it suggests a fear check of `frightLevel`.
+ */
+export interface FallenThreshold {
+  minShare: number;
+  exclusive: boolean;
+  frightLevel: number;
+}
+
+/** Revulsion (decision 18): the fright level each bloody corpse adds. */
+export interface RevulsionRules {
+  corpseLevel: number;
+}
+
 export interface PsychologyTables {
   frightLevels: FrightLevel[];
   frightLevelModifiers: FrightLevel[];
@@ -74,7 +89,19 @@ export interface PsychologyTables {
   rallyGroupModifier: RallyGroupModifier;
   resistance: ResistanceBandRow[];
   resistanceRoll: ResistanceRollRules;
+  /** Workspace spec 068; missing or empty in a core before it. */
+  fallenThresholds?: FallenThreshold[] | null;
+  revulsion?: RevulsionRules | null;
 }
+
+/** Key of a threshold, stored in the game once alerted. */
+export const fallenThresholdKey = (row: FallenThreshold): string => `${row.minShare}${row.exclusive ? '+' : ''}`;
+
+/** The threshold rows a share of fallen actors crosses, lowest first (the core sorts them by share, inclusive first). */
+export const crossedThresholds = (rows: FallenThreshold[] | null | undefined, share: number): FallenThreshold[] =>
+  [...(rows ?? [])]
+    .filter(row => (row.exclusive ? share > row.minShare : share >= row.minShare))
+    .sort((a, b) => a.minShare - b.minShare || Number(a.exclusive) - Number(b.exclusive));
 
 /** The row of a table whose band holds the value. */
 export const findBand = <T extends TableBand>(rows: T[], value: number): T | undefined =>

@@ -7,6 +7,7 @@ import {
   ACTOR_ROUND_REPOSITORY,
 } from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
+import { MedicalAbortService } from '../../../../actor-rounds/application/services/medical-abort.service.js';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
 import { Game } from '../../../domain/aggregates/game.js';
 import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port.js';
@@ -25,6 +26,7 @@ export class StartPhaseHandler implements ICommandHandler<StartPhaseCommand, Gam
     @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
     @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
     @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
+    private readonly medicalAbort: MedicalAbortService,
   ) {}
 
   async execute(command: StartPhaseCommand): Promise<Game> {
@@ -73,6 +75,7 @@ export class StartPhaseHandler implements ICommandHandler<StartPhaseCommand, Gam
       this.actorRoundRepository.findByRsql(rsql, 0, MAX_PAGE_SIZE).then(page => page.content),
       this.actionRepository.findByRsql(rsql, 0, MAX_PAGE_SIZE).then(page => page.content),
     ]);
+    const interrupted: Action[] = [];
     for (const actorRound of actorRounds) {
       const actorActions = actions.filter(action => action.actorId === actorRound.actorId);
       let changed = false;
@@ -91,6 +94,11 @@ export class StartPhaseHandler implements ICommandHandler<StartPhaseCommand, Gam
       for (const action of updatedActions) {
         await this.actionRepository.update(action);
       }
+      interrupted.push(...updatedActions.filter(action => action.status === 'interrupted'));
+    }
+    // Workspace spec 068, decision 4: the treatment of an interrupted medical action stops on its patient
+    for (const action of await this.medicalAbort.abort(interrupted)) {
+      await this.actionRepository.update(action);
     }
   }
 
@@ -101,7 +109,7 @@ export class StartPhaseHandler implements ICommandHandler<StartPhaseCommand, Gam
       .filter(action => action.carriesOnPhaseChange() || (action.isLegacy() && action.status === 'declared' && !action.freeAction))
       .sort((a, b) => a.phaseStart - b.phaseStart || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     for (const action of open) {
-      if (!actorRound.canAct()) {
+      if (!actorRound.canAct() || (action.actionType === 'medical' && !actorRound.canHeal())) {
         action.fillLegacyLedger(actorRound, currentPhase);
         action.close(actorRound, currentPhase, 'interrupted');
         this.logger.log(`Action ${action.id} of ${action.actorId} interrupted: the actor cannot act`);

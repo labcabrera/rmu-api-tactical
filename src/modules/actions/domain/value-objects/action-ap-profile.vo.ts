@@ -39,6 +39,12 @@ export class ActionApProfile {
         return options.acrobatics ? new ActionApProfile(1, 1, 0) : new ActionApProfile(2, 2, 0);
       case 'dodge':
         return new ActionApProfile(4, 4, 0);
+      case 'medical':
+        // Workspace spec 068, decision 2: 4 AP in each round it lasts, carried to the next round (spec 011, §5)
+        return new ActionApProfile(4, 4, 0, true);
+      case 'use_item':
+        // Decision 7: a healing item takes 2 AP (core's `combatItemAp`, stored in the action's `apRange`)
+        return new ActionApProfile(2, 2, 0);
       case 'movement':
       case 'draw_and_load':
       case 'other':

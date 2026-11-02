@@ -9,6 +9,11 @@ import {
   ACTOR_ROUND_REPOSITORY,
 } from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
+import { ActorRoundAlert } from '../../../../actor-rounds/domain/value-objects/actor-round-alert.vo.js';
+import { type PsychologyTablesPort, PSYCHOLOGY_TABLES_PORT } from '../../../../psychology/application/ports/psychology-tables.port.js';
+import { FearUpkeep } from '../../../../psychology/domain/services/fear-upkeep.js';
+import type { PsychologyTables } from '../../../../psychology/domain/value-objects/psychology-tables.vo.js';
+import { MedicalAbortService } from '../../../../actor-rounds/application/services/medical-abort.service.js';
 import { NotFoundError } from '../../../../shared/domain/errors/errors.js';
 import { openRoundsOf, STRATEGIC_GAME_PORT } from '../../../../strategic/application/ports/strategic-game.port.js';
 import type { StrategicGamePort } from '../../../../strategic/application/ports/strategic-game.port.js';
@@ -33,6 +38,8 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
     @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
     @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
     @Inject(STRATEGIC_GAME_PORT) private readonly strategicGameClient: StrategicGamePort,
+    private readonly medicalAbort: MedicalAbortService,
+    @Inject(PSYCHOLOGY_TABLES_PORT) private readonly psychologyTables: PsychologyTablesPort,
   ) {}
 
   async execute(command: StartRoundCommand): Promise<Game> {
@@ -45,6 +52,7 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
     //TODO make saga
     if (game.round > 0) {
       await Promise.all(game.actors.map(actor => this.applyUpkeepToActorRounds(game.id, actor, game.round, command.userId, command.roles)));
+      await this.addFearAlerts(game);
     }
     // The actor rounds of the new round exist before the continuations: they take their AP when phase 1 starts.
     await Promise.all(game.actors.map(actor => this.createActorRounds(game.id, game.round + 1, actor)));
@@ -81,6 +89,7 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
     ]);
     const openRounds = openRoundsOf(strategicGame);
     const changedActorRounds = new Set<ActorRound>();
+    const interrupted: Action[] = [];
     for (const action of actions) {
       const actorRound = actorRounds.find(ar => ar.actorId === action.actorId);
       if (actorRound && action.fillLegacyLedger(actorRound, LAST_PHASE)) {
@@ -90,8 +99,10 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
       if (outcome === 'none') {
         continue;
       }
-      if (actorRound?.isIncapacitated()) {
+      // Workspace spec 068, decision 4: a healer unable to treat after the upkeep interrupts its medical action
+      if (actorRound?.isIncapacitated() || (action.actionType === 'medical' && actorRound && !actorRound.canHeal())) {
         action.close(actorRound, LAST_PHASE, 'interrupted');
+        interrupted.push(action);
       } else if (outcome === 'expired') {
         action.close(actorRound, LAST_PHASE, 'expired');
       } else {
@@ -103,7 +114,43 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
       this.logger.log(`Action ${action.id} of ${action.actorId} ${action.status} at the end of round ${game.round}`);
       await this.actionRepository.update(action);
     }
+    // The treatment stops on the patient of this round and of the new one, already created
+    const aborted = await this.medicalAbort.abort(interrupted, { known: actorRounds, rounds: action => [action.round, action.round + 1] });
+    for (const action of aborted) {
+      const patient = actorRounds.find(ar => ar.actorId === action.medical!.patientActorId);
+      if (patient) changedActorRounds.add(patient);
+      await this.actionRepository.update(action);
+    }
     for (const actorRound of changedActorRounds) {
+      await this.actorRoundRepository.update(actorRound);
+    }
+  }
+
+  /**
+   * Workspace spec 068, decisions 16 and 18: after the upkeep, the fear check a faction's fallen allies suggest (once
+   * per threshold and game) and the fear RR of Revulsion. Without the psychology tables of core nothing is alerted.
+   */
+  private async addFearAlerts(game: Game): Promise<void> {
+    let tables: PsychologyTables;
+    try {
+      tables = await this.psychologyTables.find();
+    } catch (error) {
+      this.logger.warn(`No fear alerts in the upkeep, psychology tables not available: ${(error as Error).message}`);
+      return;
+    }
+    const rsql = `gameId==${game.id};round==${game.round}`;
+    const actorRounds = (await this.actorRoundRepository.findByRsql(rsql, 0, MAX_PAGE_SIZE)).content;
+    const changed = new Set<ActorRound>();
+    for (const check of FearUpkeep.suggestedChecks(actorRounds, tables.fallenThresholds, game.fearThresholdsAlerted)) {
+      check.actorRound.alerts.push(ActorRoundAlert.buildFearCheckSuggested(check.factionId, check.frightLevel, check.fallenShare));
+      game.markFearThresholds(check.factionId, check.keys);
+      changed.add(check.actorRound);
+    }
+    for (const check of FearUpkeep.revulsionChecks(actorRounds, tables)) {
+      check.actorRound.alerts.push(ActorRoundAlert.buildRevulsionRr(check.level));
+      changed.add(check.actorRound);
+    }
+    for (const actorRound of changed) {
       await this.actorRoundRepository.update(actorRound);
     }
   }

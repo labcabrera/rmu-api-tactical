@@ -8,7 +8,7 @@ import { ActorSheetService } from '../../../../actor-rounds/application/services
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { Game } from '../../../../games/domain/aggregates/game.js';
-import { ValidationError, NotFoundError } from '../../../../shared/domain/errors/errors.js';
+import { ConflictError, ValidationError, NotFoundError } from '../../../../shared/domain/errors/errors.js';
 import { Action } from '../../../domain/aggregates/action.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo.js';
@@ -21,6 +21,10 @@ import { type SkillCatalogPort, SKILL_CATALOG_PORT } from '../../ports/skill-cat
 import { CreateActionCommand } from '../commands/create-action.command.js';
 import { SpellCastingService } from '../../services/spell/spell-casting.service.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
+import { type HealingTablesPort, HEALING_TABLES_PORT } from '../../../../actor-rounds/application/ports/healing-tables.port.js';
+import { MedicalAbortService } from '../../../../actor-rounds/application/services/medical-abort.service.js';
+import type { ActionWarning } from '../../../domain/value-objects/action-medical.vo.js';
+import { MedicalActionService } from '../../services/medical/medical-action.service.js';
 
 /**
  * Declares an action (spec 011, §2): it records its AP in the ledger of the actor round and closes as `interrupted`
@@ -38,6 +42,9 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     @Inject(SKILL_CATALOG_PORT) private readonly skillCatalog: SkillCatalogPort,
     private readonly sheets: ActorSheetService,
     private readonly spellCasting: SpellCastingService,
+    @Inject(HEALING_TABLES_PORT) private readonly healingTables: HealingTablesPort,
+    private readonly medicalActions: MedicalActionService,
+    private readonly medicalAbort: MedicalAbortService,
   ) {}
 
   async execute(command: CreateActionCommand): Promise<Action> {
@@ -59,8 +66,14 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       currentPhase,
       roundActions,
     );
+    const warnings = this.declarationWarnings(command, actorRound, plan.interrupted);
+    if (!command.confirm && warnings.some(warning => warning.requiresConfirm)) {
+      throw new ConflictError('The declaration needs a confirmation: send it again with confirm: true', 'err-action-confirm-required', {
+        warnings,
+      });
+    }
     const { maneuver, apRange: maneuverRange } = await this.mapManeuver(command);
-    const apRange = maneuverRange ?? (await this.standUpRange(command, actorRound));
+    const apRange = maneuverRange ?? (await this.standUpRange(command, actorRound)) ?? (await this.useItemRange(command));
     const spell =
       command.actionType === 'cast_spell'
         ? await this.spellCasting.declare(actorRound, actorActions, command.spell!.listCode, command.spell!.spellId, command.freeAction)
@@ -80,13 +93,23 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       apRange,
     );
     action.spell = spell;
+    if (command.actionType === 'medical') {
+      action.medical = await this.medicalActions.declare(actorRound, command.medical, action.id);
+    }
+    if (command.actionType === 'use_item') {
+      action.useItem = await this.declareUseItem(command, actorRound);
+    }
     action.applyDeclaration(actorRound, plan, currentPhase);
+    // Workspace spec 068: interrupted medical actions abort their treatment; exertion reopens a completed pressure
+    const aborted = await this.medicalAbort.abort(plan.interrupted, { known: [actorRound] });
+    const reopened = Action.isExertion(command.actionType) ? actorRound.reopenWounds('exertion') : [];
+    action.warnings = warnings;
     if (command.forced) {
       this.logger.log(`Action ${action.id} of ${command.actorId} forced: ${command.forced.reason} ${command.forced.note ?? ''}`);
     }
 
     const saved = await this.actionRepository.save(action);
-    if (plan.spend || plan.interrupted.length > 0) {
+    if (plan.spend || plan.interrupted.length > 0 || aborted.length > 0 || reopened.length > 0) {
       await this.actorRoundRepository.update(actorRound);
     }
     for (const interrupted of plan.interrupted) {
@@ -98,7 +121,62 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     }
     action.commit();
     saved.refreshApState(actorRound, currentPhase);
+    saved.warnings = warnings;
     return saved;
+  }
+
+  /**
+   * Warnings of the declaration (workspace spec 068). Interrupting a medical action (decision 4) and exerting with a
+   * wound that reopens (decision 5) need `confirm: true`; an attack with a useless limb (decision 10) only warns.
+   */
+  private declarationWarnings(command: CreateActionCommand, actorRound: ActorRound, interrupted: Action[]): ActionWarning[] {
+    const warnings: ActionWarning[] = [];
+    interrupted
+      .filter(action => action.actionType === 'medical' && !!action.medical)
+      .forEach(action =>
+        warnings.push({
+          code: 'treatment-interrupted',
+          params: { actionId: action.id, procedure: action.medical!.procedure, patientActorId: action.medical!.patientActorId },
+          requiresConfirm: true,
+        }),
+      );
+    if (Action.isExertion(command.actionType)) {
+      actorRound
+        .exertionInjuries()
+        .forEach(injury => warnings.push({ code: 'exertion-reopens-wound', params: { injuryId: injury.id }, requiresConfirm: true }));
+    }
+    if (command.actionType === 'melee_attack' || command.actionType === 'ranged_attack') {
+      actorRound.unusableLimbInjuries().forEach(injury =>
+        warnings.push({
+          code: 'limb-unusable',
+          params: { injuryId: injury.id, ...(injury.location ? { location: injury.location } : {}) },
+          requiresConfirm: false,
+        }),
+      );
+    }
+    return warnings;
+  }
+
+  /** A `use_item` action takes core's AP of a healing item in combat (decision 7). */
+  private async useItemRange(command: CreateActionCommand): Promise<ManeuverActionPoints | null> {
+    if (command.actionType !== 'use_item') {
+      return null;
+    }
+    const ap = (await this.healingTables.combatRules()).combatItemAp;
+    return { min: ap, max: ap };
+  }
+
+  private async declareUseItem(command: CreateActionCommand, actorRound: ActorRound) {
+    const useItem = command.useItem;
+    if (!useItem?.itemId) {
+      throw new ValidationError('A use_item action needs its item', 'err-use-item-required');
+    }
+    const targetActorId = useItem.targetActorId || actorRound.actorId;
+    if (targetActorId !== actorRound.actorId) {
+      const target = await this.actorRoundRepository.findByActorIdAndRound(command.gameId, targetActorId, actorRound.round);
+      if (!target) throw new NotFoundError('Target actor', targetActorId, 'err-target-not-found');
+    }
+    return { itemId: useItem.itemId, targetActorId, roll: useItem.roll ?? null, result: null };
   }
 
   private async readGame(command: CreateActionCommand): Promise<Game> {

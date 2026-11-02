@@ -40,3 +40,22 @@ export interface ItemConsumed {
   itemId: string;
   amount: number;
 }
+
+/** A temporary modifier as a line of a breakdown: its key, value and rule (workspace spec 052). */
+export interface TemporaryModifierLine {
+  key: string;
+  value: number;
+  group: 'situation';
+  rule: string;
+}
+
+/** The lines the temporary modifiers of a kind add to a morale check or a fear RR. */
+export const temporaryModifierLines = (modifiers: TemporaryModifier[], kind: TemporaryModifierKind): TemporaryModifierLine[] =>
+  modifiers
+    .filter(modifier => modifier.kind === kind && modifier.value !== 0)
+    .map(modifier => ({
+      key: `temporary-${modifier.source}`,
+      value: modifier.value,
+      group: 'situation',
+      rule: TEMPORARY_MODIFIER_RULES[kind],
+    }));

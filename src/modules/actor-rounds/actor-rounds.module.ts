@@ -1,3 +1,7 @@
+import { HEALING_TABLES_PORT } from './application/ports/healing-tables.port.js';
+import { ApiHealingTablesAdapter } from './infrastructure/api-clients/api.healing-tables.adapter.js';
+import { MedicalAbortService } from './application/services/medical-abort.service.js';
+import { HerbUseService } from './application/services/herb-use.service.js';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
@@ -84,8 +88,14 @@ import { DeclareFightingStyleHandler } from './application/cqrs/handlers/declare
       provide: ACTOR_ROUND_NPC_MAPPER_PORT,
       useClass: ActorRoundNpcMapperAdapter,
     },
+    {
+      provide: HEALING_TABLES_PORT,
+      useClass: ApiHealingTablesAdapter,
+    },
     ActorSheetService,
+    MedicalAbortService,
+    HerbUseService,
   ],
-  exports: [ACTOR_ROUND_REPOSITORY, ActorSheetService],
+  exports: [ACTOR_ROUND_REPOSITORY, ActorSheetService, HEALING_TABLES_PORT, MedicalAbortService, HerbUseService],
 })
 export class ActorsRoundModule {}

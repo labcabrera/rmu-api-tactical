@@ -1,4 +1,5 @@
 import { Inject, Logger } from '@nestjs/common';
+import { temporaryModifierLines } from '../../../../actor-rounds/domain/value-objects/temporary-modifier.vo.js';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import {
   type ActorRoundRepository,
@@ -53,7 +54,11 @@ export class ResistanceRollHandler implements ICommandHandler<ResistanceRollComm
         roll: command.roll,
         bonus,
         attackLevel,
-        modifiers: command.modifiers,
+        // Workspace spec 068, decision 19: the lasting fear RR modifiers of the actor
+        modifiers: [
+          ...(command.modifiers ?? []),
+          ...(command.kind === 'fear' ? temporaryModifierLines(actorRound.temporaryModifiers, 'fear-rr') : []),
+        ],
         penalty: frenzyDying ? undefined : actorRound.getPenaltySum(),
       },
       tables,

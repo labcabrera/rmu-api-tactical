@@ -14,6 +14,10 @@ export interface FearCheckRequest extends GroupCheckRequest {
   /** Attack level of the fear RRs: a level of Table 14-3a, or the Intimidation ranks of `intimidatorActorId`. */
   frightLevel?: number;
   intimidatorActorId?: string;
+  /** Workspace spec 068: the actor (an NPC) whose fright level is the attack level when `frightLevel` is missing. */
+  frightSourceActorId?: string;
+  /** Added to the fright level of `frightSourceActorId`: +3 or +5 for the supernatural (decision 17). */
+  frightLevelModifier?: number;
   /** Intimidation ranks of an intimidating NPC. */
   intimidationRanks?: number;
   /** Open-ended roll of each actor by actor id; rolled by the server when missing. */

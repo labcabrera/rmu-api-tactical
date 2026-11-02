@@ -65,7 +65,13 @@ const setup = (phase: GamePhase, actorRounds: ActorRound[], actions: Action[]) =
     findByRsql: vi.fn(() => Promise.resolve(new Page(actions, 0, 1000, actions.length))),
   } as unknown as ActionRepository;
   const eventBus = { publish: vi.fn() } as unknown as DomainEventPublisher;
-  const handler = new StartPhaseHandler(gameRepository, actorRoundRepository, actionRepository, eventBus);
+  const handler = new StartPhaseHandler(
+    gameRepository,
+    actorRoundRepository,
+    actionRepository,
+    eventBus,
+    new MedicalAbortService(actorRoundRepository),
+  );
   return { run: () => handler.execute(new StartPhaseCommand('game-1', 'user-1', [])), update };
 };
 
@@ -73,6 +79,8 @@ const actorRound = (actorId: string) => {
   const round = load({});
   return ActorRound.fromProps({ ...round.getProps(), actorId });
 };
+
+import { MedicalAbortService } from '../../../src/modules/actor-rounds/application/services/medical-abort.service.js';
 
 describe('Action AP per phase (spec 007, §10)', () => {
   it('spends 1 AP in each phase an action spans, also while it is in progress', () => {

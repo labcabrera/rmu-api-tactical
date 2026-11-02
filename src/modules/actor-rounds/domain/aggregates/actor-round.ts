@@ -2213,6 +2213,17 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     return true;
   }
 
+  /** Removes the AP an action took in one phase (an interrupted medical action, workspace spec 068). */
+  releaseActionPhase(actionId: string, phase: number): boolean {
+    const before = this.apLedger.length;
+    this.apLedger = this.apLedger.filter(entry => entry.actionId !== actionId || entry.phase !== phase);
+    if (this.apLedger.length === before) {
+      return false;
+    }
+    this.refreshActionPoints();
+    return true;
+  }
+
   /**
    * Fills the ledger from the actions of the round, as AP were counted before it existed: 1 AP per phase an action
    * spans (an action still open spans up to `upToPhase`), whatever the number of actions, and an `instant` 0 AP entry

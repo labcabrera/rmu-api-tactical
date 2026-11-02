@@ -118,7 +118,13 @@ const world = (initial: Game, actorRounds: ActorRound[], actions: Action[], open
     Promise.resolve({ id: 'strategic-1', owner: 'user-1', options: openRounds === undefined ? null : { openRounds } }),
   );
   const strategicGameClient = { findById: strategicFindById } as unknown as StrategicGamePort;
-  const startPhase = new StartPhaseHandler(gameRepository, actorRoundRepository, actionRepository, eventBus);
+  const startPhase = new StartPhaseHandler(
+    gameRepository,
+    actorRoundRepository,
+    actionRepository,
+    eventBus,
+    new MedicalAbortService(actorRoundRepository),
+  );
   const startRound = new StartRoundHandler(
     gameRepository,
     eventBus,
@@ -126,6 +132,8 @@ const world = (initial: Game, actorRounds: ActorRound[], actions: Action[], open
     actorRoundRepository,
     actionRepository,
     strategicGameClient,
+    new MedicalAbortService(actorRoundRepository),
+    { find: vi.fn(() => Promise.reject(new Error('No psychology tables'))) },
   );
   return {
     nextPhase: () => startPhase.execute(new StartPhaseCommand('game-1', 'user-1', [])),
@@ -141,6 +149,8 @@ const world = (initial: Game, actorRounds: ActorRound[], actions: Action[], open
 };
 
 const ledger = (actorRound: ActorRound, actionId: string) => actorRound.ledgerOf(actionId).map(entry => ({ ...entry }));
+
+import { MedicalAbortService } from '../../../src/modules/actor-rounds/application/services/medical-abort.service.js';
 
 describe('StartPhaseHandler: carrying open actions (spec 011, §5)', () => {
   it('gives 1 AP of the new phase to an open action automatically (criterion 5)', async () => {
