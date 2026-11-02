@@ -8,5 +8,7 @@ export class ResolveMovementCommand {
     public readonly description: string | null,
     public readonly userId: string,
     public readonly roles: string[],
+    /** Workspace spec 068: go on despite the warnings that need a confirmation. */
+    public readonly confirm = false,
   ) {}
 }

@@ -121,12 +121,21 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     if (alert) {
       context.actorRound.alerts.push(alert);
     }
-    if (alert || frenzyChanged) {
+    // Workspace spec 068, decision 5: a failed maneuver reopens the stitches of the actor
+    const reopened = ResolveManeuverHandler.failed(action) ? context.actorRound.reopenWounds('failed-roll') : [];
+    if (alert || frenzyChanged || reopened.length > 0) {
       await this.actorRoundRepository.update(context.actorRound);
     }
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     updated.refreshApState(context.actorRound, currentPhase);
     return updated;
+  }
+
+  /** A failure or absolute failure of an absolute maneuver, or a critical of a percent one (workspace spec 068). */
+  static failed(action: Action): boolean {
+    const result = action.maneuver?.result;
+    if (!result) return false;
+    return result.result === 'failure' || result.result === 'absolute-failure' || !!result.critical;
   }
 
   private validate(command: ResolveManeuverCommand, action: Action): void {

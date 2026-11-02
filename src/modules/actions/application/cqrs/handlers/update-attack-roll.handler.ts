@@ -45,6 +45,7 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     if (!sourceActor) throw new NotFoundError('ActorRound', action.actorId);
 
     const previousBreakage = !!attack.calculated?.breakageRoll;
+    const previousFumble = !!attack.results?.fumble;
     await this.combatAttackRollResolver.resolve({
       action,
       attack,
@@ -56,8 +57,16 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     });
 
     // Raised when the roll is resolved; a repeated roll does not raise it again.
+    let sourceChanged = false;
     if (attack.calculated?.breakageRoll && !previousBreakage) {
       sourceActor.addAttackBreakageAlert(attack.attackName);
+      sourceChanged = true;
+    }
+    // Workspace spec 068, decision 5: a fumble is a failed roll, and it reopens the stitches of the attacker
+    if (attack.results?.fumble && !previousFumble && sourceActor.reopenWounds('failed-roll').length > 0) {
+      sourceChanged = true;
+    }
+    if (sourceChanged) {
       await this.actorRoundRepository.update(sourceActor);
     }
 
