@@ -116,6 +116,11 @@ export class ActorRoundEffect {
     public source?: InjurySource,
     /** First round the effect counts in (a delayed effect, spec 034): before it, it neither applies nor loses rounds. */
     public fromRound?: number,
+    /**
+     * Workspace spec 068, decision 6: a dying effect whose cause (the injury of the same action or critical) was
+     * treated; the next successful stabilization removes it.
+     */
+    public causeTreated?: boolean,
   ) {}
 
   /** The effect is delayed and has not started by `round`. */

@@ -21,6 +21,7 @@ import {
   DISARMED,
   DISTRACTION,
   DYING,
+  FEAR_BROKEN,
   FEAR_EFFECTS,
   FEAR_NO_ATTACK_EFFECTS,
   FLATFOOTED,
@@ -60,7 +61,13 @@ import { ApLedgerEntry, type ApLedgerKind } from '../value-objects/ap-ledger-ent
 import { ApModifier, type ApModifierSource } from '../value-objects/ap-modifier.vo.js';
 import type { HpChange, HpLogEntry } from '../value-objects/hp-log-entry.vo.js';
 import { ACTION_PHASES, ActionPointCapacity } from '../services/action-point-capacity.js';
-import { InjuryTreatmentRules, type MedicalOutcome, type TacticalProcedure, type TreatmentEffect } from '../services/injury-treatment.js';
+import {
+  InjuryTreatmentRules,
+  type MedicalOutcome,
+  type TacticalProcedure,
+  type TreatmentApplyOptions,
+  type TreatmentEffect,
+} from '../services/injury-treatment.js';
 import {
   buildInjury,
   deriveInjurySeverity,
@@ -69,8 +76,12 @@ import {
   type InjuryTreatment,
   isBleeding,
   isPenalizing,
+  type Pace,
+  PACES,
   toBodyLocation,
+  type TreatmentInProgress,
 } from '../value-objects/injury.vo.js';
+import type { ItemConsumed, TemporaryModifier, TemporaryModifierKind } from '../value-objects/temporary-modifier.vo.js';
 import type { ActorRoundProps, ActorRoundSnapshot } from './actor-round-props.js';
 import { PoisonStages, type Random } from '../services/poison-stages.js';
 import type {
@@ -201,6 +212,9 @@ export interface PoisonRrResult {
 /** Initiative bonus of an actor with Strike Reflex when the game master declares it. */
 const STRIKE_REFLEX_BONUS = 20;
 
+/** A held pressure: only a success stops the bleeding (workspace spec 068). */
+const isPressureHeldResult = (result: string): boolean => result === 'success' || result === 'absolute-success';
+
 /** Stun relief of a herb that removes every stun (workspace spec 062). */
 export const ALL_STUN_ROUNDS = 999;
 
@@ -289,6 +303,15 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
 
   /** Poisons waiting for their RR (workspace spec 042, decision 9). */
   public poisonExposures: PoisonExposure[] = [];
+
+  /** Strategic items spent in the game (workspace spec 068, decision 7), copied from round to round. */
+  public itemsConsumed: ItemConsumed[] = [];
+
+  /** Lasting morale and fear RR modifiers (workspace spec 068, decision 19), copied from round to round. */
+  public temporaryModifiers: TemporaryModifier[] = [];
+
+  /** Fright level of an NPC from its stat block (workspace spec 068, decision 17); null for characters. */
+  public frightLevel: number | null = null;
 
   static create(
     gameId: string,
@@ -425,6 +448,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.resistances = (props.resistances ?? []).map(resistance => ({ ...resistance }));
     actorRound.fightingStyles = (props.fightingStyles ?? []).map(style => ActorRound.copyStyle(style));
     actorRound.activeStyle = props.activeStyle ? ActorRound.copyActiveStyle(props.activeStyle) : null;
+    actorRound.itemsConsumed = (props.itemsConsumed ?? []).map(each => ({ ...each }));
+    actorRound.temporaryModifiers = (props.temporaryModifiers ?? []).map(each => ({ ...each }));
+    actorRound.frightLevel = props.frightLevel ?? null;
     actorRound.normalizeLegacy();
     // Derived: recomputed so that values stored with the penalties folded in are corrected.
     actorRound.calculateCurrentBo();
@@ -498,6 +524,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.fightingStyles = previous.fightingStyles.map(style => ActorRound.copyStyle(style));
     // The style is kept until the player changes it; the optional abilities are declared each round.
     actorRound.activeStyle = previous.activeStyle ? { ...ActorRound.copyActiveStyle(previous.activeStyle), options: [] } : null;
+    actorRound.itemsConsumed = previous.itemsConsumed.map(each => ({ ...each }));
+    actorRound.temporaryModifiers = previous.temporaryModifiers.map(each => ({ ...each }));
+    actorRound.frightLevel = previous.frightLevel;
     actorRound.applyItemConditions();
     actorRound.calculateCurrentBo();
     actorRound.applyPenalties();
@@ -735,6 +764,10 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   private static copyInjury(injury: Injury): Injury {
     const copy: Injury = { ...injury, treatments: [...(injury.treatments ?? [])] };
     if (injury.poison) copy.poison = structuredClone(injury.poison);
+    if (injury.limits) copy.limits = { ...injury.limits };
+    if (injury.tourniquet) copy.tourniquet = { ...injury.tourniquet };
+    if (injury.treatmentInProgress) copy.treatmentInProgress = structuredClone(injury.treatmentInProgress);
+    if (injury.flags) copy.flags = [...injury.flags];
     return copy;
   }
 
@@ -967,18 +1000,20 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   /**
    * A medical procedure on one of the actor's injuries, already resolved with the medical maneuver table. The
    * treatment is kept in the injury. The heat critical and hits of a cauterization are left to the caller (see
-   * `addHeatCriticalAlert`).
+   * `addHeatCriticalAlert`). Workspace spec 068: a completed pressure reopens with exertion and stitches with a failed
+   * roll, a tourniquet starts its count, and a success on the cause of a dying effect marks it `causeTreated`.
    */
   treatInjury(
     injuryId: string,
     procedure: TacticalProcedure,
     outcome: MedicalOutcome,
     treatment: Omit<InjuryTreatment, 'id' | 'procedure' | 'result' | 'healingType' | 'recoveryModifier' | 'at' | 'context'>,
-    unmodifiedRoll?: number,
+    options: TreatmentApplyOptions = {},
   ): { injury: Injury; effect: TreatmentEffect; treatment: InjuryTreatment } {
     const injury = this.findInjury(injuryId);
-    InjuryTreatmentRules.validate(procedure, injury);
-    const effect = InjuryTreatmentRules.apply(procedure, injury, outcome, unmodifiedRoll);
+    InjuryTreatmentRules.validate(procedure, injury, options.rules);
+    const bleedingBefore = Math.max(0, injury.bleeding ?? 0);
+    const effect = InjuryTreatmentRules.apply(procedure, injury, outcome, options);
     const record: InjuryTreatment = {
       ...treatment,
       id: randomUUID(),
@@ -990,10 +1025,256 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       context: 'tactical',
       tacticalGameId: this.gameId,
     };
+    if (procedure === 'cast' && options.castSupport) record.castSupport = options.castSupport;
+    if (procedure === 'salve' && typeof options.salveModifier === 'number') record.salveModifier = options.salveModifier;
     injury.treatments.push(record);
     injury.updatedAt = record.at;
+    if (InjuryTreatmentRules.isSuccess(outcome.result)) {
+      this.afterSuccessfulTreatment(injury, procedure, bleedingBefore);
+    }
     this.applyPenalties();
     return { injury, effect, treatment: record };
+  }
+
+  /** What a successful treatment leaves for the rest of the game (workspace spec 068, decisions 5 and 6). */
+  private afterSuccessfulTreatment(injury: Injury, procedure: TacticalProcedure, bleedingBefore: number): void {
+    if (bleedingBefore > 0 && (procedure === 'pressure' || procedure === 'stitches')) {
+      injury.reopenOn = procedure === 'pressure' ? 'exertion' : 'failed-roll';
+      injury.reopenBleeding = bleedingBefore;
+    }
+    if (procedure === 'tourniquet' && bleedingBefore > 0) {
+      injury.tourniquet = { tightSince: this.round, loosenedAt: null, bleeding: bleedingBefore };
+    }
+    this.markCauseTreated(injury);
+  }
+
+  /** The dying effects caused by the action or critical of the injury get `causeTreated` (decision 6). */
+  markCauseTreated(injury: Injury): ActorRoundEffect[] {
+    const source = injury.source;
+    const dying = this.effects.filter(
+      effect =>
+        effect.status === DYING &&
+        !!effect.source &&
+        ((!!source?.actionId && effect.source.actionId === source.actionId) ||
+          (!!source?.criticalKey && effect.source.criticalKey === source.criticalKey)),
+    );
+    dying.forEach(effect => (effect.causeTreated = true));
+    return dying;
+  }
+
+  // --- Treatments in combat (workspace spec 068, §2) ---
+
+  /** The injury a treatment of the action (its first one) is in progress on. */
+  treatmentOf(actionId: string): Injury | undefined {
+    return this.injuries.find(injury => injury.treatmentInProgress?.actionId === actionId);
+  }
+
+  /** The Medicine roll of a `medical` action is made: the treatment is in progress on the injury. */
+  startTreatment(injuryId: string, progress: TreatmentInProgress): Injury {
+    const injury = this.findInjury(injuryId);
+    if (injury.treatmentInProgress && injury.treatmentInProgress.actionId !== progress.actionId) {
+      throw new ValidationError(`Injury ${injuryId} is already being treated`, 'err-treatment-in-progress');
+    }
+    injury.treatmentInProgress = { ...progress, bleeding: Math.max(0, injury.bleeding ?? 0) };
+    if (progress.procedure === 'pressure' && isPressureHeldResult(progress.result) && (injury.bleeding ?? 0) > 0) {
+      injury.bleedingControl = 'pressure';
+    }
+    injury.updatedAt = new Date().toISOString();
+    return injury;
+  }
+
+  /**
+   * Completes the treatment in progress of the action with the roll made when it started (decision 3): it is applied
+   * as any treatment. `note` marks one completed after the combat (decision 4). Undefined when there is none.
+   */
+  completeTreatment(
+    actionId: string,
+    options: TreatmentApplyOptions & { note?: string } = {},
+  ): { injury: Injury; effect: TreatmentEffect; treatment: InjuryTreatment } | undefined {
+    const injury = this.treatmentOf(actionId);
+    if (!injury) return undefined;
+    const progress = injury.treatmentInProgress!;
+    injury.treatmentInProgress = null;
+    if (progress.procedure === 'pressure' && injury.bleedingControl === 'pressure') {
+      injury.bleedingControl = undefined;
+    }
+    const outcome: MedicalOutcome = {
+      result: progress.result,
+      recoveryModifier: progress.recoveryModifier ?? 0,
+      injuryPenalty: progress.injuryPenalty ?? 0,
+    };
+    const done = this.treatInjury(
+      injury.id,
+      progress.procedure as TacticalProcedure,
+      outcome,
+      {
+        healer: progress.healer ?? { actorId: progress.healerActorId, name: progress.healerActorId, bonus: 0 },
+        difficulty: progress.difficulty ?? 0,
+        roll: progress.roll,
+        total: progress.total,
+        ...(options.note ? { note: options.note } : {}),
+      },
+      {
+        ...options,
+        total: options.total ?? progress.total,
+        unmodifiedRoll: options.unmodifiedRoll ?? progress.unmodifiedRoll,
+        castSupport: options.castSupport ?? progress.castSupport,
+        salveModifier: options.salveModifier ?? progress.salveModifier,
+      },
+    );
+    return done;
+  }
+
+  /**
+   * The treatment of the action is interrupted (decision 4): pressure let go bleeds again as before (alert
+   * `wound-reopened`); any other procedure loses its progress. Answers the injury, or undefined when there was none.
+   */
+  abortTreatment(actionId: string): Injury | undefined {
+    const injury = this.treatmentOf(actionId);
+    if (!injury) return undefined;
+    const progress = injury.treatmentInProgress!;
+    injury.treatmentInProgress = null;
+    injury.updatedAt = new Date().toISOString();
+    if (progress.procedure === 'pressure' && injury.bleedingControl === 'pressure') {
+      injury.bleedingControl = undefined;
+      if ((injury.bleeding ?? 0) > 0) {
+        this.alerts.push(ActorRoundAlert.buildWoundReopened(injury.id, 'pressure-released', injury.bleeding ?? 0));
+      }
+    }
+    return injury;
+  }
+
+  /** Injuries that reopen when the actor exerts itself (a completed pressure, decision 5). */
+  exertionInjuries(): Injury[] {
+    return this.injuries.filter(injury => injury.reopenOn === 'exertion' && injury.status !== 'healed');
+  }
+
+  /**
+   * A treated wound opens again (decision 5): its bleeding comes back, the reopening condition and the control go, and
+   * an alert `wound-reopened` says why. Answers whether it reopened.
+   */
+  reopenWound(injuryId: string, reason: 'exertion' | 'failed-roll'): boolean {
+    const injury = this.findInjury(injuryId);
+    if (!injury.reopenOn || injury.status === 'healed') return false;
+    const bleeding = Math.max(injury.bleeding ?? 0, injury.reopenBleeding ?? 1);
+    injury.bleeding = bleeding;
+    injury.bleedingControl = undefined;
+    injury.reopenOn = null;
+    injury.reopenBleeding = null;
+    injury.updatedAt = new Date().toISOString();
+    this.alerts.push(ActorRoundAlert.buildWoundReopened(injury.id, reason, bleeding));
+    return true;
+  }
+
+  /** Reopens every wound of the actor that reopens with `reason`; answers the injuries reopened. */
+  reopenWounds(reason: 'exertion' | 'failed-roll'): string[] {
+    const reopened = this.injuries
+      .filter(injury => injury.reopenOn === reason && injury.status !== 'healed')
+      .filter(injury => this.reopenWound(injury.id, reason))
+      .map(injury => injury.id);
+    return reopened;
+  }
+
+  /** The slowest pace the injuries of the actor allow (a splinted or cast leg, decision 10); undefined: no limit. */
+  injuryPaceLimit(): Pace | undefined {
+    const limits = this.injuries
+      .filter(injury => isPenalizing(injury) && !!injury.limits?.pace)
+      .map(injury => PACES.indexOf(injury.limits!.pace!))
+      .filter(index => index >= 0);
+    return limits.length > 0 ? PACES[Math.min(...limits)] : undefined;
+  }
+
+  /** Injuries that leave a limb useless (a splinted arm, decision 10). */
+  unusableLimbInjuries(): Injury[] {
+    return this.injuries.filter(injury => isPenalizing(injury) && !!injury.limits?.limbUnusable);
+  }
+
+  /**
+   * `POST injuries/:injuryId/tourniquet/loosen` (decision 5, 0 AP): the wound bleeds what the tourniquet stopped this
+   * round, and the tourniquet is tight again from the next one. Its alerts are resolved.
+   */
+  loosenTourniquet(injuryId: string, phase?: number): Injury {
+    const injury = this.findInjury(injuryId);
+    if (!injury.tourniquet) {
+      throw new ValidationError(`Injury ${injuryId} has no tourniquet`, 'err-injury-no-tourniquet');
+    }
+    const bleeding = Math.max(0, injury.tourniquet.bleeding ?? 0);
+    if (bleeding > 0) {
+      this.hp.current -= bleeding;
+      this.logHp({ kind: 'bleeding', amount: -bleeding, phase, injuryId });
+      this.checkHitsState();
+    }
+    injury.tourniquet = { ...injury.tourniquet, tightSince: this.round + 1, loosenedAt: this.round };
+    injury.updatedAt = new Date().toISOString();
+    this.alerts
+      .filter(alert => alert.type === 'tourniquet-loosen' && alert.status === 'pending' && ActorRound.alertInjury(alert) === injuryId)
+      .forEach(alert => (alert.status = 'resolved'));
+    this.applyPenalties();
+    this.refreshActionPoints();
+    return injury;
+  }
+
+  private static alertInjury(alert: ActorRoundAlert): string | null | undefined {
+    return alert.modifiers?.find(modifier => modifier.key === 'injuryId')?.modifier;
+  }
+
+  /**
+   * The tourniquets in the upkeep (decision 5): `loosenEveryRounds` rounds after it was tightened, an alert to loosen
+   * it; `graceRounds` more without loosening it, the flag `limb-loss` and an alert for the game master (once each).
+   */
+  private checkTourniquets(rules: { loosenEveryRounds: number; graceRounds: number }): void {
+    for (const injury of this.injuries.filter(each => !!each.tourniquet && each.status !== 'healed')) {
+      const elapsed = this.round - injury.tourniquet!.tightSince + 1;
+      const alerted = (type: string) => this.alerts.some(alert => alert.type === type && ActorRound.alertInjury(alert) === injury.id);
+      const pendingLoosen = this.alerts.some(
+        alert => alert.type === 'tourniquet-loosen' && alert.status === 'pending' && ActorRound.alertInjury(alert) === injury.id,
+      );
+      if (elapsed >= rules.loosenEveryRounds && !pendingLoosen) {
+        this.alerts.push(ActorRoundAlert.buildTourniquet('tourniquet-loosen', injury.id, elapsed));
+      }
+      if (elapsed >= rules.loosenEveryRounds + rules.graceRounds && !alerted('limb-loss')) {
+        injury.flags = [...new Set([...(injury.flags ?? []), 'limb-loss' as const])];
+        injury.updatedAt = new Date().toISOString();
+        this.alerts.push(ActorRoundAlert.buildTourniquet('limb-loss', injury.id, elapsed));
+      }
+    }
+  }
+
+  // --- Items consumed and temporary modifiers (workspace spec 068, decisions 7 and 19) ---
+
+  /** One more unit of a strategic item spent in the game. */
+  recordItemConsumed(itemId: string, amount = 1): void {
+    const existing = this.itemsConsumed.find(each => each.itemId === itemId);
+    if (existing) {
+      existing.amount += amount;
+    } else {
+      this.itemsConsumed.push({ itemId, amount });
+    }
+  }
+
+  addTemporaryModifier(modifier: TemporaryModifier): TemporaryModifier {
+    this.temporaryModifiers.push({ ...modifier });
+    return modifier;
+  }
+
+  removeTemporaryModifier(modifierId: string): void {
+    if (!this.temporaryModifiers.some(each => each.id === modifierId)) {
+      throw new NotFoundError('Temporary modifier', modifierId, 'err-temporary-modifier-not-found');
+    }
+    this.temporaryModifiers = this.temporaryModifiers.filter(each => each.id !== modifierId);
+  }
+
+  /** The temporary modifiers of a kind (they last until removed or until strategic expires them). */
+  temporaryModifiersOf(kind: TemporaryModifierKind): TemporaryModifier[] {
+    return this.temporaryModifiers.filter(each => each.kind === kind);
+  }
+
+  /** Raises the hits (current and maximum of this game), as the unusual event of a rally (decision 19). */
+  raiseHits(hits: number): void {
+    if (!(hits > 0)) return;
+    this.hp = new ActorRoundHP(this.hp.max + hits, this.hp.current + hits, this.hp.deathThreshold);
+    this.logHp({ kind: 'manual', amount: hits });
+    this.applyPenalties();
   }
 
   /** The heat critical of a cauterization for the game master to resolve, on the location of the injury (Table 13-1c). */
@@ -1006,17 +1287,30 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     return alert;
   }
 
-  /** A dying actor stabilized (spec 013, §3): the dying effect gains the rounds of the result. */
+  /**
+   * A dying actor stabilized (spec 013, §3): the dying effect gains the rounds of the result. Workspace spec 068,
+   * decision 6: once its cause is treated, a success removes the effect. Answers the effect and whether it ended.
+   */
   stabilize(effectId: string, rounds: number): ActorRoundEffect {
+    const effect = this.findDying(effectId);
+    if (rounds > 0 && effect.causeTreated) {
+      this.effects = this.effects.filter(each => each !== effect);
+      this.refreshActionPoints();
+      return effect;
+    }
+    if (rounds > 0) {
+      effect.rounds = (effect.rounds ?? 0) + rounds;
+    }
+    return effect;
+  }
+
+  findDying(effectId: string): ActorRoundEffect {
     const effect = this.effects.find(each => each.id === effectId);
     if (!effect) {
       throw new NotFoundError('Effect', effectId, 'err-effect-not-found');
     }
     if (effect.status !== DYING) {
       throw new ValidationError(`Effect ${effectId} is not a dying effect`, 'err-effect-not-dying');
-    }
-    if (rounds > 0) {
-      effect.rounds = (effect.rounds ?? 0) + rounds;
     }
     return effect;
   }
@@ -1320,9 +1614,11 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    * §8.3 Upkeep Phase: bleeding, then the effects' durations. An unconscious actor stays unconscious: it only dies
    * when bleeding takes it beyond its death threshold or a dying effect runs out.
    */
-  applyUpkeep() {
+  applyUpkeep(options: { tourniquet?: { loosenEveryRounds: number; graceRounds: number } } = {}) {
     // Workspace spec 042: the poisonings advance one round before the bleeding.
     this.advancePoisonings(UPKEEP_PHASE);
+    // Workspace spec 068, decision 5
+    if (options.tourniquet) this.checkTourniquets(options.tourniquet);
     const bleeding = this.getBleeding();
     if (this.effects.length === 0 && bleeding === 0) {
       this.applyPenalties();
@@ -1428,10 +1724,15 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     this.applyFatiguePenalty();
   }
 
-  /** Spec 013, §3: the penalties of the injuries that still penalize, in full (no location rule). */
+  /**
+   * Spec 013, §3: the penalties of the injuries that still penalize, in full (no location rule). Workspace spec 068,
+   * decision 10: a cast injury counts its `maneuverPenaltyFactor` (half) of it in the game.
+   */
   private applyInjuryPenalty() {
     this.penalty.modifiers = this.penalty.modifiers.filter(m => m.source !== 'injury');
-    const value = (this.injuries ?? []).filter(isPenalizing).reduce((sum, injury) => sum + Math.min(0, injury.penalty || 0), 0);
+    const value = (this.injuries ?? [])
+      .filter(isPenalizing)
+      .reduce((sum, injury) => sum + Math.trunc(Math.min(0, injury.penalty || 0) * (injury.limits?.maneuverPenaltyFactor ?? 1)), 0);
     if (value !== 0) {
       this.penalty.addModifier('injury', value);
     }
@@ -1703,6 +2004,30 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   /** The fear effect of the actor (one at most), undefined when it is not afraid. */
   fearEffect(): ActorRoundEffect | undefined {
     return this.effects.find(effect => FEAR_EFFECTS.includes(effect.status));
+  }
+
+  /** Healers must be able (workspace spec 068, decision 1): not incapacitated, stunned, routed nor broken. */
+  canHeal(): boolean {
+    return !this.isIncapacitated() && !this.hasEffect('stunned') && !this.isFearBlockingAttacks();
+  }
+
+  /**
+   * `POST drop-items` (workspace spec 068, decision 14): a broken actor drops what it holds in its hands. The items stay
+   * in its inventory (the strategic sheet is not changed), but out of its hands for the rest of the game. Answers the
+   * items dropped.
+   */
+  dropHeldItems(): ActorRoundItem[] {
+    if (!this.hasEffect(FEAR_BROKEN)) {
+      throw new ValidationError('Only a broken actor drops its equipment', 'err-action-fear', { state: this.fearEffect()?.status ?? null });
+    }
+    const held = (this.items ?? []).filter(item => item.slot === 'mainHand' || item.slot === 'offHand');
+    held.forEach(item => {
+      delete item.slot;
+      item.kind = 'other';
+      item.dropped = true;
+    });
+    if (held.length > 0) this.applyItemConditions();
+    return held;
   }
 
   /** Routed or broken: the actor cannot declare an attack. */
@@ -2297,6 +2622,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       resistances: this.resistances,
       fightingStyles: this.fightingStyles,
       activeStyle: this.activeStyle,
+      itemsConsumed: this.itemsConsumed,
+      temporaryModifiers: this.temporaryModifiers,
+      frightLevel: this.frightLevel,
       imageUrl: this.imageUrl,
       owner: this.owner,
       createdAt: this.createdAt,

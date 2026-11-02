@@ -60,6 +60,41 @@ export class ActorRoundAlert {
     ]);
   }
 
+  /** Workspace spec 068: a treated wound bleeds again (pressure let go, exertion, a failed roll). */
+  static buildWoundReopened(injuryId: string, reason: string, bleeding: number): ActorRoundAlert {
+    return new ActorRoundAlert(randomUUID(), 'wound-reopened', `The wound reopened (${reason})`, [
+      new ActorRoundAlertModifier('injuryId', null, injuryId),
+      new ActorRoundAlertModifier('reason', null, reason),
+      new ActorRoundAlertModifier('bleeding', bleeding, null),
+    ]);
+  }
+
+  /** Workspace spec 068, decision 5: the tourniquet has to be loosened, or the limb is lost. */
+  static buildTourniquet(type: 'tourniquet-loosen' | 'limb-loss', injuryId: string, rounds: number): ActorRoundAlert {
+    const message = type === 'limb-loss' ? 'The tourniquet was not loosened: the limb may be lost' : 'Loosen the tourniquet';
+    return new ActorRoundAlert(randomUUID(), type, message, [
+      new ActorRoundAlertModifier('injuryId', null, injuryId),
+      new ActorRoundAlertModifier('rounds', rounds, null),
+    ]);
+  }
+
+  /** Workspace spec 068, decision 16: a fear check is suggested to a faction; it is not rolled by itself. */
+  static buildFearCheckSuggested(factionId: string, frightLevel: number, fallenShare: number): ActorRoundAlert {
+    return new ActorRoundAlert(randomUUID(), 'fear-check-suggested', 'Fear check suggested', [
+      new ActorRoundAlertModifier('factionId', null, factionId),
+      new ActorRoundAlertModifier('frightLevel', frightLevel, null),
+      new ActorRoundAlertModifier('fallenShare', fallenShare, null),
+    ]);
+  }
+
+  /** Workspace spec 068, decision 18: the fear RR of an actor with Revulsion that sees blood. */
+  static buildRevulsionRr(level: number): ActorRoundAlert {
+    return new ActorRoundAlert(randomUUID(), 'revulsion-rr', 'Fear RR of Revulsion', [
+      new ActorRoundAlertModifier('resistance', null, 'fear'),
+      new ActorRoundAlertModifier('level', level, null),
+    ]);
+  }
+
   getModifierValue(key: string): number | undefined {
     return this.modifiers?.find(modifier => modifier.key === key)?.value ?? undefined;
   }

@@ -1,3 +1,4 @@
+import type { ItemConsumed, TemporaryModifier } from '../../../domain/value-objects/temporary-modifier.vo.js';
 import type { ActorRoundItem } from '../../../domain/value-objects/actor-round-item.vo.js';
 import type { ActorRoundActiveStyle, ActorRoundFightingStyle } from '../../../domain/value-objects/actor-round-fighting-style.vo.js';
 import type { ActorRoundResistance } from '../../../domain/value-objects/actor-round-resistance.vo.js';
@@ -150,6 +151,16 @@ export class ActorRoundModel {
 
   @Prop({ type: Object, required: false, default: null })
   activeStyle?: ActorRoundActiveStyle | null;
+
+  /** Workspace spec 068: items spent in the game, the lasting modifiers and the fright level of an NPC. */
+  @Prop({ type: [Object], required: false, default: [] })
+  itemsConsumed?: ItemConsumed[];
+
+  @Prop({ type: [Object], required: false, default: [] })
+  temporaryModifiers?: TemporaryModifier[];
+
+  @Prop({ type: Number, required: false })
+  frightLevel?: number | null;
 
   @Prop({ type: ActorRoundSnapshot, required: false })
   snapshot?: ActorRoundSnapshot;

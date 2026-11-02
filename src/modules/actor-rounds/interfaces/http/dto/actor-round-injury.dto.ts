@@ -7,7 +7,11 @@ import type {
   BodySide,
   Injury,
   InjuryFlag,
+  InjuryLimits,
   InjuryRecovery,
+  InjuryReopenOn,
+  InjuryTourniquet,
+  TreatmentInProgress,
   InjurySeverity,
   InjurySource,
   InjuryStatus,
@@ -76,6 +80,26 @@ export class InjuryDto {
 
   @ApiProperty({ required: false })
   healedAt?: string;
+
+  @ApiProperty({
+    type: Object,
+    required: false,
+    nullable: true,
+    description: 'Spec 068: limits of a splint or cast, `{pace?, limbUnusable?, maneuverPenaltyFactor?}`',
+  })
+  limits?: InjuryLimits | null;
+
+  @ApiProperty({ type: String, enum: ['exertion', 'failed-roll'], required: false, nullable: true, description: 'Spec 068' })
+  reopenOn?: InjuryReopenOn | null;
+
+  @ApiProperty({ type: Number, required: false, nullable: true, description: 'Spec 068: bleeding it takes again when it reopens' })
+  reopenBleeding?: number | null;
+
+  @ApiProperty({ type: Object, required: false, nullable: true, description: 'Spec 068: `{tightSince, loosenedAt, bleeding}` (rounds)' })
+  tourniquet?: InjuryTourniquet | null;
+
+  @ApiProperty({ type: Object, required: false, nullable: true, description: 'Spec 068: the treatment of a medical action in progress' })
+  treatmentInProgress?: TreatmentInProgress | null;
 
   static fromEntity(entity: Injury): InjuryDto {
     const dto = Object.assign(new InjuryDto(), entity, { treatments: [...(entity.treatments || [])] });

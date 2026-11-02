@@ -19,6 +19,7 @@ import type { Injury } from '../value-objects/injury.vo.js';
 import type { PoisonExposure } from '../value-objects/poison.vo.js';
 import type { ActorRoundItem } from '../value-objects/actor-round-item.vo.js';
 import type { ActorRoundActiveStyle, ActorRoundFightingStyle } from '../value-objects/actor-round-fighting-style.vo.js';
+import type { ItemConsumed, TemporaryModifier } from '../value-objects/temporary-modifier.vo.js';
 import type { ActorRoundResistance } from '../value-objects/actor-round-resistance.vo.js';
 
 /** What the actor brought into the game, taken when round 1 is built from its character (spec 013, §3). */
@@ -81,6 +82,12 @@ export interface ActorRoundProps {
   fightingStyles?: ActorRoundFightingStyle[];
   /** The fighting style it fights with (workspace spec 032); null or missing: none. */
   activeStyle?: ActorRoundActiveStyle | null;
+  /** Workspace spec 068: strategic items spent in the game. Missing in older actor rounds: none. */
+  itemsConsumed?: ItemConsumed[];
+  /** Workspace spec 068: lasting morale and fear RR modifiers. Missing in older actor rounds: none. */
+  temporaryModifiers?: TemporaryModifier[];
+  /** Workspace spec 068: fright level of an NPC (its stat block); null or missing: none. */
+  frightLevel?: number | null;
   /** Only in the actor round built from the character (round 1, or the round it joined in). */
   snapshot?: ActorRoundSnapshot;
   imageUrl: string | undefined;

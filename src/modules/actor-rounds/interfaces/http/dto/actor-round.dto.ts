@@ -1,3 +1,4 @@
+import { ItemConsumedDto, TemporaryModifierDto } from './temporary-modifier.dto.js';
 import { ActorRoundItemDto } from './actor-round-item.dto.js';
 import { BreakageCheckResultDto } from './resolve-breakage-check.dto.js';
 import { ActorRoundActiveStyleDto, ActorRoundFightingStyleDto } from './actor-round-fighting-style.dto.js';
@@ -149,6 +150,15 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'The fighting style the actor fights with (spec 032)', type: ActorRoundActiveStyleDto, nullable: true })
   activeStyle: ActorRoundActiveStyleDto | null;
 
+  @ApiProperty({ description: 'Strategic items spent in the game (spec 068)', type: [ItemConsumedDto] })
+  itemsConsumed: ItemConsumedDto[];
+
+  @ApiProperty({ description: 'Lasting morale and fear RR modifiers (spec 068)', type: [TemporaryModifierDto] })
+  temporaryModifiers: TemporaryModifierDto[];
+
+  @ApiProperty({ type: Number, nullable: true, description: 'Fright level of an NPC, from its stat block (spec 068)' })
+  frightLevel: number | null;
+
   @ApiProperty({ description: 'What the character brought into the game (only in the actor round built from it)', required: false })
   snapshot?: ActorRoundSnapshotDto;
 
@@ -198,6 +208,9 @@ export class ActorRoundDto {
     dto.resistances = (entity.resistances || []).map(each => ({ resistance: each.resistance, totalBonus: each.totalBonus }));
     dto.fightingStyles = (entity.fightingStyles || []).map(style => ActorRoundFightingStyleDto.fromEntity(style));
     dto.activeStyle = entity.activeStyle ? ActorRoundActiveStyleDto.fromEntity(entity.activeStyle) : null;
+    dto.itemsConsumed = (entity.itemsConsumed || []).map(each => ItemConsumedDto.fromEntity(each));
+    dto.temporaryModifiers = (entity.temporaryModifiers || []).map(each => TemporaryModifierDto.fromEntity(each));
+    dto.frightLevel = entity.frightLevel ?? null;
     dto.snapshot = entity.snapshot ? ActorRoundSnapshotDto.fromEntity(entity.snapshot) : undefined;
     dto.bleeding = entity.getBleeding();
     dto.imageUrl = entity.imageUrl;

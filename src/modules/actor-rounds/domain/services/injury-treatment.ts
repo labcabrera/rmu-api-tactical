@@ -1,20 +1,45 @@
 import { DIFFICULTY_MAP, type Difficulty } from '../../../actions/domain/value-objects/difficulty.vo.js';
 import { ValidationError } from '../../../shared/domain/errors/errors.js';
-import type { TreatmentDifficultyRow, TreatmentTables } from '../value-objects/treatment-difficulty.vo.js';
+import type {
+  CauterizationRow,
+  HealingCombatRules,
+  TreatmentDifficultyRow,
+  TreatmentTables,
+} from '../value-objects/treatment-difficulty.vo.js';
 import {
+  type CastSupport,
   deriveInjurySeverity,
   type HealingType,
   type Injury,
+  type InjuryLimits,
   type InjurySeverity,
   type MedicalResult,
+  type Pace,
+  PACES,
 } from '../value-objects/injury.vo.js';
 
 /** Unmodified roll of an unusual event (§5.1). */
 const UNUSUAL_EVENT_ROLL = 66;
 
-/** Procedures that can be done during a tactical game (spec 013, §3). */
-export type TacticalProcedure = 'pressure' | 'stitches' | 'tourniquet' | 'cauterize' | 'dress' | 'magic';
-export const TACTICAL_PROCEDURES: TacticalProcedure[] = ['pressure', 'stitches', 'tourniquet', 'cauterize', 'dress', 'magic'];
+/**
+ * Procedures on an injury that can be done during a tactical game (spec 013, §3); workspace spec 068 adds splints,
+ * casts and salves. Surgery is not offered in combat.
+ */
+export type TacticalProcedure = 'pressure' | 'stitches' | 'tourniquet' | 'cauterize' | 'dress' | 'splint' | 'cast' | 'salve' | 'magic';
+export const TACTICAL_PROCEDURES: TacticalProcedure[] = [
+  'pressure',
+  'stitches',
+  'tourniquet',
+  'cauterize',
+  'dress',
+  'splint',
+  'cast',
+  'salve',
+  'magic',
+];
+
+/** Procedures that are allowed on an injury that needs surgery (workspace spec 068, decision 11). */
+const SURGERY_ALTERNATIVES = ['surgery', 'magic'];
 
 export const MEDICAL_RESULTS: MedicalResult[] = ['absolute-failure', 'failure', 'partial-success', 'success', 'absolute-success'];
 
@@ -28,6 +53,9 @@ const LEGACY_PROCEDURE_DIFFICULTY: Record<TacticalProcedure, Difficulty> = {
   tourniquet: 'vh',
   cauterize: 'r',
   dress: 'r',
+  splint: 'm',
+  cast: 'm',
+  salve: 'r',
   magic: 'm',
 };
 
@@ -45,23 +73,26 @@ const DEFAULT_WORSENING = 10;
 /** Stitches only close light and medium wounds (ch. 13, workspace spec 022, decision 4). */
 const STITCHABLE_SEVERITIES: InjurySeverity[] = ['light', 'medium'];
 
-/** Severity of the heat critical a cauterization inflicts and the d10 of extra hits, by result (Table 13-1c). */
-const CAUTERIZE_HEAT: Record<MedicalResult, { critical: string; hitsDice: number } | undefined> = {
-  'absolute-failure': { critical: 'D', hitsDice: 4 },
-  failure: { critical: 'C', hitsDice: 3 },
-  'partial-success': { critical: 'B', hitsDice: 2 },
-  success: { critical: 'A', hitsDice: 1 },
-  'absolute-success': undefined,
+/** Bleeding left by a cauterization when core serves no Table 13-1c (neutral fallback, no heat). */
+const FALLBACK_CAUTERIZE_BLEEDING: Record<MedicalResult, CauterizationRow['bleeding']> = {
+  'absolute-failure': 'unchanged',
+  failure: 'unchanged',
+  'partial-success': 'halved',
+  success: 'stopped',
+  'absolute-success': 'stopped',
 };
 
-/** Bleeding left by a cauterization, by result (Table 13-1c): none stops it, a failure halves it. */
-const CAUTERIZE_BLEEDING: Record<MedicalResult, 'keep' | 'halve' | 'stop'> = {
-  'absolute-failure': 'keep',
-  failure: 'halve',
-  'partial-success': 'stop',
-  success: 'stop',
-  'absolute-success': 'stop',
-};
+/** Options of the completion of a procedure (workspace spec 068). */
+export interface TreatmentApplyOptions {
+  /** The unmodified roll: an unusual event on a cauterization. */
+  unmodifiedRoll?: number;
+  /** The Medicine total: the band of Table 13-1c of a cauterization. */
+  total?: number;
+  rules?: HealingCombatRules | null;
+  castSupport?: CastSupport;
+  /** The recovery modifier of a salve, set by the game master (decision 13). */
+  salveModifier?: number | null;
+}
 
 const DIFFICULTY_LADDER: Difficulty[] = ['c', 's', 'r', 'e', 'l', 'm', 'h', 'vh', 'xh', 'sf', 'a', 'ni'];
 
@@ -167,12 +198,35 @@ export class InjuryTreatmentRules {
     return result === 'success' || result === 'absolute-success';
   }
 
-  static validate(procedure: TacticalProcedure, injury: Injury): void {
+  /** A salve's recovery modifier goes in core's range (decision 13). */
+  static validateSalve(procedure: string, salveModifier: number | null | undefined, rules?: HealingCombatRules | null): void {
+    if (procedure !== 'salve' || salveModifier === undefined || salveModifier === null) return;
+    const range = rules?.salveModifier ?? { min: -25, max: 25 };
+    if (salveModifier < range.min || salveModifier > range.max) {
+      throw new ValidationError(`The salve modifier goes from ${range.min} to ${range.max}`, 'err-treatment-invalid-salve');
+    }
+  }
+
+  /** The injury only admits surgery or magic (workspace spec 068, decision 11). */
+  static requiresSurgery(injury: Injury, rules?: HealingCombatRules | null): boolean {
+    return (rules?.surgeryRequired ?? []).some(row => row.injuryType === injury.type && row.severity === injury.severity);
+  }
+
+  static validate(procedure: TacticalProcedure, injury: Injury, rules?: HealingCombatRules | null): void {
+    if ((procedure as string) === 'surgery') {
+      throw new ValidationError('Surgery is not offered in a tactical game', 'err-treatment-not-in-combat');
+    }
+    if (!SURGERY_ALTERNATIVES.includes(procedure) && InjuryTreatmentRules.requiresSurgery(injury, rules)) {
+      throw new ValidationError(`A ${injury.severity} ${injury.type} injury only admits surgery`, 'err-treatment-surgery-required');
+    }
     if (!TACTICAL_PROCEDURES.includes(procedure)) {
       throw new ValidationError(`Procedure ${procedure as string} is not available in a tactical game`, 'err-treatment-invalid-procedure');
     }
     if (procedure === 'tourniquet' && injury.location && injury.location !== 'arm' && injury.location !== 'leg') {
       throw new ValidationError('A tourniquet only goes on a limb', 'err-treatment-invalid-location');
+    }
+    if ((procedure === 'splint' || procedure === 'cast') && injury.location && injury.location !== 'arm' && injury.location !== 'leg') {
+      throw new ValidationError(`A ${procedure} only goes on a limb`, 'err-treatment-not-applicable');
     }
     if (procedure === 'stitches' && !STITCHABLE_SEVERITIES.includes(injury.severity)) {
       throw new ValidationError('Stitches only close light and medium wounds', 'err-treatment-invalid-severity');
@@ -190,27 +244,17 @@ export class InjuryTreatmentRules {
    * its own table (13-1c): it stops, halves or leaves the bleeding, gives a heat critical and extra hits, and no
    * recovery modifier.
    */
-  static apply(procedure: TacticalProcedure, injury: Injury, outcome: MedicalOutcome, unmodifiedRoll?: number): TreatmentEffect {
+  static apply(
+    procedure: TacticalProcedure,
+    injury: Injury,
+    outcome: MedicalOutcome,
+    options: TreatmentApplyOptions = {},
+  ): TreatmentEffect {
     const bleeding = Math.max(0, injury.bleeding ?? 0);
     const success = InjuryTreatmentRules.isSuccess(outcome.result);
     const healingType = InjuryTreatmentRules.healingType(procedure, outcome);
     if (procedure === 'cauterize') {
-      const change = CAUTERIZE_BLEEDING[outcome.result];
-      if (change === 'halve') {
-        InjuryTreatmentRules.setBleeding(injury, Math.floor(bleeding / 2), 'cauterized');
-      } else if (change === 'stop') {
-        InjuryTreatmentRules.setBleeding(injury, 0, 'cauterized');
-      }
-      const heat = CAUTERIZE_HEAT[outcome.result];
-      const effect: TreatmentEffect = { healingType, recoveryModifier: 0 };
-      if (heat) {
-        effect.heatCritical = heat.critical;
-        effect.heatHitsDice = heat.hitsDice;
-      }
-      if (unmodifiedRoll === UNUSUAL_EVENT_ROLL) {
-        effect.unusualEvent = true;
-      }
-      return effect;
+      return InjuryTreatmentRules.cauterize(injury, outcome, options, healingType);
     }
     if (outcome.result === 'absolute-failure') {
       InjuryTreatmentRules.worsen(injury, outcome.injuryPenalty > 0 ? outcome.injuryPenalty : DEFAULT_WORSENING);
@@ -229,11 +273,76 @@ export class InjuryTreatmentRules {
         case 'tourniquet':
           InjuryTreatmentRules.setBleeding(injury, 0, procedure);
           break;
+        case 'splint':
+        case 'cast': {
+          const limits = InjuryTreatmentRules.limitsOf(procedure, injury, options);
+          if (limits) injury.limits = limits;
+          break;
+        }
         case 'dress':
+        case 'salve':
           break;
       }
     }
-    return { healingType, recoveryModifier: outcome.recoveryModifier };
+    const salve = procedure === 'salve' && typeof options.salveModifier === 'number';
+    return { healingType, recoveryModifier: salve ? options.salveModifier! : outcome.recoveryModifier };
+  }
+
+  /**
+   * Table 13-1c from core (workspace spec 068, decision 12): the band of the Medicine total gives the bleeding left,
+   * the heat critical and the d10 of extra hits; no recovery modifier. Without the table, a neutral fallback by the
+   * medical result (no heat).
+   */
+  private static cauterize(
+    injury: Injury,
+    outcome: MedicalOutcome,
+    options: TreatmentApplyOptions,
+    healingType: HealingType,
+  ): TreatmentEffect {
+    const bleeding = Math.max(0, injury.bleeding ?? 0);
+    const rows = options.rules?.cauterization ?? [];
+    const band =
+      rows.length > 0 && typeof options.total === 'number'
+        ? rows.find(row => (row.min === null || options.total! >= row.min) && (row.max === null || options.total! <= row.max))
+        : undefined;
+    const change = band ? band.bleeding : FALLBACK_CAUTERIZE_BLEEDING[outcome.result];
+    if (change === 'halved') {
+      InjuryTreatmentRules.setBleeding(injury, Math.floor(bleeding / 2), 'cauterized');
+    } else if (change === 'stopped') {
+      InjuryTreatmentRules.setBleeding(injury, 0, 'cauterized');
+    }
+    const effect: TreatmentEffect = { healingType, recoveryModifier: 0 };
+    if (band?.heatSeverity) {
+      effect.heatCritical = band.heatSeverity;
+      effect.heatHitsDice = band.hitsDice;
+    }
+    const unusual = options.rules?.cauterizationUnusualRoll ?? UNUSUAL_EVENT_ROLL;
+    if (options.unmodifiedRoll === unusual) {
+      effect.unusualEvent = true;
+    }
+    return effect;
+  }
+
+  /** Limits a splint or a cast leaves on a limb (decision 10), from core's treatment limits; none without them. */
+  static limitsOf(procedure: 'splint' | 'cast', injury: Injury, options: TreatmentApplyOptions): InjuryLimits | null {
+    const rules = options.rules?.treatmentLimits;
+    if (!rules) return null;
+    const pace = (value: string | undefined): Pace | null => PACES.find(each => each === value) ?? null;
+    if (procedure === 'splint') {
+      if (injury.location === 'leg') return { pace: pace(rules.splint.leg.pace) };
+      if (injury.location === 'arm' && rules.splint.arm.limbUnusable) return { limbUnusable: true };
+      return null;
+    }
+    const factor = rules.cast.maneuverPenaltyFactor;
+    if (injury.location === 'leg') {
+      const support = options.castSupport ?? 'none';
+      const leg = rules.cast.leg;
+      return {
+        pace: pace(support === 'cane' ? leg.cane : support === 'crutches' ? leg.crutches : leg.pace),
+        maneuverPenaltyFactor: factor,
+      };
+    }
+    return { maneuverPenaltyFactor: factor };
   }
 
   static healingType(procedure: TacticalProcedure, outcome: MedicalOutcome): HealingType {
@@ -265,12 +374,29 @@ export class InjuryTreatmentRules {
     return Math.trunc(Math.min(0, penalty) / 2) || 0;
   }
 
-  /** Rounds a stabilized dying actor gains: 1 on a success, 2 on an absolute success (spec 013, §3). */
-  static stabilizationRounds(result: MedicalResult): number {
+  /**
+   * Rounds a stabilized dying actor gains (spec 013, §3): core's stabilize rules (workspace spec 068, decision 6), 1 on a
+   * success and 2 on an absolute success by default.
+   */
+  static stabilizationRounds(result: MedicalResult, rules?: HealingCombatRules['stabilize'] | null): number {
     if (result === 'absolute-success') {
-      return 2;
+      return rules?.absoluteRounds ?? 2;
     }
-    return result === 'success' ? 1 : 0;
+    return result === 'success' ? (rules?.successRounds ?? 1) : 0;
+  }
+
+  /**
+   * Rounds a procedure takes in combat (decision 2): core's duration, per point of bleeding when it says so, at least 1.
+   * No row: 1 round. A null duration (surgery) is not offered in tactical.
+   */
+  static durationRounds(procedure: string, injury: Injury | undefined, rules?: HealingCombatRules | null): number {
+    const row = (rules?.treatmentDurations ?? []).find(each => each.procedure === procedure);
+    if (!row) return 1;
+    if (row.rounds === null || row.rounds === undefined) {
+      throw new ValidationError(`Procedure ${procedure} is not offered in a tactical game`, 'err-treatment-not-in-combat');
+    }
+    const rounds = row.perBleeding ? row.rounds * Math.max(1, injury?.bleeding ?? 0) : row.rounds;
+    return Math.max(1, rounds);
   }
 
   private static setBleeding(injury: Injury, bleeding: number, control: Injury['bleedingControl']): void {

@@ -8,6 +8,7 @@ import { ResolveEnduranceCheckHandler } from '../actor-rounds/application/cqrs/h
 import { ResolveBreakageCheckHandler } from '../actor-rounds/application/cqrs/handlers/resolve-breakage-check.handler.js';
 import { StabilizeEffectHandler } from '../actor-rounds/application/cqrs/handlers/stabilize-effect.handler.js';
 import { TreatInjuryHandler } from '../actor-rounds/application/cqrs/handlers/treat-injury.handler.js';
+import { CauterizationBurnService } from '../actor-rounds/application/services/cauterization-burn.service.js';
 import { MedicalRollService } from '../actor-rounds/application/services/medical-roll.service.js';
 import { HEALING_TABLES_PORT } from '../actor-rounds/application/ports/healing-tables.port.js';
 import { ApiHealingTablesAdapter } from '../actor-rounds/infrastructure/api-clients/api.healing-tables.adapter.js';
@@ -121,6 +122,7 @@ import { SKILL_CATALOG_PORT } from './application/ports/skill-catalog.port.js';
     ResolveBreakageCheckHandler,
     MedicalRollService,
     TreatInjuryHandler,
+    CauterizationBurnService,
     StabilizeEffectHandler,
     {
       provide: ACTION_REPOSITORY,

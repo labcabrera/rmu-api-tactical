@@ -55,6 +55,10 @@ export class ActorRoundEffect {
   /** Spec 034: first round a delayed effect counts in. */
   @Prop({ type: Number, required: false })
   fromRound?: number;
+
+  /** Spec 068: the cause of a dying effect was treated. */
+  @Prop({ type: Boolean, required: false })
+  causeTreated?: boolean;
 }
 
 @Schema({ _id: false })

@@ -228,7 +228,13 @@ export class ActorRoundController {
       dto.difficulty,
       user.id,
       user.roles,
-      { unmodifiedRoll: dto.unmodifiedRoll, heatHitsRoll: dto.heatHitsRoll, heatCriticalRoll: dto.heatCriticalRoll },
+      {
+        unmodifiedRoll: dto.unmodifiedRoll,
+        heatHitsRoll: dto.heatHitsRoll,
+        heatCriticalRoll: dto.heatCriticalRoll,
+        castSupport: dto.castSupport,
+        salveModifier: dto.salveModifier,
+      },
     );
     const result = await this.commandBus.execute<TreatInjuryCommand, TreatInjuryResult>(command);
     return MedicalResultDto.fromTreatment(result);
