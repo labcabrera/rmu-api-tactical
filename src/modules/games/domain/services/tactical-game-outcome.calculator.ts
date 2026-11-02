@@ -4,6 +4,10 @@ import { DYING, UNCONSCIOUS } from '../../../actor-rounds/domain/value-objects/a
 import { HpLog } from '../../../actor-rounds/domain/value-objects/hp-log-entry.vo.js';
 import type { CharacterCondition, InjurySource } from '../../../actor-rounds/domain/value-objects/injury.vo.js';
 import { ValidationError } from '../../../shared/domain/errors/errors.js';
+import type { HealingCombatRules } from '../../../actor-rounds/domain/value-objects/treatment-difficulty.vo.js';
+
+/** Note of a treatment completed when the game ended (workspace spec 068, decision 4). */
+export const COMPLETED_AFTER_COMBAT = 'completed-after-combat';
 import { Game } from '../aggregates/game.js';
 import type {
   ActorFate,
@@ -26,7 +30,7 @@ export interface FinishPreview {
  * bleeding and dying ones.
  */
 export class TacticalGameOutcomeCalculator {
-  static preview(game: Game, actorRounds: ActorRound[]): FinishPreview {
+  static preview(game: Game, actorRounds: ActorRound[], rules?: HealingCombatRules | null): FinishPreview {
     const characters: TacticalGameOutcomeCharacter[] = [];
     const atRisk: AtRiskActor[] = [];
     for (const actor of game.actors.filter(each => each.type === 'character')) {
@@ -35,7 +39,7 @@ export class TacticalGameOutcomeCalculator {
         continue;
       }
       const last = rounds[rounds.length - 1];
-      characters.push(TacticalGameOutcomeCalculator.character(game, rounds, undefined));
+      characters.push(TacticalGameOutcomeCalculator.character(game, rounds, undefined, rules));
       if (last.isAtRisk()) {
         const dying = last.effects.find(effect => effect.status === DYING);
         atRisk.push({
@@ -51,8 +55,8 @@ export class TacticalGameOutcomeCalculator {
   }
 
   /** The outcome with the fates of the characters at risk; every one of them needs one (`err-finish-fate-required`). */
-  static finish(game: Game, actorRounds: ActorRound[], fates: ActorFate[]): TacticalGameOutcome {
-    const { atRisk } = TacticalGameOutcomeCalculator.preview(game, actorRounds);
+  static finish(game: Game, actorRounds: ActorRound[], fates: ActorFate[], rules?: HealingCombatRules | null): TacticalGameOutcome {
+    const { atRisk } = TacticalGameOutcomeCalculator.preview(game, actorRounds, rules);
     const missing = atRisk.filter(actor => !fates.some(fate => fate.actorId === actor.actorId));
     if (missing.length > 0) {
       throw new ValidationError(`A fate is required for ${missing.map(actor => actor.name).join(', ')}`, 'err-finish-fate-required', {
@@ -66,14 +70,20 @@ export class TacticalGameOutcomeCalculator {
       .map(rounds => {
         const actorId = rounds[0].actorId;
         const fate = atRisk.some(actor => actor.actorId === actorId) ? fates.find(each => each.actorId === actorId)?.fate : undefined;
-        return TacticalGameOutcomeCalculator.character(game, rounds, fate);
+        return TacticalGameOutcomeCalculator.character(game, rounds, fate, rules);
       });
     return { finishedAt: new Date().toISOString(), characters };
   }
 
-  private static character(game: Game, rounds: ActorRound[], fate: ActorFate['fate'] | undefined): TacticalGameOutcomeCharacter {
+  private static character(
+    game: Game,
+    rounds: ActorRound[],
+    fate: ActorFate['fate'] | undefined,
+    rules?: HealingCombatRules | null,
+  ): TacticalGameOutcomeCharacter {
     const first = rounds.find(each => !!each.snapshot) ?? rounds[0];
     const last = rounds[rounds.length - 1];
+    TacticalGameOutcomeCalculator.completeTreatments(last, rules);
     const snapshot = first.snapshot;
     const start = snapshot?.hp ?? first.hp.current;
     const end = last.hp.current;
@@ -109,6 +119,9 @@ export class TacticalGameOutcomeCalculator {
       conditions,
       conditionsResolved,
       items: TacticalGameOutcomeCalculator.items(last),
+      // Workspace spec 068, decisions 7 and 19: the items spent and the lasting modifiers created in this game
+      itemsConsumed: (last.itemsConsumed ?? []).map(each => ({ ...each })),
+      temporaryModifiers: (last.temporaryModifiers ?? []).filter(each => each.tacticalGameId === game.id).map(each => ({ ...each })),
     };
     if (fate) {
       outcome.fate = fate;
@@ -120,6 +133,22 @@ export class TacticalGameOutcomeCalculator {
    * Spec 019, decision 12: the modifiers the items got in the game, without the temporary ones, and the coatings spent
    * (workspace spec 042); items without either are left out.
    */
+  /**
+   * Workspace spec 068, decision 4: a treatment in progress when the game ends is completed, as if it were finished
+   * after the combat, with the roll of its first round and the note `completed-after-combat` (no heat burn). Only the
+   * actor round in memory changes: the outcome is computed from it.
+   */
+  private static completeTreatments(last: ActorRound, rules?: HealingCombatRules | null): void {
+    for (const injury of last.injuries.filter(each => !!each.treatmentInProgress)) {
+      try {
+        last.completeTreatment(injury.treatmentInProgress!.actionId, { rules, note: COMPLETED_AFTER_COMBAT });
+      } catch {
+        // A treatment that is no longer valid for the injury is left out
+        injury.treatmentInProgress = null;
+      }
+    }
+  }
+
   private static items(last: ActorRound): TacticalItemOutcome[] {
     return (last.items || [])
       .map(item => {
