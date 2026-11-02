@@ -15,7 +15,7 @@ const releaseRules = bump
   : [{ breaking: true, release: 'major' }, { type: 'feat', release: 'minor' }, { release: 'patch' }];
 
 module.exports = {
-  branches: ['main'],
+  branches: ['master'],
   tagFormat: '${version}',
   plugins: [
     ['@semantic-release/commit-analyzer', { releaseRules }],
