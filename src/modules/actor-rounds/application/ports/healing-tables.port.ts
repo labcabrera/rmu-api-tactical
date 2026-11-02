@@ -22,3 +22,12 @@ export interface HealingTablesPort {
 }
 
 export const HEALING_TABLES_PORT = Symbol('HealingTablesPort');
+
+/** The combat rules of core, or null when core cannot serve them (the caller goes on without them). */
+export const healingRulesOf = async (port: HealingTablesPort): Promise<HealingCombatRules | null> => {
+  try {
+    return await port.combatRules();
+  } catch {
+    return null;
+  }
+};

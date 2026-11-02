@@ -538,9 +538,24 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    * Round 1 of a character (spec 013, §3): its injuries not healed (same uuid), its unresolved conditions as effects
    * and what it brought into the game.
    */
-  initFromCharacter(characterId: string, injuries: Injury[], conditionEffects: ActorRoundEffect[], snapshot: ActorRoundSnapshot): void {
+  initFromCharacter(
+    characterId: string,
+    injuries: Injury[],
+    conditionEffects: ActorRoundEffect[],
+    snapshot: ActorRoundSnapshot,
+    temporaryModifiers: TemporaryModifier[] = [],
+  ): void {
     this.characterId = characterId;
-    this.injuries = injuries.map(injury => ActorRound.copyInjury(injury));
+    // Workspace spec 068, §2: limits, reopenings and tourniquets come with the injuries; a tourniquet counts its
+    // rounds again from this game, and no treatment is in progress out of combat.
+    this.injuries = injuries.map(injury => {
+      const copy = ActorRound.copyInjury(injury);
+      if (copy.tourniquet) copy.tourniquet = { ...copy.tourniquet, tightSince: this.round, loosenedAt: null };
+      copy.treatmentInProgress = null;
+      return copy;
+    });
+    // Decision 19: the lasting modifiers of the character that strategic did not expire
+    this.temporaryModifiers = temporaryModifiers.map(modifier => ({ ...modifier }));
     conditionEffects.forEach(effect => this.addEffect(effect, undefined));
     this.snapshot = snapshot;
     this.applyPenalties();

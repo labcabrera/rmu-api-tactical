@@ -84,6 +84,7 @@ export class ActorRoundNpcMapperAdapter implements ActorRoundNpcMapperPort {
     );
     actorRound.npcId = npc.id;
     actorRound.resistances = this.mapResistances(npc);
+    actorRound.frightLevel = npc.frightLevel ?? null;
     return actorRound;
   }
 

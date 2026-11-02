@@ -1,3 +1,4 @@
+import { ApplyFearEffectHandler, GetFrightLevelsHandler } from './application/cqrs/handlers/fear-effect.handlers.js';
 import { forwardRef, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
@@ -33,6 +34,8 @@ import { ResistanceRollController } from './interfaces/http/resistance-roll.cont
     FearCheckHandler,
     MoraleCheckHandler,
     RallyCheckHandler,
+    ApplyFearEffectHandler,
+    GetFrightLevelsHandler,
     { provide: PSYCHOLOGY_TABLES_PORT, useClass: ApiPsychologyTablesAdapter },
   ],
   exports: [PSYCHOLOGY_TABLES_PORT],

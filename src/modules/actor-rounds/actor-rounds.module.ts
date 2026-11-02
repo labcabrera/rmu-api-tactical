@@ -1,3 +1,8 @@
+import {
+  DeleteTemporaryModifierHandler,
+  DropItemsHandler,
+  LoosenTourniquetHandler,
+} from './application/cqrs/handlers/combat-healing.handlers.js';
 import { HEALING_TABLES_PORT } from './application/ports/healing-tables.port.js';
 import { ApiHealingTablesAdapter } from './infrastructure/api-clients/api.healing-tables.adapter.js';
 import { MedicalAbortService } from './application/services/medical-abort.service.js';
@@ -72,6 +77,9 @@ import { DeclareFightingStyleHandler } from './application/cqrs/handlers/declare
     AdjustHpHandler,
     UpdateInjuryHandler,
     DeleteInjuryHandler,
+    LoosenTourniquetHandler,
+    DropItemsHandler,
+    DeleteTemporaryModifierHandler,
     {
       provide: ACTOR_ROUND_REPOSITORY,
       useClass: MongoActorRoundRepository,
