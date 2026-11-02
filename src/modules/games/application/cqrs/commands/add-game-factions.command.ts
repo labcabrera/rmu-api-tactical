@@ -1,4 +1,4 @@
-import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command';
+import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command.js';
 
 export class AddGameFactionsCommand extends AuthenticatedCommand {
   constructor(

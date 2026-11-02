@@ -1,21 +1,41 @@
+import type { ItemConsumed, TemporaryModifier } from '../../../domain/value-objects/temporary-modifier.vo.js';
+import type { ActorRoundItem } from '../../../domain/value-objects/actor-round-item.vo.js';
+import type { ActorRoundActiveStyle, ActorRoundFightingStyle } from '../../../domain/value-objects/actor-round-fighting-style.vo.js';
+import type { ActorRoundResistance } from '../../../domain/value-objects/actor-round-resistance.vo.js';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
-import { ActorRoundAlert } from './actor-round-alert.model';
-import { ActorRoundAttack } from './actor-round-attack.model';
-import { ActorRoundDefense } from './actor-round-defense.model';
-import { ActorRoundHP } from './actor-round-hp.model';
-import { ActorRoundInitiative } from './actor-round-initiative.model';
-import { ActorRoundMovement } from './actor-round-movement.model';
-import { ActorRoundPenalty } from './actor-round-penalty.model';
-import { ActorRoundUsedBo } from './actor-round-used-bo.model';
-import { ActorRoundEffect, ActorRoundFatigue } from './actor-round.models-childs';
+import type { HydratedDocument } from 'mongoose';
+import type { Injury } from '../../../domain/value-objects/injury.vo.js';
+import type { PoisonExposure } from '../../../domain/value-objects/poison.vo.js';
+import { ActorRoundAlert } from './actor-round-alert.model.js';
+import { ActorRoundAttack } from './actor-round-attack.model.js';
+import { ActorRoundDefense } from './actor-round-defense.model.js';
+import { ActorRoundHP } from './actor-round-hp.model.js';
+import { ActorRoundInitiative } from './actor-round-initiative.model.js';
+import { ActorRoundMovement } from './actor-round-movement.model.js';
+import { ActorRoundPenalty } from './actor-round-penalty.model.js';
+import { ActorRoundUsedBo } from './actor-round-used-bo.model.js';
+import {
+  ActorRoundApLedgerEntry,
+  ActorRoundApModifier,
+  ActorRoundDefenseMode,
+  ActorRoundEffect,
+  ActorRoundFatigue,
+  ActorRoundHpLogEntry,
+  ActorRoundPhaseLog,
+  ActorRoundSnapshot,
+  ActorRoundTrait,
+} from './actor-round-childs.model.js';
 
-export type ActorRoundDocument = ActorRoundModel & Document;
+export type ActorRoundDocument = HydratedDocument<ActorRoundModel>;
 
 @Schema({ collection: 'actor-rounds', _id: false, versionKey: false })
 export class ActorRoundModel {
   @Prop({ required: true })
   _id: string;
+
+  /** Optimistic concurrency: +1 on each write. Documents stored before it existed have none (version 0). */
+  @Prop({ type: Number, default: 0 })
+  version: number;
 
   @Prop({ required: true })
   gameId: string;
@@ -79,6 +99,71 @@ export class ActorRoundModel {
 
   @Prop({ type: [ActorRoundAlert], required: true })
   alerts: ActorRoundAlert[];
+
+  @Prop({ type: [ActorRoundTrait], required: false, default: [] })
+  traits?: ActorRoundTrait[];
+
+  @Prop({ type: ActorRoundDefenseMode, required: false })
+  defenseMode?: ActorRoundDefenseMode;
+
+  @Prop({ type: [ActorRoundPhaseLog], required: false, default: [] })
+  phaseLog?: ActorRoundPhaseLog[];
+
+  @Prop({ type: [ActorRoundApModifier], required: false, default: [] })
+  apModifiers?: ActorRoundApModifier[];
+
+  @Prop({ type: [Number], required: false, default: [] })
+  apCapacity?: number[];
+
+  @Prop({ type: [ActorRoundApLedgerEntry], required: false, default: [] })
+  apLedger?: ActorRoundApLedgerEntry[];
+
+  /** Spec 013, §1: injuries as the shared model (stored as documents of their own shape). */
+  @Prop({ type: [Object], required: false, default: [] })
+  injuries?: Injury[];
+
+  /** Workspace spec 042: poisons waiting for their RR (stored as documents of their own shape). */
+  @Prop({ type: [Object], required: false, default: [] })
+  poisonExposures?: PoisonExposure[];
+
+  /** Spec 013, §1.1: the changes of the hits in this round. */
+  @Prop({ type: [ActorRoundHpLogEntry], required: false, default: [] })
+  hpLog?: ActorRoundHpLogEntry[];
+
+  @Prop({ type: String, required: false })
+  characterId?: string;
+
+  /** Spec 055: the NPC an NPC actor is a specimen of. */
+  @Prop({ type: String, required: false })
+  npcId?: string;
+
+  /** Spec 019: the items of the actor, with their modifiers (stored as documents of their own shape). */
+  @Prop({ type: [Object], required: false, default: [] })
+  items?: ActorRoundItem[];
+
+  /** Workspace spec 022: resistance roll bonuses of the character. */
+  @Prop({ type: [Object], required: false, default: [] })
+  resistances?: ActorRoundResistance[];
+
+  /** Workspace spec 032: fighting styles of the character and the one it fights with. */
+  @Prop({ type: [Object], required: false, default: [] })
+  fightingStyles?: ActorRoundFightingStyle[];
+
+  @Prop({ type: Object, required: false, default: null })
+  activeStyle?: ActorRoundActiveStyle | null;
+
+  /** Workspace spec 068: items spent in the game, the lasting modifiers and the fright level of an NPC. */
+  @Prop({ type: [Object], required: false, default: [] })
+  itemsConsumed?: ItemConsumed[];
+
+  @Prop({ type: [Object], required: false, default: [] })
+  temporaryModifiers?: TemporaryModifier[];
+
+  @Prop({ type: Number, required: false })
+  frightLevel?: number | null;
+
+  @Prop({ type: ActorRoundSnapshot, required: false })
+  snapshot?: ActorRoundSnapshot;
 
   @Prop({ type: String, required: false })
   imageUrl: string | undefined;

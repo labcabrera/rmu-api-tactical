@@ -1,5 +1,5 @@
 import { IsArray, IsNotEmpty, IsNumber, IsString } from 'class-validator';
-import { DeclareParryCommand, DeclareParryItem } from '../../../application/cqrs/commands/declare-parry.command';
+import { DeclareParryCommand, DeclareParryItem } from '../../../application/cqrs/commands/declare-parry.command.js';
 
 export class DeclareParryItemDto {
   @IsString()

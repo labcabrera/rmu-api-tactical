@@ -1,6 +1,8 @@
-import { AttackRange } from '../../../actor-rounds/domain/value-objets/actor-round-attack.vo';
-import { ActorRoundFaction } from '../../../actor-rounds/domain/value-objets/actor-round-faction.vo';
-import { ActorRoundShield } from '../../../actor-rounds/domain/value-objets/actor-round-shield.vo';
+import type { TemporaryModifier } from '../../../actor-rounds/domain/value-objects/temporary-modifier.vo.js';
+import { AttackRange, type WeaponCategory } from '../../../actor-rounds/domain/value-objects/actor-round-attack.vo.js';
+import { ActorRoundFaction } from '../../../actor-rounds/domain/value-objects/actor-round-faction.vo.js';
+import { ActorRoundShield } from '../../../actor-rounds/domain/value-objects/actor-round-shield.vo.js';
+import type { CharacterCondition, Injury } from '../../../actor-rounds/domain/value-objects/injury.vo.js';
 
 export type AttackType = 'melee' | 'ranged';
 
@@ -9,6 +11,8 @@ export interface CharacterPort {
 
   findByGameId: (gameId: string) => Promise<Character[]>;
 }
+
+export const CHARACTER_PORT = Symbol('CharacterPort');
 
 export interface Character {
   id: string;
@@ -22,9 +26,20 @@ export interface Character {
   hp: CharacterHP;
   initiative: CharacterInitiative;
   skills: CharacterSkill[];
+  traits?: CharacterTrait[];
+  /** Resistance roll bonuses (workspace spec 022 reads `totalBonus`); missing in older characters. */
+  resistances?: CharacterResistance[];
   items: CharacterItem[];
   equipment: CharacterEquipment;
   attacks: CharacterAttack[];
+  /** Spec 013: missing in strategic versions before it. */
+  injuries?: Injury[];
+  /** Workspace spec 068, decision 19: lasting morale and fear RR modifiers, expired by strategic. */
+  temporaryModifiers?: TemporaryModifier[];
+  /** Spec 013: missing in strategic versions before it. */
+  conditions?: CharacterCondition[];
+  /** `dead` once a tactical game killed it (spec 013); missing in older versions. */
+  status?: string;
   imageUrl: string | undefined;
   owner: string;
 }
@@ -72,6 +87,28 @@ export interface CharacterSkill {
   skillId: string;
   specialization: string | null;
   totalBonus: number;
+  /** Missing in older characters: 0. */
+  ranks?: number;
+  /** Fighting style skills only (workspace spec 032): abilities their ranks were allocated to, and the rest. */
+  styleAbilities?: { abilityId: string; times: number; cost: number }[];
+  styleFreeRanks?: number;
+}
+
+export interface CharacterResistance {
+  resistance: string;
+  totalBonus: number;
+}
+
+export interface CharacterTrait {
+  traitId: string;
+  traitName?: string;
+  isTalent?: boolean;
+  /** Missing for traits without tiers: 1. */
+  tier?: number | null;
+  cost?: number;
+  /** Skill (`skillId` or `skillId@specialization`), weapon type, stat or realm the trait was taken for. */
+  specialization?: string | null;
+  source?: 'character' | 'race';
 }
 
 export interface CharacterItem {
@@ -121,4 +158,25 @@ export interface CharacterAttack {
   meleeRange: number | null;
   ranges: CharacterAttackRange[] | null;
   fumbleTable: string;
+  /** Missing in older characters: false. */
+  twoHanded?: boolean;
+  /** Missing in older characters: `standard`. */
+  weaponCategory?: WeaponCategory;
+  /** The weapon is made for another size; its -20 is already in `bo`. Missing in older characters: false. */
+  wrongSize?: boolean;
+  /** Skill of the weapon (`melee-weapon@blade`, `shield`...). Missing in older characters. */
+  skillId?: string | null;
+  /** Strategic item of the attack (spec 019). Missing in older characters: the item in the slot of `attackName`. */
+  itemId?: string | null;
+  /** Workspace spec 032: tags of the weapon type. Missing in older characters. */
+  weaponTags?: string[];
+  /** Workspace spec 040: times St enters the skill bonus of the attack. Missing in older characters. */
+  strengthWeight?: number;
 }
+
+/** Conditions that keep a character out of a tactical game (spec 013, §3). */
+const NOT_ABLE_CONDITIONS = ['permanent-unconscious', 'dead'];
+
+/** The character is dead or permanently unconscious, and cannot take part in a tactical game. */
+export const isCharacterNotAble = (character: Character): boolean =>
+  character.status === 'dead' || (character.conditions || []).some(c => !c.resolvedAt && NOT_ABLE_CONDITIONS.includes(c.status));

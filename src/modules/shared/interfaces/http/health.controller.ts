@@ -1,24 +1,20 @@
 import { Controller, Get } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { SkipThrottle } from '@nestjs/throttler';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import {
-  HealthCheck,
-  HealthCheckService,
-  HealthIndicatorResult,
-  HttpHealthIndicator,
-  MemoryHealthIndicator,
-  MongooseHealthIndicator,
-} from '@nestjs/terminus';
+import { HealthCheck, HealthCheckService, MemoryHealthIndicator, MongooseHealthIndicator } from '@nestjs/terminus';
 
+/**
+ * Only the dependencies of this API (spec 021, decision 8): Mongo and memory. core and strategic are not checked, so a
+ * neighbour that is down does not make this container unhealthy [F-tactical-03].
+ */
+@SkipThrottle()
 @Controller('v1/health')
 @ApiTags('Health')
 export class HealthController {
   constructor(
-    private config: ConfigService,
     private health: HealthCheckService,
     private mongoose: MongooseHealthIndicator,
     private memory: MemoryHealthIndicator,
-    private http: HttpHealthIndicator,
   ) {}
 
   @Get()
@@ -29,17 +25,6 @@ export class HealthController {
       () => this.mongoose.pingCheck('mongodb'),
       () => this.memory.checkHeap('memory_heap', 350 * 1024 * 1024),
       () => this.memory.checkRSS('memory_rss', 350 * 1024 * 1024),
-      async (): Promise<HealthIndicatorResult> => {
-        const rmuApiCoreUri = this.config.get<string>('RMU_API_CORE_URI');
-        const healthUri = `${rmuApiCoreUri}/health`;
-        return await this.http.pingCheck('rmu-api-core', healthUri);
-      },
-      () => this.memory.checkRSS('memory_rss', 350 * 1024 * 1024),
-      async (): Promise<HealthIndicatorResult> => {
-        const rmuApiCoreUri = this.config.get<string>('RMU_API_STRATEGIC_URI');
-        const healthUri = `${rmuApiCoreUri}/health`;
-        return await this.http.pingCheck('rmu-api-strategic', healthUri);
-      },
     ]);
   }
 }

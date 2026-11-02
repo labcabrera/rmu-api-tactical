@@ -1,50 +1,28 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
-import type { GameRepository } from '../../../../games/application/ports/game.repository';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import { Action } from '../../../domain/aggregates/action.aggregate';
-import { ActionUpdatedEvent } from '../../../domain/events/action-events';
-import { ActionStatus } from '../../../domain/value-objects/action-status.vo';
-import { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
-import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
-import type { ActionRepository } from '../../ports/action.repository';
-import type { AttackPort } from '../../ports/attack.port';
-import { UpdateAttackRollCommand } from '../commands/update-attack-roll.command';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import {
+  type ActorRoundRepository,
+  ACTOR_ROUND_REPOSITORY,
+} from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { Action } from '../../../domain/aggregates/action.js';
+import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
+import { CombatAttackRollResolverService } from '../../services/combat/index.js';
+import { UpdateAttackRollCommand } from '../commands/update-attack-roll.command.js';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 @CommandHandler(UpdateAttackRollCommand)
 export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRollCommand, Action> {
   private readonly logger = new Logger(UpdateAttackRollHandler.name);
 
-  locationMap: Array<{ range: [number, number]; location: AttackLocation }> = [
-    { range: [1, 1], location: 'head' },
-    { range: [2, 3], location: 'chest' },
-    { range: [4, 5], location: 'abdomen' },
-    { range: [6, 10], location: 'legs' },
-    { range: [11, 15], location: 'arms' },
-    { range: [16, 20], location: 'head' },
-    { range: [21, 25], location: 'chest' },
-    { range: [26, 35], location: 'abdomen' },
-    { range: [36, 45], location: 'legs' },
-    { range: [46, 55], location: 'arms' },
-    { range: [56, 65], location: 'arms' },
-    { range: [66, 66], location: 'abdomen' },
-    { range: [67, 75], location: 'legs' },
-    { range: [76, 80], location: 'chest' },
-    { range: [81, 85], location: 'head' },
-    { range: [86, 90], location: 'arms' },
-    { range: [91, 95], location: 'legs' },
-    { range: [96, 97], location: 'abdomen' },
-    { range: [98, 99], location: 'chest' },
-    { range: [100, 100], location: 'head' },
-  ];
-
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject('AttackPort') private readonly attackPort: AttackPort,
-    @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
+    @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
+    private readonly combatAttackRollResolver: CombatAttackRollResolverService,
   ) {}
 
   async execute(command: UpdateAttackRollCommand): Promise<Action> {
@@ -55,72 +33,48 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
 
     const game = await this.gameRepository.findById(action.gameId);
     if (!game) throw new NotFoundError('Game', action.gameId);
+    game.checkNotFinished();
 
     this.validateCommand(command, action);
 
     const attack = action.attacks!.find(a => a.attackName === command.attackName)!;
-    const calculated = attack.calculated!;
-
-    const targetActor = await this.actorRoundRepository.findByActorIdAndRound(attack.modifiers.targetId!, action.round);
+    const targetActor = await this.actorRoundRepository.findByActorIdAndRound(action.gameId, attack.modifiers.targetId!, action.round);
     if (!targetActor) throw new NotFoundError('ActorRound', attack.modifiers.targetId!);
 
-    calculated.location = calculated.requiredLocationRoll ? this.getLocation(command.locationRoll!) : undefined;
+    const sourceActor = await this.actorRoundRepository.findByActorIdAndRound(action.gameId, action.actorId, action.round);
+    if (!sourceActor) throw new NotFoundError('ActorRound', action.actorId);
 
-    attack.roll = {
+    const previousBreakage = !!attack.calculated?.breakageRoll;
+    const previousFumble = !!attack.results?.fumble;
+    await this.combatAttackRollResolver.resolve({
+      action,
+      attack,
+      sourceActor,
+      targetActor,
       roll: command.roll,
-      locationRoll: command.locationRoll,
-      criticalRolls: undefined,
-      fumbleRoll: undefined,
-    };
-    const attackResponse = await this.attackPort.updateRoll(attack.externalAttackId!, command.roll, calculated.location);
-    if (!attackResponse || !attackResponse.results) throw new ValidationError('Attack service did not return results');
+      unmodified: command.unmodified,
+      dice: command.rolls,
+    });
 
-    if (attackResponse.results.criticals && attackResponse.results.criticals.length > 0) {
-      attack.roll.criticalRolls = new Map<string, number | undefined>();
-      attackResponse.results.criticals.forEach(critical => {
-        attack.roll!.criticalRolls!.set(critical.key, undefined);
-      });
+    // Raised when the roll is resolved; a repeated roll does not raise it again.
+    let sourceChanged = false;
+    if (attack.calculated?.breakageRoll && !previousBreakage) {
+      sourceActor.addAttackBreakageAlert(attack.attackName);
+      sourceChanged = true;
     }
-
-    attack.status = attackResponse.status;
-    attack.results = attackResponse.results;
-    attack.calculated!.rollModifiers = attackResponse.calculated.rollModifiers;
-    attack.calculated!.rollTotal = attackResponse.calculated.rollTotal;
+    // Workspace spec 068, decision 5: a fumble is a failed roll, and it reopens the stitches of the attacker
+    if (attack.results?.fumble && !previousFumble && sourceActor.reopenWounds('failed-roll').length > 0) {
+      sourceChanged = true;
+    }
+    if (sourceChanged) {
+      await this.actorRoundRepository.update(sourceActor);
+    }
 
     action.updatedAt = new Date();
-    action.status = this.calculateStatus(action);
 
-    if (this.requiredBreakage(command.roll)) {
-      const sourceActor = await this.actorRoundRepository.findByActorIdAndRound(action.actorId, action.round);
-      if (!sourceActor) throw new NotFoundError('ActorRound', action.actorId);
-      sourceActor.addAttackBreakageAlert(attack.attackName);
-      await this.actorRoundRepository.update(sourceActor.id, sourceActor);
-      //TODO propagate change event
-    }
-
-    const updated = await this.actionRepository.update(action.id, action);
-    await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
+    const updated = await this.actionRepository.update(action);
+    await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     return updated;
-  }
-
-  private getLocation(locationRoll: number): AttackLocation | undefined {
-    for (const entry of this.locationMap) {
-      const [min, max] = entry.range;
-      if (locationRoll >= min && locationRoll <= max) {
-        return entry.location;
-      }
-    }
-
-    return undefined;
-  }
-
-  private calculateStatus(action: Action): ActionStatus {
-    for (const attack of action.attacks!) {
-      if (attack.status !== 'pending_apply') {
-        return 'prepared';
-      }
-    }
-    return 'pending_apply';
   }
 
   private validateCommand(command: UpdateAttackRollCommand, action: Action): void {
@@ -134,13 +88,6 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     if (!attack.calculated) {
       throw new ValidationError(`Attack ${command.attackName} has no calculated data`);
     }
-    if (attack.calculated.requiredLocationRoll && !command.locationRoll) {
-      throw new ValidationError(`Location roll is required for attack ${command.attackName}`);
-    }
     action.checkValidRollDeclaration();
-  }
-
-  private requiredBreakage(roll: number): boolean {
-    return roll === 33 || roll === 77;
   }
 }

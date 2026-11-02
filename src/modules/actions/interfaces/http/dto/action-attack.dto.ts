@@ -1,13 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActionAttack } from '../../../domain/value-objects/action-attack.vo';
-import type { AttackStatus } from '../../../domain/value-objects/attack-status.vo';
-import { ActionAttackCalculatedDto } from './action-attack-calculated.dto';
-import { ActionAttackModifiersDto } from './action-attack-modifiers.dto';
-import { ActionAttackResultsDto } from './action-attack-results.dto';
-import { ActionAttackRollDto } from './action-attack-roll.dto';
+import { ActionAttack } from '../../../domain/value-objects/action-attack.vo.js';
+import type { AttackStatus } from '../../../domain/value-objects/attack-status.vo.js';
+import { ActionAttackCalculatedDto } from './action-attack-calculated.dto.js';
+import { ActionAttackModifiersDto } from './action-attack-modifiers.dto.js';
+import { ActionAttackResultsDto } from './action-attack-results.dto.js';
+import { ActionAttackRollDto } from './action-attack-roll.dto.js';
 
 export class ActionAttackDto {
-  @ApiProperty({ description: 'Attack type', example: 'mainHand' })
   @ApiProperty({ description: 'Name of the attack', example: 'mainHand' })
   public attackName: string;
 
@@ -26,11 +25,12 @@ export class ActionAttackDto {
   @ApiProperty({ description: 'Attack results' })
   public results: ActionAttackResultsDto | undefined;
 
-  //TODO consider not exposing this
-  @ApiProperty({ description: 'External attack ID', example: 'abc123', required: false })
-  public externalAttackId: string | undefined;
-
-  @ApiProperty({ description: 'Action status', example: 'pending' })
+  @ApiProperty({
+    type: String,
+    description: 'What the attack is waiting for',
+    enum: ['pending_attack_roll', 'pending_critical_roll', 'pending_fumble_roll', 'pending_apply', 'completed'],
+    example: 'pending_attack_roll',
+  })
   public status: AttackStatus;
 
   static fromEntity(entity: ActionAttack): ActionAttackDto {
@@ -38,7 +38,6 @@ export class ActionAttackDto {
     dto.attackName = entity.attackName;
     dto.type = entity.type;
     dto.modifiers = ActionAttackModifiersDto.fromEntity(entity.modifiers);
-    dto.externalAttackId = entity.externalAttackId;
     dto.status = entity.status;
     dto.roll = entity.roll ? ActionAttackRollDto.fromEntity(entity.roll) : undefined;
     dto.results = entity.results ? ActionAttackResultsDto.fromEntity(entity.results) : undefined;

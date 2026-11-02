@@ -1,26 +1,50 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
-import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
-import type { GameRepository } from '../../../../games/application/ports/game.repository';
-import { Game } from '../../../../games/domain/aggregates/game.aggregate';
-import { ValidationError } from '../../../../shared/domain/errors';
-import { Action } from '../../../domain/aggregates/action.aggregate';
-import { ActionManeuver } from '../../../domain/value-objects/action-maneuver.vo';
-import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
-import type { ActionRepository } from '../../ports/action.repository';
-import { CreateActionCommand } from '../commands/create-action.command';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import {
+  type ActorRoundRepository,
+  ACTOR_ROUND_REPOSITORY,
+} from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
+import { ActorSheetService } from '../../../../actor-rounds/application/services/actor-sheet.service.js';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
+import { Game } from '../../../../games/domain/aggregates/game.js';
+import { ConflictError, ValidationError, NotFoundError } from '../../../../shared/domain/errors/errors.js';
+import { Action } from '../../../domain/aggregates/action.js';
+import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
+import { ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo.js';
+import { ActionManeuver } from '../../../domain/value-objects/action-maneuver.vo.js';
+import { ActionResolution } from '../../../domain/value-objects/action-resolution.vo.js';
+import type { ManeuverActionPoints } from '../../../domain/value-objects/maneuver-profile.vo.js';
+import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo.js';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
+import { type SkillCatalogPort, SKILL_CATALOG_PORT } from '../../ports/skill-catalog.port.js';
+import { CreateActionCommand } from '../commands/create-action.command.js';
+import { SpellCastingService } from '../../services/spell/spell-casting.service.js';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
+import { type HealingTablesPort, HEALING_TABLES_PORT } from '../../../../actor-rounds/application/ports/healing-tables.port.js';
+import { MedicalAbortService } from '../../../../actor-rounds/application/services/medical-abort.service.js';
+import type { ActionWarning } from '../../../domain/value-objects/action-medical.vo.js';
+import { MedicalActionService } from '../../services/medical/medical-action.service.js';
 
+/**
+ * Declares an action (spec 011, §2): it records its AP in the ledger of the actor round and closes as `interrupted`
+ * the open action it replaces. A forced action (§6) takes no AP and starts in the current phase.
+ */
 @CommandHandler(CreateActionCommand)
 export class CreateActionHandler implements ICommandHandler<CreateActionCommand, Action> {
   private readonly logger = new Logger(CreateActionCommand.name);
 
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
+    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
+    @Inject(SKILL_CATALOG_PORT) private readonly skillCatalog: SkillCatalogPort,
+    private readonly sheets: ActorSheetService,
+    private readonly spellCasting: SpellCastingService,
+    @Inject(HEALING_TABLES_PORT) private readonly healingTables: HealingTablesPort,
+    private readonly medicalActions: MedicalActionService,
+    private readonly medicalAbort: MedicalAbortService,
   ) {}
 
   async execute(command: CreateActionCommand): Promise<Action> {
@@ -29,33 +53,136 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
 
     const game = await this.readGame(command);
     this.checkDeclareActionAllowed(game);
+    const currentPhase = game.getActionPhase();
 
     const round = game.round;
-    const [actorRound, roundActions] = await Promise.all([this.readActorRound(command, round), this.readActions(command, round)]);
+    const [actorRound, roundActions] = await Promise.all([this.readActorRound(command, round), this.readRoundActions(command, round)]);
+    const actorActions = roundActions.filter(action => action.actorId === command.actorId);
 
-    this.validateActorRoundAndActions(actorRound, roundActions);
-    const maneuver = this.mapManeuver(command);
+    const plan = Action.checkDeclaration(
+      actorRound,
+      actorActions,
+      { actionType: command.actionType, phaseStart: command.phaseStart, freeAction: command.freeAction, forced: command.forced?.reason },
+      currentPhase,
+      roundActions,
+    );
+    const warnings = this.declarationWarnings(command, actorRound, plan.interrupted);
+    if (!command.confirm && warnings.some(warning => warning.requiresConfirm)) {
+      throw new ConflictError('The declaration needs a confirmation: send it again with confirm: true', 'err-action-confirm-required', {
+        warnings,
+      });
+    }
+    const { maneuver, apRange: maneuverRange } = await this.mapManeuver(command);
+    const apRange = maneuverRange ?? (await this.standUpRange(command, actorRound)) ?? (await this.useItemRange(command));
+    const spell =
+      command.actionType === 'cast_spell'
+        ? await this.spellCasting.declare(actorRound, actorActions, command.spell!.listCode, command.spell!.spellId, command.freeAction)
+        : null;
+    const resolution = command.forced ? ActionResolution.forced(command.forced.reason, command.forced.note) : ActionResolution.normal();
     const action = Action.create(
       command.gameId,
       command.actorId,
       round,
       command.actionType,
       command.freeAction,
-      command.phaseStart,
+      command.forced ? currentPhase : command.phaseStart,
       maneuver,
       command.description,
       command.userId,
+      resolution,
+      apRange,
     );
+    action.spell = spell;
+    if (command.actionType === 'medical') {
+      action.medical = await this.medicalActions.declare(actorRound, command.medical, action.id);
+    }
+    if (command.actionType === 'use_item') {
+      action.useItem = await this.declareUseItem(command, actorRound);
+    }
+    action.applyDeclaration(actorRound, plan, currentPhase);
+    // Workspace spec 068: interrupted medical actions abort their treatment; exertion reopens a completed pressure
+    const aborted = await this.medicalAbort.abort(plan.interrupted, { known: [actorRound] });
+    const reopened = Action.isExertion(command.actionType) ? actorRound.reopenWounds('exertion') : [];
+    action.warnings = warnings;
+    if (command.forced) {
+      this.logger.log(`Action ${action.id} of ${command.actorId} forced: ${command.forced.reason} ${command.forced.note ?? ''}`);
+    }
+
     const saved = await this.actionRepository.save(action);
-    const events = action.getUncommittedEvents();
-    events.forEach(event => this.actionEventBus.publish(event));
+    if (plan.spend || plan.interrupted.length > 0 || aborted.length > 0 || reopened.length > 0) {
+      await this.actorRoundRepository.update(actorRound);
+    }
+    for (const interrupted of plan.interrupted) {
+      const updated = await this.actionRepository.update(interrupted);
+      await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
+    }
+    for (const event of action.getUncommittedEvents()) {
+      await this.eventPublisher.publish('action', event);
+    }
+    action.commit();
+    saved.refreshApState(actorRound, currentPhase);
+    saved.warnings = warnings;
     return saved;
+  }
+
+  /**
+   * Warnings of the declaration (workspace spec 068). Interrupting a medical action (decision 4) and exerting with a
+   * wound that reopens (decision 5) need `confirm: true`; an attack with a useless limb (decision 10) only warns.
+   */
+  private declarationWarnings(command: CreateActionCommand, actorRound: ActorRound, interrupted: Action[]): ActionWarning[] {
+    const warnings: ActionWarning[] = [];
+    interrupted
+      .filter(action => action.actionType === 'medical' && !!action.medical)
+      .forEach(action =>
+        warnings.push({
+          code: 'treatment-interrupted',
+          params: { actionId: action.id, procedure: action.medical!.procedure, patientActorId: action.medical!.patientActorId },
+          requiresConfirm: true,
+        }),
+      );
+    if (Action.isExertion(command.actionType)) {
+      actorRound
+        .exertionInjuries()
+        .forEach(injury => warnings.push({ code: 'exertion-reopens-wound', params: { injuryId: injury.id }, requiresConfirm: true }));
+    }
+    if (command.actionType === 'melee_attack' || command.actionType === 'ranged_attack') {
+      actorRound.unusableLimbInjuries().forEach(injury =>
+        warnings.push({
+          code: 'limb-unusable',
+          params: { injuryId: injury.id, ...(injury.location ? { location: injury.location } : {}) },
+          requiresConfirm: false,
+        }),
+      );
+    }
+    return warnings;
+  }
+
+  /** A `use_item` action takes core's AP of a healing item in combat (decision 7). */
+  private async useItemRange(command: CreateActionCommand): Promise<ManeuverActionPoints | null> {
+    if (command.actionType !== 'use_item') {
+      return null;
+    }
+    const ap = (await this.healingTables.combatRules()).combatItemAp;
+    return { min: ap, max: ap };
+  }
+
+  private async declareUseItem(command: CreateActionCommand, actorRound: ActorRound) {
+    const useItem = command.useItem;
+    if (!useItem?.itemId) {
+      throw new ValidationError('A use_item action needs its item', 'err-use-item-required');
+    }
+    const targetActorId = useItem.targetActorId || actorRound.actorId;
+    if (targetActorId !== actorRound.actorId) {
+      const target = await this.actorRoundRepository.findByActorIdAndRound(command.gameId, targetActorId, actorRound.round);
+      if (!target) throw new NotFoundError('Target actor', targetActorId, 'err-target-not-found');
+    }
+    return { itemId: useItem.itemId, targetActorId, roll: useItem.roll ?? null, result: null };
   }
 
   private async readGame(command: CreateActionCommand): Promise<Game> {
     const game = await this.gameRepository.findById(command.gameId);
     if (!game) {
-      throw new ValidationError(`Game ${command.gameId} not found`);
+      throw new NotFoundError('Game', command.gameId);
     }
     return game;
   }
@@ -64,20 +191,24 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     const rsql = `gameId==${command.gameId};actorId==${command.actorId};round==${round}`;
     const actorRounds = await this.actorRoundRepository.findByRsql(rsql, 0, 100);
     if (actorRounds.content.length === 0) {
-      throw new ValidationError(`Actor round for game ${command.gameId}, character ${command.actorId}, round ${round} not found`);
+      throw new NotFoundError('Actor round', `of actor ${command.actorId} in round ${round} of game ${command.gameId}`);
     }
     return actorRounds.content[0];
   }
 
-  private async readActions(command: CreateActionCommand, round: number): Promise<Action[]> {
-    const rsql = `gameId==${command.gameId};actorId==${command.actorId};round==${round}`;
-    const actions = await this.actionRepository.findByRsql(rsql, 0, 100);
+  /** Every action of the round: the actor's, and the foes' attacks with the actor's parries. */
+  private async readRoundActions(command: CreateActionCommand, round: number): Promise<Action[]> {
+    const rsql = `gameId==${command.gameId};round==${round}`;
+    const actions = await this.actionRepository.findByRsql(rsql, 0, 1000);
     return actions.content;
   }
 
   private validateCommand(command: CreateActionCommand): void {
     if (command.actionType === 'maneuver' && !command.maneuver) {
       throw new ValidationError(`Maneuver must be provided`);
+    }
+    if (command.actionType === 'cast_spell' && !command.spell) {
+      throw new ValidationError('A spell cast needs its spell', 'err-spell-required');
     }
   }
 
@@ -95,29 +226,73 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     }
   }
 
-  private validateActorRoundAndActions(actorRound: ActorRound, actions: Action[]): void {
-    if (actions.length === 0) {
-      return;
+  /** The maneuver of the action, and the AP range of its skill's profile (Table 8-1). */
+  private async mapManeuver(
+    command: CreateActionCommand,
+  ): Promise<{ maneuver: ActionManeuver | null; apRange: ManeuverActionPoints | null }> {
+    if (command.actionType !== 'maneuver') {
+      return { maneuver: null, apRange: null };
     }
-    //TODO check collisions)
+    const declared = command.maneuver!;
+    const continued = declared.continuesActionId ? await this.readContinuedManeuver(command) : null;
+    const skill = await this.skillCatalog.findSkill(declared.skillId);
+    const maneuverType: ManeuverType = continued ? 'percent' : declared.maneuverType || skill?.maneuver?.defaultType || 'absolute';
+    const range = skill?.maneuver?.actionPoints;
+    const maneuver: ActionManeuver = {
+      modifiers: {
+        skillId: declared.skillId,
+        specialization: declared.specialization ?? continued?.maneuver?.modifiers.specialization ?? null,
+        maneuverType,
+        difficulty: 'm',
+        customBonus: 0,
+        lightModifier: 'none',
+        light: 'no_shadows',
+      },
+      progress: maneuverType === 'percent' ? (continued?.maneuver?.progress ?? 0) : undefined,
+      continuesActionId: continued?.id,
+    };
+    return { maneuver, apRange: range ? { min: range.min, max: range.max } : null };
   }
 
-  private mapManeuver(command: CreateActionCommand): ActionManeuver | null {
-    switch (command.actionType) {
-      case 'maneuver':
-        return {
-          modifiers: {
-            skillId: command.maneuver!.skillId,
-            maneuverType: command.maneuver!.maneuverType,
-            difficulty: 'm',
-            customBonus: 0,
-            lightModifier: 'none',
-            light: 'no_shadows',
-            armorModifier: false,
-          },
-        };
-      default:
-        return null;
+  /** Standing up takes 1 AP to an actor with Acrobatics ranks (Table 8-1, §9.8 Prone). */
+  private async standUpRange(command: CreateActionCommand, actorRound: ActorRound): Promise<ManeuverActionPoints | null> {
+    if (command.actionType !== 'stand_up') {
+      return null;
     }
+    const character = await this.sheets.find(actorRound);
+    const acrobatics = character?.skills?.find(skill => skill.skillId === 'acrobatics')?.ranks || 0;
+    const profile = ActionApProfile.forAction('stand_up', { acrobatics: acrobatics > 0 });
+    return { min: profile.min, max: profile.max };
+  }
+
+  /**
+   * §4.4 of spec 010: a maneuver continues a resolved percent maneuver of the same actor and skill whose task is not
+   * complete yet, and inherits its progress.
+   */
+  private async readContinuedManeuver(command: CreateActionCommand): Promise<Action> {
+    const declared = command.maneuver!;
+    const continued = await this.actionRepository.findById(declared.continuesActionId!);
+    const code = 'err-maneuver-invalid-continuation';
+    if (!continued || continued.actionType !== 'maneuver' || !continued.maneuver) {
+      throw new ValidationError(`Action ${declared.continuesActionId} is not a maneuver to continue`, code);
+    }
+    const modifiers = continued.maneuver.modifiers;
+    if (continued.actorId !== command.actorId || continued.gameId !== command.gameId) {
+      throw new ValidationError('A maneuver can only continue another maneuver of the same actor', code);
+    }
+    if (modifiers.maneuverType !== 'percent') {
+      throw new ValidationError('Only a percent maneuver can be continued', code);
+    }
+    if (declared.maneuverType && declared.maneuverType !== 'percent') {
+      throw new ValidationError('The continuation of a percent maneuver is a percent maneuver', code);
+    }
+    if (continued.status !== 'completed' || continued.maneuver.result?.completed) {
+      throw new ValidationError('Only a resolved percent maneuver whose task is not complete can be continued', code);
+    }
+    const sameSpecialization = !declared.specialization || (modifiers.specialization || null) === declared.specialization;
+    if (modifiers.skillId !== declared.skillId || !sameSpecialization) {
+      throw new ValidationError('The continuation of a maneuver uses the same skill', code);
+    }
+    return continued;
   }
 }

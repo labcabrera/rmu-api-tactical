@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
-import { DeleteGameFactionsCommand } from '../../../application/cqrs/commands/delete-game-factions.command';
+import { DeleteGameFactionsCommand } from '../../../application/cqrs/commands/delete-game-factions.command.js';
 
 export class DeleteGameFactionsDto {
   constructor(factions: string[] = []) {

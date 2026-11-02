@@ -1,16 +1,17 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Body, Controller, Delete, HttpCode, Logger, Param, Post, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, HttpCode, Logger, Param, Post, UseGuards } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
-import { ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
-import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
-import { ErrorDto } from '../../../shared/interfaces/http/dto';
-import { Game } from '../../domain/aggregates/game.aggregate';
-import { AddGameFactionsDto } from './dto/add-game-factions.dto';
-import { DeleteGameFactionsDto } from './dto/delete-game-factions.dto';
-import { GameDto } from './dto/game.dto';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../../shared/infrastructure/security/jwt-auth.guard.js';
+import { Game } from '../../domain/aggregates/game.js';
+import { AddGameFactionsDto } from './dto/add-game-factions.dto.js';
+import { DeleteGameFactionsDto } from './dto/delete-game-factions.dto.js';
+import { GameDto } from './dto/game.dto.js';
+import { ApiErrors } from '../../../shared/interfaces/http/api-errors.decorator.js';
+import { CurrentUser } from '../../../shared/interfaces/http/current-user.decorator.js';
+import type { AuthenticatedUser } from '../../../shared/interfaces/http/authenticated-request.js';
+import { GameAccess, GameAccessGuard } from './security/game-access.guard.js';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, GameAccessGuard)
 @Controller('v1/tactical-games')
 @ApiTags('Games')
 export class GameFactionController {
@@ -18,26 +19,26 @@ export class GameFactionController {
 
   constructor(private commandBus: CommandBus) {}
 
+  @GameAccess('manage')
   @Post(':id/factions')
   @HttpCode(200)
   @ApiOperation({ operationId: 'addGameFactions', summary: 'Add factions to game' })
   @ApiOkResponse({ type: AddGameFactionsDto, description: 'Success' })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  async addFactions(@Param('id') id: string, @Body() dto: AddGameFactionsDto, @Request() req) {
-    const user = req.user!;
-    const command = AddGameFactionsDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+  @ApiErrors()
+  async addFactions(@Param('id') id: string, @Body() dto: AddGameFactionsDto, @CurrentUser() user: AuthenticatedUser) {
+    const command = AddGameFactionsDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<AddGameFactionsDto, Game>(command);
     return GameDto.fromEntity(entity);
   }
 
+  @GameAccess('manage')
   @Delete(':id/factions')
   @HttpCode(200)
   @ApiOperation({ operationId: 'deleteGameFactions', summary: 'Delete game factions' })
   @ApiOkResponse({ type: DeleteGameFactionsDto, description: 'Success' })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  async deleteFactions(@Param('id') id: string, @Body() dto: DeleteGameFactionsDto, @Request() req) {
-    const user = req.user!;
-    const command = DeleteGameFactionsDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+  @ApiErrors()
+  async deleteFactions(@Param('id') id: string, @Body() dto: DeleteGameFactionsDto, @CurrentUser() user: AuthenticatedUser) {
+    const command = DeleteGameFactionsDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<DeleteGameFactionsDto, Game>(command);
     return GameDto.fromEntity(entity);
   }

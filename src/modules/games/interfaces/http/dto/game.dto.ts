@@ -1,15 +1,20 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
-import { PaginationDto } from '../../../../shared/interfaces/http/dto';
-import { Game } from '../../../domain/aggregates/game.aggregate';
-import type { GamePhase } from '../../../domain/value-objects/game-phase.vo';
-import type { GameStatus } from '../../../domain/value-objects/game-status.vo';
-import { ActorDto } from './actor.dto';
-import { GameEnvironmentDto } from './game-environment.dto';
+import { PaginationDto } from '../../../../shared/interfaces/http/dto/page.dto.js';
+import { Game } from '../../../domain/aggregates/game.js';
+import type { GamePhase } from '../../../domain/value-objects/game-phase.vo.js';
+import type { GameStatus } from '../../../domain/value-objects/game-status.vo.js';
+import { TacticalGameOutcomeDto } from './tactical-game-outcome.dto.js';
+import { ActorDto } from './actor.dto.js';
+import { GameEnvironmentDto } from './game-environment.dto.js';
+import { EnvironmentFactionDto } from './environment-faction.dto.js';
 
 export class GameDto {
   @ApiProperty({ description: 'Game identifier', example: 'lotr' })
   id: string;
+
+  @ApiProperty({ type: Number, description: 'Version of optimistic concurrency: it goes up with each write', example: 0 })
+  version: number;
 
   @ApiProperty({ description: 'Strategic Game identifier', example: 'lotr' })
   strategicGameId: string;
@@ -17,7 +22,7 @@ export class GameDto {
   @ApiProperty({ description: 'Name of the game', example: 'Mordor Game 1' })
   name: string;
 
-  @ApiProperty({ description: 'Current status of the game' })
+  @ApiProperty({ type: String, description: 'Current status of the game' })
   @IsString()
   status: GameStatus;
 
@@ -25,7 +30,7 @@ export class GameDto {
   @IsNotEmpty()
   round: number;
 
-  @ApiProperty({ description: 'Current phase of the game' })
+  @ApiProperty({ type: String, description: 'Current phase of the game' })
   @IsString()
   phase: GamePhase;
 
@@ -42,18 +47,46 @@ export class GameDto {
   @ApiProperty({ description: 'Environment configuration for the game', required: false })
   environment: GameEnvironmentDto | undefined;
 
-  @ApiProperty({ description: 'Description of the game', required: false, example: 'Tactical battle in Mordor' })
+  @ApiProperty({
+    description: 'The environment faction (spec 055): the NPCs of no player, owned by the game master',
+    type: EnvironmentFactionDto,
+    nullable: true,
+  })
+  environmentFaction: EnvironmentFactionDto | null;
+
+  @ApiProperty({
+    type: Object,
+    description: 'Workspace spec 068: thresholds of fallen allies already alerted by faction (`{factionId: [key]}`)',
+  })
+  fearThresholdsAlerted: Record<string, string[]>;
+
+  @ApiProperty({ type: String, description: 'Description of the game', required: false, example: 'Tactical battle in Mordor' })
   description: string | undefined;
 
-  @ApiProperty({ description: 'Image URL for the game', required: false, example: 'https://example.com/image.png' })
+  @ApiProperty({ type: String, description: 'Image URL for the game', required: false, example: 'https://example.com/image.png' })
   imageUrl: string | undefined;
 
   @ApiProperty({ description: 'Owner of the game', example: 'user-123' })
   owner: string;
 
+  @ApiProperty({
+    type: String,
+    description: 'Owner of the strategic game, who also manages this game (spec 021); missing in games not migrated yet',
+    required: false,
+    example: 'user-456',
+  })
+  strategicGameOwner?: string;
+
+  @ApiProperty({ type: String, description: 'accessType of the strategic game: who reads this game (spec 021)', example: 'private' })
+  accessType: string;
+
+  @ApiProperty({ description: 'Outcome of a finished game (spec 013)', type: () => TacticalGameOutcomeDto, required: false })
+  outcome?: TacticalGameOutcomeDto;
+
   static fromEntity(entity: Game) {
     const dto = new GameDto();
     dto.id = entity.id;
+    dto.version = entity.version;
     dto.strategicGameId = entity.strategicGameId;
     dto.name = entity.name;
     dto.status = entity.status;
@@ -62,9 +95,14 @@ export class GameDto {
     dto.factions = entity.factions;
     dto.actors = entity.actors.map(actor => ActorDto.fromEntity(actor));
     dto.environment = entity.environment ? GameEnvironmentDto.fromEntity(entity.environment) : undefined;
+    dto.environmentFaction = entity.environmentFaction ? EnvironmentFactionDto.fromEntity(entity.environmentFaction) : null;
+    dto.fearThresholdsAlerted = entity.fearThresholdsAlerted ?? {};
     dto.description = entity.description;
     dto.imageUrl = entity.imageUrl;
     dto.owner = entity.owner;
+    dto.strategicGameOwner = entity.strategicGameOwner;
+    dto.accessType = entity.accessType;
+    dto.outcome = entity.outcome ? TacticalGameOutcomeDto.fromEntity(entity.outcome) : undefined;
     return dto;
   }
 }
@@ -78,7 +116,6 @@ export class GamePageDto {
   @ApiProperty({
     type: [GameDto],
     description: 'Games',
-    isArray: true,
   })
   content: GameDto[];
   @ApiProperty({ type: PaginationDto, description: 'Pagination information' })

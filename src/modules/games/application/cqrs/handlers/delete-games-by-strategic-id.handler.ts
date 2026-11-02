@@ -1,17 +1,15 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import type { GameEventBusPort } from '../../ports/game-event-bus.port';
-import type { GameRepository } from '../../ports/game.repository';
-import { DeleteGameCommand } from '../commands/delete-game.command';
-import { DeleteGamesByStrategicIdCommand } from '../commands/delete-games-by-strategic-id.command';
+import { CommandBus, CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port.js';
+import { DeleteGameCommand } from '../commands/delete-game.command.js';
+import { DeleteGamesByStrategicIdCommand } from '../commands/delete-games-by-strategic-id.command.js';
 
 @CommandHandler(DeleteGamesByStrategicIdCommand)
 export class DeleteGamesByStrategicIdHandler implements ICommandHandler<DeleteGamesByStrategicIdCommand> {
   private readonly logger = new Logger(DeleteGamesByStrategicIdHandler.name);
 
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('GameEventBus') private readonly gameEventBus: GameEventBusPort,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
     private readonly commandBus: CommandBus,
   ) {}
 
@@ -23,6 +21,6 @@ export class DeleteGamesByStrategicIdHandler implements ICommandHandler<DeleteGa
       return;
     }
     await Promise.all(games.map(game => this.commandBus.execute(new DeleteGameCommand(game.id, command.userId, command.roles))));
-    //TODO notify?
+    // Each DeleteGameCommand publishes its own `deleted` event.
   }
 }

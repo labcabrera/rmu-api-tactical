@@ -1,0 +1,15 @@
+import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command.js';
+import type { DefenseLevel } from '../../../domain/value-objects/actor-round-defense-mode.vo.js';
+
+/** Command to declare how an actor dodges and blocks this round. */
+export class DeclareDefenseModeCommand extends AuthenticatedCommand {
+  constructor(
+    public readonly actorRoundId: string,
+    public readonly dodge: DefenseLevel | undefined,
+    public readonly block: DefenseLevel | undefined,
+    userId: string,
+    roles: string[],
+  ) {
+    super(userId, roles);
+  }
+}

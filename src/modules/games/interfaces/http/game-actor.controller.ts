@@ -1,18 +1,19 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Body, Controller, Delete, HttpCode, Logger, Param, Post, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, HttpCode, Logger, Param, Post, UseGuards } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
-import { ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
-import { JwtAuthGuard } from 'src/modules/auth/jwt.auth.guard';
-import { ErrorDto } from '../../../shared/interfaces/http/dto';
-import { AddGameActorsCommand } from '../../application/cqrs/commands/add-game-actors.command';
-import { DeleteGameActorsCommand } from '../../application/cqrs/commands/delete-game-actors.command';
-import { Game } from '../../domain/aggregates/game.aggregate';
-import { AddGameActorsDto } from './dto/add-game-actors.dto';
-import { DeleteGameActorsDto } from './dto/delete-game-actors.dto';
-import { GameDto } from './dto/game.dto';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../../shared/infrastructure/security/jwt-auth.guard.js';
+import { AddGameActorsCommand } from '../../application/cqrs/commands/add-game-actors.command.js';
+import { DeleteGameActorsCommand } from '../../application/cqrs/commands/delete-game-actors.command.js';
+import { Game } from '../../domain/aggregates/game.js';
+import { AddGameActorsDto } from './dto/add-game-actors.dto.js';
+import { DeleteGameActorsDto } from './dto/delete-game-actors.dto.js';
+import { GameDto } from './dto/game.dto.js';
+import { ApiErrors } from '../../../shared/interfaces/http/api-errors.decorator.js';
+import { CurrentUser } from '../../../shared/interfaces/http/current-user.decorator.js';
+import type { AuthenticatedUser } from '../../../shared/interfaces/http/authenticated-request.js';
+import { GameAccess, GameAccessGuard } from './security/game-access.guard.js';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, GameAccessGuard)
 @Controller('v1/tactical-games')
 @ApiTags('Games')
 export class GameActorController {
@@ -20,26 +21,26 @@ export class GameActorController {
 
   constructor(private commandBus: CommandBus) {}
 
+  @GameAccess('manage')
   @Post(':id/actors')
   @HttpCode(200)
   @ApiOperation({ operationId: 'addActors', summary: 'Add actors to game' })
   @ApiOkResponse({ type: AddGameActorsDto, description: 'Success' })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  async addActors(@Param('id') id: string, @Body() dto: AddGameActorsDto, @Request() req) {
-    const user = req.user!;
-    const command = AddGameActorsDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+  @ApiErrors()
+  async addActors(@Param('id') id: string, @Body() dto: AddGameActorsDto, @CurrentUser() user: AuthenticatedUser) {
+    const command = AddGameActorsDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<AddGameActorsCommand, Game>(command);
     return GameDto.fromEntity(entity);
   }
 
+  @GameAccess('manage')
   @Delete(':id/actors')
   @HttpCode(200)
   @ApiOperation({ operationId: 'deleteGameActors', summary: 'Delete game actors' })
   @ApiOkResponse({ type: DeleteGameActorsDto, description: 'Success' })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication token', type: ErrorDto })
-  async deleteActors(@Param('id') id: string, @Body() dto: DeleteGameActorsDto, @Request() req) {
-    const user = req.user!;
-    const command = DeleteGameActorsDto.toCommand(id, dto, user.id as string, user.roles as string[]);
+  @ApiErrors()
+  async deleteActors(@Param('id') id: string, @Body() dto: DeleteGameActorsDto, @CurrentUser() user: AuthenticatedUser) {
+    const command = DeleteGameActorsDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<DeleteGameActorsCommand, Game>(command);
     return GameDto.fromEntity(entity);
   }

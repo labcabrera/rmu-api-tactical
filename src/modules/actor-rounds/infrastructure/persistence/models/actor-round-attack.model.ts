@@ -1,4 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
+import type { WeaponCategory } from '../../../domain/value-objects/actor-round-attack.vo.js';
 
 @Schema({ _id: false })
 export class BoModifiers {
@@ -37,7 +38,7 @@ export class ActorRoundAttack {
   @Prop({ required: true })
   currentBo: number;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   type: 'melee' | 'ranged';
 
   @Prop({ required: true })
@@ -61,4 +62,28 @@ export class ActorRoundAttack {
 
   @Prop({ type: [AttackRange], required: false })
   ranges: AttackRange[] | null;
+
+  @Prop({ type: Boolean, required: false, default: false })
+  twoHanded: boolean;
+
+  @Prop({ type: String, required: false, default: 'standard' })
+  weaponCategory: WeaponCategory;
+
+  @Prop({ type: String, required: false })
+  skillId: string | null;
+
+  @Prop({ type: String, required: false })
+  itemId?: string | null;
+
+  @Prop({ type: Number, required: false, default: 0 })
+  breakagePenalty?: number;
+
+  @Prop({ type: Boolean, required: false, default: false })
+  broken?: boolean;
+
+  @Prop({ type: [String], required: false, default: [] })
+  weaponTags?: string[];
+
+  @Prop({ type: Number, required: false })
+  strengthWeight?: number | null;
 }

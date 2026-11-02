@@ -1,17 +1,19 @@
-import { CalledShot } from '../../../domain/value-objects/action-attack-modifiers.vo';
-
-export type CoverType = 'none' | 'soft_partial' | 'soft_half' | 'soft_full' | 'hard_partial' | 'hard_half' | 'hard_full';
-export type RestrictedQuartersType = 'none' | 'close' | 'cramped' | 'tight' | 'confined';
-export type PositionalSourceType = 'none' | 'to_flank' | 'to_rear';
-export type PositionalTargetType = 'none' | 'flank' | 'rear';
-export type DodgeType = 'none' | 'passive' | 'partial' | 'full';
+import type {
+  CalledShot,
+  ChargeSpeed,
+  Cover,
+  PositionalSource,
+  PositionalTarget,
+  ProtectPosition,
+  RestrictedQuarters,
+} from '../../../domain/value-objects/action-attack-modifiers.vo.js';
 
 export class PrepareAttackCommand {
   constructor(
     public readonly actionId: string,
     public readonly attacks: PrepareAttackCommandItem[],
-    public readonly userId,
-    public readonly userRoles,
+    public readonly userId: string,
+    public readonly userRoles: string[],
   ) {}
 }
 
@@ -20,6 +22,7 @@ export class PrepareAttackCommandItem {
     public attackName: string,
     public modifiers: PrepareAttackCommandModifiers,
     public protectors: string[] | null,
+    public protectorPositions?: Record<string, ProtectPosition>,
   ) {}
 }
 
@@ -29,11 +32,10 @@ export class PrepareAttackCommandModifiers {
     public bo: number,
     public calledShot: CalledShot | undefined,
     public calledShotPenalty: number | undefined,
-    public positionalSource: string | undefined,
-    public positionalTarget: string | undefined,
-    public restrictedQuarters: string | undefined,
-    public cover: string | undefined,
-    public dodge: string | undefined,
+    public positionalSource: PositionalSource | undefined,
+    public positionalTarget: PositionalTarget | undefined,
+    public restrictedQuarters: RestrictedQuarters | undefined,
+    public cover: Cover | undefined,
     public disabledDB: boolean | undefined,
     public disabledShield: boolean | undefined,
     public disabledParry: boolean | undefined,
@@ -49,6 +51,8 @@ export class PrepareAttackCommandModifiers {
     public ambush: boolean | undefined,
     public range: number | undefined,
     public customBonus: number | undefined,
+    public chargeSpeed: ChargeSpeed | undefined,
+    public styleCriticalOption?: string,
   ) {}
 }
 

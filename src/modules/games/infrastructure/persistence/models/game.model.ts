@@ -1,15 +1,21 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
-import type { GamePhase } from '../../../domain/value-objects/game-phase.vo';
-import type { GameStatus } from '../../../domain/value-objects/game-status.vo';
-import { Actor, GameEnvironment } from './game.model-childs';
+import type { HydratedDocument } from 'mongoose';
+import type { GamePhase } from '../../../domain/value-objects/game-phase.vo.js';
+import type { GameStatus } from '../../../domain/value-objects/game-status.vo.js';
+import type { EnvironmentFaction } from '../../../domain/value-objects/environment-faction.vo.js';
+import type { TacticalGameOutcome } from '../../../domain/value-objects/tactical-game-outcome.vo.js';
+import { Actor, GameEnvironment } from './game-childs.model.js';
 
-export type GameDocument = GameModel & Document;
+export type GameDocument = HydratedDocument<GameModel>;
 
 @Schema({ collection: 'tactical-games', _id: false, versionKey: false })
 export class GameModel {
   @Prop({ required: true })
   _id: string;
+
+  /** Optimistic concurrency: +1 on each write. Documents stored before it existed have none (version 0). */
+  @Prop({ type: Number, default: 0 })
+  version: number;
 
   @Prop({ required: true })
   strategicGameId: string;
@@ -17,13 +23,13 @@ export class GameModel {
   @Prop({ required: true })
   name: string;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   status: GameStatus;
 
   @Prop({ required: true })
   round: number;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   phase: GamePhase;
 
   @Prop({ required: true })
@@ -35,6 +41,14 @@ export class GameModel {
   @Prop({ type: GameEnvironment, required: false })
   environment?: GameEnvironment;
 
+  /** Spec 055: the environment faction, `{factionId, name, npcs}`. Missing in games without one. */
+  @Prop({ type: Object, required: false })
+  environmentFaction?: EnvironmentFaction | null;
+
+  /** Workspace spec 068: thresholds of fallen allies already alerted, by faction. */
+  @Prop({ type: Object, required: false })
+  fearThresholdsAlerted?: Record<string, string[]> | null;
+
   @Prop({ required: false })
   description: string;
 
@@ -43,6 +57,18 @@ export class GameModel {
 
   @Prop({ required: true })
   owner: string;
+
+  /** Spec 021: owner of the strategic game, who also manages this one. */
+  @Prop({ required: false })
+  strategicGameOwner?: string;
+
+  /** Spec 021: accessType of the strategic game. Missing means private. */
+  @Prop({ required: false })
+  accessType?: string;
+
+  /** Spec 013: set when the game is finished. */
+  @Prop({ type: Object, required: false })
+  outcome?: TacticalGameOutcome;
 
   @Prop({ required: true })
   createdAt: Date;

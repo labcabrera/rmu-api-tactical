@@ -1,7 +1,8 @@
+import type { LightType } from '../../../domain/value-objects/light-type.vo.js';
 import { Prop, Schema } from '@nestjs/mongoose';
-import { Difficulty } from '../../../domain/value-objects/dificulty.vo';
-import type { Pace } from '../../../domain/value-objects/pace.vo';
-import { ActionRoll } from './action-roll.model';
+import type { Difficulty } from '../../../domain/value-objects/difficulty.vo.js';
+import type { Pace } from '../../../domain/value-objects/pace.vo.js';
+import { ActionRoll } from './action-roll.model.js';
 
 @Schema({ _id: false })
 export class ActionMovementModifiers {
@@ -19,6 +20,9 @@ export class ActionMovementModifiers {
 
   @Prop({ type: Number, required: false })
   customBonus: number | null;
+
+  @Prop({ type: String, required: false })
+  light?: LightType | null;
 }
 
 @Schema({ _id: false })

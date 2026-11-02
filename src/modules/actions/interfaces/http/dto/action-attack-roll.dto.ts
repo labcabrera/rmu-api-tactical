@@ -1,24 +1,25 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActionAttackRoll } from '../../../domain/value-objects/action-attack-roll.vo';
+import { ActionAttackRoll } from '../../../domain/value-objects/action-attack-roll.vo.js';
 
 export class ActionAttackRollDto {
   @ApiProperty({ description: 'The attack roll', example: 15 })
   roll: number;
 
-  @ApiProperty({ description: 'Numeric roll value for location determination', required: false, example: 12 })
-  locationRoll: number | undefined;
-
-  @ApiProperty({ description: 'The critical rolls', example: { s_c_1: 42 }, required: false })
+  @ApiProperty({ description: 'The critical rolls as rolled, by critical key', example: { s_c_1: 42 }, required: false })
   criticalRolls: Map<string, number | undefined> | undefined;
 
-  @ApiProperty({ description: 'The fumble roll value if required', required: false, example: 3 })
+  @ApiProperty({ type: Number, description: 'The fumble roll value if required', required: false, example: 3 })
   fumbleRoll: number | undefined;
+
+  @ApiProperty({ type: Number, description: 'First die of the open-ended attack roll, unmodified', required: false, example: 4 })
+  unmodified?: number;
+
   static fromEntity(entity: ActionAttackRoll): ActionAttackRollDto {
     const dto = new ActionAttackRollDto();
     dto.roll = entity.roll;
-    dto.locationRoll = entity.locationRoll;
     dto.criticalRolls = entity.criticalRolls ? entity.criticalRolls : undefined;
     dto.fumbleRoll = entity.fumbleRoll;
+    dto.unmodified = entity.unmodified;
     return dto;
   }
 }

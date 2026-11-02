@@ -1,27 +1,29 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
-import type { GameRepository } from '../../../../games/application/ports/game.repository';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
-import { Action } from '../../../domain/aggregates/action.aggregate';
-import { ActionUpdatedEvent } from '../../../domain/events/action-events';
-import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
-import type { ActionRepository } from '../../ports/action.repository';
-import type { AttackPort } from '../../ports/attack.port';
-import { DeclareParryCommand } from '../commands/declare-parry.command';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import {
+  type ActorRoundRepository,
+  ACTOR_ROUND_REPOSITORY,
+} from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { Action } from '../../../domain/aggregates/action.js';
+import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
+import { ActionAttack } from '../../../domain/value-objects/action-attack.vo.js';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
+import { CombatModifierBag, CombatProcessor, PARRY_PHASE } from '../../services/combat/index.js';
+import { DeclareParryCommand } from '../commands/declare-parry.command.js';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 @CommandHandler(DeclareParryCommand)
 export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand, Action> {
   private readonly logger = new Logger(DeclareParryHandler.name);
 
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('CharacterClient') private readonly characterClient: CharacterPort,
-    @Inject('AttackPort') private readonly attackPort: AttackPort,
-    @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
+    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
+    private readonly combatProcessor: CombatProcessor,
   ) {}
 
   async execute(command: DeclareParryCommand): Promise<Action> {
@@ -31,6 +33,7 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
 
     const game = await this.gameRepository.findById(action.gameId);
     if (!game) throw new NotFoundError('Game', action.gameId);
+    game.checkNotFinished();
 
     const attacks = action.attacks!;
     action.checkValidParryDeclaration();
@@ -48,27 +51,44 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
       if (!parry) {
         throw new ValidationError(`Parry ${parryItem.parryId} not found`);
       }
+      // A parry carried over from an earlier action against this foe is fixed: its OB is already spent.
+      if (parry.carriedOver) {
+        return;
+      }
+      if (parryItem.parry < 0 || parryItem.parry > parry.parryAvailable) {
+        throw new ValidationError(`Parry must be between 0 and ${parry.parryAvailable}`);
+      }
       parry.parry = parryItem.parry;
+    });
+
+    // The parries of one actor share its available parry; protecting also spends the protect penalty.
+    const byActor = new Map<string, { total: number; available: number }>();
+    action.parries
+      ?.filter(parry => !parry.carriedOver)
+      .forEach(parry => {
+        const penalty = -(parry.penalty || 0);
+        const entry = byActor.get(parry.actorId) || { total: 0, available: 0 };
+        entry.total += (parry.parry || 0) + (parry.parry > 0 ? penalty : 0);
+        entry.available = Math.max(entry.available, parry.parryAvailable + penalty);
+        byActor.set(parry.actorId, entry);
+      });
+    byActor.forEach(({ total, available }) => {
+      if (total > available) throw new ValidationError(`Parries add up to ${total}, above the ${available} available`);
     });
 
     // Set up parry values in attacks
     action.applyParrysToAttacks();
 
-    // Update attack total parry and sent to attack port
-    await Promise.all(
-      attacks.map(async attack => {
-        const updatedAttack = await this.attackPort.updateParry(attack.externalAttackId!, attack.modifiers.parry!);
-        attack.calculated!.rollModifiers = updatedAttack.calculated.rollModifiers;
-        attack.calculated!.rollTotal = updatedAttack.calculated.rollTotal;
-      }),
-    );
+    for (const attack of attacks) {
+      await this.refreshAttackCalculation(action, attack);
+    }
 
     // Update action and publish events
-    action.status = 'pending_attack_roll';
+    action.status = 'pending_roll';
     action.updatedAt = new Date();
-    const updated = await this.actionRepository.update(action.id, action);
-    await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
-    return action;
+    const updated = await this.actionRepository.update(action);
+    await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
+    return updated;
   }
 
   private resolveActorIds(action: Action): string[] {
@@ -78,5 +98,15 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
       actorIds.add(attack.modifiers.targetId!);
     });
     return Array.from(actorIds);
+  }
+
+  private async refreshAttackCalculation(action: Action, attack: ActionAttack): Promise<void> {
+    if (!attack.calculated) {
+      return;
+    }
+    const ctx = await this.combatProcessor.runPhase(PARRY_PHASE, { action, attack, trace: [], skipped: [] });
+    // A parry declared again replaces the rules its phase skipped
+    attack.calculated.skipped = [...(attack.calculated.skipped ?? []).filter(rule => rule.phase !== PARRY_PHASE), ...ctx.skipped!];
+    attack.calculated.rollTotal = CombatModifierBag.from(attack.calculated.rollModifiers).sum();
   }
 }

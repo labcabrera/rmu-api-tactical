@@ -1,21 +1,27 @@
-import { Inject, Logger, NotImplementedException } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Actor } from '../../../../games/domain/value-objects/actor.vo';
-import { ValidationError } from '../../../../shared/domain/errors';
-import type { CharacterPort } from '../../../../strategic/application/ports/character.port';
-import { ActorRound } from '../../../domain/aggregates/actor-round.aggregate';
-import type { ActorRoundCharacterMapperPort } from '../../ports/actor-round-character-mapper-port';
-import type { ActorRoundRepository } from '../../ports/actor-round.repository';
-import { CreateActorRoundCommand } from '../commands/create-actor-round.command';
+import { Inject, Logger } from '@nestjs/common';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { Actor } from '../../../../games/domain/value-objects/actor.vo.js';
+import { type NpcPort, NPC_PORT } from '../../../../npcs/application/ports/npc.port.js';
+import { ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port.js';
+import { type ItemPort, ITEM_PORT } from '../../../../strategic/application/ports/item.port.js';
+import { ActorRound } from '../../../domain/aggregates/actor-round.js';
+import { type ActorRoundCharacterMapperPort, ACTOR_ROUND_CHARACTER_MAPPER_PORT } from '../../ports/actor-round-character-mapper.port.js';
+import { type ActorRoundNpcMapperPort, ACTOR_ROUND_NPC_MAPPER_PORT } from '../../ports/actor-round-npc-mapper.port.js';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port.js';
+import { CreateActorRoundCommand } from '../commands/create-actor-round.command.js';
 
 @CommandHandler(CreateActorRoundCommand)
 export class CreateActorRoundHandler implements ICommandHandler<CreateActorRoundCommand, ActorRound> {
   private readonly logger = new Logger(CreateActorRoundHandler.name);
 
   constructor(
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject('CharacterClient') private readonly characterClient: CharacterPort,
-    @Inject('ActorRoundCharacterMapperPort') private readonly characterMapper: ActorRoundCharacterMapperPort,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(CHARACTER_PORT) private readonly characterClient: CharacterPort,
+    @Inject(ACTOR_ROUND_CHARACTER_MAPPER_PORT) private readonly characterMapper: ActorRoundCharacterMapperPort,
+    @Inject(ITEM_PORT) private readonly itemClient: ItemPort,
+    @Inject(NPC_PORT) private readonly npcPort: NpcPort,
+    @Inject(ACTOR_ROUND_NPC_MAPPER_PORT) private readonly npcMapper: ActorRoundNpcMapperPort,
   ) {}
 
   async execute(command: CreateActorRoundCommand): Promise<ActorRound> {
@@ -30,7 +36,7 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
       return await this.buildFromTemplate(gameId, actor, round);
     }
     // character could be added in a later round
-    const prev = await this.actorRoundRepository.findByActorIdAndRound(actor.id, round - 1);
+    const prev = await this.actorRoundRepository.findByActorIdAndRound(gameId, actor.id, round - 1);
     if (prev) {
       return ActorRound.createFromPrevious(prev);
     }
@@ -40,14 +46,22 @@ export class CreateActorRoundHandler implements ICommandHandler<CreateActorRound
   public async buildFromTemplate(gameId: string, actor: Actor, round: number): Promise<ActorRound> {
     if (actor.type === 'character') {
       return await this.buildActorRoundFromCharacter(gameId, round, actor.id);
-    } else {
-      throw new NotImplementedException(`Actor type ${actor.type} not supported yet`);
     }
+    return await this.buildActorRoundFromNpc(gameId, round, actor);
+  }
+
+  /** Spec 055: a specimen of an NPC, from its stat block; it always comes in unhurt (nothing is kept between games). */
+  private async buildActorRoundFromNpc(gameId: string, round: number, actor: Actor): Promise<ActorRound> {
+    if (!actor.npcId) throw new ValidationError(`Actor ${actor.name} is an NPC without npcId`);
+    const npc = await this.npcPort.findById(actor.npcId);
+    if (!npc) throw new ValidationError(`NPC ${actor.npcId} not found`, 'err-npc-not-found');
+    return this.npcMapper.toActorRound(gameId, round, actor, npc);
   }
 
   private async buildActorRoundFromCharacter(gameId: string, round: number, characterId: string): Promise<ActorRound> {
     const character = await this.characterClient.findById(characterId);
     if (!character) throw new ValidationError(`Character ${characterId} not found`);
-    return this.characterMapper.toActorRound(gameId, round, character);
+    const items = await this.itemClient.findByCharacterId(characterId);
+    return this.characterMapper.toActorRound(gameId, round, character, items);
   }
 }

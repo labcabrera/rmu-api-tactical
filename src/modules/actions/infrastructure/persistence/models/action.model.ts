@@ -1,19 +1,26 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import type { HydratedDocument } from 'mongoose';
 
-import type { ActionStatus } from '../../../domain/value-objects/action-status.vo';
-import type { ActionType } from '../../../domain/value-objects/action-type.vo';
-import { ActionAttack } from './action-attack.model';
-import { ActionManeuver } from './action-maneuver.model';
-import { ActionMovement } from './action-movement.model';
-import { ActionParry } from './action-parry.model';
+import type { ActionStatus } from '../../../domain/value-objects/action-status.vo.js';
+import type { ActionType } from '../../../domain/value-objects/action-type.vo.js';
+import type { ActionSpell } from '../../../domain/value-objects/action-spell.vo.js';
+import type { ActionMedical, ActionUseItem } from '../../../domain/value-objects/action-medical.vo.js';
+import { ActionAttack } from './action-attack.model.js';
+import { ActionManeuver } from './action-maneuver.model.js';
+import { ActionMovement } from './action-movement.model.js';
+import { ActionParry, ParryExclusionModel } from './action-parry.model.js';
+import { ActionApRangeModel, ActionResolutionModel } from './action-resolution.model.js';
 
-export type ActionDocument = ActionModel & Document;
+export type ActionDocument = HydratedDocument<ActionModel>;
 
 @Schema({ collection: 'actions', _id: false, versionKey: false })
 export class ActionModel {
   @Prop({ required: true })
   _id: string;
+
+  /** Optimistic concurrency: +1 on each write. Documents stored before it existed have none (version 0). */
+  @Prop({ type: Number, default: 0 })
+  version: number;
 
   @Prop({ required: true })
   gameId: string;
@@ -21,13 +28,13 @@ export class ActionModel {
   @Prop({ required: true })
   actorId: string;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   status: ActionStatus;
 
   @Prop({ required: true })
   round: number;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   actionType: ActionType;
 
   @Prop({ required: true })
@@ -54,11 +61,38 @@ export class ActionModel {
   @Prop({ type: [ActionParry], required: false })
   public parries: ActionParry[] | null;
 
+  @Prop({ type: [ParryExclusionModel], required: false })
+  public parryExclusions: ParryExclusionModel[] | null;
+
   @Prop({ type: Number, required: false })
   fatigue: number | null;
 
   @Prop({ type: String, required: false })
   description: string | null;
+
+  @Prop({ type: ActionResolutionModel, required: false })
+  resolution?: ActionResolutionModel | null;
+
+  @Prop({ type: ActionApRangeModel, required: false })
+  apRange?: ActionApRangeModel | null;
+
+  @Prop({ type: String, required: false })
+  continuesActionId?: string | null;
+
+  @Prop({ type: Number, required: false })
+  carriedAp?: number | null;
+
+  /** Spec 030: the spell of a `cast_spell` action, stored as the domain value object. */
+  @Prop({ type: Object, required: false })
+  spell?: ActionSpell | null;
+
+  /** Workspace spec 068: the procedure of a `medical` action, stored as the domain value object. */
+  @Prop({ type: Object, required: false })
+  medical?: ActionMedical | null;
+
+  /** Workspace spec 068: the item of a `use_item` action. */
+  @Prop({ type: Object, required: false })
+  useItem?: ActionUseItem | null;
 
   @Prop({ required: true })
   owner: string;

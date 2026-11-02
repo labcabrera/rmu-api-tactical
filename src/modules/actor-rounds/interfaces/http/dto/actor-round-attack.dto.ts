@@ -1,6 +1,7 @@
-import { ActorRoundAttack } from '../../../domain/value-objets/actor-round-attack.vo';
-import { BoModifiers } from '../../../infrastructure/persistence/models/actor-round-attack.model';
-import { AttackRangeDto } from './attack-range.dto';
+import { ApiProperty } from '@nestjs/swagger';
+import { ActorRoundAttack, type WeaponCategory } from '../../../domain/value-objects/actor-round-attack.vo.js';
+import { BoModifiers } from '../../../infrastructure/persistence/models/actor-round-attack.model.js';
+import { AttackRangeDto } from './attack-range.dto.js';
 
 export class BoModifiersDto {
   key: string;
@@ -30,6 +31,25 @@ export class ActorRoundAttackDto {
   fumble: number;
   canThrow: boolean;
   ranges: AttackRangeDto[] | undefined;
+  twoHanded: boolean;
+  weaponCategory: WeaponCategory;
+  /** Skill of the weapon, such as `melee-weapon@blade`; null for older actor rounds. */
+  skillId: string | null;
+
+  @ApiProperty({ type: String, description: 'Item of the attack (spec 019)', nullable: true, required: false })
+  itemId: string | null;
+
+  @ApiProperty({ description: 'Breakage damage of the item in the game, in currentBo', example: 0 })
+  breakagePenalty: number;
+
+  @ApiProperty({ description: 'The item broke in the game: the attack cannot be declared', example: false })
+  broken: boolean;
+
+  @ApiProperty({ type: [String], description: 'Tags of the weapon type (spec 032)', example: ['fencing'] })
+  weaponTags: string[];
+
+  @ApiProperty({ type: Number, nullable: true, description: 'Times St enters the skill bonus of the attack (spec 040)', example: 2 })
+  strengthWeight: number | null;
 
   static fromEntity(entity: ActorRoundAttack): ActorRoundAttackDto {
     const dto = new ActorRoundAttackDto();
@@ -43,6 +63,14 @@ export class ActorRoundAttackDto {
     dto.attackSize = entity.attackSize;
     dto.fumble = entity.fumble;
     dto.canThrow = entity.canThrow;
+    dto.twoHanded = entity.twoHanded ?? false;
+    dto.weaponCategory = entity.weaponCategory ?? 'standard';
+    dto.skillId = entity.skillId ?? null;
+    dto.itemId = entity.itemId ?? null;
+    dto.breakagePenalty = entity.breakagePenalty ?? 0;
+    dto.broken = entity.broken ?? false;
+    dto.weaponTags = [...(entity.weaponTags ?? [])];
+    dto.strengthWeight = entity.strengthWeight ?? null;
     dto.ranges = entity.ranges && entity.ranges.length > 0 ? entity.ranges.map(r => AttackRangeDto.fromEntity(r)) : undefined;
     return dto;
   }

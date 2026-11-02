@@ -1,26 +1,54 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { AttackLocation } from '../../../domain/value-objects/attack-location.vo';
-import { KeyValueModifierDto } from './key-value-modifier.dto';
+import { ActionAttackCalculated } from '../../../domain/value-objects/action-attack-calculated.vo.js';
+import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo.js';
+import { KeyValueModifierDto } from './key-value-modifier.dto.js';
+import { SkippedRuleDto } from './skipped-rule.dto.js';
 
 export class ActionAttackCalculatedDto {
-  @ApiProperty({ description: 'Total attack value after applying all modifiers' })
+  @ApiProperty({ description: 'Modifiers of the attack roll, with the plugin that added each one', type: [KeyValueModifierDto] })
   rollModifiers: KeyValueModifierDto[];
 
-  @ApiProperty({ description: 'Sum of all modifiers', example: 42 })
+  @ApiProperty({ description: 'Modifiers of the critical rolls, with the plugin that added each one', type: [KeyValueModifierDto] })
+  criticalModifiers: KeyValueModifierDto[];
+
+  @ApiProperty({ description: 'Sum of the modifiers; once rolled, the roll plus the modifiers', example: 42 })
   rollTotal: number;
 
-  @ApiProperty({ description: 'Whether a location roll is required', required: true, example: false })
-  requiredLocationRoll: boolean;
-
-  @ApiProperty({ description: 'The location hit by the attack', required: false })
+  @ApiProperty({
+    type: String,
+    description: 'The location hit by a called shot (no location is rolled otherwise)',
+    required: false,
+    enum: ['head', 'chest', 'abdomen', 'arms', 'legs'],
+  })
   location: AttackLocation | undefined;
 
-  static fromEntity(entity: ActionAttackCalculatedDto): ActionAttackCalculatedDto {
+  @ApiProperty({ type: Number, description: 'Sum of the critical modifiers, added to each critical roll', required: false, example: 1 })
+  criticalAdjustment: number | undefined;
+
+  @ApiProperty({ type: Boolean, description: 'Whether the attack roll requires a breakage roll', required: false, example: true })
+  breakageRoll: boolean | undefined;
+
+  @ApiProperty({
+    type: Number,
+    description: "Fumble range of the attack roll: the weapon's, widened by the target's Foiler",
+    required: false,
+    example: 4,
+  })
+  fumble: number | undefined;
+
+  @ApiProperty({ description: 'Rules that did not apply to the attack, and why', type: [SkippedRuleDto], required: false })
+  skipped: SkippedRuleDto[];
+
+  static fromEntity(entity: ActionAttackCalculated): ActionAttackCalculatedDto {
     const dto = new ActionAttackCalculatedDto();
     dto.rollModifiers = entity.rollModifiers ? entity.rollModifiers.map(mod => KeyValueModifierDto.fromEntity(mod)) : [];
+    dto.criticalModifiers = entity.criticalModifiers ? entity.criticalModifiers.map(mod => KeyValueModifierDto.fromEntity(mod)) : [];
     dto.rollTotal = entity.rollTotal;
     dto.location = entity.location;
-    dto.requiredLocationRoll = entity.requiredLocationRoll;
+    dto.criticalAdjustment = entity.criticalAdjustment;
+    dto.breakageRoll = entity.breakageRoll;
+    dto.fumble = entity.fumble;
+    dto.skipped = (entity.skipped ?? []).map(rule => SkippedRuleDto.fromEntity(rule));
     return dto;
   }
 }

@@ -1,20 +1,43 @@
+import { ItemConsumedDto, TemporaryModifierDto } from './temporary-modifier.dto.js';
+import { ActorRoundItemDto } from './actor-round-item.dto.js';
+import { BreakageCheckResultDto } from './resolve-breakage-check.dto.js';
+import { ActorRoundActiveStyleDto, ActorRoundFightingStyleDto } from './actor-round-fighting-style.dto.js';
 import { ApiProperty } from '@nestjs/swagger';
-import { PaginationDto } from '../../../../shared/interfaces/http/dto';
-import { ActorRound } from '../../../domain/aggregates/actor-round.aggregate';
-import { ActorRoundEffect } from '../../../domain/value-objets/actor-round-effect.vo';
-import { ActorRoundAlertDto } from './actor-round-alert.dto';
-import { ActorRoundAttackDto } from './actor-round-attack.dto';
-import { ActorRoundDefenseDto } from './actor-round-defense.dto';
-import { ActorRoundFatigueDto } from './actor-round-fatigue.dto';
-import { ActorRoundHPDto } from './actor-round-hp.dto';
-import { ActorRoundInitiativeDto } from './actor-round-initiative.dto';
-import { ActorRoundMovementDto } from './actor-round-movement.dto';
-import { ActorRoundParryDto } from './actor-round-parry.dto';
-import { ActorRoundPenaltyDto } from './actor-round-penalty.dto';
+import { PaginationDto } from '../../../../shared/interfaces/http/dto/page.dto.js';
+import { ActorRound } from '../../../domain/aggregates/actor-round.js';
+import { ActorRoundEffect } from '../../../domain/value-objects/actor-round-effect.vo.js';
+import { ActorRoundAlertDto } from './actor-round-alert.dto.js';
+import { ActorRoundApLedgerEntryDto } from './actor-round-ap-ledger-entry.dto.js';
+import { ActorRoundApModifierDto } from './actor-round-ap-modifier.dto.js';
+import { ActorRoundAttackDto } from './actor-round-attack.dto.js';
+import { ActorRoundDefenseModeDto } from './actor-round-defense-mode.dto.js';
+import { ActorRoundDefenseDto } from './actor-round-defense.dto.js';
+import { ActorRoundFatigueDto } from './actor-round-fatigue.dto.js';
+import { ActorRoundHPDto } from './actor-round-hp.dto.js';
+import { ActorRoundSnapshotDto, InjuryDto } from './actor-round-injury.dto.js';
+import { PoisonExposureDto } from './poison.dto.js';
+import { ActorRoundInitiativeDto } from './actor-round-initiative.dto.js';
+import { ActorRoundMovementDto } from './actor-round-movement.dto.js';
+import { HpLogEntryDto } from './hp-log-entry.dto.js';
+import { ActorRoundParryDto } from './actor-round-parry.dto.js';
+import { ActorRoundPenaltyDto } from './actor-round-penalty.dto.js';
+import { ActorRoundPhaseLogDto } from './actor-round-phase-log.dto.js';
+import { ActorRoundTraitDto } from './actor-round-trait.dto.js';
+
+export class ActorRoundResistanceDto {
+  @ApiProperty({ description: 'Resistance type', example: 'fear' })
+  resistance: string;
+
+  @ApiProperty({ description: 'Total resistance roll bonus', example: 12 })
+  totalBonus: number;
+}
 
 export class ActorRoundDto {
   @ApiProperty({ description: 'Actor Round identifier', example: 'actor-round-123' })
   id: string;
+
+  @ApiProperty({ type: Number, description: 'Version of optimistic concurrency: it goes up with each write', example: 0 })
+  version: number;
 
   @ApiProperty({ description: 'Game identifier', example: 'game-001' })
   gameId: string;
@@ -49,8 +72,17 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Initiative information' })
   initiative: ActorRoundInitiativeDto;
 
-  @ApiProperty({ description: 'Action points', example: 4 })
+  @ApiProperty({ description: 'Base action points of the round, before modifiers', example: 4 })
   actionPoints: number;
+
+  @ApiProperty({ description: 'Modifiers of the action points, with their origin', type: [ActorRoundApModifierDto] })
+  apModifiers: ActorRoundApModifierDto[];
+
+  @ApiProperty({ description: 'Action points of each action phase (index 0 is phase 1)', type: [Number], example: [1, 1, 2, 2] })
+  apCapacity: number[];
+
+  @ApiProperty({ description: 'Action points spent, lost or used by phase and action', type: [ActorRoundApLedgerEntryDto] })
+  apLedger: ActorRoundApLedgerEntryDto[];
 
   @ApiProperty({ description: 'Hit points' })
   hp: ActorRoundHPDto;
@@ -61,29 +93,87 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Defense information' })
   defense: ActorRoundDefenseDto;
 
-  @ApiProperty({ description: 'Attacks', type: [ActorRoundAttackDto], isArray: true })
+  @ApiProperty({ description: 'Dodge and shield block declared this round', type: ActorRoundDefenseModeDto })
+  defenseMode: ActorRoundDefenseModeDto;
+
+  @ApiProperty({ description: 'Action points spent in each action phase that has ended', type: [ActorRoundPhaseLogDto] })
+  phaseLog: ActorRoundPhaseLogDto[];
+
+  @ApiProperty({ description: 'Attacks', type: [ActorRoundAttackDto] })
   attacks: ActorRoundAttackDto[];
 
-  @ApiProperty({ description: 'Parries', type: [ActorRoundParryDto], isArray: true })
+  @ApiProperty({ description: 'Parries', type: [ActorRoundParryDto] })
   parries: number[];
 
   @ApiProperty({ description: 'Penalties' })
   penalty: ActorRoundPenaltyDto;
 
-  @ApiProperty({ description: 'Active effects', type: [ActorRoundEffect], isArray: true })
+  @ApiProperty({ description: 'Active effects', type: [ActorRoundEffect] })
   effects: ActorRoundEffect[];
 
-  @ApiProperty({ description: 'Alerts', type: [ActorRoundAlertDto], isArray: true })
+  @ApiProperty({ description: 'Alerts', type: [ActorRoundAlertDto] })
   alerts: ActorRoundAlertDto[];
 
-  @ApiProperty({ description: 'Image URL of the actor', example: 'foo/bar/image.png', required: false })
+  @ApiProperty({ description: 'Talents and flaws of the actor, from its character sheet', type: [ActorRoundTraitDto] })
+  traits: ActorRoundTraitDto[];
+
+  @ApiProperty({ description: 'Injuries of the actor (spec 013): brought from its character and taken in the game', type: [InjuryDto] })
+  injuries: InjuryDto[];
+
+  @ApiProperty({ description: 'Poisons waiting for their RR (workspace spec 042)', type: [PoisonExposureDto] })
+  poisonExposures: PoisonExposureDto[];
+
+  @ApiProperty({ description: 'Changes of the hits in this round, with their origin (spec 013)', type: [HpLogEntryDto] })
+  hpLog: HpLogEntryDto[];
+
+  @ApiProperty({ description: 'Strategic character of a character actor', required: false })
+  characterId?: string;
+
+  @ApiProperty({ description: 'NPC an NPC actor is a specimen of (spec 055)', required: false })
+  npcId?: string;
+
+  @ApiProperty({ description: 'Items of the actor, with their breakage (spec 019)', type: [ActorRoundItemDto] })
+  items: ActorRoundItemDto[];
+
+  @ApiProperty({ description: 'Result of the breakage check of this request (only in its answer)', required: false })
+  lastBreakageCheck?: BreakageCheckResultDto;
+
+  @ApiProperty({
+    description: 'Resistance roll bonuses of the character (workspace spec 022); none for NPCs',
+    type: [ActorRoundResistanceDto],
+  })
+  resistances: ActorRoundResistanceDto[];
+
+  @ApiProperty({ description: 'Fighting styles of the character (workspace spec 032); none for NPCs', type: [ActorRoundFightingStyleDto] })
+  fightingStyles: ActorRoundFightingStyleDto[];
+
+  @ApiProperty({ description: 'The fighting style the actor fights with (spec 032)', type: ActorRoundActiveStyleDto, nullable: true })
+  activeStyle: ActorRoundActiveStyleDto | null;
+
+  @ApiProperty({ description: 'Strategic items spent in the game (spec 068)', type: [ItemConsumedDto] })
+  itemsConsumed: ItemConsumedDto[];
+
+  @ApiProperty({ description: 'Lasting morale and fear RR modifiers (spec 068)', type: [TemporaryModifierDto] })
+  temporaryModifiers: TemporaryModifierDto[];
+
+  @ApiProperty({ type: Number, nullable: true, description: 'Fright level of an NPC, from its stat block (spec 068)' })
+  frightLevel: number | null;
+
+  @ApiProperty({ description: 'What the character brought into the game (only in the actor round built from it)', required: false })
+  snapshot?: ActorRoundSnapshotDto;
+
+  @ApiProperty({ description: 'Bleeding of the injuries, hits per round' })
+  bleeding: number;
+
+  @ApiProperty({ type: String, description: 'Image URL of the actor', example: 'foo/bar/image.png', required: false })
   imageUrl?: string | undefined;
 
   static fromEntity(entity: ActorRound) {
     const dto = new ActorRoundDto();
     dto.id = entity.id;
+    dto.version = entity.version;
     dto.gameId = entity.gameId;
-    dto.actorType = (entity as any).actorType;
+    dto.actorType = entity.actorType;
     dto.actorId = entity.actorId;
     dto.actorName = entity.actorName;
     dto.size = entity.size;
@@ -94,14 +184,35 @@ export class ActorRoundDto {
     dto.movement = ActorRoundMovementDto.fromEntity(entity.movement);
     dto.initiative = ActorRoundInitiativeDto.fromEntity(entity.initiative);
     dto.actionPoints = entity.actionPoints;
+    dto.apModifiers = entity.apModifiers.map(modifier => ActorRoundApModifierDto.fromEntity(modifier));
+    dto.apCapacity = [...entity.apCapacity];
+    dto.apLedger = entity.apLedger.map(entry => ActorRoundApLedgerEntryDto.fromEntity(entry));
     dto.hp = ActorRoundHPDto.fromEntity(entity.hp);
     dto.fatigue = ActorRoundFatigueDto.fromEntity(entity.fatigue);
     dto.defense = ActorRoundDefenseDto.fromEntity(entity.defense);
+    dto.defenseMode = ActorRoundDefenseModeDto.fromEntity(entity.defenseMode);
+    dto.phaseLog = entity.getPhaseLog().map(entry => ActorRoundPhaseLogDto.fromEntity(entry));
     dto.attacks = entity.attacks.map(a => ActorRoundAttackDto.fromEntity(a));
     dto.parries = entity.parries;
     dto.penalty = ActorRoundPenaltyDto.fromEntity(entity.penalty);
     dto.effects = entity.effects;
     dto.alerts = entity.alerts.map(a => ActorRoundAlertDto.fromEntity(a));
+    dto.traits = (entity.traits || []).map(t => ActorRoundTraitDto.fromEntity(t));
+    dto.injuries = (entity.injuries || []).map(injury => InjuryDto.fromEntity(injury));
+    dto.poisonExposures = (entity.poisonExposures || []).map(exposure => PoisonExposureDto.fromEntity(exposure));
+    dto.hpLog = (entity.hpLog || []).map(entry => HpLogEntryDto.fromEntity(entry));
+    dto.characterId = entity.characterId;
+    dto.npcId = entity.npcId;
+    dto.items = (entity.items || []).map(item => ActorRoundItemDto.fromEntity(item));
+    if (entity.lastBreakageCheck) dto.lastBreakageCheck = BreakageCheckResultDto.fromEntity(entity.lastBreakageCheck);
+    dto.resistances = (entity.resistances || []).map(each => ({ resistance: each.resistance, totalBonus: each.totalBonus }));
+    dto.fightingStyles = (entity.fightingStyles || []).map(style => ActorRoundFightingStyleDto.fromEntity(style));
+    dto.activeStyle = entity.activeStyle ? ActorRoundActiveStyleDto.fromEntity(entity.activeStyle) : null;
+    dto.itemsConsumed = (entity.itemsConsumed || []).map(each => ItemConsumedDto.fromEntity(each));
+    dto.temporaryModifiers = (entity.temporaryModifiers || []).map(each => TemporaryModifierDto.fromEntity(each));
+    dto.frightLevel = entity.frightLevel ?? null;
+    dto.snapshot = entity.snapshot ? ActorRoundSnapshotDto.fromEntity(entity.snapshot) : undefined;
+    dto.bleeding = entity.getBleeding();
     dto.imageUrl = entity.imageUrl;
     return dto;
   }
@@ -113,7 +224,7 @@ export class CharacterRoundPageDto {
     this.pagination = pagination;
   }
 
-  @ApiProperty({ type: [ActorRoundDto], description: 'Character Rounds', isArray: true })
+  @ApiProperty({ type: [ActorRoundDto], description: 'Character Rounds' })
   content: ActorRoundDto[];
 
   @ApiProperty({ type: PaginationDto, description: 'Pagination information' })

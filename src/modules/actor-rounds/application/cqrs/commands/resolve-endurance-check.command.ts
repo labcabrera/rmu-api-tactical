@@ -1,4 +1,4 @@
-import { KeyValueModifier } from '../../../../actions/domain/value-objects/key-value-modifier.vo';
+import { KeyValueModifier } from '../../../../actions/domain/value-objects/key-value-modifier.vo.js';
 
 export class ResolveEnduranceCheckCommand {
   constructor(

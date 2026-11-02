@@ -1,4 +1,4 @@
-import { Actor } from '../../../../games/domain/value-objects/actor.vo';
+import { Actor } from '../../../../games/domain/value-objects/actor.vo.js';
 
 export class CreateActorRoundCommand {
   constructor(

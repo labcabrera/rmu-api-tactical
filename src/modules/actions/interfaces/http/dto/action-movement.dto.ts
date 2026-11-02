@@ -1,9 +1,10 @@
+import type { LightType } from '../../../domain/value-objects/light-type.vo.js';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
-import { ActionMovement, ActionMovementModifiers, ActionMovementResult } from '../../../domain/value-objects/action-movement.vo';
-import { Difficulty } from '../../../domain/value-objects/dificulty.vo';
-import type { Pace } from '../../../domain/value-objects/pace.vo';
-import { ActionRollDto } from './action-roll.dto';
+import { ActionMovement, ActionMovementModifiers, ActionMovementResult } from '../../../domain/value-objects/action-movement.vo.js';
+import type { Difficulty } from '../../../domain/value-objects/difficulty.vo.js';
+import type { Pace } from '../../../domain/value-objects/pace.vo.js';
+import { ActionRollDto } from './action-roll.dto.js';
 
 export class ActionMovementDto {
   modifiers: ActionMovementModifiersDto;
@@ -20,7 +21,7 @@ export class ActionMovementDto {
 }
 
 export class ActionMovementModifiersDto {
-  @ApiProperty({ description: 'The pace of the movement', example: 'walk' })
+  @ApiProperty({ type: String, description: 'The pace of the movement', example: 'walk' })
   @IsString()
   pace: Pace;
 
@@ -40,17 +41,29 @@ export class ActionMovementModifiersDto {
   @IsOptional()
   customBonus: number | null;
 
+  @ApiProperty({
+    type: String,
+    description: 'Light of the environment (Table 5-1), helpful for movement',
+    required: false,
+    example: 'dark',
+  })
+  @IsString()
+  @IsOptional()
+  light?: LightType | null;
+
   static fromEntity(modifiers: ActionMovementModifiers): ActionMovementModifiersDto {
     const dto = new ActionMovementModifiersDto();
     dto.pace = modifiers.pace;
     dto.requiredManeuver = modifiers.requiredManeuver;
     dto.skillId = modifiers.skillId;
     dto.difficulty = modifiers.difficulty;
+    dto.customBonus = modifiers.customBonus;
+    dto.light = modifiers.light ?? null;
     return dto;
   }
 
   static toEntity(dto: ActionMovementModifiersDto): ActionMovementModifiers {
-    return new ActionMovementModifiers(dto.pace, dto.requiredManeuver, dto.skillId, dto.difficulty, dto.customBonus);
+    return new ActionMovementModifiers(dto.pace, dto.requiredManeuver, dto.skillId, dto.difficulty, dto.customBonus, dto.light);
   }
 }
 

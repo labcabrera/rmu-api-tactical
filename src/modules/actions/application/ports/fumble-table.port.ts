@@ -1,0 +1,12 @@
+import { Fumble } from '../../domain/value-objects/action-attack.vo.js';
+
+export interface FumbleTableLookupRequest {
+  fumbleTable: string;
+  roll: number;
+}
+
+export interface FumbleTablePort {
+  lookup(request: FumbleTableLookupRequest): Promise<Fumble>;
+}
+
+export const FUMBLE_TABLE_PORT = Symbol('FumbleTablePort');

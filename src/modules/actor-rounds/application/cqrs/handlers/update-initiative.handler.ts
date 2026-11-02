@@ -1,15 +1,19 @@
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import { ActorRound } from '../../../domain/aggregates/actor-round.aggregate';
-import type { ActorRoundRepository } from '../../ports/actor-round.repository';
-import { DeclareInitiativeCommand } from '../commands/declare-initiative.command';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { ActorRound } from '../../../domain/aggregates/actor-round.js';
+import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port.js';
+import { DeclareInitiativeCommand } from '../commands/declare-initiative.command.js';
 
 @CommandHandler(DeclareInitiativeCommand)
 export class DeclareInitiativeCommandHandler implements ICommandHandler<DeclareInitiativeCommand, ActorRound> {
   private readonly logger = new Logger(DeclareInitiativeCommandHandler.name);
 
-  constructor(@Inject('ActorRoundRepository') private readonly characterRoundRepository: ActorRoundRepository) {}
+  constructor(
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly characterRoundRepository: ActorRoundRepository,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
+  ) {}
 
   async execute(command: DeclareInitiativeCommand): Promise<ActorRound> {
     this.logger.debug(`Execute << ${JSON.stringify(command)}`);
@@ -20,12 +24,9 @@ export class DeclareInitiativeCommandHandler implements ICommandHandler<DeclareI
     if (!characterRound) {
       throw new NotFoundError('Character round', command.actorRoundId);
     }
-    const baseInitiative = characterRound.initiative?.base || 0;
-    const penalty = characterRound.initiative?.penalty || 0;
-    const total = baseInitiative + penalty + command.initiativeRoll;
-    characterRound.initiative.roll = command.initiativeRoll;
-    characterRound.initiative.total = total;
-    const updatedCharacterRound = await this.characterRoundRepository.update(command.actorRoundId, characterRound);
+    (await this.gameRepository.findById(characterRound.gameId))?.checkNotFinished();
+    characterRound.declareInitiative(command.initiativeRoll, command.strikeReflex);
+    const updatedCharacterRound = await this.characterRoundRepository.update(characterRound);
     return updatedCharacterRound;
   }
 }

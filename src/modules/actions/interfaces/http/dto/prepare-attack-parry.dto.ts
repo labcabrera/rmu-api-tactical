@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
-import { PrepareAttackCommandParryItem } from '../../../application/cqrs/commands/prepare-attack.command';
+import { PrepareAttackCommandParryItem } from '../../../application/cqrs/commands/prepare-attack.command.js';
 
 export class PrepareAttackParryDto {
   @ApiProperty({

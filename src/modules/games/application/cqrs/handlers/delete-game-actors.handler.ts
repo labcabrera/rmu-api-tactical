@@ -1,18 +1,18 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import { Game } from '../../../domain/aggregates/game.aggregate';
-import type { GameEventBusPort } from '../../ports/game-event-bus.port';
-import type { GameRepository } from '../../ports/game.repository';
-import { DeleteGameActorsCommand } from '../commands/delete-game-actors.command';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { Game } from '../../../domain/aggregates/game.js';
+import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port.js';
+import { DeleteGameActorsCommand } from '../commands/delete-game-actors.command.js';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 @CommandHandler(DeleteGameActorsCommand)
 export class DeleteGameActorsHandler implements ICommandHandler<DeleteGameActorsCommand, Game> {
   private readonly logger = new Logger(DeleteGameActorsHandler.name);
 
   constructor(
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('GameEventBus') private readonly gameEventBus: GameEventBusPort,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
+    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
   ) {}
 
   async execute(command: DeleteGameActorsCommand): Promise<Game> {
@@ -25,9 +25,11 @@ export class DeleteGameActorsHandler implements ICommandHandler<DeleteGameActors
     if (game.status !== 'created') {
       throw new ValidationError('Only games in created status can be modified');
     }
-    const updated = await this.gameRepository.update(command.gameId, game);
+    const updated = await this.gameRepository.update(game);
     const events = game.getUncommittedEvents();
-    events.forEach(event => this.gameEventBus.publish(event));
+    void this.eventPublisher.publish('game', ...events);
+    // The events are handed over: clear them, so a later write of the same aggregate does not publish them again.
+    game.commit();
     return updated;
   }
 }

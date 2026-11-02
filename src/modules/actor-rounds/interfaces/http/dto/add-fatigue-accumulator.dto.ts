@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNumber } from 'class-validator';
-import { AddFatigueCommand } from '../../../application/cqrs/commands/add-fatigue.command';
+import { AddFatigueCommand } from '../../../application/cqrs/commands/add-fatigue.command.js';
 
 export class AddFatigueAccumulatorDto {
   @ApiProperty({ description: 'Fatigue accumulator to add or subtract' })
@@ -8,6 +8,6 @@ export class AddFatigueAccumulatorDto {
   fatigueAccumulator: number;
 
   static toCommand(id: string, dto: AddFatigueAccumulatorDto, userId: string, userRoles: string[]): AddFatigueCommand {
-    return new AddFatigueCommand(id, undefined, undefined, dto.fatigueAccumulator, userId, userRoles);
+    return new AddFatigueCommand(id, undefined, undefined, undefined, dto.fatigueAccumulator, userId, userRoles);
   }
 }

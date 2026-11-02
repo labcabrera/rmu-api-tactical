@@ -1,6 +1,7 @@
-import { ActionRoll } from './action-roll.vo';
-import { Difficulty } from './dificulty.vo';
-import { Pace } from './pace.vo';
+import type { LightType } from './light-type.vo.js';
+import { ActionRoll } from './action-roll.vo.js';
+import type { Difficulty } from './difficulty.vo.js';
+import type { Pace } from './pace.vo.js';
 
 export class ActionMovement {
   constructor(
@@ -17,6 +18,8 @@ export class ActionMovementModifiers {
     public skillId: string | null,
     public difficulty: Difficulty | null,
     public customBonus: number | null,
+    // Light of the environment (Table 5-1), helpful for movement maneuvers
+    public light?: LightType | null,
   ) {}
 }
 

@@ -1,5 +1,5 @@
-import { DomainEvent } from '../../../shared/domain/events/domain-event';
-import { Game } from '../aggregates/game.aggregate';
+import { DomainEvent } from '../../../shared/domain/events/domain-event.js';
+import { Game } from '../aggregates/game.js';
 
 export class GameCreatedEvent extends DomainEvent<Game> {
   constructor(data: Game) {
@@ -28,5 +28,17 @@ export class GameRoundStartedEvent extends DomainEvent<Game> {
 export class GamePhaseStartedEvent extends DomainEvent<Game> {
   constructor(data: Game) {
     super('phase-started', data);
+  }
+}
+
+export class GameFinishedEvent extends DomainEvent<Game> {
+  constructor(data: Game) {
+    super('finished', data);
+  }
+}
+
+export class GameAppliedEvent extends DomainEvent<Game> {
+  constructor(data: Game) {
+    super('applied', data);
   }
 }

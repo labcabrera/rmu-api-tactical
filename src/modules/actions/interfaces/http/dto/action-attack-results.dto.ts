@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActionAttackResult } from '../../../domain/value-objects/action-attack.vo';
-import { CriticalDto } from './critical-dto';
+import { ActionAttackResult } from '../../../domain/value-objects/action-attack.vo.js';
+import { CriticalDto } from './critical.dto.js';
 
 export class AttackTableEntryDto {
   @ApiProperty({ description: 'Attack table entry text', example: '12AS' })
@@ -9,10 +9,10 @@ export class AttackTableEntryDto {
   @ApiProperty({ description: 'Damage value', example: 5 })
   damage: number;
 
-  @ApiProperty({ description: 'Critical type', example: 'S' })
+  @ApiProperty({ type: String, description: 'Critical type', example: 'S' })
   criticalType: string | undefined;
 
-  @ApiProperty({ description: 'Critical severity', example: 'A' })
+  @ApiProperty({ type: String, description: 'Critical severity', example: 'A' })
   criticalSeverity: string | undefined;
 }
 
@@ -23,7 +23,10 @@ export class ActionAttackResultsDto {
   @ApiProperty({ description: 'List of criticals', type: [CriticalDto], required: false })
   criticals: CriticalDto[] | undefined;
 
-  @ApiProperty({ description: 'Fumble information', required: false })
+  @ApiProperty({
+    description: 'Fumble: `{status, text, additionalDamageText, damage, effects}`, status `pending_roll` until the fumble roll',
+    required: false,
+  })
   fumble:
     | {
         status: string;
@@ -37,6 +40,8 @@ export class ActionAttackResultsDto {
               value: number | undefined;
               delay: number | undefined;
               condition: string | undefined;
+              severity?: string;
+              dice?: string;
             }[]
           | undefined;
       }
@@ -66,6 +71,8 @@ export class ActionAttackResultsDto {
                 value: e.value,
                 delay: e.delay,
                 condition: e.condition,
+                severity: e.severity,
+                dice: e.dice,
               }))
             : undefined,
         }

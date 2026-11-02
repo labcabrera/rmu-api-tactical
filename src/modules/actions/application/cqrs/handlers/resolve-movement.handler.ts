@@ -1,30 +1,40 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import type { ActorRoundRepository } from '../../../../actor-rounds/application/ports/actor-round.repository';
-import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.aggregate';
-import { ActorRoundAlert } from '../../../../actor-rounds/domain/value-objets/actor-round-alert.vo';
-import type { GameRepository } from '../../../../games/application/ports/game.repository';
-import { NotFoundError, ValidationError } from '../../../../shared/domain/errors';
-import type { StrategicGame, StrategicGamePort } from '../../../../strategic/application/ports/strategic-game.port';
-import { Action } from '../../../domain/aggregates/action.aggregate';
-import { ActionUpdatedEvent } from '../../../domain/events/action-events';
-import { ActionMovement, ActionMovementModifiers } from '../../../domain/value-objects/action-movement.vo';
-import type { ActionEventBusPort } from '../../ports/action-event-bus.port';
-import type { ActionRepository } from '../../ports/action.repository';
-import { MovementProcessorService } from '../../services/movement-processor.service';
-import { ResolveMovementCommand } from '../commands/resolve-movement.command';
+import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
+import {
+  type ActorRoundRepository,
+  ACTOR_ROUND_REPOSITORY,
+} from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
+import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
+import { ActorRoundAlert } from '../../../../actor-rounds/domain/value-objects/actor-round-alert.vo.js';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
+import { ConflictError, NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { FEAR_BALK, FEAR_BROKEN, FEAR_RETREAT, FEAR_ROUTED } from '../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
+import { type Pace, PACES } from '../../../../actor-rounds/domain/value-objects/injury.vo.js';
+import type { ActionWarning } from '../../../domain/value-objects/action-medical.vo.js';
+import {
+  type StrategicGame,
+  type StrategicGamePort,
+  STRATEGIC_GAME_PORT,
+} from '../../../../strategic/application/ports/strategic-game.port.js';
+import { Action } from '../../../domain/aggregates/action.js';
+import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
+import { ActionMovement, ActionMovementModifiers } from '../../../domain/value-objects/action-movement.vo.js';
+import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
+import { MovementProcessorService } from '../../services/movement-processor.service.js';
+import { ResolveMovementCommand } from '../commands/resolve-movement.command.js';
+import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 @CommandHandler(ResolveMovementCommand)
 export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCommand, Action> {
   private readonly logger = new Logger(ResolveMovementHandler.name);
 
   constructor(
-    @Inject() private readonly movementProcessorService: MovementProcessorService,
-    @Inject('GameRepository') private readonly gameRepository: GameRepository,
-    @Inject('ActorRoundRepository') private readonly actorRoundRepository: ActorRoundRepository,
-    @Inject('ActionRepository') private readonly actionRepository: ActionRepository,
-    @Inject('StrategicGameClient') private readonly strategicGameClient: StrategicGamePort,
-    @Inject('ActionEventBus') private readonly actionEventBus: ActionEventBusPort,
+    private readonly movementProcessorService: MovementProcessorService,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
+    @Inject(STRATEGIC_GAME_PORT) private readonly strategicGameClient: StrategicGamePort,
+    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
   ) {}
 
   async execute(command: ResolveMovementCommand): Promise<Action> {
@@ -37,15 +47,22 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
 
     this.validate(command, action);
     const [actorRound, strategicGame] = await Promise.all([
-      this.actorRoundRepository.findByActorIdAndRound(action.actorId, action.round),
+      this.actorRoundRepository.findByActorIdAndRound(action.gameId, action.actorId, action.round),
       this.strategicGameClient.findById(game.strategicGameId),
     ]);
     if (!actorRound) throw new NotFoundError('ActorRound', `${action.actorId} - ${action.round}`);
     if (!strategicGame) throw new NotFoundError('StrategicGame', game.strategicGameId);
 
-    const currentPhase = game.phase.replace('phase_', '') as unknown as number;
+    const currentPhase = game.getActionPhase();
+    action.checkResolvable(actorRound, currentPhase);
+    const warnings = ResolveMovementHandler.paceWarnings(command.modifiers.pace, actorRound);
+    if (!command.confirm && warnings.some(warning => warning.requiresConfirm)) {
+      throw new ConflictError('The movement needs a confirmation: send it again with confirm: true', 'err-action-confirm-required', {
+        warnings,
+      });
+    }
     await this.processAction(command, action, actorRound, strategicGame, currentPhase);
-    const updated = await this.actionRepository.update(action.id, action);
+    const updated = await this.actionRepository.update(action);
     let actorRoundModified = false;
     if (action.fatigue) {
       actorRoundModified = true;
@@ -57,11 +74,65 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
       const alert = ActorRoundAlert.buildCritical('k', action.movement?.calculated.critical);
       actorRound.alerts.push(alert);
     }
-    if (actorRoundModified) {
-      await this.actorRoundRepository.update(actorRound.id, actorRound);
+    // Workspace spec 068, decision 5: exertion reopens a completed pressure, a failed roll the stitches
+    if (ResolveMovementHandler.isExertion(command.modifiers.pace) && actorRound.reopenWounds('exertion').length > 0) {
+      actorRoundModified = true;
     }
-    await this.actionEventBus.publish(new ActionUpdatedEvent(updated));
+    if (ResolveMovementHandler.failedRoll(action) && actorRound.reopenWounds('failed-roll').length > 0) {
+      actorRoundModified = true;
+    }
+    if (actorRoundModified) {
+      await this.actorRoundRepository.update(actorRound);
+    }
+    await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
+    updated.refreshApState(actorRound, currentPhase);
+    updated.warnings = warnings;
     return updated;
+  }
+
+  /** Above walking pace the actor exerts itself (decision 5). */
+  static isExertion(pace: string): boolean {
+    return PACES.indexOf(pace as Pace) > PACES.indexOf('walk');
+  }
+
+  /** A movement maneuver that failed: a critical, or no progress at all. */
+  static failedRoll(action: Action): boolean {
+    const calculated = action.movement?.calculated;
+    return !!action.movement?.modifiers.requiredManeuver && !!calculated && (!!calculated.critical || calculated.percent <= 0);
+  }
+
+  /**
+   * The pace against the injuries and the fear of the actor (workspace spec 068, decisions 5, 10 and 14): a splinted or
+   * cast leg caps it (`err-movement-injury-limit`); routed and broken actors flee at running pace or faster
+   * (`err-action-fear`); balk and retreat warn above walking and jogging; exertion with a wound that reopens asks for a
+   * confirmation.
+   */
+  static paceWarnings(pace: string, actorRound: ActorRound): ActionWarning[] {
+    const index = PACES.indexOf(pace as Pace);
+    const limit = actorRound.injuryPaceLimit();
+    if (limit && index > PACES.indexOf(limit)) {
+      throw new ValidationError(`The injuries of the actor allow up to ${limit}, not ${pace}`, 'err-movement-injury-limit', {
+        pace,
+        limit,
+      });
+    }
+    const fear = actorRound.fearEffect()?.status;
+    if ((fear === FEAR_ROUTED || fear === FEAR_BROKEN) && index < PACES.indexOf('run')) {
+      throw new ValidationError(`A ${fear} actor flees at running pace or faster`, 'err-action-fear', { state: fear });
+    }
+    const warnings: ActionWarning[] = [];
+    if (fear === FEAR_RETREAT && index > PACES.indexOf('jog')) {
+      warnings.push({ code: 'fear-retreat-pace', params: { pace, state: fear }, requiresConfirm: false });
+    }
+    if (fear === FEAR_BALK && index > PACES.indexOf('walk')) {
+      warnings.push({ code: 'fear-balk-pace', params: { pace, state: fear }, requiresConfirm: false });
+    }
+    if (ResolveMovementHandler.isExertion(pace)) {
+      actorRound
+        .exertionInjuries()
+        .forEach(injury => warnings.push({ code: 'exertion-reopens-wound', params: { injuryId: injury.id }, requiresConfirm: true }));
+    }
+    return warnings;
   }
 
   private async processAction(
@@ -72,17 +143,17 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     currentPhase: number,
   ): Promise<void> {
     action.description = command.description;
-    action.phaseEnd = currentPhase;
-    action.actionPoints = action.phaseEnd - action.phaseStart + 1;
+    // AP from the ledger (spec 011, §9). An instantaneous movement takes none, but covers the phases it spans.
+    action.actionPoints = action.apOf(actorRound, currentPhase);
+    const distanceActionPoints = action.freeAction ? Math.max(1, currentPhase - action.phaseStart + 1) : action.actionPoints;
     action.movement = this.buildActionMovement(command);
     const fatigueMultiplier = strategicGame.options?.fatigueMultiplier ?? 1;
-    await this.movementProcessorService.process(command.roll, action, actorRound);
+    await this.movementProcessorService.process(command.roll, action, actorRound, distanceActionPoints);
     action.processFatigue(fatigueMultiplier);
     const scale = strategicGame.options?.boardScaleMultiplier || 1;
     action.movement.calculated.distanceAdjusted = action.movement.calculated.distance * scale;
     this.roundResults(action);
-    action.status = 'completed';
-    action.updatedAt = new Date();
+    action.close(actorRound, currentPhase);
   }
 
   private buildActionMovement(command: ResolveMovementCommand): ActionMovement {
@@ -108,6 +179,7 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
       skillId: command.modifiers.skillId,
       difficulty: command.modifiers.difficulty,
       customBonus: command.modifiers.customBonus,
+      light: command.modifiers.light ?? null,
     };
   }
 
@@ -118,7 +190,7 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
       throw new ValidationError('Action is already completed');
     }
     if (command.modifiers.requiredManeuver === true) {
-      if (!command.roll) {
+      if (command.roll === null || command.roll === undefined) {
         throw new ValidationError('Roll is required for a maneuver');
       }
       if (!command.modifiers.difficulty) {

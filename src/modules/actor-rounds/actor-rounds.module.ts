@@ -1,27 +1,51 @@
+import {
+  DeleteTemporaryModifierHandler,
+  DropItemsHandler,
+  LoosenTourniquetHandler,
+} from './application/cqrs/handlers/combat-healing.handlers.js';
+import { HEALING_TABLES_PORT } from './application/ports/healing-tables.port.js';
+import { ApiHealingTablesAdapter } from './infrastructure/api-clients/api.healing-tables.adapter.js';
+import { MedicalAbortService } from './application/services/medical-abort.service.js';
+import { HerbUseService } from './application/services/herb-use.service.js';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import { MongooseModule } from '@nestjs/mongoose';
 import { TerminusModule } from '@nestjs/terminus';
-import { AuthModule } from 'src/modules/auth/auth.module';
-import { GamesModule } from '../games/games.module';
-import { SharedModule } from '../shared/shared.module';
-import { StrategicModule } from '../strategic/strategic.module';
-import { AddEffectsHandler } from './application/cqrs/handlers/add-effects.handler';
-import { AddFatigueHandler } from './application/cqrs/handlers/add-fatigue.handler';
-import { CreateActorRoundHandler } from './application/cqrs/handlers/create-actor-round.handler';
-import { DeclareActorParryHandler } from './application/cqrs/handlers/declare-actor-parry.handler';
-import { DeleteEffectHandler } from './application/cqrs/handlers/delete-effect.handler';
-import { GetActorRoundHandler } from './application/cqrs/handlers/get-actor-round.query.handler';
-import { GetActorRoundsHandler } from './application/cqrs/handlers/get-actor-rounds.query.handler';
-import { SubstractBoHandler } from './application/cqrs/handlers/substract-bo.handler';
-import { DeclareInitiativeCommandHandler } from './application/cqrs/handlers/update-initiative.handler';
-import { UpkeepActorRoundHandler } from './application/cqrs/handlers/upkeep-actor-round.handler';
-import { MongoActorRoundRepository } from './infrastructure/db/mongo.actor-round.repository';
-import { ActorRoundCharacterMapperAdapter } from './infrastructure/mappers/actor-round-character-mapper-adapter';
-import { ActorRoundModel, ActorRoundSchema } from './infrastructure/persistence/models/actor-round.model';
-import { ActorRoundController } from './interfaces/http/actor-round.controller';
+import { AuthModule } from '../shared/infrastructure/security/auth.module.js';
+import { GamesModule } from '../games/games.module.js';
+import { SharedModule } from '../shared/shared.module.js';
+import { UseHerbHandler } from './application/cqrs/handlers/use-herb.handler.js';
+import { StrategicModule } from '../strategic/strategic.module.js';
+import { AddEffectsHandler } from './application/cqrs/handlers/add-effects.handler.js';
+import { AddFatigueHandler } from './application/cqrs/handlers/add-fatigue.handler.js';
+import { AdjustHpHandler } from './application/cqrs/handlers/adjust-hp.handler.js';
+import { DeleteInjuryHandler } from './application/cqrs/handlers/delete-injury.handler.js';
+import { UpdateInjuryHandler } from './application/cqrs/handlers/update-injury.handler.js';
+import { CreateActorRoundHandler } from './application/cqrs/handlers/create-actor-round.handler.js';
+import { DeclareActorParryHandler } from './application/cqrs/handlers/declare-actor-parry.handler.js';
+import { DeclareDefenseModeHandler } from './application/cqrs/handlers/declare-defense-mode.handler.js';
+import { DeleteEffectHandler } from './application/cqrs/handlers/delete-effect.handler.js';
+import { ResolveAlertHandler } from './application/cqrs/handlers/resolve-alert.handler.js';
+import { GetActorRoundHandler } from './application/cqrs/handlers/get-actor-round.handler.js';
+import { GetActorRoundsHandler } from './application/cqrs/handlers/get-actor-rounds.handler.js';
+import { SubstractBoHandler } from './application/cqrs/handlers/substract-bo.handler.js';
+import { DeclareInitiativeCommandHandler } from './application/cqrs/handlers/update-initiative.handler.js';
+import { UpkeepActorRoundHandler } from './application/cqrs/handlers/upkeep-actor-round.handler.js';
+import { MongoActorRoundRepository } from './infrastructure/db/mongo.actor-round.repository.js';
+import { ActorRoundCharacterMapperAdapter } from './infrastructure/mappers/actor-round-character-mapper.adapter.js';
+import { ActorRoundNpcMapperAdapter } from './infrastructure/mappers/actor-round-npc-mapper.adapter.js';
+import { ActorSheetService } from './application/services/actor-sheet.service.js';
+import { NpcsModule } from '../npcs/npcs.module.js';
+import { ActorRoundModel, ActorRoundSchema } from './infrastructure/persistence/models/actor-round.model.js';
+import { ActorRoundController } from './interfaces/http/actor-round.controller.js';
 
+import { ACTOR_ROUND_CHARACTER_MAPPER_PORT } from './application/ports/actor-round-character-mapper.port.js';
+import { ACTOR_ROUND_NPC_MAPPER_PORT } from './application/ports/actor-round-npc-mapper.port.js';
+import { ACTOR_ROUND_REPOSITORY } from './application/ports/actor-round-repository.port.js';
+import { FIGHTING_STYLES_PORT } from './application/ports/fighting-styles.port.js';
+import { ApiFightingStylesAdapter } from './infrastructure/api-clients/api.fighting-styles.adapter.js';
+import { DeclareFightingStyleHandler } from './application/cqrs/handlers/declare-fighting-style.handler.js';
 @Module({
   imports: [
     TerminusModule,
@@ -32,28 +56,54 @@ import { ActorRoundController } from './interfaces/http/actor-round.controller';
     SharedModule,
     GamesModule,
     StrategicModule,
+    NpcsModule,
   ],
   controllers: [ActorRoundController],
   providers: [
     CreateActorRoundHandler,
+    UseHerbHandler,
     DeclareInitiativeCommandHandler,
     GetActorRoundHandler,
     GetActorRoundsHandler,
     AddEffectsHandler,
     DeleteEffectHandler,
+    ResolveAlertHandler,
     UpkeepActorRoundHandler,
     SubstractBoHandler,
     DeclareActorParryHandler,
+    DeclareDefenseModeHandler,
+    DeclareFightingStyleHandler,
     AddFatigueHandler,
+    AdjustHpHandler,
+    UpdateInjuryHandler,
+    DeleteInjuryHandler,
+    LoosenTourniquetHandler,
+    DropItemsHandler,
+    DeleteTemporaryModifierHandler,
     {
-      provide: 'ActorRoundRepository',
+      provide: ACTOR_ROUND_REPOSITORY,
       useClass: MongoActorRoundRepository,
     },
     {
-      provide: 'ActorRoundCharacterMapperPort',
+      provide: FIGHTING_STYLES_PORT,
+      useClass: ApiFightingStylesAdapter,
+    },
+    {
+      provide: ACTOR_ROUND_CHARACTER_MAPPER_PORT,
       useClass: ActorRoundCharacterMapperAdapter,
     },
+    {
+      provide: ACTOR_ROUND_NPC_MAPPER_PORT,
+      useClass: ActorRoundNpcMapperAdapter,
+    },
+    {
+      provide: HEALING_TABLES_PORT,
+      useClass: ApiHealingTablesAdapter,
+    },
+    ActorSheetService,
+    MedicalAbortService,
+    HerbUseService,
   ],
-  exports: ['ActorRoundRepository'],
+  exports: [ACTOR_ROUND_REPOSITORY, ActorSheetService, HEALING_TABLES_PORT, MedicalAbortService, HerbUseService],
 })
 export class ActorsRoundModule {}
