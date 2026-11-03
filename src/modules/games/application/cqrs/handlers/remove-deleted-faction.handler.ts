@@ -7,7 +7,7 @@ import { RemoveDeletedFactionCommand } from '../commands/remove-deleted-faction.
 /**
  * Takes a faction deleted in strategic out of the games in `created` status, with its actors: its characters and its
  * NPC specimens (spec 055). The games already played keep it, as they keep the characters of the faction. The
- * environment does not depend on strategic.
+ * environment does not depend on strategic. Every game, played or not, forgets its players (workspace spec 072).
  */
 @CommandHandler(RemoveDeletedFactionCommand)
 export class RemoveDeletedFactionHandler implements ICommandHandler<RemoveDeletedFactionCommand> {
@@ -27,5 +27,6 @@ export class RemoveDeletedFactionHandler implements ICommandHandler<RemoveDelete
       game.commit();
       this.logger.log(`Faction ${command.factionId} removed from game ${game.id}`);
     }
+    await this.gameRepository.removeFactionPlayers(command.factionId);
   }
 }

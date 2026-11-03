@@ -10,6 +10,8 @@ export interface StrategicFaction {
   gameId: string;
   name: string;
   owner: string;
+  /** The players of the faction (workspace spec 072); missing in strategic versions before it. */
+  players?: string[];
   /** The NPCs of the faction (spec 055); missing in strategic versions before it. */
   npcs?: FactionNpc[];
 }

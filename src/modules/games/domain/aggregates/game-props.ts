@@ -2,6 +2,7 @@ import { Actor } from '../value-objects/actor.vo.js';
 import type { EnvironmentFaction } from '../value-objects/environment-faction.vo.js';
 import { GameEnvironment } from '../value-objects/game-environment.vo.js';
 import type { GamePhase } from '../value-objects/game-phase.vo.js';
+import type { StrategicMember } from '../value-objects/strategic-member.vo.js';
 import type { GameStatus } from '../value-objects/game-status.vo.js';
 import type { TacticalGameOutcome } from '../value-objects/tactical-game-outcome.vo.js';
 
@@ -29,6 +30,13 @@ export type GameProps = {
   strategicGameOwner?: string;
   /** `accessType` of the strategic game (spec 021): who reads the game. Missing means `private`. */
   accessType?: string;
+  /**
+   * Workspace spec 072, decision 13: the members of the strategic game, from its events. Missing in games not migrated
+   * yet, which keep the rules of spec 021.
+   */
+  strategicMembers?: StrategicMember[] | null;
+  /** Workspace spec 072, decision 13: the players of each strategic faction (`{factionId: [userId]}`). */
+  factionPlayers?: Record<string, string[]> | null;
   /** Set when the game is finished (spec 013, §3). */
   outcome?: TacticalGameOutcome;
   createdAt: Date;

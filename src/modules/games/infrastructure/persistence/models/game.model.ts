@@ -3,6 +3,7 @@ import type { HydratedDocument } from 'mongoose';
 import type { GamePhase } from '../../../domain/value-objects/game-phase.vo.js';
 import type { GameStatus } from '../../../domain/value-objects/game-status.vo.js';
 import type { EnvironmentFaction } from '../../../domain/value-objects/environment-faction.vo.js';
+import type { StrategicMember } from '../../../domain/value-objects/strategic-member.vo.js';
 import type { TacticalGameOutcome } from '../../../domain/value-objects/tactical-game-outcome.vo.js';
 import { Actor, GameEnvironment } from './game-childs.model.js';
 
@@ -65,6 +66,14 @@ export class GameModel {
   /** Spec 021: accessType of the strategic game. Missing means private. */
   @Prop({ required: false })
   accessType?: string;
+
+  /** Workspace spec 072: members of the strategic game, `[{userId, role}]`. Missing in games not migrated yet. */
+  @Prop({ type: [{ _id: false, userId: { type: String, required: true }, role: { type: String, required: true } }], required: false })
+  strategicMembers?: StrategicMember[] | null;
+
+  /** Workspace spec 072: players of each strategic faction, `{factionId: [userId]}`. Missing in games not migrated yet. */
+  @Prop({ type: Object, required: false })
+  factionPlayers?: Record<string, string[]> | null;
 
   /** Spec 013: set when the game is finished. */
   @Prop({ type: Object, required: false })

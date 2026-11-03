@@ -1,4 +1,6 @@
+import type { KafkaContext } from '@nestjs/microservices';
 import request from 'supertest';
+import { StrategicGameKafkaConsumer } from '../../src/modules/games/interfaces/messaging/kafka.strategic-game.consumer.js';
 import { character, faction, ids, npc, startApp, USERS, type E2eApp, type UserName } from './support/app.js';
 
 type GameBody = {
@@ -18,6 +20,7 @@ type GameBody = {
   owner: string;
   strategicGameOwner?: string;
   accessType: string;
+  access: 'read' | 'act' | 'manage';
   outcome?: { appliedAt?: string; characters: { characterId: string; appliedAt?: string }[] };
 };
 
@@ -421,6 +424,138 @@ describe('NPCs (spec 055)', () => {
   it('lets the owner of the faction NPCs read the game and act for them', async () => {
     const game = await createGame('owner', { factions: ['faction-1', 'orcs'], npcs: [{ npcId: 'orc-1', factionId: 'orcs' }] });
     expect((await as('other').get(`/v1/tactical-games/${game.id}`)).status).toBe(200);
+  });
+});
+
+// Workspace spec 072, decisions 11-13 and contracts 23-24.
+describe('members of the strategic game and faction players (spec 072)', () => {
+  const MASTER = 'e2e-master';
+  const PLAYER = 'e2e-player';
+  const SPECTATOR = 'e2e-spectator';
+  const STRANGER = 'e2e-stranger';
+  const asUser = (sub: string) => {
+    const auth = `Bearer ${e2e.jwks.token({ sub, groups: ['rmu-user'] })}`;
+    return {
+      get: (url: string) => request(e2e.server).get(url).set('Authorization', auth),
+      patch: (url: string, body: object = {}) => request(e2e.server).patch(url).set('Authorization', auth).send(body),
+      post: (url: string, body: object = {}) => request(e2e.server).post(url).set('Authorization', auth).send(body),
+      delete: (url: string) => request(e2e.server).delete(url).set('Authorization', auth),
+    };
+  };
+  const kafka = (topic: string) => ({ getTopic: () => topic }) as unknown as KafkaContext;
+  const consumer = () => e2e.app.get(StrategicGameKafkaConsumer);
+  const accessOf = async (sub: string, id: string) => {
+    const response = await asUser(sub).get(`/v1/tactical-games/${id}`);
+    return response.status === 200 ? (response.body as GameBody).access : response.status;
+  };
+
+  beforeAll(() => {
+    e2e.world.strategicGames.set('sg-072', {
+      id: 'sg-072',
+      owner: USERS.owner.sub,
+      options: null,
+      members: [
+        { userId: MASTER, role: 'master' },
+        { userId: PLAYER, role: 'player' },
+        { userId: SPECTATOR, role: 'spectator' },
+      ],
+    });
+    e2e.world.strategicGames.set('sg-late', { id: 'sg-late', owner: USERS.owner.sub, options: null });
+    e2e.world.factions.set('rohan', faction('rohan', { gameId: 'sg-072', players: [PLAYER] }));
+    e2e.world.factions.set('isengard', faction('isengard', { gameId: 'sg-072', players: [] }));
+    e2e.world.factions.set('late', faction('late', { gameId: 'sg-late' }));
+    e2e.world.characters.set(
+      'eomer',
+      character('eomer', { gameId: 'sg-072', faction: { id: 'rohan', name: 'Rohan' }, owner: USERS.other.sub }),
+    );
+    e2e.world.characters.set(
+      'saruman',
+      character('saruman', { gameId: 'sg-072', faction: { id: 'isengard', name: 'Isengard' }, owner: USERS.other.sub }),
+    );
+  });
+
+  const createShared = () =>
+    createGame('owner', {
+      strategicGameId: 'sg-072',
+      factions: ['rohan', 'isengard'],
+      actors: [
+        { id: 'eomer', type: 'character' },
+        { id: 'saruman', type: 'character' },
+      ],
+    });
+
+  it('answers the access of the caller, without the members or the faction players', async () => {
+    const game = await createShared();
+    expect(game.access).toBe('manage');
+    expect(game).not.toHaveProperty('strategicMembers');
+    expect(game).not.toHaveProperty('factionPlayers');
+    expect(await accessOf(MASTER, game.id)).toBe('manage');
+    expect(await accessOf(PLAYER, game.id)).toBe('act');
+    expect(await accessOf(SPECTATOR, game.id)).toBe('read');
+    expect(await accessOf(USERS.other.sub, game.id)).toBe('act');
+    expect(await accessOf(STRANGER, game.id)).toBe(403);
+    const listed = await asUser(SPECTATOR).get('/v1/tactical-games?size=100');
+    expect((listed.body as PageBody).content.find(each => each.id === game.id)?.access).toBe('read');
+    expect(ids((await asUser(STRANGER).get('/v1/tactical-games?size=100')).body)).not.toContain(game.id);
+  });
+
+  it('lets a master manage the game, and not a player or a spectator', async () => {
+    const game = await createShared();
+    for (const sub of [PLAYER, SPECTATOR]) {
+      expect((await asUser(sub).patch(`/v1/tactical-games/${game.id}`, { name: 'x' })).status).toBe(403);
+      expect((await asUser(sub).post(`/v1/tactical-games/${game.id}/rounds/start`)).status).toBe(403);
+      expect((await asUser(sub).delete(`/v1/tactical-games/${game.id}`)).status).toBe(403);
+    }
+    expect((await asUser(MASTER).patch(`/v1/tactical-games/${game.id}`, { name: 'By the master' })).status).toBe(200);
+    expect((await asUser(MASTER).post(`/v1/tactical-games/${game.id}/rounds/start`)).status).toBe(200);
+    expect((await asUser(MASTER).delete(`/v1/tactical-games/${game.id}`)).status).toBe(204);
+  });
+
+  it('lets a faction player act for the actors of the faction, not for those of another', async () => {
+    const game = await createShared();
+    expect((await as('owner').post(`/v1/tactical-games/${game.id}/rounds/start`)).status).toBe(200);
+    const rounds = await asUser(SPECTATOR).get(`/v1/actor-rounds?q=gameId==${game.id};round==1`);
+    expect(rounds.status).toBe(200);
+    const byActor = new Map((rounds.body as { content: { id: string; actorId: string }[] }).content.map(r => [r.actorId, r.id]));
+    expect((await asUser(PLAYER).patch(`/v1/actor-rounds/${byActor.get('eomer')}/initiative`, { roll: 10 })).status).toBe(200);
+    expect((await asUser(PLAYER).patch(`/v1/actor-rounds/${byActor.get('saruman')}/initiative`, { roll: 10 })).status).toBe(403);
+    expect((await asUser(SPECTATOR).patch(`/v1/actor-rounds/${byActor.get('eomer')}/initiative`, { roll: 10 })).status).toBe(403);
+    expect((await asUser(MASTER).patch(`/v1/actor-rounds/${byActor.get('saruman')}/initiative`, { roll: 10 })).status).toBe(200);
+  });
+
+  it('follows the game and faction events of strategic', async () => {
+    const game = await createGame('owner', { strategicGameId: 'sg-late', factions: ['late'], actors: [] });
+    expect(await accessOf(PLAYER, game.id)).toBe(403);
+
+    await consumer().handleStrategicGameUpdated(
+      { data: { id: 'sg-late', owner: USERS.owner.sub, members: [{ userId: PLAYER, userName: 'P', role: 'player', joinedAt: 'x' }] } },
+      kafka('internal.rmu-strategic.game.updated.v1'),
+    );
+    expect(await accessOf(PLAYER, game.id)).toBe('read');
+
+    await consumer().handleFactionUpdated(
+      { data: { id: 'late', gameId: 'sg-late', players: [PLAYER] } },
+      kafka('internal.rmu-strategic.faction.updated.v1'),
+    );
+    expect(await accessOf(PLAYER, game.id)).toBe('act');
+
+    await consumer().handleStrategicGameCreated(
+      { data: { id: 'sg-late', owner: USERS.owner.sub, members: [{ userId: MASTER, role: 'master' }] } },
+      kafka('internal.rmu-strategic.game.created.v1'),
+    );
+    expect(await accessOf(MASTER, game.id)).toBe('manage');
+
+    await consumer().handleFactionDeleted({ data: { id: 'late' } }, kafka('internal.rmu-strategic.faction.deleted.v1'));
+    const stored = await e2e.connection.collection('tactical-games').findOne({ _id: game.id as never });
+    expect(stored?.factionPlayers).toEqual({});
+    expect(stored?.strategicMembers).toEqual([{ userId: MASTER, role: 'master' }]);
+  });
+
+  it('gives the players of an added faction, before any event of it', async () => {
+    const game = await createGame('owner', { strategicGameId: 'sg-072', factions: ['isengard'], actors: [] });
+    expect(await accessOf(PLAYER, game.id)).toBe('read');
+    expect((await as('owner').post(`/v1/tactical-games/${game.id}/factions`, { factions: ['rohan'] })).status).toBe(200);
+    expect(await accessOf(PLAYER, game.id)).toBe('act');
   });
 });
 

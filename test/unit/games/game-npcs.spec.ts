@@ -207,7 +207,11 @@ describe('RemoveDeletedFactionHandler', () => {
       factions: ['f-1', 'f-2'],
       actors: [Actor.fromProps({ id: 'g-1', npcId: 'guard', name: 'Guard', faction: { id: 'f-2', name: 'F2' }, type: 'npc', owner: 'p' })],
     });
-    const repository = { findCreatedByFaction: vi.fn(() => Promise.resolve([tactical])), update: vi.fn((g: Game) => Promise.resolve(g)) };
+    const repository = {
+      findCreatedByFaction: vi.fn(() => Promise.resolve([tactical])),
+      update: vi.fn((g: Game) => Promise.resolve(g)),
+      removeFactionPlayers: vi.fn(() => Promise.resolve(1)),
+    };
     const publisher = { publish: vi.fn(() => Promise.resolve()) };
     await new RemoveDeletedFactionHandler(repository as unknown as GameRepository, publisher).execute(
       new RemoveDeletedFactionCommand('f-2'),
@@ -216,6 +220,7 @@ describe('RemoveDeletedFactionHandler', () => {
     expect(tactical.factions).toEqual(['f-1']);
     expect(tactical.actors).toEqual([]);
     expect(publisher.publish).toHaveBeenCalled();
+    expect(repository.removeFactionPlayers).toHaveBeenCalledWith('f-2');
   });
 
   it('is dispatched by the faction deleted event of strategic', async () => {
