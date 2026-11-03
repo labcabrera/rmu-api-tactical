@@ -12,6 +12,8 @@ export interface StrategicGame {
   realmId?: string;
   /** `public` or `private`; strategic sends it since spec 021 (F-strategic-05). Missing means private. */
   accessType?: string;
+  /** The members of the game (spec 071), `[{userId, userName, role, joinedAt}]`; missing in strategic versions before it. */
+  members?: { userId: string; role: string }[];
 }
 
 export interface StrategicGameOptions {

@@ -18,6 +18,7 @@ import {
   type GameNpc,
 } from '../value-objects/environment-faction.vo.js';
 import type { GamePhase } from '../value-objects/game-phase.vo.js';
+import type { StrategicMember } from '../value-objects/strategic-member.vo.js';
 import type { GameStatus } from '../value-objects/game-status.vo.js';
 import type { TacticalGameOutcome, TacticalGameOutcomeCharacter } from '../value-objects/tactical-game-outcome.vo.js';
 import type { GameProps } from './game-props.js';
@@ -68,6 +69,12 @@ export class Game extends BaseAggregateRoot<GameProps> {
    */
   public fearThresholdsAlerted: Record<string, string[]> = {};
 
+  /** Workspace spec 072, decision 13: the members of the strategic game, kept from its events. */
+  public strategicMembers: StrategicMember[] = [];
+
+  /** Workspace spec 072, decision 13: the players of each strategic faction (`{factionId: [userId]}`). */
+  public factionPlayers: Record<string, string[]> = {};
+
   static create(
     strategicGameId: string,
     name: string,
@@ -80,6 +87,8 @@ export class Game extends BaseAggregateRoot<GameProps> {
     strategicGameOwner?: string,
     accessType?: string,
     environmentFaction?: EnvironmentFaction | null,
+    strategicMembers?: StrategicMember[],
+    factionPlayers?: Record<string, string[]>,
   ) {
     const game = new Game(
       randomUUID(),
@@ -100,6 +109,8 @@ export class Game extends BaseAggregateRoot<GameProps> {
     game.strategicGameOwner = strategicGameOwner;
     game.accessType = accessType || 'private';
     game.environmentFaction = environmentFaction ? EnvironmentFactions.copy(environmentFaction) : null;
+    game.strategicMembers = (strategicMembers ?? []).map(member => ({ ...member }));
+    game.factionPlayers = structuredClone(factionPlayers ?? {});
     game.syncEnvironmentFaction();
     game.apply(new GameCreatedEvent(game));
     return game;
@@ -127,6 +138,8 @@ export class Game extends BaseAggregateRoot<GameProps> {
     game.accessType = props.accessType || 'private';
     game.environmentFaction = props.environmentFaction ? EnvironmentFactions.copy(props.environmentFaction) : null;
     game.fearThresholdsAlerted = props.fearThresholdsAlerted ? structuredClone(props.fearThresholdsAlerted) : {};
+    game.strategicMembers = (props.strategicMembers ?? []).map(member => ({ userId: member.userId, role: member.role }));
+    game.factionPlayers = props.factionPlayers ? structuredClone(props.factionPlayers) : {};
     return game;
   }
 
@@ -348,6 +361,21 @@ export class Game extends BaseAggregateRoot<GameProps> {
    * Phase number stamped on the effects applied now: 0 before the action phases, 1-4 in them and 5 in the upkeep
    * (see `ActorRoundEffect.appliedPhase`).
    */
+  /** The role of the user in the strategic game (workspace spec 072), undefined if not a member. */
+  strategicRoleOf(userId: string): StrategicMember['role'] | undefined {
+    return this.strategicMembers.find(member => member.userId === userId)?.role;
+  }
+
+  /** The user is a player of the faction `factionId` in strategic (workspace spec 072, decision 12). */
+  isFactionPlayer(factionId: string, userId: string): boolean {
+    return (this.factionPlayers[factionId] ?? []).includes(userId);
+  }
+
+  /** Sets the players of some factions (workspace spec 072), such as those of the factions added to the game. */
+  setFactionPlayers(players: Record<string, string[]>): void {
+    this.factionPlayers = { ...this.factionPlayers, ...structuredClone(players) };
+  }
+
   /** Records the thresholds of fallen allies a faction crossed (decision 16). */
   markFearThresholds(factionId: string, keys: string[]): void {
     const alerted = new Set([...(this.fearThresholdsAlerted[factionId] ?? []), ...keys]);
@@ -389,6 +417,8 @@ export class Game extends BaseAggregateRoot<GameProps> {
       environment: this.environment,
       environmentFaction: this.environmentFaction,
       fearThresholdsAlerted: this.fearThresholdsAlerted,
+      strategicMembers: this.strategicMembers,
+      factionPlayers: this.factionPlayers,
       description: this.description,
       imageUrl: this.imageUrl,
       owner: this.owner,

@@ -8,6 +8,7 @@ import { TacticalGameOutcomeDto } from './tactical-game-outcome.dto.js';
 import { ActorDto } from './actor.dto.js';
 import { GameEnvironmentDto } from './game-environment.dto.js';
 import { EnvironmentFactionDto } from './environment-faction.dto.js';
+import type { TacticalGameAccess } from '../../../domain/value-objects/strategic-member.vo.js';
 
 export class GameDto {
   @ApiProperty({ description: 'Game identifier', example: 'lotr' })
@@ -80,10 +81,21 @@ export class GameDto {
   @ApiProperty({ type: String, description: 'accessType of the strategic game: who reads this game (spec 021)', example: 'private' })
   accessType: string;
 
+  @ApiProperty({
+    type: String,
+    enum: ['read', 'act', 'manage'],
+    description:
+      'Workspace spec 072: what the caller does with the game. manage: change, play and delete it; act: act for some of its ' +
+      'actors (owner or faction player); read: only read it',
+    example: 'read',
+  })
+  access: TacticalGameAccess;
+
   @ApiProperty({ description: 'Outcome of a finished game (spec 013)', type: () => TacticalGameOutcomeDto, required: false })
   outcome?: TacticalGameOutcomeDto;
 
-  static fromEntity(entity: Game) {
+  /** The members and faction players of the game stay out: only the `access` of the caller goes (spec 072). */
+  static fromEntity(entity: Game, access: TacticalGameAccess) {
     const dto = new GameDto();
     dto.id = entity.id;
     dto.version = entity.version;
@@ -102,6 +114,7 @@ export class GameDto {
     dto.owner = entity.owner;
     dto.strategicGameOwner = entity.strategicGameOwner;
     dto.accessType = entity.accessType;
+    dto.access = access;
     dto.outcome = entity.outcome ? TacticalGameOutcomeDto.fromEntity(entity.outcome) : undefined;
     return dto;
   }

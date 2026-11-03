@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, HttpCode, Logger, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Inject, Delete, HttpCode, Logger, Param, Post, UseGuards } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../shared/infrastructure/security/jwt-auth.guard.js';
@@ -12,6 +12,7 @@ import { ApiErrors } from '../../../shared/interfaces/http/api-errors.decorator.
 import { CurrentUser } from '../../../shared/interfaces/http/current-user.decorator.js';
 import type { AuthenticatedUser } from '../../../shared/interfaces/http/authenticated-request.js';
 import { GameAccess, GameAccessGuard } from './security/game-access.guard.js';
+import { GAME_GUARD, type GameGuardPort } from '../../application/ports/game-guard.port.js';
 
 @UseGuards(JwtAuthGuard, GameAccessGuard)
 @Controller('v1/tactical-games')
@@ -19,7 +20,10 @@ import { GameAccess, GameAccessGuard } from './security/game-access.guard.js';
 export class GameActorController {
   private readonly logger = new Logger(GameActorController.name);
 
-  constructor(private commandBus: CommandBus) {}
+  constructor(
+    private commandBus: CommandBus,
+    @Inject(GAME_GUARD) private readonly gameGuard: GameGuardPort,
+  ) {}
 
   @GameAccess('manage')
   @Post(':id/actors')
@@ -30,7 +34,7 @@ export class GameActorController {
   async addActors(@Param('id') id: string, @Body() dto: AddGameActorsDto, @CurrentUser() user: AuthenticatedUser) {
     const command = AddGameActorsDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<AddGameActorsCommand, Game>(command);
-    return GameDto.fromEntity(entity);
+    return this.toDto(entity, user);
   }
 
   @GameAccess('manage')
@@ -42,6 +46,11 @@ export class GameActorController {
   async deleteActors(@Param('id') id: string, @Body() dto: DeleteGameActorsDto, @CurrentUser() user: AuthenticatedUser) {
     const command = DeleteGameActorsDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<DeleteGameActorsCommand, Game>(command);
-    return GameDto.fromEntity(entity);
+    return this.toDto(entity, user);
+  }
+
+  /** The game with the `access` of the caller (workspace spec 072, contract 23). */
+  private toDto(game: Game, user: AuthenticatedUser): GameDto {
+    return GameDto.fromEntity(game, this.gameGuard.accessOf(game, user.id, user.roles));
   }
 }
