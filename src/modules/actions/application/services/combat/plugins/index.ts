@@ -42,6 +42,7 @@ import { CombatStunPlugin } from './combat-stun.plugin.js';
 import { CombatSurprisedPlugin } from './combat-surprised.plugin.js';
 import { CombatSurvivalInstinctPlugin } from './combat-survival-instinct.plugin.js';
 import { CombatTextEffectsPlugin } from './combat-text-effects.plugin.js';
+import { CombatLightSensitivityPlugin } from './combat-light-sensitivity.plugin.js';
 import { CombatPrecisionPlugin } from './combat-precision.plugin.js';
 import { CombatTwoHandedWeaponPlugin } from './combat-two-handed-weapon.plugin.js';
 
@@ -69,6 +70,7 @@ export const COMBAT_PLUGIN_LIST: CombatPlugin[] = [
   CombatRestrictedQuartersPlugin,
   CombatProneSourcePlugin,
   CombatTextEffectsPlugin,
+  CombatLightSensitivityPlugin,
   CombatStunPlugin,
   CombatSurprisedPlugin,
   CombatFlatfootedTargetPlugin,
@@ -139,3 +141,5 @@ export * from './combat-stun.plugin.js';
 export * from './combat-surprised.plugin.js';
 export * from './combat-survival-instinct.plugin.js';
 export * from './combat-two-handed-weapon.plugin.js';
+export * from './combat-text-effects.plugin.js';
+export * from './combat-light-sensitivity.plugin.js';

@@ -114,6 +114,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
         attackNumber,
         targetsNumber,
         gameLethality,
+        light: game.environment?.light ?? null,
       });
       if (ctx.attack!.calculated!.rollModifiers.some(modifier => modifier.key === 'shield' || modifier.key === 'shield-block')) {
         reservedShieldBlocks.set(targetId, (reservedShieldBlocks.get(targetId) || 0) + 1);
@@ -163,6 +164,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       attackNumber: input.attackNumber,
       targetsNumber: input.targetsNumber,
       gameLethality: input.gameLethality,
+      light: input.light ?? null,
       sourceActor: input.actors.find(a => a.actorId === input.action.actorId),
       targetActor: input.actors.find(a => a.actorId === input.attack.modifiers.targetId),
       trace: [],
