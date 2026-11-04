@@ -34,7 +34,7 @@ export interface GameNpcsResult {
 /**
  * Turns the NPCs requested for a tactical game into its actors (spec 055, decision 3): one actor per specimen, with an
  * id of its own and the NPC in `npcId`, named `Wolf 1`, `Wolf 2`... The NPC has to be readable by the owner of its
- * faction, of the campaign's realm or a generic one, and its faction in the game (or the environment). The owner of
+ * faction, of the campaign's realm or a generic one (or global, without realm), and its faction in the game (or the environment). The owner of
  * the actors is the owner of the strategic faction, or the game master for the environment.
  */
 @Injectable()
@@ -138,12 +138,16 @@ export class GameNpcsService {
     return { owner: faction.owner, factionName: faction.name };
   }
 
-  /** The NPC, readable by `owner` (public, or theirs) and of the campaign's realm or a generic one. */
+  /**
+   * The NPC, readable by `owner` (public, or theirs) and of the campaign's realm or a generic one. A global NPC (without
+   * realm, spec 073) is the catalog of the admins, read by everyone: it is valid in any campaign.
+   */
   private async readNpc(context: GameNpcsContext, npcId: string, owner: string, lookup: Lookup): Promise<Npc> {
     const npc = await lookup.npc(npcId);
     if (!npc) {
       throw new ValidationError(`NPC ${npcId} not found`, 'err-npc-not-found');
     }
+    if (!npc.realmId) return npc;
     if (npc.accessType === 'private' && npc.owner !== owner) {
       throw new ValidationError(`NPC ${npc.name} is private and not of the owner of its faction`, 'err-npc-not-readable');
     }

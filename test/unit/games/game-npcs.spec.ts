@@ -113,6 +113,20 @@ describe('GameNpcsService', () => {
     await expect(npcs.toActors(context({ factionIds: ['f-1', 'f-3', 'f-4'] }), [request])).rejects.toMatchObject({ code });
   });
 
+  it('takes a global NPC in any campaign, even private and of another user, without asking core', async () => {
+    const { service: npcs, realmPort } = service([
+      npc('global', { realmId: null, accessType: 'private', owner: 'admin' }),
+      npc('legacy', { realmId: undefined }),
+    ]);
+    await expect(
+      npcs.toActors(context({ realmId: 'realm-9' }), [
+        { npcId: 'global', factionId: 'environment' },
+        { npcId: 'legacy', factionId: 'environment' },
+      ]),
+    ).resolves.toMatchObject({ actors: [{ npcId: 'global' }, { npcId: 'legacy' }] });
+    expect(realmPort.findById).not.toHaveBeenCalled();
+  });
+
   it('takes a private NPC of the owner of the faction', async () => {
     const { service: npcs } = service([npc('secret', { accessType: 'private', owner: 'player' })], [faction('f-1')]);
     await expect(npcs.toActors(context(), [{ npcId: 'secret', factionId: 'f-1' }])).resolves.toMatchObject({ actors: [{}] });

@@ -34,7 +34,8 @@ export const sizeClassOf = (size: string): number | undefined => {
 /** The NPC as the npcs API answers it: the fields tactical reads of its Combat Stat Block (spec 054). */
 export interface Npc {
   id: string;
-  realmId: string;
+  /** Null (or absent) for a global NPC of the admins, valid in any campaign (spec 073). */
+  realmId?: string | null;
   /** `public` or `private`: a private NPC is only readable by its owner. */
   accessType: string;
   name: string;
