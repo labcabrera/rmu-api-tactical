@@ -682,3 +682,141 @@ describe('riposte (workspace spec 076, decisions B1-B2)', () => {
     expect(again.body).toMatchObject({ code: 'err-reaction-not-available' });
   });
 });
+
+describe('sense weakness (workspace spec 076, decision B8)', () => {
+  type EffectBody = { id: string; status: string; targetActorId?: string; data?: { kind?: string } };
+  type RoundBody = { id: string; actorId: string; effects: EffectBody[]; rollProfile: { highFrom: number } };
+  type CriticalBody = { key: string; status: string; adjustedRoll?: number; originalRoll?: number; rerolledBy?: string };
+
+  const roundOf = async (gameId: string, actorId: string, round: number) => {
+    const rounds = await as('owner').get(`/v1/actor-rounds?q=gameId==${gameId};round==${round}`);
+    return (rounds.body as { content: RoundBody[] }).content.find(each => each.actorId === actorId)!;
+  };
+  const nextPhase = async (gameId: string) =>
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/phases/start`)).status).toBe(200);
+
+  afterEach(() => {
+    e2e.world.characters.set('aragorn', character('aragorn'));
+  });
+
+  it('a full round of Perception, then the critical of an attack on that foe rolled again: the second roll counts', async () => {
+    e2e.world.characters.set(
+      'aragorn',
+      character('aragorn', {
+        traits: [{ traitId: 'sense-weakness', traitName: 'Sense Weakness', isTalent: true, cost: 10, tier: 1 }],
+        skills: [{ skillId: 'perception', specialization: null, totalBonus: 40, ranks: 4 }],
+      }),
+    );
+    const gameId = await gameInPhase1();
+
+    // Round 1: Aragorn watches Lurtz the whole round (4 AP)
+    const declared = await as('owner').post('/v1/actions', {
+      gameId,
+      actorId: 'aragorn',
+      actionType: 'maneuver',
+      phaseStart: 1,
+      maneuver: { skillId: 'perception' },
+    });
+    expect(declared.status).toBe(201);
+    const maneuverId = (declared.body as ActionBody).id;
+    const early = await as('owner').patch(`/v1/actions/${maneuverId}/maneuver/resolve`, {
+      roll: { roll: 90 },
+      purpose: 'sense-weakness',
+      foeActorId: 'lurtz',
+    });
+    expect(early.status).toBe(400);
+    for (let phase = 2; phase <= 4; phase++) await nextPhase(gameId);
+    const resolved = await as('owner').patch(`/v1/actions/${maneuverId}/maneuver/resolve`, {
+      roll: { roll: 90, unmodified: 90, dice: [90] },
+      purpose: 'sense-weakness',
+      foeActorId: 'lurtz',
+    });
+    expect(resolved.status).toBe(200);
+    expect(resolved.body).toMatchObject({
+      actionPoints: 4,
+      maneuver: { modifiers: { purpose: 'sense-weakness', foeActorId: 'lurtz' }, result: { result: 'success' } },
+    });
+    const watched = await roundOf(gameId, 'aragorn', 1);
+    expect(watched.rollProfile.highFrom).toBe(96);
+    expect(watched.effects).toContainEqual(
+      expect.objectContaining({ status: 'critical-reroll', targetActorId: 'lurtz', data: { kind: 'offense' } }),
+    );
+
+    // Round 2: the reroll is kept, and Aragorn attacks Lurtz
+    await nextPhase(gameId);
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/rounds/start`)).status).toBe(200);
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/initiatives/randomize`)).status).toBe(200);
+    await nextPhase(gameId);
+    expect((await roundOf(gameId, 'aragorn', 2)).effects.map(effect => effect.status)).toContain('critical-reroll');
+    const attack = await as('owner').post('/v1/actions', { gameId, actorId: 'aragorn', actionType: 'melee_attack', phaseStart: 1 });
+    expect(attack.status).toBe(201);
+    const attackId = (attack.body as ActionBody).id;
+    await nextPhase(gameId);
+    expect(
+      (
+        await as('owner').patch(`/v1/actions/${attackId}/attack/prepare`, {
+          attacks: [{ attackName: 'mainHand', modifiers: { targetId: 'lurtz', bo: 60 }, protectors: null }],
+        })
+      ).status,
+    ).toBe(200);
+    expect((await as('owner').patch(`/v1/actions/${attackId}/attack/roll`, { attackName: 'mainHand', roll: 70 })).status).toBe(200);
+    const first = await as('owner').patch(`/v1/actions/${attackId}/attack/critical-roll`, {
+      attackName: 'mainHand',
+      criticalKey: 's_c_1',
+      roll: 12,
+    });
+    expect(first.status).toBe(200);
+
+    const rerolled = await as('owner').patch(`/v1/actions/${attackId}/attack/critical-roll`, {
+      attackName: 'mainHand',
+      criticalKey: 's_c_1',
+      roll: 88,
+      reroll: true,
+    });
+    expect(rerolled.status).toBe(200);
+    const criticals = ((rerolled.body as ActionBody).attacks![0] as unknown as { results: { criticals: CriticalBody[] } }).results
+      .criticals;
+    expect(criticals[0]).toMatchObject({ key: 's_c_1', status: 'completed', originalRoll: 12, rerolledBy: 'offense', adjustedRoll: 88 });
+    expect(rerolled.body).toMatchObject({ attacks: [{ roll: { criticalRolls: { s_c_1: 88 } } }] });
+    // The effect is used up: no second reroll
+    expect((await roundOf(gameId, 'aragorn', 2)).effects.map(effect => effect.status)).not.toContain('critical-reroll');
+    const again = await as('owner').patch(`/v1/actions/${attackId}/attack/critical-roll`, {
+      attackName: 'mainHand',
+      criticalKey: 's_c_1',
+      roll: 40,
+      reroll: true,
+    });
+    expect(again.status).toBe(400);
+    expect(again.body).toMatchObject({ code: 'err-reroll-not-available' });
+    expect((await as('owner').patch(`/v1/actions/${attackId}/attack/apply`)).status).toBe(200);
+  });
+
+  it('rejects the maneuver without the talent, and dice that do not open with the actor’s profile', async () => {
+    e2e.world.characters.set(
+      'aragorn',
+      character('aragorn', { skills: [{ skillId: 'perception', specialization: null, totalBonus: 40, ranks: 4 }] }),
+    );
+    const gameId = await gameInPhase1();
+    const declared = await as('owner').post('/v1/actions', {
+      gameId,
+      actorId: 'aragorn',
+      actionType: 'maneuver',
+      phaseStart: 1,
+      maneuver: { skillId: 'perception' },
+    });
+    const maneuverId = (declared.body as ActionBody).id;
+    for (let phase = 2; phase <= 4; phase++) await nextPhase(gameId);
+    const rejected = await as('owner').patch(`/v1/actions/${maneuverId}/maneuver/resolve`, {
+      roll: { roll: 90 },
+      purpose: 'sense-weakness',
+      foeActorId: 'lurtz',
+    });
+    expect(rejected.status).toBe(422);
+    expect(rejected.body).toMatchObject({ code: 'err-maneuver-purpose-trait-required' });
+    const dice = await as('owner').patch(`/v1/actions/${maneuverId}/maneuver/resolve`, {
+      roll: { roll: 125, unmodified: 95, dice: [95, 30] },
+    });
+    expect(dice.status).toBe(400);
+    expect(dice.body).toMatchObject({ code: 'err-roll-open-ended-invalid' });
+  });
+});
