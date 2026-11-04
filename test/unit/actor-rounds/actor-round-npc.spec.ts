@@ -312,3 +312,30 @@ describe('ActorSheetService (spec 055)', () => {
     });
   });
 });
+
+// Workspace spec 076, §4: the talents of the stat block with a catalog id become traits of the actor round.
+describe('NPC talents as traits (workspace spec 076)', () => {
+  const talents = [
+    { name: 'Nightvision', tier: null, traitId: 'nightvision' },
+    { name: 'Darkvision', tier: 'X', traitId: 'darkvision' },
+    { name: 'Acute Smell', tier: 'iii', traitId: 'acute-smell' },
+    { name: 'Tremorsense', tier: 'II', traitId: null },
+    { name: 'Odd gift', tier: 'nonsense' },
+  ];
+
+  it('copies the talents with a traitId, with their roman tier (I when missing or unreadable)', () => {
+    const round = mapper.toActorRound('game-1', 1, specimen(), beast({ talents }));
+    expect(round.traits.map(t => ({ traitId: t.traitId, tier: t.tier, specialization: t.specialization }))).toEqual([
+      { traitId: 'nightvision', tier: 1, specialization: null },
+      { traitId: 'darkvision', tier: 10, specialization: null },
+      { traitId: 'acute-smell', tier: 3, specialization: null },
+    ]);
+    expect(ActorSheetService.fromNpc(beast({ talents })).npcTraits).toHaveLength(3);
+  });
+
+  it('works with stat blocks read before the npcs API sends talents', () => {
+    expect(mapper.toActorRound('game-1', 1, specimen(), beast()).traits).toEqual([]);
+    expect(mapper.toActorRound('game-1', 1, specimen(), beast({ talents: null })).traits).toEqual([]);
+    expect(ActorSheetService.fromNpc(beast()).npcTraits).toBeUndefined();
+  });
+});

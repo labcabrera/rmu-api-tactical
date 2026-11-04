@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { type Npc, type NpcPort, NPC_PORT } from '../../../npcs/application/ports/npc.port.js';
+import { type Npc, npcCatalogTalents, type NpcPort, NPC_PORT } from '../../../npcs/application/ports/npc.port.js';
+import { ActorRoundTrait } from '../../domain/value-objects/actor-round-trait.vo.js';
 import {
   type CharacterEquipment,
   type CharacterPort,
@@ -17,6 +18,8 @@ export interface ActorSheet {
   equipment?: Pick<CharacterEquipment, 'maneuverPenalty' | 'encumbrancePenalty'>;
   /** The stat block of an NPC: a skill it does not list counts 0, not as unskilled. */
   npc?: boolean;
+  /** The talents of an NPC stat block in the talent catalog (workspace spec 076, §4), for actor rounds without traits. */
+  npcTraits?: ActorRoundTrait[];
 }
 
 /** Skill of the passive, partial and full blocks (§9.6 Shields). */
@@ -56,7 +59,13 @@ export class ActorSheetService {
     if (npc.shield && !skills.some(skill => skill.skillId === SHIELD_SKILL_ID)) {
       skills.push(ActorSheetService.skillOf(SHIELD_SKILL_ID, npc.shield.bonus ?? 0, npc.shield.ranks));
     }
-    return { npc: true, skills, equipment: { maneuverPenalty: 0, encumbrancePenalty: 0 } };
+    const npcTraits = ActorSheetService.npcTraits(npc);
+    return { npc: true, skills, equipment: { maneuverPenalty: 0, encumbrancePenalty: 0 }, ...(npcTraits.length > 0 ? { npcTraits } : {}) };
+  }
+
+  /** Workspace spec 076, §4: the talents of the stat block with a catalog id, as traits (tier I when it gives none). */
+  static npcTraits(npc: Npc): ActorRoundTrait[] {
+    return npcCatalogTalents(npc).map(talent => new ActorRoundTrait(talent.traitId, talent.tier, null));
   }
 
   private static skillOf(skillId: string, bonus: number, ranks: number | null | undefined, specialization?: string | null): CharacterSkill {
