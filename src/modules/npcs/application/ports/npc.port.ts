@@ -5,31 +5,8 @@ export interface NpcPort {
 
 export const NPC_PORT = Symbol('NpcPort');
 
-/** Size ids of the stat block, in order: the index + 1 is the size class (medium = 5). Same ids as core. */
-export const CREATURE_SIZES = [
-  'minuscule',
-  'diminutive',
-  'tiny',
-  'small',
-  'medium',
-  'big',
-  'large',
-  'huge',
-  'gigantic',
-  'enormous',
-  'immense',
-  'behemoth',
-  'leviathan',
-] as const;
-
-/** Size class of a medium creature. */
-export const MEDIUM_SIZE_CLASS = 5;
-
-/** Size class (1-13) of a size id of the stat block; undefined for an unknown one. */
-export const sizeClassOf = (size: string): number | undefined => {
-  const index = CREATURE_SIZES.indexOf(size as (typeof CREATURE_SIZES)[number]);
-  return index < 0 ? undefined : index + 1;
-};
+/** Size ids of the stat block: the shared size scale (workspace spec 075), same ids as core. */
+export { SIZE_IDS as CREATURE_SIZES, MEDIUM_SIZE_CLASS, sizeClassOf } from '../../../shared/domain/size-scale.js';
 
 /** The NPC as the npcs API answers it: the fields tactical reads of its Combat Stat Block (spec 054). */
 export interface Npc {
@@ -46,6 +23,10 @@ export interface Npc {
   movement: NpcMovement[];
   /** Size id (`medium`, `big`…), see `CREATURE_SIZES`. */
   size: string;
+  /** Size id it suffers criticals as (T-3.1d), when it differs from `size`; null or missing: its size. */
+  criticalSize?: string | null;
+  /** Critical codes of the stat block (T-3.1e); missing in NPCs read before spec 075. */
+  criticalCodes?: NpcCriticalCodes | null;
   hp: number;
   /** Damage it dies at (the value in parentheses of the stat block); null when the block does not give it. */
   deathHits: number | null;
@@ -60,6 +41,12 @@ export interface Npc {
   skills: NpcSkill[];
   imageUrl?: string | null;
   owner: string;
+}
+
+/** Critical codes (T-3.1e): only the ones tactical reads. */
+export interface NpcCriticalCodes {
+  /** Code I: the creature reduces the severity of any critical by one; below A it is not rolled. */
+  reduceSeverity?: boolean;
 }
 
 export interface NpcMovement {

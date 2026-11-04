@@ -161,6 +161,8 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       itemsConsumed: (doc.itemsConsumed || []).map(each => ({ itemId: each.itemId, amount: each.amount })),
       temporaryModifiers: (doc.temporaryModifiers || []).map(each => ({ ...each })),
       frightLevel: doc.frightLevel ?? null,
+      criticalSize: doc.criticalSize ?? null,
+      reduceCriticalSeverity: doc.reduceCriticalSeverity ?? false,
       snapshot: doc.snapshot
         ? { hp: doc.snapshot.hp, injuryIds: [...(doc.snapshot.injuryIds || [])], conditionIds: [...(doc.snapshot.conditionIds || [])] }
         : undefined,

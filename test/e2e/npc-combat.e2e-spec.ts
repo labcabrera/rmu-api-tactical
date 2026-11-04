@@ -12,6 +12,7 @@ type ActorRoundBody = {
   npcId?: string;
   characterId?: string;
   size: number;
+  criticalSize: number | null;
   raceName: string;
   level: number;
   factionId: string;
@@ -32,7 +33,19 @@ type ActorRoundBody = {
   effects: { status: string }[];
 };
 
-type ActionBody = { id: string; attacks?: { status: string; results?: { fumble?: unknown; criticals?: { key: string }[] } }[] };
+type ActionBody = {
+  id: string;
+  attacks?: {
+    status: string;
+    results?: {
+      fumble?: unknown;
+      criticals?: { key: string }[];
+      attackTableEntry?: { damage: number; criticalType?: string; criticalSeverity?: string };
+      damageAdjustment?: { baseDamage: number; multiplier: number };
+      severityAdjustment?: { original: string; final: string | null; steps: { key: string; value: number }[] };
+    };
+  }[];
+};
 
 let e2e: E2eApp;
 
@@ -223,6 +236,70 @@ describe('a round of a character against NPCs', () => {
     expect((await as('owner').post(`/v1/tactical-games/${gameId}/rounds/start`)).status).toBe(200);
     const [next] = await rounds(gameId, 2);
     expect(next).toMatchObject({ actorId: warg.actorId, actorType: 'npc', npcId: 'warg', hp: { max: 40, deathThreshold: 19 } });
+  });
+
+  it('scales the damage by the attack size and records the critical shift (spec 075)', async () => {
+    // A Big creature that suffers criticals as a Large one, with the critical code I.
+    e2e.world.npcs.set(
+      'troll',
+      npc('troll', {
+        name: 'Troll',
+        size: 'big',
+        criticalSize: 'large',
+        criticalCodes: { reduceSeverity: true },
+        attacks: [{ ob: 60, size: 6, attackTable: 'bite', fumbleTable: null }],
+      }),
+    );
+    const created = await as('owner').post('/v1/tactical-games', {
+      strategicGameId: 'sg-1',
+      name: 'Trollshaws',
+      factions: ['faction-1'],
+      actors: [{ id: 'beorn', type: 'character' }],
+      environmentFaction: { npcs: [{ npcId: 'troll' }] },
+    });
+    expect(created.status).toBe(201);
+    const gameId = (created.body as { id: string }).id;
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/rounds/start`)).status).toBe(200);
+    const all = await rounds(gameId);
+    const troll = all.find(each => each.actorType === 'npc')!;
+    const beorn = all.find(each => each.actorId === 'beorn')!;
+    expect(troll).toMatchObject({ size: 1, criticalSize: 2, attacks: [expect.objectContaining({ attackSize: 1 })] });
+    expect(beorn).toMatchObject({ size: 0, criticalSize: null });
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/initiatives/randomize`)).status).toBe(200);
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/phases/start`)).status).toBe(200);
+    const bite = await declareAttack(gameId, troll.actorId);
+    const blow = await declareAttack(gameId, 'beorn');
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/phases/start`)).status).toBe(200);
+
+    // The Big bite: 12CS becomes 18 hits (×1.5) and a D critical against the Medium Beorn.
+    await prepare(bite, 'bite-1', 'beorn', 60);
+    const bitten = await roll(bite, 'bite-1', 70);
+    expect(bitten.results).toMatchObject({
+      attackTableEntry: { damage: 18, criticalType: 'S', criticalSeverity: 'D' },
+      damageAdjustment: { baseDamage: 12, multiplier: 1.5 },
+      severityAdjustment: { original: 'C', final: 'D', steps: [{ key: 'attack-size', value: 1 }] },
+      criticals: [{ key: 's_d_1' }],
+    });
+
+    // Beorn's Medium blow: the damage is not scaled, and C two sizes down and one more for the code I is no critical.
+    await prepare(blow, 'mainHand', troll.actorId, 60);
+    const struck = await roll(blow, 'mainHand', 80);
+    expect(struck.status).toBe('pending_apply');
+    expect(struck.results!.damageAdjustment).toBeUndefined();
+    expect(struck.results).toMatchObject({
+      attackTableEntry: { damage: 12 },
+      severityAdjustment: {
+        original: 'C',
+        final: null,
+        steps: [
+          { key: 'target-size', value: -2 },
+          { key: 'critical-code', value: -1 },
+        ],
+      },
+    });
+    expect(struck.results!.criticals ?? []).toEqual([]);
+    await apply(blow);
+    expect((await readRound(troll.id)).hp.current).toBe(40 - 12);
   });
 
   it('leaves out the attacks with no table of the stat block (spec 060)', async () => {

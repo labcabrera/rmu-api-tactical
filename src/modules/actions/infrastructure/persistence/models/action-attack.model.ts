@@ -4,6 +4,7 @@ import type { AttackType, ProtectPosition } from '../../../domain/value-objects/
 import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo.js';
 import type { ModifierGroup } from '../../../domain/value-objects/key-value-modifier.vo.js';
 import type { AttackStatus } from '../../../domain/value-objects/attack-status.vo.js';
+import type { DamageAdjustment, SeverityAdjustment } from '../../../domain/value-objects/action-attack.vo.js';
 import { ActionAttackModifiers } from './action-attack-modifiers.model.js';
 
 @Schema({ _id: false })
@@ -185,6 +186,14 @@ export class ActionAttackResult {
 
   @Prop({ type: Fumble, required: false })
   public fumble: Fumble | undefined;
+
+  /** Workspace spec 075: the damage of the table before the attack size scaled it. */
+  @Prop({ type: Object, required: false })
+  public damageAdjustment?: DamageAdjustment;
+
+  /** Workspace spec 075: the critical severity of the table, the final one (null: none) and the steps. */
+  @Prop({ type: Object, required: false })
+  public severityAdjustment?: SeverityAdjustment;
 }
 
 @Schema({ _id: false })

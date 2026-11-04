@@ -5,6 +5,7 @@ import type { CombatPlugin } from '../combat-plugin.js';
 import { CombatAbsoluteHitPlugin } from './combat-absolute-hit.plugin.js';
 import { CombatActionPointsPlugin } from './combat-action-points.plugin.js';
 import { CombatAttackSizePlugin } from './combat-attack-size.plugin.js';
+import { CombatAttackSizeDamagePlugin } from './combat-attack-size-damage.plugin.js';
 import { CombatBreakagePlugin } from './combat-breakage.plugin.js';
 import { CombatCalledShotPlugin } from './combat-called-shot.plugin.js';
 import { CombatCoverPlugin } from './combat-cover.plugin.js';
@@ -86,6 +87,7 @@ export const COMBAT_PLUGIN_LIST: CombatPlugin[] = [
   // afterAttackRoll
   CombatAbsoluteHitPlugin,
   CombatAttackSizePlugin,
+  CombatAttackSizeDamagePlugin,
   CombatCriticalExpansionPlugin,
   // prepare (ambush) and criticalRoll
   CombatCriticalAdjustmentPlugin,
@@ -96,6 +98,7 @@ export * from './combat-non-violent.plugin.js';
 export * from './combat-absolute-hit.plugin.js';
 export * from './combat-action-points.plugin.js';
 export * from './combat-attack-size.plugin.js';
+export * from './combat-attack-size-damage.plugin.js';
 export * from './combat-breakage.plugin.js';
 export * from './combat-called-shot.plugin.js';
 export * from './combat-cover.plugin.js';

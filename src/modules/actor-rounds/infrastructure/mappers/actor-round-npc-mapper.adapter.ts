@@ -47,9 +47,9 @@ const NATURAL_ATTACK_TABLES = [
 /**
  * The actor round of a specimen of an NPC (spec 055, decision 4), from the Combat Stat Block of rmu-api-npcs (spec
  * 054), in the units of the character mapper: the size and the attack sizes are steps from medium, the death
- * threshold is the hits below zero it survives. The attacks with no table are left out (spec 060). The sequences,
- * cooperation, katas, critical codes and poisons of the attacks are not applied (spec 056 candidate); the game master
- * picks the attack.
+ * threshold is the hits below zero it survives. The attacks with no table are left out (spec 060). The critical size
+ * and the critical code I come in (workspace spec 075); the sequences, cooperation, katas, the other critical codes
+ * and the poisons of the attacks are not applied (spec 056 candidate); the game master picks the attack.
  */
 @Injectable()
 export class ActorRoundNpcMapperAdapter implements ActorRoundNpcMapperPort {
@@ -85,7 +85,18 @@ export class ActorRoundNpcMapperAdapter implements ActorRoundNpcMapperPort {
     actorRound.npcId = npc.id;
     actorRound.resistances = this.mapResistances(npc);
     actorRound.frightLevel = npc.frightLevel ?? null;
+    actorRound.criticalSize = ActorRoundNpcMapperAdapter.criticalSize(npc, sizeClass);
+    actorRound.reduceCriticalSeverity = !!npc.criticalCodes?.reduceSeverity;
     return actorRound;
+  }
+
+  /**
+   * The size it suffers criticals as (T-3.1d; workspace spec 075, decision 3), in steps from medium: only when the
+   * stat block gives one that differs from its size (an unknown id is ignored); null takes its size.
+   */
+  static criticalSize(npc: Npc, sizeClass: number): number | null {
+    const criticalClass = npc.criticalSize ? sizeClassOf(npc.criticalSize) : undefined;
+    return criticalClass === undefined || criticalClass === sizeClass ? null : criticalClass - MEDIUM_SIZE_CLASS;
   }
 
   /**

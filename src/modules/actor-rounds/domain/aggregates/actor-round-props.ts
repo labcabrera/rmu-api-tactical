@@ -88,6 +88,10 @@ export interface ActorRoundProps {
   temporaryModifiers?: TemporaryModifier[];
   /** Workspace spec 068: fright level of an NPC (its stat block); null or missing: none. */
   frightLevel?: number | null;
+  /** Workspace spec 075: critical size of an NPC in steps, when it differs from its size; null or missing: none. */
+  criticalSize?: number | null;
+  /** Workspace spec 075: critical code I of an NPC. Missing in older actor rounds: false. */
+  reduceCriticalSeverity?: boolean;
   /** Only in the actor round built from the character (round 1, or the round it joined in). */
   snapshot?: ActorRoundSnapshot;
   imageUrl: string | undefined;

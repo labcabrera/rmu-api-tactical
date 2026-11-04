@@ -214,7 +214,9 @@ function fakePorts(world: World) {
       {
         lookup: (lookup: AttackTableLookupRequest) => {
           world.lookups.attack.push(lookup);
-          return Promise.resolve(world.attackEntry);
+          // A copy: the resolver scales and shifts the entry it gets.
+          const entry = world.attackEntry;
+          return Promise.resolve(new AttackTableEntry(entry.text, entry.damage, entry.criticalType, entry.criticalSeverity));
         },
       },
     ],

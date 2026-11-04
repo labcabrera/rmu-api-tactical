@@ -86,6 +86,31 @@ describe('ActorRoundTrait', () => {
   });
 });
 
+describe('ActorRoundCharacterMapperAdapter sizes (spec 075, decision 1)', () => {
+  const sizeOf = (sizeId: string) =>
+    new ActorRoundCharacterMapperAdapter().toActorRound('game-1', 1, character({ info: { raceName: 'Any', raceId: 'any', sizeId } }));
+
+  it.each([
+    ['minuscule', -4],
+    ['tiny', -2],
+    ['small', -1],
+    ['medium', 0],
+    ['big', 1],
+    ['large', 2],
+    ['huge', 3],
+    ['leviathan', 8],
+  ])('maps a %s character to %i steps', (sizeId, steps) => {
+    const round = sizeOf(sizeId);
+    expect(round.size).toBe(steps);
+    expect(round.criticalSize).toBeNull();
+    expect(ActorRoundDto.fromEntity(round)).toMatchObject({ size: steps, criticalSize: null, reduceCriticalSeverity: false });
+  });
+
+  it('rejects a size id out of the scale', () => {
+    expect(() => sizeOf('colossal')).toThrow('not supported');
+  });
+});
+
 describe('ActorRound traits', () => {
   it('copies the traits (by traitId, tier 1 without tiers) and the attack skill from the character sheet', () => {
     const round = new ActorRoundCharacterMapperAdapter().toActorRound('game-1', 1, character());
