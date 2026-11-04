@@ -33,6 +33,7 @@ import {
   SLOW_ON_THE_DRAW,
 } from '../../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
 import { AIMING, SURPRISED } from '../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
+import { keepsAimingOnDeclaration } from '../../../domain/services/aiming.js';
 import { riposteOb } from '../../../domain/services/reaction-rules.js';
 
 /**
@@ -274,12 +275,12 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
   }
 
   /**
-   * Workspace spec 076, decision B6: declaring an action other than aiming or a ranged attack loses the aiming of the
-   * actor (a ranged attack against another foe or with another weapon loses it when it is applied). Answers whether it
-   * was lost.
+   * Workspace spec 076, §2.7 (decision B6): declaring any action other than aiming or a ranged attack, free or instant
+   * ones too, loses the aiming of the actor (a ranged attack against another foe or with another weapon loses it when
+   * it is applied). Answers whether it was lost.
    */
   static loseAiming(actionType: CreateActionCommand['actionType'], actorRound: ActorRound): boolean {
-    if (actionType === 'aim' || actionType === 'ranged_attack') {
+    if (keepsAimingOnDeclaration(actionType)) {
       return false;
     }
     const aiming = (actorRound.effects || []).filter(effect => effect.status === AIMING).map(effect => effect.id);

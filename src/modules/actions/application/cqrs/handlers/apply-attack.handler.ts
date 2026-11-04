@@ -43,6 +43,7 @@ import { Action } from '../../../domain/aggregates/action.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { ADDITIONAL_CRITICAL, FUMBLE_HITS } from '../../../domain/services/fumble-hits.js';
 import { riposteTrigger } from '../../../domain/services/reaction-rules.js';
+import { aimingAfterRangedAttacks } from '../../../domain/services/aiming.js';
 import { precisionEffectFor } from '../../../domain/services/precision.js';
 import { ActionAttack } from '../../../domain/value-objects/action-attack.vo.js';
 import type { CriticalEffect } from '../../../domain/value-objects/critical-result.vo.js';
@@ -544,21 +545,27 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
   }
 
   /**
-   * Workspace spec 076, decisions B6 and B9: a ranged attack uses up the aiming of the attacker (the bonus if it was at
-   * that foe with that weapon; lost otherwise), and a melee attack that took a Precision against its foe uses it up.
+   * Workspace spec 076, §2.7 and decision B9: the ranged attacks of the action use up the aiming of the attacker one of
+   * them took its bonus from (same foe, same item), and lose any other aiming; a melee attack that took a Precision
+   * against its foe uses it up.
    */
   static usedCombatTalentEffects(action: Action, actor: ActorRound): string[] {
     const attacks = action.attacks || [];
-    const effects = actor.effects || [];
-    const ranged = action.actionType === 'ranged_attack' || attacks.some(attack => attack.type === 'ranged');
-    const aiming = ranged ? effects.filter(effect => effect.status === AIMING) : [];
+    const ranged = attacks
+      .filter(attack => attack.type === 'ranged')
+      .map(attack => ({
+        targetId: attack.modifiers.targetId,
+        itemId: actor.attacks?.find(each => each.attackName === attack.attackName)?.itemId ?? null,
+      }));
+    const aiming = aimingAfterRangedAttacks(actor, ranged);
     const precision = attacks
       .map(attack => {
         const skillId = actor.attacks?.find(each => each.attackName === attack.attackName)?.skillId;
         return precisionEffectFor(actor, attack.type, attack.modifiers.targetId, skillId);
       })
-      .filter(effect => !!effect);
-    return [...new Set([...aiming, ...precision].map(effect => effect.id))];
+      .filter(effect => !!effect)
+      .map(effect => effect.id);
+    return [...new Set([...aiming.used, ...aiming.lost, ...precision])];
   }
 
   private async processFatigue(

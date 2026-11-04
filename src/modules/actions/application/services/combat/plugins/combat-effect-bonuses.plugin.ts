@@ -6,6 +6,7 @@ import {
   type ActorRoundEffect,
 } from '../../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
 import type { ActorRound } from '../../../../../actor-rounds/domain/aggregates/actor-round.js';
+import { aimingMatches } from '../../../../domain/services/aiming.js';
 import type { CombatContext } from '../combat-context.js';
 import { isPreparing, rollModifiers } from '../combat-modifiers.js';
 import type { CombatPlugin } from '../combat-plugin.js';
@@ -24,10 +25,7 @@ export const aimingEffectOf = (ctx: CombatContext): ActorRoundEffect | undefined
     return undefined;
   }
   const itemId = ctx.sourceAttack?.itemId ?? null;
-  return effectsOf(ctx.sourceActor, AIMING).find(effect => {
-    const aimedItem = effect.data?.itemId as string | undefined;
-    return effect.targetActorId === ctx.attack?.modifiers.targetId && (!aimedItem || aimedItem === itemId);
-  });
+  return effectsOf(ctx.sourceActor, AIMING).find(effect => aimingMatches(effect, ctx.attack?.modifiers.targetId, itemId));
 };
 
 /**

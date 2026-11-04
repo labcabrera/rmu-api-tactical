@@ -12,7 +12,8 @@ import type { ActionRepository } from '../../../src/modules/actions/application/
 import type { MedicalActionService } from '../../../src/modules/actions/application/services/medical/medical-action.service.js';
 import type { SpellCastingService } from '../../../src/modules/actions/application/services/spell/spell-casting.service.js';
 import { Action } from '../../../src/modules/actions/domain/aggregates/action.js';
-import { accumulateAiming } from '../../../src/modules/actions/domain/services/aiming.js';
+import { accumulateAiming, aimingAfterRangedAttacks, aimingMatches } from '../../../src/modules/actions/domain/services/aiming.js';
+import type { ActionType } from '../../../src/modules/actions/domain/value-objects/action-type.vo.js';
 import { ActionApProfile } from '../../../src/modules/actions/domain/value-objects/action-ap-profile.vo.js';
 import type { HealingTablesPort } from '../../../src/modules/actor-rounds/application/ports/healing-tables.port.js';
 import type { ActorRoundRepository } from '../../../src/modules/actor-rounds/application/ports/actor-round-repository.port.js';
@@ -83,26 +84,57 @@ describe('Aiming (spec 076, decision B6)', () => {
     expect(aimingOf(round)).toEqual([expect.objectContaining({ value: 5, targetActorId: 'foe-2' })]);
   });
 
-  it('is lost when another action than aiming or a ranged attack is declared', () => {
+  it.each(['melee_attack', 'maneuver', 'movement', 'draw_and_load', 'cast_spell', 'dodge', 'stand_up', 'medical', 'use_item', 'other'])(
+    'is lost when a %s is declared, free or instant actions too',
+    actionType => {
+      const round = archer();
+      accumulateAiming(round, { targetActorId: 'foe-1', itemId: 'bow-1' });
+      expect(CreateActionHandler.loseAiming(actionType as ActionType, round)).toBe(true);
+      expect(aimingOf(round)).toEqual([]);
+    },
+  );
+
+  it('is kept when aiming again or declaring a ranged attack, whose foe and weapon are only known when applied', () => {
     const round = archer();
     accumulateAiming(round, { targetActorId: 'foe-1', itemId: 'bow-1' });
     expect(CreateActionHandler.loseAiming('ranged_attack', round)).toBe(false);
     expect(CreateActionHandler.loseAiming('aim', round)).toBe(false);
     expect(aimingOf(round)).toHaveLength(1);
-    expect(CreateActionHandler.loseAiming('melee_attack', round)).toBe(true);
-    expect(aimingOf(round)).toEqual([]);
-    expect(CreateActionHandler.loseAiming('maneuver', round)).toBe(false);
   });
 
-  it('is used up by the next ranged attack of the actor, whatever its foe; a melee attack does not use it', () => {
+  const shot = (attackName: string, targetId: string, type: 'ranged' | 'melee' = 'ranged') => {
+    const ctx = createCombatPluginContext({ attackType: type });
+    const attack = ctx.action.attacks![0];
+    attack.attackName = attackName;
+    attack.modifiers.targetId = targetId;
+    return Object.assign(ctx.action, { actionType: type === 'ranged' ? 'ranged_attack' : 'melee_attack', attacks: [attack] });
+  };
+
+  it('is used up by a ranged attack with the aimed item against the aimed foe', () => {
     const round = archer();
     const aiming = accumulateAiming(round, { targetActorId: 'foe-1', itemId: 'bow-1' });
-    const ranged = createCombatPluginContext({ attackType: 'ranged' });
-    expect(ApplyAttackHandler.usedCombatTalentEffects(Object.assign(ranged.action, { actionType: 'ranged_attack' }), round)).toEqual([
-      aiming.id,
-    ]);
-    const melee = createCombatPluginContext();
-    expect(ApplyAttackHandler.usedCombatTalentEffects(melee.action, round)).toEqual([]);
+    expect(aimingAfterRangedAttacks(round, [{ targetId: 'foe-1', itemId: 'bow-1' }])).toEqual({ used: [aiming.id], lost: [] });
+    expect(ApplyAttackHandler.usedCombatTalentEffects(shot('bow', 'foe-1'), round)).toEqual([aiming.id]);
+  });
+
+  it('is not used by a ranged attack against another foe or with another weapon, but lost all the same', () => {
+    const round = archer();
+    const aiming = accumulateAiming(round, { targetActorId: 'foe-1', itemId: 'bow-1' });
+    expect(aimingAfterRangedAttacks(round, [{ targetId: 'foe-2', itemId: 'bow-1' }])).toEqual({ used: [], lost: [aiming.id] });
+    expect(aimingAfterRangedAttacks(round, [{ targetId: 'foe-1', itemId: 'sling-1' }])).toEqual({ used: [], lost: [aiming.id] });
+    expect(ApplyAttackHandler.usedCombatTalentEffects(shot('bow', 'foe-2'), round)).toEqual([aiming.id]);
+    expect(ApplyAttackHandler.usedCombatTalentEffects(shot('mainHand', 'foe-1'), round)).toEqual([aiming.id]);
+  });
+
+  it('only matches the aimed foe and item, and nothing when there are no ranged attacks', () => {
+    const round = archer();
+    const aiming = accumulateAiming(round, { targetActorId: 'foe-1', itemId: 'bow-1' });
+    expect(aimingMatches(aiming, 'foe-1', 'bow-1')).toBe(true);
+    expect(aimingMatches(aiming, 'foe-2', 'bow-1')).toBe(false);
+    expect(aimingMatches(aiming, 'foe-1', 'sword-1')).toBe(false);
+    expect(aimingMatches(aiming, undefined, 'bow-1')).toBe(false);
+    expect(aimingAfterRangedAttacks(round, [])).toEqual({ used: [], lost: [] });
+    expect(ApplyAttackHandler.usedCombatTalentEffects(shot('mainHand', 'foe-1', 'melee'), round)).toEqual([]);
   });
 });
 

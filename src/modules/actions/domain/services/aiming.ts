@@ -29,3 +29,54 @@ export const accumulateAiming = (actorRound: ActorRound, aim: ActionAim, applica
   actorRound.applyAttackResults(undefined, [effect], undefined, application);
   return effect;
 };
+
+/**
+ * Workspace spec 076, §2.7: the aiming counts for a ranged attack against the foe aimed at with the item aimed with (any
+ * item when the effect names none, as one the game master added by hand).
+ */
+export const aimingMatches = (
+  effect: ActorRoundEffect,
+  targetId: string | null | undefined,
+  itemId: string | null | undefined,
+): boolean => {
+  const aimedItem = effect.data?.itemId as string | undefined;
+  return effect.status === AIMING && !!targetId && effect.targetActorId === targetId && (!aimedItem || aimedItem === itemId);
+};
+
+/**
+ * Workspace spec 076, §2.7: declaring any action but aiming again or a ranged attack loses the aiming, a free or instant
+ * one too (drawing another weapon, a maneuver, a movement). A ranged attack keeps it until it is applied, since its
+ * foe and weapon are only known then.
+ */
+export const keepsAimingOnDeclaration = (actionType: string): boolean => actionType === 'aim' || actionType === 'ranged_attack';
+
+/** A ranged attack of an action, as aiming reads it: its foe and the item it attacks with. */
+export interface AimedAttack {
+  targetId: string | null | undefined;
+  itemId: string | null | undefined;
+}
+
+/** What applying the attacks of an action does to the aiming of the attacker: used for its bonus, or lost. */
+export interface AimingAfterAttacks {
+  used: string[];
+  lost: string[];
+}
+
+/**
+ * Workspace spec 076, §2.7: applying the ranged attacks of an action uses up the aiming that one of them took its bonus
+ * from (same foe, same item). An aiming no attack matches got no bonus and is not used, but is lost all the same: the
+ * actor did something other than shoot at that foe with that weapon.
+ */
+export const aimingAfterRangedAttacks = (actorRound: ActorRound, attacks: AimedAttack[]): AimingAfterAttacks => {
+  const result: AimingAfterAttacks = { used: [], lost: [] };
+  if (attacks.length === 0) {
+    return result;
+  }
+  (actorRound.effects || [])
+    .filter(effect => effect.status === AIMING)
+    .forEach(effect => {
+      const used = attacks.some(attack => aimingMatches(effect, attack.targetId, attack.itemId));
+      (used ? result.used : result.lost).push(effect.id);
+    });
+  return result;
+};
