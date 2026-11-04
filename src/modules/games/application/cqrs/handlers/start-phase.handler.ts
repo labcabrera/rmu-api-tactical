@@ -62,7 +62,8 @@ export class StartPhaseHandler implements ICommandHandler<StartPhaseCommand, Gam
    * When an action phase starts (1-4, phase 1 too when the initiative phase ends), each open action takes 1 AP of it
    * (spec 011, §5): spent when the phase has free capacity, else recorded as lost (staggered…). When the actor cannot
    * act (dead, dying, unconscious or without AP this round) the action is interrupted instead. Moving to the upkeep
-   * spends nothing. An action that already has an entry in the new phase is left as it is, so it can run again.
+   * spends nothing. An action that already has an entry in the new phase is left as it is, so it can run again. The
+   * `reaction-available` alerts still pending expire (workspace spec 076).
    */
   private async advanceActorRounds(game: Game): Promise<void> {
     const ending = Game.toActionPhase(game.phase);
@@ -78,7 +79,8 @@ export class StartPhaseHandler implements ICommandHandler<StartPhaseCommand, Gam
     const interrupted: Action[] = [];
     for (const actorRound of actorRounds) {
       const actorActions = actions.filter(action => action.actorId === actorRound.actorId);
-      let changed = false;
+      // Workspace spec 076, decision B1: the reactions not taken expire with the phase.
+      let changed = actorRound.expireReactionAlerts();
       if (ending !== undefined) {
         actorRound.logPhase(ending, Action.spentApInPhase(actorActions, ending));
         actorRound.fillLedgerFromActions(

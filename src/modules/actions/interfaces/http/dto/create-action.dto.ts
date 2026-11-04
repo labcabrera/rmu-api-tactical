@@ -173,6 +173,32 @@ export class ForceActionDto {
   @IsOptional()
   @IsString()
   note?: string;
+
+  @ApiProperty({ description: 'reaction (spec 076): the reaction-available alert of the actor it is declared from', required: false })
+  @IsOptional()
+  @IsString()
+  alertId?: string;
+
+  @ApiProperty({
+    description: 'reaction without an alert (spec 076): the talent (riposte, opportunistic-strike), forced by the game master',
+    required: false,
+  })
+  @IsOptional()
+  @IsIn(['riposte', 'opportunistic-strike'])
+  traitId?: string;
+
+  @ApiProperty({ description: 'reaction without an alert (spec 076): the action that triggered it', required: false })
+  @IsOptional()
+  @IsString()
+  triggerActionId?: string;
+}
+
+/** Workspace spec 076: the weapon of a `draw_and_load` action. */
+export class ActionDrawAndLoadCreationDto {
+  @ApiProperty({ description: 'Item of the actor drawn or loaded: Quickdraw makes it cost 0 AP', required: false })
+  @IsOptional()
+  @IsString()
+  itemId?: string;
 }
 
 export class CreateActionDto {
@@ -239,6 +265,13 @@ export class CreateActionDto {
   @IsObject()
   useItem?: ActionUseItemCreationDto;
 
+  @ApiProperty({ description: 'Weapon of a draw_and_load action (spec 076)', type: ActionDrawAndLoadCreationDto, required: false })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ActionDrawAndLoadCreationDto)
+  @IsObject()
+  drawAndLoad?: ActionDrawAndLoadCreationDto;
+
   @ApiProperty({
     description: 'Declare despite the warnings that need a confirmation (409 err-action-confirm-required lists them)',
     required: false,
@@ -259,11 +292,20 @@ export class CreateActionDto {
       '',
       userId,
       roles,
-      dto.forced ? { reason: dto.forced.reason, note: dto.forced.note } : undefined,
+      dto.forced
+        ? {
+            reason: dto.forced.reason,
+            note: dto.forced.note,
+            alertId: dto.forced.alertId,
+            traitId: dto.forced.traitId,
+            triggerActionId: dto.forced.triggerActionId,
+          }
+        : undefined,
       dto.spell ? { listCode: dto.spell.listCode, spellId: dto.spell.spellId } : undefined,
       dto.medical ? { ...dto.medical } : undefined,
       dto.useItem ? { itemId: dto.useItem.itemId, targetActorId: dto.useItem.targetActorId, roll: dto.useItem.roll } : undefined,
       dto.confirm === true,
+      dto.drawAndLoad ? { itemId: dto.drawAndLoad.itemId } : undefined,
     );
   }
 }

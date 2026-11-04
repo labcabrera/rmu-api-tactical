@@ -1,6 +1,7 @@
 import { Prop, Schema } from '@nestjs/mongoose';
 import type { ActorRoundAlertStatus } from '../../../domain/value-objects/actor-round-alert-status.vo.js';
 import type { ActorRoundAlertType } from '../../../domain/value-objects/actor-round-alert-type.vo.js';
+import type { ReactionAlertData } from '../../../domain/value-objects/actor-round-alert.vo.js';
 
 @Schema({ _id: false })
 export class ActorRoundAlertModifier {
@@ -30,4 +31,8 @@ export class ActorRoundAlert {
 
   @Prop({ type: String, required: true, default: 'pending' })
   status: ActorRoundAlertStatus;
+
+  /** Workspace spec 076: the reaction of a `reaction-available` alert. */
+  @Prop({ type: Object, required: false })
+  reaction?: ReactionAlertData | null;
 }

@@ -24,6 +24,8 @@ export class CreateActionCommand {
     public readonly useItem?: CreateActionCommandUseItem,
     /** The declaration goes on despite its warnings that need a confirmation (workspace spec 068). */
     public readonly confirm?: boolean,
+    /** The weapon of a `draw_and_load` action (workspace spec 076). */
+    public readonly drawAndLoad?: CreateActionCommandDrawAndLoad,
   ) {}
 }
 
@@ -42,6 +44,15 @@ export class CreateActionCommandSpell {
 export class CreateActionCommandForced {
   reason: ForceReason;
   note?: string;
+  /** `reaction` (workspace spec 076): the `reaction-available` alert of the actor it is declared from. */
+  alertId?: string;
+  /** `reaction` without an alert, forced by the game master: the talent and the action that triggered it. */
+  traitId?: string;
+  triggerActionId?: string;
+}
+
+export class CreateActionCommandDrawAndLoad {
+  itemId?: string;
 }
 
 export class CreateActionCommandManeuver {

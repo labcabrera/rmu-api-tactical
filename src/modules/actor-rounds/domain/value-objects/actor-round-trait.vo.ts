@@ -16,6 +16,13 @@ export const NATURAL_HASTE = 'natural-haste';
 export const SURVIVAL_INSTINCT = 'survival-instinct';
 export const FRENZY_TRAIT = 'frenzy';
 export const FRENZY_GREATER_TRAIT = 'frenzy-greater';
+// Combat talents out of turn or on a roll (workspace spec 076, block B)
+export const RIPOSTE = 'riposte';
+export const OPPORTUNISTIC_STRIKE = 'opportunistic-strike';
+/** Covers drawing and loading a weapon of its specialization (decision P3). */
+export const QUICKDRAW = 'quickdraw';
+export const SLOW_ON_THE_DRAW = 'slow-on-the-draw';
+export const QUICK_ACTION = 'quick-action';
 
 /** Talent or flaw of the actor, copied from its character sheet. */
 export class ActorRoundTrait {

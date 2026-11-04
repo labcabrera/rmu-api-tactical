@@ -41,6 +41,7 @@ import { StrategicGameApiClient } from '../../../../strategic/infrastructure/api
 import { Action } from '../../../domain/aggregates/action.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { ADDITIONAL_CRITICAL, FUMBLE_HITS } from '../../../domain/services/fumble-hits.js';
+import { riposteTrigger } from '../../../domain/services/reaction-rules.js';
 import { ActionAttack } from '../../../domain/value-objects/action-attack.vo.js';
 import type { CriticalEffect } from '../../../domain/value-objects/critical-result.vo.js';
 import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo.js';
@@ -122,9 +123,11 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     // has no longer enough.
     const sourceRound = actors.find(a => a.actorId === action.actorId)!;
     if (action.actionType === 'cast_spell') await this.spendSpellPower(action, sourceRound);
-    // A spell is not a weapon: no OB of the actor round is used.
+    // A spell is not a weapon: no OB of the actor round is used. Nor by a reaction, out of the OB of the round (spec 076).
     const substractBoCommands =
-      action.actionType === 'cast_spell' ? [] : this.processAttackSourceSubstractBo(action, actors, command.userId, command.roles);
+      action.actionType === 'cast_spell' || action.isReaction()
+        ? []
+        : this.processAttackSourceSubstractBo(action, actors, command.userId, command.roles);
     // One after another: two attacks of the same attacker update the same actor round, and each command reloads it.
     for (const cmd of substractBoCommands) {
       await this.commandBus.execute(cmd);
@@ -151,6 +154,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     await this.spendCoatings(sourceActor.id, coatingsSpent);
     await this.processDeclareActorParry(action, command.userId, command.roles);
     await this.processFatigue(action, game.round, strategicGame, command.userId, command.roles);
+    await this.raiseRipostes(action, actors, game);
 
     // The AP and the last phase of the attack come from the ledger (spec 011, §9).
     action.completeAttacks();
@@ -280,6 +284,24 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     if (!source) return;
     itemIds.forEach(itemId => source.spendCoating(itemId));
     await this.actorRoundRepository.update(source);
+  }
+
+  /**
+   * Workspace spec 076, decision B2: a target with Riposte that parried with all its OB and took no damage nor critical
+   * can attack back. The trigger reads the actor rounds as they were before the attack (the weapon it parried with);
+   * the alert goes on the actor round read again, since the effects and the parry were already saved.
+   */
+  private async raiseRipostes(action: Action, actors: ActorRound[], game: Game): Promise<void> {
+    if (action.actionType !== 'melee_attack') return;
+    for (const attack of action.attacks || []) {
+      const defender = actors.find(actor => actor.actorId === attack.modifiers.targetId);
+      const trigger = defender ? riposteTrigger(action, attack, defender) : undefined;
+      if (!defender || !trigger) continue;
+      const current = await this.actorRoundRepository.findById(defender.id);
+      if (current?.addReactionAlert({ ...trigger, round: game.round, phase: game.phase })) {
+        await this.actorRoundRepository.update(current);
+      }
+    }
   }
 
   private async processDeclareActorParry(action: Action, userId: string, roles: string[]): Promise<void> {

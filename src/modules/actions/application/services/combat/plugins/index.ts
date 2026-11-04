@@ -15,6 +15,7 @@ import { CombatActorPenaltiesPlugin } from './combat-actor-penalties.plugin.js';
 import { CombatCustomBonusPlugin } from './combat-custom-bonus.plugin.js';
 import { CombatDefensiveBonusPlugin } from './combat-defensive-bonus.plugin.js';
 import { CombatDodgePlugin } from './combat-dodge.plugin.js';
+import { CombatEffectDefenseBonusPlugin, CombatEffectOffenseBonusPlugin } from './combat-effect-bonuses.plugin.js';
 import { CombatFlatfootedTargetPlugin } from './combat-flatfooted-target.plugin.js';
 import { CombatFoilerPlugin } from './combat-foiler.plugin.js';
 import { CombatFrenzyPlugin } from './combat-frenzy.plugin.js';
@@ -52,9 +53,11 @@ export const COMBAT_PLUGIN_LIST: CombatPlugin[] = [
   CombatPressingAdvantagePlugin,
   CombatNonViolentPlugin,
   CombatFrenzyPlugin,
+  CombatEffectOffenseBonusPlugin,
   CombatRangePlugin,
   CombatActionPointsPlugin,
   CombatDefensiveBonusPlugin,
+  CombatEffectDefenseBonusPlugin,
   CombatShieldPlugin,
   CombatDodgePlugin,
   // parry
@@ -107,6 +110,7 @@ export * from './combat-critical-expansion.plugin.js';
 export * from './combat-custom-bonus.plugin.js';
 export * from './combat-defensive-bonus.plugin.js';
 export * from './combat-dodge.plugin.js';
+export * from './combat-effect-bonuses.plugin.js';
 export * from './combat-flatfooted-target.plugin.js';
 export * from './combat-fighting-style.plugin.js';
 export * from './combat-foiler.plugin.js';

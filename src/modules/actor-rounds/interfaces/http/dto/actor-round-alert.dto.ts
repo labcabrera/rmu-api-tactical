@@ -1,7 +1,29 @@
 import { ApiProperty } from '@nestjs/swagger';
 import type { ActorRoundAlertStatus } from '../../../domain/value-objects/actor-round-alert-status.vo.js';
 import type { ActorRoundAlertType } from '../../../domain/value-objects/actor-round-alert-type.vo.js';
-import { ActorRoundAlert } from '../../../domain/value-objects/actor-round-alert.vo.js';
+import { ActorRoundAlert, type ReactionTraitId } from '../../../domain/value-objects/actor-round-alert.vo.js';
+import type { GamePhase } from '../../../../games/domain/value-objects/game-phase.vo.js';
+
+/** Workspace spec 076: the reaction a `reaction-available` alert offers. */
+export class ReactionAlertDto {
+  @ApiProperty({ type: String, enum: ['riposte', 'opportunistic-strike'], example: 'riposte' })
+  traitId: ReactionTraitId;
+
+  @ApiProperty({ description: 'Action that triggered the reaction' })
+  triggerActionId: string;
+
+  @ApiProperty({ description: 'Actor the reaction attacks' })
+  targetActorId: string;
+
+  @ApiProperty({ type: Number, nullable: true, description: 'Fixed OB of the attack (Riposte); null: the OB of the actor', example: 15 })
+  obOverride: number | null;
+
+  @ApiProperty({ example: 1 })
+  round: number;
+
+  @ApiProperty({ type: String, description: 'Game phase it was raised in: it expires when the phase ends', example: 'phase_2' })
+  phase: GamePhase;
+}
 import { ActorRoundAlertModifierDto } from './actor-round-alert-modifier.dto.js';
 
 export class ActorRoundAlertDto {
@@ -21,8 +43,11 @@ export class ActorRoundAlertDto {
   })
   modifiers: ActorRoundAlertModifierDto[] | null;
 
-  @ApiProperty({ type: String, description: 'Status of the alert', example: 'pending' })
+  @ApiProperty({ type: String, description: 'Status of the alert', enum: ['pending', 'resolved', 'expired'], example: 'pending' })
   status: ActorRoundAlertStatus;
+
+  @ApiProperty({ type: ReactionAlertDto, required: false, description: 'Reaction of a reaction-available alert (spec 076)' })
+  reaction?: ReactionAlertDto;
 
   static fromEntity(alert: ActorRoundAlert): ActorRoundAlertDto {
     const modifiers = alert.modifiers ? alert.modifiers.map(m => ActorRoundAlertModifierDto.fromEntity(m)) : null;
@@ -32,6 +57,7 @@ export class ActorRoundAlertDto {
     dto.message = alert.message;
     dto.modifiers = modifiers;
     dto.status = alert.status;
+    if (alert.reaction) dto.reaction = { ...alert.reaction };
     return dto;
   }
 }

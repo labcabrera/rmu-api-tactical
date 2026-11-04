@@ -175,3 +175,23 @@ describe('StartPhaseHandler phase log', () => {
     expect(attacker.phaseLog).toEqual([]);
   });
 });
+
+describe('StartPhaseHandler reactions (workspace spec 076, decision B1)', () => {
+  it('expires the reaction alerts not taken when the phase ends', async () => {
+    const defender = actorRound('defender');
+    const alert = defender.addReactionAlert({
+      traitId: 'riposte',
+      triggerActionId: 'a-1',
+      targetActorId: 'attacker',
+      obOverride: 15,
+      round: 1,
+      phase: 'phase_2',
+    })!;
+    const { run, update } = setup('phase_2', [defender], []);
+
+    await run();
+
+    expect(alert.status).toBe('expired');
+    expect(update).toHaveBeenCalledWith(defender);
+  });
+});

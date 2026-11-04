@@ -2,7 +2,8 @@
  * `frenzy-dying`: the physical RR of an actor dying in frenzy, in every upkeep (workspace spec 040). Workspace spec 068:
  * `wound-reopened` (a treated wound bleeds again), `tourniquet-loosen` and `limb-loss` (a tourniquet left too long),
  * `fear-check-suggested` (a faction crossed a threshold of fallen allies) and `revulsion-rr` (the fear RR of the
- * Revulsion flaw).
+ * Revulsion flaw). Workspace spec 076: `reaction-available` (a reaction talent can attack out of turn, see
+ * `ReactionAlertData`) and `terrible-luck` (a natural 01 of an actor with Terrible Luck, narrated by the game master).
  */
 export type ActorRoundAlertType =
   | 'endurance'
@@ -13,4 +14,6 @@ export type ActorRoundAlertType =
   | 'tourniquet-loosen'
   | 'limb-loss'
   | 'fear-check-suggested'
-  | 'revulsion-rr';
+  | 'revulsion-rr'
+  | 'reaction-available'
+  | 'terrible-luck';

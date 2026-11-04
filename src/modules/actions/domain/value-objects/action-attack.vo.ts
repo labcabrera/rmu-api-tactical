@@ -5,7 +5,17 @@ import type { AttackStatus } from './attack-status.vo.js';
 import { CriticalEffect } from './critical-result.vo.js';
 import { Critical } from './critical.vo.js';
 
+/** Workspace spec 076, decision B1: the reaction talent an attack comes from, and its fixed OB (null: the actor's). */
+export interface ActionAttackReaction {
+  traitId: string;
+  triggerActionId: string;
+  obOverride: number | null;
+}
+
 export class ActionAttack {
+  /** Set when the attack of a reaction is prepared (workspace spec 076). */
+  public reaction?: ActionAttackReaction | null;
+
   constructor(
     public attackName: string,
     public type: AttackType,

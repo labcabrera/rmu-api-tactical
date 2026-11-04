@@ -3,9 +3,29 @@ import type { AttackLocation } from '../../../actions/domain/value-objects/attac
 import { ActorRoundAlertModifier } from './actor-round-alert-modifier.vo.js';
 import type { ActorRoundAlertStatus } from './actor-round-alert-status.vo.js';
 import type { ActorRoundAlertType } from './actor-round-alert-type.vo.js';
+import type { GamePhase } from '../../../games/domain/value-objects/game-phase.vo.js';
 
 /** The fields of a stored alert. */
-export type ActorRoundAlertData = Pick<ActorRoundAlert, 'id' | 'type' | 'message' | 'modifiers' | 'status'>;
+export type ActorRoundAlertData = Pick<ActorRoundAlert, 'id' | 'type' | 'message' | 'modifiers' | 'status'> & {
+  reaction?: ReactionAlertData | null;
+};
+
+/** Talents that attack out of turn as a reaction (workspace spec 076, decisions B1-B3). */
+export type ReactionTraitId = 'riposte' | 'opportunistic-strike';
+
+/**
+ * A `reaction-available` alert (workspace spec 076, decision B1): the actor can attack `targetActorId` at once, 0 AP,
+ * because of the action `triggerActionId`. It expires when the game leaves `phase`.
+ */
+export interface ReactionAlertData {
+  traitId: ReactionTraitId;
+  triggerActionId: string;
+  targetActorId: string;
+  /** Fixed OB of the attack (Riposte: 50 less the attacker's total roll; it can be negative). Null: the actor's OB. */
+  obOverride: number | null;
+  round: number;
+  phase: GamePhase;
+}
 
 /** What asks for a breakage check (spec 019, decision 6). */
 export type BreakageOrigin = 'attack-roll' | 'critical' | 'fumble';
@@ -17,6 +37,8 @@ export class ActorRoundAlert {
     public readonly message: string,
     public readonly modifiers: ActorRoundAlertModifier[] | null,
     public status: ActorRoundAlertStatus = 'pending',
+    /** The reaction of a `reaction-available` alert (workspace spec 076). */
+    public readonly reaction: ReactionAlertData | null = null,
   ) {}
 
   /** An alert read from storage or built by hand, as an instance. */
@@ -28,7 +50,15 @@ export class ActorRoundAlert {
     const modifiers = alert.modifiers
       ? alert.modifiers.map(modifier => new ActorRoundAlertModifier(modifier.key, modifier.value ?? null, modifier.modifier ?? null))
       : null;
-    return new ActorRoundAlert(alert.id, alert.type, alert.message, modifiers, alert.status ?? 'pending');
+    const reaction = alert.reaction ? { ...alert.reaction, obOverride: alert.reaction.obOverride ?? null } : null;
+    return new ActorRoundAlert(alert.id, alert.type, alert.message, modifiers, alert.status ?? 'pending', reaction);
+  }
+
+  /** Workspace spec 076, decision B1: a reaction talent can attack out of turn. */
+  static buildReaction(reaction: ReactionAlertData): ActorRoundAlert {
+    return new ActorRoundAlert(randomUUID(), 'reaction-available', `Reaction available: ${reaction.traitId}`, null, 'pending', {
+      ...reaction,
+    });
   }
 
   static buildEndurance(message?: string): ActorRoundAlert {

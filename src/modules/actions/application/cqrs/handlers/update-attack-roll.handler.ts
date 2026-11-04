@@ -8,6 +8,7 @@ import { type GameRepository, GAME_REPOSITORY } from '../../../../games/applicat
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
 import { Action } from '../../../domain/aggregates/action.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
+import { opportunisticStrikeTrigger } from '../../../domain/services/reaction-rules.js';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
 import { CombatAttackRollResolverService } from '../../services/combat/index.js';
 import { UpdateAttackRollCommand } from '../commands/update-attack-roll.command.js';
@@ -68,6 +69,11 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     }
     if (sourceChanged) {
       await this.actorRoundRepository.update(sourceActor);
+    }
+    // Workspace spec 076, decision B3: a new fumble of a melee attack lets a target with Opportunistic Strike attack.
+    const opportunistic = attack.results?.fumble && !previousFumble ? opportunisticStrikeTrigger(action, attack, targetActor) : undefined;
+    if (opportunistic && targetActor.addReactionAlert({ ...opportunistic, round: action.round, phase: game.phase })) {
+      await this.actorRoundRepository.update(targetActor);
     }
 
     action.updatedAt = new Date();

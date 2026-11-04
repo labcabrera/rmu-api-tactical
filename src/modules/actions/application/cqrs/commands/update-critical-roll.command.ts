@@ -8,5 +8,7 @@ export class UpdateCriticalRollCommand {
     public readonly roles: string[],
     /** Fighting style ability decided before the critical roll (workspace spec 032). */
     public readonly styleOption?: string,
+    /** Workspace spec 076, decision B8: roll again a critical already rolled, with a `critical-reroll` effect. */
+    public readonly reroll?: boolean,
   ) {}
 }
