@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ValidationError } from '../../../shared/domain/errors/errors.js';
+import { stepsOf } from '../../../shared/domain/size-scale.js';
 import { type Character, isCharacterNotAble } from '../../../strategic/application/ports/character.port.js';
 import type { ActorRoundCharacterMapperPort } from '../../application/ports/actor-round-character-mapper.port.js';
 import { ActorRound, BASE_ACTION_POINTS } from '../../domain/aggregates/actor-round.js';
@@ -19,7 +20,6 @@ import type { ActorRoundItem, ActorRoundItemKind, ActorRoundItemSlot } from '../
 import type { StrategicItem } from '../../../strategic/application/ports/item.port.js';
 import { type ActorRoundFightingStyle, FIGHTING_STYLE_SKILLS } from '../../domain/value-objects/actor-round-fighting-style.vo.js';
 
-const ACTOR_SIZES: Record<string, number> = { medium: 0, small: -1, big: 1 };
 const BODY_DEVELOPMENT_SKILL_ID = 'body-development';
 
 @Injectable()
@@ -28,7 +28,9 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
     if (isCharacterNotAble(character)) {
       throw new ValidationError(`Character ${character.id} is dead or permanently unconscious`, 'err-character-not-able');
     }
-    if (ACTOR_SIZES[character.info.sizeId] === undefined) {
+    // Any size of the scale (workspace spec 075, decision 1); only an unknown id is rejected.
+    const size = stepsOf(character.info.sizeId);
+    if (size === undefined) {
       throw new ValidationError(`Character size ${character.info.sizeId} not supported`);
     }
     let shield: ActorRoundShield | null = null;
@@ -47,7 +49,7 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
       'character',
       character.id,
       character.name,
-      ACTOR_SIZES[character.info.sizeId],
+      size,
       character.info.raceName,
       character.experience.level,
       character.faction.id,

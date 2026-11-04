@@ -313,6 +313,15 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   /** Fright level of an NPC from its stat block (workspace spec 068, decision 17); null for characters. */
   public frightLevel: number | null = null;
 
+  /**
+   * Size the actor suffers criticals as, in steps from medium (Creature Law T-3.1d; workspace spec 075, decision 3):
+   * only for an NPC whose critical size differs from its size; null takes `size`.
+   */
+  public criticalSize: number | null = null;
+
+  /** Critical code I of an NPC (T-3.1e): every critical it suffers is one severity lower, and below A none. */
+  public reduceCriticalSeverity = false;
+
   static create(
     gameId: string,
     round: number,
@@ -451,6 +460,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.itemsConsumed = (props.itemsConsumed ?? []).map(each => ({ ...each }));
     actorRound.temporaryModifiers = (props.temporaryModifiers ?? []).map(each => ({ ...each }));
     actorRound.frightLevel = props.frightLevel ?? null;
+    actorRound.criticalSize = props.criticalSize ?? null;
+    actorRound.reduceCriticalSeverity = props.reduceCriticalSeverity ?? false;
     actorRound.normalizeLegacy();
     // Derived: recomputed so that values stored with the penalties folded in are corrected.
     actorRound.calculateCurrentBo();
@@ -527,6 +538,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.itemsConsumed = previous.itemsConsumed.map(each => ({ ...each }));
     actorRound.temporaryModifiers = previous.temporaryModifiers.map(each => ({ ...each }));
     actorRound.frightLevel = previous.frightLevel;
+    actorRound.criticalSize = previous.criticalSize;
+    actorRound.reduceCriticalSeverity = previous.reduceCriticalSeverity;
     actorRound.applyItemConditions();
     actorRound.calculateCurrentBo();
     actorRound.applyPenalties();
@@ -2651,6 +2664,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       itemsConsumed: this.itemsConsumed,
       temporaryModifiers: this.temporaryModifiers,
       frightLevel: this.frightLevel,
+      criticalSize: this.criticalSize,
+      reduceCriticalSeverity: this.reduceCriticalSeverity,
       imageUrl: this.imageUrl,
       owner: this.owner,
       createdAt: this.createdAt,

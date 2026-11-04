@@ -162,6 +162,13 @@ export class ActorRoundModel {
   @Prop({ type: Number, required: false })
   frightLevel?: number | null;
 
+  /** Workspace spec 075: critical size of an NPC (steps) when it differs from its size, and its critical code I. */
+  @Prop({ type: Number, required: false })
+  criticalSize?: number | null;
+
+  @Prop({ type: Boolean, required: false })
+  reduceCriticalSeverity?: boolean;
+
   @Prop({ type: ActorRoundSnapshot, required: false })
   snapshot?: ActorRoundSnapshot;
 

@@ -75,6 +75,11 @@ export class CombatAttackRollResolverService {
     }
 
     ctx = await this.combatProcessor.runPhase('afterAttackRoll', ctx);
+    // The plugins change the entry (the damage scaled by size, the severity shifted); the attack loaded from Mongo
+    // holds a copy of it, so the final entry is written back.
+    if (ctx.attackTableEntry && attack.results) {
+      attack.results.attackTableEntry = ctx.attackTableEntry;
+    }
     this.createCriticals(ctx);
     calculated.criticalAdjustment = CombatModifierBag.from(calculated.criticalModifiers).sum() || undefined;
     ctx.action.refreshAttackStatuses();

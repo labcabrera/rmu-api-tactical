@@ -3,7 +3,8 @@ import { ActorRoundAttack } from '../../../../src/modules/actor-rounds/domain/va
 import { ActorRoundDefenseMode } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-defense-mode.vo.js';
 import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo.js';
 import { ActionAttackCalculated } from '../../../../src/modules/actions/domain/value-objects/action-attack-calculated.vo.js';
-import { AttackTableEntry } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo.js';
+import { ActionAttackResult, AttackTableEntry } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo.js';
+import { ActorRoundTrait } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-trait.vo.js';
 import { KeyValueModifier } from '../../../../src/modules/actions/domain/value-objects/key-value-modifier.vo.js';
 import { UnprocessableEntityError, ValidationError } from '../../../../src/modules/shared/domain/errors/errors.js';
 import {
@@ -12,6 +13,7 @@ import {
   CombatAbsoluteHitPlugin,
   CombatActionPointsPlugin,
   CombatAttackSizePlugin,
+  CombatAttackSizeDamagePlugin,
   CombatBreakagePlugin,
   CombatCalledShotPlugin,
   CombatCoverPlugin,
@@ -898,71 +900,158 @@ describe('Combat plugins', () => {
   });
 
   describe('attack-size', () => {
-    it('shifts the severity one step per size and leaves the damage (spec 007, decision 1)', async () => {
-      const ctx = preparedContext({ attackSize: 1 });
-      ctx.attackTableEntry = new AttackTableEntry('7BS', 7, 'S', 'B');
+    const resolved = (entry: AttackTableEntry, ...args: Parameters<typeof createCombatPluginContext>): CombatContext => {
+      const ctx = preparedContext(...args);
+      ctx.attackTableEntry = entry;
+      ctx.attack!.results = new ActionAttackResult(entry, undefined, undefined);
+      return ctx;
+    };
+
+    it('shifts the severity one step per size and leaves the damage to the damage plugin', async () => {
+      const ctx = resolved(new AttackTableEntry('7BS', 7, 'S', 'B'), { attackSize: 1 });
 
       await runPluginHook(CombatAttackSizePlugin, 'afterAttackRoll', ctx);
 
       expect(ctx.attackTableEntry).toMatchObject({ damage: 7, criticalSeverity: 'C' });
+      expect(ctx.attack!.results!.severityAdjustment).toEqual({ original: 'B', final: 'C', steps: [{ key: 'attack-size', value: 1 }] });
     });
 
-    it('lowers the severity of a smaller attack, down to Z', async () => {
-      const ctx = preparedContext({ attackSize: -1 });
-      ctx.attackTableEntry = new AttackTableEntry('5AS', 5, 'S', 'A');
+    // §9.4 examples and the spec 075 cases: [label, entry severity, options, final severity, steps].
+    it.each<[string, string, Parameters<typeof createCombatPluginContext>[0], string | null, Array<{ key: string; value: number }>]>([
+      ['human against halfling: 11C becomes 11D', 'C', { attackSize: 0, targetSize: -1 }, 'D', [{ key: 'target-size', value: 1 }]],
+      ['halfling against human: 11C becomes 11B', 'C', { attackSize: -1, sourceSize: -1 }, 'B', [{ key: 'attack-size', value: -1 }]],
+      [
+        'charging two-handed claymore against a troll: 11C becomes 11D',
+        'C',
+        { attackSize: 1, targetSize: 1, modifiers: { chargeSpeed: 'jog' } },
+        'D',
+        [
+          { key: 'attack-size', value: 1 },
+          { key: 'charge', value: 1 },
+          { key: 'target-size', value: -1 },
+        ],
+      ],
+      ['a sprint adds two sizes', 'B', { attackSize: 0, modifiers: { chargeSpeed: 'sprint' } }, 'D', [{ key: 'charge', value: 2 }]],
+      ['one step below A is Z', 'A', { attackSize: -1 }, 'Z', [{ key: 'attack-size', value: -1 }]],
+      ['two steps below A is no critical', 'A', { attackSize: -2 }, null, [{ key: 'attack-size', value: -2 }]],
+      ['a Z result one step lower is no critical', 'Z', { attackSize: -1 }, null, [{ key: 'attack-size', value: -1 }]],
+      ['capped at J', 'I', { attackSize: 2 }, 'J', [{ key: 'attack-size', value: 2 }]],
+      [
+        'a big attack against a big target keeps the severity',
+        'B',
+        { attackSize: 1, sourceSize: 1, targetSize: 1 },
+        'B',
+        [
+          { key: 'attack-size', value: 1 },
+          { key: 'target-size', value: -1 },
+        ],
+      ],
+      [
+        'a Light-boned target suffers one step more',
+        'B',
+        { targetTraits: [new ActorRoundTrait('light-boned', 1, null)] },
+        'C',
+        [{ key: 'light-boned', value: 1 }],
+      ],
+    ])('%s', async (_label, severity, options, final, steps) => {
+      const ctx = resolved(new AttackTableEntry(`11${severity}S`, 11, 'S', severity), options);
 
-      await runPluginHook(CombatAttackSizePlugin, 'afterAttackRoll', ctx);
+      expect(await runPluginHook(CombatAttackSizePlugin, 'afterAttackRoll', ctx)).toBe(true);
 
-      expect(ctx.attackTableEntry).toMatchObject({ damage: 5, criticalSeverity: 'Z' });
+      expect(ctx.attackTableEntry!.criticalSeverity).toBe(final ?? undefined);
+      expect(ctx.attackTableEntry!.criticalType).toBe(final ? 'S' : undefined);
+      expect(ctx.attack!.results!.severityAdjustment).toEqual({ original: severity, final, steps });
     });
 
-    it('caps the severity at J', async () => {
-      const ctx = preparedContext({ attackSize: 2 });
-      ctx.attackTableEntry = new AttackTableEntry('30IK', 30, 'K', 'I');
+    it('uses the critical size of the target instead of its size (T-3.1d)', async () => {
+      // A Big creature that suffers criticals as a Medium one, and a Medium one that suffers them as a Large one.
+      const asMedium = resolved(new AttackTableEntry('11CS', 11, 'S', 'C'), { targetSize: 1 });
+      asMedium.targetActor!.criticalSize = 0;
+      const asLarge = resolved(new AttackTableEntry('11CS', 11, 'S', 'C'), { targetSize: 0 });
+      asLarge.targetActor!.criticalSize = 2;
 
-      await runPluginHook(CombatAttackSizePlugin, 'afterAttackRoll', ctx);
+      expect(await runPluginHook(CombatAttackSizePlugin, 'afterAttackRoll', asMedium)).toBe(false);
+      await runPluginHook(CombatAttackSizePlugin, 'afterAttackRoll', asLarge);
 
-      expect(ctx.attackTableEntry.criticalSeverity).toBe('J');
+      expect(asMedium.attackTableEntry!.criticalSeverity).toBe('C');
+      expect(asLarge.attack!.results!.severityAdjustment).toEqual({
+        original: 'C',
+        final: 'A',
+        steps: [{ key: 'target-size', value: -2 }],
+      });
     });
 
-    it('stacks the charge on the attack size for the severity, never for the damage', async () => {
-      // A big attacker (attack size 1, from its sheet) against a medium target, without and with a jog charge.
-      const still = preparedContext({ attackSize: 1, sourceSize: 1, targetSize: 0 });
-      still.attackTableEntry = new AttackTableEntry('10BS', 10, 'S', 'B');
-      const charging = preparedContext({ attackSize: 1, sourceSize: 1, targetSize: 0, modifiers: { chargeSpeed: 'jog' } });
-      charging.attackTableEntry = new AttackTableEntry('10BS', 10, 'S', 'B');
+    it('takes one more step off with the critical code I, and none below A (T-3.1e)', async () => {
+      const code = (severity: string) => {
+        const ctx = resolved(new AttackTableEntry(`9${severity}K`, 9, 'K', severity), {});
+        ctx.targetActor!.reduceCriticalSeverity = true;
+        return ctx;
+      };
+      const c = code('C');
+      const a = code('A');
 
-      await runPluginHook(CombatAttackSizePlugin, 'afterAttackRoll', still);
-      await runPluginHook(CombatAttackSizePlugin, 'afterAttackRoll', charging);
+      await runPluginHook(CombatAttackSizePlugin, 'afterAttackRoll', c);
+      await runPluginHook(CombatAttackSizePlugin, 'afterAttackRoll', a);
 
-      expect(still.attackTableEntry).toMatchObject({ damage: 10, criticalSeverity: 'C' });
-      expect(charging.attackTableEntry).toMatchObject({ damage: 10, criticalSeverity: 'D' });
+      expect(c.attack!.results!.severityAdjustment).toEqual({ original: 'C', final: 'B', steps: [{ key: 'critical-code', value: -1 }] });
+      expect(a.attack!.results!.severityAdjustment).toEqual({ original: 'A', final: null, steps: [{ key: 'critical-code', value: -1 }] });
+      expect(a.attackTableEntry).toMatchObject({ criticalType: undefined, criticalSeverity: undefined });
     });
 
-    it('takes the target size off (human against halfling: C becomes D)', async () => {
-      const ctx = preparedContext({ attackSize: 0, targetSize: -1 });
-      ctx.attackTableEntry = new AttackTableEntry('11CS', 11, 'S', 'C');
-
-      await runPluginHook(CombatAttackSizePlugin, 'afterAttackRoll', ctx);
-
-      expect(ctx.attackTableEntry).toMatchObject({ damage: 11, criticalSeverity: 'D' });
-    });
-
-    it('cancels a big attack against a big target', async () => {
-      const ctx = preparedContext({ attackSize: 1, sourceSize: 1, targetSize: 1 });
-      ctx.attackTableEntry = new AttackTableEntry('7BS', 7, 'S', 'B');
-
-      expect(await runPluginHook(CombatAttackSizePlugin, 'afterAttackRoll', ctx)).toBe(false);
-    });
-
-    it('is skipped for medium attacks and for hits without critical', async () => {
-      const medium = preparedContext({ attackSize: 0 });
-      medium.attackTableEntry = new AttackTableEntry('7BS', 7, 'S', 'B');
-      const noCritical = preparedContext({ attackSize: 1 });
-      noCritical.attackTableEntry = new AttackTableEntry('7', 7, undefined, undefined);
+    it('is skipped for medium attacks against medium targets and for hits without critical', async () => {
+      const medium = resolved(new AttackTableEntry('7BS', 7, 'S', 'B'), { attackSize: 0 });
+      const noCritical = resolved(new AttackTableEntry('7', 7, undefined, undefined), { attackSize: 1 });
 
       expect(await runPluginHook(CombatAttackSizePlugin, 'afterAttackRoll', medium)).toBe(false);
       expect(await runPluginHook(CombatAttackSizePlugin, 'afterAttackRoll', noCritical)).toBe(false);
+      expect(medium.attack!.results!.severityAdjustment).toBeUndefined();
+    });
+  });
+
+  describe('attack-size-damage', () => {
+    const resolved = (entry: AttackTableEntry, ...args: Parameters<typeof createCombatPluginContext>): CombatContext => {
+      const ctx = preparedContext(...args);
+      ctx.attackTableEntry = entry;
+      ctx.attack!.results = new ActionAttackResult(entry, undefined, undefined);
+      return ctx;
+    };
+
+    it.each([
+      ['big ×1.5', 1, 10, 15, 1.5],
+      ['big ×1.5, rounded to the nearest', 1, 7, 11, 1.5],
+      ['large ×2', 2, 7, 14, 2],
+      ['huge ×3', 3, 10, 30, 3],
+      ['small ×0.75', -1, 11, 8, 0.75],
+      ['tiny ×0.67', -2, 9, 6, 0.67],
+      ['minuscule ×0.25', -4, 9, 2, 0.25],
+      ['leviathan ×8', 8, 5, 40, 8],
+      ['beyond the scale, clamped to its ends', 12, 5, 40, 8],
+    ])('%s', async (_label, attackSize, damage, scaled, multiplier) => {
+      const ctx = resolved(new AttackTableEntry(`${damage}CS`, damage, 'S', 'C'), { attackSize });
+
+      expect(await runPluginHook(CombatAttackSizeDamagePlugin, 'afterAttackRoll', ctx)).toBe(true);
+
+      expect(ctx.attackTableEntry!.damage).toBe(scaled);
+      expect(ctx.attack!.results!.damageAdjustment).toEqual({ baseDamage: damage, multiplier });
+    });
+
+    it('ignores the charge, the fighting style and the target size', async () => {
+      const ctx = resolved(new AttackTableEntry('10', 10, undefined, undefined), {
+        attackSize: 0,
+        targetSize: -2,
+        modifiers: { chargeSpeed: 'sprint' },
+      });
+
+      expect(await runPluginHook(CombatAttackSizeDamagePlugin, 'afterAttackRoll', ctx)).toBe(false);
+      expect(ctx.attackTableEntry!.damage).toBe(10);
+      expect(ctx.attack!.results!.damageAdjustment).toBeUndefined();
+    });
+
+    it('is skipped without damage', async () => {
+      const ctx = resolved(new AttackTableEntry('0', 0, undefined, undefined), { attackSize: 2 });
+
+      expect(await runPluginHook(CombatAttackSizeDamagePlugin, 'afterAttackRoll', ctx)).toBe(false);
+      expect(ctx.attack!.results!.damageAdjustment).toBeUndefined();
     });
   });
 

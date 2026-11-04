@@ -64,7 +64,33 @@ export class Fumble {
   ) {}
 }
 
+/** Keys of the steps that move the critical severity (§9.4, T-3.1d, T-3.1e; workspace spec 075, decision 3). */
+export type SeverityAdjustmentKey = 'attack-size' | 'charge' | 'fighting-style' | 'target-size' | 'light-boned' | 'critical-code';
+
+export interface SeverityAdjustmentStep {
+  key: SeverityAdjustmentKey;
+  value: number;
+}
+
+/** How the critical severity of the table changed: `final` null when the critical is not rolled. */
+export interface SeverityAdjustment {
+  original: string;
+  final: string | null;
+  steps: SeverityAdjustmentStep[];
+}
+
+/** The damage of the table before the Hit Multiplier of the attack size (Table 9-4a; spec 075, decision 2). */
+export interface DamageAdjustment {
+  baseDamage: number;
+  multiplier: number;
+}
+
 export class ActionAttackResult {
+  /** Set by the damage plugin when the attack size scales the damage (spec 075). */
+  public damageAdjustment?: DamageAdjustment;
+  /** Set by the attack size plugin when some step moves the critical severity (spec 075). */
+  public severityAdjustment?: SeverityAdjustment;
+
   constructor(
     public attackTableEntry: AttackTableEntry | undefined,
     public criticals: Critical[] | undefined,

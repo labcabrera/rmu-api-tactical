@@ -7,6 +7,7 @@ import { ActorSheetService } from '../../../src/modules/actor-rounds/application
 import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
 import { ActorRoundDefenseMode } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-defense-mode.vo.js';
 import { ActorRoundNpcMapperAdapter } from '../../../src/modules/actor-rounds/infrastructure/mappers/actor-round-npc-mapper.adapter.js';
+import { ActorRoundDto } from '../../../src/modules/actor-rounds/interfaces/http/dto/actor-round.dto.js';
 import type { GameRepository } from '../../../src/modules/games/application/ports/game-repository.port.js';
 import { Actor } from '../../../src/modules/games/domain/value-objects/actor.vo.js';
 import type { Npc, NpcPort } from '../../../src/modules/npcs/application/ports/npc.port.js';
@@ -177,6 +178,30 @@ describe('ActorRoundNpcMapperAdapter (spec 055)', () => {
 
   it('rejects a size it does not know', () => {
     expect(() => mapper.toActorRound('game-1', 1, specimen(), beast({ size: 'colossal' }))).toThrow('not supported');
+  });
+
+  it('takes the critical size only when it differs from the size, and the critical code I (spec 075)', () => {
+    const round = (npc: Partial<Npc>) => mapper.toActorRound('game-1', 1, specimen(), beast(npc));
+    // Big (VI) that suffers criticals as Large (VII), with the code I.
+    const large = round({ criticalSize: 'large', criticalCodes: { reduceSeverity: true } });
+    expect(large).toMatchObject({ size: 1, criticalSize: 2, reduceCriticalSeverity: true });
+    expect(ActorRoundDto.fromEntity(large)).toMatchObject({ size: 1, criticalSize: 2, reduceCriticalSeverity: true });
+    expect(round({ criticalSize: 'big' })).toMatchObject({ size: 1, criticalSize: null, reduceCriticalSeverity: false });
+    expect(round({ criticalSize: null, criticalCodes: undefined })).toMatchObject({ criticalSize: null, reduceCriticalSeverity: false });
+    expect(round({ size: 'tiny', criticalSize: 'medium' })).toMatchObject({ size: -2, criticalSize: 0 });
+    expect(round({ size: 'enormous', attacks: [{ ob: 90, size: 11, attackTable: 'bite', fumbleTable: null }] })).toMatchObject({
+      size: 5,
+      attacks: [expect.objectContaining({ attackSize: 6 })],
+    });
+  });
+
+  it('keeps the critical size and code I in the next rounds and in Mongo props', () => {
+    const first = mapper.toActorRound('game-1', 1, specimen(), beast({ criticalSize: 'medium', criticalCodes: { reduceSeverity: true } }));
+    const next = ActorRound.createFromPrevious(first);
+    expect(next).toMatchObject({ criticalSize: 0, reduceCriticalSeverity: true });
+    expect(ActorRound.fromProps(next.getProps())).toMatchObject({ criticalSize: 0, reduceCriticalSeverity: true });
+    const legacy = { ...first.getProps(), criticalSize: undefined, reduceCriticalSeverity: undefined };
+    expect(ActorRound.fromProps(legacy)).toMatchObject({ criticalSize: null, reduceCriticalSeverity: false });
   });
 
   it('keeps the NPC in the next rounds', () => {

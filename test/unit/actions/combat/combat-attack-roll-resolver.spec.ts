@@ -106,13 +106,39 @@ describe('CombatAttackRollResolverService', () => {
     expect(attack.results?.criticals?.map(critical => critical.key)).toEqual(['k_e_1', 'k_c_2', 'k_a_3']);
   });
 
-  it('applies the attack size to the severity, not to the damage, before splitting the criticals', async () => {
+  it('applies the attack size to the severity and the damage before splitting the criticals (spec 075)', async () => {
     const { attack, resolve } = setup(new AttackTableEntry('10ES', 10, 'S', 'E'), { attackSize: 1 });
 
     await resolve(50);
 
-    expect(attack.results?.attackTableEntry).toMatchObject({ damage: 10, criticalSeverity: 'F' });
+    expect(attack.results?.attackTableEntry).toMatchObject({ damage: 15, criticalSeverity: 'F' });
+    expect(attack.results?.damageAdjustment).toEqual({ baseDamage: 10, multiplier: 1.5 });
+    expect(attack.results?.severityAdjustment).toEqual({ original: 'E', final: 'F', steps: [{ key: 'attack-size', value: 1 }] });
     expect(attack.results?.criticals?.map(critical => critical.criticalSeverity)).toEqual(['E', 'A']);
+  });
+
+  it('creates no critical when the severity falls two steps below A (spec 075, decision 4)', async () => {
+    const { attack, resolve } = setup(new AttackTableEntry('6AS', 6, 'S', 'A'), { attackSize: -2 });
+
+    await resolve(50);
+
+    expect(attack.results?.attackTableEntry).toMatchObject({ damage: 4, criticalType: undefined, criticalSeverity: undefined });
+    expect(attack.results?.severityAdjustment).toEqual({ original: 'A', final: null, steps: [{ key: 'attack-size', value: -2 }] });
+    expect(attack.results?.criticals).toBeUndefined();
+    expect(attack.roll?.criticalRolls?.size ?? 0).toBe(0);
+    expect(attack.status).toBe('pending_apply');
+  });
+
+  it('drops the size adjustments of a previous roll', async () => {
+    const { ctx, attack, lookup, resolve } = setup(new AttackTableEntry('10ES', 10, 'S', 'E'), { attackSize: 1 });
+    await resolve(50);
+    lookup.mockResolvedValueOnce(new AttackTableEntry('0', 0, undefined, undefined));
+    ctx.sourceAttack!.attackSize = 0;
+
+    await resolve(20);
+
+    expect(attack.results?.damageAdjustment).toBeUndefined();
+    expect(attack.results?.severityAdjustment).toBeUndefined();
   });
 
   it('adds the absolute hit to the critical modifiers and the critical adjustment', async () => {

@@ -51,7 +51,7 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Actor name', example: 'Goblin Warrior' })
   actorName: string;
 
-  @ApiProperty({ description: 'Actor size', example: 0, required: false })
+  @ApiProperty({ description: 'Actor size, in steps from medium (size class − 5, spec 075)', example: 0 })
   size: number;
 
   @ApiProperty({ description: 'Race identifier', example: 'race-goblin', required: false })
@@ -159,6 +159,17 @@ export class ActorRoundDto {
   @ApiProperty({ type: Number, nullable: true, description: 'Fright level of an NPC, from its stat block (spec 068)' })
   frightLevel: number | null;
 
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Size the actor suffers criticals as, in steps from medium, when it differs from its size (NPCs, spec 075)',
+    example: null,
+  })
+  criticalSize: number | null;
+
+  @ApiProperty({ description: 'Critical code I of an NPC: every critical is one severity lower, none below A (spec 075)' })
+  reduceCriticalSeverity: boolean;
+
   @ApiProperty({ description: 'What the character brought into the game (only in the actor round built from it)', required: false })
   snapshot?: ActorRoundSnapshotDto;
 
@@ -211,6 +222,8 @@ export class ActorRoundDto {
     dto.itemsConsumed = (entity.itemsConsumed || []).map(each => ItemConsumedDto.fromEntity(each));
     dto.temporaryModifiers = (entity.temporaryModifiers || []).map(each => TemporaryModifierDto.fromEntity(each));
     dto.frightLevel = entity.frightLevel ?? null;
+    dto.criticalSize = entity.criticalSize ?? null;
+    dto.reduceCriticalSeverity = entity.reduceCriticalSeverity ?? false;
     dto.snapshot = entity.snapshot ? ActorRoundSnapshotDto.fromEntity(entity.snapshot) : undefined;
     dto.bleeding = entity.getBleeding();
     dto.imageUrl = entity.imageUrl;
