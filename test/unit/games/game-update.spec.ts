@@ -4,6 +4,7 @@ import { UpdateGameHandler } from '../../../src/modules/games/application/cqrs/h
 import type { GameRepository } from '../../../src/modules/games/application/ports/game-repository.port.js';
 import { Game } from '../../../src/modules/games/domain/aggregates/game.js';
 import { GameEnvironment } from '../../../src/modules/games/domain/value-objects/game-environment.vo.js';
+import { UpdateGameDto } from '../../../src/modules/games/interfaces/http/dto/update-game.dto.js';
 
 /** A game as the repository loads it: with its version, so it has the snapshot hasChanges() compares with. */
 const loaded = () =>
@@ -78,5 +79,24 @@ describe('UpdateGameHandler', () => {
     expect(repository.update).toHaveBeenCalledOnce();
     expect(publisher.publish).toHaveBeenCalledWith('game', expect.objectContaining({ eventType: 'updated' }));
     expect(game.getUncommittedEvents()).toEqual([]);
+  });
+});
+
+// Workspace spec 076, P6: the ambient light goes through the PATCH of the environment.
+describe('Game ambient light', () => {
+  it('sets the light, keeps it when a PATCH leaves it out and clears it with null', async () => {
+    const game = loaded();
+    const { handler } = handlerWith(game);
+    await handler.execute(command(undefined, new GameEnvironment(-5, -10, 'dark')));
+    expect(game.environment).toEqual(new GameEnvironment(-5, -10, 'dark'));
+    await handler.execute(command(undefined, new GameEnvironment(-5, -20)));
+    expect(game.environment?.light).toBe('dark');
+    await handler.execute(command(undefined, new GameEnvironment(-5, -20, null)));
+    expect(game.environment?.light).toBeUndefined();
+  });
+
+  it('the update DTO carries environment.light', () => {
+    const dto = Object.assign(new UpdateGameDto(), { environment: { light: 'heavy_shadows' } });
+    expect(UpdateGameDto.toCommand('game-1', dto, 'user-1', []).environment?.light).toBe('heavy_shadows');
   });
 });

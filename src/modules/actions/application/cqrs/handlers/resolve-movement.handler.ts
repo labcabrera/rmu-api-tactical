@@ -1,4 +1,5 @@
 import { Inject, Logger } from '@nestjs/common';
+import type { LightType } from '../../../domain/value-objects/light-type.vo.js';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import {
   type ActorRoundRepository,
@@ -61,7 +62,7 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
         warnings,
       });
     }
-    await this.processAction(command, action, actorRound, strategicGame, currentPhase);
+    await this.processAction(command, action, actorRound, strategicGame, currentPhase, game.environment?.light ?? null);
     const updated = await this.actionRepository.update(action);
     let actorRoundModified = false;
     if (action.fatigue) {
@@ -141,12 +142,13 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     actorRound: ActorRound,
     strategicGame: StrategicGame,
     currentPhase: number,
+    ambientLight: LightType | null = null,
   ): Promise<void> {
     action.description = command.description;
     // AP from the ledger (spec 011, §9). An instantaneous movement takes none, but covers the phases it spans.
     action.actionPoints = action.apOf(actorRound, currentPhase);
     const distanceActionPoints = action.freeAction ? Math.max(1, currentPhase - action.phaseStart + 1) : action.actionPoints;
-    action.movement = this.buildActionMovement(command);
+    action.movement = this.buildActionMovement(command, ambientLight);
     const fatigueMultiplier = strategicGame.options?.fatigueMultiplier ?? 1;
     await this.movementProcessorService.process(command.roll, action, actorRound, distanceActionPoints);
     action.processFatigue(fatigueMultiplier);
@@ -156,9 +158,9 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     action.close(actorRound, currentPhase);
   }
 
-  private buildActionMovement(command: ResolveMovementCommand): ActionMovement {
+  private buildActionMovement(command: ResolveMovementCommand, ambientLight: LightType | null): ActionMovement {
     return {
-      modifiers: this.buildActionMovementModifers(command),
+      modifiers: this.buildActionMovementModifers(command, ambientLight),
       roll: null,
       calculated: {
         bmr: 0,
@@ -172,14 +174,15 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     };
   }
 
-  private buildActionMovementModifers(command: ResolveMovementCommand): ActionMovementModifiers {
+  /** Workspace spec 076, P6: the light of the request, else the ambient light of the game. */
+  private buildActionMovementModifers(command: ResolveMovementCommand, ambientLight: LightType | null): ActionMovementModifiers {
     return {
       pace: command.modifiers.pace,
       requiredManeuver: command.modifiers.requiredManeuver === true,
       skillId: command.modifiers.skillId,
       difficulty: command.modifiers.difficulty,
       customBonus: command.modifiers.customBonus,
-      light: command.modifiers.light ?? null,
+      light: command.modifiers.light ?? ambientLight ?? null,
     };
   }
 

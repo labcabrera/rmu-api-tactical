@@ -2,6 +2,18 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { ArrayMaxSize, IsArray, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, Max, Min, ValidateNested } from 'class-validator';
 import {
+  MISSING_SENSE_HELPFUL_DEFAULT,
+  MISSING_SENSE_HELPFUL_MIN,
+  HEATSENSE_MAX,
+  SENSE_SELECTIONS,
+  SENSE_USAGES,
+  SENSES,
+  type Sense,
+  type SenseSelection,
+  type SenseChoices,
+  type SenseUsage,
+} from '../../../../shared/domain/senses/sense-modifiers.js';
+import {
   ManeuverRoll,
   ResolveManeuverCommand,
   ResolveManeuverRequest,
@@ -84,7 +96,12 @@ export class ResolveManeuverDto {
   @IsString()
   difficulty?: Difficulty;
 
-  @ApiProperty({ type: String, description: 'Light of the environment, when the skill uses light', example: 'dark', required: false })
+  @ApiProperty({
+    type: String,
+    description: 'Light of the environment, when the skill uses light; the ambient light of the game when left out (spec 076)',
+    example: 'dark',
+    required: false,
+  })
   @IsOptional()
   @IsString()
   light?: LightType;
@@ -177,6 +194,52 @@ export class ResolveManeuverDto {
   @Max(10)
   spasmRounds?: number;
 
+  @ApiProperty({
+    type: String,
+    description: 'Perception and Tracking (spec 076): the sense used, vision by default (err-maneuver-sense-not-allowed for other skills)',
+    enum: SENSES,
+    required: false,
+  })
+  @IsOptional()
+  @IsIn(SENSES)
+  sense?: Sense;
+
+  @ApiProperty({
+    type: String,
+    description: 'Perception and Tracking (spec 076): the maneuver requires the sense (default) or the sense only helps',
+    enum: SENSE_USAGES,
+    required: false,
+  })
+  @IsOptional()
+  @IsIn(SENSE_USAGES)
+  senseUsage?: SenseUsage;
+
+  @ApiProperty({
+    description: 'Perception and Tracking (spec 076): situations of the sense talents',
+    enum: SENSE_SELECTIONS,
+    isArray: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(SENSE_SELECTIONS.length)
+  @IsIn(SENSE_SELECTIONS, { each: true })
+  senseSelections?: SenseSelection[];
+
+  @ApiProperty({ description: 'Missing Sense where the sense helps (spec 076): -20 by default, -50 to -20', required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(MISSING_SENSE_HELPFUL_MIN)
+  @Max(MISSING_SENSE_HELPFUL_DEFAULT)
+  missingSenseModifier?: number;
+
+  @ApiProperty({ description: 'Heatsense with a warm or cold target close by (spec 076): +20 by default, 0 to 20', required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(HEATSENSE_MAX)
+  heatsenseModifier?: number;
+
   @ApiProperty({ description: 'Roll', type: ManeuverRollDto })
   @ValidateNested()
   @Type(() => ManeuverRollDto)
@@ -219,6 +282,18 @@ export class ResolveManeuverDto {
         ? { foeActorId: dto.foeActorId, foeLevel: dto.foeLevel, position: dto.position, obPenalty: dto.obPenalty }
         : undefined,
       dto.spasmRounds,
+      ResolveManeuverDto.toSenses(dto),
     );
+  }
+
+  private static toSenses(dto: ResolveManeuverDto): SenseChoices | undefined {
+    const senses: SenseChoices = {
+      sense: dto.sense,
+      senseUsage: dto.senseUsage,
+      senseSelections: dto.senseSelections,
+      missingSenseModifier: dto.missingSenseModifier,
+      heatsenseModifier: dto.heatsenseModifier,
+    };
+    return Object.values(senses).some(value => value !== undefined) ? senses : undefined;
   }
 }

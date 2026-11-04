@@ -5,6 +5,7 @@ import type { ManeuverModifierSelection } from '../../../domain/value-objects/ma
 import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo.js';
 import type { ManeuverPurpose } from '../../../domain/value-objects/maneuver-purpose.vo.js';
 import type { CombatTalentChoices } from '../../../domain/services/combat-talent-maneuver.js';
+import type { SenseChoices } from '../../../../shared/domain/senses/sense-modifiers.js';
 
 /** The passive side of a conflicting maneuver as an actor of the game (workspace spec 022, decision 12). */
 export interface PassiveSide {
@@ -38,6 +39,8 @@ export class ResolveManeuverRequest {
     public readonly combatTalent?: CombatTalentChoices | undefined,
     /** Workspace spec 076: the d10 rounds of the spasm of a natural 66 (Spasm); rolled here when left out. */
     public readonly spasmRounds?: number | undefined,
+    /** Workspace spec 076, §3.1: the sense of a Perception or Tracking maneuver, its usage and selections. */
+    public readonly senses?: SenseChoices | undefined,
   ) {}
 }
 

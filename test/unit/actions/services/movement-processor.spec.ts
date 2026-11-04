@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { ActorRoundTrait } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-trait.vo.js';
 import type { ManeuverPort, PercentManeuverResponse } from '../../../../src/modules/actions/application/ports/maneuver.port.js';
 import { MovementProcessorService } from '../../../../src/modules/actions/application/services/movement-processor.service.js';
 import { ManeuverBaseModifiersService } from '../../../../src/modules/actions/application/services/maneuver/maneuver-base-modifiers.service.js';
@@ -37,7 +38,11 @@ describe('MovementProcessorService', () => {
 });
 
 describe('MovementProcessorService movement roll', () => {
-  const roll = async (skills: Array<{ skillId: string; specialization: string | null; totalBonus: number }>, light?: string) => {
+  const roll = async (
+    skills: Array<{ skillId: string; specialization: string | null; totalBonus: number }>,
+    light?: string,
+    traits: ActorRoundTrait[] = [],
+  ) => {
     const percent = vi.fn<(total: number) => Promise<PercentManeuverResponse>>(() =>
       Promise.resolve({ percent: 100, critical: null, message: 'Completed at 100%' }),
     );
@@ -59,6 +64,7 @@ describe('MovementProcessorService movement roll', () => {
       movement: { modifiers: { pace: 'jog', requiredManeuver: true, skillId: 'running', difficulty: 'h', customBonus: 0, light } },
     } as unknown as Action;
     const actorRound = load({ penalties: [['critical', -10]] });
+    actorRound.traits = traits;
     await processor.process(30, action, actorRound);
     return { modifiers: Object.fromEntries(action.movement!.roll!.modifiers.map(m => [m.key, m.value])), percent, action };
   };
@@ -87,6 +93,13 @@ describe('MovementProcessorService movement roll', () => {
     expect(modifiers.light).toBe(-25);
     const { modifiers: lit } = await roll([], 'no_shadows');
     expect(lit.light).toBeUndefined();
+  });
+
+  it('workspace spec 076: Nightvision uses its column and Light Sensitivity penalizes the bright light', async () => {
+    const { modifiers } = await roll([], 'dark', [new ActorRoundTrait('nightvision', 1, null)]);
+    expect(modifiers.light).toBe(-5);
+    const { modifiers: sun } = await roll([], 'no_shadows', [new ActorRoundTrait('light-sensitivity', 1, null)]);
+    expect(sun['light-sensitivity']).toBe(-25);
   });
 
   it('halves the movement rate of an actor with half movement (spec 034)', async () => {

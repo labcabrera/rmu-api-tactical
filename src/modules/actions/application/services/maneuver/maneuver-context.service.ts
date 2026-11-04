@@ -13,7 +13,36 @@ import { NotFoundError, ValidationError } from '../../../../shared/domain/errors
 import { Action } from '../../../domain/aggregates/action.js';
 import { DIFFICULTY_MAP, type Difficulty } from '../../../domain/value-objects/difficulty.vo.js';
 import { KeyValueModifier } from '../../../domain/value-objects/key-value-modifier.vo.js';
-import { LIGHT_MAP, type LightType } from '../../../domain/value-objects/light-type.vo.js';
+import {
+  LIGHT_TABLE,
+  LIGHT_TYPES,
+  type LightType,
+  lightModifierValue,
+  lightSensitivityPenalty,
+  type VisionAbilities,
+} from '../../../domain/value-objects/light-type.vo.js';
+import {
+  ActorRoundTrait,
+  DARKVISION,
+  LIGHT_SENSITIVITY,
+  NIGHTVISION,
+} from '../../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
+import {
+  availableSenseSelections,
+  availableSenses,
+  DEFAULT_SENSE,
+  DEFAULT_SENSE_USAGE,
+  type Sense,
+  type SenseChoices,
+  type SenseModifierOption,
+  type SenseSelection,
+  SENSE_SKILL_IDS,
+  SENSE_USAGES,
+  type SenseUsage,
+  senseModifierOptions,
+  senseModifiers,
+  validateSenseChoices,
+} from '../../../../shared/domain/senses/sense-modifiers.js';
 import type { LightManeuverModifier } from '../../../domain/value-objects/light-maneuver-modifier.vo.js';
 import {
   DEFAULT_MANEUVER_PROFILE,
@@ -54,7 +83,34 @@ export interface ManeuverContext {
   maneuverType: ManeuverType;
   /** Skill category of the skill rolled (Absolute Ease, workspace spec 076); null when core does not say. */
   categoryId?: string | null;
+  /** Talents of the actor: its actor round's, or those of its NPC stat block when the actor round has none. */
+  traits?: ActorRoundTrait[];
+  /** Ambient light of the tactical game (workspace spec 076, P6): the light of a roll that sends none. */
+  defaultLight?: LightType | null;
 }
+
+/** Light of a maneuver: its value, and the Light Sensitivity penalty of the actor when it has the talent. */
+export interface ManeuverLightOption extends ManeuverOption {
+  sensitivity?: number;
+}
+
+/** Senses a Perception or Tracking maneuver can use, and the modifiers of the actor's talents (workspace spec 076). */
+export interface ManeuverSensesListing {
+  default: Sense;
+  options: Sense[];
+  defaultUsage: SenseUsage;
+  usages: SenseUsage[];
+  /** Selections that change something for the actor. */
+  selections: SenseSelection[];
+  /** Every modifier of the actor's sense talents, with the sense, usage and selection it needs. */
+  modifiers: SenseModifierOption[];
+}
+
+/** Workspace spec 076, §3.2: light only counts for these skills when the sense is vision; their usage when core gives none. */
+const SENSE_SKILL_LIGHT: Record<string, Exclude<LightManeuverModifier, 'none'>> = {
+  perception: 'required',
+  tracking: 'helpful',
+};
 
 export interface ManeuverOption {
   key: string;
@@ -68,7 +124,11 @@ export interface ManeuverModifiersListing {
   resultTable: string;
   base: ManeuverBaseModifier[];
   difficulty: { default: Difficulty; options: ManeuverOption[] };
-  light?: { usage: Exclude<LightManeuverModifier, 'none'>; options: ManeuverOption[] };
+  light?: { usage: Exclude<LightManeuverModifier, 'none'>; options: ManeuverLightOption[] };
+  /** Ambient light of the tactical game, the default of the light selector; null when the game has none. */
+  defaultLight: LightType | null;
+  /** Perception and Tracking (workspace spec 076, block C): the senses the maneuver can use. */
+  senses?: ManeuverSensesListing;
   skillModifiers: ManeuverModifierDefinition[];
   conflicting: boolean;
   /** Percent maneuvers: progress accumulated before this roll. */
@@ -90,6 +150,8 @@ export interface ManeuverChoices {
   purpose?: ManeuverPurpose;
   /** Workspace spec 076, §2.6: the choices of the maneuver of a combat talent. */
   combatTalent?: CombatTalentChoices;
+  /** Workspace spec 076, §3.1: the sense of a Perception or Tracking maneuver. */
+  senses?: SenseChoices;
 }
 
 export interface ManeuverRollCalculation {
@@ -97,6 +159,8 @@ export interface ManeuverRollCalculation {
   skipped: SkippedRule[];
   total: number;
   lightUsage: LightManeuverModifier;
+  /** Light the roll took: the one sent or the ambient light, when the maneuver uses it. */
+  light?: LightType;
 }
 
 export interface ManeuverContextOptions {
@@ -167,6 +231,8 @@ export class ManeuverContextService {
       skipped,
       maneuverType,
       categoryId: skill.categoryId ?? null,
+      traits: actorRound.traits?.length ? actorRound.traits : (character.npcTraits ?? []),
+      defaultLight: game.environment?.light ?? null,
     };
   }
 
@@ -183,7 +249,8 @@ export class ManeuverContextService {
   }
 
   listing(context: ManeuverContext, action: Action): ManeuverModifiersListing {
-    const usage = context.profile.light;
+    const usage = ManeuverContextService.lightUsageOf(context, DEFAULT_SENSE);
+    const traits = context.traits ?? [];
     const listing: ManeuverModifiersListing = {
       skill: context.skill,
       maneuverType: context.maneuverType,
@@ -196,11 +263,27 @@ export class ManeuverContextService {
       skillModifiers: context.catalog,
       conflicting: ManeuverContextService.isConflicting(context.maneuverType, context.profile),
       skipped: context.skipped,
+      defaultLight: context.defaultLight ?? null,
     };
     if (usage !== 'none') {
+      const nightvision = ActorRoundTrait.tierOf(traits, NIGHTVISION) > 0;
+      const sensitivity = usage === 'hiding' ? 0 : ActorRoundTrait.tierOf(traits, LIGHT_SENSITIVITY);
       listing.light = {
         usage,
-        options: [...LIGHT_MAP.entries()].map(([key, value]) => ({ key, value: ManeuverContextService.lightValue(value, usage) })),
+        options: LIGHT_TYPES.map(key => {
+          const penalty = lightSensitivityPenalty(key, sensitivity);
+          return { key, value: lightModifierValue(key, usage, { nightvision }), ...(penalty ? { sensitivity: penalty } : {}) };
+        }),
+      };
+    }
+    if (SENSE_SKILL_IDS.includes(context.skill.skillId)) {
+      listing.senses = {
+        default: DEFAULT_SENSE,
+        options: availableSenses(traits),
+        defaultUsage: DEFAULT_SENSE_USAGE,
+        usages: [...SENSE_USAGES],
+        selections: availableSenseSelections(traits, ActorRoundTrait.tierOf(traits, DARKVISION) > 0),
+        modifiers: senseModifierOptions(traits),
       };
     }
     if (context.maneuverType === 'percent') {
@@ -265,29 +348,33 @@ export class ManeuverContextService {
         modifier => new KeyValueModifier(modifier.key, modifier.value, modifier.group, modifier.source, modifier.rule, modifier.params),
       ),
     ];
-    const lightUsage = context.profile.light !== 'none' ? context.profile.light : (choices.lightUsage ?? 'none');
-    if (lightUsage !== 'none' && choices.light) {
-      const lightValue = LIGHT_MAP.get(choices.light);
-      if (lightValue === undefined) {
-        throw new ValidationError(`Unknown light '${choices.light}'`, ERR_INVALID_MODIFIER);
-      }
-      modifiers.push(
-        new KeyValueModifier(
-          'light',
-          ManeuverContextService.lightValue(lightValue, lightUsage),
-          'situation',
-          'light',
-          MANEUVER_RULES.light,
-          {
-            light: choices.light,
-            usage: lightUsage,
-            base: lightValue,
-          },
-        ),
-      );
+    const traits = context.traits ?? [];
+    const senses = choices.senses ?? {};
+    validateSenseChoices(context.skill.skillId, traits, choices.senses);
+    const sense = senses.sense ?? DEFAULT_SENSE;
+    const lightUsage = ManeuverContextService.lightUsageOf(context, sense, choices.lightUsage);
+    const light = choices.light ?? context.defaultLight ?? undefined;
+    if (light !== undefined && !LIGHT_TABLE[light]) {
+      throw new ValidationError(`Unknown light '${light}'`, ERR_INVALID_MODIFIER);
+    }
+    let appliedLight: LightType | undefined;
+    if (lightUsage !== 'none' && light) {
+      appliedLight = light;
+      modifiers.push(...ManeuverContextService.lightModifiers(light, lightUsage, traits, senses.senseSelections));
     } else if (choices.light) {
       skipped.push(
         new SkippedRule('light', 'situation', 'light-not-needed', MANEUVER_PHASE, MANEUVER_RULES.light, { light: choices.light }),
+      );
+    }
+    if (SENSE_SKILL_IDS.includes(context.skill.skillId)) {
+      modifiers.push(
+        ...senseModifiers(traits, senses).map(
+          modifier =>
+            new KeyValueModifier(modifier.key, modifier.value, 'senses', 'senses', modifier.rule, {
+              ...modifier.params,
+              ...(modifier.params.sense ? {} : { sense }),
+            }),
+        ),
       );
     }
     modifiers.push(...resolveSelections(context.catalog, choices.selections));
@@ -311,12 +398,54 @@ export class ManeuverContextService {
     }
     const filtered = modifiers.filter((modifier, index) => index < 3 || modifier.value !== 0);
     const total = filtered.reduce((sum, modifier) => sum + modifier.value, 0);
-    return { modifiers: filtered, skipped, total, lightUsage };
+    return { modifiers: filtered, skipped, total, lightUsage, ...(appliedLight ? { light: appliedLight } : {}) };
   }
 
-  private static lightValue(value: number, usage: LightManeuverModifier): number {
-    if (usage === 'required') return value * 2;
-    if (usage === 'hiding') return -value;
-    return value;
+  /**
+   * How the maneuver uses light: its profile's, or the legacy usage of the request when the profile has none. Perception
+   * and Tracking (workspace spec 076, §3.2) use it only with vision: required for Perception and helpful for Tracking
+   * when core's profile does not say.
+   */
+  static lightUsageOf(context: ManeuverContext, sense: Sense, legacyUsage?: LightManeuverModifier): LightManeuverModifier {
+    const skillLight = SENSE_SKILL_LIGHT[context.skill.skillId];
+    if (skillLight) {
+      if (sense !== 'vision') return 'none';
+      return context.profile.light !== 'none' ? context.profile.light : skillLight;
+    }
+    return context.profile.light !== 'none' ? context.profile.light : (legacyUsage ?? 'none');
+  }
+
+  /**
+   * Light modifiers of a maneuver (Table 15-7): the light, with the Nightvision column or none within the range of
+   * Darkvision, and the Light Sensitivity penalty (§4.5). Hiding reads only the darkness around the one who hides.
+   */
+  static lightModifiers(
+    light: LightType,
+    usage: LightManeuverModifier,
+    traits: ActorRoundTrait[],
+    selections: SenseSelection[] = [],
+  ): KeyValueModifier[] {
+    const vision: VisionAbilities = usage === 'hiding' ? {} : ManeuverContextService.visionOf(traits, selections);
+    const params: Record<string, string | number | boolean> = { light, usage, base: LIGHT_TABLE[light].penalty / 2 };
+    if (vision.withinDarkvision) params.darkvision = true;
+    else if (vision.nightvision) params.nightvision = true;
+    const modifiers = [
+      new KeyValueModifier('light', lightModifierValue(light, usage, vision), 'situation', 'light', MANEUVER_RULES.light, params),
+    ];
+    const tier = usage === 'hiding' ? 0 : ActorRoundTrait.tierOf(traits, LIGHT_SENSITIVITY);
+    const sensitivity = lightSensitivityPenalty(light, tier);
+    if (sensitivity) {
+      modifiers.push(
+        new KeyValueModifier(LIGHT_SENSITIVITY, sensitivity, 'senses', 'senses', MANEUVER_RULES.lightSensitivity, { light, tier }),
+      );
+    }
+    return modifiers;
+  }
+
+  private static visionOf(traits: ActorRoundTrait[], selections: SenseSelection[]): { nightvision: boolean; withinDarkvision: boolean } {
+    return {
+      nightvision: ActorRoundTrait.tierOf(traits, NIGHTVISION) > 0,
+      withinDarkvision: ActorRoundTrait.tierOf(traits, DARKVISION) > 0 && selections.includes('within-darkvision'),
+    };
   }
 }

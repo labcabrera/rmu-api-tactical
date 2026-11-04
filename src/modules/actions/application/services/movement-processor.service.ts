@@ -5,10 +5,11 @@ import { ActorSheetService } from '../../../actor-rounds/application/services/ac
 import { Action } from '../../domain/aggregates/action.js';
 import { DIFFICULTY_MAP } from '../../domain/value-objects/difficulty.vo.js';
 import { KeyValueModifier } from '../../domain/value-objects/key-value-modifier.vo.js';
-import { LIGHT_MAP } from '../../domain/value-objects/light-type.vo.js';
+import { isLightType } from '../../domain/value-objects/light-type.vo.js';
 import { MOVEMENT_MANEUVER_PROFILE } from '../../domain/value-objects/maneuver-profile.vo.js';
 import { type ManeuverPort, MANEUVER_PORT } from '../ports/maneuver.port.js';
 import { MANEUVER_RULES, ManeuverBaseModifiersService } from './maneuver/maneuver-base-modifiers.service.js';
+import { ManeuverContextService } from './maneuver/maneuver-context.service.js';
 import { BLINDED } from '../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
 
 @Injectable()
@@ -81,7 +82,7 @@ export class MovementProcessorService {
           modifier => new KeyValueModifier(modifier.key, modifier.value, modifier.group, modifier.source, modifier.rule, modifier.params),
         ),
         // Spec 034: a blinded actor moves in pitch black.
-        ...this.lightModifier(actorRound.hasEffect(BLINDED) ? 'pitch_black' : action.movement.modifiers.light),
+        ...this.lightModifier(actorRound.hasEffect(BLINDED) ? 'pitch_black' : action.movement.modifiers.light, actorRound),
         new KeyValueModifier('custom-bonus', action.movement.modifiers.customBonus || 0, 'situation', 'custom'),
         new KeyValueModifier('roll', roll),
       ];
@@ -112,16 +113,16 @@ export class MovementProcessorService {
     };
   }
 
-  /** Table 5-1: light helps movement maneuvers (the helpful column). */
-  private lightModifier(light: string | null | undefined): KeyValueModifier[] {
+  /**
+   * Table 15-7: light helps movement maneuvers (the helpful column), with the Nightvision column and Light Sensitivity
+   * of the actor (workspace spec 076, §3.2).
+   */
+  private lightModifier(light: string | null | undefined, actorRound: ActorRound): KeyValueModifier[] {
     if (!light) return [];
-    const value = LIGHT_MAP.get(light as never);
-    if (value === undefined) {
+    if (!isLightType(light)) {
       throw new ValidationError(`Unknown light: ${light}`, 'err-maneuver-invalid-modifier');
     }
-    return value === 0
-      ? []
-      : [new KeyValueModifier('light', value, 'situation', 'light', MANEUVER_RULES.light, { light, usage: 'helpful' })];
+    return ManeuverContextService.lightModifiers(light, 'helpful', actorRound.traits || []).filter(modifier => modifier.value !== 0);
   }
 
   /** Table 5-3: the encumbrance or the creature caps the pace. An unknown maximum (older actor rounds) is not checked. */

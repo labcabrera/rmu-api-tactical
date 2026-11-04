@@ -3,6 +3,7 @@ import type { ManeuverModifiersListing } from '../../../application/services/man
 import type { ModifierParams } from '../../../domain/value-objects/key-value-modifier.vo.js';
 import type { ManeuverModifierDefinition } from '../../../domain/value-objects/maneuver-profile.vo.js';
 import { SkippedRuleDto } from './skipped-rule.dto.js';
+import { SENSE_SELECTIONS, SENSE_USAGES, SENSES } from '../../../../shared/domain/senses/sense-modifiers.js';
 
 export class ManeuverOptionDto {
   @ApiProperty({ example: 'h' })
@@ -57,12 +58,69 @@ export class ManeuverDifficultyDto {
   options: ManeuverOptionDto[];
 }
 
+export class ManeuverLightOptionDto extends ManeuverOptionDto {
+  @ApiProperty({ required: false, description: 'Light Sensitivity penalty of the actor in this light (spec 076)', example: -25 })
+  sensitivity?: number;
+}
+
 export class ManeuverLightDto {
   @ApiProperty({ enum: ['helpful', 'required', 'hiding'] })
   usage: string;
 
-  @ApiProperty({ type: [ManeuverOptionDto], description: 'Light types with their value for this usage' })
-  options: ManeuverOptionDto[];
+  @ApiProperty({
+    type: [ManeuverLightOptionDto],
+    description: 'Light types with their value for this usage, with the Nightvision column when the actor has it (spec 076)',
+  })
+  options: ManeuverLightOptionDto[];
+}
+
+export class ManeuverSenseModifierDto {
+  @ApiProperty({ description: 'Trait id', example: 'acute-hearing' })
+  key: string;
+
+  @ApiProperty({ description: 'Value (the default one when the game master may change it)', example: 10 })
+  value: number;
+
+  @ApiProperty({ example: '§4.6' })
+  rule: string;
+
+  @ApiProperty({ type: Object })
+  params: Record<string, number | string>;
+
+  @ApiProperty({ required: false, enum: SENSES, description: 'Sense it applies to; any when missing' })
+  sense?: string;
+
+  @ApiProperty({ required: false, enum: SENSE_USAGES, description: 'Usage it applies to; any when missing' })
+  usage?: string;
+
+  @ApiProperty({ required: false, enum: SENSE_SELECTIONS, description: 'Selection it needs' })
+  selection?: string;
+
+  @ApiProperty({ required: false, description: 'Lowest value that can be sent (missingSenseModifier, heatsenseModifier)' })
+  min?: number;
+
+  @ApiProperty({ required: false, description: 'Highest value that can be sent' })
+  max?: number;
+}
+
+export class ManeuverSensesDto {
+  @ApiProperty({ enum: SENSES, example: 'vision' })
+  default: string;
+
+  @ApiProperty({ enum: SENSES, isArray: true, description: 'Senses the actor can use (extra with Extra Sense)' })
+  options: string[];
+
+  @ApiProperty({ enum: SENSE_USAGES, example: 'required' })
+  defaultUsage: string;
+
+  @ApiProperty({ enum: SENSE_USAGES, isArray: true })
+  usages: string[];
+
+  @ApiProperty({ enum: SENSE_SELECTIONS, isArray: true, description: 'Selections that change something for the actor' })
+  selections: string[];
+
+  @ApiProperty({ type: [ManeuverSenseModifierDto], description: 'Modifiers of the sense talents of the actor, with their conditions' })
+  modifiers: ManeuverSenseModifierDto[];
 }
 
 export class ManeuverModifierDefinitionDto {
@@ -131,6 +189,17 @@ export class ManeuverModifiersDto {
   @ApiProperty({ type: ManeuverLightDto, required: false, description: 'Only when the skill uses light' })
   light?: ManeuverLightDto;
 
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Ambient light of the tactical game (spec 076): the default of the light selector',
+    example: 'dark',
+  })
+  defaultLight: string | null;
+
+  @ApiProperty({ type: ManeuverSensesDto, required: false, description: 'Perception and Tracking only (spec 076)' })
+  senses?: ManeuverSensesDto;
+
   @ApiProperty({ type: [ManeuverModifierDefinitionDto] })
   skillModifiers: ManeuverModifierDefinitionDto[];
 
@@ -151,7 +220,14 @@ export class ManeuverModifiersDto {
     dto.base = listing.base.map(modifier => ({ ...modifier }));
     dto.difficulty = { default: listing.difficulty.default, options: listing.difficulty.options };
     if (listing.light) {
-      dto.light = { usage: listing.light.usage, options: listing.light.options };
+      dto.light = { usage: listing.light.usage, options: listing.light.options.map(option => ({ ...option })) };
+    }
+    dto.defaultLight = listing.defaultLight ?? null;
+    if (listing.senses) {
+      dto.senses = {
+        ...listing.senses,
+        modifiers: listing.senses.modifiers.map(modifier => ({ ...modifier, params: { ...modifier.params } })),
+      };
     }
     dto.skillModifiers = listing.skillModifiers.map(modifier => ManeuverModifierDefinitionDto.fromEntity(modifier));
     dto.conflicting = listing.conflicting;

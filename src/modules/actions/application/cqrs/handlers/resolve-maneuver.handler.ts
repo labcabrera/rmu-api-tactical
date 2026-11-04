@@ -209,7 +209,7 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
       specialization: context.skill.specialization,
       maneuverType: context.maneuverType,
       difficulty: request.difficulty || action.maneuver!.modifiers.difficulty || 'm',
-      light: request.light,
+      light: request.light ?? calculation.light,
       lightModifier: calculation.lightUsage,
       customBonus: request.customBonus,
       selections: request.selections,

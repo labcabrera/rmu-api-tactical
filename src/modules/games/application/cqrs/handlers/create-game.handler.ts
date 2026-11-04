@@ -63,7 +63,11 @@ export class CreateGameHandler implements ICommandHandler<CreateGameCommand, Gam
     const environmentFaction =
       command.environmentFaction || environmentNpcs.length > 0 ? EnvironmentFactions.create(environmentName, environmentNpcs) : null;
     const environment = command.environment
-      ? new GameEnvironment(command.environment.temperatureFatigueModifier, command.environment.altitudeFatigueModifier)
+      ? new GameEnvironment(
+          command.environment.temperatureFatigueModifier,
+          command.environment.altitudeFatigueModifier,
+          command.environment.light ?? undefined,
+        )
       : undefined;
 
     const game = Game.create(

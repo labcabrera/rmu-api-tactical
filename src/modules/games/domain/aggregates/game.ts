@@ -205,7 +205,7 @@ export class Game extends BaseAggregateRoot<GameProps> {
   ) {
     if (name) this.name = name;
     if (description) this.description = description;
-    if (environment) this.environment = environment;
+    if (environment) this.environment = GameEnvironment.merge(this.environment, environment);
     if (imageUrl !== undefined) this.imageUrl = imageUrl;
     if (environmentFactionName !== undefined) this.renameEnvironmentFaction(environmentFactionName);
     // A PATCH that changes nothing is a 200 with the game as it is, and no event (spec 021, decision 9).

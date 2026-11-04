@@ -41,6 +41,34 @@ export const ABSOLUTE_EASE = 'absolute-ease';
 /** The flaw of Absolute Ease: its failures become absolute too. */
 export const ABSOLUTE_DISASTER = 'absolute-disaster';
 export const SPASM_TRAIT = 'spasm';
+// Senses and vision (workspace spec 076, block C); ids of the Character Companion catalog
+export const ACUTE_HEARING = 'acute-hearing';
+export const ACUTE_SMELL = 'acute-smell';
+export const ACUTE_TASTE = 'acute-taste';
+export const ACUTE_TOUCH = 'acute-touch';
+export const ACUTE_VISION = 'acute-vision';
+export const POOR_HEARING = 'poor-hearing';
+export const POOR_SMELL = 'poor-smell';
+export const POOR_TASTE = 'poor-taste';
+export const POOR_TOUCH = 'poor-touch';
+export const POOR_VISION = 'poor-vision';
+export const MISSING_SENSE_HEARING = 'missing-sense-hearing';
+export const MISSING_SENSE_SMELL = 'missing-sense-smell';
+export const MISSING_SENSE_TASTE = 'missing-sense-taste';
+export const MISSING_SENSE_TOUCH = 'missing-sense-touch';
+export const MISSING_SENSE_VISION = 'missing-sense-vision';
+export const EXTRA_SENSE = 'extra-sense';
+export const HEARING_CAT = 'hearing-cat';
+export const HEARING_DOG = 'hearing-dog';
+export const HEARING_HARE = 'hearing-hare';
+export const SIGHT_GECKO = 'sight-gecko';
+export const SIGHT_EAGLE = 'sight-eagle';
+export const SIGHT_HAWK = 'sight-hawk';
+export const HEATSENSE = 'heatsense';
+export const TETRACHROMATIC_VISION = 'tetrachromatic-vision';
+export const NIGHTVISION = 'nightvision';
+export const DARKVISION = 'darkvision';
+export const LIGHT_SENSITIVITY = 'light-sensitivity';
 
 /** Talent or flaw of the actor, copied from its character sheet. */
 export class ActorRoundTrait {

@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsBoolean, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { LIGHT_TYPES, type LightType } from '../../../../actions/domain/value-objects/light-type.vo.js';
 import { CreateGameCommand, CreateGameCommandActor } from '../../../application/cqrs/commands/create-game.command.js';
 import type { ActorType } from '../../../domain/value-objects/actor-type.vo.js';
 import { CreateEnvironmentFactionDto, GameNpcRequestDto } from './environment-faction.dto.js';
@@ -42,6 +43,11 @@ export class CreateGameEnvironmentDto {
   @IsNumber()
   @IsOptional()
   altitudeFatigueModifier: number | undefined;
+
+  @ApiProperty({ type: String, enum: LIGHT_TYPES, description: 'Ambient light (spec 076)', required: false, nullable: true })
+  @IsOptional()
+  @IsIn([...LIGHT_TYPES, null])
+  light?: LightType | null;
 }
 
 export class CreateGameDto {
@@ -131,6 +137,7 @@ export class CreateGameDto {
       ? {
           temperatureFatigueModifier: dto.environment.temperatureFatigueModifier,
           altitudeFatigueModifier: dto.environment.altitudeFatigueModifier,
+          light: dto.environment.light ?? undefined,
         }
       : undefined;
     return new CreateGameCommand(
