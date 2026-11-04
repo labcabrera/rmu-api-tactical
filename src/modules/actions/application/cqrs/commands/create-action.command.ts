@@ -48,9 +48,6 @@ export class CreateActionCommandForced {
   note?: string;
   /** `reaction` (workspace spec 076): the `reaction-available` alert of the actor it is declared from. */
   alertId?: string;
-  /** `reaction` without an alert, forced by the game master: the talent and the action that triggered it. */
-  traitId?: string;
-  triggerActionId?: string;
 }
 
 export class CreateActionCommandAim {

@@ -407,7 +407,7 @@ describe('CreateActionHandler: draws and reactions (spec 076)', () => {
     });
   });
 
-  it('rejects an alert of another phase, and a reaction forced by the game master to an actor without the talent', async () => {
+  it('rejects an alert of another phase, and a reaction without its alert', async () => {
     const round = roundWith([]);
     const alert = round.addReactionAlert({
       traitId: 'opportunistic-strike',
@@ -422,23 +422,9 @@ describe('CreateActionHandler: draws and reactions (spec 076)', () => {
     ).rejects.toMatchObject({
       code: 'err-reaction-not-available',
     });
-    await expect(
-      setup(round, [], 'phase_2').handler.execute(
-        reactionCommand({ reason: 'reaction', traitId: 'opportunistic-strike', triggerActionId: 'trigger-1' }),
-      ),
-    ).rejects.toMatchObject({ code: 'err-reaction-trait-required' });
-  });
-
-  it('a Riposte forced by the game master takes 50 less the total roll of the attack on the actor', async () => {
-    const round = roundWith([trait('riposte', 1, 'blade')]);
-    const trigger = action('trigger-1', 'melee_attack', 1, {
-      actorId: 'foe',
-      attacks: [{ attackName: 'mainHand', modifiers: { targetId: 'actor-1' }, calculated: { rollTotal: 70 } } as never],
+    await expect(setup(round, [], 'phase_2').handler.execute(reactionCommand({ reason: 'reaction' }))).rejects.toMatchObject({
+      code: 'err-reaction-not-available',
     });
-    const created = await setup(round, [trigger], 'phase_2').handler.execute(
-      reactionCommand({ reason: 'reaction', traitId: 'riposte', triggerActionId: 'trigger-1' }),
-    );
-    expect(created.reaction).toEqual({ traitId: 'riposte', triggerActionId: 'trigger-1', obOverride: -20, alertId: null });
   });
 });
 

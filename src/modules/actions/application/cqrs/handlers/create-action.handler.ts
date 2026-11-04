@@ -28,13 +28,11 @@ import { MedicalActionService } from '../../services/medical/medical-action.serv
 import {
   ActorRoundTrait,
   QUICKDRAW,
-  RIPOSTE,
   SHARPSHOOTER,
   SLOW_ON_THE_DRAW,
 } from '../../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
 import { AIMING, SURPRISED } from '../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
 import { keepsAimingOnDeclaration } from '../../../domain/services/aiming.js';
-import { riposteOb } from '../../../domain/services/reaction-rules.js';
 
 /**
  * Declares an action (spec 011, §2): it records its AP in the ledger of the actor round and closes as `interrupted`
@@ -85,7 +83,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       currentPhase,
       roundActions,
     );
-    const reaction = command.forced?.reason === 'reaction' ? await this.declareReaction(command, actorRound, game, roundActions) : null;
+    const reaction = command.forced?.reason === 'reaction' ? this.declareReaction(command, actorRound, game) : null;
     const warnings = this.declarationWarnings(command, actorRound, plan.interrupted);
     if (!command.confirm && warnings.some(warning => warning.requiresConfirm)) {
       throw new ConflictError('The declaration needs a confirmation: send it again with confirm: true', 'err-action-confirm-required', {
@@ -182,36 +180,19 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
   }
 
   /**
-   * Workspace spec 076, decision B1: the reaction of an attack forced as `reaction`. From its alert, which must be the
-   * actor's, pending and of this round and phase (`err-reaction-not-available`): it is resolved. Without one, the game
-   * master forces it with the talent, which the actor must have (`err-reaction-trait-required`), and the action that
-   * triggered it; a Riposte then takes 50 less the total roll of the trigger's attack on the actor, when it has one.
+   * Workspace spec 076, decision B1: the reaction of an attack forced as `reaction`, always from its alert, which must be
+   * the actor's, pending and of this round and phase (`err-reaction-not-available`): it is resolved. Reactions work as
+   * the other roll alerts (breakage...): the server raises them and someone takes or dismisses them.
    */
-  private async declareReaction(command: CreateActionCommand, actorRound: ActorRound, game: Game, roundActions: Action[]) {
+  private declareReaction(command: CreateActionCommand, actorRound: ActorRound, game: Game) {
     const forced = command.forced!;
-    if (forced.alertId) {
-      const alert = actorRound.pendingReactionAlert(forced.alertId);
-      const data = alert?.reaction;
-      if (!alert || !data || data.round !== game.round || data.phase !== game.phase) {
-        throw new ValidationError(`The reaction ${forced.alertId} is not available to the actor`, 'err-reaction-not-available');
-      }
-      alert.status = 'resolved';
-      return { traitId: data.traitId, triggerActionId: data.triggerActionId, obOverride: data.obOverride ?? null, alertId: alert.id };
+    const alert = forced.alertId ? actorRound.pendingReactionAlert(forced.alertId) : undefined;
+    const data = alert?.reaction;
+    if (!alert || !data || data.round !== game.round || data.phase !== game.phase) {
+      throw new ValidationError(`The reaction ${forced.alertId ?? ''} is not available to the actor`, 'err-reaction-not-available');
     }
-    if (!forced.traitId || !forced.triggerActionId) {
-      throw new ValidationError('A reaction needs its alert, or its talent and triggering action', 'err-reaction-not-available');
-    }
-    if (ActorRoundTrait.tierOf(actorRound.traits, forced.traitId) === 0) {
-      throw new ValidationError(`The actor does not have ${forced.traitId}`, 'err-reaction-trait-required', { traitId: forced.traitId });
-    }
-    const trigger =
-      roundActions.find(each => each.id === forced.triggerActionId) ?? (await this.actionRepository.findById(forced.triggerActionId));
-    if (!trigger || trigger.gameId !== command.gameId) {
-      throw new NotFoundError('Action', forced.triggerActionId);
-    }
-    const parried = (trigger.attacks || []).find(attack => attack.modifiers.targetId === command.actorId && !!attack.calculated);
-    const obOverride = forced.traitId === RIPOSTE && parried ? riposteOb(parried.calculated!.rollTotal) : null;
-    return { traitId: forced.traitId, triggerActionId: trigger.id, obOverride, alertId: null };
+    alert.status = 'resolved';
+    return { traitId: data.traitId, triggerActionId: data.triggerActionId, obOverride: data.obOverride ?? null, alertId: alert.id };
   }
 
   /**

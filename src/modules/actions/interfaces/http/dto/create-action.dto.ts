@@ -178,19 +178,6 @@ export class ForceActionDto {
   @IsOptional()
   @IsString()
   alertId?: string;
-
-  @ApiProperty({
-    description: 'reaction without an alert (spec 076): the talent (riposte, opportunistic-strike), forced by the game master',
-    required: false,
-  })
-  @IsOptional()
-  @IsIn(['riposte', 'opportunistic-strike'])
-  traitId?: string;
-
-  @ApiProperty({ description: 'reaction without an alert (spec 076): the action that triggered it', required: false })
-  @IsOptional()
-  @IsString()
-  triggerActionId?: string;
 }
 
 /** Workspace spec 076: the weapon of a `draw_and_load` action. */
@@ -317,8 +304,6 @@ export class CreateActionDto {
             reason: dto.forced.reason,
             note: dto.forced.note,
             alertId: dto.forced.alertId,
-            traitId: dto.forced.traitId,
-            triggerActionId: dto.forced.triggerActionId,
           }
         : undefined,
       dto.spell ? { listCode: dto.spell.listCode, spellId: dto.spell.spellId } : undefined,
