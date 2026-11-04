@@ -4,6 +4,7 @@ import { BaseAggregateRoot } from '../../../shared/domain/aggregates/base-aggreg
 import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors/errors.js';
 import { ActorRoundCreatedEvent } from '../events/actor-round.events.js';
 import { ActorRoundAlert, type ReactionAlertData } from '../value-objects/actor-round-alert.vo.js';
+import { type ActorRollProfile, rollProfileOf } from '../value-objects/actor-roll-profile.vo.js';
 import { ActorRoundAlertModifier } from '../value-objects/actor-round-alert-modifier.vo.js';
 import { ActorRoundAttack } from '../value-objects/actor-round-attack.vo.js';
 import { ActorRoundDefenseMode, type DefenseLevel } from '../value-objects/actor-round-defense-mode.vo.js';
@@ -17,6 +18,7 @@ import {
   BATTLE_CRY,
   BATTLE_CRY_BONUS,
   BLEEDING,
+  CRITICAL_REROLL,
   DB_BONUS,
   OB_BONUS,
   SPASM,
@@ -1452,8 +1454,10 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     ActorRound.normalizeApEffect(effect);
     ActorRound.normalizeCombatTalentEffect(effect);
     // Workspace spec 076: aiming, a critical reroll, precision and a spasm count once; the new one replaces the old.
+    // A Sense Weakness (offense) and a Study Offense (defense) reroll can be held at once: each replaces its own kind.
     if (ActorRoundEffect.isReplacing(effect)) {
-      this.effects = this.effects.filter(e => e.status !== effect.status);
+      const kindOf = (e: ActorRoundEffect) => (e.status === CRITICAL_REROLL ? (e.data?.kind ?? 'offense') : null);
+      this.effects = this.effects.filter(e => e.status !== effect.status || kindOf(e) !== kindOf(effect));
     }
     if (ActorRoundEffect.isRoundBound(effect)) {
       effect.rounds = 1;
@@ -2171,6 +2175,11 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     return this.resistances.find(each => each.resistance === resistance)?.totalBonus;
   }
 
+  /** How the actor's talents change its rolls (workspace spec 076, §2.8), from its traits. */
+  rollProfile(): ActorRollProfile {
+    return rollProfileOf(this.traits);
+  }
+
   /** Tier of one of the actor's traits, 0 when it does not have it. */
   traitTier(traitId: string): number {
     return ActorRoundTrait.tierOf(this.traits, traitId);
@@ -2529,6 +2538,40 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     const alert = ActorRoundAlert.buildReaction(reaction);
     this.alerts.push(alert);
     return alert;
+  }
+
+  /**
+   * Workspace spec 076, decision B10: a natural 01 of an actor with Terrible Luck. One alert per roll: the same roll
+   * sent again does not raise it twice. Answers whether it was raised.
+   */
+  addTerribleLuckAlert(origin: string, actionId: string, attackName?: string): boolean {
+    const raised = this.alerts.some(
+      alert =>
+        alert.type === 'terrible-luck' &&
+        alert.getModifierText?.('origin') === origin &&
+        alert.getModifierText?.('actionId') === actionId &&
+        (alert.getModifierText?.('attackName') ?? undefined) === attackName,
+    );
+    if (raised) {
+      return false;
+    }
+    this.alerts.push(ActorRoundAlert.buildTerribleLuck(origin, actionId, attackName));
+    return true;
+  }
+
+  /**
+   * Workspace spec 076, decision B10: a natural 66 of an actor with Spasm gives it a spasm of `rounds` rounds (stun -50,
+   * 2 AP less, 1 hit per upkeep). `origin` names the roll: the same roll sent again gives no second spasm. Answers
+   * whether it was given.
+   */
+  addSpasm(rounds: number, origin: string, application?: EffectApplication): boolean {
+    if (this.effects.some(effect => effect.status === SPASM && effect.data?.origin === origin)) {
+      return false;
+    }
+    const effect = new ActorRoundEffect(randomUUID(), SPASM, SPASM_STUN, rounds);
+    effect.data = { origin };
+    this.applyAttackResults(undefined, [effect], undefined, application);
+    return true;
   }
 
   /** A pending `reaction-available` alert of the actor (undefined when it is not there, or is resolved or expired). */

@@ -9,7 +9,7 @@ import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-rou
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { Game } from '../../../../games/domain/aggregates/game.js';
 import { ConflictError, ValidationError, NotFoundError } from '../../../../shared/domain/errors/errors.js';
-import { Action } from '../../../domain/aggregates/action.js';
+import { Action, type ActionAim } from '../../../domain/aggregates/action.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo.js';
 import { ActionManeuver } from '../../../domain/value-objects/action-maneuver.vo.js';
@@ -29,9 +29,10 @@ import {
   ActorRoundTrait,
   QUICKDRAW,
   RIPOSTE,
+  SHARPSHOOTER,
   SLOW_ON_THE_DRAW,
 } from '../../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
-import { SURPRISED } from '../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
+import { AIMING, SURPRISED } from '../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
 import { riposteOb } from '../../../domain/services/reaction-rules.js';
 
 /**
@@ -68,6 +69,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     const actorActions = roundActions.filter(action => action.actorId === command.actorId);
 
     const draw = this.drawAndLoad(command, actorRound);
+    const aim = command.actionType === 'aim' ? await this.declareAim(command, actorRound) : null;
     const freeAction = draw?.freeAction ?? command.freeAction;
     const plan = Action.checkDeclaration(
       actorRound,
@@ -112,6 +114,8 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     action.spell = spell;
     action.reaction = reaction;
     action.drawAndLoad = draw?.drawAndLoad ?? null;
+    action.aim = aim;
+    const aimingLost = CreateActionHandler.loseAiming(command.actionType, actorRound);
     if (command.actionType === 'medical') {
       action.medical = await this.medicalActions.declare(actorRound, command.medical, action.id);
     }
@@ -128,7 +132,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     }
 
     const saved = await this.actionRepository.save(action);
-    if (plan.spend || plan.interrupted.length > 0 || aborted.length > 0 || reopened.length > 0 || reaction?.alertId) {
+    if (plan.spend || plan.interrupted.length > 0 || aborted.length > 0 || reopened.length > 0 || reaction?.alertId || aimingLost) {
       await this.actorRoundRepository.update(actorRound);
     }
     for (const interrupted of plan.interrupted) {
@@ -233,6 +237,54 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       zeroCost: profile.max === 0,
       freeAction: quickdraw ? true : slowOnTheDraw ? false : undefined,
     };
+  }
+
+  /**
+   * Workspace spec 076, decision B6: an `aim` action aims a ranged weapon of the actor whose skill matches its
+   * Sharpshooter (`err-aim-not-allowed`, with `details.reason`) at a foe of the round. It takes the whole round, so it
+   * cannot be instantaneous.
+   */
+  private async declareAim(command: CreateActionCommand, actorRound: ActorRound): Promise<ActionAim> {
+    const aim = command.aim;
+    if (!aim?.targetActorId || !aim.itemId) {
+      throw new ValidationError('An aim action needs its foe and its ranged weapon', 'err-aim-not-allowed', { reason: 'missing' });
+    }
+    if (command.freeAction) {
+      throw new ValidationError('Aiming takes the whole round: it cannot be instantaneous', 'err-action-free-not-allowed');
+    }
+    const attack = (actorRound.attacks || []).find(each => each.itemId === aim.itemId && each.type === 'ranged');
+    if (!attack) {
+      throw new ValidationError(`Item ${aim.itemId} is not a ranged weapon of the actor`, 'err-aim-not-allowed', {
+        reason: 'not-ranged',
+        itemId: aim.itemId,
+      });
+    }
+    if (ActorRoundTrait.tierForSkill(actorRound.traits, SHARPSHOOTER, attack.skillId) === 0) {
+      throw new ValidationError(`The actor has no Sharpshooter for ${attack.attackName}`, 'err-aim-not-allowed', {
+        reason: 'no-sharpshooter',
+        itemId: aim.itemId,
+      });
+    }
+    if (aim.targetActorId === actorRound.actorId) {
+      throw new ValidationError('An actor cannot aim at itself', 'err-aim-not-allowed', { reason: 'self' });
+    }
+    const target = await this.actorRoundRepository.findByActorIdAndRound(command.gameId, aim.targetActorId, actorRound.round);
+    if (!target) throw new NotFoundError('Target actor', aim.targetActorId, 'err-target-not-found');
+    return { targetActorId: aim.targetActorId, itemId: aim.itemId };
+  }
+
+  /**
+   * Workspace spec 076, decision B6: declaring an action other than aiming or a ranged attack loses the aiming of the
+   * actor (a ranged attack against another foe or with another weapon loses it when it is applied). Answers whether it
+   * was lost.
+   */
+  static loseAiming(actionType: CreateActionCommand['actionType'], actorRound: ActorRound): boolean {
+    if (actionType === 'aim' || actionType === 'ranged_attack') {
+      return false;
+    }
+    const aiming = (actorRound.effects || []).filter(effect => effect.status === AIMING).map(effect => effect.id);
+    actorRound.consumeEffects(aiming);
+    return aiming.length > 0;
   }
 
   /** A `use_item` action takes core's AP of a healing item in combat (decision 7). */

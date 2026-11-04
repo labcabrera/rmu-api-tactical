@@ -1,6 +1,19 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, Max, Min, ValidateNested } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 import type { SpellPreview } from '../../../application/cqrs/handlers/spell.handlers.js';
 import {
   type ActionSpell,
@@ -82,6 +95,34 @@ export class RollSpellDto {
   @ApiProperty({ description: 'Open-ended roll', example: 72 })
   @IsNumber()
   roll: number;
+
+  @ApiProperty({ description: 'First die, unmodified (spec 076: a natural 01 or 66 of Terrible Luck or Spasm)', required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  unmodified?: number;
+
+  @ApiProperty({
+    description: 'Every die of the open-ended roll (spec 076): checked with the roll profile of the caster (err-roll-open-ended-invalid)',
+    required: false,
+    type: [Number],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsInt({ each: true })
+  dice?: number[];
+
+  @ApiProperty({
+    description: 'Spasm (spec 076): rounds of the spasm of a natural 66 (d10); rolled by the API when left out',
+    required: false,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  spasmRounds?: number;
 }
 
 export class PreviewSpellDto {

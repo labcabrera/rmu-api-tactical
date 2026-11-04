@@ -9,6 +9,8 @@ export class RollSpellCommand {
     public readonly roll: number,
     public readonly userId: string,
     public readonly roles: string[],
+    /** Workspace spec 076: the first die and every die of the roll, and the rounds of a spasm of a natural 66. */
+    public readonly natural: { unmodified?: number; dice?: number[]; spasmRounds?: number } = {},
   ) {}
 }
 

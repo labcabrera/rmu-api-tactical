@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { UpdateFumbleRollCommand } from '../../../application/cqrs/commands/update-fumble-roll.command.js';
 
 export class UpdateFumbleRollDto {
@@ -22,7 +22,18 @@ export class UpdateFumbleRollDto {
   @Min(1)
   fumbleHits?: number;
 
+  @ApiProperty({
+    description: 'The die of the closed d100 roll (spec 076): when sent, it must be the roll (err-roll-open-ended-invalid)',
+    required: false,
+    type: [Number],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsInt({ each: true })
+  dice?: number[];
+
   static toCommand(actionId: string, dto: UpdateFumbleRollDto, userId: string, roles: string[]) {
-    return new UpdateFumbleRollCommand(actionId, dto.attackName, dto.fumbleRoll, userId, roles, dto.fumbleHits);
+    return new UpdateFumbleRollCommand(actionId, dto.attackName, dto.fumbleRoll, userId, roles, dto.fumbleHits, dto.dice);
   }
 }

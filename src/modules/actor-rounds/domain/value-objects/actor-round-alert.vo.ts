@@ -125,6 +125,21 @@ export class ActorRoundAlert {
     ]);
   }
 
+  /**
+   * Workspace spec 076, decision B10: a natural 01 of an actor with Terrible Luck is the worst failure possible, which
+   * the game master narrates. `origin` is the roll (`maneuver`, `attack`, `spell`) and `actionId` its action.
+   */
+  static buildTerribleLuck(origin: string, actionId: string, attackName?: string): ActorRoundAlert {
+    const modifiers = [new ActorRoundAlertModifier('origin', null, origin), new ActorRoundAlertModifier('actionId', null, actionId)];
+    if (attackName) modifiers.push(new ActorRoundAlertModifier('attackName', null, attackName));
+    return new ActorRoundAlert(randomUUID(), 'terrible-luck', `Terrible Luck: natural 01 (${origin})`, modifiers);
+  }
+
+  /** Text value of a modifier (`origin`, `actionId`...). */
+  getModifierText(key: string): string | undefined {
+    return this.modifiers?.find(modifier => modifier.key === key)?.modifier ?? undefined;
+  }
+
   getModifierValue(key: string): number | undefined {
     return this.modifiers?.find(modifier => modifier.key === key)?.value ?? undefined;
   }

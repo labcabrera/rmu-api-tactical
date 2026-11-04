@@ -55,7 +55,11 @@ export class SpellController {
   @ApiOperation({ operationId: 'rollSpell', summary: 'Spellcasting Roll' })
   @ApiOkResponse({ type: ActionDto })
   async roll(@Param('id') id: string, @Body() dto: RollSpellDto, @CurrentUser() user: AuthenticatedUser) {
-    const command = new RollSpellCommand(id, dto.options ?? {}, dto.roll, user.id, user.roles);
+    const command = new RollSpellCommand(id, dto.options ?? {}, dto.roll, user.id, user.roles, {
+      unmodified: dto.unmodified,
+      dice: dto.dice,
+      spasmRounds: dto.spasmRounds,
+    });
     return ActionDto.fromEntity(await this.commandBus.execute<RollSpellCommand, Action>(command));
   }
 

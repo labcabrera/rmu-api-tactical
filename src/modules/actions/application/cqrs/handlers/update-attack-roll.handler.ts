@@ -5,6 +5,11 @@ import {
   ACTOR_ROUND_REPOSITORY,
 } from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
+import { Game } from '../../../../games/domain/aggregates/game.js';
+import type { ActorRound, EffectApplication } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
+import { rollProfileOf } from '../../../../actor-rounds/domain/value-objects/actor-roll-profile.vo.js';
+import { checkOpenEndedDice } from '../../../../shared/domain/rolls/open-ended.js';
+import { applyNaturalRoll } from '../../../domain/services/roll-talents.js';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
 import { Action } from '../../../domain/aggregates/action.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
@@ -45,6 +50,9 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     const sourceActor = await this.actorRoundRepository.findByActorIdAndRound(action.gameId, action.actorId, action.round);
     if (!sourceActor) throw new NotFoundError('ActorRound', action.actorId);
 
+    // Workspace spec 076, §2.8: the dice sent are a high open-ended chain of the attacker's roll profile.
+    checkOpenEndedDice(command.rolls, 'high', rollProfileOf(sourceActor.traits), { total: command.roll, unmodified: command.unmodified });
+
     const previousBreakage = !!attack.calculated?.breakageRoll;
     const previousFumble = !!attack.results?.fumble;
     await this.combatAttackRollResolver.resolve({
@@ -67,6 +75,16 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     if (attack.results?.fumble && !previousFumble && sourceActor.reopenWounds('failed-roll').length > 0) {
       sourceChanged = true;
     }
+    // Workspace spec 076, decision B10 (P5): Terrible Luck and Spasm on the natural roll of the attack.
+    const natural = applyNaturalRoll(
+      sourceActor,
+      command.unmodified ?? command.rolls?.[0],
+      { kind: 'attack', actionId: action.id, attackName: attack.attackName },
+      { spasmRounds: command.spasmRounds, application: () => UpdateAttackRollHandler.applicationOf(game, sourceActor) },
+    );
+    if (natural.terribleLuck || natural.spasm) {
+      sourceChanged = true;
+    }
     if (sourceChanged) {
       await this.actorRoundRepository.update(sourceActor);
     }
@@ -81,6 +99,12 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     const updated = await this.actionRepository.update(action);
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     return updated;
+  }
+
+  /** When an effect of the roll lands: the current action phase and the AP the actor spent before it. */
+  static applicationOf(game: Game, actor: ActorRound): EffectApplication | undefined {
+    const phase = Game.toActionPhase(game.phase);
+    return phase === undefined ? undefined : { phase, spentAp: actor.getSpentAp(phase) };
   }
 
   private validateCommand(command: UpdateAttackRollCommand, action: Action): void {

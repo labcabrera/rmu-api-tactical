@@ -37,6 +37,7 @@ export const aimingEffectOf = (ctx: CombatContext): ActorRoundEffect | undefined
 export const CombatEffectOffenseBonusPlugin: CombatPlugin = {
   id: 'effect-ob-bonus',
   group: 'offense',
+  rule: 'Character Companion',
   hooks: {
     prepare: [
       {
@@ -56,6 +57,7 @@ export const CombatEffectOffenseBonusPlugin: CombatPlugin = {
 export const CombatEffectDefenseBonusPlugin: CombatPlugin = {
   id: 'effect-db-bonus',
   group: 'defense',
+  rule: 'Character Companion',
   hooks: {
     prepare: [
       {

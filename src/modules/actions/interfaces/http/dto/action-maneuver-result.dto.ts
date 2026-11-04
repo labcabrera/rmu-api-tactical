@@ -1,5 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { type ActionManeuverEffect, ActionManeuverResult } from '../../../domain/value-objects/action-maneuver.vo.js';
+import {
+  type ActionManeuverEffect,
+  ActionManeuverResult,
+  type ManeuverRollTalent,
+} from '../../../domain/value-objects/action-maneuver.vo.js';
 
 export class ActionManeuverEffectDto {
   @ApiProperty({ example: 'penaltyUntilAbsoluteSuccess' })
@@ -52,6 +56,14 @@ export class ActionManeuverResultDto {
   @ApiProperty({ required: false })
   moraleModifierDays?: number;
 
+  @ApiProperty({
+    type: String,
+    description: 'Talent that changed the result of the table (spec 076)',
+    enum: ['unusual-luck', 'absolute-ease', 'absolute-disaster'],
+    required: false,
+  })
+  rollTalent?: ManeuverRollTalent;
+
   static fromEntity(entity: ActionManeuverResult): ActionManeuverResultDto {
     const dto = new ActionManeuverResultDto();
     dto.result = entity.result ?? undefined;
@@ -65,6 +77,7 @@ export class ActionManeuverResultDto {
     dto.outcome = entity.outcome ?? undefined;
     dto.moraleModifier = entity.moraleModifier ?? undefined;
     dto.moraleModifierDays = entity.moraleModifierDays ?? undefined;
+    dto.rollTalent = entity.rollTalent ?? undefined;
     return dto;
   }
 }

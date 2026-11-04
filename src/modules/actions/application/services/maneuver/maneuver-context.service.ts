@@ -1,5 +1,6 @@
 import { frenzyManeuverModifiers } from '../../../domain/services/frenzy-maneuver.js';
-import type { FrenzyPurpose } from '../../../domain/value-objects/frenzy-purpose.vo.js';
+import { type CombatTalentChoices, combatTalentModifiers } from '../../../domain/services/combat-talent-maneuver.js';
+import { isFrenzyPurpose, type ManeuverPurpose } from '../../../domain/value-objects/maneuver-purpose.vo.js';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   type ActorRoundRepository,
@@ -51,6 +52,8 @@ export interface ManeuverContext {
   /** Rules of the base modifiers that do not apply, and why (workspace spec 052). */
   skipped: SkippedRule[];
   maneuverType: ManeuverType;
+  /** Skill category of the skill rolled (Absolute Ease, workspace spec 076); null when core does not say. */
+  categoryId?: string | null;
 }
 
 export interface ManeuverOption {
@@ -83,8 +86,10 @@ export interface ManeuverChoices {
   selections?: Record<string, ManeuverModifierSelection>;
   customBonus?: number;
   passiveTotal?: number;
-  /** Workspace spec 040: the frenzy maneuver adds its own modifiers. */
-  purpose?: FrenzyPurpose;
+  /** Workspace spec 040: the frenzy maneuver adds its own modifiers; and those of the combat talents (spec 076). */
+  purpose?: ManeuverPurpose;
+  /** Workspace spec 076, §2.6: the choices of the maneuver of a combat talent. */
+  combatTalent?: CombatTalentChoices;
 }
 
 export interface ManeuverRollCalculation {
@@ -152,7 +157,17 @@ export class ManeuverContextService {
       includePace: true,
     });
     const maneuverType = options.maneuverType || action.maneuver.modifiers.maneuverType || profile.defaultType;
-    return { actorRound, character, profile, catalog, skill: skillBonus, base, skipped, maneuverType };
+    return {
+      actorRound,
+      character,
+      profile,
+      catalog,
+      skill: skillBonus,
+      base,
+      skipped,
+      maneuverType,
+      categoryId: skill.categoryId ?? null,
+    };
   }
 
   /**
@@ -276,8 +291,10 @@ export class ManeuverContextService {
       );
     }
     modifiers.push(...resolveSelections(context.catalog, choices.selections));
-    if (choices.purpose) {
+    if (isFrenzyPurpose(choices.purpose)) {
       modifiers.push(...frenzyManeuverModifiers(context.actorRound, choices.purpose));
+    } else if (choices.purpose) {
+      modifiers.push(...combatTalentModifiers(choices.purpose, choices.combatTalent ?? {}));
     }
     if (choices.customBonus) {
       modifiers.push(new KeyValueModifier('custom-bonus', choices.customBonus, 'situation', 'custom'));

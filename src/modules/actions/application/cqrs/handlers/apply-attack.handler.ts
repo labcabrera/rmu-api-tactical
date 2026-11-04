@@ -20,6 +20,7 @@ import {
   NON_VIOLENT,
   PRESSING_ADVANTAGE,
   UNCONSCIOUS,
+  AIMING,
 } from '../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
 import {
   ActorRoundTrait,
@@ -42,6 +43,7 @@ import { Action } from '../../../domain/aggregates/action.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { ADDITIONAL_CRITICAL, FUMBLE_HITS } from '../../../domain/services/fumble-hits.js';
 import { riposteTrigger } from '../../../domain/services/reaction-rules.js';
+import { precisionEffectFor } from '../../../domain/services/precision.js';
 import { ActionAttack } from '../../../domain/value-objects/action-attack.vo.js';
 import type { CriticalEffect } from '../../../domain/value-objects/critical-result.vo.js';
 import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo.js';
@@ -407,6 +409,10 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     }
     const cmd = this.commandFor(target, applications, updateCommands, userId, roles);
     cmd.dmg += dmg || 0;
+    // Workspace spec 076, decision B6: taking damage loses the aiming.
+    if (dmg > 0) {
+      cmd.consumedEffectIds.push(...(target.effects || []).filter(effect => effect.status === AIMING).map(effect => effect.id));
+    }
     cmd.hpChanges.push(...hpChanges.filter(change => change.amount !== 0));
     cmd.effects.push(...criticalEffects);
     cmd.injuries.push(...injuries);
@@ -499,6 +505,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     const consumed = (actor.effects || [])
       .filter(effect => effect.status === PRESSING_ADVANTAGE && !!effect.targetActorId && targetIds.has(effect.targetActorId))
       .map(effect => effect.id);
+    consumed.push(...ApplyAttackHandler.usedCombatTalentEffects(action, actor));
     const effects: ActorRoundEffect[] = [];
     const inflicting = (action.attacks || []).filter(attack => (attack.results?.criticals?.length || 0) > 0);
     const pressing = inflicting
@@ -534,6 +541,24 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     const cmd = this.commandFor(actor, applications, updateCommands, userId, roles);
     cmd.effects.push(...effects);
     cmd.consumedEffectIds.push(...consumed);
+  }
+
+  /**
+   * Workspace spec 076, decisions B6 and B9: a ranged attack uses up the aiming of the attacker (the bonus if it was at
+   * that foe with that weapon; lost otherwise), and a melee attack that took a Precision against its foe uses it up.
+   */
+  static usedCombatTalentEffects(action: Action, actor: ActorRound): string[] {
+    const attacks = action.attacks || [];
+    const effects = actor.effects || [];
+    const ranged = action.actionType === 'ranged_attack' || attacks.some(attack => attack.type === 'ranged');
+    const aiming = ranged ? effects.filter(effect => effect.status === AIMING) : [];
+    const precision = attacks
+      .map(attack => {
+        const skillId = actor.attacks?.find(each => each.attackName === attack.attackName)?.skillId;
+        return precisionEffectFor(actor, attack.type, attack.modifiers.targetId, skillId);
+      })
+      .filter(effect => !!effect);
+    return [...new Set([...aiming, ...precision].map(effect => effect.id))];
   }
 
   private async processFatigue(

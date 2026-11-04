@@ -44,6 +44,9 @@ export class ActionApProfile {
         return options.acrobatics ? new ActionApProfile(1, 1, 0) : new ActionApProfile(2, 2, 0);
       case 'dodge':
         return new ActionApProfile(4, 4, 0);
+      case 'aim':
+        // Workspace spec 076, decision B6: aiming takes the full round
+        return new ActionApProfile(4, 4, 0);
       case 'medical':
         // Workspace spec 068, decision 2: 4 AP in each round it lasts, carried to the next round (spec 011, §5)
         return new ActionApProfile(4, 4, 0, true);

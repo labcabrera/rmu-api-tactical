@@ -17,6 +17,7 @@ import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-rep
 import { type CriticalTablePort, CRITICAL_TABLE_PORT } from '../../ports/critical-table.port.js';
 import { CombatProcessor } from '../../services/combat/index.js';
 import { UpdateCriticalRollCommand } from '../commands/update-critical-roll.command.js';
+import { checkOpenEndedDice, DEFAULT_OPEN_ENDED } from '../../../../shared/domain/rolls/open-ended.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 const MIN_CRITICAL_ROLL = 1;
@@ -45,6 +46,7 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
 
   async execute(command: UpdateCriticalRollCommand): Promise<Action> {
     this.logger.log(`Execute << ${JSON.stringify(command)}`);
+    checkOpenEndedDice(command.dice, 'none', DEFAULT_OPEN_ENDED, { total: command.roll });
 
     const action = await this.actionRepository.findById(command.actionId);
     if (!action) throw new NotFoundError('Action', command.actionId);

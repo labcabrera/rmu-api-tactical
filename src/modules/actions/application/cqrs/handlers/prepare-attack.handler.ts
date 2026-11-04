@@ -40,7 +40,8 @@ import { PrepareAttackCommand, PrepareAttackCommandItem } from '../commands/prep
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 /** An attack with the body (natural weapons, unarmed skills), which a disarmed actor can still make. */
-const isBodyAttack = (attack: ActorRoundAttack): boolean => attack.weaponCategory === 'natural' || !!attack.skillId?.startsWith('unarmed');
+const isBodyAttack = (attack: ActorRoundAttack): boolean =>
+  attack.weaponCategory === 'natural' || attack.weaponCategory === 'unarmed' || !!attack.skillId?.startsWith('unarmed');
 
 @CommandHandler(PrepareAttackCommand)
 export class PrepareAttackHandler implements ICommandHandler<PrepareAttackCommand, Action> {

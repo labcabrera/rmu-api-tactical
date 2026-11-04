@@ -26,6 +26,8 @@ export class CreateActionCommand {
     public readonly confirm?: boolean,
     /** The weapon of a `draw_and_load` action (workspace spec 076). */
     public readonly drawAndLoad?: CreateActionCommandDrawAndLoad,
+    /** The foe and ranged weapon of an `aim` action (workspace spec 076). */
+    public readonly aim?: CreateActionCommandAim,
   ) {}
 }
 
@@ -49,6 +51,11 @@ export class CreateActionCommandForced {
   /** `reaction` without an alert, forced by the game master: the talent and the action that triggered it. */
   traitId?: string;
   triggerActionId?: string;
+}
+
+export class CreateActionCommandAim {
+  targetActorId: string;
+  itemId: string;
 }
 
 export class CreateActionCommandDrawAndLoad {

@@ -42,6 +42,7 @@ import { CombatStunPlugin } from './combat-stun.plugin.js';
 import { CombatSurprisedPlugin } from './combat-surprised.plugin.js';
 import { CombatSurvivalInstinctPlugin } from './combat-survival-instinct.plugin.js';
 import { CombatTextEffectsPlugin } from './combat-text-effects.plugin.js';
+import { CombatPrecisionPlugin } from './combat-precision.plugin.js';
 import { CombatTwoHandedWeaponPlugin } from './combat-two-handed-weapon.plugin.js';
 
 export const COMBAT_PLUGIN_LIST: CombatPlugin[] = [
@@ -84,6 +85,7 @@ export const COMBAT_PLUGIN_LIST: CombatPlugin[] = [
   CombatGameLethalityPlugin,
   CombatCustomBonusPlugin,
   CombatFoilerPlugin,
+  CombatPrecisionPlugin,
   // beforeAttackRoll
   CombatLocationArmorPlugin,
   CombatBreakagePlugin,
@@ -111,6 +113,7 @@ export * from './combat-custom-bonus.plugin.js';
 export * from './combat-defensive-bonus.plugin.js';
 export * from './combat-dodge.plugin.js';
 export * from './combat-effect-bonuses.plugin.js';
+export * from './combat-precision.plugin.js';
 export * from './combat-flatfooted-target.plugin.js';
 export * from './combat-fighting-style.plugin.js';
 export * from './combat-foiler.plugin.js';

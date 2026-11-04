@@ -83,6 +83,12 @@ export interface ActionDrawAndLoad {
   itemId: string | null;
 }
 
+/** What an `aim` action aims at (Sharpshooter, workspace spec 076, decision B6): the foe, with that ranged weapon. */
+export interface ActionAim {
+  targetActorId: string;
+  itemId: string;
+}
+
 /** Table 9-7c: OB penalty of a protector by where it stands. */
 const PROTECT_PENALTIES: Record<ProtectPosition, number> = {
   protector_between: -25,
@@ -127,6 +133,8 @@ export interface ActionProps {
   reaction?: ActionReaction | null;
   /** The weapon of a `draw_and_load` action (workspace spec 076). */
   drawAndLoad?: ActionDrawAndLoad | null;
+  /** The foe and weapon of an `aim` action (workspace spec 076). */
+  aim?: ActionAim | null;
   owner: string;
   createdAt: Date;
   updatedAt: Date | null;
@@ -163,6 +171,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     public useItem: ActionUseItem | null = null,
     public reaction: ActionReaction | null = null,
     public drawAndLoad: ActionDrawAndLoad | null = null,
+    public aim: ActionAim | null = null,
   ) {
     super(id);
   }
@@ -244,6 +253,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       props.useItem ?? null,
       props.reaction ?? null,
       props.drawAndLoad ?? null,
+      props.aim ?? null,
     );
   }
 
@@ -283,6 +293,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       previous.useItem ? structuredClone(previous.useItem) : null,
       previous.reaction ? { ...previous.reaction } : null,
       previous.drawAndLoad ? { ...previous.drawAndLoad } : null,
+      previous.aim ? { ...previous.aim } : null,
     );
     action.apply(new ActionCreatedEvent(action));
     return action;
@@ -1159,6 +1170,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       useItem: this.useItem,
       reaction: this.reaction,
       drawAndLoad: this.drawAndLoad,
+      aim: this.aim,
       owner: this.owner,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,

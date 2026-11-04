@@ -76,6 +76,15 @@ export class ActionDrawAndLoadDto {
   itemId: string | null;
 }
 
+/** Workspace spec 076: the foe and the ranged weapon of an `aim` action (Sharpshooter). */
+export class ActionAimDto {
+  @ApiProperty({ description: 'Foe aimed at' })
+  targetActorId: string;
+
+  @ApiProperty({ description: 'Ranged weapon (item of the actor) aimed with' })
+  itemId: string;
+}
+
 export class ActionDto {
   @ApiProperty({ description: 'Action identifier', example: 'action-123' })
   id: string;
@@ -183,6 +192,9 @@ export class ActionDto {
   @ApiProperty({ description: 'Weapon of a draw_and_load action (spec 076)', type: ActionDrawAndLoadDto, nullable: true })
   drawAndLoad: ActionDrawAndLoadDto | null;
 
+  @ApiProperty({ description: 'Foe and weapon of an aim action (spec 076)', type: ActionAimDto, nullable: true })
+  aim: ActionAimDto | null;
+
   @ApiProperty({ description: 'Warnings of the request that did not need a confirmation (spec 068)', type: [ActionWarningDto] })
   warnings: ActionWarningDto[];
 
@@ -223,6 +235,7 @@ export class ActionDto {
     dto.useItem = entity.useItem ? ActionUseItemDto.fromEntity(entity.useItem) : null;
     dto.reaction = entity.reaction ? { ...entity.reaction } : null;
     dto.drawAndLoad = entity.drawAndLoad ? { ...entity.drawAndLoad } : null;
+    dto.aim = entity.aim ? { ...entity.aim } : null;
     dto.warnings = (entity.warnings ?? []).map(warning => ActionWarningDto.fromEntity(warning));
     dto.fatigue = entity.fatigue;
     dto.description = entity.description;

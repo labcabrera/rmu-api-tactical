@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsIn, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, Max, Min, ValidateNested } from 'class-validator';
 import {
   ManeuverRoll,
   ResolveManeuverCommand,
@@ -11,7 +11,12 @@ import type { LightType } from '../../../domain/value-objects/light-type.vo.js';
 import type { LightManeuverModifier } from '../../../domain/value-objects/light-maneuver-modifier.vo.js';
 import type { ManeuverModifierSelection } from '../../../domain/value-objects/maneuver-profile.vo.js';
 import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo.js';
-import { FRENZY_PURPOSES, type FrenzyPurpose } from '../../../domain/value-objects/frenzy-purpose.vo.js';
+import {
+  MANEUVER_PURPOSES,
+  type ManeuverPurpose,
+  PRECISION_POSITIONS,
+  type PrecisionPosition,
+} from '../../../domain/value-objects/maneuver-purpose.vo.js';
 
 export class ManeuverRollDto {
   @ApiProperty({ description: 'Total of the open-ended roll', example: 87 })
@@ -22,6 +27,17 @@ export class ManeuverRollDto {
   @IsOptional()
   @IsNumber()
   unmodified?: number;
+
+  @ApiProperty({
+    description: 'Every die of the open-ended roll (spec 076): checked with the roll profile of the actor (err-roll-open-ended-invalid)',
+    required: false,
+    type: [Number],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsInt({ each: true })
+  dice?: number[];
 }
 
 /** @deprecated Body of the resolve request before spec 010. Read for one more version. */
@@ -114,13 +130,52 @@ export class ResolveManeuverDto {
 
   @ApiProperty({
     type: String,
-    description: 'Adrenal Focus maneuver to enter or leave the frenzy (spec 040)',
-    enum: FRENZY_PURPOSES,
+    description:
+      'What the maneuver is for: Adrenal Focus to enter or leave the frenzy (spec 040), or a combat talent (spec 076): ' +
+      'battle-cry (Influence), sense-weakness and study-offense (Perception, 4 AP), precision (Ambush)',
+    enum: MANEUVER_PURPOSES,
     required: false,
   })
   @IsOptional()
-  @IsIn(FRENZY_PURPOSES)
-  purpose?: FrenzyPurpose;
+  @IsIn(MANEUVER_PURPOSES)
+  purpose?: ManeuverPurpose;
+
+  @ApiProperty({ description: 'sense-weakness, study-offense, precision (spec 076): the foe', required: false })
+  @IsOptional()
+  @IsString()
+  foeActorId?: string;
+
+  @ApiProperty({ description: 'battle-cry (spec 076): level of the highest level foe, -2 per level', required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  foeLevel?: number;
+
+  @ApiProperty({
+    type: String,
+    description: 'precision (spec 076): -50 rear, -70 flank, -100 front',
+    enum: PRECISION_POSITIONS,
+    required: false,
+  })
+  @IsOptional()
+  @IsIn(PRECISION_POSITIONS)
+  position?: PrecisionPosition;
+
+  @ApiProperty({ description: 'precision (spec 076): OB given up to the attack, which makes the maneuver as much easier', required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  obPenalty?: number;
+
+  @ApiProperty({
+    description: 'Spasm (spec 076): rounds of the spasm of a natural 66 (d10); the API rolls them when left out',
+    required: false,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  spasmRounds?: number;
 
   @ApiProperty({ description: 'Roll', type: ManeuverRollDto })
   @ValidateNested()
@@ -137,7 +192,7 @@ export class ResolveManeuverDto {
     return new ResolveManeuverCommand(
       actionId,
       ResolveManeuverDto.toRequest(dto),
-      new ManeuverRoll(dto.roll?.roll, dto.roll?.unmodified),
+      new ManeuverRoll(dto.roll?.roll, dto.roll?.unmodified, dto.roll?.dice),
       userId,
       roles,
     );
@@ -160,6 +215,10 @@ export class ResolveManeuverDto {
         ? { targetActorId: dto.targetActorId, roll: dto.passiveRoll, skillId: dto.passiveSkillId, bonus: dto.passiveBonus }
         : undefined,
       dto.purpose,
+      dto.foeActorId !== undefined || dto.foeLevel !== undefined || dto.position !== undefined || dto.obPenalty !== undefined
+        ? { foeActorId: dto.foeActorId, foeLevel: dto.foeLevel, position: dto.position, obPenalty: dto.obPenalty }
+        : undefined,
+      dto.spasmRounds,
     );
   }
 }

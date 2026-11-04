@@ -23,6 +23,24 @@ export const OPPORTUNISTIC_STRIKE = 'opportunistic-strike';
 export const QUICKDRAW = 'quickdraw';
 export const SLOW_ON_THE_DRAW = 'slow-on-the-draw';
 export const QUICK_ACTION = 'quick-action';
+/** Taken for a ranged combat skill: aiming adds +5 per round, up to +5 per tier. */
+export const SHARPSHOOTER = 'sharpshooter';
+export const BATTLE_CRY_TRAIT = 'battle-cry';
+export const SENSE_WEAKNESS = 'sense-weakness';
+/** Taken for a melee weapon type. */
+export const STUDY_OFFENSE = 'study-offense';
+/** Taken for a melee weapon type: its effect goes to the next melee attack with that weapon. */
+export const PRECISION_TRAIT = 'precision';
+// Luck and roll talents of the roll profile (workspace spec 076, §2.8); every id is in the Character Companion catalog
+export const LUCKY = 'lucky';
+export const DRAMATIC_LUCK = 'dramatic-luck';
+export const UNUSUAL_LUCK = 'unusual-luck';
+export const TERRIBLE_LUCK = 'terrible-luck';
+/** Taken for a skill category (its specialization is the category id). */
+export const ABSOLUTE_EASE = 'absolute-ease';
+/** The flaw of Absolute Ease: its failures become absolute too. */
+export const ABSOLUTE_DISASTER = 'absolute-disaster';
+export const SPASM_TRAIT = 'spasm';
 
 /** Talent or flaw of the actor, copied from its character sheet. */
 export class ActorRoundTrait {

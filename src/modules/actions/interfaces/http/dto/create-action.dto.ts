@@ -201,6 +201,19 @@ export class ActionDrawAndLoadCreationDto {
   itemId?: string;
 }
 
+/** Workspace spec 076, decision B6: the foe and the ranged weapon of an `aim` action (Sharpshooter). */
+export class ActionAimCreationDto {
+  @ApiProperty({ description: 'Foe aimed at' })
+  @IsString()
+  @IsNotEmpty()
+  targetActorId: string;
+
+  @ApiProperty({ description: 'Ranged weapon of the actor, of the specialization of its Sharpshooter' })
+  @IsString()
+  @IsNotEmpty()
+  itemId: string;
+}
+
 export class CreateActionDto {
   @ApiProperty({ description: 'Game identifier' })
   @IsString()
@@ -272,6 +285,13 @@ export class CreateActionDto {
   @IsObject()
   drawAndLoad?: ActionDrawAndLoadCreationDto;
 
+  @ApiProperty({ description: 'Foe and ranged weapon of an aim action (spec 076)', type: ActionAimCreationDto, required: false })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ActionAimCreationDto)
+  @IsObject()
+  aim?: ActionAimCreationDto;
+
   @ApiProperty({
     description: 'Declare despite the warnings that need a confirmation (409 err-action-confirm-required lists them)',
     required: false,
@@ -306,6 +326,7 @@ export class CreateActionDto {
       dto.useItem ? { itemId: dto.useItem.itemId, targetActorId: dto.useItem.targetActorId, roll: dto.useItem.roll } : undefined,
       dto.confirm === true,
       dto.drawAndLoad ? { itemId: dto.drawAndLoad.itemId } : undefined,
+      dto.aim ? { targetActorId: dto.aim.targetActorId, itemId: dto.aim.itemId } : undefined,
     );
   }
 }
