@@ -592,3 +592,93 @@ describe('frenzy maneuvers (workspace spec 040)', () => {
     expect(rejected.body).toMatchObject({ code: 'err-frenzy-without-trait' });
   });
 });
+
+describe('riposte (workspace spec 076, decisions B1-B2)', () => {
+  type AlertBody = {
+    id: string;
+    type: string;
+    status: string;
+    reaction?: { traitId: string; obOverride: number | null; targetActorId: string };
+  };
+  type RoundBody = { id: string; actorId: string; alerts: AlertBody[] };
+
+  const roundOf = async (gameId: string, actorId: string) => {
+    const rounds = await as('owner').get(`/v1/actor-rounds?q=gameId==${gameId};round==1`);
+    return (rounds.body as { content: RoundBody[] }).content.find(round => round.actorId === actorId)!;
+  };
+
+  afterEach(() => {
+    e2e.world.characters.set('aragorn', character('aragorn'));
+    e2e.world.attackEntry = new AttackTableEntry('12CS', 12, 'S', 'C');
+  });
+
+  it('a full parry without damage raises the alert, and the forced attack has OB 50 less the total roll', async () => {
+    e2e.world.characters.set(
+      'aragorn',
+      character('aragorn', {
+        traits: [{ traitId: 'riposte', traitName: 'Riposte', isTalent: true, cost: 10, tier: 1, specialization: 'melee-weapon@blade' }],
+      }),
+    );
+    e2e.world.attackEntry = new AttackTableEntry('0', 0, undefined, undefined);
+    const gameId = await gameInPhase1();
+    // Aragorn is in melee, so he can parry; Lurtz attacks him
+    await declareAttack(gameId, 'aragorn');
+    const attack = await declareAttack(gameId, 'lurtz');
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/phases/start`)).status).toBe(200);
+    const prepared = await as('owner').patch(`/v1/actions/${attack.id}/attack/prepare`, {
+      attacks: [{ attackName: 'mainHand', modifiers: { targetId: 'aragorn', bo: 60 }, protectors: null }],
+    });
+    expect(prepared.status).toBe(200);
+    const parry = (prepared.body as { parries: { id: string; actorId: string; parryAvailable: number }[] }).parries.find(
+      p => p.actorId === 'aragorn',
+    )!;
+    expect(
+      (await as('owner').patch(`/v1/actions/${attack.id}/attack/parry`, { parries: [{ parryId: parry.id, parry: parry.parryAvailable }] }))
+        .status,
+    ).toBe(200);
+    const rolled = await as('owner').patch(`/v1/actions/${attack.id}/attack/roll`, { attackName: 'mainHand', roll: 40 });
+    expect(rolled.status).toBe(200);
+    const rollTotal = ((rolled.body as ActionBody).attacks![0].calculated as { rollTotal: number }).rollTotal;
+    expect((await as('owner').patch(`/v1/actions/${attack.id}/attack/apply`)).status).toBe(200);
+
+    const alert = (await roundOf(gameId, 'aragorn')).alerts.find(each => each.type === 'reaction-available')!;
+    expect(alert).toMatchObject({
+      status: 'pending',
+      reaction: { traitId: 'riposte', targetActorId: 'lurtz', obOverride: 50 - rollTotal, triggerActionId: attack.id, phase: 'phase_2' },
+    });
+
+    const riposte = await as('owner').post('/v1/actions', {
+      gameId,
+      actorId: 'aragorn',
+      actionType: 'melee_attack',
+      phaseStart: 2,
+      forced: { reason: 'reaction', alertId: alert.id },
+    });
+    expect(riposte.status).toBe(201);
+    expect(riposte.body).toMatchObject({
+      resolution: { mode: 'forced', reason: 'reaction' },
+      reaction: { traitId: 'riposte', obOverride: 50 - rollTotal, alertId: alert.id },
+      actionPoints: 0,
+    });
+    expect((await roundOf(gameId, 'aragorn')).alerts.find(each => each.id === alert.id)?.status).toBe('resolved');
+
+    const counter = await as('owner').patch(`/v1/actions/${(riposte.body as ActionBody).id}/attack/prepare`, {
+      attacks: [{ attackName: 'mainHand', modifiers: { targetId: 'lurtz', bo: 10 }, protectors: null }],
+    });
+    expect(counter.status).toBe(200);
+    const modifiers = ((counter.body as ActionBody).attacks![0].calculated as { rollModifiers: Modifier[] }).rollModifiers;
+    expect(modifiers.find(modifier => modifier.key === 'bo')?.value).toBe(50 - rollTotal);
+    expect(modifiers.find(modifier => modifier.key === 'action-points')).toBeUndefined();
+
+    // Taken once: the same alert cannot be used again
+    const again = await as('owner').post('/v1/actions', {
+      gameId,
+      actorId: 'aragorn',
+      actionType: 'melee_attack',
+      phaseStart: 2,
+      forced: { reason: 'reaction', alertId: alert.id },
+    });
+    expect(again.status).toBe(400);
+    expect(again.body).toMatchObject({ code: 'err-reaction-not-available' });
+  });
+});
