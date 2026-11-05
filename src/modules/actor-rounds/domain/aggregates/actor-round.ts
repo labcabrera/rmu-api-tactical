@@ -30,6 +30,7 @@ import {
   SPASM_AP_LOSS,
   SPASM_HITS,
   SPASM_STUN,
+  SUFFOCATING,
   CANNOT_ATTACK,
   CANNOT_PARRY,
   DEAD,
@@ -108,6 +109,16 @@ import type { ItemConsumed, TemporaryModifier, TemporaryModifierKind } from '../
 import type { ActorRoundProps, ActorRoundSnapshot } from './actor-round-props.js';
 import { isLostLimbLocation, LOST_LEG_MAX_PACE, type LostLimb } from '../value-objects/lost-limb.vo.js';
 import { SOUL_DEPARTURE_ROUNDS } from '../services/limb-and-life-rules.js';
+import { type ActorRoundBreath, copyBreath } from '../value-objects/actor-round-breath.vo.js';
+import {
+  BREATH_ADRENAL_FOCUS_BONUS,
+  breathCheckDifficulty,
+  breathHeldRounds,
+  type ResolvedExtremeTemperature,
+  suffocationHits,
+  WATER_INHALED_STUN,
+} from '../services/environment-rules.js';
+import { expandSeverity } from '../../../shared/domain/severity.js';
 import { toAttackLocation } from '../../../actions/domain/value-objects/attack-location.vo.js';
 import { PoisonStages, type Random } from '../services/poison-stages.js';
 import type {
@@ -258,7 +269,19 @@ const MANUALLY_RESOLVED_ALERTS: string[] = [
   'stray-shot',
   // Workspace spec 079, C1: the game master confirms the loss of the limb or dismisses it
   'limb-loss',
+  // Workspace spec 079, C4: the outcome of the absolute Endurance maneuver of a held breath
+  'breath-check',
 ];
+
+/** What the upkeep of an actor round reads besides the actor (workspace specs 068, 077 and 079). */
+export interface UpkeepOptions {
+  tourniquet?: { loosenEveryRounds: number; graceRounds: number };
+  slowFatigueRecovery?: boolean;
+  /** Workspace spec 079, C3: the extreme temperature of the environment of the game. */
+  extremeTemperature?: ResolvedExtremeTemperature | null;
+  /** Dice of the upkeep (the suffocation), for the tests. */
+  random?: () => number;
+}
 
 /** Effect of the critical tables that knocks the target back, its value in feet (workspace spec 079, decision A4). */
 export const KNOCKED_BACK_DISTANCE = 'knocked_back_distance';
@@ -417,6 +440,15 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
 
   /** The round the actor died in (workspace spec 079, C6): its soul departs `SOUL_DEPARTURE_ROUNDS` later. Null: alive. */
   public deathRound: number | null = null;
+
+  /** The breath the actor holds (workspace spec 079, C4, §15.2); null while it breathes. Copied round to round. */
+  public breath: ActorRoundBreath | null = null;
+
+  /**
+   * Workspace spec 079, C3 (§15.3): the game master marked the actor protected from the extreme temperature of the
+   * environment (clothing, magic, shelter): the upkeep asks for no critical. Copied round to round.
+   */
+  public protectedFromEnvironment = false;
 
   /** The last critical rolled from an alert (workspace spec 077, decision D3), for the answer; not stored. */
   public lastCriticalRoll: CriticalAlertRoll | undefined;
@@ -604,6 +636,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.hazards = (props.hazards ?? []).map(hazard => structuredClone(hazard));
     actorRound.lostLimbs = (props.lostLimbs ?? []).map(limb => ({ ...limb }));
     actorRound.deathRound = props.deathRound ?? null;
+    actorRound.breath = copyBreath(props.breath);
+    actorRound.protectedFromEnvironment = props.protectedFromEnvironment ?? false;
     actorRound.normalizeLegacy();
     // Derived: recomputed so that values stored with the penalties folded in are corrected.
     actorRound.calculateCurrentBo();
@@ -693,6 +727,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     // Workspace spec 079: the lost limbs and the round of the death go on
     actorRound.lostLimbs = previous.lostLimbs.map(limb => ({ ...limb }));
     actorRound.deathRound = previous.deathRound;
+    // Workspace spec 079, C3-C4: the held breath and the protection from the environment go on
+    actorRound.breath = copyBreath(previous.breath);
+    actorRound.protectedFromEnvironment = previous.protectedFromEnvironment;
     actorRound.refreshActionPoints();
     actorRound.applyItemConditions();
     actorRound.calculateCurrentBo();
@@ -1558,6 +1595,136 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     this.refreshActionPoints();
   }
 
+  // --- Extreme temperatures and held breath (workspace spec 079, C3 and C4) ---
+
+  /**
+   * §15.3: every round in an extreme temperature without protection asks for its critical (several above E), as
+   * `critical` alerts with origin `environment` the game master rolls. Nothing for a dead actor or one marked protected,
+   * and nothing twice in the same round.
+   */
+  addEnvironmentCriticalAlerts(temperature: ResolvedExtremeTemperature): ActorRoundAlert[] {
+    if (this.protectedFromEnvironment || this.isDead()) {
+      return [];
+    }
+    const raised = this.alerts.some(
+      alert =>
+        alert.type === 'critical' && alert.getModifierText('origin') === 'environment' && alert.getModifierValue('round') === this.round,
+    );
+    if (raised) {
+      return [];
+    }
+    const alerts = expandSeverity(temperature.severity).map(severity =>
+      ActorRoundAlert.buildEnvironmentCritical(temperature.criticalType, severity, temperature.kind, this.round),
+    );
+    this.alerts.push(...alerts);
+    return alerts;
+  }
+
+  /** The game master marks the actor protected from the extreme temperature of the environment, or not. */
+  setEnvironmentProtection(value: boolean): void {
+    this.protectedFromEnvironment = value;
+  }
+
+  /**
+   * The actor starts holding its breath in this round (§15.2). `err-breath-already-held` when it holds it already.
+   */
+  startBreath(breath: Omit<ActorRoundBreath, 'sinceRound' | 'failedRound'>): ActorRoundBreath {
+    if (this.breath) {
+      throw new ValidationError('The actor holds its breath already', 'err-breath-already-held');
+    }
+    if (this.isDead()) {
+      throw new ValidationError('A dead actor does not breathe', 'err-breath-dead');
+    }
+    this.breath = { ...breath, sinceRound: this.round, failedRound: null };
+    return this.breath;
+  }
+
+  /**
+   * The actor breathes again (§15.2): the held breath and the suffocation end, and the pending breath checks are closed.
+   * A stun of inhaled water stays until the game master removes it (the lungs are cleared). `err-breath-not-held`.
+   */
+  stopBreath(): void {
+    if (!this.breath) {
+      throw new ValidationError('The actor does not hold its breath', 'err-breath-not-held');
+    }
+    this.breath = null;
+    this.effects = this.effects.filter(effect => effect.status !== SUFFOCATING);
+    this.alerts
+      .filter(alert => alert.type === 'breath-check' && alert.status === 'pending')
+      .forEach(alert => {
+        alert.status = 'resolved';
+        alert.modifiers?.push(new ActorRoundAlertModifier('outcome', null, 'breathing'));
+      });
+    this.applyPenalties();
+    this.refreshActionPoints();
+  }
+
+  /** Rounds the actor has held its breath at the end of this round; null while it breathes. */
+  breathHeldRounds(): number | null {
+    return this.breath ? breathHeldRounds(this.breath.sinceRound, this.round) : null;
+  }
+
+  /**
+   * In the upkeep (§15.2): past its limit, the actor makes an absolute Endurance maneuver every round, Easy the first
+   * one and a step harder each round after; an active Adrenal Focus adds +25. One alert per round; none after a failure
+   * (the actor suffocates) or when dead.
+   */
+  private checkBreath(): void {
+    const breath = this.breath;
+    const held = this.breathHeldRounds();
+    if (!breath || held === null || breath.failedRound !== null || this.isDead() || held <= breath.limitRounds) {
+      return;
+    }
+    const raised = this.alerts.some(alert => alert.type === 'breath-check' && alert.getModifierValue('round') === this.round);
+    if (raised) {
+      return;
+    }
+    const focus = this.activeEffects().some(effect => effect.status === ADRENAL_FOCUS && (effect.value ?? 0) > 0);
+    this.alerts.push(
+      ActorRoundAlert.buildBreathCheck({
+        round: this.round,
+        heldRounds: held,
+        limitRounds: breath.limitRounds,
+        difficulty: breathCheckDifficulty(held - breath.limitRounds - 1),
+        adrenalFocus: focus ? BREATH_ADRENAL_FOCUS_BONUS : 0,
+      }),
+    );
+  }
+
+  /**
+   * A failed breath check (§15.2): the actor takes a breath of whatever is around and suffocates (1d10 hits per round);
+   * underwater it inhales water and is also stunned -50 until it clears its lungs. The later rolls are the game master's.
+   */
+  private failBreath(): void {
+    if (!this.breath || this.breath.failedRound !== null) {
+      return;
+    }
+    this.breath.failedRound = this.round;
+    const underwater = this.breath.underwater;
+    const source: InjurySource = { kind: 'manual', tacticalGameId: this.gameId, round: this.round };
+    const effect = new ActorRoundEffect(
+      randomUUID(),
+      SUFFOCATING,
+      undefined,
+      undefined,
+      this.round,
+      undefined,
+      undefined,
+      undefined,
+      source,
+    );
+    effect.data = { underwater };
+    this.addEffect(effect, undefined);
+    if (underwater) {
+      this.addEffect(
+        new ActorRoundEffect(randomUUID(), 'stunned', WATER_INHALED_STUN, undefined, this.round, undefined, undefined, undefined, source),
+        undefined,
+      );
+    }
+    this.applyPenalties();
+    this.refreshActionPoints();
+  }
+
   // --- Items consumed and temporary modifiers (workspace spec 068, decisions 7 and 19) ---
 
   /** One more unit of a strategic item spent in the game. */
@@ -2014,9 +2181,12 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    * §8.3 Upkeep Phase: bleeding, then the effects' durations. An unconscious actor stays unconscious: it only dies
    * when bleeding takes it beyond its death threshold or a dying effect runs out.
    */
-  applyUpkeep(options: { tourniquet?: { loosenEveryRounds: number; graceRounds: number }; slowFatigueRecovery?: boolean } = {}) {
+  applyUpkeep(options: UpkeepOptions = {}) {
     // Workspace spec 077, decision D7: a round without exertion is rest.
     this.recoverFatigue(!!options.slowFatigueRecovery);
+    // Workspace spec 079, C3-C4: the critical of an extreme temperature and the breath held past its limit
+    if (options.extremeTemperature) this.addEnvironmentCriticalAlerts(options.extremeTemperature);
+    this.checkBreath();
     // Workspace spec 042: the poisonings advance one round before the bleeding.
     this.advancePoisonings(UPKEEP_PHASE);
     // Workspace spec 068, decision 5
@@ -2031,6 +2201,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     }
     this.applyStaggeredUpkeep();
     this.applySpasmUpkeep();
+    this.applySuffocationUpkeep(options.random ?? Math.random);
     // Spec 013, §3: the bleeding of the injuries, logged by injury (§1.1).
     this.hp.current -= bleeding;
     this.injuries
@@ -2401,6 +2572,16 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     if (pending > 0) {
       this.effects.push(new ActorRoundEffect(randomUUID(), STAGGERED, pending, undefined, this.round + 1, 1, 0));
     }
+  }
+
+  /** Workspace spec 079, C4 (§15.2): a suffocating actor takes 1d10 hits in every upkeep. */
+  private applySuffocationUpkeep(random: () => number): void {
+    if (!this.hasEffect(SUFFOCATING) || this.isDead()) {
+      return;
+    }
+    const hits = suffocationHits(random);
+    this.hp.current -= hits;
+    this.logHp({ kind: 'suffocation', amount: -hits, phase: UPKEEP_PHASE });
   }
 
   /** Workspace spec 076, §2.4: a spasm takes 1 hit in every upkeep while it lasts. */
@@ -3334,6 +3515,16 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       }
       return [];
     }
+    // Workspace spec 079, C4: the outcome of a breath check; a failure starts the suffocation
+    if (alert.type === 'breath-check') {
+      if (outcome !== 'passed' && outcome !== 'failed') {
+        alert.status = 'pending';
+        throw new ValidationError('A breath check is resolved with its outcome, passed or failed', 'err-alert-not-resolvable');
+      }
+      alert.modifiers?.push(new ActorRoundAlertModifier('outcome', null, outcome));
+      if (outcome === 'failed') this.failBreath();
+      return [];
+    }
     // Workspace spec 079, C1: a confirmed limb-loss alert costs the actor the limb; otherwise it is dismissed
     if (alert.type === 'limb-loss') {
       alert.modifiers?.push(new ActorRoundAlertModifier('outcome', null, outcome === 'confirmed' ? 'confirmed' : 'dismissed'));
@@ -3717,6 +3908,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       hazards: this.hazards,
       lostLimbs: this.lostLimbs,
       deathRound: this.deathRound,
+      breath: this.breath,
+      protectedFromEnvironment: this.protectedFromEnvironment,
       imageUrl: this.imageUrl,
       owner: this.owner,
       createdAt: this.createdAt,

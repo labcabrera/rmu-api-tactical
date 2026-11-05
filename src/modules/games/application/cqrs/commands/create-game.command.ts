@@ -1,3 +1,5 @@
+import type { FogLevel } from '../../../../actions/domain/value-objects/fog-level.vo.js';
+import type { GameExtremeTemperature } from '../../../domain/value-objects/game-environment.vo.js';
 import type { LightType } from '../../../../actions/domain/value-objects/light-type.vo.js';
 import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command.js';
 import type { ActorType } from '../../../domain/value-objects/actor-type.vo.js';
@@ -29,6 +31,9 @@ export class CreateGameCommandEnvironment {
     public readonly temperatureFatigueModifier?: number,
     public readonly altitudeFatigueModifier?: number,
     public readonly light?: LightType | null,
+    /** Workspace spec 079, C5 and C3. */
+    public readonly fog?: FogLevel | null,
+    public readonly extremeTemperature?: GameExtremeTemperature | null,
   ) {}
 }
 

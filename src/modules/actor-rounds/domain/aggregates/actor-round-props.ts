@@ -1,4 +1,5 @@
 import type { LostLimb } from '../value-objects/lost-limb.vo.js';
+import type { ActorRoundBreath } from '../value-objects/actor-round-breath.vo.js';
 import { ActorRoundAlert } from '../value-objects/actor-round-alert.vo.js';
 import { ActorRoundAttack } from '../value-objects/actor-round-attack.vo.js';
 import { ActorRoundDefenseMode } from '../value-objects/actor-round-defense-mode.vo.js';
@@ -111,6 +112,10 @@ export interface ActorRoundProps {
   lostLimbs?: LostLimb[];
   /** Workspace spec 079, C6: the round the actor died in, for the departure of its soul. Null or missing: alive. */
   deathRound?: number | null;
+  /** Workspace spec 079, C4: the breath the actor holds. Null or missing: it breathes. */
+  breath?: ActorRoundBreath | null;
+  /** Workspace spec 079, C3: protected from the extreme temperature of the environment. Missing: not protected. */
+  protectedFromEnvironment?: boolean;
   /** Only in the actor round built from the character (round 1, or the round it joined in). */
   snapshot?: ActorRoundSnapshot;
   imageUrl: string | undefined;

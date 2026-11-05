@@ -61,6 +61,12 @@ import { ApiErrors } from '../../../shared/interfaces/http/api-errors.decorator.
 import { CurrentUser } from '../../../shared/interfaces/http/current-user.decorator.js';
 import type { AuthenticatedUser } from '../../../shared/interfaces/http/authenticated-request.js';
 import { ActorRoundAccess, ActorRoundAccessGuard } from './security/actor-round-access.guard.js';
+import { EnvironmentProtectionDto, StartBreathDto } from './dto/actor-round-breath.dto.js';
+import {
+  SetEnvironmentProtectionCommand,
+  StartBreathCommand,
+  StopBreathCommand,
+} from '../../application/cqrs/commands/environment.commands.js';
 
 @UseGuards(JwtAuthGuard, ActorRoundAccessGuard)
 @Controller('v1/actor-rounds')
@@ -281,6 +287,63 @@ export class ActorRoundController {
     const command = ResolveHazardDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<ResolveHazardCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
+  }
+
+  @ActorRoundAccess('manage')
+  @Post(':id/breath')
+  @HttpCode(200)
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success, with the breath held' })
+  @ApiOperation({
+    operationId: 'startBreath',
+    summary: 'The actor starts holding its breath in this round (spec 079, C4, game master only)',
+    description:
+      'Limit: 12 + Constitution bonus rounds when prepared, the bonus alone when not, at least 1. Past it, each upkeep raises ' +
+      'a breath-check alert (absolute Endurance maneuver, Easy and a step harder each round, +25 with Adrenal Focus) resolved ' +
+      'with its outcome; a failure starts the suffocation (1d10 hits per round, stunned -50 underwater).',
+  })
+  @ApiErrors({
+    400: 'err-breath-already-held, err-breath-dead or validation',
+    403: 'Not a manager of the game',
+    404: 'Actor round not found',
+    409: 'err-game-finished',
+  })
+  async startBreath(@Param('id') id: string, @Body() dto: StartBreathDto, @CurrentUser() user: AuthenticatedUser) {
+    const command = new StartBreathCommand(
+      id,
+      dto.prepared ?? true,
+      dto.underwater ?? false,
+      dto.constitutionBonus,
+      dto.note?.trim() || null,
+      user.id,
+      user.roles,
+    );
+    return ActorRoundDto.fromEntity(await this.commandBus.execute<StartBreathCommand, ActorRound>(command));
+  }
+
+  @ActorRoundAccess('manage')
+  @Delete(':id/breath')
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success: the actor breathes again' })
+  @ApiOperation({
+    operationId: 'stopBreath',
+    summary: 'The actor breathes again: the held breath, its pending checks and the suffocation end (spec 079, C4)',
+  })
+  @ApiErrors({ 400: 'err-breath-not-held', 403: 'Not a manager of the game', 404: 'Actor round not found', 409: 'err-game-finished' })
+  async stopBreath(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    const command = new StopBreathCommand(id, user.id, user.roles);
+    return ActorRoundDto.fromEntity(await this.commandBus.execute<StopBreathCommand, ActorRound>(command));
+  }
+
+  @ActorRoundAccess('manage')
+  @Patch(':id/environment-protection')
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
+  @ApiOperation({
+    operationId: 'setEnvironmentProtection',
+    summary: 'Marks the actor protected from the extreme temperature of the environment, or not (spec 079, C3)',
+  })
+  @ApiErrors({ 403: 'Not a manager of the game', 404: 'Actor round not found', 409: 'err-game-finished' })
+  async setEnvironmentProtection(@Param('id') id: string, @Body() dto: EnvironmentProtectionDto, @CurrentUser() user: AuthenticatedUser) {
+    const command = new SetEnvironmentProtectionCommand(id, dto.protected, user.id, user.roles);
+    return ActorRoundDto.fromEntity(await this.commandBus.execute<SetEnvironmentProtectionCommand, ActorRound>(command));
   }
 
   @ActorRoundAccess('act')

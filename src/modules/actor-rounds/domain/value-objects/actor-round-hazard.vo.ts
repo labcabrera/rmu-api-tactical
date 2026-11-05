@@ -1,9 +1,22 @@
 import type { SeverityAdjustmentStep } from '../../../shared/domain/severity.js';
+import type { TemperatureKind } from '../services/environment-rules.js';
 
-/** A fall (§15.4) or an object falling on the actor (§15.5), workspace spec 077, decision D2. */
-export type HazardKind = 'fall' | 'falling-object';
+/**
+ * A fall (§15.4) or an object falling on the actor (§15.5), workspace spec 077, decision D2; or an extreme temperature
+ * (§15.3, workspace spec 079, C3): a critical of cold, heat or steam without an attack roll.
+ */
+export type HazardKind = 'fall' | 'falling-object' | 'extreme-temperature';
 
-export const HAZARD_KINDS: HazardKind[] = ['fall', 'falling-object'];
+export const HAZARD_KINDS: HazardKind[] = ['fall', 'falling-object', 'extreme-temperature'];
+
+/** The extreme temperature of a hazard (workspace spec 079, C3): its kind, °C and where its severity comes from. */
+export interface HazardTemperature {
+  kind: TemperatureKind;
+  /** °C given; null when the game master gave the severity. */
+  celsius: number | null;
+  criticalType: string;
+  severitySource: 'table' | 'given';
+}
 
 /** Attack tables of the hazards: Crush for a fall and for an object as large as the target or larger, Rock otherwise. */
 export type HazardAttackTable = 'crush' | 'rock';
@@ -40,7 +53,8 @@ export interface ActorRoundHazard {
   weightLbs: number | null;
   /** Falling object: the shield of the actor counted (Rock only). */
   shield: boolean;
-  attackTable: HazardAttackTable;
+  /** Null for an extreme temperature: no attack table. */
+  attackTable: HazardAttackTable | null;
   /** Steps from medium of the attack: the actor's size for a fall, the object's for a falling object. */
   attackSize: number;
   ob: number;
@@ -66,6 +80,8 @@ export interface ActorRoundHazard {
   /** The `knocked-back` alert the hazard resolves (spec 079). */
   knockedBackAlertId?: string | null;
   criticals: HazardCritical[];
+  /** Workspace spec 079, C3: the extreme temperature of the hazard. Missing or null for the others. */
+  temperature?: HazardTemperature | null;
   note: string | null;
   createdAt: string;
 }

@@ -1,5 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { FeatOfStrengthListing, ManeuverModifiersListing } from '../../../application/services/maneuver/maneuver-context.service.js';
+import type {
+  FeatOfStrengthListing,
+  ManeuverFogListing,
+  ManeuverModifiersListing,
+} from '../../../application/services/maneuver/maneuver-context.service.js';
 import type { ModifierParams } from '../../../domain/value-objects/key-value-modifier.vo.js';
 import type { ManeuverModifierDefinition } from '../../../domain/value-objects/maneuver-profile.vo.js';
 import { SkippedRuleDto } from './skipped-rule.dto.js';
@@ -200,6 +204,15 @@ export class ManeuverModifiersDto {
   @ApiProperty({ type: ManeuverSensesDto, required: false, description: 'Perception and Tracking only (spec 076)' })
   senses?: ManeuverSensesDto;
 
+  @ApiProperty({
+    type: Object,
+    required: false,
+    description:
+      'Spec 079, C5 (Table 15-7): the fog of the game for Perception and Tracking: level, visibilityFeet, vision (modifier ' +
+      'of a visual maneuver, not reduced by vision talents) and hearingBeyondRange (with the selection beyond-visual-range)',
+  })
+  fog?: ManeuverFogListing;
+
   @ApiProperty({ type: [ManeuverModifierDefinitionDto] })
   skillModifiers: ManeuverModifierDefinitionDto[];
 
@@ -245,6 +258,7 @@ export class ManeuverModifiersDto {
         modifiers: listing.senses.modifiers.map(modifier => ({ ...modifier, params: { ...modifier.params } })),
       };
     }
+    if (listing.fog) dto.fog = { ...listing.fog };
     dto.skillModifiers = listing.skillModifiers.map(modifier => ManeuverModifierDefinitionDto.fromEntity(modifier));
     dto.conflicting = listing.conflicting;
     dto.progress = listing.progress;

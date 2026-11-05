@@ -2,6 +2,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsArray, IsBoolean, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { LIGHT_TYPES, type LightType } from '../../../../actions/domain/value-objects/light-type.vo.js';
+import { FOG_LEVELS, type FogLevel } from '../../../../actions/domain/value-objects/fog-level.vo.js';
+import { GameExtremeTemperatureDto } from './game-environment.dto.js';
 import { CreateGameCommand, CreateGameCommandActor } from '../../../application/cqrs/commands/create-game.command.js';
 import type { ActorType } from '../../../domain/value-objects/actor-type.vo.js';
 import { CreateEnvironmentFactionDto, GameNpcRequestDto } from './environment-faction.dto.js';
@@ -48,6 +50,17 @@ export class CreateGameEnvironmentDto {
   @IsOptional()
   @IsIn([...LIGHT_TYPES, null])
   light?: LightType | null;
+
+  @ApiPropertyOptional({ type: String, enum: FOG_LEVELS, nullable: true, description: 'Fog (spec 079, C5)' })
+  @IsOptional()
+  @IsIn([...FOG_LEVELS, null])
+  fog?: FogLevel | null;
+
+  @ApiPropertyOptional({ type: GameExtremeTemperatureDto, nullable: true, description: 'Extreme temperature (spec 079, C3)' })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => GameExtremeTemperatureDto)
+  extremeTemperature?: GameExtremeTemperatureDto | null;
 }
 
 export class CreateGameDto {
@@ -138,6 +151,8 @@ export class CreateGameDto {
           temperatureFatigueModifier: dto.environment.temperatureFatigueModifier,
           altitudeFatigueModifier: dto.environment.altitudeFatigueModifier,
           light: dto.environment.light ?? undefined,
+          fog: dto.environment.fog ?? undefined,
+          extremeTemperature: GameExtremeTemperatureDto.toEntity(dto.environment.extremeTemperature) ?? undefined,
         }
       : undefined;
     return new CreateGameCommand(

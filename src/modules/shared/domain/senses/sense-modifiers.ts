@@ -39,9 +39,13 @@ export type SenseUsage = (typeof SENSE_USAGES)[number];
 
 /**
  * Situations the game master marks: locating a sound (Hearing, Cat), a warm or cold target close by (Heatsense), an
- * invisible or camouflaged target (Tetrachromatic Vision), the target within the range of Darkvision (10' per tier).
+ * invisible or camouflaged target (Tetrachromatic Vision), the target within the range of Darkvision (10' per tier),
+ * and a sound beyond the visual range in fog (§15.7, workspace spec 079, C5).
  */
-export const SENSE_SELECTIONS = ['locate-sound', 'warm-target', 'hidden-target', 'within-darkvision'] as const;
+export const SENSE_SELECTIONS = ['locate-sound', 'warm-target', 'hidden-target', 'within-darkvision', 'beyond-visual-range'] as const;
+
+/** The selection of a sound beyond the visual range in fog (workspace spec 079, C5). */
+export const BEYOND_VISUAL_RANGE: SenseSelection = 'beyond-visual-range';
 export type SenseSelection = (typeof SENSE_SELECTIONS)[number];
 
 /** Skills a sense can be chosen for. */

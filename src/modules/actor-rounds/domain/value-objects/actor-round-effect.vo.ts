@@ -144,6 +144,12 @@ export const ADRENAL_BLOCK_PENALTY = -25;
  */
 export const FORTITUDE = 'fortitude';
 
+/**
+ * Workspace spec 079, C4 (§15.2): the actor failed a breath check and suffocates: 1d10 hits in every upkeep while it
+ * lasts. `data.underwater` when it inhaled water (it is also stunned -50). It ends when the game master stops the breath.
+ */
+export const SUFFOCATING = 'suffocating';
+
 /** Effects of which only the last one applied counts (workspace spec 076). */
 const REPLACING_STATUSES = [AIMING, CRITICAL_REROLL, PRECISION, SPASM];
 
@@ -201,6 +207,7 @@ export class ActorRoundEffect {
       case FRENZY:
       case FRENZY_DYING:
       case BATTLE_CRY:
+      case SUFFOCATING:
       case 'surprised':
       case 'flatfooted':
         return true;

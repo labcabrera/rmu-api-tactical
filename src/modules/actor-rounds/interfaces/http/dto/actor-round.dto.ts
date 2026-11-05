@@ -1,4 +1,5 @@
 import { LostLimbDto } from './lost-limb.dto.js';
+import { ActorRoundBreathDto } from './actor-round-breath.dto.js';
 import { ItemConsumedDto, TemporaryModifierDto } from './temporary-modifier.dto.js';
 import { ActorRoundItemDto } from './actor-round-item.dto.js';
 import { BreakageCheckResultDto } from './resolve-breakage-check.dto.js';
@@ -256,6 +257,16 @@ export class ActorRoundDto {
   })
   soulRoundsLeft: number | null;
 
+  @ApiProperty({
+    type: ActorRoundBreathDto,
+    nullable: true,
+    description: 'The breath the actor holds (spec 079, C4); null while it breathes',
+  })
+  breath: ActorRoundBreathDto | null;
+
+  @ApiProperty({ description: 'Protected from the extreme temperature of the environment (spec 079, C3)' })
+  protectedFromEnvironment: boolean;
+
   @ApiProperty({ description: 'What the character brought into the game (only in the actor round built from it)', required: false })
   snapshot?: ActorRoundSnapshotDto;
 
@@ -320,6 +331,8 @@ export class ActorRoundDto {
     dto.lostLimbs = (entity.lostLimbs || []).map(limb => LostLimbDto.fromEntity(limb));
     dto.deathRound = entity.deathRound ?? null;
     dto.soulRoundsLeft = entity.soulRoundsLeft();
+    dto.breath = entity.breath ? ActorRoundBreathDto.fromEntity(entity.breath, entity) : null;
+    dto.protectedFromEnvironment = entity.protectedFromEnvironment ?? false;
     dto.snapshot = entity.snapshot ? ActorRoundSnapshotDto.fromEntity(entity.snapshot) : undefined;
     dto.bleeding = entity.getBleeding();
     dto.imageUrl = entity.imageUrl;

@@ -252,6 +252,41 @@ export class ActorRoundAlert {
     ]);
   }
 
+  /**
+   * Workspace spec 079, C3 (§15.3): the critical of each round in an extreme temperature (the environment of the game),
+   * rolled by the game master with the critical alerts. `kind` is cold, heat or steam.
+   */
+  static buildEnvironmentCritical(criticalType: string, criticalSeverity: string, kind: string, round: number): ActorRoundAlert {
+    return new ActorRoundAlert(randomUUID(), 'critical', `Critical ${criticalSeverity} on ${criticalType} from the extreme ${kind}`, [
+      new ActorRoundAlertModifier('origin', null, 'environment'),
+      new ActorRoundAlertModifier('criticalType', null, criticalType),
+      new ActorRoundAlertModifier('criticalSeverity', null, criticalSeverity),
+      new ActorRoundAlertModifier('temperatureKind', null, kind),
+      new ActorRoundAlertModifier('round', round, null),
+    ]);
+  }
+
+  /**
+   * Workspace spec 079, C4 (§15.2): the actor has held its breath past its limit. An absolute Endurance maneuver of
+   * `difficulty` (Easy, one step harder each round), +25 with an active Adrenal Focus. The game master marks the outcome:
+   * a failure starts the suffocation.
+   */
+  static buildBreathCheck(props: { round: number; heldRounds: number; limitRounds: number; difficulty: string; adrenalFocus: number }) {
+    const modifiers = [
+      new ActorRoundAlertModifier('difficulty', null, props.difficulty),
+      new ActorRoundAlertModifier('heldRounds', props.heldRounds, null),
+      new ActorRoundAlertModifier('limitRounds', props.limitRounds, null),
+      new ActorRoundAlertModifier('round', props.round, null),
+    ];
+    if (props.adrenalFocus) modifiers.push(new ActorRoundAlertModifier('adrenal-focus', props.adrenalFocus, null));
+    return new ActorRoundAlert(
+      randomUUID(),
+      'breath-check',
+      `Endurance maneuver to keep holding the breath (${props.difficulty})`,
+      modifiers,
+    );
+  }
+
   /** Workspace spec 068, decision 16: a fear check is suggested to a faction; it is not rolled by itself. */
   static buildFearCheckSuggested(factionId: string, frightLevel: number, fallenShare: number): ActorRoundAlert {
     return new ActorRoundAlert(randomUUID(), 'fear-check-suggested', 'Fear check suggested', [

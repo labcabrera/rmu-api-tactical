@@ -27,6 +27,11 @@ import { DeclareActorParryHandler } from './application/cqrs/handlers/declare-ac
 import { DeclareDefenseModeHandler } from './application/cqrs/handlers/declare-defense-mode.handler.js';
 import { DeleteEffectHandler } from './application/cqrs/handlers/delete-effect.handler.js';
 import { ResolveAlertHandler } from './application/cqrs/handlers/resolve-alert.handler.js';
+import {
+  SetEnvironmentProtectionHandler,
+  StartBreathHandler,
+  StopBreathHandler,
+} from './application/cqrs/handlers/environment.handlers.js';
 import { GetActorRoundHandler } from './application/cqrs/handlers/get-actor-round.handler.js';
 import { GetActorRoundsHandler } from './application/cqrs/handlers/get-actor-rounds.handler.js';
 import { SubstractBoHandler } from './application/cqrs/handlers/substract-bo.handler.js';
@@ -80,6 +85,9 @@ import { DeclareFightingStyleHandler } from './application/cqrs/handlers/declare
     LoosenTourniquetHandler,
     DropItemsHandler,
     DeleteTemporaryModifierHandler,
+    StartBreathHandler,
+    StopBreathHandler,
+    SetEnvironmentProtectionHandler,
     {
       provide: ACTOR_ROUND_REPOSITORY,
       useClass: MongoActorRoundRepository,

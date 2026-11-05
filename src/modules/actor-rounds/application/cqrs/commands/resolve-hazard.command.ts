@@ -1,5 +1,6 @@
 import type { SizeId } from '../../../../shared/domain/size-scale.js';
 import type { HazardKind } from '../../../domain/value-objects/actor-round-hazard.vo.js';
+import type { TemperatureKind } from '../../../domain/services/environment-rules.js';
 
 /** What the game master sends for a fall or a falling object (workspace spec 077, decision D2). */
 export interface HazardRequest {
@@ -17,6 +18,10 @@ export interface HazardRequest {
   shield: boolean;
   /** Workspace spec 079, decision A4: the `knocked-back` alert of the actor it resolves; its severity caps the critical. */
   knockedBackAlertId?: string | null;
+  /** Workspace spec 079, C3: an extreme temperature, its kind and its °C (Table 15-3) or a severity. */
+  temperatureKind?: TemperatureKind | null;
+  temperature?: number | null;
+  severity?: string | null;
 }
 
 export class ResolveHazardCommand {

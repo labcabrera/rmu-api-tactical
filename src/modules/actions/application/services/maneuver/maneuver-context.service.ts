@@ -55,6 +55,7 @@ import {
 } from '../../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
 import {
   availableSenseSelections,
+  BEYOND_VISUAL_RANGE,
   availableSenses,
   DEFAULT_SENSE,
   DEFAULT_SENSE_USAGE,
@@ -70,6 +71,13 @@ import {
   validateSenseChoices,
 } from '../../../../shared/domain/senses/sense-modifiers.js';
 import type { LightManeuverModifier } from '../../../domain/value-objects/light-maneuver-modifier.vo.js';
+import {
+  FOG_BEYOND_VISUAL_RANGE_HEARING,
+  FOG_RULE,
+  FOG_TABLE,
+  type FogLevel,
+  fogModifiers,
+} from '../../../domain/value-objects/fog-level.vo.js';
 import {
   DEFAULT_MANEUVER_PROFILE,
   type ManeuverModifierDefinition,
@@ -113,6 +121,8 @@ export interface ManeuverContext {
   traits?: ActorRoundTrait[];
   /** Ambient light of the tactical game (workspace spec 076, P6): the light of a roll that sends none. */
   defaultLight?: LightType | null;
+  /** Fog of the tactical game (workspace spec 079, C5): visual Perception and Tracking take its modifier. */
+  fog?: FogLevel | null;
   /** What the maneuver is for, when it changes the profile (spec 077) or the base modifiers (spec 079). */
   purpose?: ManeuverPurpose;
 }
@@ -157,6 +167,8 @@ export interface ManeuverModifiersListing {
   defaultLight: LightType | null;
   /** Perception and Tracking (workspace spec 076, block C): the senses the maneuver can use. */
   senses?: ManeuverSensesListing;
+  /** Perception and Tracking in a game with fog (workspace spec 079, C5, Table 15-7). */
+  fog?: ManeuverFogListing;
   skillModifiers: ManeuverModifierDefinition[];
   conflicting: boolean;
   /** Percent maneuvers: progress accumulated before this roll. */
@@ -167,6 +179,17 @@ export interface ManeuverModifiersListing {
   aids?: KeyValueModifier[];
   /** Workspace spec 079, decision B2: the sheet of a feat of strength, and its difficulty when the load was given. */
   featOfStrength?: FeatOfStrengthListing;
+}
+
+/**
+ * Workspace spec 079, C5 (§15.7): the fog of the game, the modifier of a visual maneuver (the vision talents do not
+ * reduce it) and the one of hearing a sound beyond the visual range.
+ */
+export interface ManeuverFogListing {
+  level: FogLevel;
+  visibilityFeet: number;
+  vision: number;
+  hearingBeyondRange: number;
 }
 
 /** Workspace spec 079, decision B2: what a feat of strength reads, and the difficulty of the load asked for. */
@@ -317,6 +340,7 @@ export class ManeuverContextService {
       purpose: options.purpose,
       traits: actorRound.traits?.length ? actorRound.traits : (character.npcTraits ?? []),
       defaultLight: game.environment?.light ?? null,
+      fog: game.environment?.fog ?? null,
     };
   }
 
@@ -366,9 +390,20 @@ export class ManeuverContextService {
         options: availableSenses(traits),
         defaultUsage: DEFAULT_SENSE_USAGE,
         usages: [...SENSE_USAGES],
-        selections: availableSenseSelections(traits, ActorRoundTrait.tierOf(traits, DARKVISION) > 0),
+        selections: [
+          ...availableSenseSelections(traits, ActorRoundTrait.tierOf(traits, DARKVISION) > 0),
+          ...(context.fog ? [BEYOND_VISUAL_RANGE] : []),
+        ],
         modifiers: senseModifierOptions(traits),
       };
+      if (context.fog && FOG_TABLE[context.fog]) {
+        listing.fog = {
+          level: context.fog,
+          visibilityFeet: FOG_TABLE[context.fog].visibilityFeet,
+          vision: FOG_TABLE[context.fog].perception,
+          hearingBeyondRange: FOG_BEYOND_VISUAL_RANGE_HEARING,
+        };
+      }
     }
     if (context.maneuverType === 'percent') {
       listing.progress = action.maneuver?.progress ?? 0;
@@ -469,6 +504,13 @@ export class ManeuverContextService {
               ...modifier.params,
               ...(modifier.params.sense ? {} : { sense }),
             }),
+        ),
+      );
+      // Workspace spec 079, C5 (§15.7): the fog, which the vision talents do not reduce
+      const beyond = (senses.senseSelections ?? []).includes(BEYOND_VISUAL_RANGE);
+      modifiers.push(
+        ...fogModifiers(context.fog, sense, beyond).map(
+          modifier => new KeyValueModifier(modifier.key, modifier.value, 'situation', 'fog', FOG_RULE, modifier.params),
         ),
       );
     }

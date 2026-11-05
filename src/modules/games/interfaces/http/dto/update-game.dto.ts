@@ -2,7 +2,6 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { UpdateGameCommand } from '../../../application/cqrs/commands/update-game.command.js';
-import { GameEnvironment } from '../../../domain/value-objects/game-environment.vo.js';
 import { GameEnvironmentDto } from './game-environment.dto.js';
 import { UpdateEnvironmentFactionDto } from './environment-faction.dto.js';
 
@@ -46,9 +45,7 @@ export class UpdateGameDto {
   version?: number;
 
   static toCommand(id: string, dto: UpdateGameDto, userId: string, roles: string[]) {
-    const env = dto.environment
-      ? new GameEnvironment(dto.environment.temperatureFatigueModifier, dto.environment.altitudeFatigueModifier, dto.environment.light)
-      : undefined;
+    const env = dto.environment ? GameEnvironmentDto.toEntity(dto.environment) : undefined;
     return new UpdateGameCommand(
       id,
       dto.name,

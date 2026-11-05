@@ -179,6 +179,8 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       hazards: doc.hazards || [],
       lostLimbs: (doc.lostLimbs || []).map(limb => ({ ...limb })),
       deathRound: doc.deathRound ?? null,
+      breath: doc.breath ? { ...doc.breath } : null,
+      protectedFromEnvironment: doc.protectedFromEnvironment ?? false,
       snapshot: doc.snapshot
         ? {
             hp: doc.snapshot.hp,
