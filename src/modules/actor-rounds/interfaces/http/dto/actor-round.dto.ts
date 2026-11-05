@@ -222,6 +222,9 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Critical code I of an NPC: every critical is one severity lower, none below A (spec 075)' })
   reduceCriticalSeverity: boolean;
 
+  @ApiProperty({ description: 'Critical code @ of an NPC: a stun is a single -25 for 1 round that does not stack (spec 079)' })
+  stunImmune: boolean;
+
   @ApiProperty({
     description: 'Enc % of the armour the character wears (spec 077), the default armorEncumbrance of its casts; 0 for NPCs',
     example: 15,
@@ -296,6 +299,7 @@ export class ActorRoundDto {
     dto.frightLevel = entity.frightLevel ?? null;
     dto.criticalSize = entity.criticalSize ?? null;
     dto.reduceCriticalSeverity = entity.reduceCriticalSeverity ?? false;
+    dto.stunImmune = entity.stunImmune ?? false;
     dto.armorEncumbrance = entity.armorEncumbrance ?? 0;
     dto.height = entity.height ?? null;
     dto.hazards = (entity.hazards || []).map(hazard => ActorRoundHazardDto.fromEntity(hazard));

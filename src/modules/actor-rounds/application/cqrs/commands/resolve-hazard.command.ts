@@ -15,6 +15,8 @@ export interface HazardRequest {
   objectSize: SizeId | null;
   weightLbs: number | null;
   shield: boolean;
+  /** Workspace spec 079, decision A4: the `knocked-back` alert of the actor it resolves; its severity caps the critical. */
+  knockedBackAlertId?: string | null;
 }
 
 export class ResolveHazardCommand {

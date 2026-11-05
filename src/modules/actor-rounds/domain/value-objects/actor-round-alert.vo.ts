@@ -4,7 +4,20 @@ import { ActorRoundAlertModifier } from './actor-round-alert-modifier.vo.js';
 import type { ActorRoundAlertStatus } from './actor-round-alert-status.vo.js';
 import type { ActorRoundAlertType } from './actor-round-alert-type.vo.js';
 import type { GamePhase } from '../../../games/domain/value-objects/game-phase.vo.js';
-import type { ConcentrationFocus, MentalFocusReason } from './concentration-focus.vo.js';
+import {
+  type ConcentrationFocus,
+  MENTAL_FOCUS_OUTCOMES,
+  type MentalFocusOutcome,
+  type MentalFocusReason,
+} from './concentration-focus.vo.js';
+
+/**
+ * Outcome the game master sends when it resolves an alert by hand: `passed`/`failed` of a Mental Focus maneuver
+ * (workspace spec 077), `confirmed` of a `death-threshold` alert (workspace spec 079, decision A3).
+ */
+export type AlertOutcome = MentalFocusOutcome | 'confirmed';
+
+export const ALERT_OUTCOMES: AlertOutcome[] = [...MENTAL_FOCUS_OUTCOMES, 'confirmed'];
 
 /** The fields of a stored alert. */
 /**
@@ -33,6 +46,9 @@ export interface ReactionAlertData {
   round: number;
   phase: GamePhase;
 }
+
+/** Why the total penalties ask for an endurance roll (workspace spec 079, decision A3). */
+export type PenaltyEnduranceReason = 'penalty-exertion' | 'penalty-dying';
 
 /** What asks for a breakage check (spec 019, decision 6). */
 export type BreakageOrigin = 'attack-roll' | 'critical' | 'fumble';
@@ -70,6 +86,57 @@ export class ActorRoundAlert {
 
   static buildEndurance(message?: string): ActorRoundAlert {
     return new ActorRoundAlert(randomUUID(), 'endurance', message || `Endurance roll required`, null);
+  }
+
+  /**
+   * Workspace spec 079, decision A3 (§9.8 Penalties): an endurance roll asked by the total penalties of the actor, not by
+   * its accumulated fatigue. `penalty-exertion` (-100 or worse) for an action with effort in the round, `penalty-dying`
+   * (-200 or worse) in every round.
+   */
+  static buildPenaltyEndurance(reason: PenaltyEnduranceReason, total: number, round: number): ActorRoundAlert {
+    return new ActorRoundAlert(randomUUID(), 'endurance', `Endurance roll required by the total penalties (${total})`, [
+      new ActorRoundAlertModifier('reason', null, reason),
+      new ActorRoundAlertModifier('total', total, null),
+      new ActorRoundAlertModifier('round', round, null),
+    ]);
+  }
+
+  /** Workspace spec 079, decision A3: total penalties of -300 or worse; the game master confirms the death or dismisses it. */
+  static buildDeathThreshold(total: number, round: number): ActorRoundAlert {
+    return new ActorRoundAlert(
+      randomUUID(),
+      'death-threshold',
+      `Total penalties of ${total}: the actor dies unless the game master rules otherwise`,
+      [new ActorRoundAlertModifier('total', total, null), new ActorRoundAlertModifier('round', round, null)],
+    );
+  }
+
+  /**
+   * Workspace spec 079, decision A4 (§9.8 Knocked Back): a critical moved the actor `feet` away. The game master asks for a
+   * recovery maneuver (Acrobatics or a Movement skill, difficulty of his choice) and may resolve a hazard whose critical is
+   * no worse than `severityCap`, the severity of the critical that knocked it back.
+   */
+  static buildKnockedBack(feet: number, severityCap: string | null, criticalKey?: string): ActorRoundAlert {
+    const modifiers = [new ActorRoundAlertModifier('feet', feet, null)];
+    if (severityCap) modifiers.push(new ActorRoundAlertModifier('severityCap', null, severityCap));
+    if (criticalKey) modifiers.push(new ActorRoundAlertModifier('criticalKey', null, criticalKey));
+    return new ActorRoundAlert(randomUUID(), 'knocked-back', `Knocked back ${feet} feet`, modifiers);
+  }
+
+  /** An endurance alert asked by the accumulated fatigue (§5.5), not by the total penalties (spec 079). */
+  static isFatigueEndurance(alert: Pick<ActorRoundAlert, 'type' | 'modifiers'>): boolean {
+    return alert.type === 'endurance' && !alert.modifiers?.some(modifier => modifier.key === 'reason');
+  }
+
+  /** A pending endurance alert of the total penalties (spec 079) for that reason, raised in `round`. */
+  static isPendingPenaltyEndurance(alert: Pick<ActorRoundAlert, 'type' | 'modifiers' | 'status'>, reason: string, round?: number): boolean {
+    const text = (key: string) => alert.modifiers?.find(modifier => modifier.key === key);
+    return (
+      alert.type === 'endurance' &&
+      alert.status === 'pending' &&
+      text('reason')?.modifier === reason &&
+      (round === undefined || text('round')?.value === round)
+    );
   }
 
   /**

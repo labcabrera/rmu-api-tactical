@@ -4,7 +4,7 @@ import { type AttackTablePort, ATTACK_TABLE_PORT } from '../../../actions/applic
 import { type CriticalTablePort, CRITICAL_TABLE_PORT } from '../../../actions/application/ports/critical-table.port.js';
 import type { AttackLocation } from '../../../actions/domain/value-objects/attack-location.vo.js';
 import { ValidationError } from '../../../shared/domain/errors/errors.js';
-import { adjustSeverity, expandSeverity, severitySteps } from '../../../shared/domain/severity.js';
+import { adjustSeverity, capSeverity, expandSeverity, severitySteps } from '../../../shared/domain/severity.js';
 import { hitMultiplierOf, stepsOf, stepsOfWeight } from '../../../shared/domain/size-scale.js';
 import { ActorRound } from '../../domain/aggregates/actor-round.js';
 import { CriticalInjuryFactory, type CriticalEffectData } from '../../domain/services/critical-injury.factory.js';
@@ -79,7 +79,13 @@ export class HazardAttackService {
    * Resolves the hazard on the actor and keeps it in `hazards`: the hits of the table (`hazard` in the hits log) and
    * each critical with its roll, or a `critical` alert with origin `hazard` for the ones without it.
    */
-  async resolve(actor: ActorRound, request: HazardRequest, fallControlSteps: number, context: HazardContext): Promise<ActorRoundHazard> {
+  async resolve(
+    actor: ActorRound,
+    request: HazardRequest,
+    fallControlSteps: number,
+    context: HazardContext,
+    severityCap: string | null = null,
+  ): Promise<ActorRoundHazard> {
     if (!Number.isFinite(request.distanceFeet) || request.distanceFeet <= 0) {
       throw new ValidationError('A hazard falls more than 0 feet', 'err-hazard-invalid-distance', { distanceFeet: request.distanceFeet });
     }
@@ -111,13 +117,14 @@ export class HazardAttackService {
       'fall-control': fall ? fallControlSteps : 0,
     });
     const originalSeverity = entry.criticalType && entry.criticalSeverity ? entry.criticalSeverity : null;
-    const severity = originalSeverity
+    const adjusted = originalSeverity
       ? adjustSeverity(
           originalSeverity,
           steps.reduce((sum, step) => sum + step.value, 0),
           actor.reduceCriticalSeverity,
         )
       : null;
+    const severity = capSeverity(adjusted, severityCap);
     const hazard: ActorRoundHazard = {
       id: randomUUID(),
       kind: request.kind,
@@ -145,6 +152,8 @@ export class HazardAttackService {
       originalSeverity,
       severity,
       severitySteps: steps,
+      severityCap,
+      knockedBackAlertId: request.knockedBackAlertId ?? null,
       criticals: [],
       note: request.note,
       createdAt: new Date().toISOString(),

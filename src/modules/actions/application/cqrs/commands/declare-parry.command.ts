@@ -15,6 +15,11 @@ export class DeclareParryItem {
   constructor(
     public readonly parryId: string,
     public readonly parry: number,
+    /**
+     * Workspace spec 079, decision A2: result of the absolute Combat Training maneuver of a parry against a further foe
+     * of the round (`absolute-failure`...`absolute-success`), required when the parry needs it and gives any OB.
+     */
+    public readonly maneuverResult?: string,
   ) {}
 }
 

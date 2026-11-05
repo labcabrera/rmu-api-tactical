@@ -6,7 +6,8 @@
  * `ReactionAlertData`) and `terrible-luck` (a natural 01 of an actor with Terrible Luck, narrated by the game master).
  * Workspace spec 077: `mental-focus` (a Mental Focus maneuver to keep the concentration: double, stunned or extended)
  * and `fall-suggested` (an absolute failure of a climbing or jumping maneuver or movement: the game master may resolve
- * a fall, decision D5).
+ * a fall, decision D5). Workspace spec 079: `death-threshold` (total penalties of -300 or worse: the game master confirms
+ * the death, decision A3) and `knocked-back` (a critical knocked the actor back, decision A4).
  */
 export type ActorRoundAlertType =
   | 'endurance'
@@ -21,4 +22,6 @@ export type ActorRoundAlertType =
   | 'reaction-available'
   | 'terrible-luck'
   | 'mental-focus'
-  | 'fall-suggested';
+  | 'fall-suggested'
+  | 'death-threshold'
+  | 'knocked-back';

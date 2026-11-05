@@ -58,6 +58,13 @@ export interface ActorRoundHazard {
   originalSeverity: string | null;
   severity: string | null;
   severitySteps: SeverityAdjustmentStep[];
+  /**
+   * Workspace spec 079, decision A4: the hazard of a knock-back gives no critical worse than the one that knocked the
+   * actor back (§9.8 Knocked Back). Missing or null: no cap.
+   */
+  severityCap?: string | null;
+  /** The `knocked-back` alert the hazard resolves (spec 079). */
+  knockedBackAlertId?: string | null;
   criticals: HazardCritical[];
   note: string | null;
   createdAt: string;

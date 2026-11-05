@@ -47,6 +47,17 @@ export const adjustSeverity = (original: string, total: number, reduceSeverity: 
 };
 
 /**
+ * The severity no worse than `cap` (workspace spec 079, decision A4: the hazard of a knock-back gives no critical worse
+ * than the one that provoked it). Null stays null; without a cap it does not change.
+ */
+export const capSeverity = (severity: string | null, cap: string | null | undefined): string | null => {
+  if (!severity || !cap || !SEVERITIES.includes(cap)) {
+    return severity;
+  }
+  return SEVERITIES.indexOf(severity) > SEVERITIES.indexOf(cap) ? cap : severity;
+};
+
+/**
  * Severities with a table (Z, A..E) give one critical; F..I give an E plus lighter ones. J is E, C, B: the Python
  * calculator had J, C, B, but there is no J table to roll on.
  */

@@ -4,10 +4,10 @@ import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.
 import { UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors/errors.js';
 import { ActionCreatedEvent } from '../events/action.events.js';
 import type { ProtectPosition } from '../value-objects/action-attack-modifiers.vo.js';
-import { ActionParry, type ParryExclusion } from '../value-objects/action-attack-parry.vo.js';
+import { ActionParry, type ParryExclusion, type ParryPositional } from '../value-objects/action-attack-parry.vo.js';
 import { ActionAttack } from '../value-objects/action-attack.vo.js';
 import { ActionManeuver } from '../value-objects/action-maneuver.vo.js';
-import { ActionApProfile } from '../value-objects/action-ap-profile.vo.js';
+import { ActionApProfile, type OtherActionKind } from '../value-objects/action-ap-profile.vo.js';
 import { ActionMovement } from '../value-objects/action-movement.vo.js';
 import type { ActionSpell } from '../value-objects/action-spell.vo.js';
 import type { ActionMedical, ActionUseItem, ActionWarning } from '../value-objects/action-medical.vo.js';
@@ -84,11 +84,24 @@ export interface ActionDrawAndLoad {
   itemId: string | null;
 }
 
+/**
+ * The fixed-cost action of Table 8-1 an `other` action is (workspace spec 079, decision A5): its kind, the attack of the
+ * weapon strung or loaded (null when not given) and the AP it takes.
+ */
+export interface ActionOther {
+  kind: OtherActionKind;
+  attackName: string | null;
+  ap: number;
+}
+
 /** What an `aim` action aims at (Sharpshooter, workspace spec 076, decision B6): the foe, with that ranged weapon. */
 export interface ActionAim {
   targetActorId: string;
   itemId: string;
 }
+
+/** §9.6 Parrying (workspace spec 079, decision A2): the DB of a parry toward the flank or the rear. */
+const PARRY_POSITIONAL_PENALTIES: Record<'flank' | 'rear', number> = { flank: -30, rear: -70 };
 
 /** Table 9-7c: OB penalty of a protector by where it stands. */
 const PROTECT_PENALTIES: Record<ProtectPosition, number> = {
@@ -136,6 +149,8 @@ export interface ActionProps {
   drawAndLoad?: ActionDrawAndLoad | null;
   /** The foe and weapon of an `aim` action (workspace spec 076). */
   aim?: ActionAim | null;
+  /** The fixed-cost subtype of an `other` action (workspace spec 079). */
+  otherAction?: ActionOther | null;
   owner: string;
   createdAt: Date;
   updatedAt: Date | null;
@@ -173,6 +188,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     public reaction: ActionReaction | null = null,
     public drawAndLoad: ActionDrawAndLoad | null = null,
     public aim: ActionAim | null = null,
+    public otherAction: ActionOther | null = null,
   ) {
     super(id);
   }
@@ -255,6 +271,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       props.reaction ?? null,
       props.drawAndLoad ?? null,
       props.aim ?? null,
+      props.otherAction ?? null,
     );
   }
 
@@ -295,6 +312,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       previous.reaction ? { ...previous.reaction } : null,
       previous.drawAndLoad ? { ...previous.drawAndLoad } : null,
       previous.aim ? { ...previous.aim } : null,
+      previous.otherAction ? { ...previous.otherAction } : null,
     );
     action.apply(new ActionCreatedEvent(action));
     return action;
@@ -439,7 +457,9 @@ export class Action extends BaseAggregateRoot<ActionProps> {
    */
   apProfile(): ActionApProfile {
     let profile: ActionApProfile;
-    if (this.apRange && this.actionType === 'maneuver') {
+    if (this.actionType === 'other' && this.otherAction) {
+      profile = ActionApProfile.fixed(this.otherAction.ap);
+    } else if (this.apRange && this.actionType === 'maneuver') {
       profile = ActionApProfile.forManeuver(this.apRange);
     } else if (this.apRange) {
       profile = new ActionApProfile(this.apRange.min, this.apRange.max, ActionApProfile.forAction(this.actionType).penaltyPerMissing);
@@ -808,6 +828,15 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     return actionType === 'melee_attack' || actionType === 'ranged_attack' || actionType === 'maneuver';
   }
 
+  /**
+   * An action with effort for the total penalties of -100 or worse (§9.8 Penalties; workspace spec 079, decision A3):
+   * movement, attacks, spells, physical maneuvers, standing up, a full dodge, and dropping prone or mounting.
+   */
+  static isEffort(actionType: ActionType, otherKind?: OtherActionKind | null): boolean {
+    const effort: ActionType[] = ['melee_attack', 'ranged_attack', 'maneuver', 'movement', 'cast_spell', 'stand_up', 'dodge'];
+    return effort.includes(actionType) || (actionType === 'other' && (otherKind === 'drop-prone' || otherKind === 'mount-dismount'));
+  }
+
   /** An open action that a new one interrupts: declared, not instantaneous, forced nor a movement (spec 011, §2). */
   isInterruptible(): boolean {
     return this.status === 'declared' && !this.freeAction && this.actionType !== 'movement' && !this.isForced();
@@ -856,8 +885,12 @@ export class Action extends BaseAggregateRoot<ActionProps> {
    * A defender who already parried this attacker in an earlier action of the round keeps that parry, fixed and
    * already paid (§9.6 Parrying). A protector gives OB less the Table 9-7c penalty for its position, offset by its
    * Protect skill without turning into a bonus; it can protect without the skill (§9.7 Protecting Others).
+   *
+   * Workspace spec 079, decision A2: a defender attacked from its flank or rear keeps the position and its Reverse Strike
+   * (`reverseStrikes`, by actor id) for the `parry-positional` modifier, and one that already parried other foes this
+   * round needs a Combat Training maneuver to parry this one (`parryManeuver`), unless it parries this attacker again.
    */
-  processParryOptions(actorRounds: ActorRound[], actions: Action[], phase: number) {
+  processParryOptions(actorRounds: ActorRound[], actions: Action[], phase: number, reverseStrikes: Map<string, number> = new Map()) {
     if (!this.attacks || this.attacks.length === 0) {
       return;
     }
@@ -889,6 +922,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       }
       const attackTarget = actorRounds.find(t => t.actorId === attack.modifiers.targetId)!;
       const hasParry = this.parries.some(p => p.actorId === attackTarget.actorId && p.parryType === 'parry');
+      const parriesBefore = this.parries.length;
       if (!hasParry && !blocked(attackTarget, attackTarget.actorId, 'parry')) {
         const carried = this.findCarriedOverParry(attackTarget.actorId, actions);
         if (carried) {
@@ -936,6 +970,12 @@ export class Action extends BaseAggregateRoot<ActionProps> {
             );
           }
         }
+        const added = this.parries.length > parriesBefore ? this.parries[this.parries.length - 1] : undefined;
+        if (added) {
+          added.positional = Action.parryPositional(attack.modifiers.positionalTarget, reverseStrikes.get(attackTarget.actorId) ?? 0);
+          const foes = added.carriedOver ? 0 : Action.parriedFoes(attackTarget.actorId, actions, this.actorId).size;
+          added.parryManeuver = foes > 0 ? { required: true, foes, result: null, passed: null } : null;
+        }
       }
       for (const protectorId of attack.protectors || []) {
         const protector = actorRounds.find(t => t.actorId === protectorId)!;
@@ -976,6 +1016,37 @@ export class Action extends BaseAggregateRoot<ActionProps> {
         }
       }
     }
+  }
+
+  /** §9.6 Parrying: the positional penalty of a parry against a flank (-30) or rear (-70) attacker; null in front. */
+  static parryPositional(position: string | null | undefined, reverseStrike: number): ParryPositional | null {
+    if (position !== 'flank' && position !== 'rear') {
+      return null;
+    }
+    return { position, penalty: PARRY_POSITIONAL_PENALTIES[position], reverseStrike: Math.max(0, reverseStrike) };
+  }
+
+  /**
+   * Foes the defender parried this round with any OB (workspace spec 079, decision A2), other than `exceptActorId`: the
+   * actors of the actions not interrupted nor expired with a parry of the defender for itself whose maneuver, if any,
+   * passed.
+   */
+  static parriedFoes(defenderId: string, actions: Action[], exceptActorId: string): Set<string> {
+    const foes = new Set<string>();
+    actions
+      .filter(action => action.actorId !== exceptActorId && action.status !== 'interrupted' && action.status !== 'expired')
+      .filter(action =>
+        (action.parries || []).some(
+          parry =>
+            parry.actorId === defenderId &&
+            parry.targetActorId === defenderId &&
+            parry.parryType === 'parry' &&
+            (parry.parry || 0) > 0 &&
+            (!parry.parryManeuver || parry.parryManeuver.passed === true),
+        ),
+      )
+      .forEach(action => foes.add(action.actorId));
+    return foes;
   }
 
   /** Table 9-7c penalty by the protector's position, offset by its Protect skill but never a bonus. */
@@ -1195,6 +1266,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       reaction: this.reaction,
       drawAndLoad: this.drawAndLoad,
       aim: this.aim,
+      otherAction: this.otherAction,
       owner: this.owner,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,

@@ -172,6 +172,7 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       frightLevel: doc.frightLevel ?? null,
       criticalSize: doc.criticalSize ?? null,
       reduceCriticalSeverity: doc.reduceCriticalSeverity ?? false,
+      stunImmune: doc.stunImmune ?? false,
       armorEncumbrance: doc.armorEncumbrance ?? 0,
       heldActions: (doc.heldActions || []).map(each => ({ actionId: each.actionId, since: each.since })),
       height: doc.height ?? null,

@@ -3,7 +3,7 @@ import type { AttackLocation } from '../../../actions/domain/value-objects/attac
 import { BaseAggregateRoot } from '../../../shared/domain/aggregates/base-aggregate.js';
 import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors/errors.js';
 import { ActorRoundCreatedEvent } from '../events/actor-round.events.js';
-import { ActorRoundAlert, type ReactionAlertData } from '../value-objects/actor-round-alert.vo.js';
+import { ActorRoundAlert, type AlertOutcome, type ReactionAlertData } from '../value-objects/actor-round-alert.vo.js';
 import { type ActorRollProfile, rollProfileOf } from '../value-objects/actor-roll-profile.vo.js';
 import { ActorRoundAlertModifier } from '../value-objects/actor-round-alert-modifier.vo.js';
 import { ActorRoundAttack } from '../value-objects/actor-round-attack.vo.js';
@@ -135,7 +135,6 @@ import {
   type ConcentrationSourceAction,
   type HeldActionFocus,
   MENTAL_FOCUS_EXTENDED_ROUNDS,
-  type MentalFocusOutcome,
   type MentalFocusReason,
 } from '../value-objects/concentration-focus.vo.js';
 
@@ -239,7 +238,29 @@ export interface LedgerSourceAction {
 }
 
 /** Alerts the game master marks as resolved by hand (spec 034, workspace spec 076). */
-const MANUALLY_RESOLVED_ALERTS: string[] = ['critical', 'reaction-available', 'terrible-luck', 'mental-focus', 'fall-suggested'];
+const MANUALLY_RESOLVED_ALERTS: string[] = [
+  'critical',
+  'reaction-available',
+  'terrible-luck',
+  'mental-focus',
+  'fall-suggested',
+  'death-threshold',
+  'knocked-back',
+];
+
+/** Effect of the critical tables that knocks the target back, its value in feet (workspace spec 079, decision A4). */
+export const KNOCKED_BACK_DISTANCE = 'knocked_back_distance';
+
+/** §9.8 Stun: the flat penalty of a creature immune to stun, for 1 round (workspace spec 079, decision A3). */
+export const STUN_IMMUNE_PENALTY = -25;
+
+/**
+ * §9.8 Penalties (workspace spec 079, decision A3): total penalties (hits lost included) from which an action with effort
+ * asks for an endurance roll, from which the actor is dying (a roll every round) and from which it dies.
+ */
+export const PENALTY_EXERTION_THRESHOLD = -100;
+export const PENALTY_DYING_THRESHOLD = -200;
+export const PENALTY_DEATH_THRESHOLD = -300;
 
 /** Effects that break every concentration at once (§8.1; workspace spec 077, decision A2.5). */
 const CONCENTRATION_BREAKING_EFFECTS = [UNCONSCIOUS, DEAD, PARALYZED];
@@ -407,6 +428,12 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   /** Critical code I of an NPC (T-3.1e): every critical it suffers is one severity lower, and below A none. */
   public reduceCriticalSeverity = false;
 
+  /**
+   * Critical code @ of an NPC (§9.8 Stun; workspace spec 079, decision A3): a stun becomes a single -25 for 1 round,
+   * which does not stack.
+   */
+  public stunImmune = false;
+
   static create(
     gameId: string,
     round: number,
@@ -547,6 +574,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.frightLevel = props.frightLevel ?? null;
     actorRound.criticalSize = props.criticalSize ?? null;
     actorRound.reduceCriticalSeverity = props.reduceCriticalSeverity ?? false;
+    actorRound.stunImmune = props.stunImmune ?? false;
     actorRound.armorEncumbrance = props.armorEncumbrance ?? 0;
     actorRound.heldActions = (props.heldActions ?? []).map(each => ({ ...each }));
     actorRound.height = props.height ?? null;
@@ -632,6 +660,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.frightLevel = previous.frightLevel;
     actorRound.criticalSize = previous.criticalSize;
     actorRound.reduceCriticalSeverity = previous.reduceCriticalSeverity;
+    actorRound.stunImmune = previous.stunImmune;
     actorRound.armorEncumbrance = previous.armorEncumbrance;
     // Workspace spec 077, decision A2.1: a held action goes on held in the next round, and so does its focus.
     actorRound.heldActions = previous.heldActions.map(each => ({ ...each }));
@@ -1518,6 +1547,11 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       }
       return;
     }
+    // Workspace spec 079, decision A4: a knock-back is not an effect but an alert for the game master (§9.8 Knocked Back).
+    if (effect.status === KNOCKED_BACK_DISTANCE) {
+      this.addKnockedBackAlert(effect.value ?? 0, effect.source?.criticalKey);
+      return;
+    }
     if (this.isDead() && effect.status === DYING) {
       return;
     }
@@ -1570,6 +1604,15 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
         current.value = Math.min(current.value ?? 0, effect.value ?? 0);
         return;
       }
+    }
+    // §9.8 Stun, workspace spec 079, decision A3: a creature immune to stun takes a flat -25 for 1 round instead, whatever
+    // the severity and rounds of the stun; a new one replaces it and nothing stacks.
+    if (effect.status === 'stunned' && this.stunImmune) {
+      effect.value = STUN_IMMUNE_PENALTY;
+      effect.rounds = 1;
+      this.effects = this.effects.filter(e => e.status !== 'stunned');
+      this.effects.push(effect);
+      return;
     }
     // §9.8 Stun: stuns of the same severity add up their rounds. The merged one keeps the stamp of the first.
     if (effect.status === 'stunned') {
@@ -1741,13 +1784,13 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     }
     this.fatigue.accumulator += fatigue;
     if (this.fatigue.accumulator >= 100) {
-      if (this.alerts.find(a => a.type === 'endurance')) {
+      if (this.alerts.find(a => ActorRoundAlert.isFatigueEndurance(a))) {
         return;
       }
       const alert = ActorRoundAlert.buildEndurance();
       this.alerts.push(alert);
     } else {
-      this.alerts = this.alerts.filter(a => a.type !== 'endurance');
+      this.alerts = this.alerts.filter(a => !ActorRoundAlert.isFatigueEndurance(a));
     }
   }
 
@@ -1764,10 +1807,14 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       this.addFatigueInjury(excess, gameName);
     }
     this.fatigue.fatigue = Math.min(fatigue, MAX_FATIGUE_PENALTY);
-    this.fatigue.accumulator = Math.max(0, (this.fatigue.accumulator || 0) - 100);
+    // Workspace spec 079, decision A3: a roll asked by the total penalties does not use up the activity points.
+    const resolved = this.alerts.find(alert => alert.id === alertId);
+    if (!resolved || ActorRoundAlert.isFatigueEndurance(resolved)) {
+      this.fatigue.accumulator = Math.max(0, (this.fatigue.accumulator || 0) - 100);
+    }
     this.alerts = this.alerts.filter(alert => alert.id !== alertId);
     if (this.fatigue.accumulator < 100) {
-      this.alerts = this.alerts.filter(alert => alert.type !== 'endurance');
+      this.alerts = this.alerts.filter(alert => !ActorRoundAlert.isFatigueEndurance(alert));
     }
     // applyAttackResults checks unconsciousness and death, and recomputes the penalties (the fatigue one included).
     const taken = Math.max(0, hits);
@@ -1811,6 +1858,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     const bleeding = this.getBleeding();
     if (this.effects.length === 0 && bleeding === 0) {
       this.applyPenalties();
+      this.checkPenaltyThresholds();
       return;
     }
     this.applyStaggeredUpkeep();
@@ -1849,7 +1897,85 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       this.addMentalFocusAlert('stunned');
     }
     this.applyPenalties();
+    this.checkPenaltyThresholds();
     this.refreshActionPoints();
+  }
+
+  /**
+   * §9.8 Penalties in the upkeep (workspace spec 079, decision A3), with the total of every penalty, hits lost included:
+   * from -200 the actor is dying and makes an endurance roll every round; from -300 a `death-threshold` alert asks the game
+   * master to confirm the death (it is never applied by itself). One pending alert of each kind at a time.
+   */
+  private checkPenaltyThresholds(): void {
+    if (this.isDead()) {
+      return;
+    }
+    const total = this.getPenaltySum();
+    if (total <= PENALTY_DEATH_THRESHOLD && !this.alerts.some(alert => alert.type === 'death-threshold' && alert.status === 'pending')) {
+      this.alerts.push(ActorRoundAlert.buildDeathThreshold(total, this.round));
+    }
+    if (total <= PENALTY_DYING_THRESHOLD && !this.alerts.some(alert => ActorRoundAlert.isPendingPenaltyEndurance(alert, 'penalty-dying'))) {
+      this.alerts.push(ActorRoundAlert.buildPenaltyEndurance('penalty-dying', total, this.round));
+    }
+  }
+
+  /**
+   * Workspace spec 079, decision A4 (§9.8 Knocked Back): a critical knocked the actor `feet` away. The alert keeps the
+   * severity of that critical (read from its key, `<type>-<severity>-<roll>`), the most a hazard of the knock-back can
+   * give. Without a distance nothing is raised.
+   */
+  addKnockedBackAlert(feet: number, criticalKey?: string): ActorRoundAlert | undefined {
+    if (!feet || feet <= 0) {
+      return undefined;
+    }
+    const alert = ActorRoundAlert.buildKnockedBack(feet, ActorRound.severityOfCriticalKey(criticalKey), criticalKey);
+    this.alerts.push(alert);
+    return alert;
+  }
+
+  /** A pending `knocked-back` alert of the actor (`err-alert-not-resolvable` otherwise), workspace spec 079. */
+  pendingKnockedBack(alertId: string): ActorRoundAlert {
+    const alert = this.alerts.find(each => each.id === alertId);
+    if (!alert) {
+      throw new NotFoundError('Alert', alertId);
+    }
+    if (alert.type !== 'knocked-back' || alert.status !== 'pending') {
+      throw new ValidationError(`The ${alert.type} alert is not a pending knock-back`, 'err-alert-not-resolvable');
+    }
+    return alert;
+  }
+
+  /** Closes a `knocked-back` alert with the hazard the game master resolved for it (workspace spec 079). */
+  resolveKnockedBack(alertId: string, hazardId: string): void {
+    const alert = this.pendingKnockedBack(alertId);
+    alert.status = 'resolved';
+    alert.modifiers?.push(new ActorRoundAlertModifier('hazardId', null, hazardId));
+  }
+
+  /** Severity of a critical key (`K-C-45`, `steam-B-12`); null when it is not one. */
+  static severityOfCriticalKey(criticalKey: string | undefined | null): string | null {
+    const parts = (criticalKey ?? '').split('-');
+    const severity = parts.length >= 3 ? parts[parts.length - 2] : '';
+    return /^[A-JZ]$/.test(severity) ? severity : null;
+  }
+
+  /**
+   * §9.8 Penalties (workspace spec 079, decision A3): with total penalties of -100 or worse, an action with effort
+   * (movement, attacks, spells, physical maneuvers) asks for an endurance roll, once per round. From -200 the roll of
+   * every round covers it: it is raised here if it is not pending yet. Answers whether the alert was raised.
+   */
+  addPenaltyExertionAlert(): boolean {
+    const total = this.getPenaltySum();
+    if (this.isDead() || total > PENALTY_EXERTION_THRESHOLD) {
+      return false;
+    }
+    const reason = total <= PENALTY_DYING_THRESHOLD ? 'penalty-dying' : 'penalty-exertion';
+    const round = reason === 'penalty-exertion' ? this.round : undefined;
+    if (this.alerts.some(alert => ActorRoundAlert.isPendingPenaltyEndurance(alert, reason, round))) {
+      return false;
+    }
+    this.alerts.push(ActorRoundAlert.buildPenaltyEndurance(reason, total, this.round));
+    return true;
   }
 
   /**
@@ -1871,7 +1997,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     }
     if (fatigue.restRounds >= REST_ROUNDS_PER_POINT) {
       fatigue.accumulator = 0;
-      this.alerts = this.alerts.filter(alert => alert.type !== 'endurance' || alert.status !== 'pending');
+      this.alerts = this.alerts.filter(alert => !ActorRoundAlert.isFatigueEndurance(alert) || alert.status !== 'pending');
       this.effects = this.effects.filter(effect => effect.status !== FATIGUE_EFFECT);
     }
   }
@@ -2900,7 +3026,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    * Spec 034: the game master is done with an alert handled by hand (the critical of a fumble). Endurance and breakage
    * alerts are resolved with their rolls.
    */
-  resolveAlert(alertId: string, outcome?: MentalFocusOutcome): string[] {
+  resolveAlert(alertId: string, outcome?: AlertOutcome): string[] {
     const alert = this.alerts.find(a => a.id === alertId);
     if (!alert) {
       throw new NotFoundError('Alert', alertId);
@@ -2910,9 +3036,19 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       throw new ValidationError(`A ${alert.type} alert is resolved with its roll`, 'err-alert-not-resolvable');
     }
     alert.status = 'resolved';
+    // Workspace spec 079, decision A3: the game master confirms the death of a `death-threshold` alert, or dismisses it.
+    if (alert.type === 'death-threshold') {
+      alert.modifiers?.push(new ActorRoundAlertModifier('outcome', null, outcome === 'confirmed' ? 'confirmed' : 'dismissed'));
+      if (outcome === 'confirmed' && !this.isDead()) {
+        this.addEffect(new ActorRoundEffect(randomUUID(), DEAD, undefined, undefined), undefined);
+        this.effects = this.effects.filter(e => e.status !== DYING);
+        this.applyPenalties();
+      }
+      return [];
+    }
     // Workspace spec 077, decision A2.4: a failed Mental Focus maneuver breaks every focus; the caller interrupts the
     // held actions it returns.
-    if (alert.type !== 'mental-focus' || !outcome) {
+    if (alert.type !== 'mental-focus' || (outcome !== 'passed' && outcome !== 'failed')) {
       return [];
     }
     alert.modifiers?.push(new ActorRoundAlertModifier('outcome', null, outcome));
@@ -3245,6 +3381,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       frightLevel: this.frightLevel,
       criticalSize: this.criticalSize,
       reduceCriticalSeverity: this.reduceCriticalSeverity,
+      stunImmune: this.stunImmune,
       armorEncumbrance: this.armorEncumbrance,
       heldActions: this.heldActions,
       height: this.height,

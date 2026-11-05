@@ -1,5 +1,6 @@
 import type { MedicalDeclaration } from '../../services/medical/medical-action.service.js';
 import type { ActionType } from '../../../domain/value-objects/action-type.vo.js';
+import type { OtherActionKind } from '../../../domain/value-objects/action-ap-profile.vo.js';
 import type { ForceReason } from '../../../domain/value-objects/action-resolution.vo.js';
 import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo.js';
 
@@ -28,6 +29,8 @@ export class CreateActionCommand {
     public readonly drawAndLoad?: CreateActionCommandDrawAndLoad,
     /** The foe and ranged weapon of an `aim` action (workspace spec 076). */
     public readonly aim?: CreateActionCommandAim,
+    /** The fixed-cost subtype of an `other` action (workspace spec 079). */
+    public readonly otherAction?: CreateActionCommandOther,
   ) {}
 }
 
@@ -48,6 +51,11 @@ export class CreateActionCommandForced {
   note?: string;
   /** `reaction` (workspace spec 076): the `reaction-available` alert of the actor it is declared from. */
   alertId?: string;
+}
+
+export class CreateActionCommandOther {
+  kind: OtherActionKind;
+  attackName?: string;
 }
 
 export class CreateActionCommandAim {

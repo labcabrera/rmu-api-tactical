@@ -171,6 +171,10 @@ export class ActorRoundModel {
   @Prop({ type: Boolean, required: false })
   reduceCriticalSeverity?: boolean;
 
+  /** Workspace spec 079, decision A3: critical code @ of an NPC (immune to stun). */
+  @Prop({ type: Boolean, required: false })
+  stunImmune?: boolean;
+
   /** Workspace spec 077, decision B1.2: Enc % of the worn armour, from the character sheet. */
   @Prop({ type: Number, required: false })
   armorEncumbrance?: number;

@@ -6,6 +6,8 @@ import {
   ACTOR_ROUND_REPOSITORY,
 } from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
+import { ActorRoundEffect } from '../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
+import { randomUUID } from 'crypto';
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
 import { ActorSheetService } from '../../../../actor-rounds/application/services/actor-sheet.service.js';
@@ -20,6 +22,9 @@ import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../s
 
 /** Full dodge or block: the whole round (§9.6). */
 const FULL_DEFENSE_ACTION_POINTS = ActionApProfile.forAction('dodge').max;
+
+/** Effect of a prone actor (§9.8 Prone). */
+const PRONE = 'prone';
 
 /** Action phases of a round. */
 const ACTION_PHASES = 4;
@@ -78,7 +83,17 @@ export class CompleteActionHandler implements ICommandHandler<CompleteActionComm
       accumulateAiming(actorRound, action.aim!, { phase: currentPhase, spentAp: actorRound.getSpentAp(currentPhase) });
     }
 
-    if (action.actionType === 'dodge' || aimed || actorRound.apLedger.length !== ledgerSize) {
+    // Workspace spec 079, decision A5: dropping prone leaves the actor prone.
+    const droppedProne = action.actionType === 'other' && action.otherAction?.kind === 'drop-prone' && !actorRound.hasEffect(PRONE);
+    if (droppedProne) {
+      const phase = game.getEffectPhase();
+      actorRound.applyAttackResults(undefined, [new ActorRoundEffect(randomUUID(), PRONE, undefined, undefined)], undefined, {
+        phase,
+        spentAp: phase >= 1 && phase <= ACTION_PHASES ? actorRound.getSpentAp(phase) : 0,
+      });
+    }
+
+    if (action.actionType === 'dodge' || aimed || droppedProne || actorRound.apLedger.length !== ledgerSize) {
       await this.actorRoundRepository.update(actorRound);
     }
     if (action.actionType === 'stand_up') {

@@ -1,14 +1,19 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsIn, IsOptional } from 'class-validator';
-import { MENTAL_FOCUS_OUTCOMES, type MentalFocusOutcome } from '../../../domain/value-objects/concentration-focus.vo.js';
+import { ALERT_OUTCOMES, type AlertOutcome } from '../../../domain/value-objects/actor-round-alert.vo.js';
 
-/** Body of the alert resolution (workspace spec 077, decision A2.4): the outcome of a Mental Focus maneuver. */
+/**
+ * Body of the alert resolution: the outcome of a Mental Focus maneuver (workspace spec 077, decision A2.4), or the
+ * confirmation of a death-threshold alert (workspace spec 079, decision A3).
+ */
 export class ResolveAlertDto {
   @ApiPropertyOptional({
-    enum: MENTAL_FOCUS_OUTCOMES,
-    description: 'Outcome of a Mental Focus maneuver (mental-focus alerts): failed breaks every concentration of the actor',
+    enum: ALERT_OUTCOMES,
+    description:
+      'passed/failed of a Mental Focus maneuver (failed breaks every concentration of the actor); confirmed of a ' +
+      'death-threshold alert (the actor dies; without it the alert is dismissed)',
   })
   @IsOptional()
-  @IsIn(MENTAL_FOCUS_OUTCOMES)
-  outcome?: MentalFocusOutcome;
+  @IsIn(ALERT_OUTCOMES)
+  outcome?: AlertOutcome;
 }

@@ -10,9 +10,9 @@ import { type GameRepository, GAME_REPOSITORY } from '../../../../games/applicat
 import { Game } from '../../../../games/domain/aggregates/game.js';
 import { ConflictError, ValidationError, NotFoundError } from '../../../../shared/domain/errors/errors.js';
 import { quickCasterApRange } from '../../../domain/services/spell-talents.js';
-import { Action, type ActionAim } from '../../../domain/aggregates/action.js';
+import { Action, type ActionAim, type ActionOther } from '../../../domain/aggregates/action.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
-import { ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo.js';
+import { ActionApProfile, OTHER_ACTION_KINDS } from '../../../domain/value-objects/action-ap-profile.vo.js';
 import { ActionManeuver } from '../../../domain/value-objects/action-maneuver.vo.js';
 import { ActionResolution } from '../../../domain/value-objects/action-resolution.vo.js';
 import type { ManeuverActionPoints } from '../../../domain/value-objects/maneuver-profile.vo.js';
@@ -70,6 +70,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     // Workspace spec 077, decision A2.1: the held actions of the actor are concentration foci.
     const heldChanged = actorRound.syncHeldActions(actorActions);
 
+    const otherAction = CreateActionHandler.otherAction(command, actorRound);
     const draw = this.drawAndLoad(command, actorRound);
     const aim = command.actionType === 'aim' ? await this.declareAim(command, actorRound) : null;
     const freeAction = draw?.freeAction ?? command.freeAction;
@@ -119,6 +120,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     action.reaction = reaction;
     action.drawAndLoad = draw?.drawAndLoad ?? null;
     action.aim = aim;
+    action.otherAction = otherAction;
     const aimingLost = CreateActionHandler.loseAiming(command.actionType, actorRound);
     if (command.actionType === 'medical') {
       action.medical = await this.medicalActions.declare(actorRound, command.medical, action.id);
@@ -130,6 +132,8 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     // Workspace spec 068: interrupted medical actions abort their treatment; exertion reopens a completed pressure
     const aborted = await this.medicalAbort.abort(plan.interrupted, { known: [actorRound] });
     const reopened = Action.isExertion(command.actionType) ? actorRound.reopenWounds('exertion') : [];
+    // Workspace spec 079, decision A3: with total penalties of -100 or worse an action with effort asks for an endurance roll.
+    const penaltyAlert = Action.isEffort(command.actionType, otherAction?.kind) && actorRound.addPenaltyExertionAlert();
     action.warnings = warnings;
     if (command.forced) {
       this.logger.log(`Action ${action.id} of ${command.actorId} forced: ${command.forced.reason} ${command.forced.note ?? ''}`);
@@ -143,7 +147,8 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       reopened.length > 0 ||
       reaction?.alertId ||
       aimingLost ||
-      heldChanged
+      heldChanged ||
+      penaltyAlert
     ) {
       await this.actorRoundRepository.update(actorRound);
     }
@@ -206,6 +211,44 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     }
     alert.status = 'resolved';
     return { traitId: data.traitId, triggerActionId: data.triggerActionId, obOverride: data.obOverride ?? null, alertId: alert.id };
+  }
+
+  /**
+   * Workspace spec 079, decision A5: the fixed-cost subtype of an `other` action (Table 8-1), only on `other` actions and
+   * never instantaneous (`err-other-action-invalid`, with `details.reason`). Loading a crossbow names the attack of the
+   * weapon: its attack table must be a crossbow one, and a heavy crossbow (`heavy` in the attack, item type or item name)
+   * takes 14 AP instead of 6. Without a subtype an `other` action takes 1 AP, as before.
+   */
+  static otherAction(command: CreateActionCommand, actorRound: ActorRound): ActionOther | null {
+    const declared = command.otherAction;
+    if (!declared) {
+      return null;
+    }
+    const invalid = (reason: string, message: string) =>
+      new ValidationError(message, 'err-other-action-invalid', { reason, kind: declared.kind });
+    if (command.actionType !== 'other') {
+      throw invalid('not-other', 'Only an other action takes a subtype of Table 8-1');
+    }
+    if (!OTHER_ACTION_KINDS.includes(declared.kind)) {
+      throw invalid('unknown-kind', `Unknown other action ${declared.kind}`);
+    }
+    if (command.freeAction) {
+      throw invalid('free', 'A fixed-cost action of Table 8-1 cannot be instantaneous');
+    }
+    const attackName = declared.attackName ?? null;
+    const attack = attackName ? actorRound.attacks.find(each => each.attackName === attackName) : undefined;
+    if (attackName && !attack) {
+      throw invalid('attack-not-found', `Attack ${attackName} not found on actor`);
+    }
+    let heavy = false;
+    if (declared.kind === 'load-crossbow') {
+      if (!attack || !attack.attackTable?.includes('crossbow')) {
+        throw invalid('not-crossbow', 'Loading a crossbow names an attack of the actor on a crossbow table');
+      }
+      const item = attack.itemId ? (actorRound.items ?? []).find(each => each.itemId === attack.itemId) : undefined;
+      heavy = [attack.attackName, attack.attackTable, item?.itemTypeId, item?.name].some(text => !!text && /heavy/i.test(text));
+    }
+    return { kind: declared.kind, attackName, ap: ActionApProfile.otherAp(declared.kind, heavy) };
   }
 
   /**

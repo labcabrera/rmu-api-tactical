@@ -90,6 +90,15 @@ export class ResolveHazardDto {
   @IsBoolean()
   shield?: boolean;
 
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    description: 'The knocked-back alert of the actor it resolves (spec 079): its severity caps the critical of the hazard',
+  })
+  @IsOptional()
+  @IsString()
+  knockedBackAlertId?: string | null;
+
   static toCommand(id: string, dto: ResolveHazardDto, userId: string, roles: string[]): ResolveHazardCommand {
     return new ResolveHazardCommand(
       id,
@@ -106,6 +115,7 @@ export class ResolveHazardDto {
         objectSize: dto.objectSize ?? null,
         weightLbs: dto.weightLbs ?? null,
         shield: dto.shield ?? true,
+        knockedBackAlertId: dto.knockedBackAlertId ?? null,
       },
       userId,
       roles,
@@ -224,6 +234,12 @@ export class ActorRoundHazardDto {
   @Type(() => SeverityStepDto)
   severitySteps: SeverityStepDto[];
 
+  @ApiProperty({ type: String, nullable: true, description: 'Most severe critical of a knock-back hazard (spec 079)' })
+  severityCap: string | null;
+
+  @ApiProperty({ type: String, nullable: true, description: 'The knocked-back alert it resolved (spec 079)' })
+  knockedBackAlertId: string | null;
+
   @ApiProperty({ type: [HazardCriticalDto] })
   criticals: HazardCriticalDto[];
 
@@ -236,6 +252,8 @@ export class ActorRoundHazardDto {
   static fromEntity(hazard: ActorRoundHazard): ActorRoundHazardDto {
     return Object.assign(new ActorRoundHazardDto(), {
       ...hazard,
+      severityCap: hazard.severityCap ?? null,
+      knockedBackAlertId: hazard.knockedBackAlertId ?? null,
       severitySteps: (hazard.severitySteps || []).map(step => ({ ...step })),
       criticals: (hazard.criticals || []).map(critical => ({ ...critical })),
     });

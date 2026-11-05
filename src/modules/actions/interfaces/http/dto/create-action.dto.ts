@@ -1,3 +1,4 @@
+import { OTHER_ACTION_KINDS, type OtherActionKind } from '../../../domain/value-objects/action-ap-profile.vo.js';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsBoolean, IsIn, IsInt, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
@@ -188,6 +189,21 @@ export class ActionDrawAndLoadCreationDto {
   itemId?: string;
 }
 
+/** Workspace spec 079, decision A5: the fixed-cost subtype of an `other` action (Table 8-1). */
+export class ActionOtherCreationDto {
+  @ApiProperty({ enum: OTHER_ACTION_KINDS, example: 'load-crossbow' })
+  @IsIn(OTHER_ACTION_KINDS)
+  kind: OtherActionKind;
+
+  @ApiProperty({
+    required: false,
+    description: 'Attack of the weapon strung or loaded; required to load a crossbow (a heavy one takes 14 AP)',
+  })
+  @IsOptional()
+  @IsString()
+  attackName?: string;
+}
+
 /** Workspace spec 076, decision B6: the foe and the ranged weapon of an `aim` action (Sharpshooter). */
 export class ActionAimCreationDto {
   @ApiProperty({ description: 'Foe aimed at' })
@@ -279,6 +295,13 @@ export class CreateActionDto {
   @IsObject()
   aim?: ActionAimCreationDto;
 
+  @ApiProperty({ description: 'Fixed-cost subtype of an other action (spec 079)', type: ActionOtherCreationDto, required: false })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ActionOtherCreationDto)
+  @IsObject()
+  otherAction?: ActionOtherCreationDto;
+
   @ApiProperty({
     description: 'Declare despite the warnings that need a confirmation (409 err-action-confirm-required lists them)',
     required: false,
@@ -312,6 +335,7 @@ export class CreateActionDto {
       dto.confirm === true,
       dto.drawAndLoad ? { itemId: dto.drawAndLoad.itemId } : undefined,
       dto.aim ? { targetActorId: dto.aim.targetActorId, itemId: dto.aim.itemId } : undefined,
+      dto.otherAction ? { kind: dto.otherAction.kind, attackName: dto.otherAction.attackName } : undefined,
     );
   }
 }

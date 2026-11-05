@@ -91,6 +91,7 @@ export class ActorRoundNpcMapperAdapter implements ActorRoundNpcMapperPort {
     actorRound.frightLevel = npc.frightLevel ?? null;
     actorRound.criticalSize = ActorRoundNpcMapperAdapter.criticalSize(npc, sizeClass);
     actorRound.reduceCriticalSeverity = !!npc.criticalCodes?.reduceSeverity;
+    actorRound.stunImmune = !!npc.criticalCodes?.stunImmune;
     return actorRound;
   }
 

@@ -874,3 +874,88 @@ describe('sense weakness (workspace spec 076, decision B8)', () => {
     expect(dice.body).toMatchObject({ code: 'err-roll-open-ended-invalid' });
   });
 });
+
+describe('workspace spec 079, block A', () => {
+  type ParryBody = {
+    id: string;
+    actorId: string;
+    parryAvailable: number;
+    positional: { position: string; penalty: number; reverseStrike: number } | null;
+    parryManeuver: { required: boolean; foes: number; result: string | null; passed: boolean | null } | null;
+  };
+
+  const prepareAgainstAragorn = async (attackId: string, positionalTarget = 'none') => {
+    const prepared = await as('owner').patch(`/v1/actions/${attackId}/attack/prepare`, {
+      attacks: [{ attackName: 'mainHand', modifiers: { targetId: 'aragorn', bo: 60, positionalTarget }, protectors: null }],
+    });
+    expect(prepared.status).toBe(200);
+    return (prepared.body as { parries: ParryBody[] }).parries.find(p => p.actorId === 'aragorn')!;
+  };
+
+  it('A2: parrying toward the rear loses 70, and a second foe needs the Combat Training maneuver', async () => {
+    const gameId = await gameInPhase1('aragorn', ['ugluk']);
+    await declareAttack(gameId, 'aragorn');
+    const lurtz = await declareAttack(gameId, 'lurtz');
+    const ugluk = await declareAttack(gameId, 'ugluk');
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/phases/start`)).status).toBe(200);
+
+    const rear = await prepareAgainstAragorn(lurtz.id, 'rear');
+    expect(rear).toMatchObject({ positional: { position: 'rear', penalty: -70, reverseStrike: 0 }, parryManeuver: null });
+    const parried = await as('owner').patch(`/v1/actions/${lurtz.id}/attack/parry`, { parries: [{ parryId: rear.id, parry: 40 }] });
+    expect(parried.status).toBe(200);
+    const modifiers = ((parried.body as ActionBody).attacks![0].calculated as { rollModifiers: Modifier[] }).rollModifiers;
+    expect(modifiers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: 'parry', value: -40 }),
+        expect.objectContaining({ key: 'parry-positional', value: 40, rule: '§9.6' }),
+      ]),
+    );
+
+    const second = await prepareAgainstAragorn(ugluk.id);
+    expect(second.parryManeuver).toEqual({ required: true, foes: 1, result: null, passed: null });
+    const missing = await as('owner').patch(`/v1/actions/${ugluk.id}/attack/parry`, { parries: [{ parryId: second.id, parry: 20 }] });
+    expect(missing.status).toBe(400);
+    expect(missing.body).toMatchObject({ code: 'err-parry-maneuver-required' });
+    const failed = await as('owner').patch(`/v1/actions/${ugluk.id}/attack/parry`, {
+      parries: [{ parryId: second.id, parry: 20, maneuverResult: 'failure' }],
+    });
+    expect(failed.status).toBe(200);
+    expect((failed.body as { parries: ParryBody[] & { parry: number }[] }).parries[0]).toMatchObject({
+      parry: 0,
+      parryManeuver: { result: 'failure', passed: false },
+    });
+  });
+
+  it('A5: an other action takes the fixed AP of its subtype and lasts several rounds above 4', async () => {
+    const gameId = await gameInPhase1();
+    const declared = await as('owner').post('/v1/actions', {
+      gameId,
+      actorId: 'aragorn',
+      actionType: 'other',
+      phaseStart: 1,
+      otherAction: { kind: 'pick-lock' },
+    });
+    expect(declared.status).toBe(201);
+    expect(declared.body).toMatchObject({ otherAction: { kind: 'pick-lock', attackName: null, ap: 20 } });
+    const invalid = await as('owner').post('/v1/actions', {
+      gameId,
+      actorId: 'lurtz',
+      actionType: 'other',
+      phaseStart: 1,
+      otherAction: { kind: 'load-crossbow', attackName: 'mainHand' },
+    });
+    expect(invalid.status).toBe(400);
+    expect(invalid.body).toMatchObject({ code: 'err-other-action-invalid', details: { reason: 'not-crossbow' } });
+    expect(
+      (
+        await as('owner').post('/v1/actions', {
+          gameId,
+          actorId: 'lurtz',
+          actionType: 'other',
+          phaseStart: 1,
+          otherAction: { kind: 'nap' },
+        })
+      ).status,
+    ).toBe(400);
+  });
+});

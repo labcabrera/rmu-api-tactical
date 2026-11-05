@@ -94,8 +94,9 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     command.attacks.forEach(a => targets.add(a.modifiers.targetId));
     const targetsNumber = targets.size;
     const kataAttacks = actionAttacks.map(attack => sourceAttackOf(action, sourceActorRound, attack.attackName)!);
+    // Every action of the round: the foes of a target (workspace spec 079, decisions A1 and A2) are any actor's.
     const roundActions = await this.actionRepository
-      .findByRsql(`gameId==${action.gameId};round==${game.round};actorId=in=(${Array.from(actorRoundIds).join(',')})`, 0, 1000)
+      .findByRsql(`gameId==${action.gameId};round==${game.round}`, 0, 1000)
       .then(res => res.content);
 
     // One after the other: an attack covered by the target's shield takes one of its blocks for the next ones.
@@ -128,7 +129,14 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     action.attacks = actionAttacks;
 
     const targetActors = actors.filter(a => a.actorId !== action.actorId);
-    action.processParryOptions(targetActors, roundActions, currentPhase);
+    // Workspace spec 079, decision A2: the Reverse Strike of each defender offsets the positional penalty of its parry.
+    const reverseStrikes = new Map(
+      targetActors.map(actor => [
+        actor.actorId,
+        this.mapSkills(characters.get(actor.actorId)).find(s => s.skillId === 'reverse-strike')?.bonus ?? 0,
+      ]),
+    );
+    action.processParryOptions(targetActors, roundActions, currentPhase, reverseStrikes);
     action.markPrepared();
 
     action.updatedAt = new Date();

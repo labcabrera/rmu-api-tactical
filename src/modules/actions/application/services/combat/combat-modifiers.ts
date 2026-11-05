@@ -82,6 +82,22 @@ export const targetSkill = (ctx: CombatContext, skillId: string): number => find
 /** Ranks of one of the target's combat skills. */
 export const targetSkillRanks = (ctx: CombatContext, skillId: string): number => findSkill(ctx.targetSkills, skillId)?.ranks || 0;
 
+/**
+ * Foes attacking the target of the attack this round (workspace spec 079, decision A1): the distinct actors with an
+ * attack against it in the round's actions, the source of this one always among them. At least 1.
+ */
+export const targetFoes = (ctx: CombatContext): number => {
+  const targetId = ctx.targetActor?.actorId ?? ctx.attack?.modifiers.targetId;
+  const foes = new Set<string>([ctx.action.actorId]);
+  (ctx.roundActions || [])
+    .filter(
+      action =>
+        !['interrupted', 'expired'].includes(action.status) && action.attacks?.some(attack => attack.modifiers.targetId === targetId),
+    )
+    .forEach(action => foes.add(action.actorId));
+  return foes.size;
+};
+
 /** Melee attack: thrown and ranged attacks are not. */
 export const isMelee = (ctx: CombatContext): boolean => ctx.attack?.type === 'melee';
 
