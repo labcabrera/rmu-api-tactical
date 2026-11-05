@@ -11,7 +11,12 @@ import { ActorRoundDefenseMode, type DefenseLevel } from '../value-objects/actor
 import { ActorRoundDefense } from '../value-objects/actor-round-defense.vo.js';
 import {
   ActorRoundEffect,
+  ADRENAL_BLOCK,
+  ADRENAL_DEFENSE,
+  ADRENAL_FOCUS,
   ADRENAL_SPEED,
+  ADRENAL_STRENGTH,
+  FORTITUDE,
   AP_CAP,
   ARM_USELESS,
   ATTACK_PENALTY,
@@ -303,6 +308,11 @@ export const ALL_STUN_ROUNDS = 999;
 /** Fatigue of a critical (a `fatigue` effect, negative value) and its penalty source (workspace spec 077, D8). */
 const FATIGUE_EFFECT = 'fatigue';
 const FATIGUE_CRITICAL = 'fatigue-critical';
+/** Penalty sources Fortitude reduces (§3.5): fatigue, hit loss, injuries and stun. */
+/** Adrenal Defense levels (workspace spec 079, decision B3): a full dodge as a concentration, or instantaneous. */
+const ADRENAL_DEFENSE_FULL = 2;
+const ADRENAL_DEFENSE_INSTANT_FULL = 4;
+const FORTITUDE_SOURCES: ActorRoundPenaltySource[] = ['injury', 'critical', 'hp', 'stunned', 'fatigue', 'fatigue-critical'];
 
 export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   private constructor(
@@ -2011,7 +2021,13 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    */
   concentration(): ConcentrationFocus[] {
     const foci: ConcentrationFocus[] = [];
-    if (this.defenseMode?.dodge === 'partial') foci.push({ kind: 'partial-dodge' });
+    // Workspace spec 079, decision B3: Adrenal Defense makes a partial dodge instantaneous, and a full dodge declared
+    // without the 4 AP action a concentration (instantaneous too in the doubled round of an absolute success).
+    const adrenalDefense = this.adrenalDefenseLevel();
+    if (this.defenseMode?.dodge === 'partial' && adrenalDefense < 1) foci.push({ kind: 'partial-dodge' });
+    if (this.defenseMode?.dodge === 'full' && this.defenseMode.adrenal && adrenalDefense < ADRENAL_DEFENSE_INSTANT_FULL) {
+      foci.push({ kind: 'full-dodge' });
+    }
     if (this.defenseMode?.block === 'partial') foci.push({ kind: 'partial-block' });
     (this.heldActions ?? []).forEach(held => foci.push({ kind: 'held-action', actionId: held.actionId, since: held.since }));
     this.activeEffects()
@@ -2036,7 +2052,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
 
   /** The foci that go on into the next round: a partial dodge or block is declared every round. */
   private lastingConcentration(): ConcentrationFocus[] {
-    return this.concentration().filter(focus => focus.kind !== 'partial-dodge' && focus.kind !== 'partial-block');
+    return this.concentration().filter(focus => !['partial-dodge', 'partial-block', 'full-dodge'].includes(focus.kind));
   }
 
   /** Capacity each AP of another action takes now (decision A2.2): 2 while concentrating, else 1. */
@@ -2081,7 +2097,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     const held = this.heldActions.map(each => each.actionId);
     this.heldActions = [];
     this.effects = this.effects.filter(effect => effect.status !== CONCENTRATING);
-    const dodge = this.defenseMode.dodge === 'partial' ? 'none' : this.defenseMode.dodge;
+    // Workspace spec 079, decision B3: a full dodge of Adrenal Defense is a concentration too.
+    const adrenalFull = this.defenseMode.dodge === 'full' && !!this.defenseMode.adrenal;
+    const dodge = this.defenseMode.dodge === 'partial' || adrenalFull ? 'none' : this.defenseMode.dodge;
     const block = this.defenseMode.block === 'partial' ? 'none' : this.defenseMode.block;
     this.defenseMode = new ActorRoundDefenseMode(dodge, block);
     this.refreshActionPoints();
@@ -2284,6 +2302,104 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     this.applyNonViolentPenalty();
     this.applyFatiguePenalty();
     this.applyGrapplePenalty();
+    this.applyFortitude();
+  }
+
+  /**
+   * §3.5 Fortitude (workspace spec 079, decision B4): while a `fortitude` effect lasts, its percent of the fatigue, hit
+   * loss, injury and stun penalties is taken off as a `fortitude` source of its own (positive, rounded in favour of the
+   * actor), so the breakdown shows it. The actor is still stunned for the attacks against it and for concentration.
+   */
+  private applyFortitude() {
+    this.penalty.modifiers = this.penalty.modifiers.filter(m => m.source !== FORTITUDE);
+    const percent = this.fortitudePercent();
+    if (percent <= 0) {
+      return;
+    }
+    const reduced = this.penalty.modifiers
+      .filter(m => (FORTITUDE_SOURCES as string[]).includes(m.source))
+      .reduce((sum, m) => sum + Math.min(0, m.value), 0);
+    const relief = Math.ceil((-reduced * percent) / 100);
+    if (relief > 0) {
+      this.penalty.addModifier(FORTITUDE, relief);
+    }
+  }
+
+  /** Percent of the penalties Fortitude takes off this round: the best active `fortitude` effect, at most 100. */
+  fortitudePercent(): number {
+    const best = this.activeEffects()
+      .filter(effect => effect.status === FORTITUDE)
+      .reduce((max, effect) => Math.max(max, effect.value ?? 0), 0);
+    return Math.min(100, best);
+  }
+
+  /**
+   * Penalties without the relief of Fortitude (workspace spec 079, decision B4): every injury penalty applies to a
+   * Fortitude maneuver even after a successful one (§3.5).
+   */
+  getPenaltiesWithoutFortitude(): Array<{ source: ActorRoundPenaltySource; value: number }> {
+    return this.getPenaltiesBySource().filter(penalty => penalty.source !== FORTITUDE);
+  }
+
+  /** Bonus of Adrenal Focus to a Brawn, Gymnastic or Movement maneuver this round (§3.4): the best active one. */
+  adrenalFocusBonus(): number {
+    return this.activeEffects()
+      .filter(effect => effect.status === ADRENAL_FOCUS)
+      .reduce((max, effect) => Math.max(max, effect.value ?? 0), 0);
+  }
+
+  /**
+   * Attack size steps of Adrenal Strength this round (§3.4): the best active bonus (+1, +2 doubled), else the -1 of an
+   * absolute failure; 0 without the effect.
+   */
+  adrenalStrengthSteps(): number {
+    const values = this.activeEffects()
+      .filter(effect => effect.status === ADRENAL_STRENGTH)
+      .map(effect => effect.value ?? 0);
+    if (values.length === 0) return 0;
+    const best = Math.max(...values);
+    return best > 0 ? best : Math.min(...values);
+  }
+
+  /** Level of Adrenal Defense this round (§3.4, see `ADRENAL_DEFENSE`): the best active one, -1 when it cannot dodge. */
+  adrenalDefenseLevel(): number {
+    const values = this.activeEffects()
+      .filter(effect => effect.status === ADRENAL_DEFENSE)
+      .map(effect => effect.value ?? 0);
+    if (values.length === 0) return 0;
+    const best = Math.max(...values);
+    return best > 0 ? best : Math.min(...values);
+  }
+
+  /** The mental block of Table 3-4 on a skill (§3.4): its penalty (-25), or 0. */
+  adrenalBlockPenalty(skillId: string): number {
+    return this.activeEffects()
+      .filter(effect => effect.status === ADRENAL_BLOCK && effect.data?.skillId === skillId)
+      .reduce((min, effect) => Math.min(min, effect.value ?? 0), 0);
+  }
+
+  /** An absolute success lifts the mental block of the skill (Table 3-4). Answers whether there was one. */
+  liftAdrenalBlock(skillId: string): boolean {
+    const before = this.effects.length;
+    this.effects = this.effects.filter(effect => effect.status !== ADRENAL_BLOCK || effect.data?.skillId !== skillId);
+    return this.effects.length !== before;
+  }
+
+  /**
+   * Adds a fatigue penalty (positive `amount`) as a failed endurance roll does (§5.5), without touching the activity
+   * points: beyond -50 it becomes an injury (workspace spec 079, decision B4: the absolute failure of Fortitude).
+   */
+  addFatiguePenalty(amount: number, gameName?: string): void {
+    if (amount <= 0) {
+      return;
+    }
+    const fatigue = (this.fatigue.fatigue || 0) + amount;
+    const excess = Math.max(0, fatigue - MAX_FATIGUE_PENALTY);
+    if (excess > 0) {
+      this.addFatigueInjury(excess, gameName);
+    }
+    this.fatigue.fatigue = Math.min(fatigue, MAX_FATIGUE_PENALTY);
+    this.applyPenalties();
   }
 
   /** Workspace spec 077, decision A3.2: the grapples add up to a penalty to every action, -100 at most. */
@@ -2977,13 +3093,24 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   setDefenseMode(dodge: DefenseLevel | undefined, block: DefenseLevel | undefined): void {
     const newDodge = dodge ?? this.defenseMode.dodge;
     const newBlock = block ?? this.defenseMode.block;
-    if ((newDodge === 'full' && this.defenseMode.dodge !== 'full') || (newBlock === 'full' && this.defenseMode.block !== 'full')) {
+    // Workspace spec 079, decision B3: the absolute failure of Adrenal Defense keeps the actor from dodging next round,
+    // and its success lets it declare a full dodge here, without the 4 AP action.
+    const adrenalDefense = this.adrenalDefenseLevel();
+    if (newDodge !== 'none' && adrenalDefense < 0) {
+      throw new ValidationError('The actor cannot dodge this round (Adrenal Defense)', 'err-adrenal-no-dodge');
+    }
+    const adrenalFullDodge = newDodge === 'full' && this.defenseMode.dodge !== 'full' && adrenalDefense >= ADRENAL_DEFENSE_FULL;
+    if (
+      (newDodge === 'full' && this.defenseMode.dodge !== 'full' && !adrenalFullDodge) ||
+      (newBlock === 'full' && this.defenseMode.block !== 'full')
+    ) {
       throw new ValidationError('A full dodge or block is declared with a 4 AP dodge action');
     }
     if (newBlock !== 'none' && !this.defense.shield) {
       throw new ValidationError('The actor has no shield to block with');
     }
-    this.defenseMode = ActorRoundDefenseMode.of(newDodge, newBlock);
+    const adrenal = adrenalFullDodge || (newDodge === 'full' && !!this.defenseMode.adrenal);
+    this.defenseMode = ActorRoundDefenseMode.of(newDodge, newBlock, adrenal);
     // A partial dodge or block is a concentration focus (workspace spec 077, decision A2.1).
     this.refreshActionPoints();
   }
@@ -2992,6 +3119,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   setFullDefense(defenseType: 'dodge' | 'block'): void {
     if (defenseType === 'block' && !this.defense.shield) {
       throw new ValidationError('The actor has no shield to block with');
+    }
+    if (defenseType === 'dodge' && this.adrenalDefenseLevel() < 0) {
+      throw new ValidationError('The actor cannot dodge this round (Adrenal Defense)', 'err-adrenal-no-dodge');
     }
     this.defenseMode =
       defenseType === 'dodge'

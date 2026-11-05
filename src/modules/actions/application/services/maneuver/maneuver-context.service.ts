@@ -1,7 +1,9 @@
 import { frenzyManeuverModifiers } from '../../../domain/services/frenzy-maneuver.js';
 import { type CombatTalentChoices, combatTalentModifiers } from '../../../domain/services/combat-talent-maneuver.js';
 import {
+  ADRENAL,
   FALL_CONTROL,
+  FORTITUDE,
   GRAPPLE_ESCAPE,
   isCombatTalentPurpose,
   isFrenzyPurpose,
@@ -9,6 +11,22 @@ import {
 } from '../../../domain/value-objects/maneuver-purpose.vo.js';
 import { GRAPPLE_ESCAPE_AP } from '../../../domain/services/grapple-escape.js';
 import { FALL_CONTROL_AP } from '../../../domain/services/fall-control.js';
+import { ADRENAL_RESULT_TABLE, adrenalConcentrationSkip, FORTITUDE_AP } from '../../../domain/services/adrenal-maneuver.js';
+import {
+  adrenalStrengthWeightMultiplier,
+  type FeatOfStrengthChoices,
+  featOfStrengthDifficulty,
+  FEAT_OF_STRENGTH_RULE,
+  type FeatOfStrengthResult,
+} from '../../../domain/services/feat-of-strength.js';
+import {
+  type ComplementaryChoice,
+  type ComplementaryHelper,
+  complementaryModifiers,
+  type SimilarityChoice,
+  similarityModifiers,
+  skillRelation,
+} from '../../../domain/services/skill-aids.js';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   type ActorRoundRepository,
@@ -95,6 +113,8 @@ export interface ManeuverContext {
   traits?: ActorRoundTrait[];
   /** Ambient light of the tactical game (workspace spec 076, P6): the light of a roll that sends none. */
   defaultLight?: LightType | null;
+  /** What the maneuver is for, when it changes the profile (spec 077) or the base modifiers (spec 079). */
+  purpose?: ManeuverPurpose;
 }
 
 /** Light of a maneuver: its value, and the Light Sensitivity penalty of the actor when it has the talent. */
@@ -143,6 +163,29 @@ export interface ManeuverModifiersListing {
   progress?: number;
   /** Rules of the base modifiers that do not apply, and why (workspace spec 052). */
   skipped: SkippedRule[];
+  /** Workspace spec 079, decision B1: the lines of the similar and complementary skills asked for. */
+  aids?: KeyValueModifier[];
+  /** Workspace spec 079, decision B2: the sheet of a feat of strength, and its difficulty when the load was given. */
+  featOfStrength?: FeatOfStrengthListing;
+}
+
+/** Workspace spec 079, decision B2: what a feat of strength reads, and the difficulty of the load asked for. */
+export interface FeatOfStrengthListing {
+  /** Body weight of the sheet; null when it has none (an NPC: the request sends it). */
+  bodyWeight: number | null;
+  /** St bonus of the sheet; null when it has none (0 unless the request sends it). */
+  strengthBonus: number | null;
+  /** Adrenal Strength multiplier of the body weight. */
+  weightMultiplier: number;
+  result?: FeatOfStrengthResult;
+  /** Reason of `err-feat-of-strength-invalid` the load asked for gives. */
+  invalid?: string;
+}
+
+/** Workspace spec 079, decision B1: a similar skill and the helpers of a maneuver. */
+export interface SkillAidChoices {
+  similarity?: SimilarityChoice;
+  complementary?: ComplementaryChoice[];
 }
 
 /** The choices of a maneuver roll. */
@@ -160,6 +203,10 @@ export interface ManeuverChoices {
   combatTalent?: CombatTalentChoices;
   /** Workspace spec 076, §3.1: the sense of a Perception or Tracking maneuver. */
   senses?: SenseChoices;
+  /** Workspace spec 079, decision B1: the lines of the similar and complementary skills, read by `skillAids`. */
+  aids?: KeyValueModifier[];
+  /** Workspace spec 079, decision B2: the feat of strength whose difficulty replaces the one chosen. */
+  feat?: FeatOfStrengthResult;
 }
 
 export interface ManeuverRollCalculation {
@@ -215,12 +262,22 @@ export class ManeuverContextService {
     const escape = options.purpose === GRAPPLE_ESCAPE;
     // Workspace spec 077, decision D4 (P13): controlling a fall is an absolute maneuver of 0 AP, so no AP penalty.
     const fallControl = options.purpose === FALL_CONTROL;
+    // Workspace spec 079, decisions B3-B4: adrenal moves and Fortitude are absolute maneuvers of Table 3-4, and
+    // Fortitude is instantaneous (0 AP).
+    const adrenal = options.purpose === ADRENAL || options.purpose === FORTITUDE;
     const skillProfile = skill.maneuver ?? DEFAULT_MANEUVER_PROFILE;
     const profile = escape
       ? { ...skillProfile, defaultType: 'percent' as const, actionPoints: GRAPPLE_ESCAPE_AP }
       : fallControl
         ? { ...skillProfile, defaultType: 'absolute' as const, actionPoints: FALL_CONTROL_AP }
-        : skillProfile;
+        : adrenal
+          ? {
+              ...skillProfile,
+              defaultType: 'absolute' as const,
+              resultTable: ADRENAL_RESULT_TABLE,
+              ...(options.purpose === FORTITUDE ? { actionPoints: FORTITUDE_AP } : {}),
+            }
+          : skillProfile;
     const actionPoints =
       options.actionPoints !== undefined ? options.actionPoints : ManeuverContextService.expectedActionPoints(action, game, actorRound);
     const {
@@ -237,12 +294,16 @@ export class ManeuverContextService {
       freeAction: action.freeAction,
       pace: ManeuverBaseModifiersService.roundPace(roundActions.content, action.actorId, action.round),
       includePace: true,
+      categoryId: skill.categoryId ?? null,
+      withoutFortitude: options.purpose === FORTITUDE,
     });
     const maneuverType = escape
       ? 'percent'
-      : fallControl
+      : fallControl || adrenal
         ? 'absolute'
         : options.maneuverType || action.maneuver.modifiers.maneuverType || profile.defaultType;
+    // Workspace spec 079, decision B3: the round of concentration before an adrenal move is the game master's call.
+    const adrenalSkipped = options.purpose === ADRENAL ? [adrenalConcentrationSkip(actorRound)] : [];
     return {
       actorRound,
       character,
@@ -250,9 +311,10 @@ export class ManeuverContextService {
       catalog,
       skill: skillBonus,
       base,
-      skipped,
+      skipped: [...skipped, ...adrenalSkipped],
       maneuverType,
       categoryId: skill.categoryId ?? null,
+      purpose: options.purpose,
       traits: actorRound.traits?.length ? actorRound.traits : (character.npcTraits ?? []),
       defaultLight: game.environment?.light ?? null,
     };
@@ -356,7 +418,9 @@ export class ManeuverContextService {
    * bonus and, in a conflicting maneuver, 100 less the passive total.
    */
   calculate(context: ManeuverContext, choices: ManeuverChoices, roll: number): ManeuverRollCalculation {
-    const difficulty = choices.difficulty || DEFAULT_DIFFICULTY;
+    // Workspace spec 079, decision B2: a feat of strength takes the difficulty of Table 5-2.
+    const feat = choices.feat;
+    const difficulty = feat?.difficulty || choices.difficulty || DEFAULT_DIFFICULTY;
     const difficultyValue = DIFFICULTY_MAP.get(difficulty);
     if (difficultyValue === undefined) {
       throw new ValidationError(`Unknown difficulty '${difficulty}'`, ERR_INVALID_MODIFIER);
@@ -365,7 +429,16 @@ export class ManeuverContextService {
     const modifiers: KeyValueModifier[] = [
       new KeyValueModifier('roll', roll),
       ManeuverBaseModifiersService.skillModifier(context.skill),
-      new KeyValueModifier('difficulty', difficultyValue, 'situation', 'difficulty', MANEUVER_RULES.difficulty, { difficulty }),
+      feat
+        ? new KeyValueModifier('difficulty', difficultyValue, 'situation', 'feat-of-strength', FEAT_OF_STRENGTH_RULE, {
+            difficulty,
+            percent: feat.percent,
+            adjustedPercent: feat.adjustedPercent,
+            strengthBonus: feat.strengthBonus,
+          })
+        : new KeyValueModifier('difficulty', difficultyValue, 'situation', 'difficulty', MANEUVER_RULES.difficulty, { difficulty }),
+      // Workspace spec 079, decision B1: the similar skill and the ranks of the helpers go with the skill
+      ...(choices.aids ?? []),
       ...context.base.map(
         modifier => new KeyValueModifier(modifier.key, modifier.value, modifier.group, modifier.source, modifier.rule, modifier.params),
       ),
@@ -421,6 +494,72 @@ export class ManeuverContextService {
     const filtered = modifiers.filter((modifier, index) => index < 3 || modifier.value !== 0);
     const total = filtered.reduce((sum, modifier) => sum + modifier.value, 0);
     return { modifiers: filtered, skipped, total, lightUsage, ...(appliedLight ? { light: appliedLight } : {}) };
+  }
+
+  /**
+   * Workspace spec 079, decision B1: the lines of a similar skill (its relation, read from the categories of core's
+   * catalog unless the game master gives one, and its similarity) and of the complementary skills (the ranks of each
+   * helper, an actor of the same tactical game, halved for each one after the first).
+   */
+  async skillAids(context: ManeuverContext, action: Action, choices: SkillAidChoices): Promise<KeyValueModifier[]> {
+    const modifiers: KeyValueModifier[] = [];
+    if (choices.similarity) {
+      const target = await this.skillCatalog.findSkill(choices.similarity.targetSkillId);
+      if (!target) throw new NotFoundError('Skill', choices.similarity.targetSkillId);
+      const derived = skillRelation(
+        { skillId: context.skill.skillId, specialization: context.skill.specialization, categoryId: context.categoryId },
+        {
+          skillId: target.id ?? choices.similarity.targetSkillId,
+          specialization: choices.similarity.targetSpecialization,
+          categoryId: target.categoryId,
+        },
+      );
+      modifiers.push(...similarityModifiers(choices.similarity, choices.similarity.relation ?? derived, derived));
+    }
+    if (choices.complementary?.length) {
+      const helpers: ComplementaryHelper[] = [];
+      for (const helper of choices.complementary) {
+        const actorRound =
+          !helper.actorId || helper.actorId === action.actorId
+            ? context.actorRound
+            : await this.actorRoundRepository.findByActorIdAndRound(action.gameId, helper.actorId, action.round);
+        if (!actorRound) throw new NotFoundError('Helper actor', helper.actorId!, 'err-maneuver-target-not-found');
+        const sheet = actorRound === context.actorRound ? context.character : await this.sheets.find(actorRound);
+        const ranks = sheet ? ManeuverBaseModifiersService.skillBonus(sheet, helper.skillId, helper.specialization ?? null).ranks : 0;
+        helpers.push({ ...helper, ranks, actorName: actorRound.actorName });
+      }
+      modifiers.push(...complementaryModifiers(helpers));
+    }
+    return modifiers;
+  }
+
+  /**
+   * Workspace spec 079, decision B2 (§5.2): the difficulty of a feat of strength, with the body weight and St bonus of
+   * the sheet (those sent for an actor without them) and the weight multiplier of an active Adrenal Strength.
+   */
+  featOfStrengthListing(context: ManeuverContext, choices: FeatOfStrengthChoices | undefined): FeatOfStrengthListing {
+    const weight = context.character.info?.weight;
+    const listing: FeatOfStrengthListing = {
+      bodyWeight: weight && weight > 0 ? weight : null,
+      strengthBonus: context.character.statistics?.st?.totalBonus ?? null,
+      weightMultiplier: adrenalStrengthWeightMultiplier(context.actorRound.adrenalStrengthSteps()),
+    };
+    if (!choices?.loadWeight) return listing;
+    try {
+      listing.result = this.featOfStrength(context, choices);
+    } catch (error) {
+      if (!(error instanceof ValidationError)) throw error;
+      listing.invalid = (error.details as { reason?: string } | undefined)?.reason ?? 'load';
+    }
+    return listing;
+  }
+
+  featOfStrength(context: ManeuverContext, choices: FeatOfStrengthChoices): FeatOfStrengthResult {
+    const sheetWeight = context.character.info?.weight;
+    const bodyWeight = sheetWeight && sheetWeight > 0 ? sheetWeight : choices.bodyWeight;
+    const strengthBonus = context.character.statistics?.st?.totalBonus ?? choices.strengthBonus ?? 0;
+    const multiplier = adrenalStrengthWeightMultiplier(context.actorRound.adrenalStrengthSteps());
+    return featOfStrengthDifficulty(choices, bodyWeight, strengthBonus, multiplier);
   }
 
   /**

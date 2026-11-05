@@ -20,6 +20,8 @@ export interface Character {
   faction: ActorRoundFaction;
   name: string;
   info: CharacterInfo;
+  /** Stats of the sheet by key (`st`, `ag`...). */
+  statistics?: Partial<Record<string, CharacterStat>>;
   experience: CharacterExperience;
   movement: CharacterMovement;
   defense: CharacterDefense;
@@ -58,6 +60,13 @@ export interface CharacterInfo {
   effectiveSizeId?: string;
   /** Height in feet (workspace spec 077, block D). Missing in older strategic versions. */
   height?: number | null;
+  /** Body weight in pounds (workspace spec 079, decision B2: feats of strength). */
+  weight?: number | null;
+}
+
+/** A stat of the sheet: its total bonus (workspace spec 079, decision B2 reads the St one). */
+export interface CharacterStat {
+  totalBonus: number;
 }
 
 /** Workspace spec 077: endurance of the sheet (block D reads it). */

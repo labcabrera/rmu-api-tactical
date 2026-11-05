@@ -6,6 +6,9 @@ import type { LightManeuverModifier } from './light-maneuver-modifier.vo.js';
 import type { ManeuverModifierSelection } from './maneuver-profile.vo.js';
 import type { ManeuverType } from './maneuver-type.vo.js';
 import type { ManeuverPurpose, PrecisionPosition } from './maneuver-purpose.vo.js';
+import type { ComplementaryChoice, SimilarityChoice } from '../services/skill-aids.js';
+import type { FeatOfStrengthChoices, FeatOfStrengthResult } from '../services/feat-of-strength.js';
+import type { AdrenalKind } from '../services/adrenal-maneuver.js';
 
 export class ActionManeuver {
   constructor(
@@ -48,6 +51,12 @@ export class ActionManeuverModifiers {
     /** Precision: position of the attacker and OB given up. */
     public position?: PrecisionPosition | undefined,
     public obPenalty?: number | undefined,
+    /** Workspace spec 079, decision B1: the skill the similar skill rolled stands for. */
+    public similarity?: SimilarityChoice | undefined,
+    /** Workspace spec 079, decision B1: the helpers of complementary skills. */
+    public complementary?: ComplementaryChoice[] | undefined,
+    /** Workspace spec 079, decision B2: the load of a feat of strength. */
+    public featOfStrength?: FeatOfStrengthChoices | undefined,
   ) {}
 }
 
@@ -82,7 +91,30 @@ export class ActionManeuverResult {
      * failure, -1 on a success, -2 on an absolute success, 0 otherwise.
      */
     public fallControlSteps?: number | undefined,
+    /** Workspace spec 079, decision B2: how the difficulty of a feat of strength was found. */
+    public featOfStrength?: FeatOfStrengthResult | undefined,
+    /** Workspace spec 079, decisions B3-B4: what an adrenal or Fortitude maneuver gave its actor. */
+    public adrenal?: AdrenalManeuverOutcome | undefined,
   ) {}
+}
+
+/** What an adrenal move or Fortitude gave (workspace spec 079, decisions B3-B4). */
+export interface AdrenalManeuverOutcome {
+  kind: AdrenalKind | 'fortitude';
+  /** Rounds of the benefit (0 without one). */
+  rounds: number;
+  /** First round of the benefit: the next one for an adrenal move, the current one for Fortitude. */
+  fromRound?: number;
+  /** The first round is doubled (absolute success). */
+  doubled?: boolean;
+  /** Half the benefit (partial success). */
+  partial?: boolean;
+  /** An absolute failure blocked the skill (-25 for the rest of the combat). */
+  block?: boolean;
+  /** An absolute success lifted the block the skill had. */
+  blockLifted?: boolean;
+  /** Fatigue added by an absolute failure of Fortitude. */
+  fatigue?: number;
 }
 
 /** The roll against one grapple of an escape maneuver (workspace spec 077, decision A3.3). */

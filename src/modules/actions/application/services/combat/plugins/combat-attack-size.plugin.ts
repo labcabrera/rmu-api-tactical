@@ -1,10 +1,17 @@
 import { LIGHT_BONED } from '../../../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
 import { adjustSeverity, SEVERITIES, type SeverityAdjustmentStep, severitySteps } from '../../../../../shared/domain/severity.js';
 import { ActionAttackResult, type SeverityAdjustment } from '../../../../domain/value-objects/action-attack.vo.js';
-import { chargeSizeAdjustment, targetTraitTier } from '../combat-modifiers.js';
+import { chargeSizeAdjustment, isMelee, targetTraitTier } from '../combat-modifiers.js';
 import type { CombatContext } from '../combat-context.js';
 import type { CombatPlugin } from '../combat-plugin.js';
 import { styleSizeSteps } from './combat-fighting-style.plugin.js';
+
+/**
+ * Attack sizes of an active Adrenal Strength of the attacker (§3.4; workspace spec 079, decision B3): +1 (+2 in the
+ * doubled round of an absolute success), -1 the round after an absolute failure. Only the melee attacks, where the
+ * attacker's strength is what strikes.
+ */
+export const adrenalStrengthSteps = (ctx: CombatContext): number => (isMelee(ctx) ? (ctx.sourceActor?.adrenalStrengthSteps?.() ?? 0) : 0);
 
 /** Size the target suffers criticals as: its critical size (NPCs, T-3.1d) or else its size. */
 const targetCriticalSize = (ctx: CombatContext): number => ctx.targetActor?.criticalSize ?? ctx.targetActor?.size ?? 0;
@@ -18,6 +25,7 @@ const targetCriticalSize = (ctx: CombatContext): number => ctx.targetActor?.crit
 export const combatSeveritySteps = (ctx: CombatContext): SeverityAdjustmentStep[] =>
   severitySteps({
     'attack-size': ctx.sourceAttack?.attackSize || 0,
+    'adrenal-strength': adrenalStrengthSteps(ctx),
     charge: chargeSizeAdjustment(ctx.attack?.modifiers.chargeSpeed),
     'fighting-style': styleSizeSteps(ctx),
     'target-size': -targetCriticalSize(ctx),

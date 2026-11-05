@@ -121,6 +121,29 @@ export const SPASM_STUN = -50;
 export const SPASM_AP_LOSS = 2;
 export const SPASM_HITS = 1;
 
+/**
+ * Adrenal moves (§3.4; workspace spec 079, decision B3), created by an `adrenal` maneuver from the next round:
+ * - `adrenal-defense`: `value` 1 (partial success) a partial dodge takes no concentration; 2 (success) also a full
+ *   dodge declared as a concentration; 4 (the doubled first round of an absolute success) a full dodge as an
+ *   instantaneous action; -1 (absolute failure) no dodge at all;
+ * - `adrenal-focus`: `value` to the Brawn, Gymnastic and Movement maneuvers (+25, +50 doubled, +12 partial);
+ * - `adrenal-strength`: `value` attack sizes of the melee attacks and the weight multiplier of the feats of strength
+ *   (+1 ×4, +2 ×8; -1 ×1/4 after an absolute failure);
+ * - `adrenal-speed` (above) gives its AP.
+ * `adrenal-block`: the mental block of an absolute failure of Table 3-4, `value` (-25) to the skill `data.skillId` for
+ * the rest of the combat (an absolute success of that skill lifts it).
+ */
+export const ADRENAL_DEFENSE = 'adrenal-defense';
+export const ADRENAL_FOCUS = 'adrenal-focus';
+export const ADRENAL_STRENGTH = 'adrenal-strength';
+export const ADRENAL_BLOCK = 'adrenal-block';
+export const ADRENAL_BLOCK_PENALTY = -25;
+/**
+ * Fortitude (§3.5; workspace spec 079, decision B4): `value` is the percent of the fatigue, hit loss, injury and stun
+ * penalties taken off (50, 100 in the first round of an absolute success, 25 on a partial success).
+ */
+export const FORTITUDE = 'fortitude';
+
 /** Effects of which only the last one applied counts (workspace spec 076). */
 const REPLACING_STATUSES = [AIMING, CRITICAL_REROLL, PRECISION, SPASM];
 

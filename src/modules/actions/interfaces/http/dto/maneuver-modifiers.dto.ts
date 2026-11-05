@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { ManeuverModifiersListing } from '../../../application/services/maneuver/maneuver-context.service.js';
+import type { FeatOfStrengthListing, ManeuverModifiersListing } from '../../../application/services/maneuver/maneuver-context.service.js';
 import type { ModifierParams } from '../../../domain/value-objects/key-value-modifier.vo.js';
 import type { ManeuverModifierDefinition } from '../../../domain/value-objects/maneuver-profile.vo.js';
 import { SkippedRuleDto } from './skipped-rule.dto.js';
@@ -212,6 +212,22 @@ export class ManeuverModifiersDto {
   @ApiProperty({ type: [SkippedRuleDto], description: 'Rules of the base modifiers that do not apply, and why' })
   skipped: SkippedRuleDto[];
 
+  @ApiProperty({
+    type: [ManeuverBaseModifierDto],
+    required: false,
+    description: 'Spec 079: the lines of the similar skill and the complementary skills asked for',
+  })
+  aids?: ManeuverBaseModifierDto[];
+
+  @ApiProperty({
+    type: Object,
+    required: false,
+    description:
+      'Spec 079, feat-of-strength: bodyWeight and strengthBonus of the sheet (null when it has none), the Adrenal Strength ' +
+      'weightMultiplier, and the result (difficulty of Table 5-2) or the invalid reason of the load asked for',
+  })
+  featOfStrength?: FeatOfStrengthListing;
+
   static fromListing(listing: ManeuverModifiersListing): ManeuverModifiersDto {
     const dto = new ManeuverModifiersDto();
     dto.skill = { ...listing.skill };
@@ -233,6 +249,8 @@ export class ManeuverModifiersDto {
     dto.conflicting = listing.conflicting;
     dto.progress = listing.progress;
     dto.skipped = listing.skipped.map(rule => SkippedRuleDto.fromEntity(rule));
+    if (listing.aids) dto.aids = listing.aids.map(modifier => ({ ...modifier }) as ManeuverBaseModifierDto);
+    if (listing.featOfStrength) dto.featOfStrength = { ...listing.featOfStrength };
     return dto;
   }
 }

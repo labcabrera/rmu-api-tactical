@@ -143,7 +143,7 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       traits: (doc.traits || []).map(trait => new ActorRoundTrait(trait.traitId, trait.tier || 1, trait.specialization ?? null)),
       alerts: (doc.alerts || []).map(alert => ActorRoundAlert.from(alert as unknown as ActorRoundAlertData)),
       defenseMode: doc.defenseMode
-        ? new ActorRoundDefenseMode(doc.defenseMode.dodge ?? 'none', doc.defenseMode.block ?? 'none')
+        ? new ActorRoundDefenseMode(doc.defenseMode.dodge ?? 'none', doc.defenseMode.block ?? 'none', doc.defenseMode.adrenal || undefined)
         : ActorRoundDefenseMode.none(),
       phaseLog: (doc.phaseLog || []).map(entry => new ActorRoundPhaseLog(entry.phase, entry.spentAp, entry.totalSpentAp)),
       apLedger: (doc.apLedger || []).map(

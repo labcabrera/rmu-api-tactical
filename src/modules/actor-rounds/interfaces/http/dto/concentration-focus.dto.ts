@@ -5,7 +5,7 @@ import type { ConcentrationFocus, ConcentrationKind } from '../../../domain/valu
 export class ConcentrationFocusDto {
   @ApiProperty({
     type: String,
-    enum: ['partial-dodge', 'partial-block', 'held-action', 'spell-preparation', 'hold-position', 'manual'],
+    enum: ['partial-dodge', 'partial-block', 'full-dodge', 'held-action', 'spell-preparation', 'hold-position', 'manual'],
     example: 'partial-dodge',
   })
   kind: ConcentrationKind;

@@ -3,7 +3,15 @@
  * (§9.6), a held action (§8.3), the preparation of a spell, keeping afloat or on a climb (Table 8-1), or anything else
  * the game master sets.
  */
-export type ConcentrationKind = 'partial-dodge' | 'partial-block' | 'held-action' | 'spell-preparation' | 'hold-position' | 'manual';
+export type ConcentrationKind =
+  | 'partial-dodge'
+  | 'partial-block'
+  /** A full dodge declared with Adrenal Defense (workspace spec 079, decision B3). */
+  | 'full-dodge'
+  | 'held-action'
+  | 'spell-preparation'
+  | 'hold-position'
+  | 'manual';
 
 /** Kinds the game master sets with a `concentrating` effect; the others are derived from the round. */
 export const CONCENTRATING_EFFECT_KINDS: ConcentrationKind[] = ['spell-preparation', 'hold-position', 'manual'];

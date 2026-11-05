@@ -9,6 +9,8 @@ import {
   PRECISION_POSITIONS,
   type PrecisionPosition,
 } from '../../../domain/value-objects/maneuver-purpose.vo.js';
+import type { ComplementaryChoice, SimilarityChoice } from '../../../domain/services/skill-aids.js';
+import type { FeatOfStrengthChoices } from '../../../domain/services/feat-of-strength.js';
 
 export class ActionManeuverModifiersDto {
   @ApiProperty({ description: 'Skill identifier', example: 'climbing' })
@@ -65,6 +67,27 @@ export class ActionManeuverModifiersDto {
   @ApiProperty({ description: 'Precision (spec 076): OB given up to make the maneuver easier', required: false })
   obPenalty?: number;
 
+  @ApiProperty({
+    description: 'Spec 079: the skill a similar skill stands for (targetSkillId, targetSpecialization, similarity, relation)',
+    required: false,
+    type: Object,
+  })
+  similarity?: SimilarityChoice;
+
+  @ApiProperty({
+    description: 'Spec 079: the helpers of complementary skills (actorId, skillId, specialization)',
+    required: false,
+    type: [Object],
+  })
+  complementary?: ComplementaryChoice[];
+
+  @ApiProperty({
+    description: 'Spec 079: the load of a feat of strength (loadWeight, mechanicalFactor, bodyWeight, strengthBonus)',
+    required: false,
+    type: Object,
+  })
+  featOfStrength?: FeatOfStrengthChoices;
+
   static fromEntity(entity: ActionManeuverModifiers): ActionManeuverModifiersDto {
     const dto = new ActionManeuverModifiersDto();
     dto.skillId = entity.skillId;
@@ -84,6 +107,9 @@ export class ActionManeuverModifiersDto {
     dto.foeLevel = entity.foeLevel ?? undefined;
     dto.position = entity.position ?? undefined;
     dto.obPenalty = entity.obPenalty ?? undefined;
+    dto.similarity = entity.similarity ?? undefined;
+    dto.complementary = entity.complementary?.length ? entity.complementary : undefined;
+    dto.featOfStrength = entity.featOfStrength ?? undefined;
     return dto;
   }
 }

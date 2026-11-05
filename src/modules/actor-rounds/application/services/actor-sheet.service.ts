@@ -3,7 +3,9 @@ import { type Npc, npcCatalogTalents, type NpcPort, NPC_PORT } from '../../../np
 import { ActorRoundTrait } from '../../domain/value-objects/actor-round-trait.vo.js';
 import {
   type CharacterEquipment,
+  type CharacterInfo,
   type CharacterPort,
+  type CharacterStat,
   type CharacterSkill,
   CHARACTER_PORT,
 } from '../../../strategic/application/ports/character.port.js';
@@ -20,6 +22,10 @@ export interface ActorSheet {
   npc?: boolean;
   /** The talents of an NPC stat block in the talent catalog (workspace spec 076, §4), for actor rounds without traits. */
   npcTraits?: ActorRoundTrait[];
+  /** Body weight of a character (workspace spec 079, decision B2); an NPC has none. */
+  info?: Pick<CharacterInfo, 'weight'>;
+  /** Stats of a character: the feats of strength read the St bonus (workspace spec 079, decision B2). */
+  statistics?: Partial<Record<string, CharacterStat>>;
 }
 
 /** Skill of the passive, partial and full blocks (§9.6 Shields). */

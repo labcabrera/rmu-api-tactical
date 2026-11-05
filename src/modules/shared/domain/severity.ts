@@ -9,14 +9,16 @@ const A_INDEX = SEVERITIES.indexOf('A');
 
 /**
  * Keys of the steps that move the critical severity (§9.4, T-3.1d, T-3.1e; workspace spec 075, decision 3).
- * `fall-control`: the Acrobatics maneuver of a fall (workspace spec 077, decision D4).
+ * `fall-control`: the Acrobatics maneuver of a fall (workspace spec 077, decision D4). `adrenal-strength`: the attack
+ * sizes of an active Adrenal Strength (§3.4; workspace spec 079, decision B3).
  */
 export type SeverityAdjustmentKey =
-  'attack-size' | 'charge' | 'fighting-style' | 'target-size' | 'light-boned' | 'critical-code' | 'fall-control';
+  'attack-size' | 'adrenal-strength' | 'charge' | 'fighting-style' | 'target-size' | 'light-boned' | 'critical-code' | 'fall-control';
 
 /** Order the steps are listed in. */
 const SEVERITY_KEYS: SeverityAdjustmentKey[] = [
   'attack-size',
+  'adrenal-strength',
   'charge',
   'fighting-style',
   'target-size',

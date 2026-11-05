@@ -39,7 +39,7 @@ export class DamageAdjustmentDto {
 export class SeverityAdjustmentStepDto {
   @ApiProperty({
     description: 'What moves the severity',
-    enum: ['attack-size', 'charge', 'fighting-style', 'target-size', 'light-boned', 'critical-code'],
+    enum: ['attack-size', 'adrenal-strength', 'charge', 'fighting-style', 'target-size', 'light-boned', 'critical-code', 'fall-control'],
     example: 'attack-size',
   })
   key: string;

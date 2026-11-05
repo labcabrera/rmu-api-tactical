@@ -167,6 +167,10 @@ export class ActorRoundDefenseMode {
 
   @Prop({ type: String, required: true, default: 'none' })
   block: DefenseLevel;
+
+  /** Workspace spec 079, decision B3: a full dodge of Adrenal Defense. */
+  @Prop({ type: Boolean, required: false })
+  adrenal?: boolean;
 }
 
 /** A change of the hits of the round (spec 013, §1.1). */

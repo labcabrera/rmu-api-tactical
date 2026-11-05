@@ -70,6 +70,8 @@ export class MovementProcessorService {
         actionPoints: null,
         pace: null,
         includePace: false,
+        // Workspace spec 079, decision B3: a movement roll is a Movement maneuver (Adrenal Focus helps it).
+        categoryId: 'movement',
       });
 
       const difficultyBonus = DIFFICULTY_MAP.get(action.movement.modifiers.difficulty!);

@@ -22,6 +22,7 @@ import {
   type DirectedSpellSkill,
   directedSpellSpecialization,
   needsPreparation,
+  type MagicalExpertise,
   scrModifiers,
   scrSkipped,
   spellAttackEffect,
@@ -38,6 +39,12 @@ import {
 import type { KeyValueModifier } from '../../../domain/value-objects/key-value-modifier.vo.js';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
 import { type SpellcastingTablesPort, SPELLCASTING_TABLES_PORT } from '../../ports/spellcasting-tables.port.js';
+import { toOptionalKey } from '../../../../shared/domain/services/key.js';
+
+/** Magical Expertise skills (Core Law §3.14; workspace spec 079, decision B4). */
+const GRACE_SKILL_ID = 'grace';
+const SPELL_TRICKERY_SKILL_ID = 'spell-trickery';
+const TRANSCENDENCE_SKILL_ID = 'transcendence';
 
 /** A spell action with its game, current phase and caster round, read once per request. */
 export interface SpellActionContext {
@@ -124,6 +131,32 @@ export class SpellCastingService {
     return skill ? { ranks: skill.ranks ?? 0, totalBonus: skill.totalBonus } : null;
   }
 
+  /**
+   * Workspace spec 079, decision B4: the caster's Magical Expertise for the list cast, from its sheet: Grace and Spell
+   * Trickery with the list key as their specialization (Spell Trickery without one counts for every list), and
+   * Transcendence. An NPC or a character without them has none.
+   */
+  async magicalExpertise(actorRound: ActorRound, spell: ActionSpell): Promise<MagicalExpertise | undefined> {
+    if (actorRound.actorType === 'npc') return undefined;
+    const character = await this.characters.findById(actorRound.characterId ?? actorRound.actorId);
+    const skills = character?.skills ?? [];
+    if (skills.length === 0) return undefined;
+    const list = toOptionalKey(spell.spell.listCode);
+    const bonus = (skillId: string, byList: boolean): number | undefined => {
+      const entries = skills.filter(skill => skill.skillId === skillId);
+      const entry = byList
+        ? (entries.find(skill => toOptionalKey(skill.specialization) === list) ?? entries.find(skill => !skill.specialization))
+        : entries[0];
+      return entry && entry.totalBonus > 0 ? entry.totalBonus : undefined;
+    };
+    const expertise: MagicalExpertise = {
+      grace: list ? bonus(GRACE_SKILL_ID, true) : undefined,
+      spellTrickery: bonus(SPELL_TRICKERY_SKILL_ID, true),
+      transcendence: bonus(TRANSCENDENCE_SKILL_ID, false),
+    };
+    return Object.values(expertise).some(value => value !== undefined) ? expertise : undefined;
+  }
+
   /** The action, its game and phase and its caster's round; the action has to be a cast. */
   async load(actionId: string): Promise<SpellActionContext> {
     const action = await this.actionRepository.findById(actionId);
@@ -161,7 +194,7 @@ export class SpellCastingService {
       traits: actorRound.traits,
     };
     const tables = await this.tables.findModifiers();
-    const modifiers = scrModifiers(input, tables);
+    const modifiers = scrModifiers({ ...input, expertise: await this.magicalExpertise(actorRound, context.spell) }, tables);
     return {
       options,
       modifiers,

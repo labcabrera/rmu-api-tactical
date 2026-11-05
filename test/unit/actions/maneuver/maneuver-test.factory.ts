@@ -91,6 +91,10 @@ export interface ManeuverSetup {
   targets?: { actorRound: ActorRound; character?: Character }[];
   /** Changes to the actor round of the maneuver (traits, effects, style...). */
   actorRound?: (actorRound: ActorRound) => void;
+  /** Skill categories by skill id (workspace spec 079); `beasts` for the profiled skills and `x` for the rest. */
+  categories?: Record<string, string>;
+  /** More fields of the character sheet (workspace spec 079: `info.weight`, `statistics`). */
+  sheet?: Partial<Character>;
 }
 
 export const action = (props: Partial<ActionProps>): Action =>
@@ -154,6 +158,7 @@ export const setupManeuver = (options: ManeuverSetup = {}) => {
       encumbrancePenalty: options.encumbrancePenalty ?? 0,
       movementBaseDifficulty: 'm',
     },
+    ...(options.sheet ?? {}),
   } as unknown as Character;
   const game = { id: 'game-1', phase: options.phase ?? 'phase_1', round: 1, checkNotFinished: () => undefined } as unknown as Game;
 
@@ -182,10 +187,10 @@ export const setupManeuver = (options: ManeuverSetup = {}) => {
   const findSkill = vi.fn((id: string) =>
     Promise.resolve(
       PROFILES[id]
-        ? { id, categoryId: 'beasts', maneuver: PROFILES[id] }
+        ? { id, categoryId: options.categories?.[id] ?? 'beasts', maneuver: PROFILES[id] }
         : id === 'missing'
           ? null
-          : { id, categoryId: 'x', maneuver: profile() },
+          : { id, categoryId: options.categories?.[id] ?? 'x', maneuver: profile() },
     ),
   );
   const findManeuverModifiers = vi.fn((id: string) => Promise.resolve(CATALOG[id] ?? []));

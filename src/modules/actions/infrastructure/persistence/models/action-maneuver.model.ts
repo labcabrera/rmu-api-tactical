@@ -1,5 +1,7 @@
 import type { ManeuverPurpose, PrecisionPosition } from '../../../domain/value-objects/maneuver-purpose.vo.js';
-import type { GrappleEscapeResult, ManeuverRollTalent } from '../../../domain/value-objects/action-maneuver.vo.js';
+import type { AdrenalManeuverOutcome, GrappleEscapeResult, ManeuverRollTalent } from '../../../domain/value-objects/action-maneuver.vo.js';
+import type { ComplementaryChoice, SimilarityChoice } from '../../../domain/services/skill-aids.js';
+import type { FeatOfStrengthChoices, FeatOfStrengthResult } from '../../../domain/services/feat-of-strength.js';
 import { Prop, Schema } from '@nestjs/mongoose';
 import { Schema as MongooseSchema } from 'mongoose';
 import type { Difficulty } from '../../../domain/value-objects/difficulty.vo.js';
@@ -61,6 +63,17 @@ export class ActionManeuverModifiers {
 
   @Prop({ type: Number, required: false })
   obPenalty: number | undefined;
+
+  /** Workspace spec 079, decision B1. */
+  @Prop({ type: Object, required: false })
+  similarity: SimilarityChoice | undefined;
+
+  @Prop({ type: [Object], required: false, default: undefined })
+  complementary: ComplementaryChoice[] | undefined;
+
+  /** Workspace spec 079, decision B2. */
+  @Prop({ type: Object, required: false })
+  featOfStrength: FeatOfStrengthChoices | undefined;
 }
 
 @Schema({ _id: false })
@@ -126,6 +139,14 @@ export class ActionManeuverResult {
   /** Workspace spec 077, decision D4: severity steps of a fall-control maneuver. */
   @Prop({ type: Number, required: false })
   fallControlSteps: number | undefined;
+
+  /** Workspace spec 079, decision B2: the difficulty of a feat of strength. */
+  @Prop({ type: Object, required: false })
+  featOfStrength: FeatOfStrengthResult | undefined;
+
+  /** Workspace spec 079, decisions B3-B4: the outcome of an adrenal or Fortitude maneuver. */
+  @Prop({ type: Object, required: false })
+  adrenal: AdrenalManeuverOutcome | undefined;
 }
 
 @Schema({ _id: false })
