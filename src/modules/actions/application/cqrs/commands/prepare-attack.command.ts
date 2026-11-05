@@ -71,6 +71,8 @@ export interface PrepareAttackCommandSpecial {
   subdualBonus?: number | null;
   unfamiliarAnatomy?: boolean;
   meleeCoverActorIds?: string[];
+  /** Workspace spec 079, D3: the attack is made with the flexible limb of Extra Joints. */
+  extraJoints?: boolean;
 }
 
 export class PrepareAttackCommandParryItem {

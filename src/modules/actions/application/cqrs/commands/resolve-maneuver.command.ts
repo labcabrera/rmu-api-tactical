@@ -52,6 +52,13 @@ export class ResolveManeuverRequest {
     public readonly complementary?: ComplementaryChoice[] | undefined,
     /** Workspace spec 079, decision B2: the load of a `feat-of-strength` maneuver. */
     public readonly featOfStrength?: FeatOfStrengthChoices | undefined,
+    /** Workspace spec 079, D3: the situational talents of the actor the game master ticks. */
+    public readonly situationalTraits?: string[] | undefined,
+    /**
+     * Workspace spec 079, D3: the actor perceived or tracked by smell, whose Neutral or Distinct Odor counts; the passive
+     * side's actor when left out.
+     */
+    public readonly senseTargetActorId?: string | undefined,
   ) {}
 }
 

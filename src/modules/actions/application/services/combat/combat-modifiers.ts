@@ -51,8 +51,8 @@ export const sizeDifference = (ctx: CombatContext): number => {
 /** Size of the target against attacks: a Light-boned target counts one size smaller per tier. */
 export const targetEffectiveSize = (ctx: CombatContext): number => (ctx.targetActor?.size || 0) - targetTraitTier(ctx, LIGHT_BONED);
 
-const sourceTraits = (ctx: CombatContext) => ctx.sourceTraits ?? ctx.sourceActor?.traits;
-const targetTraits = (ctx: CombatContext) => ctx.targetTraits ?? ctx.targetActor?.traits;
+export const sourceTraits = (ctx: CombatContext) => ctx.sourceTraits ?? ctx.sourceActor?.traits;
+export const targetTraits = (ctx: CombatContext) => ctx.targetTraits ?? ctx.targetActor?.traits;
 
 /** Tier of one of the source's traits (0 when it does not have it). */
 export const sourceTraitTier = (ctx: CombatContext, traitId: string): number => ActorRoundTrait.tierOf(sourceTraits(ctx), traitId);

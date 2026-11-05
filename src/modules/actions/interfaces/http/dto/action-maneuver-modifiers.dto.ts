@@ -88,6 +88,12 @@ export class ActionManeuverModifiersDto {
   })
   featOfStrength?: FeatOfStrengthChoices;
 
+  @ApiProperty({ description: 'Spec 079, D3: the situational talents ticked', required: false, type: [String] })
+  situationalTraits?: string[];
+
+  @ApiProperty({ description: 'Spec 079, D3: the actor perceived or tracked by smell', required: false })
+  senseTargetActorId?: string;
+
   static fromEntity(entity: ActionManeuverModifiers): ActionManeuverModifiersDto {
     const dto = new ActionManeuverModifiersDto();
     dto.skillId = entity.skillId;
@@ -110,6 +116,8 @@ export class ActionManeuverModifiersDto {
     dto.similarity = entity.similarity ?? undefined;
     dto.complementary = entity.complementary?.length ? entity.complementary : undefined;
     dto.featOfStrength = entity.featOfStrength ?? undefined;
+    dto.situationalTraits = entity.situationalTraits?.length ? entity.situationalTraits : undefined;
+    dto.senseTargetActorId = entity.senseTargetActorId ?? undefined;
     return dto;
   }
 }

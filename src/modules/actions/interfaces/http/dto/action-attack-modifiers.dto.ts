@@ -116,6 +116,9 @@ export class ActionAttackModifiersDto {
   @ApiProperty({ type: [String], description: 'Ranged attack into a melee: combatants engaged with the target (§9.7)', required: false })
   public meleeCoverActorIds: string[];
 
+  @ApiProperty({ type: Boolean, description: 'The attack is made with the flexible limb of Extra Joints (spec 079, D3)', required: false })
+  public extraJoints: boolean;
+
   static fromEntity(entity: ActionAttackModifiers): ActionAttackModifiersDto {
     const dto = new ActionAttackModifiersDto();
     dto.targetId = entity.targetId;
@@ -150,6 +153,7 @@ export class ActionAttackModifiersDto {
     dto.subdualBonus = entity.subdualBonus ?? null;
     dto.unfamiliarAnatomy = entity.unfamiliarAnatomy ?? false;
     dto.meleeCoverActorIds = entity.meleeCoverActorIds ?? [];
+    dto.extraJoints = entity.extraJoints ?? false;
     return dto;
   }
 }

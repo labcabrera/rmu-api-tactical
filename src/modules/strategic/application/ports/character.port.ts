@@ -78,6 +78,8 @@ export interface CharacterEndurance {
   fatiguePenalty?: number;
   /** Racial endurance bonus. */
   racialBonus?: number;
+  /** Workspace spec 079, D2: Vigorous (+10/tier) and Feeble (-10/tier). Missing in older sheets: 0. */
+  traitBonus?: number;
 }
 
 /** Workspace spec 077, decision B1.5: the load of the sheet, worn and carried, and its percent of the body weight. */
@@ -185,12 +187,16 @@ export interface CharacterEquipment {
   armorEncumbrance?: number;
   /** Workspace spec 077, decision B1.5. Missing in older strategic versions. */
   load?: CharacterLoad;
+  /** Workspace spec 079, D2: the load penalty without Beast of Burden, for the dodge. Missing: `encumbrancePenalty`. */
+  dodgeEncumbrancePenalty?: number;
 }
 
 export interface CharacterAttackRange {
   from: number;
   to: number;
   bonus: number;
+  /** Workspace spec 079, D1: the part of `bonus` Deadeye gave. Missing in older sheets: 0. */
+  traitBonus?: number;
 }
 
 export interface CharacterAttack {

@@ -11,6 +11,9 @@ export class StartBreathCommand extends AuthenticatedCommand {
     public readonly note: string | null,
     userId: string,
     roles: string[],
+    /** Workspace spec 079, D5: with Breath Holding, the actor stays inactive (×2) or meditates successfully (×3). */
+    public readonly inactive = false,
+    public readonly meditation = false,
   ) {
     super(userId, roles);
   }

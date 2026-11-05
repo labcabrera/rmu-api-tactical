@@ -32,6 +32,12 @@ export class ActorRoundBreathDto {
   @ApiProperty({ type: String, nullable: true })
   note: string | null;
 
+  @ApiPropertyOptional({
+    description: 'Breath Holding (spec 079, D5): its rounds (12 × level, ×2 inactive, ×3 Meditation) and the flags; null without it',
+    nullable: true,
+  })
+  breathHolding?: { rounds: number; level: number; inactive: boolean; meditation: boolean } | null;
+
   static fromEntity(breath: ActorRoundBreath, actorRound: Pick<ActorRound, 'breathHeldRounds'>): ActorRoundBreathDto {
     return Object.assign(new ActorRoundBreathDto(), { ...breath, heldRounds: actorRound.breathHeldRounds() ?? 0 });
   }
@@ -58,6 +64,19 @@ export class StartBreathDto {
   @Min(-50)
   @Max(50)
   constitutionBonus?: number;
+
+  @ApiPropertyOptional({ description: 'Breath Holding (spec 079, D5): the actor stays inactive, twice the time', default: false })
+  @IsOptional()
+  @IsBoolean()
+  inactive?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Breath Holding (spec 079, D5): a successful Meditation maneuver, three times the time',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  meditation?: boolean;
 
   @ApiPropertyOptional({ type: String, nullable: true, example: 'Dives after the key' })
   @IsOptional()

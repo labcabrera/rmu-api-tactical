@@ -3,7 +3,8 @@ import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { NotFoundError } from '../../../../shared/domain/errors/errors.js';
 import { ActorRound } from '../../../domain/aggregates/actor-round.js';
-import { breathLimitRounds } from '../../../domain/services/environment-rules.js';
+import { breathHoldingRounds, breathLimitRounds } from '../../../domain/services/environment-rules.js';
+import { ActorRoundTrait, BREATH_HOLDING } from '../../../domain/value-objects/actor-round-trait.vo.js';
 import type { ActorRoundBreath } from '../../../domain/value-objects/actor-round-breath.vo.js';
 import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port.js';
 import { ActorSheetService } from '../../services/actor-sheet.service.js';
@@ -23,7 +24,8 @@ async function loadOpen(actorRounds: ActorRoundRepository, games: GameRepository
 /**
  * Workspace spec 079, C4 (§15.2): the actor starts holding its breath. Its limit is fixed now, with the Constitution
  * bonus of the character sheet (the one sent for an NPC, or 0): 12 + bonus prepared, the bonus alone unprepared, at
- * least 1. Breath Holding (phase 7) will replace the base.
+ * least 1. Workspace spec 079, D5: with Breath Holding, 12 × the level of the actor (×2 inactive, ×3 with Meditation)
+ * when that is longer.
  */
 @CommandHandler(StartBreathCommand)
 export class StartBreathHandler implements ICommandHandler<StartBreathCommand, ActorRound> {
@@ -50,12 +52,22 @@ export class StartBreathHandler implements ICommandHandler<StartBreathCommand, A
         constitutionSource = 'sheet';
       }
     }
+    const breathHolding =
+      ActorRoundTrait.tierOf(actorRound.traits, BREATH_HOLDING) > 0
+        ? {
+            level: actorRound.level,
+            inactive: !!command.inactive || !!command.meditation,
+            meditation: !!command.meditation,
+            rounds: breathHoldingRounds({ level: actorRound.level, inactive: command.inactive, meditation: command.meditation }),
+          }
+        : null;
     actorRound.startBreath({
       prepared: command.prepared,
       underwater: command.underwater,
       constitutionBonus,
       constitutionSource,
-      limitRounds: breathLimitRounds({ prepared: command.prepared, constitutionBonus }),
+      limitRounds: breathLimitRounds({ prepared: command.prepared, constitutionBonus, talentRounds: breathHolding?.rounds }),
+      breathHolding,
       note: command.note,
     });
     return this.actorRoundRepository.update(actorRound);

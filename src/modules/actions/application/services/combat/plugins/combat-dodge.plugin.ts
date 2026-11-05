@@ -13,6 +13,7 @@ import {
 import type { ModifierParams } from '../../../../domain/value-objects/key-value-modifier.vo.js';
 import { skip } from '../combat-phase.js';
 import type { CombatPlugin } from '../combat-plugin.js';
+import { ActorRoundMovement } from '../../../../../actor-rounds/domain/value-objects/actor-round-movement.vo.js';
 
 /** Most DB a passive dodge gives (§9.6 Dodging). */
 const MAX_PASSIVE_DODGE = 50;
@@ -28,7 +29,8 @@ const DODGE_SKILL = 'running';
 const dodgeBonus = (ctx: CombatContext): { value: number; params: ModifierParams } => {
   const target = ctx.targetActor!;
   const mode = target.defenseMode?.dodge ?? 'none';
-  const armor = Math.min(0, target.movement?.penalty || 0);
+  // Workspace spec 079, D2: the dodge takes the whole load penalty, without the allowance of Beast of Burden
+  const armor = Math.min(0, ActorRoundMovement.dodgePenaltyOf(target.movement));
   const injury = targetInjuryPenalty(ctx);
   const ranks = targetSkillRanks(ctx, DODGE_SKILL);
   const skill = targetSkill(ctx, DODGE_SKILL);

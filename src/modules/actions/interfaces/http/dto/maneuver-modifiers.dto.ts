@@ -1,3 +1,4 @@
+import type { SituationalTraitOption } from '../../../domain/services/situational-trait-bonuses.js';
 import { ApiProperty } from '@nestjs/swagger';
 import type {
   FeatOfStrengthListing,
@@ -241,6 +242,15 @@ export class ManeuverModifiersDto {
   })
   featOfStrength?: FeatOfStrengthListing;
 
+  @ApiProperty({
+    type: [Object],
+    required: false,
+    description:
+      'Spec 079, D3: situational talents of the actor for this skill (traitId, value, tier, condition, mode ticked or ' +
+      'automatic, rule, specialization, replaces)',
+  })
+  situationalTraits?: SituationalTraitOption[];
+
   static fromListing(listing: ManeuverModifiersListing): ManeuverModifiersDto {
     const dto = new ManeuverModifiersDto();
     dto.skill = { ...listing.skill };
@@ -265,6 +275,7 @@ export class ManeuverModifiersDto {
     dto.skipped = listing.skipped.map(rule => SkippedRuleDto.fromEntity(rule));
     if (listing.aids) dto.aids = listing.aids.map(modifier => ({ ...modifier }) as ManeuverBaseModifierDto);
     if (listing.featOfStrength) dto.featOfStrength = { ...listing.featOfStrength };
+    if (listing.situationalTraits) dto.situationalTraits = listing.situationalTraits.map(option => ({ ...option }));
     return dto;
   }
 }

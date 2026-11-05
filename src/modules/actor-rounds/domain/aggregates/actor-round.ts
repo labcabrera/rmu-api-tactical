@@ -118,7 +118,8 @@ import {
   suffocationHits,
   WATER_INHALED_STUN,
 } from '../services/environment-rules.js';
-import { expandSeverity } from '../../../shared/domain/severity.js';
+import { adjustSeverity, expandSeverity } from '../../../shared/domain/severity.js';
+import { elementalSeveritySteps } from '../services/elemental-talents.js';
 import { toAttackLocation } from '../../../actions/domain/value-objects/attack-location.vo.js';
 import { PoisonStages, type Random } from '../services/poison-stages.js';
 import type {
@@ -1600,7 +1601,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   /**
    * §15.3: every round in an extreme temperature without protection asks for its critical (several above E), as
    * `critical` alerts with origin `environment` the game master rolls. Nothing for a dead actor or one marked protected,
-   * and nothing twice in the same round.
+   * and nothing twice in the same round. Workspace spec 079, D4: Elemental Resistance or Susceptibility of the element
+   * (steam is heat) moves the severity one step per 2 tiers; below A there is no critical.
    */
   addEnvironmentCriticalAlerts(temperature: ResolvedExtremeTemperature): ActorRoundAlert[] {
     if (this.protectedFromEnvironment || this.isDead()) {
@@ -1613,7 +1615,12 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     if (raised) {
       return [];
     }
-    const alerts = expandSeverity(temperature.severity).map(severity =>
+    const steps = elementalSeveritySteps(this.traits, temperature.kind === 'cold' ? 'cold' : 'heat');
+    const severity = steps ? adjustSeverity(temperature.severity, steps, true) : temperature.severity;
+    if (!severity) {
+      return [];
+    }
+    const alerts = expandSeverity(severity).map(severity =>
       ActorRoundAlert.buildEnvironmentCritical(temperature.criticalType, severity, temperature.kind, this.round),
     );
     this.alerts.push(...alerts);

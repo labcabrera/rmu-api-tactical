@@ -15,6 +15,11 @@ export interface ActorRoundBreath {
   /** Where the Constitution bonus comes from: the sheet, the request (an NPC) or none (0). */
   constitutionSource: 'sheet' | 'request' | 'none';
   limitRounds: number;
+  /**
+   * Workspace spec 079, D5: the actor has Breath Holding; its rounds (12 × level, ×2 inactive, ×3 with Meditation) and the
+   * game master's flags. Missing or null without the talent.
+   */
+  breathHolding?: { rounds: number; level: number; inactive: boolean; meditation: boolean } | null;
   /** Round of the failed check; null while the actor still holds its breath. */
   failedRound: number | null;
   note: string | null;

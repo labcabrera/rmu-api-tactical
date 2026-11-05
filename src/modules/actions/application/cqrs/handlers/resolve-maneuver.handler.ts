@@ -8,6 +8,7 @@ import { ActorRoundAlert, MOVING_MANEUVER_CRITICAL_TYPE } from '../../../../acto
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
 import { Action } from '../../../domain/aggregates/action.js';
+import type { ActorRoundTrait } from '../../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { ActionManeuverResult } from '../../../domain/value-objects/action-maneuver.vo.js';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
@@ -167,10 +168,13 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
             complementary: request.complementary,
           })
         : undefined;
+    // Workspace spec 079, D3: the actor perceived or tracked by smell, whose odour talents count
+    const senseTarget = await this.senseTarget(action, request);
     const choices = {
       ...request,
       aids,
       feat,
+      senseTarget,
       difficulty: feat
         ? feat.difficulty
         : talent
@@ -188,6 +192,10 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     action.maneuver!.modifiers.similarity = request.similarity;
     action.maneuver!.modifiers.complementary = request.complementary?.length ? request.complementary : undefined;
     action.maneuver!.modifiers.featOfStrength = request.purpose === FEAT_OF_STRENGTH ? request.featOfStrength : undefined;
+    action.maneuver!.modifiers.situationalTraits = request.situationalTraits?.length ? [...new Set(request.situationalTraits)] : undefined;
+    action.maneuver!.modifiers.senseTargetActorId = senseTarget
+      ? (request.senseTargetActorId ?? request.passive?.targetActorId)
+      : undefined;
     if (talent) {
       action.maneuver!.modifiers.foeActorId = talentChoices.foeActorId;
       action.maneuver!.modifiers.foeLevel = talentChoices.foeLevel;
@@ -399,6 +407,21 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
       // A total of 0 is a valid roll (an absolute failure).
       throw new ValidationError('Required roll value');
     }
+  }
+
+  /**
+   * Workspace spec 079, D3: the actor a Perception or Tracking maneuver by smell is about (`senseTargetActorId`, else the
+   * passive side), with its talents; undefined for another sense or without one. `err-maneuver-target-not-found`.
+   */
+  private async senseTarget(
+    action: Action,
+    request: ResolveManeuverCommand['request'],
+  ): Promise<{ traits: ActorRoundTrait[]; name: string } | undefined> {
+    const targetId = request.senseTargetActorId ?? request.passive?.targetActorId;
+    if (request.senses?.sense !== 'smell' || !targetId) return undefined;
+    const target = await this.actorRoundRepository.findByActorIdAndRound(action.gameId, targetId, action.round);
+    if (!target) throw new NotFoundError('Target actor', targetId, 'err-maneuver-target-not-found');
+    return { traits: target.traits?.length ? target.traits : [], name: target.actorName };
   }
 
   private updateModifiers(action: Action, request: ManeuverChoices, context: ManeuverContext, calculation: ManeuverRollCalculation): void {

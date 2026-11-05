@@ -57,6 +57,10 @@ export class ActionManeuverModifiers {
     public complementary?: ComplementaryChoice[] | undefined,
     /** Workspace spec 079, decision B2: the load of a feat of strength. */
     public featOfStrength?: FeatOfStrengthChoices | undefined,
+    /** Workspace spec 079, D3: the situational talents the game master ticked. */
+    public situationalTraits?: string[] | undefined,
+    /** Workspace spec 079, D3: the actor perceived or tracked by smell. */
+    public senseTargetActorId?: string | undefined,
   ) {}
 }
 

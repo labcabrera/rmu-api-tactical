@@ -15,6 +15,7 @@ import { CombatActorPenaltiesPlugin } from './combat-actor-penalties.plugin.js';
 import { CombatCustomBonusPlugin } from './combat-custom-bonus.plugin.js';
 import { CombatDefensiveBonusPlugin } from './combat-defensive-bonus.plugin.js';
 import { CombatDodgePlugin } from './combat-dodge.plugin.js';
+import { CombatElementalDefensePlugin, CombatExtraJointsPlugin } from './combat-talents-079.plugin.js';
 import { CombatEffectDefenseBonusPlugin, CombatEffectOffenseBonusPlugin } from './combat-effect-bonuses.plugin.js';
 import { CombatFlatfootedTargetPlugin } from './combat-flatfooted-target.plugin.js';
 import { CombatFoilerPlugin } from './combat-foiler.plugin.js';
@@ -68,6 +69,7 @@ export const COMBAT_PLUGIN_LIST: CombatPlugin[] = [
   CombatEffectDefenseBonusPlugin,
   CombatShieldPlugin,
   CombatDodgePlugin,
+  CombatElementalDefensePlugin,
   // parry
   CombatParryPlugin,
   CombatFightingStyleTargetPlugin,
@@ -97,6 +99,7 @@ export const COMBAT_PLUGIN_LIST: CombatPlugin[] = [
   CombatCustomBonusPlugin,
   CombatFoilerPlugin,
   CombatPrecisionPlugin,
+  CombatExtraJointsPlugin,
   // beforeAttackRoll
   CombatLocationArmorPlugin,
   CombatBreakagePlugin,

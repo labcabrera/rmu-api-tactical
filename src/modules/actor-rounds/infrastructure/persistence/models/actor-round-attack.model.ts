@@ -22,6 +22,10 @@ export class AttackRange {
 
   @Prop({ required: true })
   bonus: number;
+
+  // Workspace spec 079, D1
+  @Prop({ type: Number, required: false })
+  traitBonus?: number;
 }
 
 @Schema({ _id: false })

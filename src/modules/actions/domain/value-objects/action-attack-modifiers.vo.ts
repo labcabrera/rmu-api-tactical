@@ -67,4 +67,6 @@ export class ActionAttackModifiers {
   public unfamiliarAnatomy?: boolean;
   /** Ranged attack into a melee: the other combatants engaged with the target, which give cover (§9.7, decision A6). */
   public meleeCoverActorIds?: string[];
+  /** Workspace spec 079, D3: the attack is made with the flexible limb of Extra Joints. */
+  public extraJoints?: boolean;
 }

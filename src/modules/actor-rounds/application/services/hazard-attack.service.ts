@@ -23,7 +23,8 @@ import { ActorRoundTrait, LIGHT_BONED, RAPID_BLEEDER, SLOW_BLEEDER } from '../..
 import type { HpChange } from '../../domain/value-objects/hp-log-entry.vo.js';
 import { type InjurySource, sideOfRoll } from '../../domain/value-objects/injury.vo.js';
 import type { HazardRequest } from '../cqrs/commands/resolve-hazard.command.js';
-import { resolveExtremeTemperature } from '../../domain/services/environment-rules.js';
+import { resolveExtremeTemperature, temperatureElement } from '../../domain/services/environment-rules.js';
+import { elementalSeveritySteps } from '../../domain/services/elemental-talents.js';
 
 /** Armour type when the actor has none. */
 const NO_ARMOR = 1;
@@ -180,7 +181,8 @@ export class HazardAttackService {
   /**
    * Workspace spec 079, C3 (§15.3): an extreme temperature, or contact with frost, fire or steam. No attack roll: the
    * critical of Table 15-3 (or the severity the game master gives) of cold `O`, heat `H` or steam, several above E, each
-   * rolled now or left as a `critical` alert with origin `hazard`. The elemental talents (phase 7) will move it.
+   * rolled now or left as a `critical` alert with origin `hazard`. Workspace spec 079, D4: Elemental Resistance and
+   * Susceptibility of the element (steam is heat) move the severity one step per 2 tiers (`elemental-talent`).
    */
   private async resolveTemperature(actor: ActorRound, request: HazardRequest, context: HazardContext): Promise<ActorRoundHazard> {
     const resolved = resolveExtremeTemperature({
@@ -188,6 +190,8 @@ export class HazardAttackService {
       temperature: request.temperature,
       severity: request.severity,
     });
+    const steps = severitySteps({ 'elemental-talent': elementalSeveritySteps(actor.traits, temperatureElement(resolved.kind)) });
+    const severity = resolved.severity ? adjustSeverity(resolved.severity, steps[0]?.value ?? 0, true) : null;
     const hazard: ActorRoundHazard = {
       id: randomUUID(),
       kind: request.kind,
@@ -213,8 +217,8 @@ export class HazardAttackService {
       multiplier: 1,
       damage: 0,
       originalSeverity: resolved.severity,
-      severity: resolved.severity,
-      severitySteps: [],
+      severity,
+      severitySteps: steps,
       severityCap: null,
       knockedBackAlertId: null,
       criticals: [],
@@ -228,7 +232,7 @@ export class HazardAttackService {
       createdAt: new Date().toISOString(),
     };
     const source: InjurySource = { kind: 'hazard', tacticalGameId: context.gameId, tacticalGameName: context.gameName, round: actor.round };
-    await this.addCriticals(actor, hazard, resolved.criticalType, resolved.severity, request.criticalRolls, source, context);
+    await this.addCriticals(actor, hazard, resolved.criticalType, severity, request.criticalRolls, source, context);
     actor.hazards.push(hazard);
     return hazard;
   }

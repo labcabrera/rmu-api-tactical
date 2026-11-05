@@ -97,6 +97,12 @@ import {
   type ManeuverSkillBonus,
 } from './maneuver-base-modifiers.service.js';
 import { ERR_INVALID_MODIFIER, resolveSelections } from './maneuver-selections.js';
+import {
+  situationalTraitModifiers,
+  situationalTraitOptions,
+  type SituationalTraitOption,
+  targetOdorModifiers,
+} from '../../../domain/services/situational-trait-bonuses.js';
 
 export const DEFAULT_DIFFICULTY: Difficulty = 'm';
 
@@ -179,6 +185,11 @@ export interface ManeuverModifiersListing {
   aids?: KeyValueModifier[];
   /** Workspace spec 079, decision B2: the sheet of a feat of strength, and its difficulty when the load was given. */
   featOfStrength?: FeatOfStrengthListing;
+  /**
+   * Workspace spec 079, D3: the situational talents of the actor for this skill: the `ticked` ones the game master may
+   * tick, and the `automatic` ones of the purpose.
+   */
+  situationalTraits?: SituationalTraitOption[];
 }
 
 /**
@@ -230,6 +241,10 @@ export interface ManeuverChoices {
   aids?: KeyValueModifier[];
   /** Workspace spec 079, decision B2: the feat of strength whose difficulty replaces the one chosen. */
   feat?: FeatOfStrengthResult;
+  /** Workspace spec 079, D3: the situational talents the game master ticked. */
+  situationalTraits?: string[];
+  /** Workspace spec 079, D3: the actor perceived or tracked, whose odour talents count when the sense is smell. */
+  senseTarget?: { traits: ActorRoundTrait[]; name: string };
 }
 
 export interface ManeuverRollCalculation {
@@ -408,7 +423,21 @@ export class ManeuverContextService {
     if (context.maneuverType === 'percent') {
       listing.progress = action.maneuver?.progress ?? 0;
     }
+    const situational = situationalTraitOptions(traits, ManeuverContextService.situationalManeuver(context));
+    if (situational.length) {
+      listing.situationalTraits = situational;
+    }
     return listing;
+  }
+
+  /** What the situational talents read of the maneuver (workspace spec 079, D3). */
+  static situationalManeuver(context: ManeuverContext, purpose?: ManeuverPurpose) {
+    return {
+      skillId: context.skill.skillId,
+      specialization: context.skill.specialization,
+      categoryId: context.categoryId ?? null,
+      purpose: purpose ?? context.purpose,
+    };
   }
 
   /**
@@ -513,6 +542,13 @@ export class ManeuverContextService {
           modifier => new KeyValueModifier(modifier.key, modifier.value, 'situation', 'fog', FOG_RULE, modifier.params),
         ),
       );
+    }
+    // Workspace spec 079, D3: the situational talents ticked and the automatic ones, and the odour of the target by smell
+    modifiers.push(
+      ...situationalTraitModifiers(traits, ManeuverContextService.situationalManeuver(context, choices.purpose), choices.situationalTraits),
+    );
+    if (choices.senseTarget && SENSE_SKILL_IDS.includes(context.skill.skillId)) {
+      modifiers.push(...targetOdorModifiers(choices.senseTarget.traits, context.skill.skillId, sense, choices.senseTarget.name));
     }
     modifiers.push(...resolveSelections(context.catalog, choices.selections));
     if (isFrenzyPurpose(choices.purpose)) {

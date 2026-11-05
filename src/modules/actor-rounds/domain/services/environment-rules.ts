@@ -159,22 +159,47 @@ export interface BreathLimitInput {
   prepared: boolean;
   constitutionBonus: number;
   /**
-   * Workspace spec 079, D5 (phase 7): Breath Holding replaces the base with its own count of rounds. Missing: the base
-   * of §15.2.
+   * Workspace spec 079, D5: Breath Holding gives its own count of rounds (`breathHoldingRounds`). The limit is the
+   * longer of it and the one of §15.2, so the talent never shortens it. Missing: the base of §15.2.
    */
   talentRounds?: number | null;
 }
 
 /**
  * Rounds the actor holds its breath before the checks (§15.2): 12 plus the Constitution bonus when prepared, the bonus
- * alone otherwise, at least 1.
+ * alone otherwise, at least 1; with Breath Holding, its rounds when they are more.
  */
 export function breathLimitRounds(input: BreathLimitInput): number {
-  if (typeof input.talentRounds === 'number' && input.talentRounds > 0) {
-    return Math.max(BREATH_MIN_ROUNDS, Math.floor(input.talentRounds));
-  }
   const bonus = Math.trunc(input.constitutionBonus || 0);
-  return Math.max(BREATH_MIN_ROUNDS, (input.prepared ? BREATH_PREPARED_BASE_ROUNDS : 0) + bonus);
+  const base = Math.max(BREATH_MIN_ROUNDS, (input.prepared ? BREATH_PREPARED_BASE_ROUNDS : 0) + bonus);
+  if (typeof input.talentRounds === 'number' && input.talentRounds > 0) {
+    return Math.max(base, Math.floor(input.talentRounds));
+  }
+  return base;
+}
+
+/** Breath Holding: one minute (12 rounds) per character level (Core Law ch. 4). */
+export const BREATH_HOLDING_ROUNDS_PER_LEVEL = 12;
+/** Breath Holding while inactive: twice the time; with a successful Meditation maneuver, three times. */
+export const BREATH_HOLDING_INACTIVE_FACTOR = 2;
+export const BREATH_HOLDING_MEDITATION_FACTOR = 3;
+
+/** How the actor with Breath Holding holds its breath: the game master says if it stays inactive or meditates. */
+export interface BreathHoldingInput {
+  level: number;
+  inactive?: boolean;
+  /** A successful Meditation maneuver; it implies staying inactive. */
+  meditation?: boolean;
+}
+
+/**
+ * Workspace spec 079, D5: the rounds of Breath Holding, 12 × the character level (at least level 1), ×2 inactive and
+ * ×3 with a successful Meditation (the two do not stack: Meditation wins).
+ */
+export function breathHoldingRounds(input: BreathHoldingInput): number {
+  const level = Math.max(1, Math.floor(input.level || 0));
+  const factor = input.meditation ? BREATH_HOLDING_MEDITATION_FACTOR : input.inactive ? BREATH_HOLDING_INACTIVE_FACTOR : 1;
+  return BREATH_HOLDING_ROUNDS_PER_LEVEL * level * factor;
 }
 
 /** Difficulty of the check number `index` (0 the first one past the limit). */

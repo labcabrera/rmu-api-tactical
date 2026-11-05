@@ -410,6 +410,26 @@ export class ResolveManeuverDto {
   @Type(() => FeatOfStrengthDto)
   featOfStrength?: FeatOfStrengthDto;
 
+  @ApiProperty({
+    description: 'Spec 079, D3: situational talents of the actor the game master ticks (err-maneuver-situational-trait)',
+    type: [String],
+    required: false,
+    example: ['golden-throat'],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  situationalTraits?: string[];
+
+  @ApiProperty({
+    description: 'Spec 079, D3: actor perceived or tracked by smell, whose Neutral or Distinct Odor counts (targetActorId when left out)',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  senseTargetActorId?: string;
+
   @ApiProperty({ description: 'Roll; a grapple escape sends one in each grappleEscape row instead', type: ManeuverRollDto })
   @ValidateIf((dto: ResolveManeuverDto) => dto.purpose !== 'grapple-escape' || dto.roll !== undefined)
   @ValidateNested()
@@ -467,6 +487,8 @@ export class ResolveManeuverDto {
         ...(helper.specialization ? { specialization: helper.specialization } : {}),
       })),
       dto.featOfStrength ? { ...dto.featOfStrength } : undefined,
+      dto.situationalTraits,
+      dto.senseTargetActorId,
     );
   }
 

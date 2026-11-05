@@ -100,4 +100,8 @@ export class ActionAttackModifiers {
 
   @Prop({ type: [String], required: false })
   public meleeCoverActorIds?: string[];
+
+  /** Workspace spec 079, D3. */
+  @Prop({ type: Boolean, required: false })
+  public extraJoints?: boolean;
 }

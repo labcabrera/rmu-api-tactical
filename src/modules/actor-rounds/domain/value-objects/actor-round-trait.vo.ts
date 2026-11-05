@@ -93,6 +93,25 @@ export const LACK_OF_SCOPE = 'lack-of-scope';
 export const LACK_OF_TIME = 'lack-of-time';
 /** +5 per tier to the RR against mental attack spells of any realm (decision C9). */
 export const IRON_WILL = 'iron-will';
+// Talents of workspace spec 079, block D (Core Law ch. 4); ids of the Character Companion catalog
+export const DEADEYE = 'deadeye';
+export const VIGOROUS = 'vigorous';
+export const FEEBLE = 'feeble';
+/** Endurance per tier of Vigorous and Feeble. */
+const ENDURANCE_PER_TIER = 10;
+export const BREATH_HOLDING = 'breath-holding';
+export const EXTRA_JOINTS = 'extra-joints';
+export const GOLDEN_THROAT = 'golden-throat';
+export const PERFECT_PITCH = 'perfect-pitch';
+export const MUSICAL = 'musical';
+export const EMPATHY = 'empathy';
+/** Taken for an animal type (its specialization). */
+export const ANIMAL_EMPATHY = 'animal-empathy';
+export const LIGHT_SLEEPER = 'light-sleeper';
+export const HEAVY_SLEEPER = 'heavy-sleeper';
+export const WINGS_VESTIGIAL = 'wings-vestigial';
+export const NEUTRAL_ODOR = 'neutral-odor';
+export const DISTINCT_ODOR = 'distinct-odor';
 
 /** Talent or flaw of the actor, copied from its character sheet. */
 export class ActorRoundTrait {
@@ -135,6 +154,11 @@ export class ActorRoundTrait {
     }
     const [baseSkill, weaponType] = skillId.split('@');
     return specialization === baseSkill || specialization === weaponType;
+  }
+
+  /** Workspace spec 079, D2: Vigorous (+10 per tier) and Feeble (-10 per tier) to every Endurance roll. */
+  static enduranceBonusOf(traits: ActorRoundTrait[] | undefined): number {
+    return ENDURANCE_PER_TIER * (ActorRoundTrait.tierOf(traits, VIGOROUS) - ActorRoundTrait.tierOf(traits, FEEBLE));
   }
 
   private static maxTier(traits: ActorRoundTrait[]): number {

@@ -50,6 +50,8 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
       character.equipment.maneuverPenalty + character.equipment.encumbrancePenalty,
       character.movement.maxPace,
       character.equipment.movementBaseDifficulty,
+      // Workspace spec 079, D2: the dodge keeps the load penalty without Beast of Burden
+      character.equipment.maneuverPenalty + (character.equipment.dodgeEncumbrancePenalty ?? character.equipment.encumbrancePenalty),
     );
     const actorRound = ActorRound.create(
       gameId,
@@ -121,11 +123,11 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
 
   /**
    * Workspace spec 077, decision D9: the fatigue penalty of the sheet (0-50) and the endurance bonus, Body Development
-   * plus the racial endurance bonus.
+   * plus the racial endurance bonus. Workspace spec 079, D2: plus Vigorous and Feeble (`endurance.traitBonus`).
    */
   static mapFatigue(character: Character): ActorRoundFatigue {
     const bodyDevelopment = character.skills?.find(skill => skill.skillId === BODY_DEVELOPMENT_SKILL_ID)?.totalBonus ?? 0;
-    const endurance = bodyDevelopment + (character.endurance?.racialBonus ?? 0);
+    const endurance = bodyDevelopment + (character.endurance?.racialBonus ?? 0) + (character.endurance?.traitBonus ?? 0);
     return new ActorRoundFatigue(endurance, ActorRoundCharacterMapperAdapter.fatiguePenaltyOf(character), 0);
   }
 
@@ -229,7 +231,7 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
         attack.fumble,
         false,
         attack.meleeRange,
-        attack.ranges,
+        attack.ranges ? attack.ranges.map(range => ({ ...range })) : attack.ranges,
         attack.twoHanded ?? false,
         attack.weaponCategory ?? 'standard',
         attack.skillId || null,

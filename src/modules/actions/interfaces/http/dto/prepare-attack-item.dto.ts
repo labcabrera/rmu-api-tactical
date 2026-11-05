@@ -237,6 +237,15 @@ export class PrepareAttackModifiersDto {
   @IsString({ each: true })
   meleeCoverActorIds: string[] | undefined;
 
+  @ApiProperty({
+    type: Boolean,
+    description: 'Spec 079, D3: the attack is made with the flexible limb of Extra Joints (+20 when the attacker has it)',
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  extraJoints: boolean | undefined;
+
   static toCommand(dto: PrepareAttackModifiersDto): PrepareAttackCommandModifiers {
     return new PrepareAttackCommandModifiers(
       dto.targetId,
@@ -271,6 +280,7 @@ export class PrepareAttackModifiersDto {
         subdualBonus: dto.subdualBonus,
         unfamiliarAnatomy: dto.unfamiliarAnatomy,
         meleeCoverActorIds: dto.meleeCoverActorIds,
+        extraJoints: dto.extraJoints,
       },
     );
   }

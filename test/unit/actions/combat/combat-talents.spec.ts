@@ -234,11 +234,22 @@ describe('Combat talents', () => {
       expect(rollModifierValues(ctx)).toEqual({ uncoordinated: -25 });
     });
 
-    it('rejects the attack when the pace counts as sprint or dash', async () => {
-      await expect(prepare({ pace: 'run', sourceTraits: [trait('uncoordinated', 1)] })).rejects.toThrow(ValidationError);
-      await expect(prepare({ pace: 'run', sourceTraits: [trait('uncoordinated', 1)] })).rejects.toMatchObject({
+    it('keeps the attack legal when the pace counts as sprint or dash, -25 per pace beyond run (spec 079, D1)', async () => {
+      expect(rollModifierValues(await prepare({ pace: 'run', sourceTraits: [trait('uncoordinated', 1)] }))).toEqual({
+        'pace-penalty': -75,
+        uncoordinated: -25,
+      });
+      expect(rollModifierValues(await prepare({ pace: 'jog', sourceTraits: [trait('uncoordinated', 2)] }))).toEqual({
+        'pace-penalty': -50,
+        uncoordinated: -50,
+      });
+    });
+
+    it('rejects the attack only for the declared pace (spec 079, D1)', async () => {
+      await expect(prepare({ pace: 'sprint', sourceTraits: [trait('uncoordinated', 1)] })).rejects.toMatchObject({
         code: 'err-attack-invalid-pace',
       });
+      await expect(prepare({ pace: 'dash' })).rejects.toThrow(ValidationError);
     });
   });
 

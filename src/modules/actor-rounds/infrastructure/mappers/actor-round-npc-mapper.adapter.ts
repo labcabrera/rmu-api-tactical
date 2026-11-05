@@ -14,6 +14,7 @@ import { ActorRound, BASE_ACTION_POINTS } from '../../domain/aggregates/actor-ro
 import { ActorSheetService } from '../../application/services/actor-sheet.service.js';
 import { ActorRoundAttack, type WeaponCategory } from '../../domain/value-objects/actor-round-attack.vo.js';
 import { ActorRoundDefense } from '../../domain/value-objects/actor-round-defense.vo.js';
+import { ActorRoundTrait } from '../../domain/value-objects/actor-round-trait.vo.js';
 import { ActorRoundFatigue } from '../../domain/value-objects/actor-round-fatigue.vo.js';
 import { ActorRoundHP } from '../../domain/value-objects/actor-round-hp.vo.js';
 import { ActorRoundInitiative } from '../../domain/value-objects/actor-round-initiative.vo.js';
@@ -74,8 +75,14 @@ export class ActorRoundNpcMapperAdapter implements ActorRoundNpcMapperPort {
       new ActorRoundInitiative(npc.initiative, 0, undefined, undefined),
       BASE_ACTION_POINTS,
       new ActorRoundHP(npc.hp, npc.hp, ActorRoundNpcMapperAdapter.deathThreshold(npc)),
-      // Workspace spec 077, decision D9: the endurance of an NPC is its Body Development, if it has it.
-      new ActorRoundFatigue(npc.skills?.find(skill => skill.skillId === 'body-development')?.bonus ?? 0, 0, 0),
+      // Workspace spec 077, decision D9: the endurance of an NPC is its Body Development, if it has it; spec 079, D2:
+      // plus Vigorous and Feeble of its stat block.
+      new ActorRoundFatigue(
+        (npc.skills?.find(skill => skill.skillId === 'body-development')?.bonus ?? 0) +
+          ActorRoundTrait.enduranceBonusOf(ActorSheetService.npcTraits(npc)),
+        0,
+        0,
+      ),
       ActorRoundPenalty.empty(),
       new ActorRoundDefense(npc.db, npc.at, npc.at, npc.at, npc.at, npc.at, shield, 0),
       (npc.attacks || []).flatMap((attack, index) => (attack.attackTable ? [this.mapAttack(attack, attack.attackTable, index)] : [])),

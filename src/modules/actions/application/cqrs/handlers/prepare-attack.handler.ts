@@ -510,6 +510,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       modifiers.unfamiliarAnatomy = special?.unfamiliarAnatomy ?? false;
     }
     modifiers.meleeCoverActorIds = [...new Set(special?.meleeCoverActorIds ?? [])];
+    if (special?.extraJoints) modifiers.extraJoints = true;
     if (modifiers.styleCriticalOption) {
       checkStyleCriticalOption(source.activeStyle, commandAttack.attackName, modifiers.styleCriticalOption);
     }

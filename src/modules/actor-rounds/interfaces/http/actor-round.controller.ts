@@ -297,7 +297,8 @@ export class ActorRoundController {
     operationId: 'startBreath',
     summary: 'The actor starts holding its breath in this round (spec 079, C4, game master only)',
     description:
-      'Limit: 12 + Constitution bonus rounds when prepared, the bonus alone when not, at least 1. Past it, each upkeep raises ' +
+      'Limit: 12 + Constitution bonus rounds when prepared, the bonus alone when not, at least 1; with Breath Holding (spec 079, ' +
+      'D5) 12 × level rounds, ×2 inactive, ×3 with Meditation, when longer. Past it, each upkeep raises ' +
       'a breath-check alert (absolute Endurance maneuver, Easy and a step harder each round, +25 with Adrenal Focus) resolved ' +
       'with its outcome; a failure starts the suffocation (1d10 hits per round, stunned -50 underwater).',
   })
@@ -316,6 +317,8 @@ export class ActorRoundController {
       dto.note?.trim() || null,
       user.id,
       user.roles,
+      dto.inactive ?? false,
+      dto.meditation ?? false,
     );
     return ActorRoundDto.fromEntity(await this.commandBus.execute<StartBreathCommand, ActorRound>(command));
   }

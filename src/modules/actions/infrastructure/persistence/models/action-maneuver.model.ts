@@ -74,6 +74,13 @@ export class ActionManeuverModifiers {
   /** Workspace spec 079, decision B2. */
   @Prop({ type: Object, required: false })
   featOfStrength: FeatOfStrengthChoices | undefined;
+
+  /** Workspace spec 079, D3. */
+  @Prop({ type: [String], required: false, default: undefined })
+  situationalTraits: string[] | undefined;
+
+  @Prop({ type: String, required: false })
+  senseTargetActorId: string | undefined;
 }
 
 @Schema({ _id: false })
