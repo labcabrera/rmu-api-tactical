@@ -21,6 +21,7 @@ import {
   PRESSING_ADVANTAGE,
   UNCONSCIOUS,
   AIMING,
+  DISARMED,
 } from '../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
 import {
   ActorRoundTrait,
@@ -45,6 +46,7 @@ import { ADDITIONAL_CRITICAL, FUMBLE_HITS } from '../../../domain/services/fumbl
 import { riposteTrigger } from '../../../domain/services/reaction-rules.js';
 import { aimingAfterRangedAttacks } from '../../../domain/services/aiming.js';
 import { precisionEffectFor } from '../../../domain/services/precision.js';
+import { isDisarmSuccess, pickStrayShotTarget } from '../../../domain/services/special-maneuvers.js';
 import { ActionAttack } from '../../../domain/value-objects/action-attack.vo.js';
 import type { CriticalEffect } from '../../../domain/value-objects/critical-result.vo.js';
 import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo.js';
@@ -142,6 +144,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     const updateCommands = new Map<string, AddEffectsCommand>();
     const origin: AttackOrigin = { game, action, sourceActor };
     actionAttacks.forEach(actionAttack => {
+      this.processDisarm(actionAttack, actors, origin, applications, updateCommands, command.userId, command.roles);
       this.processTargetEffects(actionAttack, actors, origin, applications, updateCommands, command.userId, command.roles);
       this.processSourceEffects(actionAttack, origin, applications, updateCommands, command.userId, command.roles);
     });
@@ -158,6 +161,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     await this.processDeclareActorParry(action, command.userId, command.roles);
     await this.processFatigue(action, game.round, strategicGame, command.userId, command.roles);
     await this.raiseRipostes(action, actors, game);
+    await this.raiseStrayShots(action, sourceActor, game);
 
     // The AP and the last phase of the attack come from the ledger (spec 011, §9).
     action.completeAttacks();
@@ -311,6 +315,58 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
         await this.actorRoundRepository.update(current);
       }
     }
+  }
+
+  /**
+   * Workspace spec 079, decision A7 (Table 9-7a): a successful disarm drops the target's weapon: `disarmed` (until the game
+   * master removes it, as the one of the criticals) and a breakage check of the weapon. An absolute success or an
+   * unmodified 66 is narrated by the game master.
+   */
+  private processDisarm(
+    actionAttack: ActionAttack,
+    actors: ActorRound[],
+    origin: AttackOrigin,
+    applications: Map<string, EffectApplication>,
+    updateCommands: Map<string, AddEffectsCommand>,
+    userId: string,
+    roles: string[],
+  ): void {
+    if (!isDisarmSuccess(actionAttack.disarm?.result)) return;
+    const target = actors.find(a => a.actorId === actionAttack.modifiers.targetId);
+    if (!target) return;
+    const cmd = this.commandFor(target, applications, updateCommands, userId, roles);
+    if (!target.isDisarmed()) {
+      cmd.effects.push(new ActorRoundEffect(randomUUID(), DISARMED, undefined, undefined));
+    }
+    cmd.disarmBreakage = true;
+  }
+
+  /**
+   * Workspace spec 079, decision A6 (§9.7 Firing into Melee): a ranged attack with combatants in the way that makes no
+   * hits (decision: a miss is no hits, no critical) may hit one of them, chosen at random. The alert goes to the attacker,
+   * read again since the effects were already saved; the second attack of a stray shot raises none.
+   */
+  private async raiseStrayShots(action: Action, sourceActor: ActorRound, game: Game): Promise<void> {
+    if (action.strayShot) return;
+    const missed = (action.attacks || []).filter(
+      attack =>
+        attack.type !== 'melee' &&
+        (attack.modifiers.meleeCoverActorIds?.length ?? 0) > 0 &&
+        !isDisarmSuccess(attack.disarm?.result) &&
+        (attack.results?.attackTableEntry?.damage ?? 0) <= 0 &&
+        (attack.results?.criticals?.length ?? 0) === 0,
+    );
+    if (missed.length === 0) return;
+    const current = await this.actorRoundRepository.findById(sourceActor.id);
+    if (!current) return;
+    let raised = false;
+    for (const attack of missed) {
+      const candidates = attack.modifiers.meleeCoverActorIds!;
+      const targetActorId = pickStrayShotTarget(candidates)!;
+      const data = { actionId: action.id, attackName: attack.attackName, targetActorId, candidates, round: game.round };
+      raised = !!current.addStrayShotAlert(data) || raised;
+    }
+    if (raised) await this.actorRoundRepository.update(current);
   }
 
   private async processDeclareActorParry(action: Action, userId: string, roles: string[]): Promise<void> {

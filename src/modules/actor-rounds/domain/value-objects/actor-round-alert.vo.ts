@@ -51,7 +51,19 @@ export interface ReactionAlertData {
 export type PenaltyEnduranceReason = 'penalty-exertion' | 'penalty-dying';
 
 /** What asks for a breakage check (spec 019, decision 6). */
-export type BreakageOrigin = 'attack-roll' | 'critical' | 'fumble';
+export type BreakageOrigin = 'attack-roll' | 'critical' | 'fumble' | 'disarm';
+
+/**
+ * Workspace spec 079, decision A6 (§9.7 Firing into Melee): the ranged attack `attackName` of the action `actionId` missed;
+ * it may hit `targetActorId`, chosen at random among the combatants that gave cover (`candidates`).
+ */
+export interface StrayShotData {
+  actionId: string;
+  attackName: string;
+  targetActorId: string;
+  candidates: string[];
+  round: number;
+}
 
 export class ActorRoundAlert {
   constructor(
@@ -121,6 +133,20 @@ export class ActorRoundAlert {
     if (severityCap) modifiers.push(new ActorRoundAlertModifier('severityCap', null, severityCap));
     if (criticalKey) modifiers.push(new ActorRoundAlertModifier('criticalKey', null, criticalKey));
     return new ActorRoundAlert(randomUUID(), 'knocked-back', `Knocked back ${feet} feet`, modifiers);
+  }
+
+  /**
+   * Workspace spec 079, decision A6: a missed shot into a melee. The game master confirms it, declaring the second attack
+   * (OB 0, no cover, fumbles ignored) as a forced `stray-shot` attack, or dismisses it.
+   */
+  static buildStrayShot(data: StrayShotData): ActorRoundAlert {
+    return new ActorRoundAlert(randomUUID(), 'stray-shot', `The missed shot may hit ${data.targetActorId}`, [
+      new ActorRoundAlertModifier('actionId', null, data.actionId),
+      new ActorRoundAlertModifier('attackName', null, data.attackName),
+      new ActorRoundAlertModifier('targetActorId', null, data.targetActorId),
+      ...data.candidates.map(candidate => new ActorRoundAlertModifier('candidate', null, candidate)),
+      new ActorRoundAlertModifier('round', data.round, null),
+    ]);
   }
 
   /** An endurance alert asked by the accumulated fatigue (§5.5), not by the total penalties (spec 079). */

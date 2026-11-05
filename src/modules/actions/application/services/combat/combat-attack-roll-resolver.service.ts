@@ -13,6 +13,7 @@ import { CombatModifierBag } from './combat-modifier-bag.js';
 import { sourceAttackOf } from './combat-source-attack.js';
 import { needsLocationRoll } from './plugins/combat-location-armor.plugin.js';
 import { CombatProcessor } from './engine/combat-processor.service.js';
+import { type DisarmResult, disarmResult } from '../../../domain/services/special-maneuvers.js';
 
 export interface ResolveAttackRollInput {
   action: Action;
@@ -75,8 +76,13 @@ export class CombatAttackRollResolverService {
     calculated.rollTotal = ctx.rollTotal;
     attack.roll = new ActionAttackRoll(ctx.attackRoll!, undefined, undefined, input.unmodified);
 
-    if (ctx.fumbled) {
+    const disarm = ctx.fumbled ? null : this.resolveDisarm(ctx);
+    if (ctx.fumbled || disarm === 'absolute-failure') {
+      // Table 9-7a: an absolute failure of a disarm fumbles the weapon, through the fumble roll of the attack.
       attack.results = new ActionAttackResult(undefined, undefined, new Fumble('pending_roll', undefined, undefined, undefined, undefined));
+    } else if (disarm && disarm !== 'partial') {
+      // Table 9-7a: a disarm that fails or succeeds makes no attack; its effects come when it is applied.
+      attack.results = new ActionAttackResult(undefined, undefined, undefined);
     } else {
       ctx.attackTableEntry = await this.attackTablePort.lookup({
         attackTable: ctx.sourceAttack!.attackTable,
@@ -110,6 +116,28 @@ export class CombatAttackRollResolverService {
     }
   }
 
+  /**
+   * Workspace spec 079, decision A7: a disarm reads its total on the bands of Table 9-7a. A partial success becomes a
+   * normal attack with the same roll and every modifier but the disarm ones, which `ctx.rollTotal` takes. Null when the
+   * attack is not a disarm.
+   */
+  private resolveDisarm(ctx: CombatContext): DisarmResult | null {
+    const attack = ctx.attack!;
+    attack.disarm = null;
+    if ((attack.modifiers.attackMode ?? 'normal') !== 'disarm') {
+      return null;
+    }
+    const total = ctx.rollTotal!;
+    const result = disarmResult(total);
+    const disarmModifiers = (attack.calculated!.rollModifiers || []).filter(modifier => modifier.source === 'disarm');
+    const attackTotal = result === 'partial' ? total - CombatModifierBag.from(disarmModifiers).sum() : null;
+    attack.disarm = { result, total, attackTotal, unusual: (ctx.unmodifiedRoll ?? ctx.attackRoll) === 66 };
+    if (attackTotal !== null) {
+      ctx.rollTotal = attackTotal;
+    }
+    return result;
+  }
+
   /** A new roll replaces the previous one: its results and what the roll phases added. */
   private resetPreviousRoll(ctx: CombatContext): void {
     const calculated = ctx.attack!.calculated!;
@@ -133,6 +161,10 @@ export class CombatAttackRollResolverService {
    * checked against the unmodified die (Fumbling, ch. 9), not the open-ended total.
    */
   private isFumble(ctx: CombatContext): boolean {
+    // Workspace spec 079, decision A6 (§9.7 Firing into Melee): the second attack of a stray shot ignores fumbles.
+    if (ctx.action.strayShot) {
+      return false;
+    }
     const fumble = ctx.attack?.calculated?.fumble ?? (ctx.sourceAttack!.fumble || 0);
     return fumble > 0 && (ctx.unmodifiedRoll ?? ctx.attackRoll!) <= fumble;
   }

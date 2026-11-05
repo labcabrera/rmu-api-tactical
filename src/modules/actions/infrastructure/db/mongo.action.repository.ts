@@ -61,6 +61,7 @@ export class MongoActionRepository extends MongoBaseRepository<Action, ActionMod
       otherAction: doc.otherAction
         ? { kind: doc.otherAction.kind, attackName: doc.otherAction.attackName ?? null, ap: doc.otherAction.ap }
         : null,
+      strayShot: doc.strayShot ? { ...doc.strayShot } : null,
       owner: doc.owner,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,

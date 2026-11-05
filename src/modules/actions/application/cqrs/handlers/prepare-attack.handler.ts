@@ -38,6 +38,8 @@ import type {
 } from '../../services/combat/index.js';
 import { COMBAT_SKILL_IDS, CombatModifierBag, CombatProcessor, sizeDifference, sourceAttackOf } from '../../services/combat/index.js';
 import { PrepareAttackCommand, PrepareAttackCommandItem } from '../commands/prepare-attack.command.js';
+import { type AttackTableModifiersPort, ATTACK_TABLE_MODIFIERS_PORT } from '../../ports/attack-table.port.js';
+import { specialManeuverModifier } from '../../../domain/services/special-maneuvers.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 /** An attack with the body (natural weapons, unarmed skills), which a disarmed actor can still make. */
@@ -56,6 +58,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     @Inject(STRATEGIC_GAME_PORT) private readonly strategicGameClient: StrategicGameApiClient,
     @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
     private readonly combatProcessor: CombatProcessor,
+    @Inject(ATTACK_TABLE_MODIFIERS_PORT) private readonly attackTables: AttackTableModifiersPort,
   ) {}
 
   async execute(command: PrepareAttackCommand): Promise<Action> {
@@ -64,6 +67,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const action = await this.actionRepository.findById(command.actionId);
     if (!action) throw new NotFoundError('Action', command.actionId);
     if (action.actionType === 'cast_spell') this.checkSpellAttack(action, command);
+    if (action.strayShot) PrepareAttackHandler.applyStrayShot(action, command);
 
     const game = await this.gameRepository.findById(action.gameId);
     if (!game) throw new NotFoundError('Game', action.gameId);
@@ -84,6 +88,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const warnings = PrepareAttackHandler.chargeWarnings(command, sourceActorRound);
     action.actionPoints = action.apOf(sourceActorRound, currentPhase);
     const actionAttacks = command.attacks.map(attack => this.mapAttacks(attack, action, sourceActorRound));
+    actionAttacks.forEach(attack => PrepareAttackHandler.checkSpecialManeuvers(action, attack));
 
     const characters = await this.readSheets(actors);
     const sourceCharacter = characters.get(action.actorId);
@@ -188,6 +193,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     ctx.targetTraits = ctx.targetActor.traits || [];
 
     ctx.attackPreparation = this.mapAttackPreparation(ctx);
+    ctx.attackPreparation.modifiers.specialManeuverModifier = await this.readSpecialManeuverModifier(ctx);
     ctx = await this.combatProcessor.runPhase('prepare', ctx);
 
     ctx.attackCalculation = this.calculatePreparedAttack(ctx);
@@ -259,7 +265,75 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
   private getActorIds(action: Action, command: PrepareAttackCommand): string[] {
     const targetIds = command.attacks.map(a => a.modifiers.targetId);
     const protectors = command.attacks.flatMap(a => a.protectors || []);
-    return Array.from(new Set([...targetIds, ...protectors, action.actorId]));
+    // Workspace spec 079, A6: the combatants giving cover must be actors of the round too.
+    const meleeCover = command.attacks.flatMap(a => a.modifiers.special?.meleeCoverActorIds || []);
+    return Array.from(new Set([...targetIds, ...protectors, ...meleeCover, action.actorId]));
+  }
+
+  /**
+   * Workspace spec 079, decision A6 (§9.7 Firing into Melee): the attack of a stray shot is a single attack with the
+   * weapon that missed against the combatant chosen, at OB 0, without cover nor combatants in the way, as a normal attack.
+   */
+  static applyStrayShot(action: Action, command: PrepareAttackCommand): void {
+    const stray = action.strayShot!;
+    const attack = command.attacks[0];
+    if (command.attacks.length !== 1 || attack.attackName !== stray.attackName || attack.modifiers.targetId !== stray.targetActorId) {
+      throw new ValidationError(
+        `A stray shot is one attack with ${stray.attackName} against ${stray.targetActorId}`,
+        'err-stray-shot-invalid',
+        { attackName: stray.attackName, targetActorId: stray.targetActorId },
+      );
+    }
+    attack.modifiers.bo = 0;
+    attack.modifiers.cover = 'none';
+    attack.modifiers.special = { attackMode: 'normal' };
+    attack.protectors = null;
+  }
+
+  /**
+   * Workspace spec 079, decisions A6-A7: a disarm or subdual is a weapon attack, not a spell's; a disarm needs the
+   * defender's roll; only a ranged or thrown attack has combatants in the way, never the target or the attacker
+   * (`err-attack-mode-invalid`, `err-disarm-defense-roll-required`, `err-melee-cover-invalid`).
+   */
+  static checkSpecialManeuvers(action: Action, attack: ActionAttack): void {
+    const modifiers = attack.modifiers;
+    const mode = modifiers.attackMode ?? 'normal';
+    if (mode !== 'normal' && action.actionType === 'cast_spell') {
+      throw new ValidationError(`A spell attack cannot ${mode}`, 'err-attack-mode-invalid', { attackMode: mode });
+    }
+    if (mode === 'disarm' && (modifiers.disarmDefenseRoll === undefined || modifiers.disarmDefenseRoll === null)) {
+      throw new ValidationError("A disarm needs the total of the defender's roll", 'err-disarm-defense-roll-required');
+    }
+    const cover = modifiers.meleeCoverActorIds ?? [];
+    if (cover.length > 0 && attack.type === 'melee') {
+      throw new ValidationError('Only a ranged attack is fired into a melee', 'err-melee-cover-invalid', { reason: 'melee' });
+    }
+    if (cover.some(actorId => actorId === modifiers.targetId || actorId === action.actorId)) {
+      throw new ValidationError('The combatants in the way are neither the target nor the attacker', 'err-melee-cover-invalid', {
+        reason: 'self',
+      });
+    }
+  }
+
+  /**
+   * Workspace spec 079, decision A7: the disarm or subdual modifier of the weapon's attack table (Tables 9-7a and 9-7e),
+   * only for those modes. A table where the maneuver does not apply (balls, bolts) rejects it (`err-attack-mode-invalid`).
+   */
+  private async readSpecialManeuverModifier(ctx: CombatContext): Promise<number | null> {
+    const mode = ctx.attack!.modifiers.attackMode ?? 'normal';
+    if (mode === 'normal') {
+      return null;
+    }
+    const table = ctx.sourceAttack!.attackTable;
+    const modifiers = await this.attackTables.modifiers(table);
+    const value = specialManeuverModifier(mode === 'disarm' ? modifiers.disarm : modifiers.subdual, ctx.attack!.type);
+    if (value === null) {
+      throw new ValidationError(`The attack table ${table} does not allow to ${mode}`, 'err-attack-mode-invalid', {
+        attackMode: mode,
+        attackTable: table,
+      });
+    }
+    return value;
   }
 
   /**
@@ -425,6 +499,17 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       normalizeChargeSpeed(commandAttack.modifiers.chargeSpeed),
       commandAttack.modifiers.styleCriticalOption,
     );
+    const special = commandAttack.modifiers.special;
+    modifiers.attackMode = special?.attackMode ?? 'normal';
+    if (modifiers.attackMode === 'disarm') {
+      modifiers.disarmDefenseRoll = special?.disarmDefenseRoll ?? null;
+      modifiers.disarmTwoHanded = special?.disarmTwoHanded ?? false;
+    }
+    if (modifiers.attackMode === 'subdual') {
+      modifiers.subdualBonus = special?.subdualBonus ?? null;
+      modifiers.unfamiliarAnatomy = special?.unfamiliarAnatomy ?? false;
+    }
+    modifiers.meleeCoverActorIds = [...new Set(special?.meleeCoverActorIds ?? [])];
     if (modifiers.styleCriticalOption) {
       checkStyleCriticalOption(source.activeStyle, commandAttack.attackName, modifiers.styleCriticalOption);
     }

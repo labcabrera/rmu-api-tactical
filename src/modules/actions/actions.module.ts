@@ -63,7 +63,7 @@ import { ManeuverController } from './interfaces/http/maneuver.controller.js';
 import { MovementController } from './interfaces/http/movement.controller.js';
 
 import { ACTION_REPOSITORY } from './application/ports/action-repository.port.js';
-import { ATTACK_TABLE_PORT } from './application/ports/attack-table.port.js';
+import { ATTACK_TABLE_MODIFIERS_PORT, ATTACK_TABLE_PORT } from './application/ports/attack-table.port.js';
 import { CRITICAL_TABLE_PORT } from './application/ports/critical-table.port.js';
 import { CRITICAL_LOCATION_PORT } from './application/ports/critical-location.port.js';
 import { FUMBLE_TABLE_PORT } from './application/ports/fumble-table.port.js';
@@ -144,6 +144,10 @@ import { SKILL_CATALOG_PORT } from './application/ports/skill-catalog.port.js';
     },
     {
       provide: ATTACK_TABLE_PORT,
+      useClass: ApiAttackTableAdapter,
+    },
+    {
+      provide: ATTACK_TABLE_MODIFIERS_PORT,
       useClass: ApiAttackTableAdapter,
     },
     {

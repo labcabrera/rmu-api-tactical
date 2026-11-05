@@ -3,7 +3,7 @@ import type { AttackLocation } from '../../../actions/domain/value-objects/attac
 import { BaseAggregateRoot } from '../../../shared/domain/aggregates/base-aggregate.js';
 import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors/errors.js';
 import { ActorRoundCreatedEvent } from '../events/actor-round.events.js';
-import { ActorRoundAlert, type AlertOutcome, type ReactionAlertData } from '../value-objects/actor-round-alert.vo.js';
+import { ActorRoundAlert, type AlertOutcome, type ReactionAlertData, type StrayShotData } from '../value-objects/actor-round-alert.vo.js';
 import { type ActorRollProfile, rollProfileOf } from '../value-objects/actor-roll-profile.vo.js';
 import { ActorRoundAlertModifier } from '../value-objects/actor-round-alert-modifier.vo.js';
 import { ActorRoundAttack } from '../value-objects/actor-round-attack.vo.js';
@@ -246,6 +246,7 @@ const MANUALLY_RESOLVED_ALERTS: string[] = [
   'fall-suggested',
   'death-threshold',
   'knocked-back',
+  'stray-shot',
 ];
 
 /** Effect of the critical tables that knocks the target back, its value in feet (workspace spec 079, decision A4). */
@@ -3165,6 +3166,41 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     const pending = this.alerts.filter(alert => alert.type === 'reaction-available' && alert.status === 'pending');
     pending.forEach(alert => (alert.status = 'expired'));
     return pending.length > 0;
+  }
+
+  /**
+   * Workspace spec 079, decision A6: a missed shot into a melee may hit a combatant in the way. One alert per attack: the
+   * same attack applied again does not raise it twice.
+   */
+  addStrayShotAlert(data: StrayShotData): ActorRoundAlert | undefined {
+    const raised = this.alerts.some(
+      alert =>
+        alert.type === 'stray-shot' &&
+        alert.getModifierText?.('actionId') === data.actionId &&
+        alert.getModifierText?.('attackName') === data.attackName,
+    );
+    if (raised) {
+      return undefined;
+    }
+    const alert = ActorRoundAlert.buildStrayShot(data);
+    this.alerts.push(alert);
+    return alert;
+  }
+
+  /** A pending `stray-shot` alert of the actor, of this round (workspace spec 079). */
+  pendingStrayShotAlert(alertId: string): ActorRoundAlert | undefined {
+    return this.alerts.find(alert => alert.id === alertId && alert.type === 'stray-shot' && alert.status === 'pending');
+  }
+
+  /**
+   * Workspace spec 079, decision A7 (Table 9-7a): a successful disarm drops the foe's weapon, which takes a breakage check.
+   * Its candidates are the weapons in hand, then the shield.
+   */
+  addDisarmBreakageAlert(): void {
+    const weapons = (this.items ?? []).filter(item => item.kind === 'weapon' && (item.slot === 'mainHand' || item.slot === 'offHand'));
+    const shields = (this.items ?? []).filter(item => item.kind === 'shield' && item.slot === 'offHand');
+    const candidates = [...weapons, ...shields].map(item => item.itemId);
+    this.alerts.push(ActorRoundAlert.buildBreakage('disarm', { itemId: candidates[0], candidates }));
   }
 
   /** Spec 034: the fumble gives the fumbler a critical of that severity, for the game master to roll. */

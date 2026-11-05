@@ -10,7 +10,7 @@ import { type GameRepository, GAME_REPOSITORY } from '../../../../games/applicat
 import { Game } from '../../../../games/domain/aggregates/game.js';
 import { ConflictError, ValidationError, NotFoundError } from '../../../../shared/domain/errors/errors.js';
 import { quickCasterApRange } from '../../../domain/services/spell-talents.js';
-import { Action, type ActionAim, type ActionOther } from '../../../domain/aggregates/action.js';
+import { Action, type ActionAim, type ActionOther, type ActionStrayShot } from '../../../domain/aggregates/action.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { ActionApProfile, OTHER_ACTION_KINDS } from '../../../domain/value-objects/action-ap-profile.vo.js';
 import { ActionManeuver } from '../../../domain/value-objects/action-maneuver.vo.js';
@@ -88,6 +88,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       roundActions,
     );
     const reaction = command.forced?.reason === 'reaction' ? this.declareReaction(command, actorRound, game) : null;
+    const strayShot = command.forced?.reason === 'stray-shot' ? CreateActionHandler.declareStrayShot(command, actorRound, game) : null;
     const warnings = this.declarationWarnings(command, actorRound, plan.interrupted);
     if (!command.confirm && warnings.some(warning => warning.requiresConfirm)) {
       throw new ConflictError('The declaration needs a confirmation: send it again with confirm: true', 'err-action-confirm-required', {
@@ -118,6 +119,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     );
     action.spell = spell;
     action.reaction = reaction;
+    action.strayShot = strayShot;
     action.drawAndLoad = draw?.drawAndLoad ?? null;
     action.aim = aim;
     action.otherAction = otherAction;
@@ -146,6 +148,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       aborted.length > 0 ||
       reopened.length > 0 ||
       reaction?.alertId ||
+      strayShot ||
       aimingLost ||
       heldChanged ||
       penaltyAlert
@@ -211,6 +214,24 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     }
     alert.status = 'resolved';
     return { traitId: data.traitId, triggerActionId: data.triggerActionId, obOverride: data.obOverride ?? null, alertId: alert.id };
+  }
+
+  /**
+   * Workspace spec 079, decision A6 (§9.7 Firing into Melee): the second attack of a missed shot into a melee, forced as
+   * `stray-shot` from the pending `stray-shot` alert of the attacker of this round (`err-stray-shot-not-available`): it
+   * is resolved, and the attack goes against the combatant it chose with the same weapon.
+   */
+  static declareStrayShot(command: CreateActionCommand, actorRound: ActorRound, game: Game): ActionStrayShot {
+    const alertId = command.forced?.alertId;
+    const alert = alertId ? actorRound.pendingStrayShotAlert(alertId) : undefined;
+    const targetActorId = alert?.getModifierText('targetActorId');
+    const attackName = alert?.getModifierText('attackName');
+    const triggerActionId = alert?.getModifierText('actionId');
+    if (!alert || !targetActorId || !attackName || !triggerActionId || alert.getModifierValue('round') !== game.round) {
+      throw new ValidationError(`The stray shot ${alertId ?? ''} is not available to the actor`, 'err-stray-shot-not-available');
+    }
+    alert.status = 'resolved';
+    return { alertId: alert.id, triggerActionId, attackName, targetActorId };
   }
 
   /**

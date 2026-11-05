@@ -1,3 +1,4 @@
+import { ATTACK_TABLE_MODIFIERS_FAKE } from '../../../fixtures/attack-table-modifiers.js';
 import { describe, expect, it, vi } from 'vitest';
 import { randomUUID } from 'crypto';
 import {
@@ -277,6 +278,7 @@ describe('Combat talents', () => {
         { findById: vi.fn(() => Promise.resolve({ options: {} })) } as unknown as StrategicGameApiClient,
         { publish: vi.fn(() => Promise.resolve()) },
         new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST)),
+        ATTACK_TABLE_MODIFIERS_FAKE,
       );
       return () =>
         handler.execute(

@@ -70,6 +70,11 @@ export interface CombatAttackPreparationModifiers {
   criticalModifiers: KeyValueModifier[];
   situationalModifiers: CombatAttackSituationalModifiers;
   sourceSkills: CombatAttackSourceSkill[];
+  /**
+   * Workspace spec 079, A7: the disarm or subdual modifier of the weapon's attack table for this attack (the thrown one
+   * when thrown), read from rmu-api-attack-tables only for those modes.
+   */
+  specialManeuverModifier?: number | null;
 }
 
 export interface CombatAttackPreparation {

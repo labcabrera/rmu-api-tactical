@@ -959,3 +959,179 @@ describe('workspace spec 079, block A', () => {
     ).toBe(400);
   });
 });
+
+describe('workspace spec 079, special maneuvers (A6-A7)', () => {
+  type Alert = { id: string; type: string; status: string; modifiers: { key: string; value: number | null; modifier: string | null }[] };
+  type RoundBody = { id: string; actorId: string; alerts: Alert[]; effects: { status: string }[] };
+  const text = (alert: Alert, key: string) => alert.modifiers.find(modifier => modifier.key === key)?.modifier;
+  const actorRound = async (gameId: string, actorId: string) => {
+    const rounds = await as('owner').get(`/v1/actor-rounds?q=gameId==${gameId};round==1`);
+    return (rounds.body as { content: RoundBody[] }).content.find(round => round.actorId === actorId)!;
+  };
+
+  beforeAll(() => {
+    const [mainHand] = character('legolas').attacks;
+    e2e.world.characters.set(
+      'legolas',
+      character('legolas', {
+        attacks: [
+          {
+            ...mainHand,
+            attackTable: 'long-bow',
+            type: 'ranged',
+            meleeRange: null,
+            ranges: [{ from: 0, to: 100, bonus: 0 }],
+            fumbleTable: 'bows',
+            skillId: 'ranged@bow',
+          },
+        ],
+      } as never),
+    );
+  });
+
+  it('A7: a disarm adds Table 9-7a and the defender roll; a success disarms the foe and asks for a breakage check', async () => {
+    const gameId = await gameInPhase1();
+    const action = await declareAttack(gameId);
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/phases/start`)).status).toBe(200);
+    const prepare = (modifiers: object) =>
+      as('owner').patch(`/v1/actions/${action.id}/attack/prepare`, {
+        attacks: [{ attackName: 'mainHand', modifiers: { targetId: 'lurtz', bo: 60, ...modifiers }, protectors: null }],
+      });
+
+    const missing = await prepare({ attackMode: 'disarm' });
+    expect(missing.status).toBe(400);
+    expect(missing.body).toMatchObject({ code: 'err-disarm-defense-roll-required' });
+    expect((await prepare({ attackMode: 'grab' })).status).toBe(400);
+
+    const prepared = await prepare({ attackMode: 'disarm', disarmDefenseRoll: 50, disarmTwoHanded: true });
+    expect(prepared.status).toBe(200);
+    const calculated = (prepared.body as ActionBody).attacks![0].calculated as { rollModifiers: Modifier[]; rollTotal: number };
+    expect(calculated.rollModifiers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: 'disarm', value: -40, rule: 'Table 9-7a' }),
+        expect.objectContaining({ key: 'disarm-two-handed', value: -25 }),
+        expect.objectContaining({ key: 'disarm-defense', value: 50 }),
+      ]),
+    );
+    expect((prepared.body as ActionBody).attacks![0].modifiers).toMatchObject({ attackMode: 'disarm', disarmDefenseRoll: 50 });
+
+    // A roll that puts the disarm total at 130: a success
+    const roll = 130 - calculated.rollTotal;
+    expect(roll).toBeGreaterThan(5);
+    const rolled = await as('owner').patch(`/v1/actions/${action.id}/attack/roll`, { attackName: 'mainHand', roll });
+    expect(rolled.status).toBe(200);
+    expect((rolled.body as ActionBody).attacks![0]).toMatchObject({ status: 'pending_apply', disarm: { result: 'success', total: 130 } });
+
+    expect((await as('owner').patch(`/v1/actions/${action.id}/attack/apply`)).status).toBe(200);
+    const lurtz = await actorRound(gameId, 'lurtz');
+    expect(lurtz.effects.map(effect => effect.status)).toContain('disarmed');
+    const breakage = lurtz.alerts.find(alert => alert.type === 'breakage')!;
+    expect(text(breakage, 'origin')).toBe('disarm');
+  });
+
+  it('A7: a subdual attack halves the hits and rolls a subdual critical of at most E', async () => {
+    const gameId = await gameInPhase1();
+    const action = await declareAttack(gameId);
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/phases/start`)).status).toBe(200);
+    const prepared = await as('owner').patch(`/v1/actions/${action.id}/attack/prepare`, {
+      attacks: [
+        { attackName: 'mainHand', modifiers: { targetId: 'lurtz', bo: 60, attackMode: 'subdual', subdualBonus: 25 }, protectors: null },
+      ],
+    });
+    expect(prepared.status).toBe(200);
+    const modifiers = ((prepared.body as ActionBody).attacks![0].calculated as { rollModifiers: Modifier[] }).rollModifiers;
+    expect(modifiers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: 'subdual', value: -30, rule: 'Table 9-7e' }),
+        expect.objectContaining({ key: 'subdual-skill', value: 25 }),
+      ]),
+    );
+    const previous = e2e.world.attackEntry;
+    e2e.world.attackEntry = new AttackTableEntry('15GS', 15, 'S', 'G');
+    try {
+      const rolled = await as('owner').patch(`/v1/actions/${action.id}/attack/roll`, { attackName: 'mainHand', roll: 90 });
+      expect(rolled.status).toBe(200);
+      expect((rolled.body as ActionBody).attacks![0]).toMatchObject({
+        results: {
+          attackTableEntry: { damage: 7, criticalType: 'subdual', criticalSeverity: 'E' },
+          criticals: [expect.objectContaining({ key: 'subdual_e_1' })],
+          subdualAdjustment: { baseDamage: 15, criticalType: 'S', criticalSeverity: 'G' },
+        },
+      });
+    } finally {
+      e2e.world.attackEntry = previous;
+    }
+  });
+
+  it('A6: a shot into a melee gets cover, and a miss raises a stray shot the game master turns into an attack at OB 0', async () => {
+    const gameId = await gameInPhase1('legolas', ['ugluk']);
+    const declared = await as('owner').post('/v1/actions', { gameId, actorId: 'legolas', actionType: 'ranged_attack', phaseStart: 1 });
+    expect(declared.status).toBe(201);
+    const action = declared.body as ActionBody;
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/phases/start`)).status).toBe(200);
+    const prepare = (meleeCoverActorIds: string[], cover = 'none') =>
+      as('owner').patch(`/v1/actions/${action.id}/attack/prepare`, {
+        attacks: [
+          { attackName: 'mainHand', modifiers: { targetId: 'lurtz', bo: 60, cover, meleeCoverActorIds, range: 10 }, protectors: null },
+        ],
+      });
+
+    const self = await prepare(['lurtz']);
+    expect(self.status).toBe(400);
+    expect(self.body).toMatchObject({ code: 'err-melee-cover-invalid' });
+    const declaredCover = await prepare(['ugluk'], 'hard_half');
+    expect(declaredCover.body).toMatchObject({ id: action.id });
+    const skipped = ((declaredCover.body as ActionBody).attacks![0].calculated as { skipped: { source: string; reason: string }[] })
+      .skipped;
+    expect(skipped).toEqual(expect.arrayContaining([expect.objectContaining({ source: 'melee-cover', reason: 'cover-declared' })]));
+    const prepared = await prepare(['ugluk']);
+    expect(prepared.status).toBe(200);
+    expect(((prepared.body as ActionBody).attacks![0].calculated as { rollModifiers: Modifier[] }).rollModifiers).toEqual(
+      expect.arrayContaining([expect.objectContaining({ key: 'melee-cover', value: -40, rule: '§9.7' })]),
+    );
+
+    const previous = e2e.world.attackEntry;
+    e2e.world.attackEntry = new AttackTableEntry('', 0, undefined, undefined);
+    try {
+      expect((await as('owner').patch(`/v1/actions/${action.id}/attack/roll`, { attackName: 'mainHand', roll: 40 })).status).toBe(200);
+      expect((await as('owner').patch(`/v1/actions/${action.id}/attack/apply`)).status).toBe(200);
+    } finally {
+      e2e.world.attackEntry = previous;
+    }
+    const legolas = await actorRound(gameId, 'legolas');
+    const alert = legolas.alerts.find(each => each.type === 'stray-shot')!;
+    expect(alert).toMatchObject({ status: 'pending' });
+    expect(text(alert, 'targetActorId')).toBe('ugluk');
+    expect(text(alert, 'actionId')).toBe(action.id);
+
+    const forced = (alertId: string) =>
+      as('owner').post('/v1/actions', {
+        gameId,
+        actorId: 'legolas',
+        actionType: 'ranged_attack',
+        phaseStart: 2,
+        forced: { reason: 'stray-shot', alertId },
+      });
+    expect((await forced('nope')).body).toMatchObject({ code: 'err-stray-shot-not-available' });
+    const stray = await forced(alert.id);
+    expect(stray.status).toBe(201);
+    const strayAction = stray.body as ActionBody;
+    expect(strayAction).toMatchObject({ strayShot: { alertId: alert.id, targetActorId: 'ugluk', attackName: 'mainHand' } });
+    expect((await actorRound(gameId, 'legolas')).alerts.find(each => each.id === alert.id)).toMatchObject({ status: 'resolved' });
+
+    const wrong = await as('owner').patch(`/v1/actions/${strayAction.id}/attack/prepare`, {
+      attacks: [{ attackName: 'mainHand', modifiers: { targetId: 'lurtz', bo: 60 }, protectors: null }],
+    });
+    expect(wrong.body).toMatchObject({ code: 'err-stray-shot-invalid' });
+    const second = await as('owner').patch(`/v1/actions/${strayAction.id}/attack/prepare`, {
+      attacks: [{ attackName: 'mainHand', modifiers: { targetId: 'ugluk', bo: 60, cover: 'hard_full', range: 10 }, protectors: null }],
+    });
+    expect(second.status).toBe(200);
+    const attack = (second.body as ActionBody).attacks![0] as unknown as {
+      modifiers: { bo: number; cover: string };
+      calculated: { rollModifiers: Modifier[] };
+    };
+    expect(attack.modifiers).toMatchObject({ bo: 0, cover: 'none' });
+    expect(attack.calculated.rollModifiers.some(modifier => modifier.key === 'cover' || modifier.key === 'melee-cover')).toBe(false);
+  });
+});

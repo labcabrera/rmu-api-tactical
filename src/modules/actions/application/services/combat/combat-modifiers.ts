@@ -114,6 +114,8 @@ export const COMBAT_SKILL_IDS = [
   'ambush',
   'running',
   'shield',
+  // Workspace spec 079, A7: offsets the disarm penalties of Table 9-7a.
+  'disarm',
 ];
 
 /** Inputs of the prepare phase. Only call it from a prepare hook (the handler always sets the preparation there). */

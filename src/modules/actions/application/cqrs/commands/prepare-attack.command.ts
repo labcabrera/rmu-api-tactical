@@ -1,3 +1,4 @@
+import type { AttackMode } from '../../../domain/services/special-maneuvers.js';
 import type {
   CalledShot,
   ChargeSpeed,
@@ -58,7 +59,18 @@ export class PrepareAttackCommandModifiers {
     public customBonus: number | undefined,
     public chargeSpeed: ChargeSpeed | undefined,
     public styleCriticalOption?: string,
+    /** Workspace spec 079, A6-A7: attack mode, disarm and subdual inputs, combatants giving cover in a melee. */
+    public special?: PrepareAttackCommandSpecial,
   ) {}
+}
+
+export interface PrepareAttackCommandSpecial {
+  attackMode?: AttackMode;
+  disarmDefenseRoll?: number | null;
+  disarmTwoHanded?: boolean;
+  subdualBonus?: number | null;
+  unfamiliarAnatomy?: boolean;
+  meleeCoverActorIds?: string[];
 }
 
 export class PrepareAttackCommandParryItem {

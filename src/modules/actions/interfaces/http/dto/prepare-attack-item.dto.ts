@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsIn, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsIn, IsInt, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
 import { PrepareAttackCommandItem, PrepareAttackCommandModifiers } from '../../../application/cqrs/commands/prepare-attack.command.js';
 import { ValidationError } from '../../../../shared/domain/errors/errors.js';
 import {
@@ -14,6 +14,7 @@ import {
   type RestrictedQuarters,
 } from '../../../domain/value-objects/action-attack-modifiers.vo.js';
 import { STYLE_CRITICAL_OPTIONS } from '../../../domain/services/style-critical-option.js';
+import { ATTACK_MODES, type AttackMode } from '../../../domain/services/special-maneuvers.js';
 
 export class PrepareAttackModifiersDto {
   @ApiProperty({ description: 'Target actor round identifier', example: 'actor-round-003' })
@@ -190,6 +191,52 @@ export class PrepareAttackModifiersDto {
   @IsIn(STYLE_CRITICAL_OPTIONS)
   styleCriticalOption: string | undefined;
 
+  @ApiProperty({
+    type: String,
+    description: 'Workspace spec 079, A7: normal attack, disarm (Table 9-7a) or subdual (Table 9-7e)',
+    required: false,
+    enum: ATTACK_MODES,
+    example: 'normal',
+  })
+  @IsOptional()
+  @IsIn(ATTACK_MODES)
+  attackMode: AttackMode | undefined;
+
+  @ApiProperty({
+    type: Number,
+    description: "Disarm: total of the defender's roll (its OB less any parry, plus the roll); required to disarm",
+    required: false,
+    example: 50,
+  })
+  @IsOptional()
+  @IsInt()
+  disarmDefenseRoll: number | undefined;
+
+  @ApiProperty({ type: Boolean, description: 'Disarm: the foe wields a two-handed weapon (-25)', required: false })
+  @IsOptional()
+  @IsBoolean()
+  disarmTwoHanded: boolean | undefined;
+
+  @ApiProperty({ type: Number, description: 'Subdual: skill bonus entered by the game master, offsets the penalties', required: false })
+  @IsOptional()
+  @IsInt()
+  subdualBonus: number | undefined;
+
+  @ApiProperty({ type: Boolean, description: 'Subdual: the target has an unfamiliar anatomy (-50)', required: false })
+  @IsOptional()
+  @IsBoolean()
+  unfamiliarAnatomy: boolean | undefined;
+
+  @ApiProperty({
+    type: [String],
+    description: 'Ranged attack into a melee (§9.7): other combatants engaged with the target; a miss may hit one of them',
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  meleeCoverActorIds: string[] | undefined;
+
   static toCommand(dto: PrepareAttackModifiersDto): PrepareAttackCommandModifiers {
     return new PrepareAttackCommandModifiers(
       dto.targetId,
@@ -217,6 +264,14 @@ export class PrepareAttackModifiersDto {
       dto.customBonus,
       dto.chargeSpeed === undefined ? undefined : normalizeChargeSpeed(dto.chargeSpeed),
       dto.styleCriticalOption,
+      {
+        attackMode: dto.attackMode,
+        disarmDefenseRoll: dto.disarmDefenseRoll,
+        disarmTwoHanded: dto.disarmTwoHanded,
+        subdualBonus: dto.subdualBonus,
+        unfamiliarAnatomy: dto.unfamiliarAnatomy,
+        meleeCoverActorIds: dto.meleeCoverActorIds,
+      },
     );
   }
 }
@@ -248,6 +303,14 @@ export class PrepareAttackItemDto {
   protectorPositions: Record<string, ProtectPosition> | undefined;
 
   static toCommand(attack: PrepareAttackItemDto): PrepareAttackCommandItem {
+    // The modifiers are not validated as a nested object: the inputs of workspace spec 079 are checked here.
+    const { attackMode, meleeCoverActorIds } = attack.modifiers;
+    if (attackMode !== undefined && !ATTACK_MODES.includes(attackMode)) {
+      throw new ValidationError(`Invalid attack mode ${String(attackMode)}`, 'err-attack-mode-invalid', { attackMode: String(attackMode) });
+    }
+    if (meleeCoverActorIds !== undefined && (!Array.isArray(meleeCoverActorIds) || meleeCoverActorIds.some(id => typeof id !== 'string'))) {
+      throw new ValidationError('meleeCoverActorIds is a list of actor ids', 'err-melee-cover-invalid', { reason: 'format' });
+    }
     Object.entries(attack.protectorPositions || {}).forEach(([protectorId, position]) => {
       if (!PROTECT_POSITIONS.includes(position)) {
         throw new ValidationError(`Invalid protect position ${position} for ${protectorId}`, 'err-invalid-protect-position');

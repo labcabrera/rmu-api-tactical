@@ -94,6 +94,17 @@ export interface ActionOther {
   ap: number;
 }
 
+/**
+ * Workspace spec 079, decision A6 (§9.7 Firing into Melee): the second attack of a ranged attack that missed, against a
+ * combatant that gave cover, declared from the `stray-shot` alert of the attacker.
+ */
+export interface ActionStrayShot {
+  alertId: string;
+  triggerActionId: string;
+  attackName: string;
+  targetActorId: string;
+}
+
 /** What an `aim` action aims at (Sharpshooter, workspace spec 076, decision B6): the foe, with that ranged weapon. */
 export interface ActionAim {
   targetActorId: string;
@@ -151,6 +162,8 @@ export interface ActionProps {
   aim?: ActionAim | null;
   /** The fixed-cost subtype of an `other` action (workspace spec 079). */
   otherAction?: ActionOther | null;
+  /** The stray shot an attack forced as `stray-shot` comes from (workspace spec 079). */
+  strayShot?: ActionStrayShot | null;
   owner: string;
   createdAt: Date;
   updatedAt: Date | null;
@@ -189,6 +202,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     public drawAndLoad: ActionDrawAndLoad | null = null,
     public aim: ActionAim | null = null,
     public otherAction: ActionOther | null = null,
+    public strayShot: ActionStrayShot | null = null,
   ) {
     super(id);
   }
@@ -272,6 +286,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       props.drawAndLoad ?? null,
       props.aim ?? null,
       props.otherAction ?? null,
+      props.strayShot ?? null,
     );
   }
 
@@ -313,6 +328,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       previous.drawAndLoad ? { ...previous.drawAndLoad } : null,
       previous.aim ? { ...previous.aim } : null,
       previous.otherAction ? { ...previous.otherAction } : null,
+      previous.strayShot ? { ...previous.strayShot } : null,
     );
     action.apply(new ActionCreatedEvent(action));
     return action;
@@ -659,8 +675,11 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     if (this.status !== 'declared' && this.status !== 'held') {
       throw new ValidationError(`Only an open action can be forced, not a ${this.status} one`, 'err-action-not-open');
     }
-    if (reason === 'reaction') {
-      throw new ValidationError('A reaction is declared as a new forced attack (workspace spec 076)', 'err-action-force-invalid-reason');
+    if (reason === 'reaction' || reason === 'stray-shot') {
+      throw new ValidationError(
+        `A ${reason} is declared as a new forced attack (workspace specs 076, 079)`,
+        'err-action-force-invalid-reason',
+      );
     }
     const resolution = ActionResolution.forced(reason, note);
     if (resolution.apSource === 'next-phase') {
@@ -722,6 +741,9 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       }
       if (request.forced === 'reaction' && !attack) {
         throw new ValidationError('A reaction is an attack (workspace spec 076)', 'err-reaction-invalid-action');
+      }
+      if (request.forced === 'stray-shot' && request.actionType !== 'ranged_attack') {
+        throw new ValidationError('A stray shot is a ranged attack (workspace spec 079)', 'err-stray-shot-invalid');
       }
       return { spend: null, interrupted: [] };
     }
@@ -1267,6 +1289,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       drawAndLoad: this.drawAndLoad,
       aim: this.aim,
       otherAction: this.otherAction,
+      strayShot: this.strayShot,
       owner: this.owner,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,

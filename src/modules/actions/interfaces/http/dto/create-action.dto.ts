@@ -175,7 +175,7 @@ export class ForceActionDto {
   @IsString()
   note?: string;
 
-  @ApiProperty({ description: 'reaction (spec 076): the reaction-available alert of the actor it is declared from', required: false })
+  @ApiProperty({ description: 'reaction (spec 076) or stray-shot (spec 079): the alert of the actor it is declared from', required: false })
   @IsOptional()
   @IsString()
   alertId?: string;

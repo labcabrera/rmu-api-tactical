@@ -56,6 +56,21 @@ export class ActionResolutionDto {
   }
 }
 
+/** Workspace spec 079, A6: the stray shot an attack forced as `stray-shot` comes from (§9.7). */
+export class ActionStrayShotDto {
+  @ApiProperty({ description: 'stray-shot alert of the attacker it was declared from' })
+  alertId: string;
+
+  @ApiProperty({ description: 'Ranged attack that missed' })
+  triggerActionId: string;
+
+  @ApiProperty({ description: 'Attack of the actor that missed, used again', example: 'mainHand' })
+  attackName: string;
+
+  @ApiProperty({ description: 'Combatant chosen at random among those that gave cover' })
+  targetActorId: string;
+}
+
 /** Workspace spec 076: the reaction of an attack forced as `reaction`. */
 export class ActionReactionDto {
   @ApiProperty({ example: 'riposte' })
@@ -211,6 +226,9 @@ export class ActionDto {
   @ApiProperty({ description: 'Fixed-cost subtype of an other action (spec 079)', type: ActionOtherDto, nullable: true })
   otherAction: ActionOtherDto | null;
 
+  @ApiProperty({ description: 'Stray shot of an attack forced as stray-shot (spec 079)', type: ActionStrayShotDto, nullable: true })
+  strayShot: ActionStrayShotDto | null;
+
   @ApiProperty({ description: 'Warnings of the request that did not need a confirmation (spec 068)', type: [ActionWarningDto] })
   warnings: ActionWarningDto[];
 
@@ -252,6 +270,7 @@ export class ActionDto {
     dto.reaction = entity.reaction ? { ...entity.reaction } : null;
     dto.drawAndLoad = entity.drawAndLoad ? { ...entity.drawAndLoad } : null;
     dto.otherAction = entity.otherAction ? { ...entity.otherAction } : null;
+    dto.strayShot = entity.strayShot ? { ...entity.strayShot } : null;
     dto.aim = entity.aim ? { ...entity.aim } : null;
     dto.warnings = (entity.warnings ?? []).map(warning => ActionWarningDto.fromEntity(warning));
     dto.fatigue = entity.fatigue;
