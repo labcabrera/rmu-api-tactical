@@ -6,7 +6,7 @@ import {
   ACTOR_ROUND_REPOSITORY,
 } from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
-import { ActorRoundAlert } from '../../../../actor-rounds/domain/value-objects/actor-round-alert.vo.js';
+import { ActorRoundAlert, MOVING_MANEUVER_CRITICAL_TYPE } from '../../../../actor-rounds/domain/value-objects/actor-round-alert.vo.js';
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { ConflictError, NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
 import { FEAR_BALK, FEAR_BROKEN, FEAR_RETREAT, FEAR_ROUTED } from '../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
@@ -80,7 +80,7 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     }
     if (action.movement?.calculated.critical) {
       actorRoundModified = true;
-      const alert = ActorRoundAlert.buildCritical('k', action.movement?.calculated.critical);
+      const alert = ActorRoundAlert.buildCritical(MOVING_MANEUVER_CRITICAL_TYPE, action.movement?.calculated.critical);
       actorRound.alerts.push(alert);
       // Workspace spec 077, decision D5: a climbing or jumping movement gone wrong suggests a fall.
       const skillId = action.movement.modifiers.skillId;

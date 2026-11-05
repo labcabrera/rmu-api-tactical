@@ -7,6 +7,12 @@ import type { GamePhase } from '../../../games/domain/value-objects/game-phase.v
 import type { ConcentrationFocus, MentalFocusReason } from './concentration-focus.vo.js';
 
 /** The fields of a stored alert. */
+/**
+ * Critical type of the alert of a moving maneuver (or movement) gone wrong: Unbalancing (§5, workspace spec 079,
+ * decision 0.1).
+ */
+export const MOVING_MANEUVER_CRITICAL_TYPE = 'U';
+
 export type ActorRoundAlertData = Pick<ActorRoundAlert, 'id' | 'type' | 'message' | 'modifiers' | 'status'> & {
   reaction?: ReactionAlertData | null;
 };

@@ -4,7 +4,7 @@ import {
   type ActorRoundRepository,
   ACTOR_ROUND_REPOSITORY,
 } from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
-import { ActorRoundAlert } from '../../../../actor-rounds/domain/value-objects/actor-round-alert.vo.js';
+import { ActorRoundAlert, MOVING_MANEUVER_CRITICAL_TYPE } from '../../../../actor-rounds/domain/value-objects/actor-round-alert.vo.js';
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
 import { Action } from '../../../domain/aggregates/action.js';
@@ -69,9 +69,6 @@ const MAX_PRICE = 200;
 
 /** Percent a task needs to be complete (§5.1). */
 const COMPLETED_PERCENT = 100;
-
-/** Critical type of the alert of a moving maneuver gone wrong, as the movement roll uses it. */
-const MOVING_MANEUVER_CRITICAL_TYPE = 'k';
 
 @CommandHandler(ResolveManeuverCommand)
 export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCommand, Action> {

@@ -2,7 +2,7 @@ import type { InjurySource } from './injury.vo.js';
 
 /**
  * Poisons (workspace spec 042): the poisoning of an actor, the model shared with the strategic API. Time is counted in
- * rounds from the exposure (1 round = 10 seconds, 1 hour = 360 rounds); strategic converts its hours.
+ * rounds from the exposure (1 round = 5 seconds per Core Law §8.1: 12 rounds a minute, 1 hour = 720 rounds); strategic converts its hours.
  */
 export type PoisonCategory = 'circulatory' | 'conversion' | 'muscle' | 'nerve' | 'paralytic' | 'reduction' | 'respiratory' | 'irritant';
 export type PoisonSeverity = 'mild' | 'moderate' | 'severe' | 'extreme';
@@ -28,7 +28,7 @@ export const ANTIDOTE_SOURCES: AntidoteSource[] = ['item', 'external', 'magic'];
 export const ANY_POISON = 'any';
 
 /** Rounds in each unit of the poison table. */
-export const ROUNDS_PER_UNIT: Record<PoisonTimeUnit, number> = { round: 1, minute: 6, hour: 360, day: 8640 };
+export const ROUNDS_PER_UNIT: Record<PoisonTimeUnit, number> = { round: 1, minute: 12, hour: 720, day: 17280 };
 export const ROUNDS_PER_HOUR = ROUNDS_PER_UNIT.hour;
 
 export interface PoisonValueRange {
