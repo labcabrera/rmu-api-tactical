@@ -3,6 +3,7 @@ import { AttackRange, type WeaponCategory } from '../../../actor-rounds/domain/v
 import { ActorRoundFaction } from '../../../actor-rounds/domain/value-objects/actor-round-faction.vo.js';
 import { ActorRoundShield } from '../../../actor-rounds/domain/value-objects/actor-round-shield.vo.js';
 import type { CharacterCondition, Injury } from '../../../actor-rounds/domain/value-objects/injury.vo.js';
+import type { LostLimb } from '../../../actor-rounds/domain/value-objects/lost-limb.vo.js';
 
 export type AttackType = 'melee' | 'ranged';
 
@@ -42,6 +43,8 @@ export interface Character {
   temporaryModifiers?: TemporaryModifier[];
   /** Spec 013: missing in strategic versions before it. */
   conditions?: CharacterCondition[];
+  /** Workspace spec 079, C1: limbs lost for good. Missing in older strategic versions: none. */
+  lostLimbs?: LostLimb[];
   /** `dead` once a tactical game killed it (spec 013); missing in older versions. */
   status?: string;
   imageUrl: string | undefined;

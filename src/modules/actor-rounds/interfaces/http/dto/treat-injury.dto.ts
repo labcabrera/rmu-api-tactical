@@ -1,6 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsIn, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsBoolean, IsIn, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+import type { AmputateLimbResult, ReviveActorResult } from '../../../application/cqrs/handlers/limb-and-life.handlers.js';
+import { REVIVE_METHODS, type ReviveMethod } from '../../../domain/services/limb-and-life-rules.js';
+import { LOST_LIMB_LOCATIONS, type LostLimbLocation } from '../../../domain/value-objects/lost-limb.vo.js';
+import { LostLimbDto } from './lost-limb.dto.js';
 import type { InjuryPatch } from '../../../domain/aggregates/actor-round.js';
 import { TACTICAL_PROCEDURES } from '../../../domain/services/injury-treatment.js';
 import type { TacticalProcedure } from '../../../domain/services/injury-treatment.js';
@@ -239,6 +243,11 @@ export class MedicalResultDto {
     return dto;
   }
 
+  /** Workspace spec 079: the roll of an amputation or a revival. */
+  static fromRoll(actorRound: TreatInjuryResult['actorRound'], roll: TreatInjuryResult['roll']): MedicalResultDto {
+    return MedicalResultDto.base(actorRound, roll);
+  }
+
   private static base(actorRound: TreatInjuryResult['actorRound'], roll: TreatInjuryResult['roll']): MedicalResultDto {
     const dto = new MedicalResultDto();
     dto.actorRound = ActorRoundDto.fromEntity(actorRound);
@@ -251,6 +260,87 @@ export class MedicalResultDto {
     dto.breakdown = roll.breakdown.map(modifier => KeyValueModifierDto.fromEntity(modifier));
     dto.message = roll.outcome.message;
     dto.recoveryModifier = roll.outcome.recoveryModifier;
+    return dto;
+  }
+}
+
+/** Workspace spec 079, C1: an emergency amputation in combat (-30). */
+export class AmputateLimbDto extends MedicalRollDto {
+  @ApiProperty({ type: String, enum: LOST_LIMB_LOCATIONS })
+  @IsIn(LOST_LIMB_LOCATIONS)
+  location: LostLimbLocation;
+
+  @ApiProperty({ type: String, enum: ['left', 'right'] })
+  @IsIn(['left', 'right'])
+  side: BodySide;
+
+  @ApiProperty({ required: false, description: 'The injury that costs the limb: its bleeding and tourniquet end' })
+  @IsOptional()
+  @IsString()
+  injuryId?: string;
+
+  @ApiProperty({ required: false, description: 'Absolute failure: sum of the 2d10 rounds of system shock; rolled when missing' })
+  @IsOptional()
+  @IsNumber()
+  systemShockRoll?: number;
+}
+
+/** Workspace spec 079, C6: reviving a dead body. */
+export class ReviveActorDto extends MedicalRollDto {
+  @ApiProperty({ type: String, enum: REVIVE_METHODS, description: 'respiratory (-50), cardiac (-100) or defibrillation (-20 to -70)' })
+  @IsIn(REVIVE_METHODS)
+  method: ReviveMethod;
+
+  @ApiProperty({ required: false, description: 'Defibrillation: -20 (best source) to -70; -20 when missing' })
+  @IsOptional()
+  @IsNumber()
+  defibrillationDifficulty?: number;
+
+  @ApiProperty({ required: false, description: 'Defibrillation: a dangerous source shocks the patient (L critical and hits)' })
+  @IsOptional()
+  @IsBoolean()
+  dangerousSource?: boolean;
+
+  @ApiProperty({ required: false, description: 'Dangerous defibrillation: sum of the d10 of hits; rolled when missing' })
+  @IsOptional()
+  @IsNumber()
+  shockHitsRoll?: number;
+}
+
+export class AmputationResultDto extends MedicalResultDto {
+  @ApiProperty({ type: LostLimbDto })
+  lostLimb: LostLimbDto;
+
+  @ApiProperty({ type: [String], description: 'Injuries of the stump' })
+  injuryIds: string[];
+
+  @ApiProperty({ required: false, description: 'Failure: alert of the critical of the stump (S, D, one result lower)' })
+  criticalAlertId?: string;
+
+  @ApiProperty({ required: false, description: 'Absolute failure: rounds of the dying effect of system shock' })
+  dyingRounds?: number;
+
+  static fromAmputation(result: AmputateLimbResult): AmputationResultDto {
+    const dto = Object.assign(new AmputationResultDto(), MedicalResultDto.fromRoll(result.actorRound, result.roll));
+    dto.lostLimb = LostLimbDto.fromEntity(result.lostLimb);
+    dto.injuryIds = result.injuryIds;
+    if (result.criticalAlertId) dto.criticalAlertId = result.criticalAlertId;
+    if (result.dyingRounds) dto.dyingRounds = result.dyingRounds;
+    return dto;
+  }
+}
+
+export class ReviveResultDto extends MedicalResultDto {
+  @ApiProperty({ description: 'The body breathes again: dead became unconscious' })
+  revived: boolean;
+
+  @ApiProperty({ required: false, type: Object, description: 'Dangerous defibrillation: critical severity, hits and its alert' })
+  shock?: { criticalSeverity: string; hitsDice: number; hits: number; alertId: string };
+
+  static fromRevive(result: ReviveActorResult): ReviveResultDto {
+    const dto = Object.assign(new ReviveResultDto(), MedicalResultDto.fromRoll(result.actorRound, result.roll));
+    dto.revived = result.revived;
+    if (result.shock) dto.shock = result.shock;
     return dto;
   }
 }

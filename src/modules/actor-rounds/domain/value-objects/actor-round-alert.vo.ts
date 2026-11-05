@@ -200,11 +200,55 @@ export class ActorRoundAlert {
   }
 
   /** Workspace spec 068, decision 5: the tourniquet has to be loosened, or the limb is lost. */
-  static buildTourniquet(type: 'tourniquet-loosen' | 'limb-loss', injuryId: string, rounds: number): ActorRoundAlert {
+  static buildTourniquet(
+    type: 'tourniquet-loosen' | 'limb-loss',
+    injuryId: string,
+    rounds: number,
+    limb?: { location?: string; side?: string },
+  ): ActorRoundAlert {
     const message = type === 'limb-loss' ? 'The tourniquet was not loosened: the limb may be lost' : 'Loosen the tourniquet';
-    return new ActorRoundAlert(randomUUID(), type, message, [
-      new ActorRoundAlertModifier('injuryId', null, injuryId),
-      new ActorRoundAlertModifier('rounds', rounds, null),
+    const modifiers = [new ActorRoundAlertModifier('injuryId', null, injuryId), new ActorRoundAlertModifier('rounds', rounds, null)];
+    // Workspace spec 079, C1: the limb the game master confirms the loss of
+    if (type === 'limb-loss') {
+      modifiers.push(new ActorRoundAlertModifier('origin', null, 'tourniquet'));
+      if (limb?.location) modifiers.push(new ActorRoundAlertModifier('location', null, limb.location));
+      if (limb?.side) modifiers.push(new ActorRoundAlertModifier('side', null, limb.side));
+    }
+    return new ActorRoundAlert(randomUUID(), type, message, modifiers);
+  }
+
+  /**
+   * Workspace spec 079, C1: a critical may cost the actor a limb (its injury is flagged `limb-loss`). Like the one of a
+   * tourniquet, the game master confirms the loss (outcome `confirmed`) or dismisses it.
+   */
+  static buildLimbLoss(injuryId: string, origin: 'critical' | 'tourniquet', location?: string, side?: string): ActorRoundAlert {
+    const modifiers = [new ActorRoundAlertModifier('injuryId', null, injuryId), new ActorRoundAlertModifier('origin', null, origin)];
+    if (location) modifiers.push(new ActorRoundAlertModifier('location', null, location));
+    if (side) modifiers.push(new ActorRoundAlertModifier('side', null, side));
+    return new ActorRoundAlert(randomUUID(), 'limb-loss', 'The limb may be lost: confirm the loss', modifiers);
+  }
+
+  /**
+   * Workspace spec 079, C1: the critical of a failed amputation (§13.1), a D Slash one result lower on the stump; the game
+   * master rolls it with the critical alerts (`resultShift` -1: he takes the next lower result).
+   */
+  static buildAmputationCritical(location: string): ActorRoundAlert {
+    return new ActorRoundAlert(randomUUID(), 'critical', 'Critical D on S from a failed amputation (one result lower)', [
+      new ActorRoundAlertModifier('origin', null, 'amputation'),
+      new ActorRoundAlertModifier('criticalType', null, 'S'),
+      new ActorRoundAlertModifier('criticalSeverity', null, 'D'),
+      new ActorRoundAlertModifier('location', null, location),
+      new ActorRoundAlertModifier('resultShift', -1, null),
+    ]);
+  }
+
+  /** Workspace spec 079, C6: the electricity critical of a defibrillation with a dangerous source (Table 13-2a). */
+  static buildDefibrillationCritical(criticalSeverity: string): ActorRoundAlert {
+    return new ActorRoundAlert(randomUUID(), 'critical', `Critical ${criticalSeverity} on L from a defibrillation`, [
+      new ActorRoundAlertModifier('origin', null, 'defibrillation'),
+      new ActorRoundAlertModifier('criticalType', null, 'L'),
+      new ActorRoundAlertModifier('criticalSeverity', null, criticalSeverity),
+      new ActorRoundAlertModifier('location', null, 'chest'),
     ]);
   }
 

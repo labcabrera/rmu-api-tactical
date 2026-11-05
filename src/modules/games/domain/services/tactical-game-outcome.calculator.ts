@@ -123,6 +123,8 @@ export class TacticalGameOutcomeCalculator {
       // Workspace spec 068, decisions 7 and 19: the items spent and the lasting modifiers created in this game
       itemsConsumed: (last.itemsConsumed ?? []).map(each => ({ ...each })),
       temporaryModifiers: (last.temporaryModifiers ?? []).filter(each => each.tacticalGameId === game.id).map(each => ({ ...each })),
+      // Workspace spec 079, C1: every limb lost at the end; strategic adds the new ones
+      lostLimbs: (last.lostLimbs ?? []).map(limb => ({ ...limb })),
     };
     // Workspace spec 077, decision D10: the fatigue it brought and the one it ends with (the critical one is left out).
     if (typeof snapshot?.fatigue === 'number') {

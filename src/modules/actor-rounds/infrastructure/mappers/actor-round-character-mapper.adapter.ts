@@ -16,6 +16,7 @@ import { ActorRoundPenalty } from '../../domain/value-objects/actor-round-penalt
 import { ActorRoundShield } from '../../domain/value-objects/actor-round-shield.vo.js';
 import { ActorRoundTrait } from '../../domain/value-objects/actor-round-trait.vo.js';
 import type { Injury } from '../../domain/value-objects/injury.vo.js';
+import { isLostLimbLocation } from '../../domain/value-objects/lost-limb.vo.js';
 import type { ActorRoundItem, ActorRoundItemKind, ActorRoundItemSlot } from '../../domain/value-objects/actor-round-item.vo.js';
 import type { StrategicItem } from '../../../strategic/application/ports/item.port.js';
 import { type ActorRoundFightingStyle, FIGHTING_STYLE_SKILLS } from '../../domain/value-objects/actor-round-fighting-style.vo.js';
@@ -108,6 +109,10 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
     actorRound.armorEncumbrance = Math.max(0, character.equipment?.armorEncumbrance ?? 0);
     // Workspace spec 077, decision D12: the height in feet, which a deliberate fall takes off the distance.
     actorRound.height = typeof character.info.height === 'number' && character.info.height > 0 ? character.info.height : null;
+    // Workspace spec 079, C1: the limbs it lost for good (a lost arm is useless, a lost leg crawls)
+    actorRound.lostLimbs = (character.lostLimbs || [])
+      .filter(limb => isLostLimbLocation(limb.location) && (limb.side === 'left' || limb.side === 'right'))
+      .map(limb => ({ ...limb }));
     actorRound.resistances = (character.resistances || [])
       .filter(resistance => !!resistance.resistance)
       .map(resistance => ({ resistance: resistance.resistance, totalBonus: resistance.totalBonus || 0 }));

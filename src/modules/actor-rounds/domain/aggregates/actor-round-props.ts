@@ -1,3 +1,4 @@
+import type { LostLimb } from '../value-objects/lost-limb.vo.js';
 import { ActorRoundAlert } from '../value-objects/actor-round-alert.vo.js';
 import { ActorRoundAttack } from '../value-objects/actor-round-attack.vo.js';
 import { ActorRoundDefenseMode } from '../value-objects/actor-round-defense-mode.vo.js';
@@ -106,6 +107,10 @@ export interface ActorRoundProps {
   height?: number | null;
   /** Workspace spec 077, decision D2: falls and falling objects of this round. Missing in older actor rounds: none. */
   hazards?: ActorRoundHazard[];
+  /** Workspace spec 079, C1: limbs lost for good. Missing in older actor rounds: none. */
+  lostLimbs?: LostLimb[];
+  /** Workspace spec 079, C6: the round the actor died in, for the departure of its soul. Null or missing: alive. */
+  deathRound?: number | null;
   /** Only in the actor round built from the character (round 1, or the round it joined in). */
   snapshot?: ActorRoundSnapshot;
   imageUrl: string | undefined;

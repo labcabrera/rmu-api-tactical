@@ -1,3 +1,4 @@
+import type { BodySide } from '../../../domain/value-objects/injury.vo.js';
 import type { AlertOutcome } from '../../../domain/value-objects/actor-round-alert.vo.js';
 
 /**
@@ -11,5 +12,7 @@ export class ResolveAlertCommand {
     public readonly userId: string,
     public readonly roles: string[],
     public readonly outcome?: AlertOutcome,
+    /** Workspace spec 079, C1: the side of the limb of a confirmed limb-loss alert, when its injury has none */
+    public readonly side?: BodySide,
   ) {}
 }

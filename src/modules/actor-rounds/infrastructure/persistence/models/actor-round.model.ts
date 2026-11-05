@@ -1,3 +1,4 @@
+import type { LostLimb } from '../../../domain/value-objects/lost-limb.vo.js';
 import type { ItemConsumed, TemporaryModifier } from '../../../domain/value-objects/temporary-modifier.vo.js';
 import type { ActorRoundItem } from '../../../domain/value-objects/actor-round-item.vo.js';
 import type { ActorRoundActiveStyle, ActorRoundFightingStyle } from '../../../domain/value-objects/actor-round-fighting-style.vo.js';
@@ -190,6 +191,14 @@ export class ActorRoundModel {
   /** Workspace spec 077, decision D2: falls and falling objects of the round (stored as documents of their own shape). */
   @Prop({ type: [Object], required: false, default: [] })
   hazards?: ActorRoundHazard[];
+
+  /** Workspace spec 079, C1: limbs lost for good (plain subdocuments). */
+  @Prop({ type: [Object], required: false, default: [] })
+  lostLimbs?: LostLimb[];
+
+  /** Workspace spec 079, C6: the round the actor died in; null while alive. */
+  @Prop({ type: Number, required: false })
+  deathRound?: number | null;
 
   @Prop({ type: ActorRoundSnapshot, required: false })
   snapshot?: ActorRoundSnapshot;

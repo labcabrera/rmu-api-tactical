@@ -1,3 +1,4 @@
+import { LostLimbDto } from './lost-limb.dto.js';
 import { ItemConsumedDto, TemporaryModifierDto } from './temporary-modifier.dto.js';
 import { ActorRoundItemDto } from './actor-round-item.dto.js';
 import { BreakageCheckResultDto } from './resolve-breakage-check.dto.js';
@@ -242,6 +243,19 @@ export class ActorRoundDto {
   @ApiProperty({ type: [ActorRoundHazardDto], description: 'Falls and falling objects of this round (spec 077)' })
   hazards: ActorRoundHazardDto[];
 
+  @ApiProperty({ type: [LostLimbDto], description: 'Limbs lost for good (spec 079): a lost arm is useless, a lost leg crawls' })
+  lostLimbs: LostLimbDto[];
+
+  @ApiProperty({ type: Number, nullable: true, description: 'Round the actor died in (spec 079); null while alive' })
+  deathRound: number | null;
+
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Rounds left before the soul departs (60 after the death, spec 079): 0 once it left; null while alive',
+  })
+  soulRoundsLeft: number | null;
+
   @ApiProperty({ description: 'What the character brought into the game (only in the actor round built from it)', required: false })
   snapshot?: ActorRoundSnapshotDto;
 
@@ -303,6 +317,9 @@ export class ActorRoundDto {
     dto.armorEncumbrance = entity.armorEncumbrance ?? 0;
     dto.height = entity.height ?? null;
     dto.hazards = (entity.hazards || []).map(hazard => ActorRoundHazardDto.fromEntity(hazard));
+    dto.lostLimbs = (entity.lostLimbs || []).map(limb => LostLimbDto.fromEntity(limb));
+    dto.deathRound = entity.deathRound ?? null;
+    dto.soulRoundsLeft = entity.soulRoundsLeft();
     dto.snapshot = entity.snapshot ? ActorRoundSnapshotDto.fromEntity(entity.snapshot) : undefined;
     dto.bleeding = entity.getBleeding();
     dto.imageUrl = entity.imageUrl;

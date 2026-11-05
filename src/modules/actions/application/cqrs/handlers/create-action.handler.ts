@@ -196,6 +196,12 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
           requiresConfirm: false,
         }),
       );
+      // Workspace spec 079, C1: a lost arm is useless for good
+      actorRound
+        .lostArms()
+        .forEach(limb =>
+          warnings.push({ code: 'limb-lost', params: { location: limb.location, side: limb.side }, requiresConfirm: false }),
+        );
     }
     return warnings;
   }

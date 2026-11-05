@@ -1,3 +1,4 @@
+import type { LostLimb } from '../../../actor-rounds/domain/value-objects/lost-limb.vo.js';
 import type { ItemConsumed, TemporaryModifier } from '../../../actor-rounds/domain/value-objects/temporary-modifier.vo.js';
 import type { HpBySource, HpLogEntry } from '../../../actor-rounds/domain/value-objects/hp-log-entry.vo.js';
 import type { CharacterCondition, Injury } from '../../../actor-rounds/domain/value-objects/injury.vo.js';
@@ -56,6 +57,8 @@ export interface TacticalGameOutcomeCharacter {
   itemsConsumed?: ItemConsumed[];
   /** Workspace spec 068: the temporary modifiers created in this game. */
   temporaryModifiers?: TemporaryModifier[];
+  /** Workspace spec 079, C1: every limb the actor has lost at the end (the ones it brought too). */
+  lostLimbs?: LostLimb[];
   appliedAt?: string;
   error?: string;
 }

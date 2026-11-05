@@ -93,6 +93,7 @@ import {
 import {
   buildInjury,
   deriveInjurySeverity,
+  type BodySide,
   type Injury,
   type InjurySource,
   type InjuryTreatment,
@@ -105,6 +106,9 @@ import {
 } from '../value-objects/injury.vo.js';
 import type { ItemConsumed, TemporaryModifier, TemporaryModifierKind } from '../value-objects/temporary-modifier.vo.js';
 import type { ActorRoundProps, ActorRoundSnapshot } from './actor-round-props.js';
+import { isLostLimbLocation, LOST_LEG_MAX_PACE, type LostLimb } from '../value-objects/lost-limb.vo.js';
+import { SOUL_DEPARTURE_ROUNDS } from '../services/limb-and-life-rules.js';
+import { toAttackLocation } from '../../../actions/domain/value-objects/attack-location.vo.js';
 import { PoisonStages, type Random } from '../services/poison-stages.js';
 import type {
   AntidoteData,
@@ -252,6 +256,8 @@ const MANUALLY_RESOLVED_ALERTS: string[] = [
   'death-threshold',
   'knocked-back',
   'stray-shot',
+  // Workspace spec 079, C1: the game master confirms the loss of the limb or dismisses it
+  'limb-loss',
 ];
 
 /** Effect of the critical tables that knocks the target back, its value in feet (workspace spec 079, decision A4). */
@@ -405,6 +411,12 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
 
   /** Falls and falling objects of this round (workspace spec 077, decision D2). Each round starts with none. */
   public hazards: ActorRoundHazard[] = [];
+
+  /** Limbs lost for good (workspace spec 079, C1), from the character and confirmed in the game; copied round to round. */
+  public lostLimbs: LostLimb[] = [];
+
+  /** The round the actor died in (workspace spec 079, C6): its soul departs `SOUL_DEPARTURE_ROUNDS` later. Null: alive. */
+  public deathRound: number | null = null;
 
   /** The last critical rolled from an alert (workspace spec 077, decision D3), for the answer; not stored. */
   public lastCriticalRoll: CriticalAlertRoll | undefined;
@@ -590,6 +602,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.heldActions = (props.heldActions ?? []).map(each => ({ ...each }));
     actorRound.height = props.height ?? null;
     actorRound.hazards = (props.hazards ?? []).map(hazard => structuredClone(hazard));
+    actorRound.lostLimbs = (props.lostLimbs ?? []).map(limb => ({ ...limb }));
+    actorRound.deathRound = props.deathRound ?? null;
     actorRound.normalizeLegacy();
     // Derived: recomputed so that values stored with the penalties folded in are corrected.
     actorRound.calculateCurrentBo();
@@ -676,6 +690,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     // Workspace spec 077, decision A2.1: a held action goes on held in the next round, and so does its focus.
     actorRound.heldActions = previous.heldActions.map(each => ({ ...each }));
     actorRound.height = previous.height;
+    // Workspace spec 079: the lost limbs and the round of the death go on
+    actorRound.lostLimbs = previous.lostLimbs.map(limb => ({ ...limb }));
+    actorRound.deathRound = previous.deathRound;
     actorRound.refreshActionPoints();
     actorRound.applyItemConditions();
     actorRound.calculateCurrentBo();
@@ -943,6 +960,10 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       return;
     }
     this.injuries.push(injury);
+    // Workspace spec 079, C1: a critical result flagged `limb-loss` asks the game master to confirm the loss
+    if (injury.flags?.includes('limb-loss') && injury.source?.kind !== 'manual') {
+      this.alerts.push(ActorRoundAlert.buildLimbLoss(injury.id, 'critical', injury.location, injury.side));
+    }
   }
 
   findInjury(injuryId: string): Injury {
@@ -1346,6 +1367,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       .filter(injury => isPenalizing(injury) && !!injury.limits?.pace)
       .map(injury => PACES.indexOf(injury.limits!.pace!))
       .filter(index => index >= 0);
+    // Workspace spec 079, C1: a lost leg leaves the actor crawling
+    if (this.lostLimbs.some(limb => limb.location === 'leg')) limits.push(PACES.indexOf(LOST_LEG_MAX_PACE));
     return limits.length > 0 ? PACES[Math.min(...limits)] : undefined;
   }
 
@@ -1400,9 +1423,139 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       if (elapsed >= rules.loosenEveryRounds + rules.graceRounds && !alerted('limb-loss')) {
         injury.flags = [...new Set([...(injury.flags ?? []), 'limb-loss' as const])];
         injury.updatedAt = new Date().toISOString();
-        this.alerts.push(ActorRoundAlert.buildTourniquet('limb-loss', injury.id, elapsed));
+        this.alerts.push(
+          ActorRoundAlert.buildTourniquet('limb-loss', injury.id, elapsed, { location: injury.location, side: injury.side }),
+        );
       }
     }
+  }
+
+  // --- Lost limbs, amputation and death (workspace spec 079, C1 and C6) ---
+
+  /** The lost arms: useless for good (the warnings of the attacks). */
+  lostArms(): LostLimb[] {
+    return this.lostLimbs.filter(limb => limb.location === 'arm');
+  }
+
+  /**
+   * The limb is lost for good (§13.1): an arm is useless and a leg leaves the actor crawling. The tourniquet and the
+   * bleeding of the injury that cost it end. `err-limb-already-lost` when it is lost already.
+   */
+  loseLimb(limb: Omit<LostLimb, 'at'>): LostLimb {
+    if (this.lostLimbs.some(each => each.location === limb.location && each.side === limb.side)) {
+      throw new ValidationError(`The ${limb.side} ${limb.location} is already lost`, 'err-limb-already-lost');
+    }
+    const lost: LostLimb = { ...limb, at: new Date().toISOString(), tacticalGameId: limb.tacticalGameId ?? this.gameId };
+    this.lostLimbs.push(lost);
+    const injury = limb.injuryId ? this.injuries.find(each => each.id === limb.injuryId) : undefined;
+    if (injury && injury.status !== 'healed') {
+      if (injury.bleeding) {
+        injury.bleeding = 0;
+        injury.bleedingControl = 'cauterized';
+      }
+      injury.tourniquet = null;
+      injury.updatedAt = new Date().toISOString();
+      this.alerts
+        .filter(alert => alert.type === 'tourniquet-loosen' && alert.status === 'pending' && ActorRound.alertInjury(alert) === injury.id)
+        .forEach(alert => (alert.status = 'resolved'));
+    }
+    this.applyPenalties();
+    this.refreshActionPoints();
+    return lost;
+  }
+
+  /** A confirmed limb-loss alert: the limb of its injury (an arm or a leg, the side given when the injury has none). */
+  private confirmLimbLoss(alert: ActorRoundAlert, side?: BodySide): void {
+    const injuryId = alert.getModifierText('injuryId');
+    const injury = injuryId ? this.injuries.find(each => each.id === injuryId) : undefined;
+    const location = alert.getModifierText('location') ?? injury?.location;
+    const limbSide = (alert.getModifierText('side') as BodySide | undefined) ?? injury?.side ?? side;
+    if (!isLostLimbLocation(location)) {
+      throw new ValidationError('Only an arm or a leg can be lost', 'err-limb-loss-location');
+    }
+    if (!limbSide) {
+      throw new ValidationError('The side of the limb is required', 'err-limb-loss-side-required');
+    }
+    this.loseLimb({ location, side: limbSide, cause: 'limb-loss', ...(injuryId ? { injuryId } : {}) });
+  }
+
+  /**
+   * An emergency amputation (§13.1), whatever its result: the limb is lost and the stump heals as its own injuries. A
+   * failure adds the critical alert of the stump, and an absolute failure system shock (`dyingRounds` of dying).
+   */
+  amputate(
+    limb: Omit<LostLimb, 'at' | 'cause'>,
+    stump: Injury[],
+    consequence: { critical?: boolean; dyingRounds?: number },
+    source: InjurySource,
+  ): LostLimb {
+    const lost = this.loseLimb({ ...limb, cause: 'amputation' });
+    stump.forEach(injury => this.addInjury(injury));
+    if (consequence.critical) {
+      this.alerts.push(ActorRoundAlert.buildAmputationCritical(toAttackLocation(limb.location) ?? limb.location));
+    }
+    if (consequence.dyingRounds) {
+      this.addEffect(
+        new ActorRoundEffect(randomUUID(), DYING, undefined, consequence.dyingRounds, undefined, undefined, undefined, undefined, source),
+        undefined,
+      );
+    }
+    this.applyPenalties();
+    this.refreshActionPoints();
+    return lost;
+  }
+
+  /** Round in which the soul of a dead actor departs (§13.2): five minutes after the death. Null while alive. */
+  soulDepartureRound(): number | null {
+    return this.isDead() && this.deathRound !== null ? this.deathRound + SOUL_DEPARTURE_ROUNDS : null;
+  }
+
+  /** Rounds left before the soul departs (0 once it left); null while alive or for a death of unknown round. */
+  soulRoundsLeft(): number | null {
+    const departure = this.soulDepartureRound();
+    return departure === null ? null : Math.max(0, departure - this.round);
+  }
+
+  /**
+   * Whether the body can be revived (§13.2): dead, with its soul still there and its hits no longer beyond the death
+   * threshold (a revived body would die again at once). `err-revive-*` otherwise.
+   */
+  checkRevivable(): void {
+    if (!this.isDead()) {
+      throw new ValidationError('The actor is not dead', 'err-revive-not-dead');
+    }
+    if (this.soulRoundsLeft() === 0) {
+      throw new ValidationError('The soul of the actor has departed', 'err-revive-soul-departed');
+    }
+    if (this.isBeyondDeathThreshold()) {
+      throw new ValidationError('The hits of the actor are still beyond the death threshold', 'err-revive-beyond-death-threshold', {
+        hits: this.hp.current,
+        threshold: -this.deathThreshold(),
+      });
+    }
+  }
+
+  /** The body breathes again: dead becomes unconscious (§13.2). */
+  revive(source: InjurySource): void {
+    this.checkRevivable();
+    this.effects = this.effects.filter(effect => effect.status !== DEAD);
+    this.deathRound = null;
+    this.addEffect(
+      new ActorRoundEffect(randomUUID(), UNCONSCIOUS, undefined, undefined, undefined, undefined, undefined, undefined, source),
+      undefined,
+    );
+    this.applyPenalties();
+    this.refreshActionPoints();
+  }
+
+  /** The hits of an electricity shock (a defibrillation, Table 13-2a), logged as a critical, and the state of the hits. */
+  takeShockHits(hits: number, phase?: number): void {
+    if (hits <= 0) return;
+    this.hp.current -= hits;
+    this.logHp({ kind: 'treatment', amount: -hits, phase });
+    this.checkHitsState();
+    this.applyPenalties();
+    this.refreshActionPoints();
   }
 
   // --- Items consumed and temporary modifiers (workspace spec 068, decisions 7 and 19) ---
@@ -1565,6 +1718,10 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     }
     if (this.isDead() && effect.status === DYING) {
       return;
+    }
+    // Workspace spec 079, C6: the round of the death, from which the soul departs
+    if (effect.status === DEAD && !this.isDead()) {
+      this.deathRound = this.round;
     }
     if (effect.status === FRENZY) {
       effect.value = effect.value ?? 1;
@@ -3157,7 +3314,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    * Spec 034: the game master is done with an alert handled by hand (the critical of a fumble). Endurance and breakage
    * alerts are resolved with their rolls.
    */
-  resolveAlert(alertId: string, outcome?: AlertOutcome): string[] {
+  resolveAlert(alertId: string, outcome?: AlertOutcome, limbSide?: BodySide): string[] {
     const alert = this.alerts.find(a => a.id === alertId);
     if (!alert) {
       throw new NotFoundError('Alert', alertId);
@@ -3175,6 +3332,12 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
         this.effects = this.effects.filter(e => e.status !== DYING);
         this.applyPenalties();
       }
+      return [];
+    }
+    // Workspace spec 079, C1: a confirmed limb-loss alert costs the actor the limb; otherwise it is dismissed
+    if (alert.type === 'limb-loss') {
+      alert.modifiers?.push(new ActorRoundAlertModifier('outcome', null, outcome === 'confirmed' ? 'confirmed' : 'dismissed'));
+      if (outcome === 'confirmed') this.confirmLimbLoss(alert, limbSide);
       return [];
     }
     // Workspace spec 077, decision A2.4: a failed Mental Focus maneuver breaks every focus; the caller interrupts the
@@ -3552,6 +3715,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       heldActions: this.heldActions,
       height: this.height,
       hazards: this.hazards,
+      lostLimbs: this.lostLimbs,
+      deathRound: this.deathRound,
       imageUrl: this.imageUrl,
       owner: this.owner,
       createdAt: this.createdAt,
