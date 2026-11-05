@@ -84,7 +84,7 @@ describe('ActorRound fatigue (§5.5)', () => {
 });
 
 describe('ResolveEnduranceCheckHandler', () => {
-  const setup = (endurance: { fatigue: number; hitPoints: number }, encumbrancePenalty = 0) => {
+  const setup = (endurance: { fatigue: number; hitPoints: number }, encumbrancePenalty = 0, maneuverPenalty = 0) => {
     const round = load({ hp: [50, 50] });
     const alert = ActorRoundAlert.buildEndurance();
     round.alerts.push(alert);
@@ -98,7 +98,7 @@ describe('ResolveEnduranceCheckHandler', () => {
     const maneuverPort = { endurance: enduranceFn } as unknown as ManeuverPort;
     const gameRepository = { findById: vi.fn(() => Promise.resolve(null)) } as unknown as GameRepository;
     const sheets = {
-      find: vi.fn(() => Promise.resolve({ skills: [], equipment: { maneuverPenalty: 0, encumbrancePenalty } })),
+      find: vi.fn(() => Promise.resolve({ skills: [], equipment: { maneuverPenalty, encumbrancePenalty } })),
     } as unknown as ActorSheetService;
     const handler = new ResolveEnduranceCheckHandler(actorRoundRepository, maneuverPort, gameRepository, sheets);
     return { handler, alert, enduranceFn };
@@ -132,6 +132,26 @@ describe('ResolveEnduranceCheckHandler', () => {
     );
 
     expect(enduranceFn).toHaveBeenCalledWith(47);
+  });
+
+  it('adds the armor maneuver penalty of the sheet too, as Table 5-5 asks, leaving out the one sent', async () => {
+    const { handler, alert, enduranceFn } = setup({ fatigue: 0, hitPoints: 0 }, -13, -15);
+
+    await handler.execute(
+      new ResolveEnduranceCheckCommand(
+        'ar-1',
+        alert.id,
+        40,
+        [
+          { key: 'body-development', value: 20 },
+          { key: 'armor-maneuver-penalty', value: -40 },
+        ],
+        'user-1',
+        [],
+      ),
+    );
+
+    expect(enduranceFn).toHaveBeenCalledWith(32);
   });
 
   it('rejects an alert the actor round does not have', async () => {
