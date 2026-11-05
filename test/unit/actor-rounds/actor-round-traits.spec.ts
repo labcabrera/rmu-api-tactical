@@ -272,6 +272,34 @@ describe('Strike Reflex', () => {
   });
 });
 
+describe('ActorRoundCharacterMapperAdapter Steady Shield (workspace spec 077, P2)', () => {
+  it('adds the times Steady Shield was taken to the blocks of the shield', () => {
+    const sheet = character({
+      defense: {
+        defensiveBonus: 10,
+        armor: { at: 1, bodyAt: 1, headAt: 1, armsAt: 1, legsAt: 1 },
+        shield: { db: 20, blockCount: 2 },
+        protect: 0,
+      },
+      skills: [
+        {
+          skillId: 'battle-styles',
+          specialization: 'shieldbearer',
+          ranks: 6,
+          styleAbilities: [
+            { abilityId: 'steady-shield', times: 2 },
+            { abilityId: 'shield-bash', times: 1 },
+          ],
+        },
+      ],
+    } as unknown as Partial<Character>);
+
+    const round = new ActorRoundCharacterMapperAdapter().toActorRound('game-1', 1, sheet);
+
+    expect(round.defense.shield!.blockCount).toBe(4);
+  });
+});
+
 describe('ActorRoundCharacterMapperAdapter injuries and conditions (spec 013, §3)', () => {
   const mapper = new ActorRoundCharacterMapperAdapter();
   const source = { kind: 'critical' as const, tacticalGameId: 'other-game' };

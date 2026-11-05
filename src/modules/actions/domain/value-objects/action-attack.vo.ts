@@ -4,6 +4,7 @@ import { ActionAttackRoll } from './action-attack-roll.vo.js';
 import type { AttackStatus } from './attack-status.vo.js';
 import { CriticalEffect } from './critical-result.vo.js';
 import { Critical } from './critical.vo.js';
+import type { ShieldManeuver } from './shield-maneuver.vo.js';
 
 /** Workspace spec 076, decision B1: the reaction talent an attack comes from, and its fixed OB (null: the actor's). */
 export interface ActionAttackReaction {
@@ -15,6 +16,9 @@ export interface ActionAttackReaction {
 export class ActionAttack {
   /** Set when the attack of a reaction is prepared (workspace spec 076). */
   public reaction?: ActionAttackReaction | null;
+
+  /** The Shield maneuver the defender rolls for this attack (workspace spec 077, decision A1.2). */
+  public shieldManeuver?: ShieldManeuver | null;
 
   constructor(
     public attackName: string,

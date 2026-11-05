@@ -11,6 +11,7 @@ import { rollProfileOf } from '../../../../actor-rounds/domain/value-objects/act
 import { checkOpenEndedDice } from '../../../../shared/domain/rolls/open-ended.js';
 import { applyNaturalRoll } from '../../../domain/services/roll-talents.js';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { isShieldManeuverPending } from '../../../domain/value-objects/shield-maneuver.vo.js';
 import { Action } from '../../../domain/aggregates/action.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { opportunisticStrikeTrigger } from '../../../domain/services/reaction-rules.js';
@@ -117,6 +118,12 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     }
     if (!attack.calculated) {
       throw new ValidationError(`Attack ${command.attackName} has no calculated data`);
+    }
+    // Workspace spec 077, decision A1.7: the Shield maneuver comes before the attack roll.
+    if (isShieldManeuverPending(attack.shieldManeuver)) {
+      throw new ValidationError(`The Shield maneuver against ${command.attackName} is pending`, 'err-shield-maneuver-required', {
+        attackName: command.attackName,
+      });
     }
     action.checkValidRollDeclaration();
   }

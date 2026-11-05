@@ -22,6 +22,9 @@ import { type ActorRoundFightingStyle, FIGHTING_STYLE_SKILLS } from '../../domai
 
 const BODY_DEVELOPMENT_SKILL_ID = 'body-development';
 
+/** Fighting style ability that covers one more attack with the shield per time taken (workspace spec 077, P2). */
+const STEADY_SHIELD = 'steady-shield';
+
 @Injectable()
 export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapperPort {
   toActorRound(gameId: string, round: number, character: Character, items: StrategicItem[] = []): ActorRound {
@@ -35,7 +38,9 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
     }
     let shield: ActorRoundShield | null = null;
     if (character.defense.shield) {
-      shield = new ActorRoundShield(character.defense.shield.db, character.defense.shield.blockCount, 0);
+      // Workspace spec 077, decision A1.8 (P2): each Steady Shield of its fighting styles covers one more attack.
+      const blockCount = character.defense.shield.blockCount + ActorRoundCharacterMapperAdapter.steadyShieldTimes(character);
+      shield = new ActorRoundShield(character.defense.shield.db, blockCount, 0);
     }
     const movement = new ActorRoundMovement(
       character.movement.baseMovementRate,
@@ -155,6 +160,15 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
         freeRanks: skill.styleFreeRanks ?? 0,
         abilities: (skill.styleAbilities || []).map(ability => ({ abilityId: ability.abilityId, times: ability.times })),
       }));
+  }
+
+  /** Times Steady Shield was taken in the character's fighting styles (Character Companion ch. 4; workspace spec 077, P2). */
+  static steadyShieldTimes(character: Character): number {
+    return (character.skills || [])
+      .filter(skill => FIGHTING_STYLE_SKILLS.includes(skill.skillId) && (skill.ranks ?? 0) > 0)
+      .flatMap(skill => skill.styleAbilities || [])
+      .filter(ability => ability.abilityId === STEADY_SHIELD)
+      .reduce((sum, ability) => sum + Math.max(0, ability.times || 0), 0);
   }
 
   /** Traits without an id (older sheets) are left out. */

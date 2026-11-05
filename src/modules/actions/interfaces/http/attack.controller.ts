@@ -44,9 +44,9 @@ export class AttackController {
   @ActionAccess('participate')
   @Patch(':id/attack/parry')
   @ApiBody({ type: DeclareParryDto })
-  @ApiOperation({ operationId: 'declareParry', summary: 'Declare parry' })
+  @ApiOperation({ operationId: 'declareParry', summary: 'Declare the parries and the Shield maneuvers of the defenders (spec 077)' })
   @ApiOkResponse({ type: ActionDto, description: 'Success' })
-  @ApiErrors({ 400: 'Bad request, invalid data' })
+  @ApiErrors({ 400: 'Bad request, invalid data; err-shield-maneuver-not-needed' })
   async declareParry(@Param('id') id: string, @Body() dto: DeclareParryDto, @CurrentUser() user: AuthenticatedUser) {
     this.logger.debug(`Declaring parry: ${JSON.stringify(dto)} for user ${user.id}`);
     const command = DeclareParryDto.toCommand(id, dto, user.id, user.roles);
@@ -59,7 +59,7 @@ export class AttackController {
   @ApiBody({ type: UpdateAttackRollDto })
   @ApiOperation({ operationId: 'updateAttackRoll', summary: 'Update attack roll' })
   @ApiOkResponse({ type: ActionDto, description: 'Success' })
-  @ApiErrors({ 400: 'Bad request, invalid data' })
+  @ApiErrors({ 400: 'Bad request, invalid data; err-shield-maneuver-required while a Shield maneuver is pending' })
   async updateAttackRoll(@Param('id') id: string, @Body() dto: UpdateAttackRollDto, @CurrentUser() user: AuthenticatedUser) {
     this.logger.debug(`Updating attack roll: ${JSON.stringify(dto)} for user ${user.id}`);
     const command = UpdateAttackRollDto.toCommand(id, dto, user.id, user.roles);

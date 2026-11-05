@@ -16,6 +16,7 @@ import { ActorRoundTrait, QUICK_ACTION } from '../../../actor-rounds/domain/valu
 import { type ActionStatus, CLOSED_ACTION_STATUSES, IN_RESOLUTION_ACTION_STATUSES } from '../value-objects/action-status.vo.js';
 import type { ActionType } from '../value-objects/action-type.vo.js';
 import type { ParryType } from '../value-objects/parry-type.vo.js';
+import { isShieldManeuverPending } from '../value-objects/shield-maneuver.vo.js';
 import type { ModifierParams } from '../value-objects/key-value-modifier.vo.js';
 import type { ManeuverActionPoints } from '../value-objects/maneuver-profile.vo.js';
 
@@ -1022,9 +1023,18 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     return this.attacks.some(attack => attack.results?.fumble && !attack.roll?.fumbleRoll);
   }
 
-  /** Prepared attacks wait for the parries, when there are any to declare, and then for their rolls. */
+  /**
+   * Prepared attacks wait for the parries, when there are any to declare, and then for their rolls. An attack that
+   * needs a Shield maneuver goes through the parry step even if nobody parries (workspace spec 077, decision A1.1).
+   */
   markPrepared(): void {
-    this.status = this.parries && this.parries.length > 0 ? 'parry' : 'pending_roll';
+    const parries = !!this.parries && this.parries.length > 0;
+    this.status = parries || this.hasPendingShieldManeuvers() ? 'parry' : 'pending_roll';
+  }
+
+  /** Some attack waits for the Shield maneuver of its defender (workspace spec 077, decision A1.2). */
+  hasPendingShieldManeuvers(): boolean {
+    return (this.attacks ?? []).some(attack => isShieldManeuverPending(attack.shieldManeuver));
   }
 
   /**

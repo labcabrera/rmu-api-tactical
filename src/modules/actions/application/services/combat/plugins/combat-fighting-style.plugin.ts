@@ -7,6 +7,7 @@ import { ActionAttack } from '../../../../domain/value-objects/action-attack.vo.
 import type { CombatContext } from '../combat-context.js';
 import { criticalModifiers, isMelee, isPreparing, preparation, rollModifiers, sourceTraitTier } from '../combat-modifiers.js';
 import type { CombatPlugin } from '../combat-plugin.js';
+import { CombatModifierBag } from '../combat-modifier-bag.js';
 
 /** Off-hand attack penalty the strategic sheet puts in the OB (without the Ambidextrous talent). */
 const OFF_HAND_PENALTY = 20;
@@ -83,7 +84,12 @@ export const CombatFightingStyleSourcePlugin: CombatPlugin = {
             preparation(ctx).calledShotPenalty = Math.max(penalty, PRECISE_TARGET_PENALTY);
           }
           if (sourceAbility(ctx, 'evade-shield')) {
-            modifiers.add('evade-shield', Math.floor(-(modifiers.value('shield') + modifiers.value('shield-block')) / 2));
+            // Workspace spec 077, decision A1.3: with a Shield maneuver pending, the shield counts (and is evaded) only
+            // when it passes, so the modifier goes with the shield's.
+            const shieldManeuver = ctx.attack?.shieldManeuver;
+            const shieldModifiers = shieldManeuver ? CombatModifierBag.from(shieldManeuver.modifiers, ctx.plugin) : modifiers;
+            const evaded = Math.floor(-(shieldModifiers.value('shield') + shieldModifiers.value('shield-block')) / 2);
+            shieldModifiers.add('evade-shield', evaded);
           }
           if (ctx.attack?.modifiers.styleCriticalOption === 'binding-chain') {
             modifiers.add('binding-chain', BINDING_CHAIN_PENALTY);

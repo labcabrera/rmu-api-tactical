@@ -116,7 +116,11 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
         gameLethality,
         light: game.environment?.light ?? null,
       });
-      if (ctx.attack!.calculated!.rollModifiers.some(modifier => modifier.key === 'shield' || modifier.key === 'shield-block')) {
+      // Workspace spec 077, decision A1.2: an attack waiting for its Shield maneuver takes a block too (a failed roll spends it).
+      const shieldUsed = ctx.attack!.calculated!.rollModifiers.some(
+        modifier => modifier.key === 'shield' || modifier.key === 'shield-block',
+      );
+      if (shieldUsed || ctx.attack!.shieldManeuver) {
         reservedShieldBlocks.set(targetId, (reservedShieldBlocks.get(targetId) || 0) + 1);
       }
     }
