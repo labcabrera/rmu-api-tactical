@@ -38,6 +38,7 @@ import {
   FRENZY,
   FRENZY_DYING,
   FRENZY_LEVELS,
+  GRAPPLED,
   HALF_ACTIVITY,
   HALF_ACTIVITY_AP,
   HALF_MOVEMENT,
@@ -214,6 +215,9 @@ const MANUALLY_RESOLVED_ALERTS: string[] = ['critical', 'reaction-available', 't
 
 /** Effects that break every concentration at once (§8.1; workspace spec 077, decision A2.5). */
 const CONCENTRATION_BREAKING_EFFECTS = [UNCONSCIOUS, DEAD, PARALYZED];
+
+/** The grapple penalty goes no further than -100 (workspace spec 077, decision A3.2, P3). */
+const MAX_GRAPPLE_PENALTY = 100;
 
 /** Phase number of the upkeep (see `Game.getEffectPhase`). */
 const UPKEEP_PHASE = 5;
@@ -1482,6 +1486,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     if (effect.status === CONCENTRATING) {
       this.normalizeConcentrating(effect);
     }
+    if (effect.status === GRAPPLED && this.mergeGrapple(effect)) {
+      return;
+    }
     if (effect.status === SURPRISED) {
       this.normalizeSurprise(effect);
     }
@@ -1865,6 +1872,95 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     return held;
   }
 
+  // --- Grapple (§9.8; workspace spec 077, block A3) ---
+
+  /**
+   * Decision A3.1: the grapple percent is positive, and its grappler the attacker of the critical. A grapple of a
+   * grappler the actor already has adds up to it (answers true: nothing else to add); one without a grappler is an
+   * object.
+   */
+  private mergeGrapple(effect: ActorRoundEffect): boolean {
+    const value = Math.abs(effect.value ?? 0);
+    if (!value) {
+      throw new ValidationError('A grappled effect requires its percent as value', 'err-effect-invalid-value');
+    }
+    effect.value = value;
+    effect.rounds = undefined;
+    effect.targetActorId = effect.targetActorId ?? effect.source?.attackerId;
+    if (!effect.targetActorId) {
+      effect.data = { ...(effect.data ?? {}), object: true };
+      return false;
+    }
+    const same = this.effects.find(e => e.status === GRAPPLED && e.targetActorId === effect.targetActorId);
+    if (!same) {
+      return false;
+    }
+    same.value = (same.value ?? 0) + value;
+    return true;
+  }
+
+  /** The grapples the actor is held in. */
+  grapples(): ActorRoundEffect[] {
+    return this.activeEffects().filter(effect => effect.status === GRAPPLED);
+  }
+
+  /** Penalty of the grapples (negative), -100 at most (decision A3.2). */
+  grapplePenalty(): number {
+    const total = this.grapples().reduce((sum, effect) => sum + Math.abs(effect.value ?? 0), 0);
+    return -Math.min(MAX_GRAPPLE_PENALTY, total);
+  }
+
+  /** The actor holds `actorId` in a grapple. */
+  isGrappledBy(actorId: string): boolean {
+    return this.grapples().some(effect => effect.targetActorId === actorId);
+  }
+
+  /** Decision A3.4: a grappler stunned, out of the fight or dead lets go. Answers the grapples removed. */
+  releaseGrapplesOf(grapplerId: string): ActorRoundEffect[] {
+    const released = this.effects.filter(effect => effect.status === GRAPPLED && effect.targetActorId === grapplerId);
+    if (released.length > 0) {
+      this.effects = this.effects.filter(effect => !released.includes(effect));
+      this.applyPenalties();
+    }
+    return released;
+  }
+
+  /**
+   * Decisions A3.3 and A3.6 (P5): the result of an escape maneuver lowers the grapple, which goes at 0 or less. An
+   * absolute failure of Contortions (`tightened`) tightens it instead: no more escapes from it.
+   */
+  escapeGrapple(effectId: string, percent: number, tightened = false): { remaining: number; released: boolean; tightened: boolean } {
+    const grapple = this.findGrapple(effectId);
+    if (tightened) {
+      grapple.data = { ...(grapple.data ?? {}), tightened: true };
+      return { remaining: grapple.value ?? 0, released: false, tightened: true };
+    }
+    const remaining = (grapple.value ?? 0) - Math.max(0, percent);
+    if (remaining <= 0) {
+      this.effects = this.effects.filter(effect => effect.id !== effectId);
+    } else {
+      grapple.value = remaining;
+    }
+    this.applyPenalties();
+    return { remaining: Math.max(0, remaining), released: remaining <= 0, tightened: false };
+  }
+
+  /** A grapple of the actor (`err-grapple-not-grappled`, `err-grapple-effect-not-found`, `err-grapple-escape-blocked`). */
+  findGrapple(effectId: string): ActorRoundEffect {
+    const grapples = this.grapples();
+    if (grapples.length === 0) {
+      throw new ValidationError('The actor is not grappled', 'err-grapple-not-grappled');
+    }
+    const grapple = grapples.find(effect => effect.id === effectId);
+    if (!grapple) {
+      throw new NotFoundError('Grapple', effectId, 'err-grapple-effect-not-found');
+    }
+    if (grapple.data?.tightened) {
+      throw new ValidationError('The grapple tightened: the actor cannot escape it alone', 'err-grapple-escape-blocked');
+    }
+    return grapple;
+  }
+
   /** A Mental Focus alert, unless one of the same reason (and rounds) is still pending. */
   private addMentalFocusAlert(reason: MentalFocusReason, focus?: ConcentrationFocus, rounds?: number): void {
     const pending = this.alerts.some(
@@ -1971,6 +2067,16 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     this.applyStunPenalty();
     this.applyNonViolentPenalty();
     this.applyFatiguePenalty();
+    this.applyGrapplePenalty();
+  }
+
+  /** Workspace spec 077, decision A3.2: the grapples add up to a penalty to every action, -100 at most. */
+  private applyGrapplePenalty() {
+    this.penalty.modifiers = this.penalty.modifiers.filter(m => m.source !== GRAPPLED);
+    const penalty = this.grapplePenalty();
+    if (penalty !== 0) {
+      this.penalty.addModifier(GRAPPLED, penalty);
+    }
   }
 
   /**

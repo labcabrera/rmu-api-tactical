@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   type ActionManeuverEffect,
   ActionManeuverResult,
+  type GrappleEscapeResult,
   type ManeuverRollTalent,
 } from '../../../domain/value-objects/action-maneuver.vo.js';
 
@@ -20,6 +21,47 @@ export class ActionManeuverEffectDto {
 
   @ApiProperty({ required: false })
   roundDelay?: number;
+}
+
+export class GrappleEscapeResultDto {
+  @ApiProperty()
+  effectId: string;
+
+  @ApiProperty({ description: 'The grappler; none for an object', required: false })
+  grapplerId?: string;
+
+  @ApiProperty()
+  roll: number;
+
+  @ApiProperty()
+  difficulty: string;
+
+  @ApiProperty({ required: false })
+  passiveTotal?: number;
+
+  @ApiProperty()
+  total: number;
+
+  @ApiProperty({ type: [Object] })
+  modifiers: object[];
+
+  @ApiProperty({ description: 'Percent of the table, taken off the grapple' })
+  percent: number;
+
+  @ApiProperty({ type: String, required: false, nullable: true })
+  critical?: string | null;
+
+  @ApiProperty({ required: false })
+  message?: string;
+
+  @ApiProperty({ description: 'Percent of the grapple left' })
+  remaining: number;
+
+  @ApiProperty()
+  released: boolean;
+
+  @ApiProperty({ required: false })
+  tightened?: boolean;
 }
 
 export class ActionManeuverResultDto {
@@ -64,6 +106,15 @@ export class ActionManeuverResultDto {
   })
   rollTalent?: ManeuverRollTalent;
 
+  @ApiProperty({
+    description:
+      'grapple-escape (spec 077): per grapple, the roll, total, modifiers, percent taken off, percent left, whether it was ' +
+      'released and whether an absolute failure of Contortions tightened it',
+    type: [GrappleEscapeResultDto],
+    required: false,
+  })
+  grappleEscape?: GrappleEscapeResult[];
+
   static fromEntity(entity: ActionManeuverResult): ActionManeuverResultDto {
     const dto = new ActionManeuverResultDto();
     dto.result = entity.result ?? undefined;
@@ -78,6 +129,7 @@ export class ActionManeuverResultDto {
     dto.moraleModifier = entity.moraleModifier ?? undefined;
     dto.moraleModifierDays = entity.moraleModifierDays ?? undefined;
     dto.rollTalent = entity.rollTalent ?? undefined;
+    dto.grappleEscape = entity.grappleEscape ?? undefined;
     return dto;
   }
 }

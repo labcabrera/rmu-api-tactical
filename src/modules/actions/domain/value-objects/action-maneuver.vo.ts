@@ -1,3 +1,4 @@
+import type { KeyValueModifier } from './key-value-modifier.vo.js';
 import { ActionRoll } from './action-roll.vo.js';
 import type { Difficulty } from './difficulty.vo.js';
 import type { LightType } from './light-type.vo.js';
@@ -74,7 +75,31 @@ export class ActionManeuverResult {
     public moraleModifierDays?: number | undefined,
     /** Workspace spec 076: the talent that changed the result of the table (Unusual Luck, Absolute Ease or Disaster). */
     public rollTalent?: ManeuverRollTalent | undefined,
+    /** Workspace spec 077, decision A3.3: one result per grapple of an escape. */
+    public grappleEscape?: GrappleEscapeResult[] | undefined,
   ) {}
+}
+
+/** The roll against one grapple of an escape maneuver (workspace spec 077, decision A3.3). */
+export interface GrappleEscapeResult {
+  effectId: string;
+  /** The grappler; none for an object. */
+  grapplerId?: string;
+  roll: number;
+  difficulty: string;
+  /** Total of the grappler's side, which adds 100 less it. */
+  passiveTotal?: number;
+  total: number;
+  modifiers: KeyValueModifier[];
+  /** Percent of the table, taken off the grapple. */
+  percent: number;
+  critical?: string | null;
+  message?: string;
+  /** Percent of the grapple left. */
+  remaining: number;
+  released: boolean;
+  /** An absolute failure of Contortions tightened the grapple (decision A3.6). */
+  tightened?: boolean;
 }
 
 /** Effect of an absolute maneuver result, as core returns it. */

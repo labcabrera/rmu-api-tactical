@@ -1,6 +1,21 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, IsArray, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, Max, Min, ValidateNested } from 'class-validator';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsIn,
+  IsInt,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+  ValidateIf,
+  ValidateNested,
+} from 'class-validator';
+import type { GrappleEscapeRow } from '../../../domain/services/grapple-escape.js';
 import {
   MISSING_SENSE_HELPFUL_DEFAULT,
   MISSING_SENSE_HELPFUL_MIN,
@@ -50,6 +65,34 @@ export class ManeuverRollDto {
   @ArrayMaxSize(20)
   @IsInt({ each: true })
   dice?: number[];
+}
+
+/** One roll of a grapple escape, against one grapple of the actor (workspace spec 077, decision A3.3). */
+export class GrappleEscapeRowDto {
+  @ApiProperty({ description: 'The grappled effect of the actor to escape from' })
+  @IsString()
+  effectId: string;
+
+  @ApiProperty({ description: 'Total of the open-ended roll of the actor against this grapple', example: 74 })
+  @IsNumber()
+  roll: number;
+
+  @ApiProperty({
+    type: String,
+    description: 'Difficulty the game master picks (from the relative weight); the body difficulty or medium when left out',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  difficulty?: Difficulty;
+
+  @ApiProperty({
+    description: "Total of the grappler's side of the contested roll (required unless the grapple is an object): adds 100 less it",
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  passiveTotal?: number;
 }
 
 /** @deprecated Body of the resolve request before spec 010. Read for one more version. */
@@ -149,7 +192,8 @@ export class ResolveManeuverDto {
     type: String,
     description:
       'What the maneuver is for: Adrenal Focus to enter or leave the frenzy (spec 040), or a combat talent (spec 076): ' +
-      'battle-cry (Influence), sense-weakness and study-offense (Perception, 4 AP), precision (Ambush)',
+      'battle-cry (Influence), sense-weakness and study-offense (Perception, 4 AP), precision (Ambush); or grapple-escape ' +
+      '(spec 077: unarmed-st, unarmed-ag or contortions, percent, 2-4 AP, with grappleEscape rows)',
     enum: MANEUVER_PURPOSES,
     required: false,
   })
@@ -240,7 +284,21 @@ export class ResolveManeuverDto {
   @Max(HEATSENSE_MAX)
   heatsenseModifier?: number;
 
-  @ApiProperty({ description: 'Roll', type: ManeuverRollDto })
+  @ApiProperty({
+    description: 'grapple-escape (spec 077): one roll per grapple to escape from, in the same action',
+    type: [GrappleEscapeRowDto],
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(10)
+  @ValidateNested({ each: true })
+  @Type(() => GrappleEscapeRowDto)
+  grappleEscape?: GrappleEscapeRowDto[];
+
+  @ApiProperty({ description: 'Roll; a grapple escape sends one in each grappleEscape row instead', type: ManeuverRollDto })
+  @ValidateIf((dto: ResolveManeuverDto) => dto.purpose !== 'grapple-escape' || dto.roll !== undefined)
   @ValidateNested()
   @Type(() => ManeuverRollDto)
   @IsObject()
@@ -283,6 +341,12 @@ export class ResolveManeuverDto {
         : undefined,
       dto.spasmRounds,
       ResolveManeuverDto.toSenses(dto),
+      dto.grappleEscape?.map((row): GrappleEscapeRow => ({
+        effectId: row.effectId,
+        roll: row.roll,
+        difficulty: row.difficulty,
+        passiveTotal: row.passiveTotal,
+      })),
     );
   }
 

@@ -62,6 +62,7 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
         pace: command.modifiers.pace,
       });
     }
+    await this.checkGrapple(command, actorRound);
     const warnings = ResolveMovementHandler.paceWarnings(command.modifiers.pace, actorRound);
     if (!command.confirm && warnings.some(warning => warning.requiresConfirm)) {
       throw new ConflictError('The movement needs a confirmation: send it again with confirm: true', 'err-action-confirm-required', {
@@ -191,6 +192,28 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
       light: command.modifiers.light ?? ambientLight ?? null,
       grappleFeat: command.modifiers.grappleFeat ?? null,
     };
+  }
+
+  /**
+   * Workspace spec 077, decision A3.5: a grappled actor, or one that holds another in a grapple, moves away only with
+   * a contested Feat of Strength, whose outcome the movement sends (`err-movement-grappled`).
+   */
+  private async checkGrapple(command: ResolveMovementCommand, actorRound: ActorRound): Promise<void> {
+    if (command.modifiers.grappleFeat) {
+      return;
+    }
+    let grappled = actorRound.grapples().length > 0;
+    if (!grappled) {
+      const rsql = `gameId==${actorRound.gameId};round==${actorRound.round}`;
+      const others = (await this.actorRoundRepository.findByRsql(rsql, 0, 1000)).content;
+      grappled = others.some(other => other.id !== actorRound.id && other.isGrappledBy(actorRound.actorId));
+    }
+    if (grappled) {
+      throw new ValidationError(
+        'A grappled actor or its grappler moves away only with a contested Feat of Strength: send grappleFeat',
+        'err-movement-grappled',
+      );
+    }
   }
 
   private validate(command: ResolveMovementCommand, action: Action): void {

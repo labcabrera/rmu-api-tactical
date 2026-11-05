@@ -30,7 +30,20 @@ import {
   validateCombatTalentPurpose,
 } from '../../../domain/services/combat-talent-maneuver.js';
 import { applyNaturalRoll } from '../../../domain/services/roll-talents.js';
-import { type CombatTalentPurpose, isCombatTalentPurpose, isFrenzyPurpose } from '../../../domain/value-objects/maneuver-purpose.vo.js';
+import {
+  type CombatTalentPurpose,
+  GRAPPLE_ESCAPE,
+  isCombatTalentPurpose,
+  isFrenzyPurpose,
+} from '../../../domain/value-objects/maneuver-purpose.vo.js';
+import {
+  CONTORTIONS_SKILL_ID,
+  GRAPPLE_ESCAPE_DEFAULT_DIFFICULTY,
+  grappleConflictModifier,
+  validateGrappleEscape,
+} from '../../../domain/services/grapple-escape.js';
+import type { GrappleEscapeResult } from '../../../domain/value-objects/action-maneuver.vo.js';
+import type { ActorRoundEffect } from '../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
 import {
   absoluteEaseResult,
   type ActorRollProfile,
@@ -93,6 +106,7 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
       skillId: request.skillId,
       specialization: request.specialization,
       maneuverType: request.maneuverType,
+      purpose: request.purpose,
     });
     const range = context.profile.actionPoints;
     const talent = isCombatTalentPurpose(request.purpose) ? request.purpose : undefined;
@@ -101,6 +115,10 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     const talentRange = talent ? combatTalentApRange(talent) : null;
     action.apRange = talentRange ?? (range ? { min: range.min, max: range.max } : null);
     action.checkResolvable(context.actorRound, currentPhase);
+    if (request.purpose === GRAPPLE_ESCAPE) {
+      const grapples = validateGrappleEscape(context.actorRound, context.skill.skillId, request.grappleEscape);
+      return this.resolveGrappleEscape(command, action, context, grapples, currentPhase);
+    }
     if (isFrenzyPurpose(request.purpose)) {
       validateFrenzyPurpose(context.actorRound, context.skill.skillId, request.purpose);
     } else if (talent) {
@@ -184,6 +202,77 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     return updated;
   }
 
+  /**
+   * Workspace spec 077, decisions A3.3 and A3.6: an escape rolls once against each grapple in the same action, with the
+   * whole grapple penalty of the actor (in its base modifiers). Each roll adds 100 less the grappler's total (nothing
+   * against an object) and reads the percent table: the percent comes off the grapple (P5), which goes at 0 or less. A
+   * critical (absolute failure) of Contortions tightens the grapple instead.
+   */
+  private async resolveGrappleEscape(
+    command: ResolveManeuverCommand,
+    action: Action,
+    context: ManeuverContext,
+    grapples: ActorRoundEffect[],
+    currentPhase: number,
+  ): Promise<Action> {
+    const request = command.request;
+    const rows = request.grappleEscape!;
+    action.actionPoints = action.apOf(context.actorRound, currentPhase);
+    const results: GrappleEscapeResult[] = [];
+    let first: ManeuverRollCalculation | undefined;
+    for (const [index, row] of rows.entries()) {
+      if (typeof row.roll !== 'number' || !Number.isFinite(row.roll)) {
+        throw new ValidationError('Required roll value');
+      }
+      const grapple = grapples[index];
+      const difficulty = row.difficulty ?? request.difficulty ?? GRAPPLE_ESCAPE_DEFAULT_DIFFICULTY;
+      const calculation = this.maneuverContextService.calculate(context, { ...request, difficulty, passiveTotal: undefined }, row.roll);
+      const conflict = grappleConflictModifier(grapple, row);
+      const modifiers = conflict ? [...calculation.modifiers, conflict] : calculation.modifiers;
+      const total = calculation.total + (conflict?.value ?? 0);
+      first = first ?? { ...calculation, modifiers, total };
+      const table = await this.maneuverPort.percent(total);
+      const critical = table.critical || null;
+      const percent = critical ? 0 : table.percent || 0;
+      const tightened = !!critical && context.skill.skillId === CONTORTIONS_SKILL_ID;
+      const outcome = context.actorRound.escapeGrapple(grapple.id, percent, tightened);
+      results.push({
+        effectId: grapple.id,
+        ...(grapple.targetActorId ? { grapplerId: grapple.targetActorId } : {}),
+        roll: row.roll,
+        difficulty,
+        ...(conflict ? { passiveTotal: row.passiveTotal } : {}),
+        total,
+        modifiers,
+        percent,
+        critical,
+        message: table.message,
+        remaining: outcome.remaining,
+        released: outcome.released,
+        ...(outcome.tightened ? { tightened: true } : {}),
+      });
+    }
+    this.updateModifiers(action, { ...request, difficulty: results[0].difficulty as ManeuverChoices['difficulty'] }, context, first!);
+    action.maneuver!.modifiers.purpose = GRAPPLE_ESCAPE;
+    action.maneuver!.roll = { modifiers: first!.modifiers, roll: rows[0].roll, totalRoll: first!.total, skipped: first!.skipped };
+    const released = results.filter(result => result.released).length;
+    action.maneuver!.result = new ActionManeuverResult(
+      undefined,
+      results.length === 1 ? results[0].percent : undefined,
+      `Escaped from ${released} of ${results.length} grapples`,
+      undefined,
+      results.length === 1 ? results[0].critical : undefined,
+      released === results.length,
+    );
+    action.maneuver!.result.grappleEscape = results;
+    action.close(context.actorRound, currentPhase);
+    const updated = await this.actionRepository.update(action);
+    await this.actorRoundRepository.update(context.actorRound);
+    await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
+    updated.refreshApState(context.actorRound, currentPhase);
+    return updated;
+  }
+
   /** A failure or absolute failure of an absolute maneuver, or a critical of a percent one (workspace spec 068). */
   static failed(action: Action): boolean {
     const result = action.maneuver?.result;
@@ -196,6 +285,9 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
       throw new ValidationError('Action is not a maneuver action');
     } else if (action.status === 'completed') {
       throw new ValidationError('Action is already completed');
+    } else if (command.request.purpose === GRAPPLE_ESCAPE) {
+      // Workspace spec 077, decision A3.3: each grapple has its own roll.
+      return;
     } else if (!command.roll || typeof command.roll.roll !== 'number' || !Number.isFinite(command.roll.roll)) {
       // A total of 0 is a valid roll (an absolute failure).
       throw new ValidationError('Required roll value');
