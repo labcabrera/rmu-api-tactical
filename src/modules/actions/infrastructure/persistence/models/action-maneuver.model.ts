@@ -122,6 +122,10 @@ export class ActionManeuverResult {
   /** Workspace spec 077, decision A3.3: the roll against each grapple of an escape. */
   @Prop({ type: [Object], required: false })
   grappleEscape: GrappleEscapeResult[] | undefined;
+
+  /** Workspace spec 077, decision D4: severity steps of a fall-control maneuver. */
+  @Prop({ type: Number, required: false })
+  fallControlSteps: number | undefined;
 }
 
 @Schema({ _id: false })

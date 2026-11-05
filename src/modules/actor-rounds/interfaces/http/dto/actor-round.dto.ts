@@ -25,6 +25,7 @@ import { ActorRoundParryDto } from './actor-round-parry.dto.js';
 import { ActorRoundPenaltyDto } from './actor-round-penalty.dto.js';
 import { ActorRoundPhaseLogDto } from './actor-round-phase-log.dto.js';
 import { ActorRoundTraitDto } from './actor-round-trait.dto.js';
+import { ActorRoundHazardDto } from './actor-round-hazard.dto.js';
 
 export class AbsoluteEaseDto {
   @ApiProperty({ description: 'Skill category of the Absolute Ease talent', example: 'athletic' })
@@ -219,6 +220,17 @@ export class ActorRoundDto {
   })
   armorEncumbrance: number;
 
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Height of the actor in feet (spec 077), from the character sheet; null for NPCs until the game master gives it',
+    example: 6,
+  })
+  height: number | null;
+
+  @ApiProperty({ type: [ActorRoundHazardDto], description: 'Falls and falling objects of this round (spec 077)' })
+  hazards: ActorRoundHazardDto[];
+
   @ApiProperty({ description: 'What the character brought into the game (only in the actor round built from it)', required: false })
   snapshot?: ActorRoundSnapshotDto;
 
@@ -276,6 +288,8 @@ export class ActorRoundDto {
     dto.criticalSize = entity.criticalSize ?? null;
     dto.reduceCriticalSeverity = entity.reduceCriticalSeverity ?? false;
     dto.armorEncumbrance = entity.armorEncumbrance ?? 0;
+    dto.height = entity.height ?? null;
+    dto.hazards = (entity.hazards || []).map(hazard => ActorRoundHazardDto.fromEntity(hazard));
     dto.snapshot = entity.snapshot ? ActorRoundSnapshotDto.fromEntity(entity.snapshot) : undefined;
     dto.bleeding = entity.getBleeding();
     dto.imageUrl = entity.imageUrl;

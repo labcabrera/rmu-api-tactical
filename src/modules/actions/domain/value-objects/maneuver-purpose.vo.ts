@@ -13,13 +13,18 @@ export type GrapplePurpose = 'grapple-escape';
 
 export const GRAPPLE_ESCAPE: GrapplePurpose = 'grapple-escape';
 
-/**
- * What a maneuver is for: the frenzy (workspace spec 040), a combat talent (workspace spec 076) or an escape from a
- * grapple (workspace spec 077).
- */
-export type ManeuverPurpose = FrenzyPurpose | CombatTalentPurpose | GrapplePurpose;
+/** Acrobatics to control a fall (§15.4; workspace spec 077, decision D4): instantaneous, 0 AP. */
+export type FallControlPurpose = 'fall-control';
 
-export const MANEUVER_PURPOSES: ManeuverPurpose[] = [...FRENZY_PURPOSES, ...COMBAT_TALENT_PURPOSES, GRAPPLE_ESCAPE];
+export const FALL_CONTROL: FallControlPurpose = 'fall-control';
+
+/**
+ * What a maneuver is for: the frenzy (workspace spec 040), a combat talent (workspace spec 076), an escape from a
+ * grapple or the control of a fall (workspace spec 077).
+ */
+export type ManeuverPurpose = FrenzyPurpose | CombatTalentPurpose | GrapplePurpose | FallControlPurpose;
+
+export const MANEUVER_PURPOSES: ManeuverPurpose[] = [...FRENZY_PURPOSES, ...COMBAT_TALENT_PURPOSES, GRAPPLE_ESCAPE, FALL_CONTROL];
 
 export const isFrenzyPurpose = (purpose: ManeuverPurpose | undefined): purpose is FrenzyPurpose =>
   !!purpose && (FRENZY_PURPOSES as string[]).includes(purpose);

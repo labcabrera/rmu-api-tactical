@@ -58,6 +58,7 @@ import {
   UNCONSCIOUS,
 } from '../value-objects/actor-round-effect.vo.js';
 import { ActorRoundFatigue, MAX_FATIGUE_PENALTY } from '../value-objects/actor-round-fatigue.vo.js';
+import type { ActorRoundHazard } from '../value-objects/actor-round-hazard.vo.js';
 import { ActorRoundHP } from '../value-objects/actor-round-hp.vo.js';
 import { ActorRoundInitiative } from '../value-objects/actor-round-initiative.vo.js';
 import { ActorRoundMovement } from '../value-objects/actor-round-movement.vo.js';
@@ -211,7 +212,7 @@ export interface LedgerSourceAction {
 }
 
 /** Alerts the game master marks as resolved by hand (spec 034, workspace spec 076). */
-const MANUALLY_RESOLVED_ALERTS: string[] = ['critical', 'reaction-available', 'terrible-luck', 'mental-focus'];
+const MANUALLY_RESOLVED_ALERTS: string[] = ['critical', 'reaction-available', 'terrible-luck', 'mental-focus', 'fall-suggested'];
 
 /** Effects that break every concentration at once (§8.1; workspace spec 077, decision A2.5). */
 const CONCENTRATION_BREAKING_EFFECTS = [UNCONSCIOUS, DEAD, PARALYZED];
@@ -332,6 +333,15 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
 
   /** Held actions of the actor (§8.3), each a concentration focus (workspace spec 077, decision A2.1). */
   public heldActions: HeldActionFocus[] = [];
+
+  /**
+   * Height of the actor in feet (workspace spec 077, decision D12): copied from the character sheet, written by the game
+   * master for an NPC. Null: unknown. A deliberate fall takes it off the distance (§15.4).
+   */
+  public height: number | null = null;
+
+  /** Falls and falling objects of this round (workspace spec 077, decision D2). Each round starts with none. */
+  public hazards: ActorRoundHazard[] = [];
 
   /** The last breakage check (spec 019), for the answer of the check; not stored. */
   public lastBreakageCheck: BreakageCheckResult | undefined;
@@ -505,6 +515,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.reduceCriticalSeverity = props.reduceCriticalSeverity ?? false;
     actorRound.armorEncumbrance = props.armorEncumbrance ?? 0;
     actorRound.heldActions = (props.heldActions ?? []).map(each => ({ ...each }));
+    actorRound.height = props.height ?? null;
+    actorRound.hazards = (props.hazards ?? []).map(hazard => structuredClone(hazard));
     actorRound.normalizeLegacy();
     // Derived: recomputed so that values stored with the penalties folded in are corrected.
     actorRound.calculateCurrentBo();
@@ -588,6 +600,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.armorEncumbrance = previous.armorEncumbrance;
     // Workspace spec 077, decision A2.1: a held action goes on held in the next round, and so does its focus.
     actorRound.heldActions = previous.heldActions.map(each => ({ ...each }));
+    actorRound.height = previous.height;
     actorRound.refreshActionPoints();
     actorRound.applyItemConditions();
     actorRound.calculateCurrentBo();
@@ -834,7 +847,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    */
   private static isFromCritical(effect: ActorRoundEffect): boolean {
     const kind = effect.source?.kind;
-    return kind === 'critical' || kind === 'fumble' || kind === 'poison';
+    return kind === 'critical' || kind === 'fumble' || kind === 'poison' || kind === 'hazard';
   }
 
   /** A copy of an injury that shares nothing with it (the poison block changes every round). */
@@ -3110,6 +3123,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       reduceCriticalSeverity: this.reduceCriticalSeverity,
       armorEncumbrance: this.armorEncumbrance,
       heldActions: this.heldActions,
+      height: this.height,
+      hazards: this.hazards,
       imageUrl: this.imageUrl,
       owner: this.owner,
       createdAt: this.createdAt,

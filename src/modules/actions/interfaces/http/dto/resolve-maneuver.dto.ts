@@ -193,7 +193,8 @@ export class ResolveManeuverDto {
     description:
       'What the maneuver is for: Adrenal Focus to enter or leave the frenzy (spec 040), or a combat talent (spec 076): ' +
       'battle-cry (Influence), sense-weakness and study-offense (Perception, 4 AP), precision (Ambush); or grapple-escape ' +
-      '(spec 077: unarmed-st, unarmed-ag or contortions, percent, 2-4 AP, with grappleEscape rows)',
+      '(spec 077: unarmed-st, unarmed-ag or contortions, percent, 2-4 AP, with grappleEscape rows) or fall-control ' +
+      '(spec 077: acrobatics, absolute, instantaneous or forced, 0 AP, medium by default)',
     enum: MANEUVER_PURPOSES,
     required: false,
   })

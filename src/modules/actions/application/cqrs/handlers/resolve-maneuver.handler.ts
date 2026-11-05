@@ -32,6 +32,7 @@ import {
 import { applyNaturalRoll } from '../../../domain/services/roll-talents.js';
 import {
   type CombatTalentPurpose,
+  FALL_CONTROL,
   GRAPPLE_ESCAPE,
   isCombatTalentPurpose,
   isFrenzyPurpose,
@@ -43,6 +44,7 @@ import {
   validateGrappleEscape,
 } from '../../../domain/services/grapple-escape.js';
 import type { GrappleEscapeResult } from '../../../domain/value-objects/action-maneuver.vo.js';
+import { FALL_SKILLS, fallControlSteps, validateFallControlManeuver } from '../../../domain/services/fall-control.js';
 import type { ActorRoundEffect } from '../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
 import {
   absoluteEaseResult,
@@ -114,7 +116,13 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     // Workspace spec 076, decision P4: Battle Cry takes 2 AP, Sense Weakness and Study Offense a full round.
     const talentRange = talent ? combatTalentApRange(talent) : null;
     action.apRange = talentRange ?? (range ? { min: range.min, max: range.max } : null);
+    // Workspace spec 077, decision D4: Acrobatics to control a fall, absolute, instantaneous and at 0 AP.
+    const fallControl = request.purpose === FALL_CONTROL;
+    if (fallControl) {
+      validateFallControlManeuver(action, context.skill.skillId, context.maneuverType);
+    }
     action.checkResolvable(context.actorRound, currentPhase);
+    const fallControlLedger = fallControl && ResolveManeuverHandler.freeFallControlAp(action, context, currentPhase);
     if (request.purpose === GRAPPLE_ESCAPE) {
       const grapples = validateGrappleEscape(context.actorRound, context.skill.skillId, request.grappleEscape);
       return this.resolveGrappleEscape(command, action, context, grapples, currentPhase);
@@ -168,6 +176,9 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
       alert = await this.resolveAbsolute(action, context, calculation.total, unusualEvent && !unusualLuck, unusualLuck);
       ResolveManeuverHandler.applyAbsoluteEase(action, context, rollProfile, calculation.total);
     }
+    if (fallControl) {
+      action.maneuver!.result!.fallControlSteps = fallControlSteps(action.maneuver!.result?.result);
+    }
 
     const application = () => ({ phase: currentPhase, spentAp: context.actorRound.getSpentAp(currentPhase) });
     const frenzyChanged = isFrenzyPurpose(request.purpose)
@@ -191,10 +202,11 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     if (alert) {
       context.actorRound.alerts.push(alert);
     }
+    const fallSuggested = ResolveManeuverHandler.suggestFall(action, context);
     // Workspace spec 068, decision 5: a failed maneuver reopens the stitches of the actor
     const reopened = ResolveManeuverHandler.failed(action) ? context.actorRound.reopenWounds('failed-roll') : [];
     const talentsChanged = !!talentEffect || natural.terribleLuck || natural.spasm;
-    if (alert || frenzyChanged || talentsChanged || reopened.length > 0) {
+    if (alert || frenzyChanged || talentsChanged || reopened.length > 0 || fallSuggested || fallControlLedger) {
       await this.actorRoundRepository.update(context.actorRound);
     }
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
@@ -271,6 +283,32 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     updated.refreshApState(context.actorRound, currentPhase);
     return updated;
+  }
+
+  /**
+   * Workspace spec 077, decision D4 (P13): a fall-control maneuver takes 0 AP, even when the instantaneous actions of
+   * the round were used up: its entries become one instantaneous entry of 0 AP. Answers whether the ledger changed.
+   */
+  static freeFallControlAp(action: Action, context: ManeuverContext, currentPhase: number): boolean {
+    const actorRound = context.actorRound;
+    if (actorRound.ledgerOf(action.id).every(entry => entry.ap === 0)) {
+      return false;
+    }
+    actorRound.releaseAction(action.id);
+    actorRound.spend(Math.min(Math.max(currentPhase, 1), 4), action.id, 0, 'instant', false);
+    return true;
+  }
+
+  /**
+   * Workspace spec 077, decision D5: an absolute failure of a climbing or jumping maneuver (the critical of a percent
+   * one) raises a `fall-suggested` alert. Answers whether it did.
+   */
+  static suggestFall(action: Action, context: ManeuverContext): boolean {
+    const result = action.maneuver?.result;
+    if (!result || !FALL_SKILLS.includes(context.skill.skillId)) return false;
+    if (result.result !== 'absolute-failure' && !result.critical) return false;
+    context.actorRound.alerts.push(ActorRoundAlert.buildFallSuggested('maneuver', action.id, context.skill.skillId));
+    return true;
   }
 
   /** A failure or absolute failure of an absolute maneuver, or a critical of a percent one (workspace spec 068). */

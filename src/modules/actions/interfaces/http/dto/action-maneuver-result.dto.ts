@@ -115,6 +115,13 @@ export class ActionManeuverResultDto {
   })
   grappleEscape?: GrappleEscapeResult[];
 
+  @ApiProperty({
+    description: 'fall-control (spec 077): critical severity steps of the fall, +1 absolute failure, -1 success, -2 absolute success',
+    required: false,
+    example: -1,
+  })
+  fallControlSteps?: number;
+
   static fromEntity(entity: ActionManeuverResult): ActionManeuverResultDto {
     const dto = new ActionManeuverResultDto();
     dto.result = entity.result ?? undefined;
@@ -130,6 +137,7 @@ export class ActionManeuverResultDto {
     dto.moraleModifierDays = entity.moraleModifierDays ?? undefined;
     dto.rollTalent = entity.rollTalent ?? undefined;
     dto.grappleEscape = entity.grappleEscape ?? undefined;
+    dto.fallControlSteps = entity.fallControlSteps ?? undefined;
     return dto;
   }
 }

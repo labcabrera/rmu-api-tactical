@@ -1,24 +1,7 @@
-import { UnprocessableEntityError } from '../../../../../shared/domain/errors/errors.js';
+import { expandSeverity } from '../../../../../shared/domain/severity.js';
 import type { CombatPlugin } from '../combat-plugin.js';
 
-/**
- * Severities with a table (Z, A..E) give one critical; F..I give an E plus lighter ones. J is E, C, B: the Python
- * calculator had J, C, B, but there is no J table to roll on.
- */
-const CRITICALS_BY_SEVERITY: Record<string, string[]> = {
-  Z: ['Z'],
-  A: ['A'],
-  B: ['B'],
-  C: ['C'],
-  D: ['D'],
-  E: ['E'],
-  F: ['E', 'A'],
-  G: ['E', 'B'],
-  H: ['E', 'C'],
-  I: ['E', 'C', 'A'],
-  J: ['E', 'C', 'B'],
-};
-
+/** The criticals of a severity (§9.4): one for A..E, an E plus lighter ones above it (shared, workspace spec 077). */
 export const CombatCriticalExpansionPlugin: CombatPlugin = {
   id: 'critical-expansion',
   group: 'resolution',
@@ -28,12 +11,7 @@ export const CombatCriticalExpansionPlugin: CombatPlugin = {
       {
         condition: ctx => !!ctx.attackTableEntry?.criticalType && !!ctx.attackTableEntry.criticalSeverity,
         apply: ctx => {
-          const severity = ctx.attackTableEntry!.criticalSeverity!;
-          const severities = CRITICALS_BY_SEVERITY[severity];
-          if (!severities) {
-            throw new UnprocessableEntityError(`Invalid critical severity: ${severity}`);
-          }
-          ctx.criticalSeverities = severities;
+          ctx.criticalSeverities = expandSeverity(ctx.attackTableEntry!.criticalSeverity!);
         },
       },
     ],

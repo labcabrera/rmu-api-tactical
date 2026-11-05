@@ -104,6 +104,8 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
     actorRound.fightingStyles = this.mapFightingStyles(character);
     // Workspace spec 077, decision B1.2: the Enc % of the worn armour, the default of the casts of the actor.
     actorRound.armorEncumbrance = Math.max(0, character.equipment?.armorEncumbrance ?? 0);
+    // Workspace spec 077, decision D12: the height in feet, which a deliberate fall takes off the distance.
+    actorRound.height = typeof character.info.height === 'number' && character.info.height > 0 ? character.info.height : null;
     actorRound.resistances = (character.resistances || [])
       .filter(resistance => !!resistance.resistance)
       .map(resistance => ({ resistance: resistance.resistance, totalBonus: resistance.totalBonus || 0 }));

@@ -57,3 +57,15 @@ export const sizeClassOf = (sizeId: string | null | undefined): number | undefin
 
 /** Hit Multiplier of an attack of `steps` from medium, clamped to the ends of the scale. */
 export const hitMultiplierOf = (steps: number): number => sizeEntryOf(steps).hitMultiplier;
+
+/**
+ * Upper weight (lbs, exclusive) of each size class from minuscule (Table 9-4a): <1, 1-4, 4-16, 16-64, 64-256, 256-1,024,
+ * 1,024-4k, 4k-16k, 16k-48k; enormous from 48k and each further class every ×4 (workspace spec 077, decision D2).
+ */
+const WEIGHT_LIMITS = [1, 4, 16, 64, 256, 1024, 4096, 16384, 49152, 196608, 786432, 3145728];
+
+/** Steps from medium of an object of `weightLbs` (Table 9-4a): the weight gives the size of a falling object (§15.5). */
+export const stepsOfWeight = (weightLbs: number): number => {
+  const index = WEIGHT_LIMITS.findIndex(limit => weightLbs < limit);
+  return (index === -1 ? SIZE_SCALE.length - 1 : index) + MIN_STEPS;
+};

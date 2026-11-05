@@ -173,8 +173,15 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       reduceCriticalSeverity: doc.reduceCriticalSeverity ?? false,
       armorEncumbrance: doc.armorEncumbrance ?? 0,
       heldActions: (doc.heldActions || []).map(each => ({ actionId: each.actionId, since: each.since })),
+      height: doc.height ?? null,
+      hazards: doc.hazards || [],
       snapshot: doc.snapshot
-        ? { hp: doc.snapshot.hp, injuryIds: [...(doc.snapshot.injuryIds || [])], conditionIds: [...(doc.snapshot.conditionIds || [])] }
+        ? {
+            hp: doc.snapshot.hp,
+            injuryIds: [...(doc.snapshot.injuryIds || [])],
+            conditionIds: [...(doc.snapshot.conditionIds || [])],
+            ...(typeof doc.snapshot.fatigue === 'number' ? { fatigue: doc.snapshot.fatigue } : {}),
+          }
         : undefined,
       imageUrl: doc.imageUrl,
       owner: doc.owner,

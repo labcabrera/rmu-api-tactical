@@ -77,6 +77,11 @@ export class ActionManeuverResult {
     public rollTalent?: ManeuverRollTalent | undefined,
     /** Workspace spec 077, decision A3.3: one result per grapple of an escape. */
     public grappleEscape?: GrappleEscapeResult[] | undefined,
+    /**
+     * Workspace spec 077, decision D4: steps a `fall-control` maneuver moves the critical of the fall: +1 on an absolute
+     * failure, -1 on a success, -2 on an absolute success, 0 otherwise.
+     */
+    public fallControlSteps?: number | undefined,
   ) {}
 }
 

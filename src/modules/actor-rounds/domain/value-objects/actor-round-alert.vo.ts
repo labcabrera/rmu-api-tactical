@@ -179,6 +179,32 @@ export class ActorRoundAlert {
     return new ActorRoundAlert(randomUUID(), 'critical', `Critical ${criticalSeverity} from a fumble`, modifiers);
   }
 
+  /**
+   * Workspace spec 077, decision D2: a critical of a fall or a falling object rolled later by the game master, with the
+   * hazard it comes from.
+   */
+  static buildHazardCritical(criticalType: string, criticalSeverity: string, hazardId: string): ActorRoundAlert {
+    return new ActorRoundAlert(randomUUID(), 'critical', `Critical ${criticalSeverity} on ${criticalType} from a hazard`, [
+      new ActorRoundAlertModifier('origin', null, 'hazard'),
+      new ActorRoundAlertModifier('criticalType', null, criticalType),
+      new ActorRoundAlertModifier('criticalSeverity', null, criticalSeverity),
+      new ActorRoundAlertModifier('hazardId', null, hazardId),
+    ]);
+  }
+
+  /**
+   * Workspace spec 077, decision D5: an absolute failure of a climbing or jumping maneuver or movement suggests a fall.
+   * `origin` is `maneuver` or `movement`; the game master resolves it with the hazards endpoint or dismisses it.
+   */
+  static buildFallSuggested(origin: 'maneuver' | 'movement', actionId: string, skillId: string): ActorRoundAlert {
+    return new ActorRoundAlert(randomUUID(), 'fall-suggested', `A fall may follow the ${skillId} ${origin}`, [
+      new ActorRoundAlertModifier('origin', null, origin),
+      new ActorRoundAlertModifier('actionId', null, actionId),
+      new ActorRoundAlertModifier('skillId', null, skillId),
+      new ActorRoundAlertModifier('kind', null, 'fall'),
+    ]);
+  }
+
   static buildCritical(criticalType: string, criticalSeverity: string, message?: string): ActorRoundAlert {
     return new ActorRoundAlert(randomUUID(), 'critical', message || `Critical ${criticalSeverity} on ${criticalType}`, [
       new ActorRoundAlertModifier('criticalType', null, criticalType),

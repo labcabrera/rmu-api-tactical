@@ -118,6 +118,9 @@ export class ActorRoundSnapshotDto {
   @ApiProperty({ type: [String], description: 'Unresolved conditions it brought' })
   conditionIds: string[];
 
+  @ApiProperty({ required: false, description: 'Fatigue penalty points it brought (spec 077), 0-50' })
+  fatigue?: number;
+
   static fromEntity(entity: ActorRoundSnapshot): ActorRoundSnapshotDto {
     return Object.assign(new ActorRoundSnapshotDto(), entity);
   }

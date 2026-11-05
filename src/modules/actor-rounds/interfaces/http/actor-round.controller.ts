@@ -32,6 +32,8 @@ import { DeclareFightingStyleCommand } from '../../application/cqrs/commands/dec
 import { ActorRoundDto, CharacterRoundPageDto } from './dto/actor-round.dto.js';
 import { AddEffectDto } from './dto/add-effect.dto.js';
 import { ResolveAlertDto } from './dto/resolve-alert.dto.js';
+import { ResolveHazardDto } from './dto/actor-round-hazard.dto.js';
+import { ResolveHazardCommand } from '../../application/cqrs/commands/resolve-hazard.command.js';
 import { AddFatigueAccumulatorDto } from './dto/add-fatigue-accumulator.dto.js';
 import { AddHpDto } from './dto/add-hp.dto.js';
 import { UseHerbDto, UseHerbResultDto } from './dto/use-herb.dto.js';
@@ -218,6 +220,30 @@ export class ActorRoundController {
   ) {
     const command = new ResolveAlertCommand(id, alertId, user.id, user.roles, dto?.outcome);
     const entity = await this.commandBus.execute<ResolveAlertCommand, ActorRound>(command);
+    return ActorRoundDto.fromEntity(entity);
+  }
+
+  @ActorRoundAccess('manage')
+  @Post(':id/hazards')
+  @HttpCode(200)
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success, with the hazard last in hazards' })
+  @ApiOperation({
+    operationId: 'resolveHazard',
+    summary: 'Resolve a fall or a falling object on the actor (spec 077, game master only)',
+    description:
+      'Fall: Crush with the size of the actor, OB the feet fallen (less its height on a deliberate jump), only magical DB; ' +
+      'a fall-control maneuver of the actor moves the critical. Falling object: Rock when smaller than the actor, else ' +
+      'Crush; OB the feet fallen, the DB of the actor. The criticals without a roll are critical alerts with origin hazard.',
+  })
+  @ApiErrors({
+    400: 'err-hazard-invalid-distance, err-fall-control-invalid or validation',
+    403: 'Not a manager of the game',
+    404: 'Actor round not found',
+    409: 'err-game-finished',
+  })
+  async resolveHazard(@Param('id') id: string, @Body() dto: ResolveHazardDto, @CurrentUser() user: AuthenticatedUser) {
+    const command = ResolveHazardDto.toCommand(id, dto, user.id, user.roles);
+    const entity = await this.commandBus.execute<ResolveHazardCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
   }
 

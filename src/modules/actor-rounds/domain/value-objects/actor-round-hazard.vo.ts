@@ -1,0 +1,64 @@
+import type { SeverityAdjustmentStep } from '../../../shared/domain/severity.js';
+
+/** A fall (§15.4) or an object falling on the actor (§15.5), workspace spec 077, decision D2. */
+export type HazardKind = 'fall' | 'falling-object';
+
+export const HAZARD_KINDS: HazardKind[] = ['fall', 'falling-object'];
+
+/** Attack tables of the hazards: Crush for a fall and for an object as large as the target or larger, Rock otherwise. */
+export type HazardAttackTable = 'crush' | 'rock';
+
+/** One critical of a hazard: rolled with the hazard, or left as a `critical` alert with origin `hazard`. */
+export interface HazardCritical {
+  criticalType: string;
+  criticalSeverity: string;
+  roll: number | null;
+  damage: number | null;
+  text: string | null;
+  location: string | null;
+  /** The alert the game master resolves it with, when it was not rolled with the hazard. */
+  alertId: string | null;
+}
+
+/** A resolved hazard attack, kept in the actor round it hit (workspace spec 077, decision D2). */
+export interface ActorRoundHazard {
+  id: string;
+  kind: HazardKind;
+  round: number;
+  /** 0 before the action phases, 1-4 in them. */
+  phase: number | null;
+  distanceFeet: number;
+  /** Fall: the actor jumped on purpose, its height comes off the distance. */
+  deliberate: boolean;
+  /** Fall: the height of the actor in feet used for a deliberate jump. */
+  heightFeet: number | null;
+  /** Fall: the `fall-control` maneuver it cites and its steps (absolute failure +1, success -1, absolute success -2). */
+  fallControlActionId: string | null;
+  fallControlSteps: number;
+  /** Falling object: its size (Table 9-4a), given or from its weight. */
+  objectSize: string | null;
+  weightLbs: number | null;
+  /** Falling object: the shield of the actor counted (Rock only). */
+  shield: boolean;
+  attackTable: HazardAttackTable;
+  /** Steps from medium of the attack: the actor's size for a fall, the object's for a falling object. */
+  attackSize: number;
+  ob: number;
+  db: number;
+  /** Open-ended roll (upwards, no fumble) and total (roll + OB - DB). */
+  roll: number;
+  total: number;
+  armor: number;
+  /** The text of the attack table and its damage, already scaled by the Hit Multiplier of the attack size. */
+  text: string;
+  baseDamage: number;
+  multiplier: number;
+  damage: number;
+  /** Severity of the table and after the size and fall control steps (null: no critical). */
+  originalSeverity: string | null;
+  severity: string | null;
+  severitySteps: SeverityAdjustmentStep[];
+  criticals: HazardCritical[];
+  note: string | null;
+  createdAt: string;
+}
