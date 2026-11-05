@@ -16,7 +16,9 @@ export class ActionAttackCalculatedDto {
 
   @ApiProperty({
     type: String,
-    description: 'The location hit by a called shot (no location is rolled otherwise)',
+    description:
+      'The location hit: the called one or, against a target with armour by location, the one of the critical roll sent ' +
+      'with the attack roll (spec 077). Otherwise none until a critical hits one',
     required: false,
     enum: ['head', 'chest', 'abdomen', 'arms', 'legs'],
   })
@@ -39,6 +41,16 @@ export class ActionAttackCalculatedDto {
   @ApiProperty({ description: 'Rules that did not apply to the attack, and why', type: [SkippedRuleDto], required: false })
   skipped: SkippedRuleDto[];
 
+  @ApiProperty({
+    type: Number,
+    description:
+      'Spec 077: the unmodified critical roll sent with the attack roll that decided the location; the criticals of the ' +
+      'attack are rolled with it (another roll is err-critical-roll-location-fixed)',
+    required: false,
+    example: 81,
+  })
+  locationRoll: number | undefined;
+
   static fromEntity(entity: ActionAttackCalculated): ActionAttackCalculatedDto {
     const dto = new ActionAttackCalculatedDto();
     dto.rollModifiers = entity.rollModifiers ? entity.rollModifiers.map(mod => KeyValueModifierDto.fromEntity(mod)) : [];
@@ -49,6 +61,7 @@ export class ActionAttackCalculatedDto {
     dto.breakageRoll = entity.breakageRoll;
     dto.fumble = entity.fumble;
     dto.skipped = (entity.skipped ?? []).map(rule => SkippedRuleDto.fromEntity(rule));
+    dto.locationRoll = entity.locationRoll;
     return dto;
   }
 }

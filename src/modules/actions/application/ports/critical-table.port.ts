@@ -6,6 +6,11 @@ export interface CriticalTableLookupRequest {
   criticalSeverity: string;
   roll: number;
   location: AttackLocation | undefined;
+  /**
+   * The raw critical roll was a 66 (workspace spec 077, decision B2.5): the lookup keeps the 66 row even with a forced
+   * location. Only sent when true.
+   */
+  natural?: boolean;
 }
 
 export interface CriticalTablePort {

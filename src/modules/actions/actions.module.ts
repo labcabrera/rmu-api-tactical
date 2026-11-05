@@ -48,6 +48,7 @@ import { ManeuverBaseModifiersService } from './application/services/maneuver/ma
 import { ManeuverContextService } from './application/services/maneuver/maneuver-context.service.js';
 import { ApiAttackTableAdapter } from './infrastructure/api-clients/api.attack-table.adapter.js';
 import { ApiCriticalTableAdapter } from './infrastructure/api-clients/api.critical-table.adapter.js';
+import { ApiCriticalLocationAdapter } from './infrastructure/api-clients/api.critical-location.adapter.js';
 import { ApiFumbleTableAdapter } from './infrastructure/api-clients/api.fumble-table.adapter.js';
 import { ApiManeuverAdapter } from './infrastructure/api-clients/api.maneuver.adapter.js';
 import { ApiSkillCatalogAdapter } from './infrastructure/api-clients/api.skill-catalog.adapter.js';
@@ -61,6 +62,7 @@ import { MovementController } from './interfaces/http/movement.controller.js';
 import { ACTION_REPOSITORY } from './application/ports/action-repository.port.js';
 import { ATTACK_TABLE_PORT } from './application/ports/attack-table.port.js';
 import { CRITICAL_TABLE_PORT } from './application/ports/critical-table.port.js';
+import { CRITICAL_LOCATION_PORT } from './application/ports/critical-location.port.js';
 import { FUMBLE_TABLE_PORT } from './application/ports/fumble-table.port.js';
 import { SPELLCASTING_TABLES_PORT } from './application/ports/spellcasting-tables.port.js';
 import { ApiSpellcastingTablesAdapter } from './infrastructure/api-clients/api.spellcasting-tables.adapter.js';
@@ -141,6 +143,10 @@ import { SKILL_CATALOG_PORT } from './application/ports/skill-catalog.port.js';
     {
       provide: CRITICAL_TABLE_PORT,
       useClass: ApiCriticalTableAdapter,
+    },
+    {
+      provide: CRITICAL_LOCATION_PORT,
+      useClass: ApiCriticalLocationAdapter,
     },
     {
       provide: FUMBLE_TABLE_PORT,

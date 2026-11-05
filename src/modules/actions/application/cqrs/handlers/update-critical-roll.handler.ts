@@ -12,9 +12,11 @@ import { applyStyleCriticalOption, checkStyleCriticalOption } from '../../../dom
 import { type CriticalRerollGrant, findCriticalReroll } from '../../../domain/services/critical-reroll.js';
 import type { ActionAttack } from '../../../domain/value-objects/action-attack.vo.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
-import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo.js';
+import { toAttackLocation } from '../../../domain/value-objects/attack-location.vo.js';
+import { type CriticalLocationRange, locationToForce } from '../../../domain/services/critical-location.js';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
 import { type CriticalTablePort, CRITICAL_TABLE_PORT } from '../../ports/critical-table.port.js';
+import { type CriticalLocationPort, CRITICAL_LOCATION_PORT } from '../../ports/critical-location.port.js';
 import { CombatProcessor } from '../../services/combat/index.js';
 import { UpdateCriticalRollCommand } from '../commands/update-critical-roll.command.js';
 import { checkOpenEndedDice, DEFAULT_OPEN_ENDED } from '../../../../shared/domain/rolls/open-ended.js';
@@ -23,13 +25,8 @@ import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../s
 const MIN_CRITICAL_ROLL = 1;
 const MAX_CRITICAL_ROLL = 100;
 
-/** Location of a critical table result (limbs in singular) as an attack location, so the next criticals hit it too. */
-const ATTACK_LOCATIONS: AttackLocation[] = ['head', 'chest', 'abdomen', 'arms', 'legs'];
-
-const toAttackLocation = (location: string | undefined): AttackLocation | undefined => {
-  const value = location === 'arm' ? 'arms' : location === 'leg' ? 'legs' : location;
-  return ATTACK_LOCATIONS.find(candidate => candidate === value);
-};
+/** The raw critical roll that keeps the special 66 row even with a forced location (workspace spec 077, decision B2.5). */
+const NATURAL_66 = 66;
 
 @CommandHandler(UpdateCriticalRollCommand)
 export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCriticalRollCommand, Action> {
@@ -42,6 +39,7 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
     @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
     private readonly combatProcessor: CombatProcessor,
     @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
+    @Inject(CRITICAL_LOCATION_PORT) private readonly criticalLocationPort: CriticalLocationPort,
   ) {}
 
   async execute(command: UpdateCriticalRollCommand): Promise<Action> {
@@ -66,11 +64,14 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
       throw new ValidationError(`Attack ${command.attackName} has already been applied`, 'err-attack-completed');
     }
 
+    UpdateCriticalRollHandler.checkLocationRoll(attack, command.roll, !!command.reroll);
+
     const criticalRolls = attack.roll!.criticalRolls;
     attack.roll!.criticalRolls = criticalRolls instanceof Map ? criticalRolls : new Map(Object.entries(criticalRolls || {}));
     // §9.8: every critical of the attack uses the same roll and the same location. Each roll, the first or a new one,
-    // resolves all of them again from the location of the attack.
+    // resolves all of them again from the location of the attack. A reroll (spec 076, B8) keeps the location too.
     let location = attack.calculated?.location;
+    let ranges: CriticalLocationRange[] | undefined;
     const { sourceActor, targetActor } = await this.readActors(action, attack.modifiers.targetId);
     const reroll = command.reroll
       ? UpdateCriticalRollHandler.checkReroll(attack, command.criticalKey, sourceActor, targetActor)
@@ -93,11 +94,15 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
       // The raw roll is stored; the adjusted one goes in the critical.
       attack.roll!.criticalRolls.set(each.key, command.roll);
       each.adjustedRoll = Math.min(Math.max(ctx.criticalRoll ?? command.roll, MIN_CRITICAL_ROLL), MAX_CRITICAL_ROLL);
+      // Workspace spec 077, decision B2.3: the location is only forced when the row of the adjusted roll is of another one.
+      const hit = ctx.location ?? location;
+      if (hit) ranges ??= await this.criticalLocationPort.findLocations();
       each.result = await this.criticalTablePort.lookup({
         criticalType: each.criticalType,
         criticalSeverity: each.criticalSeverity,
         roll: each.adjustedRoll,
-        location: ctx.location ?? location,
+        location: hit ? locationToForce(ranges!, hit, each.adjustedRoll) : undefined,
+        ...(command.roll === NATURAL_66 ? { natural: true } : {}),
       });
       each.status = 'completed';
       if (reroll) {
@@ -117,6 +122,21 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
     const updated = await this.actionRepository.update(action);
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     return updated;
+  }
+
+  /**
+   * Workspace spec 077, decision B2.3: the criticals of an attack whose location was rolled with the attack roll take
+   * that roll; another one is `err-critical-roll-location-fixed` (it changes with a new attack roll). A reroll (spec 076,
+   * decision B8) takes a new roll and keeps the location.
+   */
+  static checkLocationRoll(attack: ActionAttack, roll: number, reroll: boolean): void {
+    const locationRoll = attack.calculated?.locationRoll;
+    if (locationRoll === undefined || locationRoll === null || reroll || roll === locationRoll) return;
+    throw new ValidationError(
+      `The criticals of ${attack.attackName} are rolled with the roll ${locationRoll} sent with the attack roll`,
+      'err-critical-roll-location-fixed',
+      { locationRoll },
+    );
   }
 
   /**

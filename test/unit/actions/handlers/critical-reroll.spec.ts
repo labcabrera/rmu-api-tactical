@@ -20,6 +20,7 @@ import { ActorRoundEffect } from '../../../../src/modules/actor-rounds/domain/va
 import type { GameRepository } from '../../../../src/modules/games/application/ports/game-repository.port.js';
 import { load } from '../../actor-rounds/actor-round-test.factory.js';
 import { createCombatPluginContext } from '../combat/combat-plugin-test.factory.js';
+import { fakeCriticalLocationPort } from '../../../fixtures/critical-locations.js';
 
 // Workspace spec 076, decision B8 (plan §2.5). Invented data only.
 
@@ -71,6 +72,7 @@ const setup = (source: ActorRound, target: ActorRound) => {
       findByActorIdAndRound: vi.fn((_gameId: string, actorId: string) => Promise.resolve(actors.find(actor => actor.actorId === actorId))),
       update: actorRoundUpdate,
     } as unknown as ActorRoundRepository,
+    fakeCriticalLocationPort(),
   );
   const execute = (roll: number, rerolled = false) =>
     handler.execute(new UpdateCriticalRollCommand('action-1', 'Longsword', 's_c_1', roll, 'user', [], undefined, rerolled));

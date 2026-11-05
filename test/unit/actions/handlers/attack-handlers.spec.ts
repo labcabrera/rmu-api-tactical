@@ -37,6 +37,7 @@ import {
 } from '../../../../src/modules/actions/application/cqrs/commands/declare-parry.command.js';
 import { UpdateAttackRollCommand } from '../../../../src/modules/actions/application/cqrs/commands/update-attack-roll.command.js';
 import { createCombatPluginContext } from '../combat/combat-plugin-test.factory.js';
+import { fakeCriticalLocationPort } from '../../../fixtures/critical-locations.js';
 
 const processor = () => new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST));
 
@@ -96,6 +97,7 @@ describe('UpdateCriticalRollHandler', () => {
       repos.actionEventBus,
       processor(),
       repos.actorRoundRepository,
+      fakeCriticalLocationPort(),
     );
     const execute = (key: string, roll: number) =>
       handler.execute(new UpdateCriticalRollCommand('action-1', 'Longsword', key, roll, 'user', []));
@@ -150,6 +152,57 @@ describe('UpdateCriticalRollHandler', () => {
     expect(Array.from(attack.roll!.criticalRolls!.values())).toEqual([70, 70]);
     expect(attack.results!.criticals!.map(critical => critical.adjustedRoll)).toEqual([73, 73]);
     expect(attack.status).toBe('pending_apply');
+  });
+
+  describe('with the location rolled with the attack (spec 077, B2)', () => {
+    const rolledAt = (location: 'head' | 'chest' | 'abdomen', locationRoll: number, modifiers = true) => {
+      const fixture = setup([pendingCritical('s_c_1', 'C')]);
+      const calculated = fixture.ctx.attack!.calculated!;
+      calculated.location = location;
+      calculated.locationRoll = locationRoll;
+      if (!modifiers) calculated.criticalModifiers = [];
+      return fixture;
+    };
+
+    it('takes the row of the adjusted roll without forcing the location when it is of the location hit', async () => {
+      const { lookup, execute } = rolledAt('head', 81);
+
+      await execute('s_c_1', 81);
+
+      // 81 + 3 = 84, still the head in the map.
+      expect(lookup).toHaveBeenCalledWith({ criticalType: 'S', criticalSeverity: 'C', roll: 84, location: undefined });
+    });
+
+    it('forces the location when the adjusted roll falls in another one', async () => {
+      const { lookup, execute } = rolledAt('chest', 24);
+
+      await execute('s_c_1', 24);
+
+      // 24 + 3 = 27, the abdomen in the map: the lookup moves to a chest row.
+      expect(lookup).toHaveBeenCalledWith({ criticalType: 'S', criticalSeverity: 'C', roll: 27, location: 'chest' });
+    });
+
+    it('marks a raw 66 as natural', async () => {
+      const { lookup, execute } = rolledAt('abdomen', 66, false);
+
+      await execute('s_c_1', 66);
+
+      expect(lookup).toHaveBeenCalledWith({ criticalType: 'S', criticalSeverity: 'C', roll: 66, location: undefined, natural: true });
+    });
+
+    it('rejects another critical roll than the one sent with the attack roll', async () => {
+      const { lookup, execute } = rolledAt('head', 81);
+
+      await expect(execute('s_c_1', 82)).rejects.toMatchObject({ code: 'err-critical-roll-location-fixed', details: { locationRoll: 81 } });
+      expect(lookup).not.toHaveBeenCalled();
+    });
+
+    it('lets a reroll take another roll (spec 076, B8)', () => {
+      const { ctx } = rolledAt('head', 81);
+
+      expect(() => UpdateCriticalRollHandler.checkLocationRoll(ctx.attack!, 12, true)).not.toThrow();
+      expect(() => UpdateCriticalRollHandler.checkLocationRoll(ctx.attack!, 12, false)).toThrow();
+    });
   });
 
   it('rejects a critical roll once the attack has been applied', async () => {
@@ -387,7 +440,7 @@ describe('UpdateAttackRollHandler', () => {
     ctx.attack!.calculated = new ActionAttackCalculated([new KeyValueModifier('bo', 75)], 75, undefined, undefined, []);
     const repos = repositories(ctx.action, ctx.actors);
     const lookup = vi.fn(() => Promise.resolve(new AttackTableEntry('9', 9, undefined, undefined)));
-    const resolver = new CombatAttackRollResolverService(processor(), { lookup });
+    const resolver = new CombatAttackRollResolverService(processor(), { lookup }, fakeCriticalLocationPort());
     const handler = new UpdateAttackRollHandler(
       repos.gameRepository,
       repos.actionRepository,
@@ -541,7 +594,7 @@ describe('Shield maneuver (workspace spec 077, A1)', () => {
       repos.actionRepository,
       repos.actorRoundRepository,
       repos.actionEventBus,
-      new CombatAttackRollResolverService(processor(), { lookup }),
+      new CombatAttackRollResolverService(processor(), { lookup }, fakeCriticalLocationPort()),
     );
 
     await expect(handler.execute(new UpdateAttackRollCommand('action-1', 'Longsword', 50, 'user', []))).rejects.toMatchObject({

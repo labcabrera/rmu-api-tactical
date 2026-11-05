@@ -22,6 +22,7 @@ import type { GameRepository } from '../../../src/modules/games/application/port
 import { checkOpenEndedDice, openEndedTotal } from '../../../src/modules/shared/domain/rolls/open-ended.js';
 import { load } from '../actor-rounds/actor-round-test.factory.js';
 import { createCombatPluginContext, rollModifierValues, runPluginHook } from './combat/combat-plugin-test.factory.js';
+import { fakeCriticalLocationPort } from '../../fixtures/critical-locations.js';
 
 // Workspace spec 076, phase 3 (plan §2.8): the roll profile and the luck talents. Invented data only.
 
@@ -175,9 +176,13 @@ describe('Attack roll: dice of the roll profile and luck talents (spec 076, §2.
         update: actorRoundUpdate,
       } as unknown as ActorRoundRepository,
       { publish: vi.fn(() => Promise.resolve()) },
-      new CombatAttackRollResolverService(new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST)), {
-        lookup: vi.fn(() => Promise.resolve(new AttackTableEntry('0', 0, undefined, undefined))),
-      }),
+      new CombatAttackRollResolverService(
+        new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST)),
+        {
+          lookup: vi.fn(() => Promise.resolve(new AttackTableEntry('0', 0, undefined, undefined))),
+        },
+        fakeCriticalLocationPort(),
+      ),
     );
     return { ctx, handler, actorRoundUpdate };
   };

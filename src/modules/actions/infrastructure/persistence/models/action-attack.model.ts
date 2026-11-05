@@ -54,6 +54,9 @@ export class ActionAttackCalculated {
 
   @Prop({ type: [SkippedRuleModel], required: false })
   public skipped: SkippedRuleModel[] | undefined;
+
+  @Prop({ type: Number, required: false })
+  public locationRoll: number | undefined;
 }
 
 @Schema({ _id: false })

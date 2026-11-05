@@ -32,6 +32,7 @@ import { hitMultiplierOf } from '../../../../src/modules/shared/domain/size-scal
 import type { KeyValueModifier } from '../../../../src/modules/actions/domain/value-objects/key-value-modifier.vo.js';
 import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo.js';
 import { createCombatPluginContext } from './combat-plugin-test.factory.js';
+import { CRITICAL_LOCATIONS, fakeCriticalLocationPort } from '../../../fixtures/critical-locations.js';
 
 // ---------------------------------------------------------------------------------------------------------------
 // Key names
@@ -453,19 +454,6 @@ const UNDECLARED_DIFFERENCES: Record<string, { note: string; adjust: (c: Regress
 // ---------------------------------------------------------------------------------------------------------------
 
 const SPEC_007_DIFFERENCES: Record<string, { note: string; adjust: (c: RegressionCase, exp: Expectation) => void }> = {
-  // §9.7: without a called shot a target with mixed armour is hit with its torso armour; no location is rolled.
-  'location-arms-at': {
-    note: 'torso armour without a called shot',
-    adjust: (c, exp) => {
-      exp.at = c.input.armor.bodyAt;
-    },
-  },
-  'location-chest-at-missing': {
-    note: 'torso armour without a called shot',
-    adjust: (c, exp) => {
-      exp.at = c.input.armor.bodyAt;
-    },
-  },
   // §9.7 Katas: the skill offsets the sum of the penalties once (Python offset each one).
   'multiple-attacks-targets-skill': {
     note: 'multiple attacks skill offsets the total once',
@@ -577,7 +565,7 @@ const prepare = async (input: CaseInput): Promise<PreparedAttack> => {
 
 const resolve = async (input: CaseInput, prepared: PreparedAttack) => {
   const lookup = vi.fn((request: AttackTableLookupRequest) => Promise.resolve(fakeTable(request.roll, request.armor)));
-  const resolver = new CombatAttackRollResolverService(processor, { lookup });
+  const resolver = new CombatAttackRollResolverService(processor, { lookup }, fakeCriticalLocationPort());
   const { ctx, attack } = prepared;
   await resolver.resolve({
     action: ctx.action,
@@ -586,6 +574,8 @@ const resolve = async (input: CaseInput, prepared: PreparedAttack) => {
     targetActor: ctx.targetActor!,
     roll: input.roll,
     unmodified: input.unmodified,
+    // Workspace spec 077, decision B2.2: the location of the case comes from a critical roll sent with the attack roll.
+    criticalRoll: input.location ? CRITICAL_LOCATIONS.find(range => range.location === input.location)?.from : undefined,
   });
   return lookup;
 };
