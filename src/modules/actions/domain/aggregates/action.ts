@@ -1219,13 +1219,14 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     if (!this.movement || !this.movement.modifiers || !this.movement.modifiers.pace) {
       throw new Error('Action does not have movement data');
     }
+    // Table 5-5, workspace spec 077, decision D6: 100 activity points per check, 12 rounds of 4 AP a minute.
     switch (this.movement.modifiers.pace) {
       case 'jog':
-        // check every 5 min
-        return 0.14;
+        // check every 5 min: 100 / 240 AP
+        return 0.42;
       case 'run':
-        // check every 1 min
-        return 4.16;
+        // check every 1 min: 100 / 48 AP
+        return 2.08;
       case 'sprint':
         // check every 2 rounds
         return 12.5;

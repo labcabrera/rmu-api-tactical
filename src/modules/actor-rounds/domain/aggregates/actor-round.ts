@@ -57,7 +57,12 @@ import {
   SURPRISED,
   UNCONSCIOUS,
 } from '../value-objects/actor-round-effect.vo.js';
-import { ActorRoundFatigue, MAX_FATIGUE_PENALTY } from '../value-objects/actor-round-fatigue.vo.js';
+import {
+  ActorRoundFatigue,
+  ALTITUDE_REST_ROUNDS_PER_POINT,
+  MAX_FATIGUE_PENALTY,
+  REST_ROUNDS_PER_POINT,
+} from '../value-objects/actor-round-fatigue.vo.js';
 import type { ActorRoundHazard } from '../value-objects/actor-round-hazard.vo.js';
 import { ActorRoundHP } from '../value-objects/actor-round-hp.vo.js';
 import { ActorRoundInitiative } from '../value-objects/actor-round-initiative.vo.js';
@@ -272,6 +277,10 @@ const isPressureHeldResult = (result: string): boolean => result === 'success' |
 
 /** Stun relief of a herb that removes every stun (workspace spec 062). */
 export const ALL_STUN_ROUNDS = 999;
+
+/** Fatigue of a critical (a `fatigue` effect, negative value) and its penalty source (workspace spec 077, D8). */
+const FATIGUE_EFFECT = 'fatigue';
+const FATIGUE_CRITICAL = 'fatigue-critical';
 
 export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   private constructor(
@@ -506,7 +515,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       props.initiative,
       props.actionPoints,
       props.hp,
-      props.fatigue,
+      ActorRoundFatigue.from(props.fatigue),
       props.penalty,
       props.defense,
       props.attacks,
@@ -591,7 +600,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       new ActorRoundInitiative(initiative.base, initiative.penalty, undefined, undefined),
       BASE_ACTION_POINTS,
       hp,
-      fatigue,
+      // Workspace spec 077, decision D7: the rest rounds go on, the exertion is counted again in each round.
+      new ActorRoundFatigue(fatigue.endurance, fatigue.fatigue, fatigue.accumulator, fatigue.restRounds ?? 0, false),
       new ActorRoundPenalty([...penalty.modifiers]),
       ActorRound.resetShieldBlocks(defense),
       attacks,
@@ -1721,7 +1731,14 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     this.calculateCurrentBo();
   }
 
+  /**
+   * Activity points towards the next endurance roll (§5.5): the alert is raised from 100. Positive points are exertion,
+   * so the round is no rest (workspace spec 077, decision D7).
+   */
   addFatigue(fatigue: number) {
+    if (fatigue > 0) {
+      this.fatigue.exerted = true;
+    }
     this.fatigue.accumulator += fatigue;
     if (this.fatigue.accumulator >= 100) {
       if (this.alerts.find(a => a.type === 'endurance')) {
@@ -1782,7 +1799,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    * §8.3 Upkeep Phase: bleeding, then the effects' durations. An unconscious actor stays unconscious: it only dies
    * when bleeding takes it beyond its death threshold or a dying effect runs out.
    */
-  applyUpkeep(options: { tourniquet?: { loosenEveryRounds: number; graceRounds: number } } = {}) {
+  applyUpkeep(options: { tourniquet?: { loosenEveryRounds: number; graceRounds: number }; slowFatigueRecovery?: boolean } = {}) {
+    // Workspace spec 077, decision D7: a round without exertion is rest.
+    this.recoverFatigue(!!options.slowFatigueRecovery);
     // Workspace spec 042: the poisonings advance one round before the bleeding.
     this.advancePoisonings(UPKEEP_PHASE);
     // Workspace spec 068, decision 5
@@ -1831,6 +1850,30 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     }
     this.applyPenalties();
     this.refreshActionPoints();
+  }
+
+  /**
+   * §5.5 Recovery (workspace spec 077, decision D7, P14 and P15): a round without exertion adds one rest round, one
+   * with exertion starts them again. Every 12 rest rounds (24 at altitude, a negative altitude modifier) take one point
+   * of fatigue away. After 12 rest rounds the activity points go back to 0 and the fatigue of the criticals goes
+   * (decision D8). Hunger and thirst are left to the game master.
+   */
+  private recoverFatigue(slow: boolean): void {
+    const fatigue = this.fatigue;
+    if (fatigue.exerted) {
+      fatigue.restRounds = 0;
+      return;
+    }
+    fatigue.restRounds = (fatigue.restRounds ?? 0) + 1;
+    const perPoint = slow ? ALTITUDE_REST_ROUNDS_PER_POINT : REST_ROUNDS_PER_POINT;
+    if (fatigue.restRounds % perPoint === 0 && fatigue.fatigue > 0) {
+      fatigue.fatigue -= 1;
+    }
+    if (fatigue.restRounds >= REST_ROUNDS_PER_POINT) {
+      fatigue.accumulator = 0;
+      this.alerts = this.alerts.filter(alert => alert.type !== 'endurance' || alert.status !== 'pending');
+      this.effects = this.effects.filter(effect => effect.status !== FATIGUE_EFFECT);
+    }
   }
 
   // --- Concentration (§8.1; workspace spec 077, block A2) ---
@@ -2139,12 +2182,21 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     }
   }
 
-  /** §5.5: the accumulated fatigue penalty applies to all actions. */
+  /**
+   * §5.5: the accumulated fatigue penalty applies to all actions. Workspace spec 077, decision D8: the temporary
+   * fatigue of the criticals (`fatigue` effects) is a source of its own, outside the -50 cap.
+   */
   private applyFatiguePenalty() {
-    this.penalty.modifiers = this.penalty.modifiers.filter(m => m.source !== 'fatigue');
+    this.penalty.modifiers = this.penalty.modifiers.filter(m => m.source !== 'fatigue' && m.source !== FATIGUE_CRITICAL);
     const fatigue = Math.min(this.fatigue?.fatigue || 0, MAX_FATIGUE_PENALTY);
     if (fatigue > 0) {
       this.penalty.addModifier('fatigue', -fatigue);
+    }
+    const critical = this.activeEffects()
+      .filter(effect => effect.status === FATIGUE_EFFECT)
+      .reduce((sum, effect) => sum + Math.min(0, effect.value ?? 0), 0);
+    if (critical < 0) {
+      this.penalty.addModifier(FATIGUE_CRITICAL, critical);
     }
   }
 

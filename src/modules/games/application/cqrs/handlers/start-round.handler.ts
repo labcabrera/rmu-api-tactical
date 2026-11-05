@@ -51,7 +51,11 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
 
     //TODO make saga
     if (game.round > 0) {
-      await Promise.all(game.actors.map(actor => this.applyUpkeepToActorRounds(game.id, actor, game.round, command.userId, command.roles)));
+      // Workspace spec 077, decision D7: at altitude the fatigue takes twice the rest.
+      const slow = (game.environment?.altitudeFatigueModifier ?? 0) < 0;
+      await Promise.all(
+        game.actors.map(actor => this.applyUpkeepToActorRounds(game.id, actor, game.round, command.userId, command.roles, slow)),
+      );
       await this.addFearAlerts(game);
     }
     // The actor rounds of the new round exist before the continuations: they take their AP when phase 1 starts.
@@ -160,8 +164,15 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
     await this.commandBus.execute(command);
   }
 
-  private async applyUpkeepToActorRounds(gameId: string, actor: Actor, round: number, userId: string, roles: string[]): Promise<void> {
-    const command = new UpkeepActorRoundCommand(gameId, actor.id, round, userId, roles);
+  private async applyUpkeepToActorRounds(
+    gameId: string,
+    actor: Actor,
+    round: number,
+    userId: string,
+    roles: string[],
+    slowFatigueRecovery: boolean,
+  ): Promise<void> {
+    const command = new UpkeepActorRoundCommand(gameId, actor.id, round, userId, roles, slowFatigueRecovery);
     await this.commandBus.execute(command);
   }
 }

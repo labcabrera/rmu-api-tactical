@@ -1,3 +1,4 @@
+import { ActorRoundFatigue } from '../../domain/value-objects/actor-round-fatigue.vo.js';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -116,7 +117,7 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       initiative: doc.initiative,
       actionPoints: doc.actionPoints,
       hp: doc.hp,
-      fatigue: doc.fatigue,
+      fatigue: ActorRoundFatigue.from(doc.fatigue),
       penalty: penalty,
       defense: doc.defense,
       attacks: attacks,

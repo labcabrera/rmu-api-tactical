@@ -8,7 +8,7 @@ import { ActorRoundAlert } from '../../domain/value-objects/actor-round-alert.vo
 import { ActorRoundAttack } from '../../domain/value-objects/actor-round-attack.vo.js';
 import { ActorRoundDefense } from '../../domain/value-objects/actor-round-defense.vo.js';
 import { ActorRoundEffect, UNCONSCIOUS } from '../../domain/value-objects/actor-round-effect.vo.js';
-import { ActorRoundFatigue } from '../../domain/value-objects/actor-round-fatigue.vo.js';
+import { ActorRoundFatigue, MAX_FATIGUE_PENALTY } from '../../domain/value-objects/actor-round-fatigue.vo.js';
 import { ActorRoundHP } from '../../domain/value-objects/actor-round-hp.vo.js';
 import { ActorRoundInitiative } from '../../domain/value-objects/actor-round-initiative.vo.js';
 import { ActorRoundMovement } from '../../domain/value-objects/actor-round-movement.vo.js';
@@ -64,7 +64,7 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
       new ActorRoundInitiative(character.initiative.totalBonus, 0, undefined, undefined),
       BASE_ACTION_POINTS,
       new ActorRoundHP(character.hp.max, character.hp.current, this.getDeathThreshold(character)),
-      ActorRoundFatigue.empty(),
+      ActorRoundCharacterMapperAdapter.mapFatigue(character),
       ActorRoundPenalty.empty(),
       new ActorRoundDefense(
         character.defense.defensiveBonus,
@@ -97,6 +97,8 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
         hp: character.hp.current,
         injuryIds: injuries.map(injury => injury.id),
         conditionIds: conditions.map(condition => condition.id),
+        // Workspace spec 077, decision D10: the fatigue it brought, the start of the fatigue of the outcome.
+        fatigue: ActorRoundCharacterMapperAdapter.fatiguePenaltyOf(character),
       },
       character.temporaryModifiers ?? [],
     );
@@ -110,6 +112,22 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
       .filter(resistance => !!resistance.resistance)
       .map(resistance => ({ resistance: resistance.resistance, totalBonus: resistance.totalBonus || 0 }));
     return actorRound;
+  }
+
+  /**
+   * Workspace spec 077, decision D9: the fatigue penalty of the sheet (0-50) and the endurance bonus, Body Development
+   * plus the racial endurance bonus.
+   */
+  static mapFatigue(character: Character): ActorRoundFatigue {
+    const bodyDevelopment = character.skills?.find(skill => skill.skillId === BODY_DEVELOPMENT_SKILL_ID)?.totalBonus ?? 0;
+    const endurance = bodyDevelopment + (character.endurance?.racialBonus ?? 0);
+    return new ActorRoundFatigue(endurance, ActorRoundCharacterMapperAdapter.fatiguePenaltyOf(character), 0);
+  }
+
+  /** The fatigue penalty points of the sheet, from 0 to 50. */
+  static fatiguePenaltyOf(character: Character): number {
+    const penalty = character.endurance?.fatiguePenalty ?? 0;
+    return Number.isFinite(penalty) ? Math.min(MAX_FATIGUE_PENALTY, Math.max(0, Math.abs(penalty))) : 0;
   }
 
   /**

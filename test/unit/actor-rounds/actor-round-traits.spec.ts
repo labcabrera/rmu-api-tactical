@@ -362,7 +362,7 @@ describe('ActorRoundCharacterMapperAdapter injuries and conditions (spec 013, §
     expect(round.getPenaltiesBySource()).toContainEqual({ source: 'injury', value: -30 });
     expect(round.effects.map(e => [e.id, e.status])).toEqual([['ko', 'unconscious']]);
     expect(round.characterId).toBe('character-1');
-    expect(round.snapshot).toEqual({ hp: 20, injuryIds: ['broken-leg'], conditionIds: ['ko'] });
+    expect(round.snapshot).toEqual({ hp: 20, injuryIds: ['broken-leg'], conditionIds: ['ko'], fatigue: 0 });
   });
 
   it.each(['dead', 'permanent-unconscious'] as const)('rejects a %s character', status => {
