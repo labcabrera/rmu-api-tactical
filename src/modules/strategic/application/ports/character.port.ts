@@ -31,6 +31,8 @@ export interface Character {
   resistances?: CharacterResistance[];
   items: CharacterItem[];
   equipment: CharacterEquipment;
+  /** Workspace spec 077: the endurance data the fatigue of a game reads. Missing in older strategic versions. */
+  endurance?: CharacterEndurance;
   attacks: CharacterAttack[];
   /** Spec 013: missing in strategic versions before it. */
   injuries?: Injury[];
@@ -47,7 +49,30 @@ export interface Character {
 export interface CharacterInfo {
   raceName: string;
   raceId: string;
+  /** Size of the race. */
   sizeId: string;
+  /**
+   * Workspace spec 077, decision C13: the race size moved by Increased or Decreased Size, the size of the actor. Missing
+   * in older strategic versions: `sizeId`.
+   */
+  effectiveSizeId?: string;
+  /** Height in feet (workspace spec 077, block D). Missing in older strategic versions. */
+  height?: number | null;
+}
+
+/** Workspace spec 077: endurance of the sheet (block D reads it). */
+export interface CharacterEndurance {
+  /** Accumulated fatigue penalty, 0-50, as a positive number. */
+  fatiguePenalty?: number;
+  /** Racial endurance bonus. */
+  racialBonus?: number;
+}
+
+/** Workspace spec 077, decision B1.5: the load of the sheet, worn and carried, and its percent of the body weight. */
+export interface CharacterLoad {
+  worn: number;
+  carried: number;
+  percent: number;
 }
 
 export interface CharacterExperience {
@@ -138,8 +163,16 @@ export interface CharacterItemWeapon {
 export interface CharacterEquipment {
   slots: Record<string, string | null>;
   maneuverPenalty: number;
+  /** Penalty of the load (workspace spec 077, decision B1.2: only the load, no longer the armour Enc %). */
   encumbrancePenalty: number;
   movementBaseDifficulty: string;
+  /**
+   * Workspace spec 077, decision B1.2: Enc % of the worn armour pieces that still protect (Spell Law Table 4-2). Missing
+   * in older strategic versions: 0.
+   */
+  armorEncumbrance?: number;
+  /** Workspace spec 077, decision B1.5. Missing in older strategic versions. */
+  load?: CharacterLoad;
 }
 
 export interface CharacterAttackRange {

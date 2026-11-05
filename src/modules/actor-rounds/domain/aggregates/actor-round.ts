@@ -321,6 +321,12 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   /** Fighting styles of its character (workspace spec 032): none for NPCs. */
   public fightingStyles: ActorRoundFightingStyle[] = [];
 
+  /**
+   * Enc % of the armour its character wears (workspace spec 077, decision B1.2), copied from the sheet: the default
+   * `armorEncumbrance` of its casts. 0 for NPCs.
+   */
+  public armorEncumbrance = 0;
+
   /** The fighting style it fights with (workspace spec 032), kept from round to round. */
   public activeStyle: ActorRoundActiveStyle | null = null;
 
@@ -497,6 +503,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.frightLevel = props.frightLevel ?? null;
     actorRound.criticalSize = props.criticalSize ?? null;
     actorRound.reduceCriticalSeverity = props.reduceCriticalSeverity ?? false;
+    actorRound.armorEncumbrance = props.armorEncumbrance ?? 0;
     actorRound.heldActions = (props.heldActions ?? []).map(each => ({ ...each }));
     actorRound.normalizeLegacy();
     // Derived: recomputed so that values stored with the penalties folded in are corrected.
@@ -578,6 +585,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.frightLevel = previous.frightLevel;
     actorRound.criticalSize = previous.criticalSize;
     actorRound.reduceCriticalSeverity = previous.reduceCriticalSeverity;
+    actorRound.armorEncumbrance = previous.armorEncumbrance;
     // Workspace spec 077, decision A2.1: a held action goes on held in the next round, and so does its focus.
     actorRound.heldActions = previous.heldActions.map(each => ({ ...each }));
     actorRound.refreshActionPoints();
@@ -3100,6 +3108,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       frightLevel: this.frightLevel,
       criticalSize: this.criticalSize,
       reduceCriticalSeverity: this.reduceCriticalSeverity,
+      armorEncumbrance: this.armorEncumbrance,
       heldActions: this.heldActions,
       imageUrl: this.imageUrl,
       owner: this.owner,

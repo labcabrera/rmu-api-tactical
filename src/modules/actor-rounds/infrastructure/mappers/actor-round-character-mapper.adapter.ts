@@ -31,10 +31,12 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
     if (isCharacterNotAble(character)) {
       throw new ValidationError(`Character ${character.id} is dead or permanently unconscious`, 'err-character-not-able');
     }
-    // Any size of the scale (workspace spec 075, decision 1); only an unknown id is rejected.
-    const size = stepsOf(character.info.sizeId);
+    // Any size of the scale (workspace spec 075, decision 1); only an unknown id is rejected. Workspace spec 077,
+    // decision C13: the effective size (race size moved by Increased or Decreased Size), the race one for older sheets.
+    const sizeId = character.info.effectiveSizeId || character.info.sizeId;
+    const size = stepsOf(sizeId);
     if (size === undefined) {
-      throw new ValidationError(`Character size ${character.info.sizeId} not supported`);
+      throw new ValidationError(`Character size ${sizeId} not supported`);
     }
     let shield: ActorRoundShield | null = null;
     if (character.defense.shield) {
@@ -100,6 +102,8 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
     );
     actorRound.initItems(this.mapItems(character, items));
     actorRound.fightingStyles = this.mapFightingStyles(character);
+    // Workspace spec 077, decision B1.2: the Enc % of the worn armour, the default of the casts of the actor.
+    actorRound.armorEncumbrance = Math.max(0, character.equipment?.armorEncumbrance ?? 0);
     actorRound.resistances = (character.resistances || [])
       .filter(resistance => !!resistance.resistance)
       .map(resistance => ({ resistance: resistance.resistance, totalBonus: resistance.totalBonus || 0 }));

@@ -213,6 +213,12 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Critical code I of an NPC: every critical is one severity lower, none below A (spec 075)' })
   reduceCriticalSeverity: boolean;
 
+  @ApiProperty({
+    description: 'Enc % of the armour the character wears (spec 077), the default armorEncumbrance of its casts; 0 for NPCs',
+    example: 15,
+  })
+  armorEncumbrance: number;
+
   @ApiProperty({ description: 'What the character brought into the game (only in the actor round built from it)', required: false })
   snapshot?: ActorRoundSnapshotDto;
 
@@ -269,6 +275,7 @@ export class ActorRoundDto {
     dto.frightLevel = entity.frightLevel ?? null;
     dto.criticalSize = entity.criticalSize ?? null;
     dto.reduceCriticalSeverity = entity.reduceCriticalSeverity ?? false;
+    dto.armorEncumbrance = entity.armorEncumbrance ?? 0;
     dto.snapshot = entity.snapshot ? ActorRoundSnapshotDto.fromEntity(entity.snapshot) : undefined;
     dto.bleeding = entity.getBleeding();
     dto.imageUrl = entity.imageUrl;

@@ -93,6 +93,8 @@ export interface ActorRoundProps {
   criticalSize?: number | null;
   /** Workspace spec 075: critical code I of an NPC. Missing in older actor rounds: false. */
   reduceCriticalSeverity?: boolean;
+  /** Workspace spec 077, decision B1.2: Enc % of the worn armour. Missing in older actor rounds: 0. */
+  armorEncumbrance?: number;
   /** Workspace spec 077: held actions of the actor, concentration foci. Missing in older actor rounds: none. */
   heldActions?: HeldActionFocus[];
   /** Only in the actor round built from the character (round 1, or the round it joined in). */

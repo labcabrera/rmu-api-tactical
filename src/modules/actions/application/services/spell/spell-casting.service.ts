@@ -132,7 +132,13 @@ export class SpellCastingService {
 
   /** Modifiers of the Spellcasting Roll with the AP the action has now (decisions 6 and 7). */
   async calculate(context: SpellActionContext, requested: Partial<ActionSpellOptions> | undefined): Promise<ScrCalculation> {
-    const options: ActionSpellOptions = { ...DEFAULT_SPELL_OPTIONS, ...(context.spell.options ?? {}), ...(requested ?? {}) };
+    // Workspace spec 077, decision B1.2: the Enc % of the armour the caster wears is the default of `armorEncumbrance`.
+    const options: ActionSpellOptions = {
+      ...DEFAULT_SPELL_OPTIONS,
+      armorEncumbrance: context.actorRound.armorEncumbrance ?? 0,
+      ...(context.spell.options ?? {}),
+      ...(requested ?? {}),
+    };
     const { action, actorRound, currentPhase } = context;
     const actionPoints = action.apOf(actorRound, currentPhase);
     const apPenalty = action.takesApPenalty() ? action.apProfile().penaltyFor(actionPoints) : 0;

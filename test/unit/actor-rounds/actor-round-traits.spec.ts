@@ -109,6 +109,35 @@ describe('ActorRoundCharacterMapperAdapter sizes (spec 075, decision 1)', () => 
   it('rejects a size id out of the scale', () => {
     expect(() => sizeOf('colossal')).toThrow('not supported');
   });
+
+  it('takes the effective size of the sheet, moved by Increased Size (workspace spec 077, C13)', () => {
+    const round = new ActorRoundCharacterMapperAdapter().toActorRound(
+      'game-1',
+      1,
+      character({ info: { raceName: 'Human', raceId: 'human', sizeId: 'medium', effectiveSizeId: 'big' } }),
+    );
+
+    expect(round.size).toBe(1);
+  });
+});
+
+describe('ActorRoundCharacterMapperAdapter armour Enc % (workspace spec 077, B1.2)', () => {
+  it('copies the Enc % of the worn armour and keeps it in the next rounds', () => {
+    const sheet = character();
+    sheet.equipment = { ...sheet.equipment, armorEncumbrance: 15 };
+
+    const round = new ActorRoundCharacterMapperAdapter().toActorRound('game-1', 1, sheet);
+    const next = ActorRound.createFromPrevious(round);
+
+    expect(round.armorEncumbrance).toBe(15);
+    expect(next.armorEncumbrance).toBe(15);
+    expect(next.getProps().armorEncumbrance).toBe(15);
+    expect(ActorRoundDto.fromEntity(round).armorEncumbrance).toBe(15);
+  });
+
+  it('reads 0 from older sheets', () => {
+    expect(new ActorRoundCharacterMapperAdapter().toActorRound('game-1', 1, character()).armorEncumbrance).toBe(0);
+  });
 });
 
 describe('ActorRound traits', () => {

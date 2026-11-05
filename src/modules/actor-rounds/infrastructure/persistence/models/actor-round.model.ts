@@ -170,6 +170,10 @@ export class ActorRoundModel {
   @Prop({ type: Boolean, required: false })
   reduceCriticalSeverity?: boolean;
 
+  /** Workspace spec 077, decision B1.2: Enc % of the worn armour, from the character sheet. */
+  @Prop({ type: Number, required: false })
+  armorEncumbrance?: number;
+
   /** Workspace spec 077: held actions of the actor, concentration foci. */
   @Prop({ type: [ActorRoundHeldAction], required: false, default: [] })
   heldActions?: ActorRoundHeldAction[];

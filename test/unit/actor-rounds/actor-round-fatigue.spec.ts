@@ -2,6 +2,7 @@ import type { GameRepository } from '../../../src/modules/games/application/port
 import { describe, expect, it, vi } from 'vitest';
 import type { EnduranceManeuverResult, ManeuverPort } from '../../../src/modules/actions/application/ports/maneuver.port.js';
 import { ResolveEnduranceCheckCommand } from '../../../src/modules/actor-rounds/application/cqrs/commands/resolve-endurance-check.command.js';
+import type { ActorSheetService } from '../../../src/modules/actor-rounds/application/services/actor-sheet.service.js';
 import { ResolveEnduranceCheckHandler } from '../../../src/modules/actor-rounds/application/cqrs/handlers/resolve-endurance-check.handler.js';
 import type { ActorRoundRepository } from '../../../src/modules/actor-rounds/application/ports/actor-round-repository.port.js';
 import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
@@ -83,7 +84,7 @@ describe('ActorRound fatigue (§5.5)', () => {
 });
 
 describe('ResolveEnduranceCheckHandler', () => {
-  const setup = (endurance: { fatigue: number; hitPoints: number }) => {
+  const setup = (endurance: { fatigue: number; hitPoints: number }, encumbrancePenalty = 0) => {
     const round = load({ hp: [50, 50] });
     const alert = ActorRoundAlert.buildEndurance();
     round.alerts.push(alert);
@@ -96,7 +97,10 @@ describe('ResolveEnduranceCheckHandler', () => {
     );
     const maneuverPort = { endurance: enduranceFn } as unknown as ManeuverPort;
     const gameRepository = { findById: vi.fn(() => Promise.resolve(null)) } as unknown as GameRepository;
-    const handler = new ResolveEnduranceCheckHandler(actorRoundRepository, maneuverPort, gameRepository);
+    const sheets = {
+      find: vi.fn(() => Promise.resolve({ skills: [], equipment: { maneuverPenalty: 0, encumbrancePenalty } })),
+    } as unknown as ActorSheetService;
+    const handler = new ResolveEnduranceCheckHandler(actorRoundRepository, maneuverPort, gameRepository, sheets);
     return { handler, alert, enduranceFn };
   };
 
@@ -108,6 +112,26 @@ describe('ResolveEnduranceCheckHandler', () => {
     expect(enduranceFn).toHaveBeenCalledWith(60);
     expect(fatiguePenalty(updated)).toBe(-10);
     expect(updated.alerts).toEqual([]);
+  });
+
+  it('adds the load penalty of the sheet as the encumbrance modifier, leaving out the one sent (spec 077, B1.6)', async () => {
+    const { handler, alert, enduranceFn } = setup({ fatigue: 0, hitPoints: 0 }, -13);
+
+    await handler.execute(
+      new ResolveEnduranceCheckCommand(
+        'ar-1',
+        alert.id,
+        40,
+        [
+          { key: 'body-development', value: 20 },
+          { key: 'encumbrance', value: -30 },
+        ],
+        'user-1',
+        [],
+      ),
+    );
+
+    expect(enduranceFn).toHaveBeenCalledWith(47);
   });
 
   it('rejects an alert the actor round does not have', async () => {
