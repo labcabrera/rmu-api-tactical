@@ -8,6 +8,7 @@ import { ActorRound } from '../../../domain/aggregates/actor-round.js';
 import { ActorRoundEffect } from '../../../domain/value-objects/actor-round-effect.vo.js';
 import { rollProfileOf } from '../../../domain/value-objects/actor-roll-profile.vo.js';
 import { ActorRoundAlertDto } from './actor-round-alert.dto.js';
+import { ConcentrationFocusDto } from './concentration-focus.dto.js';
 import { ActorRoundApLedgerEntryDto } from './actor-round-ap-ledger-entry.dto.js';
 import { ActorRoundApModifierDto } from './actor-round-ap-modifier.dto.js';
 import { ActorRoundAttackDto } from './actor-round-attack.dto.js';
@@ -24,6 +25,8 @@ import { ActorRoundParryDto } from './actor-round-parry.dto.js';
 import { ActorRoundPenaltyDto } from './actor-round-penalty.dto.js';
 import { ActorRoundPhaseLogDto } from './actor-round-phase-log.dto.js';
 import { ActorRoundTraitDto } from './actor-round-trait.dto.js';
+import { ActorRoundHazardDto } from './actor-round-hazard.dto.js';
+import { CriticalAlertRollDto } from './resolve-critical-alert.dto.js';
 
 export class AbsoluteEaseDto {
   @ApiProperty({ description: 'Skill category of the Absolute Ease talent', example: 'athletic' })
@@ -117,6 +120,12 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Action points spent, lost or used by phase and action', type: [ActorRoundApLedgerEntryDto] })
   apLedger: ActorRoundApLedgerEntryDto[];
 
+  @ApiProperty({
+    description: 'What the actor concentrates on (spec 077): with any, each AP of another action counts half',
+    type: [ConcentrationFocusDto],
+  })
+  concentration: ConcentrationFocusDto[];
+
   @ApiProperty({ description: 'Hit points' })
   hp: ActorRoundHPDto;
 
@@ -175,6 +184,13 @@ export class ActorRoundDto {
   lastBreakageCheck?: BreakageCheckResultDto;
 
   @ApiProperty({
+    type: CriticalAlertRollDto,
+    required: false,
+    description: 'Only in the answer of a critical-roll (spec 077): the critical rolled and applied',
+  })
+  lastCriticalRoll?: CriticalAlertRollDto;
+
+  @ApiProperty({
     description: 'Resistance roll bonuses of the character (workspace spec 022); none for NPCs',
     type: [ActorRoundResistanceDto],
   })
@@ -206,6 +222,23 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Critical code I of an NPC: every critical is one severity lower, none below A (spec 075)' })
   reduceCriticalSeverity: boolean;
 
+  @ApiProperty({
+    description: 'Enc % of the armour the character wears (spec 077), the default armorEncumbrance of its casts; 0 for NPCs',
+    example: 15,
+  })
+  armorEncumbrance: number;
+
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Height of the actor in feet (spec 077), from the character sheet; null for NPCs until the game master gives it',
+    example: 6,
+  })
+  height: number | null;
+
+  @ApiProperty({ type: [ActorRoundHazardDto], description: 'Falls and falling objects of this round (spec 077)' })
+  hazards: ActorRoundHazardDto[];
+
   @ApiProperty({ description: 'What the character brought into the game (only in the actor round built from it)', required: false })
   snapshot?: ActorRoundSnapshotDto;
 
@@ -234,6 +267,7 @@ export class ActorRoundDto {
     dto.apModifiers = entity.apModifiers.map(modifier => ActorRoundApModifierDto.fromEntity(modifier));
     dto.apCapacity = [...entity.apCapacity];
     dto.apLedger = entity.apLedger.map(entry => ActorRoundApLedgerEntryDto.fromEntity(entry));
+    dto.concentration = entity.concentration().map(focus => ConcentrationFocusDto.fromEntity(focus));
     dto.hp = ActorRoundHPDto.fromEntity(entity.hp);
     dto.fatigue = ActorRoundFatigueDto.fromEntity(entity.fatigue);
     dto.defense = ActorRoundDefenseDto.fromEntity(entity.defense);
@@ -253,6 +287,7 @@ export class ActorRoundDto {
     dto.npcId = entity.npcId;
     dto.items = (entity.items || []).map(item => ActorRoundItemDto.fromEntity(item));
     if (entity.lastBreakageCheck) dto.lastBreakageCheck = BreakageCheckResultDto.fromEntity(entity.lastBreakageCheck);
+    if (entity.lastCriticalRoll) dto.lastCriticalRoll = CriticalAlertRollDto.fromEntity(entity.lastCriticalRoll);
     dto.resistances = (entity.resistances || []).map(each => ({ resistance: each.resistance, totalBonus: each.totalBonus }));
     dto.fightingStyles = (entity.fightingStyles || []).map(style => ActorRoundFightingStyleDto.fromEntity(style));
     dto.activeStyle = entity.activeStyle ? ActorRoundActiveStyleDto.fromEntity(entity.activeStyle) : null;
@@ -261,6 +296,9 @@ export class ActorRoundDto {
     dto.frightLevel = entity.frightLevel ?? null;
     dto.criticalSize = entity.criticalSize ?? null;
     dto.reduceCriticalSeverity = entity.reduceCriticalSeverity ?? false;
+    dto.armorEncumbrance = entity.armorEncumbrance ?? 0;
+    dto.height = entity.height ?? null;
+    dto.hazards = (entity.hazards || []).map(hazard => ActorRoundHazardDto.fromEntity(hazard));
     dto.snapshot = entity.snapshot ? ActorRoundSnapshotDto.fromEntity(entity.snapshot) : undefined;
     dto.bleeding = entity.getBleeding();
     dto.imageUrl = entity.imageUrl;

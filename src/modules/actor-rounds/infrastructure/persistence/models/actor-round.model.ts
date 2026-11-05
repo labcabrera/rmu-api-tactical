@@ -2,6 +2,7 @@ import type { ItemConsumed, TemporaryModifier } from '../../../domain/value-obje
 import type { ActorRoundItem } from '../../../domain/value-objects/actor-round-item.vo.js';
 import type { ActorRoundActiveStyle, ActorRoundFightingStyle } from '../../../domain/value-objects/actor-round-fighting-style.vo.js';
 import type { ActorRoundResistance } from '../../../domain/value-objects/actor-round-resistance.vo.js';
+import type { ActorRoundHazard } from '../../../domain/value-objects/actor-round-hazard.vo.js';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import type { HydratedDocument } from 'mongoose';
 import type { Injury } from '../../../domain/value-objects/injury.vo.js';
@@ -20,6 +21,7 @@ import {
   ActorRoundDefenseMode,
   ActorRoundEffect,
   ActorRoundFatigue,
+  ActorRoundHeldAction,
   ActorRoundHpLogEntry,
   ActorRoundPhaseLog,
   ActorRoundSnapshot,
@@ -168,6 +170,22 @@ export class ActorRoundModel {
 
   @Prop({ type: Boolean, required: false })
   reduceCriticalSeverity?: boolean;
+
+  /** Workspace spec 077, decision B1.2: Enc % of the worn armour, from the character sheet. */
+  @Prop({ type: Number, required: false })
+  armorEncumbrance?: number;
+
+  /** Workspace spec 077: held actions of the actor, concentration foci. */
+  @Prop({ type: [ActorRoundHeldAction], required: false, default: [] })
+  heldActions?: ActorRoundHeldAction[];
+
+  /** Workspace spec 077, decision D12: height of the actor in feet; null for NPCs until the game master gives it. */
+  @Prop({ type: Number, required: false })
+  height?: number | null;
+
+  /** Workspace spec 077, decision D2: falls and falling objects of the round (stored as documents of their own shape). */
+  @Prop({ type: [Object], required: false, default: [] })
+  hazards?: ActorRoundHazard[];
 
   @Prop({ type: ActorRoundSnapshot, required: false })
   snapshot?: ActorRoundSnapshot;

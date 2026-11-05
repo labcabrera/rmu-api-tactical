@@ -30,6 +30,8 @@ export interface LoadOptions {
   injuries?: Injury[];
   resistances?: { resistance: string; totalBonus: number }[];
   factionId?: string;
+  /** Steps from medium; 1 (the empty actor round) by default. */
+  size?: number;
 }
 
 /** An actor round as the repository loads it. */
@@ -40,6 +42,7 @@ export const load = (options: LoadOptions = {}): ActorRound => {
     gameId: 'game-1',
     actorId: 'actor-1',
     round: options.round ?? 1,
+    size: options.size ?? empty.size,
     actionPoints: 4,
     initiative: new ActorRoundInitiative(options.initiativeBase ?? 0, 0, undefined, undefined),
     hp: new ActorRoundHP(...(options.hp ?? [50, 50])),

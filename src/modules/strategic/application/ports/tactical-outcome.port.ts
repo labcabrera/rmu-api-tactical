@@ -10,6 +10,8 @@ export interface TacticalOutcomeRequest {
   characterId: string;
   name: string;
   hp: { start: number; end: number; delta: number };
+  /** Workspace spec 077, decision D10: strategic sets fatiguePenalty to clamp(current + delta, 0, 50); missing keeps it. */
+  fatigue?: { start: number; end: number; delta: number };
   /** Every change of the hits in the game (spec 013, §1.1): strategic keeps it in the healing log, not the character. */
   hpLog?: HpLogEntry[];
   hpBySource?: HpBySource;

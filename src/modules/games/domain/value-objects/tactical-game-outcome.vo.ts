@@ -31,6 +31,11 @@ export interface TacticalGameOutcomeCharacter {
   name: string;
   /** `delta = end - start`. */
   hp: { start: number; end: number; delta: number };
+  /**
+   * Workspace spec 077, decision D10: fatigue penalty points (0-50) at the start and end of the game, without the
+   * temporary fatigue of the criticals. Missing for actors that brought no fatigue data (strategic keeps its fatigue).
+   */
+  fatigue?: { start: number; end: number; delta: number };
   /** Every change of the hits in the game, by round (spec 013, §1.1). Missing in outcomes stored before it existed. */
   hpLog?: HpLogEntry[];
   /** Totals of `hpLog` by kind and by attacker. */

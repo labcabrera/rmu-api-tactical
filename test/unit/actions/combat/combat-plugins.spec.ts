@@ -46,6 +46,7 @@ import {
 } from '../../../../src/modules/actions/application/services/combat/index.js';
 import type { CombatContext } from '../../../../src/modules/actions/application/services/combat/combat-context.js';
 import { createCombatPluginContext, getModifier, rollModifierValues, runPluginHook } from './combat-plugin-test.factory.js';
+import { CRITICAL_LOCATIONS } from '../../../fixtures/critical-locations.js';
 
 const prepare = async (plugin: Parameters<typeof runPluginHook>[0], ctx: CombatContext) => {
   const applied = await runPluginHook(plugin, 'prepare', ctx);
@@ -843,12 +844,58 @@ describe('Combat plugins', () => {
       expect(ctx.armorType).toBe(armorType);
     });
 
-    it('uses the torso armour without a called shot, and no location (§9.7)', async () => {
-      const ctx = preparedContext({ defense: perLocation });
+    // Workspace spec 077, decision B2: torso AT 8 with a light helmet (AT 3), arms and legs unprotected.
+    const piecemeal = { at: null, headAt: 3, bodyAt: 8, armsAt: 1, legsAt: 1 };
+    const rolled = (locationRoll: number | undefined) => {
+      const ctx = preparedContext({ defense: piecemeal });
+      ctx.locationRoll = locationRoll;
+      ctx.criticalLocations = CRITICAL_LOCATIONS;
+      return ctx;
+    };
 
-      expect(await runPluginHook(CombatLocationArmorPlugin, 'beforeAttackRoll', ctx)).toBe(true);
+    it.each([
+      [81, 'head', 3],
+      [21, 'chest', 8],
+      [66, 'abdomen', 8],
+      [7, 'arms', 1],
+    ] as const)(
+      'without a called shot, the critical roll %i decides the location (%s) and its armour (%i) (§7.2)',
+      async (roll, location, at) => {
+        const ctx = rolled(roll);
+
+        expect(await runPluginHook(CombatLocationArmorPlugin, 'beforeAttackRoll', ctx)).toBe(true);
+        expect(ctx.location).toBe(location);
+        expect(ctx.armorType).toBe(at);
+        expect(ctx.attack!.calculated!.locationRoll).toBe(roll);
+      },
+    );
+
+    it('requires the critical roll without a called shot against armour by location', async () => {
+      await expect(runPluginHook(CombatLocationArmorPlugin, 'beforeAttackRoll', rolled(undefined))).rejects.toMatchObject({
+        code: 'err-attack-location-roll-required',
+      });
+    });
+
+    it('ignores the missing critical roll on a fumble', async () => {
+      const ctx = rolled(undefined);
+      ctx.fumbled = true;
+
+      await runPluginHook(CombatLocationArmorPlugin, 'beforeAttackRoll', ctx);
+
       expect(ctx.location).toBeUndefined();
-      expect(ctx.armorType).toBe(5);
+      expect(ctx.attack!.calculated!.locationRoll).toBeUndefined();
+    });
+
+    it('keeps the called location whatever the critical roll', async () => {
+      const ctx = preparedContext({ calledShot: 'legs', defense: piecemeal });
+      ctx.locationRoll = 81;
+      ctx.criticalLocations = CRITICAL_LOCATIONS;
+
+      await runPluginHook(CombatLocationArmorPlugin, 'beforeAttackRoll', ctx);
+
+      expect(ctx.location).toBe('legs');
+      expect(ctx.armorType).toBe(1);
+      expect(ctx.attack!.calculated!.locationRoll).toBeUndefined();
     });
 
     it('hits the called location and uses its armour', async () => {

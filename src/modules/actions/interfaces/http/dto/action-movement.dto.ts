@@ -1,7 +1,14 @@
 import type { LightType } from '../../../domain/value-objects/light-type.vo.js';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
-import { ActionMovement, ActionMovementModifiers, ActionMovementResult } from '../../../domain/value-objects/action-movement.vo.js';
+import { IsBoolean, IsIn, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  ActionMovement,
+  ActionMovementModifiers,
+  ActionMovementResult,
+  type BmrMultiplier,
+  GRAPPLE_FEATS,
+  type GrappleFeat,
+} from '../../../domain/value-objects/action-movement.vo.js';
 import type { Difficulty } from '../../../domain/value-objects/difficulty.vo.js';
 import type { Pace } from '../../../domain/value-objects/pace.vo.js';
 import { ActionRollDto } from './action-roll.dto.js';
@@ -51,6 +58,16 @@ export class ActionMovementModifiersDto {
   @IsOptional()
   light?: LightType | null;
 
+  @ApiProperty({
+    type: String,
+    enum: GRAPPLE_FEATS,
+    required: false,
+    description: 'Spec 077: Feat of Strength of a grappled actor or its grappler to move away (required while grappled)',
+  })
+  @IsOptional()
+  @IsIn(GRAPPLE_FEATS)
+  grappleFeat?: GrappleFeat | null;
+
   static fromEntity(modifiers: ActionMovementModifiers): ActionMovementModifiersDto {
     const dto = new ActionMovementModifiersDto();
     dto.pace = modifiers.pace;
@@ -59,11 +76,20 @@ export class ActionMovementModifiersDto {
     dto.difficulty = modifiers.difficulty;
     dto.customBonus = modifiers.customBonus;
     dto.light = modifiers.light ?? null;
+    if (modifiers.grappleFeat) dto.grappleFeat = modifiers.grappleFeat;
     return dto;
   }
 
   static toEntity(dto: ActionMovementModifiersDto): ActionMovementModifiers {
-    return new ActionMovementModifiers(dto.pace, dto.requiredManeuver, dto.skillId, dto.difficulty, dto.customBonus, dto.light);
+    return new ActionMovementModifiers(
+      dto.pace,
+      dto.requiredManeuver,
+      dto.skillId,
+      dto.difficulty,
+      dto.customBonus,
+      dto.light,
+      dto.grappleFeat ?? null,
+    );
   }
 }
 
@@ -75,6 +101,8 @@ export class ActionMovementResultDto {
   distanceAdjusted: number;
   critical: string | null;
   description: string;
+  /** What changed the BMR (spec 077): half movement, concentration. */
+  bmrMultipliers?: BmrMultiplier[];
 
   static fromEntity(calculated: ActionMovementResult): ActionMovementResultDto {
     const dto = new ActionMovementResultDto();
@@ -85,6 +113,7 @@ export class ActionMovementResultDto {
     dto.distanceAdjusted = calculated.distanceAdjusted;
     dto.critical = calculated.critical;
     dto.description = calculated.description;
+    if (calculated.bmrMultipliers?.length) dto.bmrMultipliers = calculated.bmrMultipliers.map(each => ({ ...each }));
     return dto;
   }
 }

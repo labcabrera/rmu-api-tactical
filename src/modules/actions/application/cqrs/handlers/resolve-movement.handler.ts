@@ -22,6 +22,7 @@ import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { ActionMovement, ActionMovementModifiers } from '../../../domain/value-objects/action-movement.vo.js';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
 import { MovementProcessorService } from '../../services/movement-processor.service.js';
+import { FALL_SKILLS } from '../../../domain/services/fall-control.js';
 import { ResolveMovementCommand } from '../commands/resolve-movement.command.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
@@ -56,6 +57,13 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
 
     const currentPhase = game.getActionPhase();
     action.checkResolvable(actorRound, currentPhase);
+    // Workspace spec 077, decision A2.4: with two foci the actor only moves at creeping pace.
+    if (actorRound.isDoubleConcentrating() && command.modifiers.pace !== 'creep') {
+      throw new ValidationError('An actor concentrating on two things only moves at creeping pace', 'err-action-double-concentration', {
+        pace: command.modifiers.pace,
+      });
+    }
+    await this.checkGrapple(command, actorRound);
     const warnings = ResolveMovementHandler.paceWarnings(command.modifiers.pace, actorRound);
     if (!command.confirm && warnings.some(warning => warning.requiresConfirm)) {
       throw new ConflictError('The movement needs a confirmation: send it again with confirm: true', 'err-action-confirm-required', {
@@ -67,13 +75,18 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     let actorRoundModified = false;
     if (action.fatigue) {
       actorRoundModified = true;
-      const currentFatigue = actorRound.fatigue.accumulator || 0;
-      actorRound.fatigue.accumulator = currentFatigue + action.fatigue;
+      // Workspace spec 077, decision D6: through addFatigue, which raises the endurance alert from 100.
+      actorRound.addFatigue(action.fatigue);
     }
     if (action.movement?.calculated.critical) {
       actorRoundModified = true;
       const alert = ActorRoundAlert.buildCritical('k', action.movement?.calculated.critical);
       actorRound.alerts.push(alert);
+      // Workspace spec 077, decision D5: a climbing or jumping movement gone wrong suggests a fall.
+      const skillId = action.movement.modifiers.skillId;
+      if (action.movement.modifiers.requiredManeuver && skillId && FALL_SKILLS.includes(skillId)) {
+        actorRound.alerts.push(ActorRoundAlert.buildFallSuggested('movement', action.id, skillId));
+      }
     }
     // Workspace spec 068, decision 5: exertion reopens a completed pressure, a failed roll the stitches
     if (ResolveMovementHandler.isExertion(command.modifiers.pace) && actorRound.reopenWounds('exertion').length > 0) {
@@ -183,7 +196,30 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
       difficulty: command.modifiers.difficulty,
       customBonus: command.modifiers.customBonus,
       light: command.modifiers.light ?? ambientLight ?? null,
+      grappleFeat: command.modifiers.grappleFeat ?? null,
     };
+  }
+
+  /**
+   * Workspace spec 077, decision A3.5: a grappled actor, or one that holds another in a grapple, moves away only with
+   * a contested Feat of Strength, whose outcome the movement sends (`err-movement-grappled`).
+   */
+  private async checkGrapple(command: ResolveMovementCommand, actorRound: ActorRound): Promise<void> {
+    if (command.modifiers.grappleFeat) {
+      return;
+    }
+    let grappled = actorRound.grapples().length > 0;
+    if (!grappled) {
+      const rsql = `gameId==${actorRound.gameId};round==${actorRound.round}`;
+      const others = (await this.actorRoundRepository.findByRsql(rsql, 0, 1000)).content;
+      grappled = others.some(other => other.id !== actorRound.id && other.isGrappledBy(actorRound.actorId));
+    }
+    if (grappled) {
+      throw new ValidationError(
+        'A grappled actor or its grappler moves away only with a contested Feat of Strength: send grappleFeat',
+        'err-movement-grappled',
+      );
+    }
   }
 
   private validate(command: ResolveMovementCommand, action: Action): void {

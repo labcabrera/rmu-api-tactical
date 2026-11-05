@@ -6,6 +6,7 @@ import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.v
 import type { ManeuverPurpose } from '../../../domain/value-objects/maneuver-purpose.vo.js';
 import type { CombatTalentChoices } from '../../../domain/services/combat-talent-maneuver.js';
 import type { SenseChoices } from '../../../../shared/domain/senses/sense-modifiers.js';
+import type { GrappleEscapeRow } from '../../../domain/services/grapple-escape.js';
 
 /** The passive side of a conflicting maneuver as an actor of the game (workspace spec 022, decision 12). */
 export interface PassiveSide {
@@ -41,6 +42,8 @@ export class ResolveManeuverRequest {
     public readonly spasmRounds?: number | undefined,
     /** Workspace spec 076, §3.1: the sense of a Perception or Tracking maneuver, its usage and selections. */
     public readonly senses?: SenseChoices | undefined,
+    /** Workspace spec 077, decision A3.3: a `grapple-escape` maneuver rolls once against each grapple. */
+    public readonly grappleEscape?: GrappleEscapeRow[] | undefined,
   ) {}
 }
 

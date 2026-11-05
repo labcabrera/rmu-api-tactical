@@ -109,6 +109,35 @@ describe('ActorRoundCharacterMapperAdapter sizes (spec 075, decision 1)', () => 
   it('rejects a size id out of the scale', () => {
     expect(() => sizeOf('colossal')).toThrow('not supported');
   });
+
+  it('takes the effective size of the sheet, moved by Increased Size (workspace spec 077, C13)', () => {
+    const round = new ActorRoundCharacterMapperAdapter().toActorRound(
+      'game-1',
+      1,
+      character({ info: { raceName: 'Human', raceId: 'human', sizeId: 'medium', effectiveSizeId: 'big' } }),
+    );
+
+    expect(round.size).toBe(1);
+  });
+});
+
+describe('ActorRoundCharacterMapperAdapter armour Enc % (workspace spec 077, B1.2)', () => {
+  it('copies the Enc % of the worn armour and keeps it in the next rounds', () => {
+    const sheet = character();
+    sheet.equipment = { ...sheet.equipment, armorEncumbrance: 15 };
+
+    const round = new ActorRoundCharacterMapperAdapter().toActorRound('game-1', 1, sheet);
+    const next = ActorRound.createFromPrevious(round);
+
+    expect(round.armorEncumbrance).toBe(15);
+    expect(next.armorEncumbrance).toBe(15);
+    expect(next.getProps().armorEncumbrance).toBe(15);
+    expect(ActorRoundDto.fromEntity(round).armorEncumbrance).toBe(15);
+  });
+
+  it('reads 0 from older sheets', () => {
+    expect(new ActorRoundCharacterMapperAdapter().toActorRound('game-1', 1, character()).armorEncumbrance).toBe(0);
+  });
 });
 
 describe('ActorRound traits', () => {
@@ -272,6 +301,34 @@ describe('Strike Reflex', () => {
   });
 });
 
+describe('ActorRoundCharacterMapperAdapter Steady Shield (workspace spec 077, P2)', () => {
+  it('adds the times Steady Shield was taken to the blocks of the shield', () => {
+    const sheet = character({
+      defense: {
+        defensiveBonus: 10,
+        armor: { at: 1, bodyAt: 1, headAt: 1, armsAt: 1, legsAt: 1 },
+        shield: { db: 20, blockCount: 2 },
+        protect: 0,
+      },
+      skills: [
+        {
+          skillId: 'battle-styles',
+          specialization: 'shieldbearer',
+          ranks: 6,
+          styleAbilities: [
+            { abilityId: 'steady-shield', times: 2 },
+            { abilityId: 'shield-bash', times: 1 },
+          ],
+        },
+      ],
+    } as unknown as Partial<Character>);
+
+    const round = new ActorRoundCharacterMapperAdapter().toActorRound('game-1', 1, sheet);
+
+    expect(round.defense.shield!.blockCount).toBe(4);
+  });
+});
+
 describe('ActorRoundCharacterMapperAdapter injuries and conditions (spec 013, §3)', () => {
   const mapper = new ActorRoundCharacterMapperAdapter();
   const source = { kind: 'critical' as const, tacticalGameId: 'other-game' };
@@ -305,7 +362,7 @@ describe('ActorRoundCharacterMapperAdapter injuries and conditions (spec 013, §
     expect(round.getPenaltiesBySource()).toContainEqual({ source: 'injury', value: -30 });
     expect(round.effects.map(e => [e.id, e.status])).toEqual([['ko', 'unconscious']]);
     expect(round.characterId).toBe('character-1');
-    expect(round.snapshot).toEqual({ hp: 20, injuryIds: ['broken-leg'], conditionIds: ['ko'] });
+    expect(round.snapshot).toEqual({ hp: 20, injuryIds: ['broken-leg'], conditionIds: ['ko'], fatigue: 0 });
   });
 
   it.each(['dead', 'permanent-unconscious'] as const)('rejects a %s character', status => {

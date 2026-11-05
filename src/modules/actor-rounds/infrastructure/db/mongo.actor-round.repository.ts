@@ -1,3 +1,4 @@
+import { ActorRoundFatigue } from '../../domain/value-objects/actor-round-fatigue.vo.js';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -116,7 +117,7 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       initiative: doc.initiative,
       actionPoints: doc.actionPoints,
       hp: doc.hp,
-      fatigue: doc.fatigue,
+      fatigue: ActorRoundFatigue.from(doc.fatigue),
       penalty: penalty,
       defense: doc.defense,
       attacks: attacks,
@@ -146,7 +147,14 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
         : ActorRoundDefenseMode.none(),
       phaseLog: (doc.phaseLog || []).map(entry => new ActorRoundPhaseLog(entry.phase, entry.spentAp, entry.totalSpentAp)),
       apLedger: (doc.apLedger || []).map(
-        entry => new ApLedgerEntry(entry.phase, entry.actionId ?? undefined, entry.ap, entry.kind as ApLedgerKind),
+        entry =>
+          new ApLedgerEntry(
+            entry.phase,
+            entry.actionId ?? undefined,
+            entry.ap,
+            entry.kind as ApLedgerKind,
+            entry.concentrated || undefined,
+          ),
       ),
       injuries: (doc.injuries || []).map(injury => ({ ...injury, treatments: injury.treatments || [] })),
       poisonExposures: doc.poisonExposures || [],
@@ -164,8 +172,17 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       frightLevel: doc.frightLevel ?? null,
       criticalSize: doc.criticalSize ?? null,
       reduceCriticalSeverity: doc.reduceCriticalSeverity ?? false,
+      armorEncumbrance: doc.armorEncumbrance ?? 0,
+      heldActions: (doc.heldActions || []).map(each => ({ actionId: each.actionId, since: each.since })),
+      height: doc.height ?? null,
+      hazards: doc.hazards || [],
       snapshot: doc.snapshot
-        ? { hp: doc.snapshot.hp, injuryIds: [...(doc.snapshot.injuryIds || [])], conditionIds: [...(doc.snapshot.conditionIds || [])] }
+        ? {
+            hp: doc.snapshot.hp,
+            injuryIds: [...(doc.snapshot.injuryIds || [])],
+            conditionIds: [...(doc.snapshot.conditionIds || [])],
+            ...(typeof doc.snapshot.fatigue === 'number' ? { fatigue: doc.snapshot.fatigue } : {}),
+          }
         : undefined,
       imageUrl: doc.imageUrl,
       owner: doc.owner,

@@ -9,12 +9,14 @@ import { ActionParry } from '../../../../src/modules/actions/domain/value-object
 import { Critical } from '../../../../src/modules/actions/domain/value-objects/critical.vo.js';
 import { CriticalResult } from '../../../../src/modules/actions/domain/value-objects/critical-result.vo.js';
 import { KeyValueModifier } from '../../../../src/modules/actions/domain/value-objects/key-value-modifier.vo.js';
+import { SkippedRule } from '../../../../src/modules/actions/domain/value-objects/skipped-rule.vo.js';
 import type { Action } from '../../../../src/modules/actions/domain/aggregates/action.js';
 import type { DomainEventPublisher } from '../../../../src/modules/shared/application/ports/domain-event-publisher.port.js';
 import type { ActionRepository } from '../../../../src/modules/actions/application/ports/action-repository.port.js';
 import type { CriticalTableLookupRequest } from '../../../../src/modules/actions/application/ports/critical-table.port.js';
 import type { FumbleTableLookupRequest } from '../../../../src/modules/actions/application/ports/fumble-table.port.js';
 import type { ActorRoundRepository } from '../../../../src/modules/actor-rounds/application/ports/actor-round-repository.port.js';
+import type { ManeuverPort } from '../../../../src/modules/actions/application/ports/maneuver.port.js';
 import type { GameRepository } from '../../../../src/modules/games/application/ports/game-repository.port.js';
 import {
   COMBAT_PLUGIN_LIST,
@@ -28,11 +30,22 @@ import { DeclareParryHandler } from '../../../../src/modules/actions/application
 import { UpdateAttackRollHandler } from '../../../../src/modules/actions/application/cqrs/handlers/update-attack-roll.handler.js';
 import { UpdateCriticalRollCommand } from '../../../../src/modules/actions/application/cqrs/commands/update-critical-roll.command.js';
 import { UpdateFumbleRollCommand } from '../../../../src/modules/actions/application/cqrs/commands/update-fumble-roll.command.js';
-import { DeclareParryCommand, DeclareParryItem } from '../../../../src/modules/actions/application/cqrs/commands/declare-parry.command.js';
+import {
+  DeclareParryCommand,
+  DeclareParryItem,
+  DeclareShieldManeuverItem,
+} from '../../../../src/modules/actions/application/cqrs/commands/declare-parry.command.js';
 import { UpdateAttackRollCommand } from '../../../../src/modules/actions/application/cqrs/commands/update-attack-roll.command.js';
 import { createCombatPluginContext } from '../combat/combat-plugin-test.factory.js';
+import { fakeCriticalLocationPort } from '../../../fixtures/critical-locations.js';
 
 const processor = () => new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST));
+
+/** Absolute maneuver table of the tests: a success from 101, an absolute success from 176 (invented bands). */
+const absoluteTable = vi.fn((total: number) =>
+  Promise.resolve({ result: total > 175 ? 'absolute-success' : total > 100 ? 'success' : 'failure', message: '' }),
+);
+const absoluteManeuvers = () => ({ absolute: absoluteTable }) as unknown as ManeuverPort;
 
 const repositories = (action: Action, actors = createCombatPluginContext().actors!) => {
   const actionRepository = {
@@ -84,6 +97,7 @@ describe('UpdateCriticalRollHandler', () => {
       repos.actionEventBus,
       processor(),
       repos.actorRoundRepository,
+      fakeCriticalLocationPort(),
     );
     const execute = (key: string, roll: number) =>
       handler.execute(new UpdateCriticalRollCommand('action-1', 'Longsword', key, roll, 'user', []));
@@ -138,6 +152,57 @@ describe('UpdateCriticalRollHandler', () => {
     expect(Array.from(attack.roll!.criticalRolls!.values())).toEqual([70, 70]);
     expect(attack.results!.criticals!.map(critical => critical.adjustedRoll)).toEqual([73, 73]);
     expect(attack.status).toBe('pending_apply');
+  });
+
+  describe('with the location rolled with the attack (spec 077, B2)', () => {
+    const rolledAt = (location: 'head' | 'chest' | 'abdomen', locationRoll: number, modifiers = true) => {
+      const fixture = setup([pendingCritical('s_c_1', 'C')]);
+      const calculated = fixture.ctx.attack!.calculated!;
+      calculated.location = location;
+      calculated.locationRoll = locationRoll;
+      if (!modifiers) calculated.criticalModifiers = [];
+      return fixture;
+    };
+
+    it('takes the row of the adjusted roll without forcing the location when it is of the location hit', async () => {
+      const { lookup, execute } = rolledAt('head', 81);
+
+      await execute('s_c_1', 81);
+
+      // 81 + 3 = 84, still the head in the map.
+      expect(lookup).toHaveBeenCalledWith({ criticalType: 'S', criticalSeverity: 'C', roll: 84, location: undefined });
+    });
+
+    it('forces the location when the adjusted roll falls in another one', async () => {
+      const { lookup, execute } = rolledAt('chest', 24);
+
+      await execute('s_c_1', 24);
+
+      // 24 + 3 = 27, the abdomen in the map: the lookup moves to a chest row.
+      expect(lookup).toHaveBeenCalledWith({ criticalType: 'S', criticalSeverity: 'C', roll: 27, location: 'chest' });
+    });
+
+    it('marks a raw 66 as natural', async () => {
+      const { lookup, execute } = rolledAt('abdomen', 66, false);
+
+      await execute('s_c_1', 66);
+
+      expect(lookup).toHaveBeenCalledWith({ criticalType: 'S', criticalSeverity: 'C', roll: 66, location: undefined, natural: true });
+    });
+
+    it('rejects another critical roll than the one sent with the attack roll', async () => {
+      const { lookup, execute } = rolledAt('head', 81);
+
+      await expect(execute('s_c_1', 82)).rejects.toMatchObject({ code: 'err-critical-roll-location-fixed', details: { locationRoll: 81 } });
+      expect(lookup).not.toHaveBeenCalled();
+    });
+
+    it('lets a reroll take another roll (spec 076, B8)', () => {
+      const { ctx } = rolledAt('head', 81);
+
+      expect(() => UpdateCriticalRollHandler.checkLocationRoll(ctx.attack!, 12, true)).not.toThrow();
+      expect(() => UpdateCriticalRollHandler.checkLocationRoll(ctx.attack!, 12, false)).toThrow();
+    });
   });
 
   it('rejects a critical roll once the attack has been applied', async () => {
@@ -232,6 +297,7 @@ describe('DeclareParryHandler', () => {
       repos.actionRepository,
       repos.actionEventBus,
       processor(),
+      absoluteManeuvers(),
     );
 
     await handler.execute(new DeclareParryCommand('action-1', [new DeclareParryItem('parry-1', 30)], 'user', []));
@@ -256,6 +322,7 @@ describe('DeclareParryHandler', () => {
       repos.actionRepository,
       repos.actionEventBus,
       processor(),
+      absoluteManeuvers(),
     );
 
     await handler.execute(new DeclareParryCommand('action-1', [new DeclareParryItem('parry-1', 30)], 'user', []));
@@ -275,6 +342,7 @@ describe('DeclareParryHandler', () => {
       repos.actionRepository,
       repos.actionEventBus,
       processor(),
+      absoluteManeuvers(),
     );
 
     await expect(handler.execute(new DeclareParryCommand('action-1', [new DeclareParryItem('parry-1', 30)], 'user', []))).rejects.toThrow(
@@ -296,6 +364,7 @@ describe('DeclareParryHandler carried over and protect parries', () => {
       repos.actionRepository,
       repos.actionEventBus,
       processor(),
+      absoluteManeuvers(),
     );
     return handler.execute(new DeclareParryCommand('action-1', items, 'user', [])).then(() => ctx);
   };
@@ -340,6 +409,7 @@ describe('DeclareParryHandler shared parry', () => {
       repos.actionRepository,
       repos.actionEventBus,
       processor(),
+      absoluteManeuvers(),
     );
 
     await expect(
@@ -370,7 +440,7 @@ describe('UpdateAttackRollHandler', () => {
     ctx.attack!.calculated = new ActionAttackCalculated([new KeyValueModifier('bo', 75)], 75, undefined, undefined, []);
     const repos = repositories(ctx.action, ctx.actors);
     const lookup = vi.fn(() => Promise.resolve(new AttackTableEntry('9', 9, undefined, undefined)));
-    const resolver = new CombatAttackRollResolverService(processor(), { lookup });
+    const resolver = new CombatAttackRollResolverService(processor(), { lookup }, fakeCriticalLocationPort());
     const handler = new UpdateAttackRollHandler(
       repos.gameRepository,
       repos.actionRepository,
@@ -401,5 +471,134 @@ describe('UpdateAttackRollHandler', () => {
 
     expect(ctx.sourceActor!.alerts).toHaveLength(0);
     expect(repos.actorRoundUpdate).not.toHaveBeenCalled();
+  });
+});
+
+describe('Shield maneuver (workspace spec 077, A1)', () => {
+  /** An attack that needs the Shield maneuver of defender-1: shield DB 20 and a passive block of 10, skill +40. */
+  const setup = (options: Parameters<typeof createCombatPluginContext>[0] = {}) => {
+    const ctx = createCombatPluginContext(options);
+    ctx.attack!.calculated = new ActionAttackCalculated(
+      [new KeyValueModifier('bo', 75)],
+      75,
+      undefined,
+      undefined,
+      [],
+      undefined,
+      undefined,
+      [new SkippedRule('shield', 'defense', 'shield-maneuver-pending', 'parry', '§9.6')],
+    );
+    ctx.attack!.shieldManeuver = {
+      targetId: 'defender-1',
+      required: true,
+      skill: 40,
+      modifiers: [
+        new KeyValueModifier('shield', -20, 'defense', 'shield', '§9.6', { db: 20 }),
+        new KeyValueModifier('shield-block', -10, 'defense', 'shield', '§9.6', { mode: 'passive', ranks: 10, max: 30 }),
+      ],
+    };
+    ctx.action.parries = [];
+    ctx.action.status = 'parry';
+    const repos = repositories(ctx.action, ctx.actors);
+    const port = absoluteManeuvers();
+    const handler = new DeclareParryHandler(
+      repos.gameRepository,
+      repos.actorRoundRepository,
+      repos.actionRepository,
+      repos.actionEventBus,
+      processor(),
+      port,
+    );
+    const declare = (...items: DeclareShieldManeuverItem[]) => handler.execute(new DeclareParryCommand('action-1', [], 'user', [], items));
+    const keys = () => ctx.attack!.calculated!.rollModifiers.map(modifier => [modifier.key, modifier.value]);
+    const reasons = () => ctx.attack!.calculated!.skipped!.map(rule => rule.reason);
+    return { ctx, declare, keys, reasons, port };
+  };
+
+  it('adds the shield DB and the block with a success of the absolute maneuver (61 + 40 = 101)', async () => {
+    const { ctx, declare, keys, reasons } = setup();
+
+    await declare(new DeclareShieldManeuverItem('Longsword', 61));
+
+    expect(absoluteTable).toHaveBeenCalledWith(101, 'generic');
+    expect(ctx.attack!.shieldManeuver).toMatchObject({
+      roll: 61,
+      difficulty: 'm',
+      penalty: 0,
+      total: 101,
+      result: 'success',
+      passed: true,
+    });
+    expect(keys()).toEqual([
+      ['bo', 75],
+      ['shield', -20],
+      ['shield-block', -10],
+    ]);
+    expect(ctx.attack!.calculated!.rollTotal).toBe(45);
+    expect(reasons()).not.toContain('shield-maneuver-pending');
+    expect(ctx.action.status).toBe('pending_roll');
+  });
+
+  it('adds neither the shield nor the block when the maneuver fails, with the penalties and difficulty of the defender', async () => {
+    const { ctx, declare, keys, reasons } = setup({ targetPenalties: [{ source: 'hp', value: -10 }] });
+
+    await declare(new DeclareShieldManeuverItem('Longsword', 71, 'l'));
+
+    // 71 + 40 - 10 + 10 (light) = 111: a success; the same roll at Hard is 91, a failure.
+    expect(ctx.attack!.shieldManeuver!.passed).toBe(true);
+    await declare(new DeclareShieldManeuverItem('Longsword', 71, 'h'));
+
+    expect(ctx.attack!.shieldManeuver).toMatchObject({ total: 91, penalty: -10, result: 'failure', passed: false, manual: false });
+    expect(keys()).toEqual([['bo', 75]]);
+    expect(reasons()).toEqual(['shield-maneuver-failed']);
+    expect(ctx.action.status).toBe('pending_roll');
+  });
+
+  it("takes the game master's decision without a roll as manual (A1.4)", async () => {
+    const { ctx, declare, keys } = setup();
+
+    await declare(new DeclareShieldManeuverItem('Longsword', undefined, undefined, true));
+
+    expect(ctx.attack!.shieldManeuver).toMatchObject({ passed: true, manual: true, roll: null, result: null });
+    expect(keys()).toEqual([
+      ['bo', 75],
+      ['shield', -20],
+      ['shield-block', -10],
+    ]);
+  });
+
+  it('keeps the action in the parry step while the maneuver is pending', async () => {
+    const { ctx, declare, reasons } = setup();
+
+    await declare();
+
+    expect(ctx.action.status).toBe('parry');
+    expect(reasons()).toEqual(['shield-maneuver-pending']);
+  });
+
+  it('rejects a maneuver for an attack that does not need it (A1.7)', async () => {
+    const { ctx, declare } = setup();
+    ctx.attack!.shieldManeuver = undefined;
+
+    await expect(declare(new DeclareShieldManeuverItem('Longsword', 61))).rejects.toMatchObject({ code: 'err-shield-maneuver-not-needed' });
+  });
+
+  it('rejects the attack roll while the maneuver is pending (A1.7)', async () => {
+    const ctx = createCombatPluginContext();
+    ctx.attack!.calculated = new ActionAttackCalculated([new KeyValueModifier('bo', 75)], 75, undefined, undefined, []);
+    ctx.attack!.shieldManeuver = { targetId: 'defender-1', required: true, skill: 40, modifiers: [] };
+    const repos = repositories(ctx.action, ctx.actors);
+    const lookup = vi.fn(() => Promise.resolve(new AttackTableEntry('9', 9, undefined, undefined)));
+    const handler = new UpdateAttackRollHandler(
+      repos.gameRepository,
+      repos.actionRepository,
+      repos.actorRoundRepository,
+      repos.actionEventBus,
+      new CombatAttackRollResolverService(processor(), { lookup }, fakeCriticalLocationPort()),
+    );
+
+    await expect(handler.execute(new UpdateAttackRollCommand('action-1', 'Longsword', 50, 'user', []))).rejects.toMatchObject({
+      code: 'err-shield-maneuver-required',
+    });
   });
 });

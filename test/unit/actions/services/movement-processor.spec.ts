@@ -11,12 +11,13 @@ import { sheetsOf } from '../../support/actor-sheets.js';
 
 const service = new MovementProcessorService({} as ManeuverPort, sheetsOf({} as CharacterPort), new ManeuverBaseModifiersService());
 
-const move = (pace: string, maxPace: string | undefined, actionPoints = 4, halfMovement = false) => {
+const move = (pace: string, maxPace: string | undefined, actionPoints = 4, halfMovement = false, concentrating = false) => {
   const action = { actionPoints, movement: { modifiers: { pace, requiredManeuver: false } } } as unknown as Action;
   const actorRound = {
     movement: { bmr: 20, penalty: 0, maxPace, baseDifficulty: 'm' },
     hasHalfMovement: () => halfMovement,
     hasEffect: () => false,
+    concentration: () => (concentrating ? [{ kind: 'partial-dodge' }] : []),
   } as unknown as ActorRound;
   return service.process(null, action, actorRound).then(() => action.movement!.calculated);
 };
@@ -104,5 +105,16 @@ describe('MovementProcessorService movement roll', () => {
 
   it('halves the movement rate of an actor with half movement (spec 034)', async () => {
     await expect(move('run', 'dash', 4, true)).resolves.toMatchObject({ bmr: 10, distance: 30 });
+  });
+
+  it('halves the BMR again while concentrating (workspace spec 077, decision A2.3)', async () => {
+    await expect(move('run', 'dash', 4, true, true)).resolves.toMatchObject({
+      bmr: 5,
+      distance: 15,
+      bmrMultipliers: [
+        { key: 'half-movement', value: 0.5 },
+        { key: 'concentration', value: 0.5 },
+      ],
+    });
   });
 });

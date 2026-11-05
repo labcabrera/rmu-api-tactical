@@ -7,6 +7,7 @@ import { ActionAttack } from '../../../../domain/value-objects/action-attack.vo.
 import type { CombatContext } from '../combat-context.js';
 import { criticalModifiers, isMelee, isPreparing, preparation, rollModifiers, sourceTraitTier } from '../combat-modifiers.js';
 import type { CombatPlugin } from '../combat-plugin.js';
+import { CombatModifierBag } from '../combat-modifier-bag.js';
 
 /** Off-hand attack penalty the strategic sheet puts in the OB (without the Ambidextrous talent). */
 const OFF_HAND_PENALTY = 20;
@@ -23,6 +24,9 @@ const KILLING_STRIKE_CRITICAL = 5;
 const HEEDLESS_FURY_BONUS = 20;
 /** Binding Chain: the attack to bind the foe is at -10 (its criticals are Grapple). */
 const BINDING_CHAIN_PENALTY = -10;
+/** Fight Free: below a 100% grapple, its penalty to the unarmed attacks is halved (workspace spec 077, decision A3.2). */
+const FIGHT_FREE = 'fight-free';
+const FIGHT_FREE_MAX_GRAPPLE = 100;
 
 const sourceStyle = (ctx: CombatContext): ActorRoundActiveStyle | null | undefined => ctx.sourceActor?.activeStyle;
 const targetStyle = (ctx: CombatContext): ActorRoundActiveStyle | null | undefined => ctx.targetActor?.activeStyle;
@@ -83,7 +87,21 @@ export const CombatFightingStyleSourcePlugin: CombatPlugin = {
             preparation(ctx).calledShotPenalty = Math.max(penalty, PRECISE_TARGET_PENALTY);
           }
           if (sourceAbility(ctx, 'evade-shield')) {
-            modifiers.add('evade-shield', Math.floor(-(modifiers.value('shield') + modifiers.value('shield-block')) / 2));
+            // Workspace spec 077, decision A1.3: with a Shield maneuver pending, the shield counts (and is evaded) only
+            // when it passes, so the modifier goes with the shield's.
+            const shieldManeuver = ctx.attack?.shieldManeuver;
+            const shieldModifiers = shieldManeuver ? CombatModifierBag.from(shieldManeuver.modifiers, ctx.plugin) : modifiers;
+            const evaded = Math.floor(-(shieldModifiers.value('shield') + shieldModifiers.value('shield-block')) / 2);
+            shieldModifiers.add('evade-shield', evaded);
+          }
+          const grapplePenalty = ctx.sourceActor?.grapplePenalty() ?? 0;
+          if (
+            grapplePenalty < 0 &&
+            -grapplePenalty < FIGHT_FREE_MAX_GRAPPLE &&
+            ctx.sourceAttack?.weaponCategory === 'unarmed' &&
+            sourceAbility(ctx, FIGHT_FREE)
+          ) {
+            modifiers.add(FIGHT_FREE, Math.floor(-grapplePenalty / 2));
           }
           if (ctx.attack?.modifiers.styleCriticalOption === 'binding-chain') {
             modifiers.add('binding-chain', BINDING_CHAIN_PENALTY);

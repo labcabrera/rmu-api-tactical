@@ -47,7 +47,33 @@ export class UpdateAttackRollDto {
   @Max(10)
   spasmRounds?: number;
 
+  @ApiProperty({
+    description:
+      'Spec 077: the unmodified critical roll (1-100), rolled with the attack. Required against a target with armour by ' +
+      'location (defense.at null) without a called shot (err-attack-location-roll-required), ignored on a fumble: its ' +
+      'location decides the armour type of the attack, and the criticals of the attack are rolled with it',
+    required: false,
+    minimum: 1,
+    maximum: 100,
+    example: 81,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  criticalRoll?: number;
+
   static toCommand(actionId: string, dto: UpdateAttackRollDto, userId: string, roles: string[]) {
-    return new UpdateAttackRollCommand(actionId, dto.attackName, dto.roll, userId, roles, dto.unmodified, dto.rolls, dto.spasmRounds);
+    return new UpdateAttackRollCommand(
+      actionId,
+      dto.attackName,
+      dto.roll,
+      userId,
+      roles,
+      dto.unmodified,
+      dto.rolls,
+      dto.spasmRounds,
+      dto.criticalRoll,
+    );
   }
 }

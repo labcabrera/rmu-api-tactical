@@ -224,14 +224,20 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
   }
 
   /**
-   * Spends a shield block of the target for each attack its shield covered (§9.6 Shields). The actor round is read
+   * Spends a shield block of the target for each attack its shield covered (§9.6 Shields), or that needed a Shield
+   * maneuver. The actor round is read
    * again, since the effects of this attack were already saved. A block already spent by an attack applied in the
    * meantime is not spent twice.
    */
   private async useShieldBlocks(action: Action, actors: ActorRound[]): Promise<void> {
     const blocks = new Map<string, number>();
     action.attacks
-      ?.filter(attack => attack.calculated?.rollModifiers.some(modifier => modifier.key === 'shield' || modifier.key === 'shield-block'))
+      ?.filter(
+        attack =>
+          // Workspace spec 077, decision A1.2: a Shield maneuver spends the block whatever its result.
+          !!attack.shieldManeuver?.required ||
+          attack.calculated?.rollModifiers.some(modifier => modifier.key === 'shield' || modifier.key === 'shield-block'),
+      )
       .forEach(attack => blocks.set(attack.modifiers.targetId!, (blocks.get(attack.modifiers.targetId!) || 0) + 1));
     for (const [targetId, count] of blocks) {
       const id = actors.find(a => a.actorId === targetId)?.id;

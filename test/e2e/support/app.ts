@@ -10,6 +10,7 @@ import {
   CRITICAL_TABLE_PORT,
   type CriticalTableLookupRequest,
 } from '../../../src/modules/actions/application/ports/critical-table.port.js';
+import { CRITICAL_LOCATION_PORT } from '../../../src/modules/actions/application/ports/critical-location.port.js';
 import { FUMBLE_TABLE_PORT, type FumbleTableLookupRequest } from '../../../src/modules/actions/application/ports/fumble-table.port.js';
 import { MANEUVER_PORT } from '../../../src/modules/actions/application/ports/maneuver.port.js';
 import { SKILL_CATALOG_PORT } from '../../../src/modules/actions/application/ports/skill-catalog.port.js';
@@ -32,6 +33,7 @@ import type { PsychologyTables } from '../../../src/modules/psychology/domain/va
 import { POISON_TABLES_PORT } from '../../../src/modules/poisons/application/ports/poison-tables.port.js';
 import type { PoisonTables } from '../../../src/modules/actor-rounds/domain/value-objects/poison.vo.js';
 import { PSYCHOLOGY_TABLES } from '../../fixtures/psychology-tables.js';
+import { fakeCriticalLocationPort } from '../../fixtures/critical-locations.js';
 import { NPC_PORT, type Npc } from '../../../src/modules/npcs/application/ports/npc.port.js';
 import { REALM_PORT, type Realm } from '../../../src/modules/games/application/ports/realm.port.js';
 import { FACTION_PORT, type StrategicFaction } from '../../../src/modules/strategic/application/ports/faction.port.js';
@@ -229,6 +231,8 @@ function fakePorts(world: World) {
         },
       },
     ],
+    // Workspace spec 077, B2: the made-up roll → location map of the critical tables.
+    [CRITICAL_LOCATION_PORT, fakeCriticalLocationPort()],
     [
       FUMBLE_TABLE_PORT,
       {
@@ -308,7 +312,7 @@ function fakePorts(world: World) {
 
 /**
  * Boots the whole AppModule as main.ts does (configureHttp) against an in-memory Mongo and a local JWKS. The ports of
- * the other APIs (core, strategic, npcs, attack-tables) and the event publisher are replaced by in-memory fakes, and
+ * the other APIs (core, strategic, npcs, attack-tables, with the critical locations of test/fixtures) and the event publisher are replaced by in-memory fakes, and
  * the Kafka producer by a no-op. AppModule is imported after setting the environment, because ConfigModule.forRoot()
  * reads it when the module is evaluated.
  */

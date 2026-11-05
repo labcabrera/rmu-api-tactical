@@ -27,6 +27,7 @@ import {
   spellAttackEffect,
   spellAttackProfile,
 } from '../../../domain/services/spell-casting.rules.js';
+import { adjustRadius, adjustSpell, boltMaxTargets } from '../../../domain/services/spell-talents.js';
 import {
   type ActionSpell,
   type ActionSpellOptions,
@@ -97,11 +98,19 @@ export class SpellCastingService {
       );
     }
     const actionSpell = SpellCastingService.toActionSpell(spellcasting, list, known);
-    // An attack spell: its attack is fixed now, with the caster's Directed Spells skill (phase 4).
+    // Workspace spec 077, decision C5: range, area and duration with the caster's magical talents.
+    const adjusted = adjustSpell(actorRound.traits, actionSpell.spell);
+    if (adjusted) actionSpell.spell.adjusted = adjusted;
+    // An attack spell: its attack is fixed now, with the caster's Directed Spells skill (phase 4), and with the range,
+    // radius and targets of its talents (workspace spec 077, decision C6).
     const effect = spellAttackEffect(actionSpell.spell.effects);
     if (effect) {
       const directed = await this.readDirectedSpell(actorRound, effect.attackTable);
-      actionSpell.attack = spellAttackProfile(effect, actionSpell.spell.range, list.ranks, directed);
+      const radius = typeof effect.radius === 'number' ? adjustRadius(actorRound.traits, actionSpell.spell, effect.radius) : null;
+      actionSpell.attack = spellAttackProfile(effect, adjusted?.range ?? actionSpell.spell.range, list.ranks, directed, {
+        radius,
+        maxTargets: boltMaxTargets(actorRound.traits, actionSpell.spell),
+      });
     }
     return actionSpell;
   }
@@ -132,7 +141,13 @@ export class SpellCastingService {
 
   /** Modifiers of the Spellcasting Roll with the AP the action has now (decisions 6 and 7). */
   async calculate(context: SpellActionContext, requested: Partial<ActionSpellOptions> | undefined): Promise<ScrCalculation> {
-    const options: ActionSpellOptions = { ...DEFAULT_SPELL_OPTIONS, ...(context.spell.options ?? {}), ...(requested ?? {}) };
+    // Workspace spec 077, decision B1.2: the Enc % of the armour the caster wears is the default of `armorEncumbrance`.
+    const options: ActionSpellOptions = {
+      ...DEFAULT_SPELL_OPTIONS,
+      armorEncumbrance: context.actorRound.armorEncumbrance ?? 0,
+      ...(context.spell.options ?? {}),
+      ...(requested ?? {}),
+    };
     const { action, actorRound, currentPhase } = context;
     const actionPoints = action.apOf(actorRound, currentPhase);
     const apPenalty = action.takesApPenalty() ? action.apProfile().penaltyFor(actionPoints) : 0;
@@ -143,6 +158,7 @@ export class SpellCastingService {
       apPenalty,
       penalties: actorRound.getPenaltiesBySource(),
       actionPoints,
+      traits: actorRound.traits,
     };
     const tables = await this.tables.findModifiers();
     const modifiers = scrModifiers(input, tables);

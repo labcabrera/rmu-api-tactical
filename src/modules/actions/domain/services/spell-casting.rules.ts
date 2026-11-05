@@ -12,6 +12,8 @@ import type {
   SpellType,
 } from '../value-objects/action-spell.vo.js';
 import { SPELL_REALMS } from '../value-objects/action-spell.vo.js';
+import type { ActorRoundTrait } from '../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
+import { scrTalentModifiers } from './spell-talents.js';
 
 /** A Table 4-2 cell: a modifier, a modifier per encumbrance percent, or null when it does not apply. */
 export type SpellcastingCell = number | { perEncumbrancePercent: number } | null;
@@ -80,12 +82,15 @@ export interface ScrInput {
   penalties: { source: string; value: number }[];
   /** AP of the action, for the explanation of the fast casting penalty. */
   actionPoints?: number;
+  /** Talents and flaws of the caster: the magical ones enter the SCR (workspace spec 077, decision C1). */
+  traits?: ActorRoundTrait[];
 }
 
 /**
  * Modifiers of the Spellcasting Roll (Spell Law 4.2): list ranks, realm stat and list type, then the "other modifiers"
- * of Table 4-2 for the caster's realm column, fast casting, overcasting, preparation, general penalties and the game
- * master's. Zero entries are left out, except the ranks.
+ * of Table 4-2 for the caster's realm column, fast casting, overcasting, preparation, general penalties, the magical
+ * talents of the caster (group `talent`, workspace spec 077, decision C1) and the game master's. Zero entries are left
+ * out, except the ranks.
  */
 export function scrModifiers(input: ScrInput, tables: SpellcastingTables): KeyValueModifier[] {
   const { spell, caster, options } = input;
@@ -131,6 +136,7 @@ export function scrModifiers(input: ScrInput, tables: SpellcastingTables): KeyVa
       rounds: Math.max(0, options.preparationRounds || 0),
     }),
     ...input.penalties.map(penalty => new KeyValueModifier(`penalty-${penalty.source}`, penalty.value, 'penalty', 'actor-round')),
+    ...scrTalentModifiers(input.traits, spell),
     new KeyValueModifier('custom', options.customBonus || 0, 'situation', 'custom'),
   ];
   return modifiers.filter(modifier => modifier.key === 'ranks' || modifier.value !== 0);
@@ -265,6 +271,8 @@ export interface SpellRrInput {
   conditions: SpellTargetConditions;
   /** The SCR of the cast: the RR has to reach it. */
   scr: number;
+  /** The target's talents against the spell (Iron Will, workspace spec 077, decision C9), for every realm. */
+  talentModifiers?: SpellRollModifier[];
 }
 
 export interface SpellRrResult {
@@ -297,6 +305,7 @@ export function spellResistanceRoll(input: SpellRrInput): SpellRrResult {
       },
       { key: 'spell', value: input.spellModifier, group: 'casting', source: 'spell', rule },
       ...rrConditionModifiers(input.conditions, realm),
+      ...(input.talentModifiers ?? []),
     ];
     const breakdown = entries.filter(modifier => modifier.key === 'roll' || modifier.value !== 0);
     const total = breakdown.reduce((sum, modifier) => sum + modifier.value, 0);
@@ -353,17 +362,27 @@ export function directedSpellSpecialization(attackTable: string): string | null 
   return null;
 }
 
+/** What the caster's talents change in the attack of a spell (workspace spec 077, decision C6). */
+export interface SpellAttackAdjustment {
+  /** Radius of a ball with Scope Skills and Lack of Scope. */
+  radius?: number | null;
+  /** Targets of a bolt: 1 + the tier of Scope Skills. */
+  maxTargets?: number;
+}
+
 /**
  * The attack of an attack spell (Spell Law 4.3, RMCL 9.3), read by the combat engine as a ranged weapon:
  * - a bolt adds the caster's Directed Spells bonus for its table (unskilled -25), fumbles on an unmodified 1-2
  *   whatever its ranks (RMCL 9.2) and takes -10/-25/-50/-100 beyond its short range, one bracket per range increment;
  * - a ball (or cone) adds only the ranks in the list, fumbles on 1-2 and has no range modifier up to its range.
+ * `range` is the one adjusted by the caster's talents when they change it (workspace spec 077, decision C6).
  */
 export function spellAttackProfile(
   effect: SpellAttackEffect,
   range: Record<string, unknown> | null,
   listRanks: number,
   directed: DirectedSpellSkill | null,
+  adjustment: SpellAttackAdjustment = {},
 ): ActionSpellAttack {
   const ball = effect.ob === 'list-ranks' || /-ball$/.test(effect.attackTable);
   const specialization = directedSpellSpecialization(effect.attackTable);
@@ -385,6 +404,7 @@ export function spellAttackProfile(
     bo: ball ? listRanks : (directed?.totalBonus ?? UNSKILLED_BONUS),
     skillId: ball || !specialization ? null : `directed-spell@${specialization}`,
     ranges,
-    radius: typeof effect.radius === 'number' ? effect.radius : null,
+    radius: adjustment.radius !== undefined ? adjustment.radius : typeof effect.radius === 'number' ? effect.radius : null,
+    ...(!ball && (adjustment.maxTargets ?? 1) > 1 ? { maxTargets: adjustment.maxTargets } : {}),
   };
 }

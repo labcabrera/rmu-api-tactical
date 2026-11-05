@@ -11,5 +11,7 @@ export class UpdateAttackRollCommand {
     public readonly rolls?: number[],
     /** Workspace spec 076: the d10 rounds of the spasm of a natural 66 (Spasm); rolled here when left out. */
     public readonly spasmRounds?: number,
+    /** Workspace spec 077, decision B2.1: the unmodified critical roll that decides the location on armour by location. */
+    public readonly criticalRoll?: number,
   ) {}
 }

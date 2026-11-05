@@ -2,6 +2,7 @@ import type { LightType } from '../../../domain/value-objects/light-type.vo.js';
 import { Prop, Schema } from '@nestjs/mongoose';
 import type { Difficulty } from '../../../domain/value-objects/difficulty.vo.js';
 import type { Pace } from '../../../domain/value-objects/pace.vo.js';
+import type { BmrMultiplier, GrappleFeat } from '../../../domain/value-objects/action-movement.vo.js';
 import { ActionRoll } from './action-roll.model.js';
 
 @Schema({ _id: false })
@@ -23,6 +24,10 @@ export class ActionMovementModifiers {
 
   @Prop({ type: String, required: false })
   light?: LightType | null;
+
+  /** Workspace spec 077, decision A3.5. */
+  @Prop({ type: String, required: false })
+  grappleFeat?: GrappleFeat | null;
 }
 
 @Schema({ _id: false })
@@ -47,6 +52,10 @@ export class ActionMovementResult {
 
   @Prop({ type: String, required: true })
   description: string;
+
+  /** Workspace spec 077, decision A2.3. */
+  @Prop({ type: [Object], required: false })
+  bmrMultipliers?: BmrMultiplier[];
 }
 
 @Schema({ _id: false })

@@ -46,6 +46,15 @@ export const FRENZY_DYING = 'frenzy-dying';
 /** Critical states that keep the actor from acting (enriched critical data). */
 export const INCAPACITATED = 'incapacitated';
 export const PARALYZED = 'paralyzed';
+/**
+ * Grapple (§9.8; workspace spec 077, decision A3.1): `value` is the percent of the grapple, a penalty to every action
+ * of the grappled actor. One effect per grappler (`targetActorId`, from the attacker of the critical): another grapple of
+ * the same grappler adds up. An object (a net, a vine) has no grappler and `data.object` true; `data.tightened` is set
+ * by an absolute failure of a Contortions escape, after which the actor cannot escape it alone.
+ */
+export const GRAPPLED = 'grappled';
+/** Statuses that make a grappler let go of its grapples (decision A3.4). */
+export const GRAPPLE_RELEASE_STATUSES = ['stunned', UNCONSCIOUS, INCAPACITATED, PARALYZED, DEAD];
 /** Statuses of the critical data that become injuries instead of effects (spec 013, §3). */
 export const PENALTY = 'penalty';
 export const BLEEDING = 'bleeding';

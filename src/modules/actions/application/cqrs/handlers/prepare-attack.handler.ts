@@ -1,3 +1,4 @@
+import { splitBoltOb } from '../../../domain/services/spell-talents.js';
 import { checkStyleCriticalOption } from '../../../domain/services/style-critical-option.js';
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
@@ -116,7 +117,11 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
         gameLethality,
         light: game.environment?.light ?? null,
       });
-      if (ctx.attack!.calculated!.rollModifiers.some(modifier => modifier.key === 'shield' || modifier.key === 'shield-block')) {
+      // Workspace spec 077, decision A1.2: an attack waiting for its Shield maneuver takes a block too (a failed roll spends it).
+      const shieldUsed = ctx.attack!.calculated!.rollModifiers.some(
+        modifier => modifier.key === 'shield' || modifier.key === 'shield-block',
+      );
+      if (shieldUsed || ctx.attack!.shieldManeuver) {
         reservedShieldBlocks.set(targetId, (reservedShieldBlocks.get(targetId) || 0) + 1);
       }
     }
@@ -195,7 +200,9 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
 
   /**
    * The attack of a cast (spec 030, phase 4) follows a successful SCR of an attack spell and comes before the cast is
-   * applied: a bolt strikes one target, a ball one attack per target in its area.
+   * applied: a bolt strikes one target, or up to 1 + tier with Scope Skills (workspace spec 077, decision C6), and a ball
+   * one attack per target in its area. A bolt with several targets splits its OB among them (P9): as `obSplit` says or
+   * in equal parts, which become the OB of each attack.
    */
   private checkSpellAttack(action: Action, command: PrepareAttackCommand): void {
     const spell = action.spell;
@@ -205,13 +212,40 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     if (spell.powerPointsSpent !== null && spell.powerPointsSpent !== undefined) {
       throw new ValidationError('The cast is already applied', 'err-spell-invalid-step');
     }
-    if (spell.attack.kind === 'bolt' && command.attacks.length > 1) {
-      throw new ValidationError('A bolt strikes a single target', 'err-spell-bolt-single-target');
+    const maxTargets = spell.attack.maxTargets ?? 1;
+    if (spell.attack.kind === 'bolt' && command.attacks.length > maxTargets) {
+      throw new ValidationError(
+        maxTargets > 1 ? `The bolt strikes up to ${maxTargets} targets` : 'A bolt strikes a single target',
+        'err-spell-bolt-single-target',
+        { maxTargets },
+      );
     }
     const targets = command.attacks.map(attack => attack.modifiers.targetId);
     if (new Set(targets).size !== targets.length) {
       throw new ValidationError('A target takes a single attack of the spell', 'err-spell-invalid-target');
     }
+    if (spell.attack.kind === 'bolt' && command.attacks.length > 1) {
+      PrepareAttackHandler.splitBolt(spell.attack.bo, command);
+    } else if (command.obSplit?.length) {
+      throw new ValidationError('Only a bolt with several targets splits its OB', 'err-spell-ob-split-invalid');
+    }
+  }
+
+  /** Workspace spec 077, P9: the OB of each target of a bolt (`obSplit`, or equal parts). */
+  private static splitBolt(bo: number, command: PrepareAttackCommand): void {
+    const split = command.obSplit;
+    if (split?.length) {
+      const sum = split.reduce((total, value) => total + value, 0);
+      if (split.length !== command.attacks.length || split.some(value => !Number.isInteger(value) || value < 0) || sum > Math.max(0, bo)) {
+        throw new ValidationError(
+          `The OB of the bolt (${bo}) is split in one whole part from 0 per target, adding up to it at most`,
+          'err-spell-ob-split-invalid',
+          { bo, targets: command.attacks.length },
+        );
+      }
+    }
+    const shares = splitBoltOb(bo, command.attacks.length, split);
+    command.attacks.forEach((attack, index) => (attack.modifiers.bo = shares[index]));
   }
 
   private getActorIds(action: Action, command: PrepareAttackCommand): string[] {

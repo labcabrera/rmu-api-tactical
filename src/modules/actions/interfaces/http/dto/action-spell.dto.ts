@@ -209,7 +209,12 @@ export class ResolveSpellResistanceDto {
 }
 
 export class ApplySpellDto {
-  @ApiProperty({ description: 'Power points to spend; the spell or the failure result gives them by default', required: false })
+  @ApiProperty({
+    description:
+      'Power points to spend; the spell or the failure result gives them by default (halved or none with Power Recycling ' +
+      'on a failure or no-effect, spec 077)',
+    required: false,
+  })
   @IsOptional()
   @IsInt()
   @Min(0)
@@ -245,7 +250,13 @@ export class SpellPreviewDto {
 
 /** The spell of a `cast_spell` action, as the domain keeps it (spec 030). */
 export class ActionSpellDto {
-  @ApiProperty({ type: 'object', additionalProperties: true, description: 'The spell cast, from the caster spellbook' })
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: true,
+    description:
+      'The spell cast, from the caster spellbook. Spec 077: `adjusted` {range, area, duration, sources[{traitId, tier, ' +
+      'applies}]} holds them with the magical talents of the caster, when any changes them',
+  })
   spell: ActionSpell['spell'];
 
   @ApiProperty({ type: 'object', additionalProperties: true, description: 'Realms, realm stat bonus, level and list ranks' })
@@ -260,7 +271,11 @@ export class ActionSpellDto {
   @ApiProperty({ type: String, enum: ['success', 'no-effect', 'failure'], required: false })
   result?: ActionSpell['result'];
 
-  @ApiPropertyOptional({ type: 'object', additionalProperties: true })
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: true,
+    description: 'Spell failure roll; spec 077: talentModifier (Inglorious Failure +5, Graceful Recovery -5 per tier), total from 1',
+  })
   failure?: ActionSpell['failure'];
 
   @ApiProperty({ type: 'array', items: { type: 'object' }, required: false })
@@ -269,11 +284,21 @@ export class ActionSpellDto {
   @ApiProperty({ type: Number, nullable: true, required: false })
   powerPointsSpent?: number | null;
 
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    required: false,
+    description: 'Spec 077: power points Power Recycling saved from a failed cast in the proposal (null without it)',
+  })
+  powerPointsRecycled?: number | null;
+
   @ApiPropertyOptional({
     type: 'object',
     additionalProperties: true,
     nullable: true,
-    description: 'Attack of an attack spell (bolt or ball), resolved with the attack endpoints after a successful SCR',
+    description:
+      'Attack of an attack spell (bolt or ball), resolved with the attack endpoints after a successful SCR. Spec 077: ' +
+      'maxTargets of a bolt with Scope Skills (1 when missing)',
   })
   attack?: ActionSpell['attack'];
 

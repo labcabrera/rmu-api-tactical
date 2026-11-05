@@ -24,6 +24,7 @@ import type { CharacterPort } from '../../../../src/modules/strategic/applicatio
 import type { StrategicGameApiClient } from '../../../../src/modules/strategic/infrastructure/api-clients/api.strategic-game.adapter.js';
 import { sheetsOf } from '../../support/actor-sheets.js';
 import { type CombatPluginContextOptions, createCombatPluginContext } from '../combat/combat-plugin-test.factory.js';
+import { fakeCriticalLocationPort } from '../../../fixtures/critical-locations.js';
 
 // Workspace spec 076, decisions B1-B3 (plan §2.1-§2.2). Invented data only.
 
@@ -136,9 +137,13 @@ describe('Opportunistic Strike alert on a fumble (spec 076, decision B3)', () =>
         update: actorRoundUpdate,
       } as unknown as ActorRoundRepository,
       { publish: vi.fn(() => Promise.resolve()) },
-      new CombatAttackRollResolverService(processor(), {
-        lookup: vi.fn(() => Promise.resolve(new AttackTableEntry('0', 0, undefined, undefined))),
-      }),
+      new CombatAttackRollResolverService(
+        processor(),
+        {
+          lookup: vi.fn(() => Promise.resolve(new AttackTableEntry('0', 0, undefined, undefined))),
+        },
+        fakeCriticalLocationPort(),
+      ),
     );
 
     await handler.execute(new UpdateAttackRollCommand('action-1', 'Longsword', 3, 'user', [], 3));

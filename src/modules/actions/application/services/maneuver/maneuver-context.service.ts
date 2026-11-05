@@ -1,6 +1,14 @@
 import { frenzyManeuverModifiers } from '../../../domain/services/frenzy-maneuver.js';
 import { type CombatTalentChoices, combatTalentModifiers } from '../../../domain/services/combat-talent-maneuver.js';
-import { isFrenzyPurpose, type ManeuverPurpose } from '../../../domain/value-objects/maneuver-purpose.vo.js';
+import {
+  FALL_CONTROL,
+  GRAPPLE_ESCAPE,
+  isCombatTalentPurpose,
+  isFrenzyPurpose,
+  type ManeuverPurpose,
+} from '../../../domain/value-objects/maneuver-purpose.vo.js';
+import { GRAPPLE_ESCAPE_AP } from '../../../domain/services/grapple-escape.js';
+import { FALL_CONTROL_AP } from '../../../domain/services/fall-control.js';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   type ActorRoundRepository,
@@ -169,6 +177,8 @@ export interface ManeuverContextOptions {
   maneuverType?: ManeuverType;
   /** AP of the action; when undefined, the AP it would take if it ended in the current phase. */
   actionPoints?: number | null;
+  /** What the maneuver is for: a grapple escape is a percent maneuver of 2-4 AP (workspace spec 077, decision A3.3). */
+  purpose?: ManeuverPurpose;
 }
 
 /** Loads a maneuver's actor, sheet, skill profile and catalog, and builds its modifiers listing and roll total. */
@@ -202,7 +212,15 @@ export class ManeuverContextService {
     const character = await this.sheets.find(actorRound);
     if (!character) throw new NotFoundError(actorRound.actorType === 'npc' ? 'NPC' : 'Character', actorRound.npcId ?? action.actorId);
     if (!skill) throw new NotFoundError('Skill', skillId);
-    const profile = skill.maneuver ?? DEFAULT_MANEUVER_PROFILE;
+    const escape = options.purpose === GRAPPLE_ESCAPE;
+    // Workspace spec 077, decision D4 (P13): controlling a fall is an absolute maneuver of 0 AP, so no AP penalty.
+    const fallControl = options.purpose === FALL_CONTROL;
+    const skillProfile = skill.maneuver ?? DEFAULT_MANEUVER_PROFILE;
+    const profile = escape
+      ? { ...skillProfile, defaultType: 'percent' as const, actionPoints: GRAPPLE_ESCAPE_AP }
+      : fallControl
+        ? { ...skillProfile, defaultType: 'absolute' as const, actionPoints: FALL_CONTROL_AP }
+        : skillProfile;
     const actionPoints =
       options.actionPoints !== undefined ? options.actionPoints : ManeuverContextService.expectedActionPoints(action, game, actorRound);
     const {
@@ -220,7 +238,11 @@ export class ManeuverContextService {
       pace: ManeuverBaseModifiersService.roundPace(roundActions.content, action.actorId, action.round),
       includePace: true,
     });
-    const maneuverType = options.maneuverType || action.maneuver.modifiers.maneuverType || profile.defaultType;
+    const maneuverType = escape
+      ? 'percent'
+      : fallControl
+        ? 'absolute'
+        : options.maneuverType || action.maneuver.modifiers.maneuverType || profile.defaultType;
     return {
       actorRound,
       character,
@@ -380,7 +402,7 @@ export class ManeuverContextService {
     modifiers.push(...resolveSelections(context.catalog, choices.selections));
     if (isFrenzyPurpose(choices.purpose)) {
       modifiers.push(...frenzyManeuverModifiers(context.actorRound, choices.purpose));
-    } else if (choices.purpose) {
+    } else if (isCombatTalentPurpose(choices.purpose)) {
       modifiers.push(...combatTalentModifiers(choices.purpose, choices.combatTalent ?? {}));
     }
     if (choices.customBonus) {

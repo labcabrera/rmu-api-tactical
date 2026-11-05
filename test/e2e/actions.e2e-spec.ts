@@ -32,6 +32,14 @@ beforeAll(async () => {
   e2e.world.characters.set('eomer', character('eomer', { attacks: [mainHand, { ...mainHand, attackName: 'offHand' }] }));
   e2e.world.characters.set('lurtz', character('lurtz', { faction: { id: 'faction-2', name: 'Uruk-hai' } }));
   e2e.world.characters.set('faramir', character('faramir', { owner: USERS.other.sub }));
+  // Workspace spec 077, B2: torso AT 8 with a light helmet (AT 3), arms and legs unprotected.
+  e2e.world.characters.set(
+    'ugluk',
+    character('ugluk', {
+      faction: { id: 'faction-2', name: 'Uruk-hai' },
+      defense: { defensiveBonus: 10, armor: { at: null, bodyAt: 8, headAt: 3, armsAt: 1, legsAt: 1 }, shield: null, protect: 0 },
+    }),
+  );
 });
 
 afterAll(async () => {
@@ -241,6 +249,52 @@ describe('attack', () => {
     const after = await as('owner').get(`/v1/actor-rounds/${lurtz.id}`);
     // 12 of the table plus 6 of the critical.
     expect((after.body as { hp: { current: number } }).hp.current).toBe(lurtz.hp.current - 18);
+  });
+});
+
+describe('attack against armour by location (workspace spec 077, B2)', () => {
+  it('rolls the critical with the attack: its location decides the armour, and the criticals take that roll', async () => {
+    const gameId = await gameInPhase1('aragorn', ['ugluk']);
+    const action = await declareAttack(gameId);
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/phases/start`)).status).toBe(200);
+    const prepared = await as('owner').patch(`/v1/actions/${action.id}/attack/prepare`, {
+      attacks: [{ attackName: 'mainHand', modifiers: { targetId: 'ugluk', bo: 60 }, protectors: null }],
+    });
+    expect(prepared.status).toBe(200);
+    const roll = (body: Record<string, unknown>) =>
+      as('owner').patch(`/v1/actions/${action.id}/attack/roll`, { attackName: 'mainHand', ...body });
+
+    const missing = await roll({ roll: 70 });
+    expect(missing.status).toBe(400);
+    expect(missing.body).toMatchObject({ code: 'err-attack-location-roll-required' });
+
+    // 81 is the head in the made-up map: the attack is looked up with the helmet.
+    const rolled = await roll({ roll: 70, criticalRoll: 81 });
+    expect(rolled.status).toBe(200);
+    expect(rolled.body).toMatchObject({ attacks: [{ calculated: { location: 'head', locationRoll: 81 } }] });
+    expect(e2e.world.lookups.attack.at(-1)).toMatchObject({ armor: 3, location: 'head' });
+
+    const other = await as('owner').patch(`/v1/actions/${action.id}/attack/critical-roll`, {
+      attackName: 'mainHand',
+      criticalKey: 's_c_1',
+      roll: 50,
+    });
+    expect(other.status).toBe(400);
+    expect(other.body).toMatchObject({ code: 'err-critical-roll-location-fixed' });
+
+    const critical = await as('owner').patch(`/v1/actions/${action.id}/attack/critical-roll`, {
+      attackName: 'mainHand',
+      criticalKey: 's_c_1',
+      roll: 81,
+    });
+    expect(critical.status).toBe(200);
+    // The adjusted roll is still a head row: the location is not forced.
+    expect(e2e.world.lookups.critical.at(-1)).toMatchObject({ criticalType: 'S', criticalSeverity: 'C', location: undefined });
+
+    // 21 is the chest: a new attack roll changes the location and its armour.
+    const again = await roll({ roll: 70, criticalRoll: 21 });
+    expect(again.body).toMatchObject({ attacks: [{ calculated: { location: 'chest', locationRoll: 21 } }] });
+    expect(e2e.world.lookups.attack.at(-1)).toMatchObject({ armor: 8, location: 'chest' });
   });
 });
 

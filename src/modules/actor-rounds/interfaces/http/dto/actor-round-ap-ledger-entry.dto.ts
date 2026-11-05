@@ -20,12 +20,19 @@ export class ActorRoundApLedgerEntryDto {
   })
   kind: ApLedgerKind;
 
+  @ApiProperty({
+    required: false,
+    description: 'Spent while concentrating on something else (spec 077): the action gets half of these AP, rounded down',
+  })
+  concentrated?: boolean;
+
   static fromEntity(entity: ApLedgerEntry): ActorRoundApLedgerEntryDto {
     const dto = new ActorRoundApLedgerEntryDto();
     dto.phase = entity.phase;
     dto.actionId = entity.actionId;
     dto.ap = entity.ap;
     dto.kind = entity.kind;
+    if (entity.concentrated) dto.concentrated = true;
     return dto;
   }
 }

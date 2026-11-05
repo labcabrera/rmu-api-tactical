@@ -31,6 +31,11 @@ import { DeclareFightingStyleDto } from './dto/actor-round-fighting-style.dto.js
 import { DeclareFightingStyleCommand } from '../../application/cqrs/commands/declare-fighting-style.command.js';
 import { ActorRoundDto, CharacterRoundPageDto } from './dto/actor-round.dto.js';
 import { AddEffectDto } from './dto/add-effect.dto.js';
+import { ResolveAlertDto } from './dto/resolve-alert.dto.js';
+import { ResolveHazardDto } from './dto/actor-round-hazard.dto.js';
+import { ResolveCriticalAlertDto } from './dto/resolve-critical-alert.dto.js';
+import { ResolveCriticalAlertCommand } from '../../application/cqrs/commands/resolve-critical-alert.command.js';
+import { ResolveHazardCommand } from '../../application/cqrs/commands/resolve-hazard.command.js';
 import { AddFatigueAccumulatorDto } from './dto/add-fatigue-accumulator.dto.js';
 import { AddHpDto } from './dto/add-hp.dto.js';
 import { UseHerbDto, UseHerbResultDto } from './dto/use-herb.dto.js';
@@ -204,11 +209,66 @@ export class ActorRoundController {
   @Post(':id/alerts/:alertId/resolve')
   @HttpCode(200)
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
-  @ApiOperation({ operationId: 'resolveAlert', summary: 'Resolve an alert handled by hand (the critical of a fumble)' })
+  @ApiOperation({
+    operationId: 'resolveAlert',
+    summary: 'Resolve an alert handled by hand (the critical of a fumble, a Mental Focus maneuver with its outcome)',
+  })
   @ApiErrors({ 404: 'Actor round or alert not found', 400: 'The alert is resolved with its roll' })
-  async resolveAlert(@Param('id') id: string, @Param('alertId') alertId: string, @CurrentUser() user: AuthenticatedUser) {
-    const command = new ResolveAlertCommand(id, alertId, user.id, user.roles);
+  async resolveAlert(
+    @Param('id') id: string,
+    @Param('alertId') alertId: string,
+    @Body() dto: ResolveAlertDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const command = new ResolveAlertCommand(id, alertId, user.id, user.roles, dto?.outcome);
     const entity = await this.commandBus.execute<ResolveAlertCommand, ActorRound>(command);
+    return ActorRoundDto.fromEntity(entity);
+  }
+
+  @ActorRoundAccess('act')
+  @Post(':id/alerts/:alertId/critical-roll')
+  @HttpCode(200)
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success, with the critical in lastCriticalRoll' })
+  @ApiOperation({
+    operationId: 'rollCriticalAlert',
+    summary: 'Roll and apply the critical of a critical alert and close it (spec 077)',
+    description:
+      'Fumble (criticalType required), movement and percent maneuver criticals (K), cauterization heat (on the location ' +
+      'of the injury) and hazards. The critical is applied as an attack critical: hits, injuries and effects.',
+  })
+  @ApiErrors({ 400: 'err-alert-not-resolvable or validation', 404: 'Actor round or alert not found', 409: 'err-game-finished' })
+  async rollCriticalAlert(
+    @Param('id') id: string,
+    @Param('alertId') alertId: string,
+    @Body() dto: ResolveCriticalAlertDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const command = new ResolveCriticalAlertCommand(id, alertId, dto.roll, dto.criticalType, user.id, user.roles);
+    const entity = await this.commandBus.execute<ResolveCriticalAlertCommand, ActorRound>(command);
+    return ActorRoundDto.fromEntity(entity);
+  }
+
+  @ActorRoundAccess('manage')
+  @Post(':id/hazards')
+  @HttpCode(200)
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success, with the hazard last in hazards' })
+  @ApiOperation({
+    operationId: 'resolveHazard',
+    summary: 'Resolve a fall or a falling object on the actor (spec 077, game master only)',
+    description:
+      'Fall: Crush with the size of the actor, OB the feet fallen (less its height on a deliberate jump), only magical DB; ' +
+      'a fall-control maneuver of the actor moves the critical. Falling object: Rock when smaller than the actor, else ' +
+      'Crush; OB the feet fallen, the DB of the actor. The criticals without a roll are critical alerts with origin hazard.',
+  })
+  @ApiErrors({
+    400: 'err-hazard-invalid-distance, err-fall-control-invalid or validation',
+    403: 'Not a manager of the game',
+    404: 'Actor round not found',
+    409: 'err-game-finished',
+  })
+  async resolveHazard(@Param('id') id: string, @Body() dto: ResolveHazardDto, @CurrentUser() user: AuthenticatedUser) {
+    const command = ResolveHazardDto.toCommand(id, dto, user.id, user.roles);
+    const entity = await this.commandBus.execute<ResolveHazardCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
   }
 

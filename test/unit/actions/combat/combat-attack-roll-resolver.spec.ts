@@ -11,6 +11,7 @@ import { AttackTableEntry } from '../../../../src/modules/actions/domain/value-o
 import { KeyValueModifier } from '../../../../src/modules/actions/domain/value-objects/key-value-modifier.vo.js';
 import { ValidationError } from '../../../../src/modules/shared/domain/errors/errors.js';
 import { createCombatPluginContext, type CombatPluginContextOptions } from './combat-plugin-test.factory.js';
+import { fakeCriticalLocationPort } from '../../../fixtures/critical-locations.js';
 
 const setup = (entry: AttackTableEntry, options: CombatPluginContextOptions = {}) => {
   const ctx = createCombatPluginContext(options);
@@ -26,8 +27,8 @@ const setup = (entry: AttackTableEntry, options: CombatPluginContextOptions = {}
     return Promise.resolve(new AttackTableEntry(entry.text, entry.damage, entry.criticalType, entry.criticalSeverity));
   });
   const processor = new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST));
-  const resolver = new CombatAttackRollResolverService(processor, { lookup });
-  const resolve = (roll: number, unmodified?: number) =>
+  const resolver = new CombatAttackRollResolverService(processor, { lookup }, fakeCriticalLocationPort());
+  const resolve = (roll: number, unmodified?: number, criticalRoll?: number) =>
     resolver.resolve({
       action: ctx.action,
       attack: ctx.attack!,
@@ -35,6 +36,7 @@ const setup = (entry: AttackTableEntry, options: CombatPluginContextOptions = {}
       targetActor: ctx.targetActor!,
       roll,
       unmodified,
+      criticalRoll,
     });
   return { ctx, attack: ctx.attack!, action: ctx.action, lookup, resolve };
 };
@@ -62,15 +64,46 @@ describe('CombatAttackRollResolverService', () => {
     expect(lookup).toHaveBeenCalledWith(expect.objectContaining({ roll: 210 }));
   });
 
-  it('uses the torso armour of a target with mixed armour without a called shot, rolling no location (§9.7)', async () => {
-    const { attack, lookup, resolve } = setup(new AttackTableEntry('8', 8, undefined, undefined), {
-      defense: { at: null, headAt: 2, bodyAt: 6, armsAt: 3, legsAt: 4 },
-    });
+  // Workspace spec 077, decision B2: torso AT 8 with a light helmet (AT 3).
+  const piecemeal = { at: null, headAt: 3, bodyAt: 8, armsAt: 1, legsAt: 1 };
 
-    await resolve(50);
+  it('looks the attack up with the armour of the location of the critical roll on armour by location (§7.2)', async () => {
+    const { attack, lookup, resolve } = setup(new AttackTableEntry('8', 8, undefined, undefined), { defense: piecemeal });
 
-    expect(attack.calculated?.location).toBeUndefined();
-    expect(lookup).toHaveBeenCalledWith(expect.objectContaining({ armor: 6, location: undefined }));
+    await resolve(50, undefined, 81);
+
+    expect(attack.calculated).toMatchObject({ location: 'head', locationRoll: 81 });
+    expect(lookup).toHaveBeenCalledWith(expect.objectContaining({ armor: 3, location: 'head' }));
+  });
+
+  it('rejects an attack roll without the critical roll on armour by location, but not a fumble', async () => {
+    const { attack, lookup, resolve } = setup(new AttackTableEntry('8', 8, undefined, undefined), { defense: piecemeal });
+
+    await expect(resolve(50)).rejects.toMatchObject({ code: 'err-attack-location-roll-required' });
+    await resolve(1, 1);
+
+    expect(lookup).not.toHaveBeenCalled();
+    expect(attack.results?.fumble).toBeDefined();
+    expect(attack.calculated?.locationRoll).toBeUndefined();
+  });
+
+  it('drops the location roll of a previous roll', async () => {
+    const { attack, resolve } = setup(new AttackTableEntry('8', 8, undefined, undefined), { defense: piecemeal });
+    await resolve(50, undefined, 21);
+    expect(attack.calculated).toMatchObject({ location: 'chest', locationRoll: 21 });
+
+    await resolve(1, 1);
+
+    expect(attack.calculated?.locationRoll).toBeUndefined();
+  });
+
+  it('ignores the critical roll against a single armour type', async () => {
+    const { attack, lookup, resolve } = setup(new AttackTableEntry('8', 8, undefined, undefined), { defense: { at: 4 } });
+
+    await resolve(50, undefined, 81);
+
+    expect(attack.calculated).toMatchObject({ location: undefined, locationRoll: undefined });
+    expect(lookup).toHaveBeenCalledWith(expect.objectContaining({ armor: 4 }));
   });
 
   it('uses the armour of a called location', async () => {

@@ -41,6 +41,7 @@ import {
   runPluginHook,
 } from './combat-plugin-test.factory.js';
 import { sheetsOf } from '../../support/actor-sheets.js';
+import { fakeCriticalLocationPort } from '../../../fixtures/critical-locations.js';
 
 const trait = (traitId: string, tier = 1, specialization: string | null = null) => new ActorRoundTrait(traitId, tier, specialization);
 
@@ -158,9 +159,13 @@ describe('Combat talents', () => {
         void request;
         return Promise.resolve(new AttackTableEntry('5', 5, undefined, undefined));
       });
-      const resolver = new CombatAttackRollResolverService(new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST)), {
-        lookup,
-      });
+      const resolver = new CombatAttackRollResolverService(
+        new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST)),
+        {
+          lookup,
+        },
+        fakeCriticalLocationPort(),
+      );
 
       await resolver.resolve({
         action: ctx.action,

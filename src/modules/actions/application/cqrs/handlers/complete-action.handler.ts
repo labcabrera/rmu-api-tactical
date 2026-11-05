@@ -126,7 +126,8 @@ export class CompleteActionHandler implements ICommandHandler<CompleteActionComm
     if (left > 0) {
       throw error();
     }
-    plan.forEach(([phase, ap]) => actorRound.spend(phase, action.id, ap));
+    // The whole round goes to the full defense: no concentration halves it (workspace spec 077).
+    plan.forEach(([phase, ap]) => actorRound.spend(phase, action.id, ap, 'spent', false));
   }
 
   private async clearProne(actorRound: ActorRound, command: CompleteActionCommand): Promise<void> {

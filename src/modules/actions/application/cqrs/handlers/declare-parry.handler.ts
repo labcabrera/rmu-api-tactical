@@ -11,7 +11,15 @@ import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { ActionAttack } from '../../../domain/value-objects/action-attack.vo.js';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
 import { CombatModifierBag, CombatProcessor, PARRY_PHASE } from '../../services/combat/index.js';
-import { DeclareParryCommand } from '../commands/declare-parry.command.js';
+import { DeclareParryCommand, type DeclareShieldManeuverItem } from '../commands/declare-parry.command.js';
+import { type ManeuverPort, MANEUVER_PORT } from '../../ports/maneuver.port.js';
+import { DIFFICULTY_MAP } from '../../../domain/value-objects/difficulty.vo.js';
+import {
+  SHIELD_MANEUVER_DEFAULT_DIFFICULTY,
+  SHIELD_MANEUVER_PASSED_RESULTS,
+  SHIELD_MANEUVER_TABLE,
+} from '../../../domain/value-objects/shield-maneuver.vo.js';
+import type { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 @CommandHandler(DeclareParryCommand)
@@ -24,6 +32,7 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
     @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
     private readonly combatProcessor: CombatProcessor,
+    @Inject(MANEUVER_PORT) private readonly maneuverPort: ManeuverPort,
   ) {}
 
   async execute(command: DeclareParryCommand): Promise<Action> {
@@ -76,6 +85,11 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
       if (total > available) throw new ValidationError(`Parries add up to ${total}, above the ${available} available`);
     });
 
+    // Workspace spec 077, decisions A1.3-A1.5: one Shield maneuver per attack that needs it
+    for (const item of command.shieldManeuvers ?? []) {
+      await this.resolveShieldManeuver(action, item, actorRounds);
+    }
+
     // Set up parry values in attacks
     action.applyParrysToAttacks();
 
@@ -83,12 +97,57 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
       await this.refreshAttackCalculation(action, attack);
     }
 
-    // Update action and publish events
-    action.status = 'pending_roll';
+    // Update action and publish events. It stays in the parry step while a Shield maneuver is pending.
+    action.status = action.hasPendingShieldManeuvers() ? 'parry' : 'pending_roll';
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action);
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     return updated;
+  }
+
+  /**
+   * Workspace spec 077, decisions A1.3-A1.4: an absolute Shield maneuver on the generic table (roll, the defender's
+   * Shield skill and penalties, and the difficulty, medium by default), or the game master's `passed` without a roll,
+   * kept as `manual`. A maneuver sent for an attack that does not need it is `err-shield-maneuver-not-needed`.
+   */
+  private async resolveShieldManeuver(action: Action, item: DeclareShieldManeuverItem, actorRounds: ActorRound[]): Promise<void> {
+    const attack = action.getAttackByName(item.attackName);
+    const maneuver = attack.shieldManeuver;
+    if (!maneuver?.required) {
+      throw new ValidationError(`The attack ${item.attackName} needs no Shield maneuver`, 'err-shield-maneuver-not-needed', {
+        attackName: item.attackName,
+      });
+    }
+    const hasRoll = item.roll !== undefined && item.roll !== null;
+    if (!hasRoll) {
+      if (item.passed === undefined || item.passed === null) {
+        throw new ValidationError(`The Shield maneuver against ${item.attackName} needs a roll or passed`);
+      }
+      Object.assign(maneuver, {
+        roll: null,
+        difficulty: null,
+        penalty: null,
+        total: null,
+        result: null,
+        passed: item.passed,
+        manual: true,
+      });
+      return;
+    }
+    const difficulty = item.difficulty ?? SHIELD_MANEUVER_DEFAULT_DIFFICULTY;
+    const defender = actorRounds.find(actor => actor.actorId === maneuver.targetId);
+    const penalty = Math.min(0, defender?.getPenaltySum() ?? 0);
+    const total = item.roll + maneuver.skill + penalty + (DIFFICULTY_MAP.get(difficulty) ?? 0);
+    const response = await this.maneuverPort.absolute(total, SHIELD_MANEUVER_TABLE);
+    Object.assign(maneuver, {
+      roll: item.roll,
+      difficulty,
+      penalty,
+      total,
+      result: response.result,
+      passed: SHIELD_MANEUVER_PASSED_RESULTS.includes(response.result),
+      manual: false,
+    });
   }
 
   private resolveActorIds(action: Action): string[] {

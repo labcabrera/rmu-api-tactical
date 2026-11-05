@@ -9,6 +9,7 @@ import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-rou
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { Game } from '../../../../games/domain/aggregates/game.js';
 import { ConflictError, ValidationError, NotFoundError } from '../../../../shared/domain/errors/errors.js';
+import { quickCasterApRange } from '../../../domain/services/spell-talents.js';
 import { Action, type ActionAim } from '../../../domain/aggregates/action.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo.js';
@@ -66,6 +67,8 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     const round = game.round;
     const [actorRound, roundActions] = await Promise.all([this.readActorRound(command, round), this.readRoundActions(command, round)]);
     const actorActions = roundActions.filter(action => action.actorId === command.actorId);
+    // Workspace spec 077, decision A2.1: the held actions of the actor are concentration foci.
+    const heldChanged = actorRound.syncHeldActions(actorActions);
 
     const draw = this.drawAndLoad(command, actorRound);
     const aim = command.actionType === 'aim' ? await this.declareAim(command, actorRound) : null;
@@ -97,6 +100,8 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
         ? await this.spellCasting.declare(actorRound, actorActions, command.spell!.listCode, command.spell!.spellId, command.freeAction)
         : null;
     const resolution = command.forced ? ActionResolution.forced(command.forced.reason, command.forced.note) : ActionResolution.normal();
+    // Workspace spec 077, decision C4: Quick-Caster for the list of the spell shortens the AP range of the cast.
+    const spellRange = spell ? quickCasterApRange(actorRound.traits, spell.spell) : null;
     const action = Action.create(
       command.gameId,
       command.actorId,
@@ -108,7 +113,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       command.description,
       command.userId,
       resolution,
-      apRange,
+      apRange ?? spellRange,
     );
     action.spell = spell;
     action.reaction = reaction;
@@ -131,7 +136,15 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     }
 
     const saved = await this.actionRepository.save(action);
-    if (plan.spend || plan.interrupted.length > 0 || aborted.length > 0 || reopened.length > 0 || reaction?.alertId || aimingLost) {
+    if (
+      plan.spend ||
+      plan.interrupted.length > 0 ||
+      aborted.length > 0 ||
+      reopened.length > 0 ||
+      reaction?.alertId ||
+      aimingLost ||
+      heldChanged
+    ) {
       await this.actorRoundRepository.update(actorRound);
     }
     for (const interrupted of plan.interrupted) {
@@ -358,7 +371,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
         difficulty: 'm',
         customBonus: 0,
         lightModifier: 'none',
-        light: 'no_shadows',
+        // No light at declaration: the resolution falls back to the game's ambient light (spec 076).
       },
       progress: maneuverType === 'percent' ? (continued?.maneuver?.progress ?? 0) : undefined,
       continuesActionId: continued?.id,

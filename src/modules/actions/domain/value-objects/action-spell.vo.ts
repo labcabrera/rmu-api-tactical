@@ -56,6 +56,28 @@ export interface ActionSpellInfo {
   duration: Record<string, unknown> | null;
   /** Declarative effects (spec 028); shown to the game master, not applied yet. */
   effects: Record<string, unknown>[];
+  /**
+   * Workspace spec 077, decision C5: range, area and duration changed by the caster's magical talents, computed at
+   * declaration; missing (or null) when no talent changes them. Only the attack spells use them (C6); the rest is shown.
+   */
+  adjusted?: ActionSpellAdjusted | null;
+}
+
+/** What a magical talent changes in a spell (workspace spec 077, decision C5). */
+export type SpellAdjustmentTarget = 'range' | 'area' | 'targets' | 'duration';
+
+export interface SpellAdjustmentSource {
+  traitId: string;
+  tier: number;
+  applies: SpellAdjustmentTarget;
+}
+
+/** The spell's range, area and duration with the caster's talents, in the shape of rmu-api-spells. */
+export interface ActionSpellAdjusted {
+  range: Record<string, unknown> | null;
+  area: Record<string, unknown> | null;
+  duration: Record<string, unknown> | null;
+  sources: SpellAdjustmentSource[];
 }
 
 /** What the caster brings to the roll, from strategic at declaration (spec 030, decision 5). */
@@ -105,6 +127,11 @@ export interface ActionSpellFailure {
   total: number;
   text: string;
   suggestedPp: SpellFailurePp;
+  /**
+   * Workspace spec 077, decision C2: +5 per tier of Inglorious Failure and -5 per tier of Graceful Recovery, added to
+   * the roll (the total is never below 1). Missing in older casts: 0.
+   */
+  talentModifier?: number;
 }
 
 /** Table 4-5 conditions of a target. */
@@ -162,8 +189,13 @@ export interface ActionSpellAttack {
   skillId: string | null;
   /** Range brackets in feet with their OB modifier. */
   ranges: { from: number; to: number; bonus: number }[];
-  /** Radius of a ball in feet, when the spell gives one. */
+  /** Radius of a ball in feet, when the spell gives one (with the caster's Scope Skills and Lack of Scope, spec 077). */
   radius: number | null;
+  /**
+   * Workspace spec 077, decision C6: targets a bolt can strike, 1 + the tier of Scope Skills for the list; its OB is
+   * split among them. Missing in older casts: 1.
+   */
+  maxTargets?: number;
 }
 
 export interface ActionSpell {
@@ -176,6 +208,11 @@ export interface ActionSpell {
   targets?: ActionSpellTarget[];
   /** Power points taken from the caster when the cast was applied. */
   powerPointsSpent?: number | null;
+  /**
+   * Workspace spec 077, decision C3: power points Power Recycling saved from a failed cast (`failure` or `no-effect`) in
+   * the proposal; null or missing without it.
+   */
+  powerPointsRecycled?: number | null;
   /** The attack of an attack spell; after a successful SCR it is resolved as the action's attacks. */
   attack?: ActionSpellAttack | null;
 }

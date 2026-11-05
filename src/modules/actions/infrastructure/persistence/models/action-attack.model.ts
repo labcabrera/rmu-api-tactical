@@ -6,6 +6,7 @@ import type { ModifierGroup } from '../../../domain/value-objects/key-value-modi
 import type { AttackStatus } from '../../../domain/value-objects/attack-status.vo.js';
 import type { ActionAttackReaction, DamageAdjustment, SeverityAdjustment } from '../../../domain/value-objects/action-attack.vo.js';
 import { ActionAttackModifiers } from './action-attack-modifiers.model.js';
+import type { ShieldManeuver } from '../../../domain/value-objects/shield-maneuver.vo.js';
 
 @Schema({ _id: false })
 export class SkippedRuleModel {
@@ -53,6 +54,9 @@ export class ActionAttackCalculated {
 
   @Prop({ type: [SkippedRuleModel], required: false })
   public skipped: SkippedRuleModel[] | undefined;
+
+  @Prop({ type: Number, required: false })
+  public locationRoll: number | undefined;
 }
 
 @Schema({ _id: false })
@@ -239,4 +243,8 @@ export class ActionAttack {
   /** Workspace spec 076: the reaction the attack comes from. */
   @Prop({ type: Object, required: false })
   public reaction?: ActionAttackReaction | null;
+
+  /** Workspace spec 077, decision A1.2: the Shield maneuver of the defender. */
+  @Prop({ type: Object, required: false })
+  public shieldManeuver?: ShieldManeuver | null;
 }

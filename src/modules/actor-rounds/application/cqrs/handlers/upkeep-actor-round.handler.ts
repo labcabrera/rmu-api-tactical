@@ -24,7 +24,7 @@ export class UpkeepActorRoundHandler implements ICommandHandler<UpkeepActorRound
     }
     // Workspace spec 068, decision 5: the tourniquets of the injuries ask to be loosened (core's rules)
     const tourniquet = actorRound.injuries.some(injury => !!injury.tourniquet) ? await this.tourniquetRules() : undefined;
-    actorRound.applyUpkeep({ tourniquet });
+    actorRound.applyUpkeep({ tourniquet, slowFatigueRecovery: command.slowFatigueRecovery });
     const updated = await this.actorRoundRepository.update(actorRound);
     //TODO notify event bus
     return updated;

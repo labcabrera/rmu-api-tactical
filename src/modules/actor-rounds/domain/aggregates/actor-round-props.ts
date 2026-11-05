@@ -21,12 +21,16 @@ import type { ActorRoundItem } from '../value-objects/actor-round-item.vo.js';
 import type { ActorRoundActiveStyle, ActorRoundFightingStyle } from '../value-objects/actor-round-fighting-style.vo.js';
 import type { ItemConsumed, TemporaryModifier } from '../value-objects/temporary-modifier.vo.js';
 import type { ActorRoundResistance } from '../value-objects/actor-round-resistance.vo.js';
+import type { HeldActionFocus } from '../value-objects/concentration-focus.vo.js';
+import type { ActorRoundHazard } from '../value-objects/actor-round-hazard.vo.js';
 
 /** What the actor brought into the game, taken when round 1 is built from its character (spec 013, §3). */
 export interface ActorRoundSnapshot {
   hp: number;
   injuryIds: string[];
   conditionIds: string[];
+  /** Workspace spec 077, decision D10: fatigue penalty points it brought (0-50). Missing in older actor rounds. */
+  fatigue?: number;
 }
 
 export interface ActorRoundProps {
@@ -92,6 +96,14 @@ export interface ActorRoundProps {
   criticalSize?: number | null;
   /** Workspace spec 075: critical code I of an NPC. Missing in older actor rounds: false. */
   reduceCriticalSeverity?: boolean;
+  /** Workspace spec 077, decision B1.2: Enc % of the worn armour. Missing in older actor rounds: 0. */
+  armorEncumbrance?: number;
+  /** Workspace spec 077: held actions of the actor, concentration foci. Missing in older actor rounds: none. */
+  heldActions?: HeldActionFocus[];
+  /** Workspace spec 077, decision D12: height of the actor in feet; null or missing: unknown (NPCs). */
+  height?: number | null;
+  /** Workspace spec 077, decision D2: falls and falling objects of this round. Missing in older actor rounds: none. */
+  hazards?: ActorRoundHazard[];
   /** Only in the actor round built from the character (round 1, or the round it joined in). */
   snapshot?: ActorRoundSnapshot;
   imageUrl: string | undefined;

@@ -4,6 +4,8 @@ import { ActionAttackRoll } from './action-attack-roll.vo.js';
 import type { AttackStatus } from './attack-status.vo.js';
 import { CriticalEffect } from './critical-result.vo.js';
 import { Critical } from './critical.vo.js';
+import type { ShieldManeuver } from './shield-maneuver.vo.js';
+import type { SeverityAdjustmentStep } from '../../../shared/domain/severity.js';
 
 /** Workspace spec 076, decision B1: the reaction talent an attack comes from, and its fixed OB (null: the actor's). */
 export interface ActionAttackReaction {
@@ -15,6 +17,9 @@ export interface ActionAttackReaction {
 export class ActionAttack {
   /** Set when the attack of a reaction is prepared (workspace spec 076). */
   public reaction?: ActionAttackReaction | null;
+
+  /** The Shield maneuver the defender rolls for this attack (workspace spec 077, decision A1.2). */
+  public shieldManeuver?: ShieldManeuver | null;
 
   constructor(
     public attackName: string,
@@ -74,13 +79,8 @@ export class Fumble {
   ) {}
 }
 
-/** Keys of the steps that move the critical severity (§9.4, T-3.1d, T-3.1e; workspace spec 075, decision 3). */
-export type SeverityAdjustmentKey = 'attack-size' | 'charge' | 'fighting-style' | 'target-size' | 'light-boned' | 'critical-code';
-
-export interface SeverityAdjustmentStep {
-  key: SeverityAdjustmentKey;
-  value: number;
-}
+/** The steps that move the critical severity live in shared/domain (workspace spec 077, decision D1). */
+export type { SeverityAdjustmentKey, SeverityAdjustmentStep } from '../../../shared/domain/severity.js';
 
 /** How the critical severity of the table changed: `final` null when the critical is not rolled. */
 export interface SeverityAdjustment {

@@ -1,5 +1,5 @@
 import type { ManeuverPurpose, PrecisionPosition } from '../../../domain/value-objects/maneuver-purpose.vo.js';
-import type { ManeuverRollTalent } from '../../../domain/value-objects/action-maneuver.vo.js';
+import type { GrappleEscapeResult, ManeuverRollTalent } from '../../../domain/value-objects/action-maneuver.vo.js';
 import { Prop, Schema } from '@nestjs/mongoose';
 import { Schema as MongooseSchema } from 'mongoose';
 import type { Difficulty } from '../../../domain/value-objects/difficulty.vo.js';
@@ -118,6 +118,14 @@ export class ActionManeuverResult {
 
   @Prop({ type: String, required: false })
   rollTalent: ManeuverRollTalent | undefined;
+
+  /** Workspace spec 077, decision A3.3: the roll against each grapple of an escape. */
+  @Prop({ type: [Object], required: false })
+  grappleEscape: GrappleEscapeResult[] | undefined;
+
+  /** Workspace spec 077, decision D4: severity steps of a fall-control maneuver. */
+  @Prop({ type: Number, required: false })
+  fallControlSteps: number | undefined;
 }
 
 @Schema({ _id: false })

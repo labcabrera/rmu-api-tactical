@@ -172,6 +172,30 @@ describe('PrepareAttackHandler', () => {
     expect(values(action, 1).shield).toBeUndefined();
   });
 
+  it('asks for a Shield maneuver from the second attack a normal shield covers (workspace spec 077, A1.2)', async () => {
+    const { ctx, execute } = setup({ shield: new ActorRoundShield(20, 2, 0) }, [{ skillId: 'shield', totalBonus: 35, ranks: 7 }]);
+    ['offHand', 'bite'].forEach(attackName =>
+      ctx.sourceActor!.attacks.push(
+        Object.assign(new ActorRoundAttack('', [], 0, 0, 'melee', '', '', 0, 0, false, null, null), ctx.sourceAttack, { attackName }),
+      ),
+    );
+
+    const action = await execute({}, ['Longsword', 'offHand', 'bite']);
+
+    const [first, second, third] = action.attacks!;
+    expect(values(action, 0).shield).toBe(-20);
+    expect(first.shieldManeuver).toBeUndefined();
+    expect(values(action, 1).shield).toBeUndefined();
+    expect(second.shieldManeuver).toMatchObject({ targetId: 'defender-1', required: true, skill: 35 });
+    expect(second.shieldManeuver!.modifiers.map(modifier => [modifier.key, modifier.value])).toEqual([['shield', -20]]);
+    expect(second.calculated!.skipped!.map(rule => [rule.reason, rule.phase])).toContainEqual(['shield-maneuver-pending', 'parry']);
+    expect(values(action, 2).shield).toBeUndefined();
+    expect(third.shieldManeuver).toBeUndefined();
+    expect(third.calculated!.skipped!.map(rule => rule.reason)).toContain('shield-no-blocks');
+    // Decision A1.1: the action goes through the parry step even with nobody to parry.
+    expect(action.status).toBe('parry');
+  });
+
   it('applies the flatfooted target from its effects and the two-handed weapon from the sheet', async () => {
     const { ctx, execute } = setup({ twoHanded: true, shield: new ActorRoundShield(20, 1, 0) });
     ctx.targetActor!.effects.push({ id: 'e-1', status: 'flatfooted', value: undefined, rounds: 1 });

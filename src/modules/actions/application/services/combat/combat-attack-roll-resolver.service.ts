@@ -7,9 +7,11 @@ import { ActionAttackRoll } from '../../../domain/value-objects/action-attack-ro
 import { ActionAttack, ActionAttackResult, Fumble } from '../../../domain/value-objects/action-attack.vo.js';
 import { Critical } from '../../../domain/value-objects/critical.vo.js';
 import { type AttackTablePort, ATTACK_TABLE_PORT } from '../../ports/attack-table.port.js';
+import { type CriticalLocationPort, CRITICAL_LOCATION_PORT } from '../../ports/critical-location.port.js';
 import type { CombatContext } from './combat-context.js';
 import { CombatModifierBag } from './combat-modifier-bag.js';
 import { sourceAttackOf } from './combat-source-attack.js';
+import { needsLocationRoll } from './plugins/combat-location-armor.plugin.js';
 import { CombatProcessor } from './engine/combat-processor.service.js';
 
 export interface ResolveAttackRollInput {
@@ -22,6 +24,11 @@ export interface ResolveAttackRollInput {
   unmodified?: number;
   /** Every die of the open-ended roll, in order, when the client sends them. */
   dice?: number[];
+  /**
+   * Workspace spec 077, decision B2.1: the unmodified critical roll (1-100), required against a target with armour by
+   * location without a called shot; its location decides the armour of the attack.
+   */
+  criticalRoll?: number;
 }
 
 @Injectable()
@@ -29,6 +36,7 @@ export class CombatAttackRollResolverService {
   constructor(
     private readonly combatProcessor: CombatProcessor,
     @Inject(ATTACK_TABLE_PORT) private readonly attackTablePort: AttackTablePort,
+    @Inject(CRITICAL_LOCATION_PORT) private readonly criticalLocationPort: CriticalLocationPort,
   ) {}
 
   /**
@@ -52,9 +60,14 @@ export class CombatAttackRollResolverService {
       targetTraits: input.targetActor.traits || [],
       sourceAttack: this.getSourceAttack(input.action, input.sourceActor, attack.attackName),
       armorType: input.targetActor.defense.at,
+      locationRoll: input.criticalRoll,
       trace: [],
     };
     this.resetPreviousRoll(ctx);
+    ctx.fumbled = this.isFumble(ctx);
+    if (input.criticalRoll !== undefined && !ctx.fumbled && needsLocationRoll(attack, input.targetActor)) {
+      ctx.criticalLocations = await this.criticalLocationPort.findLocations();
+    }
 
     ctx = await this.combatProcessor.runPhase('beforeAttackRoll', ctx);
     ctx.rollTotal = ctx.attackRoll! + CombatModifierBag.from(calculated.rollModifiers).sum();
@@ -62,7 +75,7 @@ export class CombatAttackRollResolverService {
     calculated.rollTotal = ctx.rollTotal;
     attack.roll = new ActionAttackRoll(ctx.attackRoll!, undefined, undefined, input.unmodified);
 
-    if (this.isFumble(ctx)) {
+    if (ctx.fumbled) {
       attack.results = new ActionAttackResult(undefined, undefined, new Fumble('pending_roll', undefined, undefined, undefined, undefined));
     } else {
       ctx.attackTableEntry = await this.attackTablePort.lookup({
@@ -101,6 +114,7 @@ export class CombatAttackRollResolverService {
   private resetPreviousRoll(ctx: CombatContext): void {
     const calculated = ctx.attack!.calculated!;
     calculated.breakageRoll = undefined;
+    calculated.locationRoll = undefined;
     calculated.criticalModifiers = (calculated.criticalModifiers || []).filter(modifier => modifier.group !== 'resolution');
     ctx.attack!.results = undefined;
     ctx.attack!.status = 'pending_attack_roll';

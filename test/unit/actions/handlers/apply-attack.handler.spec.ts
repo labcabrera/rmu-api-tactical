@@ -164,6 +164,17 @@ describe('ApplyAttackHandler', () => {
     expect(update).toHaveBeenCalledWith(target);
   });
 
+  it('spends a block for an attack with a failed Shield maneuver too (workspace spec 077, A1.2)', async () => {
+    const failed = Object.assign(appliedAttack('offHand', [new KeyValueModifier('bo', 60)]), {
+      shieldManeuver: { targetId: 'defender', required: true, skill: 40, modifiers: [], roll: 20, passed: false },
+    });
+    const { run, target } = setup([appliedAttack('mainHand', [new KeyValueModifier('shield', -20)]), failed], [], [2, 0]);
+
+    await run();
+
+    expect(target.defense.shield!.currentBlocks).toBe(2);
+  });
+
   it('does not spend a block the shield no longer has', async () => {
     const { run, target } = setup([appliedAttack('mainHand', [new KeyValueModifier('shield-block', -10)])], [], [1, 1]);
 

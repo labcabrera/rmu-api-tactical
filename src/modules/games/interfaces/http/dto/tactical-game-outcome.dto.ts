@@ -37,6 +37,13 @@ export class TacticalGameOutcomeCharacterDto {
   @ApiProperty({ type: OutcomeHpDto })
   hp: OutcomeHpDto;
 
+  @ApiProperty({
+    type: OutcomeHpDto,
+    required: false,
+    description: 'Fatigue penalty points (0-50) at the start and end of the game (spec 077); missing keeps the fatigue',
+  })
+  fatigue?: OutcomeHpDto;
+
   @ApiProperty({ type: [HpLogEntryDto], description: 'Every change of the hits in the game, by round' })
   hpLog: HpLogEntryDto[];
 
@@ -82,6 +89,7 @@ export class TacticalGameOutcomeCharacterDto {
   static fromEntity(entity: TacticalGameOutcomeCharacter): TacticalGameOutcomeCharacterDto {
     return Object.assign(new TacticalGameOutcomeCharacterDto(), entity, {
       hp: Object.assign(new OutcomeHpDto(), entity.hp),
+      fatigue: entity.fatigue ? Object.assign(new OutcomeHpDto(), entity.fatigue) : undefined,
       hpLog: (entity.hpLog || []).map(entry => HpLogEntryDto.fromEntity(entry)),
       hpBySource: HpBySourceDto.fromEntity(entity.hpBySource ?? { byKind: {}, byAttacker: [] }),
       injuries: (entity.injuries || []).map(injury => InjuryDto.fromEntity(injury)),

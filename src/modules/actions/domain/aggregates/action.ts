@@ -16,6 +16,7 @@ import { ActorRoundTrait, QUICK_ACTION } from '../../../actor-rounds/domain/valu
 import { type ActionStatus, CLOSED_ACTION_STATUSES, IN_RESOLUTION_ACTION_STATUSES } from '../value-objects/action-status.vo.js';
 import type { ActionType } from '../value-objects/action-type.vo.js';
 import type { ParryType } from '../value-objects/parry-type.vo.js';
+import { isShieldManeuverPending } from '../value-objects/shield-maneuver.vo.js';
 import type { ModifierParams } from '../value-objects/key-value-modifier.vo.js';
 import type { ManeuverActionPoints } from '../value-objects/maneuver-profile.vo.js';
 
@@ -393,7 +394,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       return undefined;
     }
     const kind = actorRound.freeCapacity(phase) > 0 ? 'spent' : 'lost';
-    actorRound.spend(phase, this.id, 1, kind);
+    actorRound.spend(phase, this.id, 1, kind, this.isConcentrable());
     this.actionPoints = this.apOf(actorRound, phase);
     this.updatedAt = new Date();
     return kind;
@@ -417,6 +418,14 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       return 'carried';
     }
     return 'expired';
+  }
+
+  /**
+   * Its AP count half while the actor concentrates on something else (workspace spec 077, decision A2.2). A movement
+   * keeps its AP and halves its BMR instead (decision A2.3).
+   */
+  isConcentrable(): boolean {
+    return this.actionType !== 'movement';
   }
 
   /** Over in its round: completed, interrupted, expired or carried to the next one. */
@@ -505,7 +514,9 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       return { actionPoints, readiness: 'blocked', readinessPenalty: null };
     }
     const phase = currentPhase ?? ACTION_PHASES + 1;
-    const left = actorRound && phase <= ACTION_PHASES ? actorRound.remainingCapacity(phase) : 0;
+    // Workspace spec 077, decision A2.2: concentrating, the AP left count half for the action.
+    const capacityLeft = actorRound && phase <= ACTION_PHASES ? actorRound.remainingCapacity(phase) : 0;
+    const left = actorRound && this.isConcentrable() ? Math.floor(capacityLeft / actorRound.costMultiplier()) : capacityLeft;
     return { actionPoints, readiness: actionPoints + left >= profile.min ? 'blocked' : 'unreachable', readinessPenalty: null };
   }
 
@@ -597,7 +608,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       throw new ValidationError('An instantaneous action takes no more action points', 'err-action-instant');
     }
     this.fillLegacyLedger(actorRound, currentPhase);
-    actorRound.spend(currentPhase, this.id, 1);
+    actorRound.spend(currentPhase, this.id, 1, 'spent', this.isConcentrable());
     this.actionPoints = this.apOf(actorRound, currentPhase);
     this.updatedAt = new Date();
   }
@@ -641,7 +652,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       if (phase === undefined) {
         throw new ValidationError('The actor has no action points left this round', 'err-action-points-exceeded');
       }
-      actorRound.spend(phase, this.id, 1);
+      actorRound.spend(phase, this.id, 1, 'spent', this.isConcentrable());
     }
     this.resolution = resolution;
     this.actionPoints = this.apOf(actorRound, currentPhase);
@@ -704,6 +715,10 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     }
     if (actorRound.hasEffect('flatfooted')) {
       throw new ValidationError('A flatfooted actor cannot declare actions this round', 'err-action-flatfooted');
+    }
+    // Workspace spec 077, decision A2.4: with two foci the actor only moves (at creeping pace, checked when it resolves).
+    if (request.actionType !== 'movement' && actorRound.isDoubleConcentrating()) {
+      throw new ValidationError('An actor concentrating on two things only moves at creeping pace', 'err-action-double-concentration');
     }
     const phase = request.phaseStart;
     if (!Number.isInteger(phase) || phase < 1 || phase > ACTION_PHASES || phase !== currentPhase) {
@@ -824,7 +839,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       action.close(actorRound, currentPhase, 'interrupted');
     });
     if (plan.spend) {
-      actorRound.spend(plan.spend.phase, this.id, plan.spend.ap, plan.spend.kind);
+      actorRound.spend(plan.spend.phase, this.id, plan.spend.ap, plan.spend.kind, this.isConcentrable());
     }
     this.actionPoints = this.apOf(actorRound, currentPhase);
   }
@@ -1022,9 +1037,18 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     return this.attacks.some(attack => attack.results?.fumble && !attack.roll?.fumbleRoll);
   }
 
-  /** Prepared attacks wait for the parries, when there are any to declare, and then for their rolls. */
+  /**
+   * Prepared attacks wait for the parries, when there are any to declare, and then for their rolls. An attack that
+   * needs a Shield maneuver goes through the parry step even if nobody parries (workspace spec 077, decision A1.1).
+   */
   markPrepared(): void {
-    this.status = this.parries && this.parries.length > 0 ? 'parry' : 'pending_roll';
+    const parries = !!this.parries && this.parries.length > 0;
+    this.status = parries || this.hasPendingShieldManeuvers() ? 'parry' : 'pending_roll';
+  }
+
+  /** Some attack waits for the Shield maneuver of its defender (workspace spec 077, decision A1.2). */
+  hasPendingShieldManeuvers(): boolean {
+    return (this.attacks ?? []).some(attack => isShieldManeuverPending(attack.shieldManeuver));
   }
 
   /**
@@ -1195,13 +1219,14 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     if (!this.movement || !this.movement.modifiers || !this.movement.modifiers.pace) {
       throw new Error('Action does not have movement data');
     }
+    // Table 5-5, workspace spec 077, decision D6: 100 activity points per check, 12 rounds of 4 AP a minute.
     switch (this.movement.modifiers.pace) {
       case 'jog':
-        // check every 5 min
-        return 0.14;
+        // check every 5 min: 100 / 240 AP
+        return 0.42;
       case 'run':
-        // check every 1 min
-        return 4.16;
+        // check every 1 min: 100 / 48 AP
+        return 2.08;
       case 'sprint':
         // check every 2 rounds
         return 12.5;

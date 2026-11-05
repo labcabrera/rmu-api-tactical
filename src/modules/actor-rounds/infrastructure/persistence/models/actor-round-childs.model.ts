@@ -12,6 +12,14 @@ export class ActorRoundFatigue {
 
   @Prop({ required: true })
   accumulator: number;
+
+  /** Workspace spec 077, decision D7: rounds in a row without exertion. */
+  @Prop({ type: Number, required: false })
+  restRounds?: number;
+
+  /** Workspace spec 077, decision D7: the actor exerted itself this round. */
+  @Prop({ type: Boolean, required: false })
+  exerted?: boolean;
 }
 
 export class ActorRoundParry {
@@ -75,6 +83,10 @@ export class ActorRoundSnapshot {
 
   @Prop({ type: [String], required: true, default: [] })
   conditionIds: string[];
+
+  /** Workspace spec 077, decision D10: fatigue penalty points the character brought. */
+  @Prop({ type: Number, required: false })
+  fatigue?: number;
 }
 
 @Schema({ _id: false })
@@ -132,6 +144,20 @@ export class ActorRoundApLedgerEntry {
 
   @Prop({ type: String, required: true })
   kind: string;
+
+  /** Workspace spec 077: spent while concentrating on something else. */
+  @Prop({ type: Boolean, required: false })
+  concentrated?: boolean;
+}
+
+/** Workspace spec 077: a held action of the actor, a concentration focus. */
+@Schema({ _id: false })
+export class ActorRoundHeldAction {
+  @Prop({ type: String, required: true })
+  actionId: string;
+
+  @Prop({ type: Number, required: true })
+  since: number;
 }
 
 @Schema({ _id: false })

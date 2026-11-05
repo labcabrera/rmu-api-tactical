@@ -14,6 +14,11 @@ export class PrepareAttackCommand {
     public readonly attacks: PrepareAttackCommandItem[],
     public readonly userId: string,
     public readonly userRoles: string[],
+    /**
+     * Workspace spec 077, P9: the OB of a bolt with Scope Skills given to each target, in the order of `attacks`; the
+     * bolt's OB in equal parts when left out.
+     */
+    public readonly obSplit?: number[],
   ) {}
 }
 

@@ -74,7 +74,8 @@ export class ActorRoundNpcMapperAdapter implements ActorRoundNpcMapperPort {
       new ActorRoundInitiative(npc.initiative, 0, undefined, undefined),
       BASE_ACTION_POINTS,
       new ActorRoundHP(npc.hp, npc.hp, ActorRoundNpcMapperAdapter.deathThreshold(npc)),
-      ActorRoundFatigue.empty(),
+      // Workspace spec 077, decision D9: the endurance of an NPC is its Body Development, if it has it.
+      new ActorRoundFatigue(npc.skills?.find(skill => skill.skillId === 'body-development')?.bonus ?? 0, 0, 0),
       ActorRoundPenalty.empty(),
       new ActorRoundDefense(npc.db, npc.at, npc.at, npc.at, npc.at, npc.at, shield, 0),
       (npc.attacks || []).flatMap((attack, index) => (attack.attackTable ? [this.mapAttack(attack, attack.attackTable, index)] : [])),
