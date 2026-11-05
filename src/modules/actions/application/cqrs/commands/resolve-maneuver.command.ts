@@ -3,7 +3,9 @@ import type { LightType } from '../../../domain/value-objects/light-type.vo.js';
 import type { LightManeuverModifier } from '../../../domain/value-objects/light-maneuver-modifier.vo.js';
 import type { ManeuverModifierSelection } from '../../../domain/value-objects/maneuver-profile.vo.js';
 import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo.js';
-import type { FrenzyPurpose } from '../../../domain/value-objects/frenzy-purpose.vo.js';
+import type { ManeuverPurpose } from '../../../domain/value-objects/maneuver-purpose.vo.js';
+import type { CombatTalentChoices } from '../../../domain/services/combat-talent-maneuver.js';
+import type { SenseChoices } from '../../../../shared/domain/senses/sense-modifiers.js';
 
 /** The passive side of a conflicting maneuver as an actor of the game (workspace spec 022, decision 12). */
 export interface PassiveSide {
@@ -31,8 +33,14 @@ export class ResolveManeuverRequest {
     public readonly lightUsage?: LightManeuverModifier | undefined,
     /** Workspace spec 022, decision 12: the passive side as an actor of the game, and its roll. */
     public readonly passive?: PassiveSide | undefined,
-    /** Workspace spec 040: an Adrenal Focus maneuver to enter or leave the frenzy. */
-    public readonly purpose?: FrenzyPurpose | undefined,
+    /** Workspace spec 040: an Adrenal Focus maneuver to enter or leave the frenzy; spec 076: a combat talent. */
+    public readonly purpose?: ManeuverPurpose | undefined,
+    /** Workspace spec 076, §2.6: the choices of a combat talent maneuver. */
+    public readonly combatTalent?: CombatTalentChoices | undefined,
+    /** Workspace spec 076: the d10 rounds of the spasm of a natural 66 (Spasm); rolled here when left out. */
+    public readonly spasmRounds?: number | undefined,
+    /** Workspace spec 076, §3.1: the sense of a Perception or Tracking maneuver, its usage and selections. */
+    public readonly senses?: SenseChoices | undefined,
   ) {}
 }
 
@@ -42,6 +50,8 @@ export class ManeuverRoll {
     public readonly roll: number,
     /** First die, unmodified: 66 is an unusual event. */
     public readonly unmodified?: number | undefined,
+    /** Workspace spec 076, §2.8: every die of the open-ended roll, checked with the actor's roll profile. */
+    public readonly dice?: number[] | undefined,
   ) {}
 }
 

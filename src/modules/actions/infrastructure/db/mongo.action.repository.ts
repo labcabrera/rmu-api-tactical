@@ -53,6 +53,11 @@ export class MongoActionRepository extends MongoBaseRepository<Action, ActionMod
       parryExclusions: doc.parryExclusions ?? null,
       medical: doc.medical ?? null,
       useItem: doc.useItem ?? null,
+      reaction: doc.reaction
+        ? { ...doc.reaction, obOverride: doc.reaction.obOverride ?? null, alertId: doc.reaction.alertId ?? null }
+        : null,
+      drawAndLoad: doc.drawAndLoad ? { itemId: doc.drawAndLoad.itemId ?? null } : null,
+      aim: doc.aim ? { targetActorId: doc.aim.targetActorId, itemId: doc.aim.itemId } : null,
       owner: doc.owner,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,

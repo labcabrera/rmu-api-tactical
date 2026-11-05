@@ -1,4 +1,5 @@
-import type { FrenzyPurpose } from '../../../domain/value-objects/frenzy-purpose.vo.js';
+import type { ManeuverPurpose, PrecisionPosition } from '../../../domain/value-objects/maneuver-purpose.vo.js';
+import type { ManeuverRollTalent } from '../../../domain/value-objects/action-maneuver.vo.js';
 import { Prop, Schema } from '@nestjs/mongoose';
 import { Schema as MongooseSchema } from 'mongoose';
 import type { Difficulty } from '../../../domain/value-objects/difficulty.vo.js';
@@ -47,7 +48,19 @@ export class ActionManeuverModifiers {
   passiveSkillId: string | undefined;
 
   @Prop({ type: String, required: false })
-  purpose: FrenzyPurpose | undefined;
+  purpose: ManeuverPurpose | undefined;
+
+  @Prop({ type: String, required: false })
+  foeActorId: string | undefined;
+
+  @Prop({ type: Number, required: false })
+  foeLevel: number | undefined;
+
+  @Prop({ type: String, required: false })
+  position: PrecisionPosition | undefined;
+
+  @Prop({ type: Number, required: false })
+  obPenalty: number | undefined;
 }
 
 @Schema({ _id: false })
@@ -102,6 +115,9 @@ export class ActionManeuverResult {
 
   @Prop({ type: Number, required: false })
   moraleModifierDays: number | undefined;
+
+  @Prop({ type: String, required: false })
+  rollTalent: ManeuverRollTalent | undefined;
 }
 
 @Schema({ _id: false })

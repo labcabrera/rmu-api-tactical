@@ -1,5 +1,8 @@
-/** Weapon kind for the light weapon bonuses of multiple attacks (Table 9-7b). */
-export type WeaponCategory = 'standard' | 'light' | 'dagger' | 'natural';
+/**
+ * Weapon kind for the light weapon bonuses of multiple attacks (Table 9-7b). `unarmed`: an attack with an unarmed skill
+ * (`unarmed-st`, `unarmed-ag`) that strategic builds (workspace spec 076, A8); it counts as a natural weapon.
+ */
+export type WeaponCategory = 'standard' | 'light' | 'dagger' | 'natural' | 'unarmed';
 
 export class ActorRoundAttack {
   attackName: string;

@@ -2,7 +2,18 @@
  * Where a modifier comes from in the attack breakdown: who it favours, or which stage of the resolution adds it. Outside
  * combat (workspace spec 052): the skill, the casting conditions, the target's and the penalties.
  */
-export type ModifierGroup = 'offense' | 'defense' | 'situation' | 'critical' | 'resolution' | 'skill' | 'casting' | 'target' | 'penalty';
+export type ModifierGroup =
+  | 'offense'
+  | 'defense'
+  | 'situation'
+  | 'critical'
+  | 'resolution'
+  | 'skill'
+  | 'casting'
+  | 'target'
+  | 'penalty'
+  /** The sense talents of a Perception or Tracking maneuver and Light Sensitivity (workspace spec 076, block C). */
+  | 'senses';
 
 /** Numbers a rule's explanation shows: the inputs of its formula (workspace spec 051). */
 export type ModifierParams = Record<string, number | string | boolean>;

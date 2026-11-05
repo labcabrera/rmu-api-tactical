@@ -14,6 +14,7 @@ import { lethalityOf, STRATEGIC_GAME_PORT } from '../../../../strategic/applicat
 import { StrategicGameApiClient } from '../../../../strategic/infrastructure/api-clients/api.strategic-game.adapter.js';
 import { Action } from '../../../domain/aggregates/action.js';
 import { FEAR_BALK, FEAR_RETREAT } from '../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
+import { ActorRoundTrait } from '../../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
 import type { ActionWarning } from '../../../domain/value-objects/action-medical.vo.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { ActionAttackCalculated } from '../../../domain/value-objects/action-attack-calculated.vo.js';
@@ -39,7 +40,8 @@ import { PrepareAttackCommand, PrepareAttackCommandItem } from '../commands/prep
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 /** An attack with the body (natural weapons, unarmed skills), which a disarmed actor can still make. */
-const isBodyAttack = (attack: ActorRoundAttack): boolean => attack.weaponCategory === 'natural' || !!attack.skillId?.startsWith('unarmed');
+const isBodyAttack = (attack: ActorRoundAttack): boolean =>
+  attack.weaponCategory === 'natural' || attack.weaponCategory === 'unarmed' || !!attack.skillId?.startsWith('unarmed');
 
 @CommandHandler(PrepareAttackCommand)
 export class PrepareAttackHandler implements ICommandHandler<PrepareAttackCommand, Action> {
@@ -112,6 +114,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
         attackNumber,
         targetsNumber,
         gameLethality,
+        light: game.environment?.light ?? null,
       });
       if (ctx.attack!.calculated!.rollModifiers.some(modifier => modifier.key === 'shield' || modifier.key === 'shield-block')) {
         reservedShieldBlocks.set(targetId, (reservedShieldBlocks.get(targetId) || 0) + 1);
@@ -161,6 +164,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       attackNumber: input.attackNumber,
       targetsNumber: input.targetsNumber,
       gameLethality: input.gameLethality,
+      light: input.light ?? null,
       sourceActor: input.actors.find(a => a.actorId === input.action.actorId),
       targetActor: input.actors.find(a => a.actorId === input.attack.modifiers.targetId),
       trace: [],
@@ -338,8 +342,14 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     if (source.isDisarmed() && !isBodyAttack(attack)) {
       throw new ValidationError(`The actor is disarmed: it cannot attack with ${attack.attackName}`, 'err-attack-disarmed');
     }
-    if (commandAttack.modifiers.bo > attack.currentBo) {
-      throw new ValidationError(`BO cannot be higher than current BO (${attack.currentBo})`);
+    const reaction = action.isReaction() ? action.reaction! : null;
+    if (reaction) {
+      PrepareAttackHandler.checkReactionWeapon(reaction.traitId, attack, source);
+    }
+    // Workspace spec 076, decision B1: a reaction is not limited by the OB given to parries; a fixed OB is not limited.
+    const maxBo = reaction ? source.getBoIgnoringParries(attack.attackName) : attack.currentBo;
+    if ((!reaction || reaction.obOverride === null) && commandAttack.modifiers.bo > maxBo) {
+      throw new ValidationError(`BO cannot be higher than current BO (${maxBo})`);
     }
     const parry = 0;
     // A foe can be surprised and stunned at once (§9.5): both bonuses apply.
@@ -376,7 +386,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     if (modifiers.styleCriticalOption) {
       checkStyleCriticalOption(source.activeStyle, commandAttack.attackName, modifiers.styleCriticalOption);
     }
-    return new ActionAttack(
+    const actionAttack = new ActionAttack(
       commandAttack.attackName,
       attack.type,
       modifiers,
@@ -387,5 +397,23 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       commandAttack.protectors,
       commandAttack.protectorPositions,
     );
+    if (reaction) {
+      actionAttack.reaction = { traitId: reaction.traitId, triggerActionId: reaction.triggerActionId, obOverride: reaction.obOverride };
+    }
+    return actionAttack;
+  }
+
+  /**
+   * Workspace spec 076, decision B1: a reaction attacks with a weapon of the specialization its talent was taken for
+   * (`err-reaction-weapon-mismatch`).
+   */
+  static checkReactionWeapon(traitId: string, attack: ActorRoundAttack, source: ActorRound): void {
+    if (ActorRoundTrait.tierForSkill(source.traits, traitId, attack.skillId) === 0) {
+      throw new ValidationError(
+        `The ${traitId} of the actor was not taken for the weapon of ${attack.attackName}`,
+        'err-reaction-weapon-mismatch',
+        { traitId, attackName: attack.attackName },
+      );
+    }
   }
 }

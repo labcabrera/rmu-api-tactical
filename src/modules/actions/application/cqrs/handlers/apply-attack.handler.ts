@@ -20,6 +20,7 @@ import {
   NON_VIOLENT,
   PRESSING_ADVANTAGE,
   UNCONSCIOUS,
+  AIMING,
 } from '../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
 import {
   ActorRoundTrait,
@@ -41,6 +42,9 @@ import { StrategicGameApiClient } from '../../../../strategic/infrastructure/api
 import { Action } from '../../../domain/aggregates/action.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { ADDITIONAL_CRITICAL, FUMBLE_HITS } from '../../../domain/services/fumble-hits.js';
+import { riposteTrigger } from '../../../domain/services/reaction-rules.js';
+import { aimingAfterRangedAttacks } from '../../../domain/services/aiming.js';
+import { precisionEffectFor } from '../../../domain/services/precision.js';
 import { ActionAttack } from '../../../domain/value-objects/action-attack.vo.js';
 import type { CriticalEffect } from '../../../domain/value-objects/critical-result.vo.js';
 import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo.js';
@@ -122,9 +126,11 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     // has no longer enough.
     const sourceRound = actors.find(a => a.actorId === action.actorId)!;
     if (action.actionType === 'cast_spell') await this.spendSpellPower(action, sourceRound);
-    // A spell is not a weapon: no OB of the actor round is used.
+    // A spell is not a weapon: no OB of the actor round is used. Nor by a reaction, out of the OB of the round (spec 076).
     const substractBoCommands =
-      action.actionType === 'cast_spell' ? [] : this.processAttackSourceSubstractBo(action, actors, command.userId, command.roles);
+      action.actionType === 'cast_spell' || action.isReaction()
+        ? []
+        : this.processAttackSourceSubstractBo(action, actors, command.userId, command.roles);
     // One after another: two attacks of the same attacker update the same actor round, and each command reloads it.
     for (const cmd of substractBoCommands) {
       await this.commandBus.execute(cmd);
@@ -151,6 +157,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     await this.spendCoatings(sourceActor.id, coatingsSpent);
     await this.processDeclareActorParry(action, command.userId, command.roles);
     await this.processFatigue(action, game.round, strategicGame, command.userId, command.roles);
+    await this.raiseRipostes(action, actors, game);
 
     // The AP and the last phase of the attack come from the ledger (spec 011, §9).
     action.completeAttacks();
@@ -282,6 +289,24 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     await this.actorRoundRepository.update(source);
   }
 
+  /**
+   * Workspace spec 076, decision B2: a target with Riposte that parried with all its OB and took no damage nor critical
+   * can attack back. The trigger reads the actor rounds as they were before the attack (the weapon it parried with);
+   * the alert goes on the actor round read again, since the effects and the parry were already saved.
+   */
+  private async raiseRipostes(action: Action, actors: ActorRound[], game: Game): Promise<void> {
+    if (action.actionType !== 'melee_attack') return;
+    for (const attack of action.attacks || []) {
+      const defender = actors.find(actor => actor.actorId === attack.modifiers.targetId);
+      const trigger = defender ? riposteTrigger(action, attack, defender) : undefined;
+      if (!defender || !trigger) continue;
+      const current = await this.actorRoundRepository.findById(defender.id);
+      if (current?.addReactionAlert({ ...trigger, round: game.round, phase: game.phase })) {
+        await this.actorRoundRepository.update(current);
+      }
+    }
+  }
+
   private async processDeclareActorParry(action: Action, userId: string, roles: string[]): Promise<void> {
     if (!action.parries || action.parries.length === 0) {
       return;
@@ -385,6 +410,10 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     }
     const cmd = this.commandFor(target, applications, updateCommands, userId, roles);
     cmd.dmg += dmg || 0;
+    // Workspace spec 076, decision B6: taking damage loses the aiming.
+    if (dmg > 0) {
+      cmd.consumedEffectIds.push(...(target.effects || []).filter(effect => effect.status === AIMING).map(effect => effect.id));
+    }
     cmd.hpChanges.push(...hpChanges.filter(change => change.amount !== 0));
     cmd.effects.push(...criticalEffects);
     cmd.injuries.push(...injuries);
@@ -477,6 +506,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     const consumed = (actor.effects || [])
       .filter(effect => effect.status === PRESSING_ADVANTAGE && !!effect.targetActorId && targetIds.has(effect.targetActorId))
       .map(effect => effect.id);
+    consumed.push(...ApplyAttackHandler.usedCombatTalentEffects(action, actor));
     const effects: ActorRoundEffect[] = [];
     const inflicting = (action.attacks || []).filter(attack => (attack.results?.criticals?.length || 0) > 0);
     const pressing = inflicting
@@ -512,6 +542,30 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     const cmd = this.commandFor(actor, applications, updateCommands, userId, roles);
     cmd.effects.push(...effects);
     cmd.consumedEffectIds.push(...consumed);
+  }
+
+  /**
+   * Workspace spec 076, §2.7 and decision B9: the ranged attacks of the action use up the aiming of the attacker one of
+   * them took its bonus from (same foe, same item), and lose any other aiming; a melee attack that took a Precision
+   * against its foe uses it up.
+   */
+  static usedCombatTalentEffects(action: Action, actor: ActorRound): string[] {
+    const attacks = action.attacks || [];
+    const ranged = attacks
+      .filter(attack => attack.type === 'ranged')
+      .map(attack => ({
+        targetId: attack.modifiers.targetId,
+        itemId: actor.attacks?.find(each => each.attackName === attack.attackName)?.itemId ?? null,
+      }));
+    const aiming = aimingAfterRangedAttacks(actor, ranged);
+    const precision = attacks
+      .map(attack => {
+        const skillId = actor.attacks?.find(each => each.attackName === attack.attackName)?.skillId;
+        return precisionEffectFor(actor, attack.type, attack.modifiers.targetId, skillId);
+      })
+      .filter(effect => !!effect)
+      .map(effect => effect.id);
+    return [...new Set([...aiming.used, ...aiming.lost, ...precision])];
   }
 
   private async processFatigue(

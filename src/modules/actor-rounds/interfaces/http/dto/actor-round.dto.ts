@@ -6,6 +6,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { PaginationDto } from '../../../../shared/interfaces/http/dto/page.dto.js';
 import { ActorRound } from '../../../domain/aggregates/actor-round.js';
 import { ActorRoundEffect } from '../../../domain/value-objects/actor-round-effect.vo.js';
+import { rollProfileOf } from '../../../domain/value-objects/actor-roll-profile.vo.js';
 import { ActorRoundAlertDto } from './actor-round-alert.dto.js';
 import { ActorRoundApLedgerEntryDto } from './actor-round-ap-ledger-entry.dto.js';
 import { ActorRoundApModifierDto } from './actor-round-ap-modifier.dto.js';
@@ -23,6 +24,38 @@ import { ActorRoundParryDto } from './actor-round-parry.dto.js';
 import { ActorRoundPenaltyDto } from './actor-round-penalty.dto.js';
 import { ActorRoundPhaseLogDto } from './actor-round-phase-log.dto.js';
 import { ActorRoundTraitDto } from './actor-round-trait.dto.js';
+
+export class AbsoluteEaseDto {
+  @ApiProperty({ description: 'Skill category of the Absolute Ease talent', example: 'athletic' })
+  categoryId: string;
+
+  @ApiProperty({ description: 'Tier: absolute success from 151 (1), 126 (2) or always (3)', example: 1 })
+  tier: number;
+
+  @ApiProperty({ description: 'Absolute Disaster: failures up to 25 (1), 50 (2) or always (3) are absolute' })
+  disaster: boolean;
+}
+
+/** Workspace spec 076, §2.8: how the actor's talents change its rolls, computed from its traits. */
+export class ActorRollProfileDto {
+  @ApiProperty({ description: 'An open-ended roll opens high from this die (96 less Lucky and Dramatic Luck)', example: 96 })
+  highFrom: number;
+
+  @ApiProperty({ description: 'An open-ended roll opens low up to this die (5 plus Dramatic Luck)', example: 5 })
+  lowTo: number;
+
+  @ApiProperty({ description: 'Unusual Luck: a natural 66 of an unopposed absolute maneuver is a success' })
+  unusualLuck: boolean;
+
+  @ApiProperty({ description: 'Terrible Luck: a natural 01 raises a terrible-luck alert' })
+  terribleLuck: boolean;
+
+  @ApiProperty({ description: 'Spasm: a natural 66 gives a spasm of d10 rounds' })
+  spasm: boolean;
+
+  @ApiProperty({ description: 'Absolute Ease by skill category', type: [AbsoluteEaseDto] })
+  absoluteEase: AbsoluteEaseDto[];
+}
 
 export class ActorRoundResistanceDto {
   @ApiProperty({ description: 'Resistance type', example: 'fear' })
@@ -117,6 +150,9 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Talents and flaws of the actor, from its character sheet', type: [ActorRoundTraitDto] })
   traits: ActorRoundTraitDto[];
 
+  @ApiProperty({ description: 'How the talents change the rolls of the actor (spec 076)', type: ActorRollProfileDto })
+  rollProfile: ActorRollProfileDto;
+
   @ApiProperty({ description: 'Injuries of the actor (spec 013): brought from its character and taken in the game', type: [InjuryDto] })
   injuries: InjuryDto[];
 
@@ -209,6 +245,7 @@ export class ActorRoundDto {
     dto.effects = entity.effects;
     dto.alerts = entity.alerts.map(a => ActorRoundAlertDto.fromEntity(a));
     dto.traits = (entity.traits || []).map(t => ActorRoundTraitDto.fromEntity(t));
+    dto.rollProfile = rollProfileOf(entity.traits);
     dto.injuries = (entity.injuries || []).map(injury => InjuryDto.fromEntity(injury));
     dto.poisonExposures = (entity.poisonExposures || []).map(exposure => PoisonExposureDto.fromEntity(exposure));
     dto.hpLog = (entity.hpLog || []).map(entry => HpLogEntryDto.fromEntity(entry));

@@ -39,6 +39,8 @@ export interface Npc {
   /** Workspace spec 068, decision 17: fright level of the creature (Table 14-3a); null or missing when it has none. */
   frightLevel?: number | null;
   skills: NpcSkill[];
+  /** Talents of the stat block; missing in NPCs read before workspace spec 076. */
+  talents?: NpcTalent[] | null;
   imageUrl?: string | null;
   owner: string;
 }
@@ -98,4 +100,31 @@ export interface NpcSkill {
   ranks: number | null;
   /** Total bonus. */
   bonus: number;
+}
+
+/**
+ * A talent of the stat block (workspace spec 076, §4): free text, with the id of the talent catalog when its name
+ * matches one (`nightvision`, `acute-hearing`…). The tier is a roman numeral (`I`…`X`), or null.
+ */
+export interface NpcTalent {
+  name: string;
+  tier?: string | number | null;
+  traitId?: string | null;
+}
+
+const ROMAN_TIERS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+
+/** Tier of a talent of the stat block: `I`…`X` (or a number) as 1…10; I when missing or unreadable. */
+export function npcTalentTier(tier: string | number | null | undefined): number {
+  if (typeof tier === 'number') return Number.isInteger(tier) && tier >= 1 ? tier : 1;
+  if (typeof tier !== 'string') return 1;
+  const index = ROMAN_TIERS.indexOf(tier.trim().toUpperCase());
+  if (index >= 0) return index + 1;
+  const parsed = Number(tier);
+  return Number.isInteger(parsed) && parsed >= 1 ? parsed : 1;
+}
+
+/** The talents of the stat block that are in the talent catalog (with a `traitId`), with their tier. */
+export function npcCatalogTalents(npc: Pick<Npc, 'talents'>): { traitId: string; tier: number }[] {
+  return (npc.talents || []).flatMap(talent => (talent?.traitId ? [{ traitId: talent.traitId, tier: npcTalentTier(talent.tier) }] : []));
 }

@@ -13,18 +13,39 @@ import { ActionManeuverResult } from '../../../domain/value-objects/action-maneu
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
 import { type ManeuverPort, MANEUVER_PORT } from '../../ports/maneuver.port.js';
 import {
+  DEFAULT_DIFFICULTY,
+  type ManeuverChoices,
   type ManeuverContext,
   ManeuverContextService,
   type ManeuverRollCalculation,
 } from '../../services/maneuver/maneuver-context.service.js';
 import { ResolveManeuverCommand } from '../commands/resolve-maneuver.command.js';
 import { applyFrenzyManeuver, validateFrenzyPurpose } from '../../../domain/services/frenzy-maneuver.js';
+import {
+  applyCombatTalentManeuver,
+  type CombatTalentChoices,
+  combatTalentApRange,
+  combatTalentDifficulty,
+  combatTalentSucceeded,
+  validateCombatTalentPurpose,
+} from '../../../domain/services/combat-talent-maneuver.js';
+import { applyNaturalRoll } from '../../../domain/services/roll-talents.js';
+import { type CombatTalentPurpose, isCombatTalentPurpose, isFrenzyPurpose } from '../../../domain/value-objects/maneuver-purpose.vo.js';
+import {
+  absoluteEaseResult,
+  type ActorRollProfile,
+  rollProfileOf,
+} from '../../../../actor-rounds/domain/value-objects/actor-roll-profile.vo.js';
+import { checkOpenEndedDice } from '../../../../shared/domain/rolls/open-ended.js';
 import { type PsychologyTablesPort, PSYCHOLOGY_TABLES_PORT } from '../../../../psychology/application/ports/psychology-tables.port.js';
 import { findBand } from '../../../../psychology/domain/value-objects/psychology-tables.vo.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 /** Unmodified roll of an unusual event (§5.1). */
 const UNUSUAL_EVENT_ROLL = 66;
+
+const SUCCESS = 'success';
+const ABSOLUTE_SUCCESS = 'absolute-success';
 
 /** Price of a Trading maneuver: 200% less the result, from 50% to 200% (§14.2). */
 const PRICE_BASE = 200;
@@ -74,23 +95,40 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
       maneuverType: request.maneuverType,
     });
     const range = context.profile.actionPoints;
-    action.apRange = range ? { min: range.min, max: range.max } : null;
+    const talent = isCombatTalentPurpose(request.purpose) ? request.purpose : undefined;
+    const talentChoices = request.combatTalent ?? {};
+    // Workspace spec 076, decision P4: Battle Cry takes 2 AP, Sense Weakness and Study Offense a full round.
+    const talentRange = talent ? combatTalentApRange(talent) : null;
+    action.apRange = talentRange ?? (range ? { min: range.min, max: range.max } : null);
     action.checkResolvable(context.actorRound, currentPhase);
-    if (request.purpose) {
+    if (isFrenzyPurpose(request.purpose)) {
       validateFrenzyPurpose(context.actorRound, context.skill.skillId, request.purpose);
+    } else if (talent) {
+      await this.validateCombatTalent(action, context, talent, talentChoices);
     }
+    // Workspace spec 076, §2.8: the dice sent are an open-ended chain of the actor's roll profile.
+    const rollProfile = rollProfileOf(context.actorRound.traits);
+    checkOpenEndedDice(command.roll.dice, 'both', rollProfile, { total: command.roll.roll, unmodified: command.roll.unmodified });
     action.actionPoints = action.apOf(context.actorRound, currentPhase);
     const passive = request.passive ? await this.maneuverContextService.passiveTotal(context, action, request.passive) : undefined;
-    const choices =
-      passive && (request.passiveTotal === undefined || request.passiveTotal === null)
-        ? { ...request, passiveTotal: passive.total }
-        : request;
+    const choices = {
+      ...request,
+      difficulty: talent ? combatTalentDifficulty(talent, request.difficulty, DEFAULT_DIFFICULTY) : request.difficulty,
+      combatTalent: talentChoices,
+      passiveTotal: passive && (request.passiveTotal === undefined || request.passiveTotal === null) ? passive.total : request.passiveTotal,
+    };
     const calculation = this.maneuverContextService.calculate(context, choices, command.roll.roll);
-    this.updateModifiers(action, command, context, calculation);
+    this.updateModifiers(action, choices, context, calculation);
     action.maneuver!.modifiers.passiveTotal = choices.passiveTotal;
     action.maneuver!.modifiers.targetActorId = request.passive?.targetActorId;
     action.maneuver!.modifiers.passiveSkillId = passive?.skillId;
     action.maneuver!.modifiers.purpose = request.purpose;
+    if (talent) {
+      action.maneuver!.modifiers.foeActorId = talentChoices.foeActorId;
+      action.maneuver!.modifiers.foeLevel = talentChoices.foeLevel;
+      action.maneuver!.modifiers.position = talentChoices.position;
+      action.maneuver!.modifiers.obPenalty = talentChoices.obPenalty;
+    }
     action.maneuver!.roll = {
       modifiers: calculation.modifiers,
       roll: command.roll.roll,
@@ -107,15 +145,29 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     } else if (context.profile.resultKind === 'morale') {
       await this.resolveMorale(action, calculation.total, unusualEvent);
     } else {
-      alert = await this.resolveAbsolute(action, context, calculation.total, unusualEvent);
+      // Workspace spec 076, §2.8: Unusual Luck turns the natural 66 of an unopposed absolute maneuver into a success.
+      const unusualLuck = unusualEvent && rollProfile.unusualLuck && !request.passive && choices.passiveTotal === undefined;
+      alert = await this.resolveAbsolute(action, context, calculation.total, unusualEvent && !unusualLuck, unusualLuck);
+      ResolveManeuverHandler.applyAbsoluteEase(action, context, rollProfile, calculation.total);
     }
 
-    const frenzyChanged = request.purpose
-      ? applyFrenzyManeuver(context.actorRound, request.purpose, action.maneuver!.result?.result, {
-          phase: currentPhase,
-          spentAp: context.actorRound.getSpentAp(currentPhase),
-        })
+    const application = () => ({ phase: currentPhase, spentAp: context.actorRound.getSpentAp(currentPhase) });
+    const frenzyChanged = isFrenzyPurpose(request.purpose)
+      ? applyFrenzyManeuver(context.actorRound, request.purpose, action.maneuver!.result?.result, application())
       : false;
+    const talentEffect = talent
+      ? applyCombatTalentManeuver(context.actorRound, talent, combatTalentSucceeded(action.maneuver!.result), talentChoices, {
+          ambushRanks: context.skill.ranks,
+          application: application(),
+        })
+      : undefined;
+    // Workspace spec 076, decision B10 (P5): Terrible Luck and Spasm on the natural roll.
+    const natural = applyNaturalRoll(
+      context.actorRound,
+      command.roll.unmodified ?? command.roll.dice?.[0],
+      { kind: 'maneuver', actionId: action.id },
+      { spasmRounds: request.spasmRounds, application },
+    );
     action.close(context.actorRound, currentPhase);
     const updated = await this.actionRepository.update(action);
     if (alert) {
@@ -123,7 +175,8 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     }
     // Workspace spec 068, decision 5: a failed maneuver reopens the stitches of the actor
     const reopened = ResolveManeuverHandler.failed(action) ? context.actorRound.reopenWounds('failed-roll') : [];
-    if (alert || frenzyChanged || reopened.length > 0) {
+    const talentsChanged = !!talentEffect || natural.terribleLuck || natural.spasm;
+    if (alert || frenzyChanged || talentsChanged || reopened.length > 0) {
       await this.actorRoundRepository.update(context.actorRound);
     }
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
@@ -149,20 +202,14 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     }
   }
 
-  private updateModifiers(
-    action: Action,
-    command: ResolveManeuverCommand,
-    context: ManeuverContext,
-    calculation: ManeuverRollCalculation,
-  ): void {
-    const request = command.request;
+  private updateModifiers(action: Action, request: ManeuverChoices, context: ManeuverContext, calculation: ManeuverRollCalculation): void {
     action.maneuver!.modifiers = {
       ...action.maneuver!.modifiers,
       skillId: context.skill.skillId,
       specialization: context.skill.specialization,
       maneuverType: context.maneuverType,
       difficulty: request.difficulty || action.maneuver!.modifiers.difficulty || 'm',
-      light: request.light,
+      light: request.light ?? calculation.light,
       lightModifier: calculation.lightUsage,
       customBonus: request.customBonus,
       selections: request.selections,
@@ -171,24 +218,76 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     };
   }
 
-  /** Absolute maneuver: the result table of the skill's profile (M3), with the unusual event of an unmodified 66. */
+  /**
+   * Absolute maneuver: the result table of the skill's profile (M3), with the unusual event of an unmodified 66. With
+   * `unusualLuck` (workspace spec 076, §2.8) the 66 is no unusual event: the table's absolute success, else a success.
+   */
   private async resolveAbsolute(
     action: Action,
     context: ManeuverContext,
     total: number,
     unusualEvent: boolean,
+    unusualLuck = false,
   ): Promise<ActorRoundAlert | null> {
     const result = await this.maneuverPort.absolute(total, context.profile.resultTable, unusualEvent);
+    const lucky = unusualLuck && result.result !== ABSOLUTE_SUCCESS;
     action.maneuver!.result = new ActionManeuverResult(
-      result.result,
+      lucky ? SUCCESS : result.result,
       undefined,
-      result.message,
-      result.effects ?? [],
+      lucky ? undefined : result.message,
+      lucky ? [] : (result.effects ?? []),
       undefined,
       undefined,
       unusualEvent || undefined,
     );
+    if (unusualLuck) {
+      action.maneuver!.result.rollTalent = 'unusual-luck';
+    }
     return null;
+  }
+
+  /**
+   * Workspace spec 076, §2.8: Absolute Ease of the category of the skill makes a success from its tier's total an
+   * absolute success and, with Absolute Disaster, a failure up to its tier's total an absolute failure.
+   */
+  static applyAbsoluteEase(action: Action, context: ManeuverContext, profile: ActorRollProfile, total: number): void {
+    const result = action.maneuver?.result;
+    if (!result || !context.categoryId) return;
+    const entry = profile.absoluteEase.find(each => each.categoryId === context.categoryId);
+    const changed = absoluteEaseResult(entry, result.result, total);
+    if (!changed) return;
+    result.result = changed;
+    result.message = undefined;
+    result.effects = [];
+    result.rollTalent = changed === ABSOLUTE_SUCCESS ? 'absolute-ease' : 'absolute-disaster';
+  }
+
+  /**
+   * Workspace spec 076, §2.6: the maneuver of a combat talent. Battle Cry only in the actor's first round in the combat
+   * (its first actor round in the game), and the foe of the others an actor of the round.
+   */
+  private async validateCombatTalent(
+    action: Action,
+    context: ManeuverContext,
+    talent: CombatTalentPurpose,
+    choices: CombatTalentChoices,
+  ): Promise<void> {
+    const firstRound = talent === 'battle-cry' ? await this.isFirstRound(action) : true;
+    validateCombatTalentPurpose(context.actorRound, context.skill, talent, choices, { firstRound });
+    if (choices.foeActorId) {
+      const foe = await this.actorRoundRepository.findByActorIdAndRound(action.gameId, choices.foeActorId, action.round);
+      if (!foe) throw new NotFoundError('Target actor', choices.foeActorId, 'err-maneuver-target-not-found');
+    }
+  }
+
+  /** The actor has no actor round in an earlier round of the game. */
+  private async isFirstRound(action: Action): Promise<boolean> {
+    const earlier = await this.actorRoundRepository.findByRsql(
+      `gameId==${action.gameId};actorId==${action.actorId};round<${action.round}`,
+      0,
+      1,
+    );
+    return earlier.content.length === 0;
   }
 
   /**

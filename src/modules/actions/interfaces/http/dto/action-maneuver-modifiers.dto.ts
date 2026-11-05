@@ -3,7 +3,12 @@ import { ActionManeuverModifiers } from '../../../domain/value-objects/action-ma
 import type { Difficulty } from '../../../domain/value-objects/difficulty.vo.js';
 import type { ManeuverModifierSelection } from '../../../domain/value-objects/maneuver-profile.vo.js';
 import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo.js';
-import type { FrenzyPurpose } from '../../../domain/value-objects/frenzy-purpose.vo.js';
+import {
+  MANEUVER_PURPOSES,
+  type ManeuverPurpose,
+  PRECISION_POSITIONS,
+  type PrecisionPosition,
+} from '../../../domain/value-objects/maneuver-purpose.vo.js';
 
 export class ActionManeuverModifiersDto {
   @ApiProperty({ description: 'Skill identifier', example: 'climbing' })
@@ -42,11 +47,23 @@ export class ActionManeuverModifiersDto {
 
   @ApiProperty({
     type: String,
-    description: 'Adrenal Focus maneuver to enter or leave the frenzy (spec 040)',
-    enum: ['frenzy-enter', 'frenzy-enter-greater', 'frenzy-exit'],
+    description: 'What the maneuver is for: the frenzy (spec 040) or a combat talent (spec 076)',
+    enum: MANEUVER_PURPOSES,
     required: false,
   })
-  purpose?: FrenzyPurpose;
+  purpose?: ManeuverPurpose;
+
+  @ApiProperty({ description: 'Combat talent maneuver (spec 076): the foe of Sense Weakness, Study Offense or Precision', required: false })
+  foeActorId?: string;
+
+  @ApiProperty({ description: 'Battle Cry (spec 076): level of the highest level foe', required: false })
+  foeLevel?: number;
+
+  @ApiProperty({ type: String, description: 'Precision (spec 076): position of the attacker', enum: PRECISION_POSITIONS, required: false })
+  position?: PrecisionPosition;
+
+  @ApiProperty({ description: 'Precision (spec 076): OB given up to make the maneuver easier', required: false })
+  obPenalty?: number;
 
   static fromEntity(entity: ActionManeuverModifiers): ActionManeuverModifiersDto {
     const dto = new ActionManeuverModifiersDto();
@@ -63,6 +80,10 @@ export class ActionManeuverModifiersDto {
     dto.targetActorId = entity.targetActorId ?? undefined;
     dto.passiveSkillId = entity.passiveSkillId ?? undefined;
     dto.purpose = entity.purpose ?? undefined;
+    dto.foeActorId = entity.foeActorId ?? undefined;
+    dto.foeLevel = entity.foeLevel ?? undefined;
+    dto.position = entity.position ?? undefined;
+    dto.obPenalty = entity.obPenalty ?? undefined;
     return dto;
   }
 }

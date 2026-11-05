@@ -1,10 +1,22 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ActionAttack } from '../../../domain/value-objects/action-attack.vo.js';
+import { ActionAttack, type ActionAttackReaction } from '../../../domain/value-objects/action-attack.vo.js';
 import type { AttackStatus } from '../../../domain/value-objects/attack-status.vo.js';
 import { ActionAttackCalculatedDto } from './action-attack-calculated.dto.js';
 import { ActionAttackModifiersDto } from './action-attack-modifiers.dto.js';
 import { ActionAttackResultsDto } from './action-attack-results.dto.js';
 import { ActionAttackRollDto } from './action-attack-roll.dto.js';
+
+/** Workspace spec 076: the reaction talent the attack comes from. */
+export class ActionAttackReactionDto {
+  @ApiProperty({ example: 'riposte' })
+  traitId: string;
+
+  @ApiProperty({ description: 'Action that triggered the reaction' })
+  triggerActionId: string;
+
+  @ApiProperty({ type: Number, nullable: true, description: 'Fixed OB of the attack; null: the OB declared', example: 15 })
+  obOverride: number | null;
+}
 
 export class ActionAttackDto {
   @ApiProperty({ description: 'Name of the attack', example: 'mainHand' })
@@ -33,12 +45,16 @@ export class ActionAttackDto {
   })
   public status: AttackStatus;
 
+  @ApiProperty({ type: ActionAttackReactionDto, required: false, description: 'Reaction talent of the attack (spec 076)' })
+  public reaction?: ActionAttackReaction;
+
   static fromEntity(entity: ActionAttack): ActionAttackDto {
     const dto = new ActionAttackDto();
     dto.attackName = entity.attackName;
     dto.type = entity.type;
     dto.modifiers = ActionAttackModifiersDto.fromEntity(entity.modifiers);
     dto.status = entity.status;
+    if (entity.reaction) dto.reaction = { ...entity.reaction };
     dto.roll = entity.roll ? ActionAttackRollDto.fromEntity(entity.roll) : undefined;
     dto.results = entity.results ? ActionAttackResultsDto.fromEntity(entity.results) : undefined;
     dto.calculated = entity.calculated ? ActionAttackCalculatedDto.fromEntity(entity.calculated) : undefined;

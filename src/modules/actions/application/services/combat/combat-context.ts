@@ -11,6 +11,7 @@ import type {
 } from './combat-attack-calculation.js';
 import type { CombatModifierOrigin } from './combat-modifier-bag.js';
 import type { SkippedRule } from '../../../domain/value-objects/skipped-rule.vo.js';
+import type { LightType } from '../../../domain/value-objects/light-type.vo.js';
 
 export interface CombatTraceEntry {
   source: string;
@@ -49,6 +50,8 @@ export interface CombatContext {
   attackNumber?: number;
   targetsNumber?: number;
   gameLethality?: number;
+  /** Ambient light of the tactical game (workspace spec 076, P6); null or missing when it has none. */
+  light?: LightType | null;
   attackPreparation?: CombatAttackPreparation;
   /** Armour type the attack table is looked up with (the target's, or the one of the location hit). */
   armorType?: number | null;
@@ -80,6 +83,8 @@ export interface CombatPrepareAttackInput {
   attackNumber: number;
   targetsNumber: number;
   gameLethality: number;
+  /** Ambient light of the tactical game (workspace spec 076, P6). */
+  light?: LightType | null;
 }
 
 export interface CombatResolutionInput {

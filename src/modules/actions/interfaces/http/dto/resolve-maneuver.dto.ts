@@ -1,6 +1,18 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsIn, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, Max, Min, ValidateNested } from 'class-validator';
+import {
+  MISSING_SENSE_HELPFUL_DEFAULT,
+  MISSING_SENSE_HELPFUL_MIN,
+  HEATSENSE_MAX,
+  SENSE_SELECTIONS,
+  SENSE_USAGES,
+  SENSES,
+  type Sense,
+  type SenseSelection,
+  type SenseChoices,
+  type SenseUsage,
+} from '../../../../shared/domain/senses/sense-modifiers.js';
 import {
   ManeuverRoll,
   ResolveManeuverCommand,
@@ -11,7 +23,12 @@ import type { LightType } from '../../../domain/value-objects/light-type.vo.js';
 import type { LightManeuverModifier } from '../../../domain/value-objects/light-maneuver-modifier.vo.js';
 import type { ManeuverModifierSelection } from '../../../domain/value-objects/maneuver-profile.vo.js';
 import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo.js';
-import { FRENZY_PURPOSES, type FrenzyPurpose } from '../../../domain/value-objects/frenzy-purpose.vo.js';
+import {
+  MANEUVER_PURPOSES,
+  type ManeuverPurpose,
+  PRECISION_POSITIONS,
+  type PrecisionPosition,
+} from '../../../domain/value-objects/maneuver-purpose.vo.js';
 
 export class ManeuverRollDto {
   @ApiProperty({ description: 'Total of the open-ended roll', example: 87 })
@@ -22,6 +39,17 @@ export class ManeuverRollDto {
   @IsOptional()
   @IsNumber()
   unmodified?: number;
+
+  @ApiProperty({
+    description: 'Every die of the open-ended roll (spec 076): checked with the roll profile of the actor (err-roll-open-ended-invalid)',
+    required: false,
+    type: [Number],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsInt({ each: true })
+  dice?: number[];
 }
 
 /** @deprecated Body of the resolve request before spec 010. Read for one more version. */
@@ -68,7 +96,12 @@ export class ResolveManeuverDto {
   @IsString()
   difficulty?: Difficulty;
 
-  @ApiProperty({ type: String, description: 'Light of the environment, when the skill uses light', example: 'dark', required: false })
+  @ApiProperty({
+    type: String,
+    description: 'Light of the environment, when the skill uses light; the ambient light of the game when left out (spec 076)',
+    example: 'dark',
+    required: false,
+  })
   @IsOptional()
   @IsString()
   light?: LightType;
@@ -114,13 +147,98 @@ export class ResolveManeuverDto {
 
   @ApiProperty({
     type: String,
-    description: 'Adrenal Focus maneuver to enter or leave the frenzy (spec 040)',
-    enum: FRENZY_PURPOSES,
+    description:
+      'What the maneuver is for: Adrenal Focus to enter or leave the frenzy (spec 040), or a combat talent (spec 076): ' +
+      'battle-cry (Influence), sense-weakness and study-offense (Perception, 4 AP), precision (Ambush)',
+    enum: MANEUVER_PURPOSES,
     required: false,
   })
   @IsOptional()
-  @IsIn(FRENZY_PURPOSES)
-  purpose?: FrenzyPurpose;
+  @IsIn(MANEUVER_PURPOSES)
+  purpose?: ManeuverPurpose;
+
+  @ApiProperty({ description: 'sense-weakness, study-offense, precision (spec 076): the foe', required: false })
+  @IsOptional()
+  @IsString()
+  foeActorId?: string;
+
+  @ApiProperty({ description: 'battle-cry (spec 076): level of the highest level foe, -2 per level', required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  foeLevel?: number;
+
+  @ApiProperty({
+    type: String,
+    description: 'precision (spec 076): -50 rear, -70 flank, -100 front',
+    enum: PRECISION_POSITIONS,
+    required: false,
+  })
+  @IsOptional()
+  @IsIn(PRECISION_POSITIONS)
+  position?: PrecisionPosition;
+
+  @ApiProperty({ description: 'precision (spec 076): OB given up to the attack, which makes the maneuver as much easier', required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  obPenalty?: number;
+
+  @ApiProperty({
+    description: 'Spasm (spec 076): rounds of the spasm of a natural 66 (d10); the API rolls them when left out',
+    required: false,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  spasmRounds?: number;
+
+  @ApiProperty({
+    type: String,
+    description: 'Perception and Tracking (spec 076): the sense used, vision by default (err-maneuver-sense-not-allowed for other skills)',
+    enum: SENSES,
+    required: false,
+  })
+  @IsOptional()
+  @IsIn(SENSES)
+  sense?: Sense;
+
+  @ApiProperty({
+    type: String,
+    description: 'Perception and Tracking (spec 076): the maneuver requires the sense (default) or the sense only helps',
+    enum: SENSE_USAGES,
+    required: false,
+  })
+  @IsOptional()
+  @IsIn(SENSE_USAGES)
+  senseUsage?: SenseUsage;
+
+  @ApiProperty({
+    description: 'Perception and Tracking (spec 076): situations of the sense talents',
+    enum: SENSE_SELECTIONS,
+    isArray: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(SENSE_SELECTIONS.length)
+  @IsIn(SENSE_SELECTIONS, { each: true })
+  senseSelections?: SenseSelection[];
+
+  @ApiProperty({ description: 'Missing Sense where the sense helps (spec 076): -20 by default, -50 to -20', required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(MISSING_SENSE_HELPFUL_MIN)
+  @Max(MISSING_SENSE_HELPFUL_DEFAULT)
+  missingSenseModifier?: number;
+
+  @ApiProperty({ description: 'Heatsense with a warm or cold target close by (spec 076): +20 by default, 0 to 20', required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(HEATSENSE_MAX)
+  heatsenseModifier?: number;
 
   @ApiProperty({ description: 'Roll', type: ManeuverRollDto })
   @ValidateNested()
@@ -137,7 +255,7 @@ export class ResolveManeuverDto {
     return new ResolveManeuverCommand(
       actionId,
       ResolveManeuverDto.toRequest(dto),
-      new ManeuverRoll(dto.roll?.roll, dto.roll?.unmodified),
+      new ManeuverRoll(dto.roll?.roll, dto.roll?.unmodified, dto.roll?.dice),
       userId,
       roles,
     );
@@ -160,6 +278,22 @@ export class ResolveManeuverDto {
         ? { targetActorId: dto.targetActorId, roll: dto.passiveRoll, skillId: dto.passiveSkillId, bonus: dto.passiveBonus }
         : undefined,
       dto.purpose,
+      dto.foeActorId !== undefined || dto.foeLevel !== undefined || dto.position !== undefined || dto.obPenalty !== undefined
+        ? { foeActorId: dto.foeActorId, foeLevel: dto.foeLevel, position: dto.position, obPenalty: dto.obPenalty }
+        : undefined,
+      dto.spasmRounds,
+      ResolveManeuverDto.toSenses(dto),
     );
+  }
+
+  private static toSenses(dto: ResolveManeuverDto): SenseChoices | undefined {
+    const senses: SenseChoices = {
+      sense: dto.sense,
+      senseUsage: dto.senseUsage,
+      senseSelections: dto.senseSelections,
+      missingSenseModifier: dto.missingSenseModifier,
+      heatsenseModifier: dto.heatsenseModifier,
+    };
+    return Object.values(senses).some(value => value !== undefined) ? senses : undefined;
   }
 }

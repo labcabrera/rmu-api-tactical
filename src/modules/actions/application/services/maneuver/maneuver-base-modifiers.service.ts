@@ -75,6 +75,7 @@ export const MANEUVER_RULES = {
   pace: 'Table 5-3',
   actionPoints: '§8.1',
   light: 'Table 15-7',
+  lightSensitivity: '§4.5',
   conflict: '§8.2',
   frenzy: '§3.4',
 } as const;

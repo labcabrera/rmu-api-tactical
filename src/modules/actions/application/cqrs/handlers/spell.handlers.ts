@@ -6,6 +6,9 @@ import {
   ACTOR_ROUND_REPOSITORY,
 } from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
 import { ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { rollProfileOf } from '../../../../actor-rounds/domain/value-objects/actor-roll-profile.vo.js';
+import { checkOpenEndedDice } from '../../../../shared/domain/rolls/open-ended.js';
+import { applyNaturalRoll } from '../../../domain/services/roll-talents.js';
 import { isUpstreamHttpError } from '../../../../shared/infrastructure/http/http-client.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 import { Action } from '../../../domain/aggregates/action.js';
@@ -62,6 +65,7 @@ export class RollSpellHandler implements ICommandHandler<RollSpellCommand, Actio
     @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
     @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
     private readonly spellCasting: SpellCastingService,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
   ) {}
 
   async execute(command: RollSpellCommand): Promise<Action> {
@@ -69,6 +73,12 @@ export class RollSpellHandler implements ICommandHandler<RollSpellCommand, Actio
     checkRoll(command.roll);
     const context = await this.spellCasting.load(command.actionId);
     checkStatus(context, 'declared', 'Spellcasting Roll');
+    const natural = command.natural ?? {};
+    // Workspace spec 076, §2.8: the dice sent are an open-ended chain of the caster's roll profile.
+    checkOpenEndedDice(natural.dice, 'both', rollProfileOf(context.actorRound.traits), {
+      total: command.roll,
+      unmodified: natural.unmodified,
+    });
     context.action.checkResolvable(context.actorRound, context.currentPhase);
     const calculation = await this.spellCasting.calculate(context, command.options);
     this.spellCasting.checkPreparation(context.spell, calculation.options);
@@ -82,6 +92,19 @@ export class RollSpellHandler implements ICommandHandler<RollSpellCommand, Actio
     context.action.actionPoints = context.action.apOf(context.actorRound, context.currentPhase);
     context.action.status = result === 'failure' ? 'pending_roll' : 'pending_apply';
     context.action.updatedAt = new Date();
+    // Workspace spec 076, decision B10 (P5): Terrible Luck and Spasm on the natural roll of the cast.
+    const outcome = applyNaturalRoll(
+      context.actorRound,
+      natural.unmodified ?? natural.dice?.[0],
+      { kind: 'spell', actionId: context.action.id },
+      {
+        spasmRounds: natural.spasmRounds,
+        application: () => ({ phase: context.currentPhase, spentAp: context.actorRound.getSpentAp(context.currentPhase) }),
+      },
+    );
+    if (outcome.terribleLuck || outcome.spasm) {
+      await this.actorRoundRepository.update(context.actorRound);
+    }
     return saveAction(this.actionRepository, this.eventPublisher, context);
   }
 }

@@ -9,6 +9,7 @@ import { type GameRepository, GAME_REPOSITORY } from '../../../../games/applicat
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
 import { Action } from '../../../domain/aggregates/action.js';
 import { applyStyleCriticalOption, checkStyleCriticalOption } from '../../../domain/services/style-critical-option.js';
+import { type CriticalRerollGrant, findCriticalReroll } from '../../../domain/services/critical-reroll.js';
 import type { ActionAttack } from '../../../domain/value-objects/action-attack.vo.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo.js';
@@ -16,6 +17,7 @@ import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-rep
 import { type CriticalTablePort, CRITICAL_TABLE_PORT } from '../../ports/critical-table.port.js';
 import { CombatProcessor } from '../../services/combat/index.js';
 import { UpdateCriticalRollCommand } from '../commands/update-critical-roll.command.js';
+import { checkOpenEndedDice, DEFAULT_OPEN_ENDED } from '../../../../shared/domain/rolls/open-ended.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 const MIN_CRITICAL_ROLL = 1;
@@ -44,6 +46,7 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
 
   async execute(command: UpdateCriticalRollCommand): Promise<Action> {
     this.logger.log(`Execute << ${JSON.stringify(command)}`);
+    checkOpenEndedDice(command.dice, 'none', DEFAULT_OPEN_ENDED, { total: command.roll });
 
     const action = await this.actionRepository.findById(command.actionId);
     if (!action) throw new NotFoundError('Action', command.actionId);
@@ -69,6 +72,10 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
     // resolves all of them again from the location of the attack.
     let location = attack.calculated?.location;
     const { sourceActor, targetActor } = await this.readActors(action, attack.modifiers.targetId);
+    const reroll = command.reroll
+      ? UpdateCriticalRollHandler.checkReroll(attack, command.criticalKey, sourceActor, targetActor)
+      : undefined;
+    const previousRolls = new Map(attack.roll!.criticalRolls);
     this.applyStyleOption(command, attack, sourceActor);
     for (const each of attack.results.criticals) {
       const ctx = await this.combatProcessor.runPhase('criticalRoll', {
@@ -93,14 +100,54 @@ export class UpdateCriticalRollHandler implements ICommandHandler<UpdateCritical
         location: ctx.location ?? location,
       });
       each.status = 'completed';
+      if (reroll) {
+        each.originalRoll = previousRolls.get(each.key) ?? null;
+        each.rerolledBy = reroll.kind;
+      }
       location = location ?? toAttackLocation(each.result.location);
     }
     action.refreshAttackStatuses();
+    // The effect is used up with the new roll.
+    if (reroll) {
+      reroll.holder.consumeEffects([reroll.effect.id]);
+      await this.actorRoundRepository.update(reroll.holder);
+    }
 
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action);
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     return updated;
+  }
+
+  /**
+   * Workspace spec 076, decision B8: a critical is rolled again once it has a roll, before the attack is applied (checked
+   * by the caller), and only once: the attacker needs a `critical-reroll` of kind `offense` against the target, or the
+   * target one of kind `defense` against the attacker (`err-reroll-not-available`). Every critical of the attack shares
+   * the roll (§9.8), so all of them take the new one.
+   */
+  static checkReroll(
+    attack: ActionAttack,
+    criticalKey: string,
+    sourceActor: ActorRound | undefined,
+    targetActor: ActorRound | undefined,
+  ): CriticalRerollGrant {
+    const critical = attack.results?.criticals?.find(each => each.key === criticalKey);
+    const rolled = !!critical?.result && attack.roll?.criticalRolls?.get(criticalKey) !== undefined;
+    if (!rolled) {
+      throw new ValidationError(`Critical ${criticalKey} has no roll to roll again`, 'err-reroll-not-available', { reason: 'not-rolled' });
+    }
+    if (attack.results!.criticals!.some(each => !!each.rerolledBy)) {
+      throw new ValidationError(`The criticals of ${attack.attackName} were already rolled again`, 'err-reroll-not-available', {
+        reason: 'already-rerolled',
+      });
+    }
+    const grant = findCriticalReroll(sourceActor, targetActor);
+    if (!grant) {
+      throw new ValidationError('Neither the attacker nor the target can roll this critical again', 'err-reroll-not-available', {
+        reason: 'no-effect',
+      });
+    }
+    return grant;
   }
 
   /**

@@ -55,6 +55,36 @@ export class ActionResolutionDto {
   }
 }
 
+/** Workspace spec 076: the reaction of an attack forced as `reaction`. */
+export class ActionReactionDto {
+  @ApiProperty({ example: 'riposte' })
+  traitId: string;
+
+  @ApiProperty({ description: 'Action that triggered the reaction' })
+  triggerActionId: string;
+
+  @ApiProperty({ type: Number, nullable: true, description: 'Fixed OB of the attack (Riposte); null: the OB declared', example: 15 })
+  obOverride: number | null;
+
+  @ApiProperty({ type: String, nullable: true, description: 'Alert it was declared from; null when forced by the game master' })
+  alertId: string | null;
+}
+
+/** Workspace spec 076: the weapon of a `draw_and_load` action. */
+export class ActionDrawAndLoadDto {
+  @ApiProperty({ type: String, nullable: true, description: 'Item of the actor drawn or loaded' })
+  itemId: string | null;
+}
+
+/** Workspace spec 076: the foe and the ranged weapon of an `aim` action (Sharpshooter). */
+export class ActionAimDto {
+  @ApiProperty({ description: 'Foe aimed at' })
+  targetActorId: string;
+
+  @ApiProperty({ description: 'Ranged weapon (item of the actor) aimed with' })
+  itemId: string;
+}
+
 export class ActionDto {
   @ApiProperty({ description: 'Action identifier', example: 'action-123' })
   id: string;
@@ -156,6 +186,15 @@ export class ActionDto {
   @ApiProperty({ description: 'Item of a use_item action (spec 068)', type: ActionUseItemDto, required: false, nullable: true })
   useItem: ActionUseItemDto | null;
 
+  @ApiProperty({ description: 'Reaction of an attack forced as reaction (spec 076)', type: ActionReactionDto, nullable: true })
+  reaction: ActionReactionDto | null;
+
+  @ApiProperty({ description: 'Weapon of a draw_and_load action (spec 076)', type: ActionDrawAndLoadDto, nullable: true })
+  drawAndLoad: ActionDrawAndLoadDto | null;
+
+  @ApiProperty({ description: 'Foe and weapon of an aim action (spec 076)', type: ActionAimDto, nullable: true })
+  aim: ActionAimDto | null;
+
   @ApiProperty({ description: 'Warnings of the request that did not need a confirmation (spec 068)', type: [ActionWarningDto] })
   warnings: ActionWarningDto[];
 
@@ -194,6 +233,9 @@ export class ActionDto {
     dto.parryExclusions = (entity.parryExclusions ?? []).map(p => ParryExclusionDto.fromEntity(p));
     dto.medical = entity.medical ? ActionMedicalDto.fromEntity(entity.medical) : null;
     dto.useItem = entity.useItem ? ActionUseItemDto.fromEntity(entity.useItem) : null;
+    dto.reaction = entity.reaction ? { ...entity.reaction } : null;
+    dto.drawAndLoad = entity.drawAndLoad ? { ...entity.drawAndLoad } : null;
+    dto.aim = entity.aim ? { ...entity.aim } : null;
     dto.warnings = (entity.warnings ?? []).map(warning => ActionWarningDto.fromEntity(warning));
     dto.fatigue = entity.fatigue;
     dto.description = entity.description;

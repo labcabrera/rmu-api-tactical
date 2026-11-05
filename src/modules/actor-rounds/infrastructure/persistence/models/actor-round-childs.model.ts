@@ -59,6 +59,10 @@ export class ActorRoundEffect {
   /** Spec 068: the cause of a dying effect was treated. */
   @Prop({ type: Boolean, required: false })
   causeTreated?: boolean;
+
+  /** Workspace spec 076: data of the effect (`aiming` item, `critical-reroll` kind, `precision` OB penalty). */
+  @Prop({ type: Object, required: false })
+  data?: Record<string, unknown>;
 }
 
 @Schema({ _id: false })

@@ -1,3 +1,4 @@
+import type { LightType } from '../../../../actions/domain/value-objects/light-type.vo.js';
 import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command.js';
 import type { ActorType } from '../../../domain/value-objects/actor-type.vo.js';
 
@@ -27,6 +28,7 @@ export class CreateGameCommandEnvironment {
   constructor(
     public readonly temperatureFatigueModifier?: number,
     public readonly altitudeFatigueModifier?: number,
+    public readonly light?: LightType | null,
   ) {}
 }
 

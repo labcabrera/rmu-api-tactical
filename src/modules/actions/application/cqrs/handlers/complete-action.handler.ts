@@ -13,6 +13,7 @@ import { Action } from '../../../domain/aggregates/action.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo.js';
 import { SIMPLE_ACTION_TYPES } from '../../../domain/value-objects/action-type.vo.js';
+import { accumulateAiming } from '../../../domain/services/aiming.js';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
 import { CompleteActionCommand } from '../commands/complete-action.command.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
@@ -24,7 +25,7 @@ const FULL_DEFENSE_ACTION_POINTS = ActionApProfile.forAction('dodge').max;
 const ACTION_PHASES = 4;
 
 /**
- * Completes an action that has no rolls (stand up, dodge, draw and load, other) in the current phase, with the AP of
+ * Completes an action that has no rolls (stand up, dodge, draw and load, aim, other) in the current phase, with the AP of
  * the ledger (spec 011): it needs the minimum AP of its profile unless it is forced. Standing up checks its cost and
  * clears the actor's prone effects. A dodge is the 4 AP full dodge or full block of the round (§9.6): completing it
  * takes the AP of the phases left in the round, and sets the actor's defence mode.
@@ -71,8 +72,13 @@ export class CompleteActionHandler implements ICommandHandler<CompleteActionComm
 
     if (command.note !== undefined) action.description = command.note;
     action.close(actorRound, currentPhase);
+    // Workspace spec 076, decision B6: a full round aiming adds to the aiming of the actor.
+    const aimed = action.actionType === 'aim' && !!action.aim;
+    if (aimed) {
+      accumulateAiming(actorRound, action.aim!, { phase: currentPhase, spentAp: actorRound.getSpentAp(currentPhase) });
+    }
 
-    if (action.actionType === 'dodge' || actorRound.apLedger.length !== ledgerSize) {
+    if (action.actionType === 'dodge' || aimed || actorRound.apLedger.length !== ledgerSize) {
       await this.actorRoundRepository.update(actorRound);
     }
     if (action.actionType === 'stand_up') {

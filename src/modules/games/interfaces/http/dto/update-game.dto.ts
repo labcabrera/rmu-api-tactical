@@ -47,7 +47,7 @@ export class UpdateGameDto {
 
   static toCommand(id: string, dto: UpdateGameDto, userId: string, roles: string[]) {
     const env = dto.environment
-      ? new GameEnvironment(dto.environment.temperatureFatigueModifier, dto.environment.altitudeFatigueModifier)
+      ? new GameEnvironment(dto.environment.temperatureFatigueModifier, dto.environment.altitudeFatigueModifier, dto.environment.light)
       : undefined;
     return new UpdateGameCommand(
       id,

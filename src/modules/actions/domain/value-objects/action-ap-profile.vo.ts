@@ -9,6 +9,11 @@ export interface ActionApProfileOptions {
   maneuver?: ManeuverActionPoints | null;
   /** The actor has Acrobatics ranks: standing up takes 1 AP (Table 8-1, §9.8 Prone). */
   acrobatics?: boolean;
+  /**
+   * Workspace spec 076, decision B4: drawing or loading with Quickdraw for the weapon (0 AP), or with Slow on the Draw
+   * while surprised (2 AP). Quickdraw wins.
+   */
+  draw?: { quickdraw?: boolean; slowOnTheDraw?: boolean };
 }
 
 /**
@@ -39,14 +44,20 @@ export class ActionApProfile {
         return options.acrobatics ? new ActionApProfile(1, 1, 0) : new ActionApProfile(2, 2, 0);
       case 'dodge':
         return new ActionApProfile(4, 4, 0);
+      case 'aim':
+        // Workspace spec 076, decision B6: aiming takes the full round
+        return new ActionApProfile(4, 4, 0);
       case 'medical':
         // Workspace spec 068, decision 2: 4 AP in each round it lasts, carried to the next round (spec 011, §5)
         return new ActionApProfile(4, 4, 0, true);
       case 'use_item':
         // Decision 7: a healing item takes 2 AP (core's `combatItemAp`, stored in the action's `apRange`)
         return new ActionApProfile(2, 2, 0);
-      case 'movement':
       case 'draw_and_load':
+        if (options.draw?.quickdraw) return new ActionApProfile(0, 0, 0);
+        if (options.draw?.slowOnTheDraw) return new ActionApProfile(2, 2, 0);
+        return new ActionApProfile(1, 1, 0);
+      case 'movement':
       case 'other':
       default:
         return new ActionApProfile(1, 1, 0);

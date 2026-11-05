@@ -520,3 +520,24 @@ describe('ApplyAttackHandler: coated weapons (workspace spec 042, decision 11)',
     expect(ctx.source.items[0].coating).toMatchObject({ name: 'Test venom' });
   });
 });
+
+describe('ApplyAttackHandler: aiming (spec 076, decision B6)', () => {
+  it('a target that takes damage loses its aiming', async () => {
+    const { run, target, effectCommands } = setup([criticalAttack([])]);
+    const aiming = new ActorRoundEffect('aiming-1', 'aiming', 10, undefined, 1, undefined, undefined, 'attacker');
+    target.effects.push(aiming);
+
+    await run();
+
+    expect(effectCommands().get('defender-round')!.consumedEffectIds).toContain('aiming-1');
+  });
+
+  it('a target that takes no damage keeps it', async () => {
+    const { run, target, effectCommands } = setup([appliedAttack('mainHand', [])]);
+    target.effects.push(new ActorRoundEffect('aiming-1', 'aiming', 10, undefined, 1, undefined, undefined, 'attacker'));
+
+    await run();
+
+    expect(effectCommands().get('defender-round')).toBeUndefined();
+  });
+});

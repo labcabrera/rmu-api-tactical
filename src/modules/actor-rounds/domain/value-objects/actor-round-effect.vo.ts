@@ -84,6 +84,37 @@ export const HALF_ACTIVITY_AP = 2;
 /** OB modifier of a blinded attacker: the pitch black row of Table 5-1 where sight is required (ch. 15). */
 export const BLINDED_MODIFIER = -100;
 
+/**
+ * Workspace spec 076, §2.4: positive OB and DB effects. `ob_bonus` and `db_bonus` (`value` > 0) add up, one effect
+ * each; `battle-cry` gives `value` (10) to both for the rest of the combat (no rounds) and is unique.
+ */
+export const OB_BONUS = 'ob_bonus';
+export const DB_BONUS = 'db_bonus';
+export const BATTLE_CRY = 'battle-cry';
+export const BATTLE_CRY_BONUS = 10;
+/**
+ * Workspace spec 076, §2.4: `aiming` (+`value` to the next ranged attack against `targetActorId` with the item
+ * `data.itemId`), `critical-reroll` (a critical against or from `targetActorId` can be rolled again; `data.kind` is
+ * `offense` or `defense`) and `precision` (`value` added to the next critical against `targetActorId`, `data.obPenalty`
+ * taken from its OB). Each one is unique: the new one replaces the old.
+ */
+export const AIMING = 'aiming';
+export const CRITICAL_REROLL = 'critical-reroll';
+export const PRECISION = 'precision';
+/** Kind of a `critical-reroll`: the attacker rerolls its critical (`offense`) or the defender the one it takes (`defense`). */
+export type CriticalRerollKind = 'offense' | 'defense';
+/**
+ * Workspace spec 076, §2.4: a spasm for `rounds` rounds: a stun of `value` (-50), 2 AP less and 1 hit lost in every
+ * upkeep. Unique: the new one replaces the old.
+ */
+export const SPASM = 'spasm';
+export const SPASM_STUN = -50;
+export const SPASM_AP_LOSS = 2;
+export const SPASM_HITS = 1;
+
+/** Effects of which only the last one applied counts (workspace spec 076). */
+const REPLACING_STATUSES = [AIMING, CRITICAL_REROLL, PRECISION, SPASM];
+
 export const AP_EFFECT_STATUSES = [
   SURPRISED,
   FLATFOOTED,
@@ -121,6 +152,8 @@ export class ActorRoundEffect {
      * treated; the next successful stabilization removes it.
      */
     public causeTreated?: boolean,
+    /** Data the effect needs that `value` and `targetActorId` do not hold (workspace spec 076, §2.4). */
+    public data?: Record<string, unknown>,
   ) {}
 
   /** The effect is delayed and has not started by `round`. */
@@ -135,11 +168,17 @@ export class ActorRoundEffect {
       case DISARMED:
       case FRENZY:
       case FRENZY_DYING:
+      case BATTLE_CRY:
       case 'surprised':
       case 'flatfooted':
         return true;
     }
     return false;
+  }
+
+  /** Only the last one counts: a new one replaces the one the actor had (workspace spec 076). */
+  static isReplacing(effect: ActorRoundEffect): boolean {
+    return REPLACING_STATUSES.includes(effect.status);
   }
 
   static isStackable(effect: ActorRoundEffect): boolean {

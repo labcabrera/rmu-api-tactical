@@ -1,10 +1,21 @@
 /**
  * Where a change of hits comes from (spec 013, §1.1): the attack table damage, the extra hits of a critical, a fumble,
- * the bleeding of an injury in the upkeep, an endurance roll, a `heal` effect, a game master adjustment or a poisoning (workspace spec 042).
+ * the bleeding of an injury in the upkeep, an endurance roll, a `heal` effect, a game master adjustment or a poisoning (workspace spec 042)
+ * or a spasm in the upkeep (workspace spec 076).
  */
-export type HpLogKind = 'attack' | 'critical' | 'fumble' | 'bleeding' | 'endurance' | 'treatment' | 'manual' | 'poison';
+export type HpLogKind = 'attack' | 'critical' | 'fumble' | 'bleeding' | 'endurance' | 'treatment' | 'manual' | 'poison' | 'spasm';
 
-export const HP_LOG_KINDS: HpLogKind[] = ['attack', 'critical', 'fumble', 'bleeding', 'endurance', 'treatment', 'manual', 'poison'];
+export const HP_LOG_KINDS: HpLogKind[] = [
+  'attack',
+  'critical',
+  'fumble',
+  'bleeding',
+  'endurance',
+  'treatment',
+  'manual',
+  'poison',
+  'spasm',
+];
 
 /** A change of the hits of an actor round (spec 013, §1.1). */
 export interface HpLogEntry {

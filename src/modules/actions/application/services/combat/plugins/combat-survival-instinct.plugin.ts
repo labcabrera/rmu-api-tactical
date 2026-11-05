@@ -1,34 +1,17 @@
 import { SURVIVAL_INSTINCT } from '../../../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
+import { ownParryOf, parriedWithAllOb as parriedWithAllObRule, parryAttackOf } from '../../../../domain/services/parry-rules.js';
 import type { CombatContext } from '../combat-context.js';
 import { rollModifiers, targetTraitTierForSkill } from '../combat-modifiers.js';
 import type { CombatPlugin } from '../combat-plugin.js';
 
 const SURVIVAL_INSTINCT_DB = 25;
 
-/**
- * The target parried this attacker with all the OB it had available (workspace spec 040, decision 3): one parry of
- * its own, not a protection, equal to its available OB. A carried-over parry counts when the first one did.
- */
-const parriedWithAllOb = (ctx: CombatContext): boolean => {
-  const targetId = ctx.targetActor?.actorId;
-  return (ctx.action.parries || []).some(
-    parry =>
-      parry.actorId === targetId &&
-      parry.targetActorId === targetId &&
-      parry.parryType === 'parry' &&
-      parry.parry > 0 &&
-      (parry.carriedOver ? !!parry.fullParry : parry.parry >= parry.parryAvailable),
-  );
-};
+/** The target parried this attacker with all the OB it had available (workspace spec 040, decision 3). */
+const parriedWithAllOb = (ctx: CombatContext): boolean => parriedWithAllObRule(ctx.action.parries, ctx.targetActor?.actorId);
 
 /** The talent was taken for the melee attack the parry comes from: the one with the highest OB (decision 4). */
 const survivalInstinctApplies = (ctx: CombatContext): boolean => {
-  const parryAttack = (ctx.targetActor?.attacks || [])
-    .filter(attack => attack.type === 'melee')
-    .reduce<{ skillId: string | null; currentBo: number } | undefined>(
-      (best, attack) => (!best || attack.currentBo > best.currentBo ? attack : best),
-      undefined,
-    );
+  const parryAttack = parryAttackOf(ctx.targetActor?.attacks, ownParryOf(ctx.action.parries, ctx.targetActor?.actorId));
   return !!parryAttack && targetTraitTierForSkill(ctx, SURVIVAL_INSTINCT, parryAttack.skillId) > 0;
 };
 

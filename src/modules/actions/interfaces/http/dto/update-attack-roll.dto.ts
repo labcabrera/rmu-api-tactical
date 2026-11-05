@@ -20,7 +20,9 @@ export class UpdateAttackRollDto {
   unmodified?: number;
 
   @ApiProperty({
-    description: 'Every die of the open-ended roll, in order: a 33 or 77 calls for a breakage check',
+    description:
+      'Every die of the open-ended roll, in order: a 33 or 77 calls for a breakage check. The chain is checked with the ' +
+      'roll profile of the attacker (err-roll-open-ended-invalid), as its sum against roll and its first die against unmodified',
     example: [96, 33],
     required: false,
     type: [Number],
@@ -33,7 +35,19 @@ export class UpdateAttackRollDto {
   @Max(100, { each: true })
   rolls?: number[];
 
+  @ApiProperty({
+    description: 'Spasm (spec 076): rounds of the spasm of a natural 66 (d10); the API rolls them when left out',
+    required: false,
+    minimum: 1,
+    maximum: 10,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  spasmRounds?: number;
+
   static toCommand(actionId: string, dto: UpdateAttackRollDto, userId: string, roles: string[]) {
-    return new UpdateAttackRollCommand(actionId, dto.attackName, dto.roll, userId, roles, dto.unmodified, dto.rolls);
+    return new UpdateAttackRollCommand(actionId, dto.attackName, dto.roll, userId, roles, dto.unmodified, dto.rolls, dto.spasmRounds);
   }
 }

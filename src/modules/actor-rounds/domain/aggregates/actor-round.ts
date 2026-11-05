@@ -3,7 +3,8 @@ import type { AttackLocation } from '../../../actions/domain/value-objects/attac
 import { BaseAggregateRoot } from '../../../shared/domain/aggregates/base-aggregate.js';
 import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors/errors.js';
 import { ActorRoundCreatedEvent } from '../events/actor-round.events.js';
-import { ActorRoundAlert } from '../value-objects/actor-round-alert.vo.js';
+import { ActorRoundAlert, type ReactionAlertData } from '../value-objects/actor-round-alert.vo.js';
+import { type ActorRollProfile, rollProfileOf } from '../value-objects/actor-roll-profile.vo.js';
 import { ActorRoundAlertModifier } from '../value-objects/actor-round-alert-modifier.vo.js';
 import { ActorRoundAttack } from '../value-objects/actor-round-attack.vo.js';
 import { ActorRoundDefenseMode, type DefenseLevel } from '../value-objects/actor-round-defense-mode.vo.js';
@@ -14,7 +15,16 @@ import {
   AP_CAP,
   ARM_USELESS,
   ATTACK_PENALTY,
+  BATTLE_CRY,
+  BATTLE_CRY_BONUS,
   BLEEDING,
+  CRITICAL_REROLL,
+  DB_BONUS,
+  OB_BONUS,
+  SPASM,
+  SPASM_AP_LOSS,
+  SPASM_HITS,
+  SPASM_STUN,
   CANNOT_ATTACK,
   CANNOT_PARRY,
   DEAD,
@@ -186,6 +196,9 @@ export interface LedgerSourceAction {
   phaseEnd: number | null;
   freeAction: boolean;
 }
+
+/** Alerts the game master marks as resolved by hand (spec 034, workspace spec 076). */
+const MANUALLY_RESOLVED_ALERTS: string[] = ['critical', 'reaction-available', 'terrible-luck'];
 
 /** Phase number of the upkeep (see `Game.getEffectPhase`). */
 const UPKEEP_PHASE = 5;
@@ -1439,6 +1452,13 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       this.normalizeSurprise(effect);
     }
     ActorRound.normalizeApEffect(effect);
+    ActorRound.normalizeCombatTalentEffect(effect);
+    // Workspace spec 076: aiming, a critical reroll, precision and a spasm count once; the new one replaces the old.
+    // A Sense Weakness (offense) and a Study Offense (defense) reroll can be held at once: each replaces its own kind.
+    if (ActorRoundEffect.isReplacing(effect)) {
+      const kindOf = (e: ActorRoundEffect) => (e.status === CRITICAL_REROLL ? (e.data?.kind ?? 'offense') : null);
+      this.effects = this.effects.filter(e => e.status !== effect.status || kindOf(e) !== kindOf(effect));
+    }
     if (ActorRoundEffect.isRoundBound(effect)) {
       effect.rounds = 1;
     }
@@ -1491,6 +1511,25 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       throw new ValidationError(`A surprised actor loses 1 or 2 action points, not ${lost}`);
     }
     effect.value = lost;
+  }
+
+  /**
+   * Workspace spec 076, §2.4: an OB or DB bonus needs a positive value; Battle Cry gives +10 for the whole combat and a
+   * spasm a stun of -50 by default.
+   */
+  private static normalizeCombatTalentEffect(effect: ActorRoundEffect): void {
+    if (effect.status === OB_BONUS || effect.status === DB_BONUS) {
+      if (!effect.value || effect.value <= 0) {
+        throw new ValidationError(`A ${effect.status} effect needs a positive value`, 'err-effect-invalid-value');
+      }
+    }
+    if (effect.status === BATTLE_CRY) {
+      effect.value = effect.value ?? BATTLE_CRY_BONUS;
+      effect.rounds = undefined;
+    }
+    if (effect.status === SPASM) {
+      effect.value = effect.value ?? SPASM_STUN;
+    }
   }
 
   /** Checks the value of an AP effect, and sets the default one of those that have it. */
@@ -1653,6 +1692,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       return;
     }
     this.applyStaggeredUpkeep();
+    this.applySpasmUpkeep();
     // Spec 013, §3: the bleeding of the injuries, logged by injury (§1.1).
     this.hp.current -= bleeding;
     this.injuries
@@ -1702,6 +1742,15 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     if (pending > 0) {
       this.effects.push(new ActorRoundEffect(randomUUID(), STAGGERED, pending, undefined, this.round + 1, 1, 0));
     }
+  }
+
+  /** Workspace spec 076, §2.4: a spasm takes 1 hit in every upkeep while it lasts. */
+  private applySpasmUpkeep(): void {
+    if (!this.hasEffect(SPASM)) {
+      return;
+    }
+    this.hp.current -= SPASM_HITS;
+    this.logHp({ kind: 'spasm', amount: -SPASM_HITS, phase: UPKEEP_PHASE });
   }
 
   /** The effect is still there after this upkeep: no duration, more than one round left, or applied late. */
@@ -1786,7 +1835,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   /** §9.8 Stun: the penalty of the most severe active stun, to every action. */
   private applyStunPenalty() {
     this.penalty.modifiers = this.penalty.modifiers.filter(m => m.source !== 'stunned');
-    const stunPenalty = Math.min(0, this.getWorstStun()?.value ?? 0);
+    // Workspace spec 076: a spasm stuns as a Stun of its value (-50).
+    const spasm = this.activeEffects().find(effect => effect.status === SPASM);
+    const stunPenalty = Math.min(0, this.getWorstStun()?.value ?? 0, spasm ? (spasm.value ?? SPASM_STUN) : 0);
     if (stunPenalty !== 0) {
       this.penalty.addModifier('stunned', stunPenalty);
     }
@@ -1867,6 +1918,14 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   /** The effect that keeps the actor from parrying (undefined if none). */
   parryForbiddenBy(): string | undefined {
     return [CANNOT_PARRY, ARM_USELESS, FRENZY].find(effect => this.hasEffect(effect));
+  }
+
+  /**
+   * OB left of the attack without taking off the parries of the round (workspace spec 076, decision B1): the most a
+   * reaction attack can use.
+   */
+  getBoIgnoringParries(attackName: string): number {
+    return this.getCurrentBo(attackName) + this.parries.reduce((sum, parry) => sum + parry, 0);
   }
 
   getCurrentBo(attackName: string): number {
@@ -2036,7 +2095,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
 
   /** Healers must be able (workspace spec 068, decision 1): not incapacitated, stunned, routed nor broken. */
   canHeal(): boolean {
-    return !this.isIncapacitated() && !this.hasEffect('stunned') && !this.isFearBlockingAttacks();
+    return !this.isIncapacitated() && !this.hasEffect('stunned') && !this.hasEffect(SPASM) && !this.isFearBlockingAttacks();
   }
 
   /**
@@ -2114,6 +2173,11 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   /** Resistance roll bonus of a type, from the character sheet; undefined when the actor has none (NPCs). */
   resistanceBonus(resistance: string): number | undefined {
     return this.resistances.find(each => each.resistance === resistance)?.totalBonus;
+  }
+
+  /** How the actor's talents change its rolls (workspace spec 076, §2.8), from its traits. */
+  rollProfile(): ActorRollProfile {
+    return rollProfileOf(this.traits);
   }
 
   /** Tier of one of the actor's traits, 0 when it does not have it. */
@@ -2329,6 +2393,10 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
         case HALF_ACTIVITY:
           modifiers.push(new ApModifier('half-activity', 'cap', HALF_ACTIVITY_AP, undefined, effect.id));
           break;
+        case SPASM:
+          // Workspace spec 076, §2.4: 2 AP less while it lasts.
+          this.pushLoss(modifiers, 'spasm', SPASM_AP_LOSS, effect);
+          break;
         case MANUAL_AP:
           if (value > 0) {
             modifiers.push(new ApModifier('manual', 'bonus', value, undefined, effect.id));
@@ -2446,10 +2514,76 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     if (!alert) {
       throw new NotFoundError('Alert', alertId);
     }
-    if (alert.type !== 'critical') {
+    // Workspace spec 076: the game master can dismiss a reaction or a Terrible Luck alert.
+    if (!MANUALLY_RESOLVED_ALERTS.includes(alert.type)) {
       throw new ValidationError(`A ${alert.type} alert is resolved with its roll`, 'err-alert-not-resolvable');
     }
     alert.status = 'resolved';
+  }
+
+  /**
+   * Workspace spec 076, decision B1: a reaction talent of the actor can attack out of turn. One alert per talent and
+   * triggering action: a repeated roll or application does not raise it again.
+   */
+  addReactionAlert(reaction: ReactionAlertData): ActorRoundAlert | undefined {
+    const raised = this.alerts.some(
+      alert =>
+        alert.type === 'reaction-available' &&
+        alert.reaction?.traitId === reaction.traitId &&
+        alert.reaction?.triggerActionId === reaction.triggerActionId,
+    );
+    if (raised) {
+      return undefined;
+    }
+    const alert = ActorRoundAlert.buildReaction(reaction);
+    this.alerts.push(alert);
+    return alert;
+  }
+
+  /**
+   * Workspace spec 076, decision B10: a natural 01 of an actor with Terrible Luck. One alert per roll: the same roll
+   * sent again does not raise it twice. Answers whether it was raised.
+   */
+  addTerribleLuckAlert(origin: string, actionId: string, attackName?: string): boolean {
+    const raised = this.alerts.some(
+      alert =>
+        alert.type === 'terrible-luck' &&
+        alert.getModifierText?.('origin') === origin &&
+        alert.getModifierText?.('actionId') === actionId &&
+        (alert.getModifierText?.('attackName') ?? undefined) === attackName,
+    );
+    if (raised) {
+      return false;
+    }
+    this.alerts.push(ActorRoundAlert.buildTerribleLuck(origin, actionId, attackName));
+    return true;
+  }
+
+  /**
+   * Workspace spec 076, decision B10: a natural 66 of an actor with Spasm gives it a spasm of `rounds` rounds (stun -50,
+   * 2 AP less, 1 hit per upkeep). `origin` names the roll: the same roll sent again gives no second spasm. Answers
+   * whether it was given.
+   */
+  addSpasm(rounds: number, origin: string, application?: EffectApplication): boolean {
+    if (this.effects.some(effect => effect.status === SPASM && effect.data?.origin === origin)) {
+      return false;
+    }
+    const effect = new ActorRoundEffect(randomUUID(), SPASM, SPASM_STUN, rounds);
+    effect.data = { origin };
+    this.applyAttackResults(undefined, [effect], undefined, application);
+    return true;
+  }
+
+  /** A pending `reaction-available` alert of the actor (undefined when it is not there, or is resolved or expired). */
+  pendingReactionAlert(alertId: string): ActorRoundAlert | undefined {
+    return this.alerts.find(alert => alert.id === alertId && alert.type === 'reaction-available' && alert.status === 'pending');
+  }
+
+  /** Workspace spec 076, decision B1: the reactions not taken expire when their phase ends. Answers whether any did. */
+  expireReactionAlerts(): boolean {
+    const pending = this.alerts.filter(alert => alert.type === 'reaction-available' && alert.status === 'pending');
+    pending.forEach(alert => (alert.status = 'expired'));
+    return pending.length > 0;
   }
 
   /** Spec 034: the fumble gives the fumbler a critical of that severity, for the game master to roll. */

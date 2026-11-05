@@ -11,7 +11,8 @@ import { ActionApProfile } from '../value-objects/action-ap-profile.vo.js';
 import { ActionMovement } from '../value-objects/action-movement.vo.js';
 import type { ActionSpell } from '../value-objects/action-spell.vo.js';
 import type { ActionMedical, ActionUseItem, ActionWarning } from '../value-objects/action-medical.vo.js';
-import { ActionResolution, type ForceReason } from '../value-objects/action-resolution.vo.js';
+import { ActionResolution, type ForceReason, isApFreeReason } from '../value-objects/action-resolution.vo.js';
+import { ActorRoundTrait, QUICK_ACTION } from '../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
 import { type ActionStatus, CLOSED_ACTION_STATUSES, IN_RESOLUTION_ACTION_STATUSES } from '../value-objects/action-status.vo.js';
 import type { ActionType } from '../value-objects/action-type.vo.js';
 import type { ParryType } from '../value-objects/parry-type.vo.js';
@@ -54,6 +55,38 @@ export interface DeclarationRequest {
   phaseStart: number;
   freeAction: boolean;
   forced?: ForceReason;
+  /**
+   * The action costs 0 AP and is not one of the instantaneous actions of the round (a draw with Quickdraw, workspace
+   * spec 076, decision B4). It interrupts nothing.
+   */
+  zeroCost?: boolean;
+}
+
+/** Free instantaneous actions of a round: 1, or 2 with Quick Action (workspace spec 076, decision B5). */
+export const FREE_INSTANTS = 1;
+export const QUICK_ACTION_FREE_INSTANTS = 2;
+
+/**
+ * The reaction an attack forced as `reaction` comes from (workspace spec 076, decision B1): the talent, the action that
+ * triggered it, the fixed OB (Riposte; null for the actor's OB) and the alert it was declared from (null when the game
+ * master forced it without one).
+ */
+export interface ActionReaction {
+  traitId: string;
+  triggerActionId: string;
+  obOverride: number | null;
+  alertId: string | null;
+}
+
+/** The weapon of a `draw_and_load` action (workspace spec 076, decision B4); null when not given. */
+export interface ActionDrawAndLoad {
+  itemId: string | null;
+}
+
+/** What an `aim` action aims at (Sharpshooter, workspace spec 076, decision B6): the foe, with that ranged weapon. */
+export interface ActionAim {
+  targetActorId: string;
+  itemId: string;
 }
 
 /** Table 9-7c: OB penalty of a protector by where it stands. */
@@ -96,6 +129,12 @@ export interface ActionProps {
   medical?: ActionMedical | null;
   /** The item of a `use_item` action (workspace spec 068). */
   useItem?: ActionUseItem | null;
+  /** The reaction of an attack forced as `reaction` (workspace spec 076). */
+  reaction?: ActionReaction | null;
+  /** The weapon of a `draw_and_load` action (workspace spec 076). */
+  drawAndLoad?: ActionDrawAndLoad | null;
+  /** The foe and weapon of an `aim` action (workspace spec 076). */
+  aim?: ActionAim | null;
   owner: string;
   createdAt: Date;
   updatedAt: Date | null;
@@ -130,6 +169,9 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     public parryExclusions: ParryExclusion[] | null = null,
     public medical: ActionMedical | null = null,
     public useItem: ActionUseItem | null = null,
+    public reaction: ActionReaction | null = null,
+    public drawAndLoad: ActionDrawAndLoad | null = null,
+    public aim: ActionAim | null = null,
   ) {
     super(id);
   }
@@ -209,6 +251,9 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       props.parryExclusions ?? null,
       props.medical ?? null,
       props.useItem ?? null,
+      props.reaction ?? null,
+      props.drawAndLoad ?? null,
+      props.aim ?? null,
     );
   }
 
@@ -246,6 +291,9 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       null,
       previous.medical ? structuredClone(previous.medical) : null,
       previous.useItem ? structuredClone(previous.useItem) : null,
+      previous.reaction ? { ...previous.reaction } : null,
+      previous.drawAndLoad ? { ...previous.drawAndLoad } : null,
+      previous.aim ? { ...previous.aim } : null,
     );
     action.apply(new ActionCreatedEvent(action));
     return action;
@@ -309,9 +357,22 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     return this.effectiveResolution().mode === 'forced';
   }
 
-  /** The attack takes the AP penalty: not an instantaneous or legacy free action, nor forced by an effect. */
+  /** The attack takes the AP penalty: not an instantaneous or legacy free action, nor forced by an effect or a reaction. */
   takesApPenalty(): boolean {
-    return !this.freeAction && this.effectiveResolution().reason !== 'effect';
+    return !this.freeAction && !isApFreeReason(this.effectiveResolution().reason);
+  }
+
+  /** An attack of a reaction talent (workspace spec 076): its OB is not reduced by the parries of the round. */
+  isReaction(): boolean {
+    return !!this.reaction && this.effectiveResolution().reason === 'reaction';
+  }
+
+  /**
+   * One of the instantaneous actions of the round that the free ones are counted from: not an attack, nor an action of
+   * 0 AP by its profile (a draw with Quickdraw, workspace spec 076).
+   */
+  countsAsInstant(): boolean {
+    return this.freeAction && !this.isAttack() && !(this.apRange && this.apRange.max === 0);
   }
 
   /**
@@ -424,7 +485,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     const profile = this.apProfile();
     const resolution = this.effectiveResolution();
     if (resolution.mode === 'forced') {
-      const penalty = resolution.reason === 'effect' ? 0 : profile.penaltyFor(actionPoints);
+      const penalty = isApFreeReason(resolution.reason) ? 0 : profile.penaltyFor(actionPoints);
       return { actionPoints, readiness: byStatus ?? (penalty === 0 ? 'optimal' : 'ready'), readinessPenalty: penalty };
     }
     // A free action (an instantaneous spell...) takes no AP penalty, as its resolution does not apply one.
@@ -567,6 +628,9 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     if (this.status !== 'declared' && this.status !== 'held') {
       throw new ValidationError(`Only an open action can be forced, not a ${this.status} one`, 'err-action-not-open');
     }
+    if (reason === 'reaction') {
+      throw new ValidationError('A reaction is declared as a new forced attack (workspace spec 076)', 'err-action-force-invalid-reason');
+    }
     const resolution = ActionResolution.forced(reason, note);
     if (resolution.apSource === 'next-phase') {
       if (this.apOf(actorRound, currentPhase) < 1) {
@@ -600,7 +664,9 @@ export class Action extends BaseAggregateRoot<ActionProps> {
    *
    * - A flatfooted actor declares nothing. An attack is never instantaneous.
    * - A normal action starts in the current phase, which must have capacity (lost to surprise, Hold Kind…).
-   * - The first instantaneous action of the round takes 0 AP; the next ones 1 AP of free capacity.
+   * - The first instantaneous action of the round takes 0 AP (the first two with Quick Action, but never a second spell or
+   *   dodge); the next ones 1 AP of free capacity. An action of 0 AP by its profile (Quickdraw) takes none and is not
+   *   counted (workspace spec 076, decisions B4-B5).
    * - Any other action takes 1 AP of free capacity of the phase, and interrupts the open action of the actor (its AP
    *   stay spent), except when it is a movement or the open action is a melee attack the actor parried with.
    * - A forced action (an effect, the game master) takes no AP and interrupts nothing; a withdrawal or passing through
@@ -622,6 +688,9 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     if (request.forced) {
       if (ActionResolution.apSourceOf(request.forced) === 'next-phase') {
         throw new ValidationError(`A new action cannot be forced as a ${request.forced}`, 'err-action-force-invalid-reason');
+      }
+      if (request.forced === 'reaction' && !attack) {
+        throw new ValidationError('A reaction is an attack (workspace spec 076)', 'err-reaction-invalid-action');
       }
       return { spend: null, interrupted: [] };
     }
@@ -651,9 +720,13 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     const releasable = medical.filter(action =>
       actorRound.ledgerOf(action.id).some(entry => entry.phase === phase && entry.kind === 'spent'),
     );
+    if (request.zeroCost) {
+      Action.checkFearDeclaration(actorRound, request, 0);
+      return { spend: { phase, ap: 0, kind: 'instant' }, interrupted: [] };
+    }
     if (request.freeAction) {
-      const first = !actions.some(action => action.freeAction && !action.isAttack());
-      if (first) {
+      const instants = actions.filter(action => action.countsAsInstant()).length;
+      if (instants < Action.freeInstantsFor(actorRound, request.actionType)) {
         Action.checkFearDeclaration(actorRound, request, 0);
         return { spend: { phase, ap: 0, kind: 'instant' }, interrupted: [] };
       }
@@ -683,6 +756,15 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       );
     }
     return { spend: { phase, ap: 1, kind: 'spent' }, interrupted, ...(released.length > 0 ? { released } : {}) };
+  }
+
+  /**
+   * Instantaneous actions of the round at 0 AP (workspace spec 076, decision B5): 2 with Quick Action, except for a spell
+   * or a dodge, which never take the second one; 1 otherwise.
+   */
+  static freeInstantsFor(actorRound: ActorRound, actionType: ActionType): number {
+    const quick = ActorRoundTrait.tierOf(actorRound.traits, QUICK_ACTION) > 0;
+    return quick && actionType !== 'cast_spell' && actionType !== 'dodge' ? QUICK_ACTION_FREE_INSTANTS : FREE_INSTANTS;
   }
 
   /**
@@ -1086,6 +1168,9 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       parryExclusions: this.parryExclusions,
       medical: this.medical,
       useItem: this.useItem,
+      reaction: this.reaction,
+      drawAndLoad: this.drawAndLoad,
+      aim: this.aim,
       owner: this.owner,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,

@@ -16,6 +16,7 @@ export type ApModifierSource =
   | 'half-activity'
   | 'concentration'
   | 'natural-haste'
+  | 'spasm'
   | 'manual';
 
 /** A change to the action point capacity of an actor round, with its origin. */

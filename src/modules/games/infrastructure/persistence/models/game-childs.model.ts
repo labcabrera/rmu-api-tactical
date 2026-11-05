@@ -31,4 +31,8 @@ export class GameEnvironment {
 
   @Prop({ required: false })
   altitudeFatigueModifier?: number;
+
+  /** Workspace spec 076, P6: ambient light (a `LightType`). */
+  @Prop({ type: String, required: false })
+  light?: string;
 }

@@ -4,7 +4,7 @@ import type { LightType } from './light-type.vo.js';
 import type { LightManeuverModifier } from './light-maneuver-modifier.vo.js';
 import type { ManeuverModifierSelection } from './maneuver-profile.vo.js';
 import type { ManeuverType } from './maneuver-type.vo.js';
-import type { FrenzyPurpose } from './frenzy-purpose.vo.js';
+import type { ManeuverPurpose, PrecisionPosition } from './maneuver-purpose.vo.js';
 
 export class ActionManeuver {
   constructor(
@@ -39,9 +39,19 @@ export class ActionManeuverModifiers {
     /** Skill of the passive side computed from the target actor. */
     public passiveSkillId?: string | undefined,
     /** Workspace spec 040: an Adrenal Focus maneuver to enter or leave the frenzy. */
-    public purpose?: FrenzyPurpose | undefined,
+    public purpose?: ManeuverPurpose | undefined,
+    /** Workspace spec 076, §2.6: the foe of Sense Weakness, Study Offense or Precision. */
+    public foeActorId?: string | undefined,
+    /** Battle Cry: level of the highest level foe. */
+    public foeLevel?: number | undefined,
+    /** Precision: position of the attacker and OB given up. */
+    public position?: PrecisionPosition | undefined,
+    public obPenalty?: number | undefined,
   ) {}
 }
+
+/** The talent that changed the result of the roll (workspace spec 076, §2.8). */
+export type ManeuverRollTalent = 'unusual-luck' | 'absolute-ease' | 'absolute-disaster';
 
 export class ActionManeuverResult {
   constructor(
@@ -62,6 +72,8 @@ export class ActionManeuverResult {
     public outcome?: string | undefined,
     public moraleModifier?: number | undefined,
     public moraleModifierDays?: number | undefined,
+    /** Workspace spec 076: the talent that changed the result of the table (Unusual Luck, Absolute Ease or Disaster). */
+    public rollTalent?: ManeuverRollTalent | undefined,
   ) {}
 }
 

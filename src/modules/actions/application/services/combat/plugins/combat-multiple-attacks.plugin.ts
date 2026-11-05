@@ -6,10 +6,13 @@ import type { CombatPlugin } from '../combat-plugin.js';
 const SECOND_ATTACK_PENALTY = -75;
 const ADDITIONAL_ATTACK_PENALTY = -25;
 const ADDITIONAL_TARGET_PENALTY = -20;
-const LIGHT_CATEGORIES: WeaponCategory[] = ['light', 'dagger', 'natural'];
+const LIGHT_CATEGORIES: WeaponCategory[] = ['light', 'dagger', 'natural', 'unarmed'];
 const PRIMARY_LIGHT_BONUS = 10;
-/** Off-hand bonus by weapon (Table 9-7b): a dagger or a natural weapon, any other light weapon. */
-const OFF_HAND_BONUS: Record<WeaponCategory, number> = { standard: 0, light: 10, dagger: 20, natural: 20 };
+/**
+ * Off-hand bonus by weapon (Table 9-7b): a dagger or a natural weapon, any other light weapon. An unarmed attack is a
+ * natural weapon (workspace spec 076).
+ */
+const OFF_HAND_BONUS: Record<WeaponCategory, number> = { standard: 0, light: 10, dagger: 20, natural: 20, unarmed: 20 };
 
 /**
  * Light weapon bonus of a kata (Table 9-7b): +10 when the primary weapon is light, plus the off-hand bonus once, and

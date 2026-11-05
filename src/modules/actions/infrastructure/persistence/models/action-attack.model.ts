@@ -4,7 +4,7 @@ import type { AttackType, ProtectPosition } from '../../../domain/value-objects/
 import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo.js';
 import type { ModifierGroup } from '../../../domain/value-objects/key-value-modifier.vo.js';
 import type { AttackStatus } from '../../../domain/value-objects/attack-status.vo.js';
-import type { DamageAdjustment, SeverityAdjustment } from '../../../domain/value-objects/action-attack.vo.js';
+import type { ActionAttackReaction, DamageAdjustment, SeverityAdjustment } from '../../../domain/value-objects/action-attack.vo.js';
 import { ActionAttackModifiers } from './action-attack-modifiers.model.js';
 
 @Schema({ _id: false })
@@ -156,6 +156,13 @@ export class Critical {
 
   @Prop({ type: Object, required: false })
   public styleOption: { abilityId: string; originalType: string; originalSeverity: string } | undefined;
+
+  /** Workspace spec 076: the first roll of a critical rolled again, and who rolled it again. */
+  @Prop({ type: Number, required: false })
+  public originalRoll?: number | null;
+
+  @Prop({ type: String, required: false })
+  public rerolledBy?: 'offense' | 'defense';
 }
 
 @Schema({ _id: false })
@@ -228,4 +235,8 @@ export class ActionAttack {
 
   @Prop({ type: Object, required: false })
   public protectorPositions?: Record<string, ProtectPosition>;
+
+  /** Workspace spec 076: the reaction the attack comes from. */
+  @Prop({ type: Object, required: false })
+  public reaction?: ActionAttackReaction | null;
 }

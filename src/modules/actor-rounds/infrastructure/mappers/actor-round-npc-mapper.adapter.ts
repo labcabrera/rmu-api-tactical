@@ -11,6 +11,7 @@ import {
 import { ValidationError } from '../../../shared/domain/errors/errors.js';
 import type { ActorRoundNpcMapperPort } from '../../application/ports/actor-round-npc-mapper.port.js';
 import { ActorRound, BASE_ACTION_POINTS } from '../../domain/aggregates/actor-round.js';
+import { ActorSheetService } from '../../application/services/actor-sheet.service.js';
 import { ActorRoundAttack, type WeaponCategory } from '../../domain/value-objects/actor-round-attack.vo.js';
 import { ActorRoundDefense } from '../../domain/value-objects/actor-round-defense.vo.js';
 import { ActorRoundFatigue } from '../../domain/value-objects/actor-round-fatigue.vo.js';
@@ -48,7 +49,7 @@ const NATURAL_ATTACK_TABLES = [
  * The actor round of a specimen of an NPC (spec 055, decision 4), from the Combat Stat Block of rmu-api-npcs (spec
  * 054), in the units of the character mapper: the size and the attack sizes are steps from medium, the death
  * threshold is the hits below zero it survives. The attacks with no table are left out (spec 060). The critical size
- * and the critical code I come in (workspace spec 075); the sequences, cooperation, katas, the other critical codes
+ * and the critical code I come in (workspace spec 075), and the talents with a catalog id (workspace spec 076); the sequences, cooperation, katas, the other critical codes
  * and the poisons of the attacks are not applied (spec 056 candidate); the game master picks the attack.
  */
 @Injectable()
@@ -81,6 +82,8 @@ export class ActorRoundNpcMapperAdapter implements ActorRoundNpcMapperPort {
       [],
       npc.imageUrl ?? undefined,
       actor.owner,
+      // Workspace spec 076, §4: the talents of the stat block in the catalog (senses, vision...).
+      ActorSheetService.npcTraits(npc),
     );
     actorRound.npcId = npc.id;
     actorRound.resistances = this.mapResistances(npc);

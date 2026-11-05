@@ -9,6 +9,7 @@ import { Game } from '../../domain/aggregates/game.js';
 import { Actor } from '../../domain/value-objects/actor.vo.js';
 import type { StrategicMember } from '../../domain/value-objects/strategic-member.vo.js';
 import { GameEnvironment } from '../../domain/value-objects/game-environment.vo.js';
+import type { LightType } from '../../../actions/domain/value-objects/light-type.vo.js';
 import { type GameDocument, GameModel } from '../persistence/models/game.model.js';
 
 @Injectable()
@@ -63,7 +64,11 @@ export class MongoGameRepository extends MongoBaseRepository<Game, GameModel> im
       throw new NotFoundError('Game', 'unknown');
     }
     const environment = doc.environment
-      ? new GameEnvironment(doc.environment.temperatureFatigueModifier, doc.environment.altitudeFatigueModifier)
+      ? new GameEnvironment(
+          doc.environment.temperatureFatigueModifier,
+          doc.environment.altitudeFatigueModifier,
+          (doc.environment.light as LightType | undefined) ?? undefined,
+        )
       : undefined;
     return Game.fromProps({
       id: doc.id,
