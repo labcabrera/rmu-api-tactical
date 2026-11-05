@@ -371,7 +371,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
         difficulty: 'm',
         customBonus: 0,
         lightModifier: 'none',
-        light: 'no_shadows',
+        // No light at declaration: the resolution falls back to the game's ambient light (spec 076).
       },
       progress: maneuverType === 'percent' ? (continued?.maneuver?.progress ?? 0) : undefined,
       continuesActionId: continued?.id,
