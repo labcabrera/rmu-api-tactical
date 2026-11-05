@@ -26,6 +26,7 @@ import { ActorRoundPenaltyDto } from './actor-round-penalty.dto.js';
 import { ActorRoundPhaseLogDto } from './actor-round-phase-log.dto.js';
 import { ActorRoundTraitDto } from './actor-round-trait.dto.js';
 import { ActorRoundHazardDto } from './actor-round-hazard.dto.js';
+import { CriticalAlertRollDto } from './resolve-critical-alert.dto.js';
 
 export class AbsoluteEaseDto {
   @ApiProperty({ description: 'Skill category of the Absolute Ease talent', example: 'athletic' })
@@ -183,6 +184,13 @@ export class ActorRoundDto {
   lastBreakageCheck?: BreakageCheckResultDto;
 
   @ApiProperty({
+    type: CriticalAlertRollDto,
+    required: false,
+    description: 'Only in the answer of a critical-roll (spec 077): the critical rolled and applied',
+  })
+  lastCriticalRoll?: CriticalAlertRollDto;
+
+  @ApiProperty({
     description: 'Resistance roll bonuses of the character (workspace spec 022); none for NPCs',
     type: [ActorRoundResistanceDto],
   })
@@ -279,6 +287,7 @@ export class ActorRoundDto {
     dto.npcId = entity.npcId;
     dto.items = (entity.items || []).map(item => ActorRoundItemDto.fromEntity(item));
     if (entity.lastBreakageCheck) dto.lastBreakageCheck = BreakageCheckResultDto.fromEntity(entity.lastBreakageCheck);
+    if (entity.lastCriticalRoll) dto.lastCriticalRoll = CriticalAlertRollDto.fromEntity(entity.lastCriticalRoll);
     dto.resistances = (entity.resistances || []).map(each => ({ resistance: each.resistance, totalBonus: each.totalBonus }));
     dto.fightingStyles = (entity.fightingStyles || []).map(style => ActorRoundFightingStyleDto.fromEntity(style));
     dto.activeStyle = entity.activeStyle ? ActorRoundActiveStyleDto.fromEntity(entity.activeStyle) : null;

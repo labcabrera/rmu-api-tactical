@@ -14,6 +14,7 @@ import { TreatInjuryHandler } from '../actor-rounds/application/cqrs/handlers/tr
 import { CauterizationBurnService } from '../actor-rounds/application/services/cauterization-burn.service.js';
 import { HazardAttackService } from '../actor-rounds/application/services/hazard-attack.service.js';
 import { ResolveHazardHandler } from '../actor-rounds/application/cqrs/handlers/resolve-hazard.handler.js';
+import { ResolveCriticalAlertHandler } from '../actor-rounds/application/cqrs/handlers/resolve-critical-alert.handler.js';
 import { MedicalRollService } from '../actor-rounds/application/services/medical-roll.service.js';
 import { ActorsRoundModule } from '../actor-rounds/actor-rounds.module.js';
 import { GamesModule } from '../games/games.module.js';
@@ -132,6 +133,7 @@ import { SKILL_CATALOG_PORT } from './application/ports/skill-catalog.port.js';
     CauterizationBurnService,
     HazardAttackService,
     ResolveHazardHandler,
+    ResolveCriticalAlertHandler,
     StabilizeEffectHandler,
     MedicalActionService,
     ResolveMedicalHandler,

@@ -124,3 +124,27 @@ describe('POST /v1/actor-rounds/:id/hazards', () => {
     );
   });
 });
+
+describe('POST /v1/actor-rounds/:id/alerts/:alertId/critical-roll', () => {
+  beforeEach(() => {
+    e2e.world.attackEntry = new AttackTableEntry('10CI', 10, 'I', 'C');
+    e2e.world.critical = new CriticalResult('Crushed knee.', 4, 'leg', []);
+  });
+
+  it('rolls the critical of a hazard alert, applies it and closes the alert', async () => {
+    const { gimli } = await startedGame();
+    const fall = await as('owner').post(`/v1/actor-rounds/${gimli.id}/hazards`, { kind: 'fall', distanceFeet: 10, roll: 60 });
+    const alert = (fall.body as ActorRoundBody).alerts.find(each => each.type === 'critical')!;
+    const response = await as('owner').post(`/v1/actor-rounds/${gimli.id}/alerts/${alert.id}/critical-roll`, { roll: 33 });
+    expect(response.status).toBe(200);
+    const body = response.body as ActorRoundBody & { lastCriticalRoll: { criticalKey: string; damage: number } };
+    expect(body.lastCriticalRoll).toMatchObject({ criticalKey: 'I-C-33', damage: 4 });
+    expect(body.alerts.find(each => each.id === alert.id)?.status).toBe('resolved');
+    expect(body.hazards[0].criticals[0]).toMatchObject({ roll: 33 });
+    expect(body.hp.current).toBe(50 - 10 - 4);
+    const again = await as('owner').post(`/v1/actor-rounds/${gimli.id}/alerts/${alert.id}/critical-roll`, { roll: 33 });
+    expect(again.status).toBe(400);
+    expect((again.body as { code: string }).code).toBe('err-alert-not-resolvable');
+    expect((await as('owner').post(`/v1/actor-rounds/${gimli.id}/alerts/${alert.id}/critical-roll`, { roll: 101 })).status).toBe(400);
+  });
+});

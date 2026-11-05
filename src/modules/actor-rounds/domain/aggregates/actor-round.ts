@@ -171,6 +171,28 @@ export type InjuryPatch = Partial<
 >;
 
 /** When an effect lands: the phase (see `ActorRoundEffect.appliedPhase`) and the AP the actor had spent in the round. */
+/** A critical alert rolled by the game master (workspace spec 077, decision D3). */
+export interface CriticalAlertRoll {
+  alertId: string;
+  origin: string | null;
+  criticalType: string;
+  criticalSeverity: string;
+  roll: number;
+  criticalKey: string;
+  damage: number;
+  text: string;
+  location: string | null;
+}
+
+/** What a pending critical alert asks for: its origin, table, severity and the location its origin fixed. */
+export interface PendingCritical {
+  alert: ActorRoundAlert;
+  origin: string | null;
+  criticalType: string | undefined;
+  criticalSeverity: string;
+  location: AttackLocation | undefined;
+}
+
 export interface EffectApplication {
   phase: number;
   spentAp: number;
@@ -342,6 +364,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
 
   /** Falls and falling objects of this round (workspace spec 077, decision D2). Each round starts with none. */
   public hazards: ActorRoundHazard[] = [];
+
+  /** The last critical rolled from an alert (workspace spec 077, decision D3), for the answer; not stored. */
+  public lastCriticalRoll: CriticalAlertRoll | undefined;
 
   /** The last breakage check (spec 019), for the answer of the check; not stored. */
   public lastBreakageCheck: BreakageCheckResult | undefined;
@@ -2840,6 +2865,53 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     }
     alert.modifiers?.push(new ActorRoundAlertModifier('outcome', null, outcome));
     return outcome === 'failed' ? this.breakConcentration() : [];
+  }
+
+  /**
+   * Workspace spec 077, decision D3: a pending `critical` alert to roll (`err-alert-not-resolvable` otherwise): a fumble,
+   * a movement or percent maneuver gone wrong, the heat of a cauterization or a hazard.
+   */
+  pendingCritical(alertId: string): PendingCritical {
+    const alert = this.alerts.find(each => each.id === alertId);
+    if (!alert) {
+      throw new NotFoundError('Alert', alertId);
+    }
+    if (alert.type !== 'critical' || alert.status !== 'pending') {
+      throw new ValidationError(`The ${alert.type} alert is not a pending critical`, 'err-alert-not-resolvable');
+    }
+    const severity = alert.getModifierText('criticalSeverity');
+    if (!severity) {
+      throw new ValidationError('The critical alert has no severity', 'err-alert-not-resolvable');
+    }
+    const location = alert.getModifierText('location') as AttackLocation | undefined;
+    return {
+      alert,
+      origin: alert.getModifierText('origin') ?? null,
+      criticalType: alert.getModifierText('criticalType'),
+      criticalSeverity: severity,
+      location,
+    };
+  }
+
+  /**
+   * Closes a critical alert once its critical is applied (decision D3): the roll stays in the alert, and the critical of
+   * a hazard of this round gets its result.
+   */
+  completeCriticalAlert(rolled: CriticalAlertRoll): void {
+    const alert = this.alerts.find(each => each.id === rolled.alertId);
+    if (!alert) return;
+    alert.status = 'resolved';
+    alert.modifiers?.push(
+      new ActorRoundAlertModifier('roll', rolled.roll, null),
+      new ActorRoundAlertModifier('criticalKey', null, rolled.criticalKey),
+      new ActorRoundAlertModifier('damage', rolled.damage, null),
+    );
+    const hazardId = alert.getModifierText('hazardId');
+    const critical = this.hazards.find(hazard => hazard.id === hazardId)?.criticals.find(each => each.alertId === rolled.alertId);
+    if (critical) {
+      Object.assign(critical, { roll: rolled.roll, damage: rolled.damage, text: rolled.text, location: rolled.location });
+    }
+    this.lastCriticalRoll = rolled;
   }
 
   /**

@@ -33,6 +33,8 @@ import { ActorRoundDto, CharacterRoundPageDto } from './dto/actor-round.dto.js';
 import { AddEffectDto } from './dto/add-effect.dto.js';
 import { ResolveAlertDto } from './dto/resolve-alert.dto.js';
 import { ResolveHazardDto } from './dto/actor-round-hazard.dto.js';
+import { ResolveCriticalAlertDto } from './dto/resolve-critical-alert.dto.js';
+import { ResolveCriticalAlertCommand } from '../../application/cqrs/commands/resolve-critical-alert.command.js';
 import { ResolveHazardCommand } from '../../application/cqrs/commands/resolve-hazard.command.js';
 import { AddFatigueAccumulatorDto } from './dto/add-fatigue-accumulator.dto.js';
 import { AddHpDto } from './dto/add-hp.dto.js';
@@ -220,6 +222,29 @@ export class ActorRoundController {
   ) {
     const command = new ResolveAlertCommand(id, alertId, user.id, user.roles, dto?.outcome);
     const entity = await this.commandBus.execute<ResolveAlertCommand, ActorRound>(command);
+    return ActorRoundDto.fromEntity(entity);
+  }
+
+  @ActorRoundAccess('act')
+  @Post(':id/alerts/:alertId/critical-roll')
+  @HttpCode(200)
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success, with the critical in lastCriticalRoll' })
+  @ApiOperation({
+    operationId: 'rollCriticalAlert',
+    summary: 'Roll and apply the critical of a critical alert and close it (spec 077)',
+    description:
+      'Fumble (criticalType required), movement and percent maneuver criticals (K), cauterization heat (on the location ' +
+      'of the injury) and hazards. The critical is applied as an attack critical: hits, injuries and effects.',
+  })
+  @ApiErrors({ 400: 'err-alert-not-resolvable or validation', 404: 'Actor round or alert not found', 409: 'err-game-finished' })
+  async rollCriticalAlert(
+    @Param('id') id: string,
+    @Param('alertId') alertId: string,
+    @Body() dto: ResolveCriticalAlertDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const command = new ResolveCriticalAlertCommand(id, alertId, dto.roll, dto.criticalType, user.id, user.roles);
+    const entity = await this.commandBus.execute<ResolveCriticalAlertCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
   }
 
