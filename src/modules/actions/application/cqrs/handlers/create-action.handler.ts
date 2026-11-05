@@ -9,6 +9,7 @@ import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-rou
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { Game } from '../../../../games/domain/aggregates/game.js';
 import { ConflictError, ValidationError, NotFoundError } from '../../../../shared/domain/errors/errors.js';
+import { quickCasterApRange } from '../../../domain/services/spell-talents.js';
 import { Action, type ActionAim } from '../../../domain/aggregates/action.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo.js';
@@ -99,6 +100,8 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
         ? await this.spellCasting.declare(actorRound, actorActions, command.spell!.listCode, command.spell!.spellId, command.freeAction)
         : null;
     const resolution = command.forced ? ActionResolution.forced(command.forced.reason, command.forced.note) : ActionResolution.normal();
+    // Workspace spec 077, decision C4: Quick-Caster for the list of the spell shortens the AP range of the cast.
+    const spellRange = spell ? quickCasterApRange(actorRound.traits, spell.spell) : null;
     const action = Action.create(
       command.gameId,
       command.actorId,
@@ -110,7 +113,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       command.description,
       command.userId,
       resolution,
-      apRange,
+      apRange ?? spellRange,
     );
     action.spell = spell;
     action.reaction = reaction;

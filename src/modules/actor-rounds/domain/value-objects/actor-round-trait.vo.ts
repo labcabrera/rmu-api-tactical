@@ -69,6 +69,30 @@ export const TETRACHROMATIC_VISION = 'tetrachromatic-vision';
 export const NIGHTVISION = 'nightvision';
 export const DARKVISION = 'darkvision';
 export const LIGHT_SENSITIVITY = 'light-sensitivity';
+// Magical talents of the spell casting (workspace spec 077, block C); ids of the Character Companion catalog
+export const ELOQUENCE = 'eloquence';
+export const MUMBLER = 'mumbler';
+/** Taken for a spell list (its specialization is the list code). */
+export const PERFECTED_TECHNIQUE = 'perfected-technique';
+/** Taken for a spell list. */
+export const EXTENDED_REACH = 'extended-reach';
+export const GRACEFUL_RECOVERY = 'graceful-recovery';
+export const INGLORIOUS_FAILURE = 'inglorious-failure';
+export const POWER_RECYCLING = 'power-recycling';
+/** Taken for a spell list. */
+export const QUICK_CASTER = 'quick-caster';
+/** Taken for a spell list. */
+export const SCOPE_SKILLS = 'scope-skills';
+/** Taken for a spell list. */
+export const SPATIAL_SKILLS = 'spatial-skills';
+/** Taken for a spell list; informational until the spell durations are modelled (decision C8). */
+export const TEMPORAL_SKILLS = 'temporal-skills';
+/** Not automated (decision C8). */
+export const SUBCONSCIOUS_DISCIPLINE = 'subconscious-discipline';
+export const LACK_OF_SCOPE = 'lack-of-scope';
+export const LACK_OF_TIME = 'lack-of-time';
+/** +5 per tier to the RR against mental attack spells of any realm (decision C9). */
+export const IRON_WILL = 'iron-will';
 
 /** Talent or flaw of the actor, copied from its character sheet. */
 export class ActorRoundTrait {
