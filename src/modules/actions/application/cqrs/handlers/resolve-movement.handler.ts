@@ -56,6 +56,12 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
 
     const currentPhase = game.getActionPhase();
     action.checkResolvable(actorRound, currentPhase);
+    // Workspace spec 077, decision A2.4: with two foci the actor only moves at creeping pace.
+    if (actorRound.isDoubleConcentrating() && command.modifiers.pace !== 'creep') {
+      throw new ValidationError('An actor concentrating on two things only moves at creeping pace', 'err-action-double-concentration', {
+        pace: command.modifiers.pace,
+      });
+    }
     const warnings = ResolveMovementHandler.paceWarnings(command.modifiers.pace, actorRound);
     if (!command.confirm && warnings.some(warning => warning.requiresConfirm)) {
       throw new ConflictError('The movement needs a confirmation: send it again with confirm: true', 'err-action-confirm-required', {
@@ -183,6 +189,7 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
       difficulty: command.modifiers.difficulty,
       customBonus: command.modifiers.customBonus,
       light: command.modifiers.light ?? ambientLight ?? null,
+      grappleFeat: command.modifiers.grappleFeat ?? null,
     };
   }
 

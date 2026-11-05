@@ -66,6 +66,8 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     const round = game.round;
     const [actorRound, roundActions] = await Promise.all([this.readActorRound(command, round), this.readRoundActions(command, round)]);
     const actorActions = roundActions.filter(action => action.actorId === command.actorId);
+    // Workspace spec 077, decision A2.1: the held actions of the actor are concentration foci.
+    const heldChanged = actorRound.syncHeldActions(actorActions);
 
     const draw = this.drawAndLoad(command, actorRound);
     const aim = command.actionType === 'aim' ? await this.declareAim(command, actorRound) : null;
@@ -131,7 +133,15 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     }
 
     const saved = await this.actionRepository.save(action);
-    if (plan.spend || plan.interrupted.length > 0 || aborted.length > 0 || reopened.length > 0 || reaction?.alertId || aimingLost) {
+    if (
+      plan.spend ||
+      plan.interrupted.length > 0 ||
+      aborted.length > 0 ||
+      reopened.length > 0 ||
+      reaction?.alertId ||
+      aimingLost ||
+      heldChanged
+    ) {
       await this.actorRoundRepository.update(actorRound);
     }
     for (const interrupted of plan.interrupted) {

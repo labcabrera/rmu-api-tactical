@@ -132,6 +132,20 @@ export class ActorRoundApLedgerEntry {
 
   @Prop({ type: String, required: true })
   kind: string;
+
+  /** Workspace spec 077: spent while concentrating on something else. */
+  @Prop({ type: Boolean, required: false })
+  concentrated?: boolean;
+}
+
+/** Workspace spec 077: a held action of the actor, a concentration focus. */
+@Schema({ _id: false })
+export class ActorRoundHeldAction {
+  @Prop({ type: String, required: true })
+  actionId: string;
+
+  @Prop({ type: Number, required: true })
+  since: number;
 }
 
 @Schema({ _id: false })

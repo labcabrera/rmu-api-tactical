@@ -13,6 +13,11 @@ export class ApLedgerEntry {
     public readonly actionId: string | undefined,
     public readonly ap: number,
     public readonly kind: ApLedgerKind,
+    /**
+     * Spent while the actor concentrated on something else (§8.1; workspace spec 077, decision A2.2): the action gets
+     * half of these AP, rounded down over all of them.
+     */
+    public readonly concentrated?: boolean,
   ) {}
 
   /** The entry takes capacity of its phase: a lost AP records a loss, it does not use the capacity. */

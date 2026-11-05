@@ -439,7 +439,11 @@ describe('AP endpoints (spec 011)', () => {
     const handler = new ManageActionPointsHandler(
       { findById: vi.fn(() => Promise.resolve({ id: 'game-1', round: 1, getActionPhase: () => phase })) } as unknown as GameRepository,
       { findByActorIdAndRound: vi.fn(() => Promise.resolve(actorRound)), update: actorRoundUpdate } as unknown as ActorRoundRepository,
-      { findById: vi.fn(() => Promise.resolve(target)), update } as unknown as ActionRepository,
+      {
+        findById: vi.fn(() => Promise.resolve(target)),
+        findByRsql: vi.fn(() => Promise.resolve({ content: [] })),
+        update,
+      } as unknown as ActionRepository,
       { publish: vi.fn(() => Promise.resolve()) },
     );
     return { handler, update, actorRoundUpdate };
@@ -479,6 +483,8 @@ describe('AP endpoints (spec 011)', () => {
     const held = await setup(dodge, full, 1).handler.execute(new ManageActionPointsCommand('dodge', 'hold', 'user', []));
     expect(held.status).toBe('held');
     expect(ActionDto.fromEntity(held).readiness).toBe('held');
+    // Workspace spec 077, decision A2.1: the held action is a concentration focus of the actor.
+    expect(full.concentration()).toEqual([{ kind: 'held-action', actionId: 'dodge', since: 1 }]);
   });
 });
 

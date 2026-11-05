@@ -4,6 +4,7 @@
  * `fear-check-suggested` (a faction crossed a threshold of fallen allies) and `revulsion-rr` (the fear RR of the
  * Revulsion flaw). Workspace spec 076: `reaction-available` (a reaction talent can attack out of turn, see
  * `ReactionAlertData`) and `terrible-luck` (a natural 01 of an actor with Terrible Luck, narrated by the game master).
+ * Workspace spec 077: `mental-focus` (a Mental Focus maneuver to keep the concentration: double, stunned or extended).
  */
 export type ActorRoundAlertType =
   | 'endurance'
@@ -16,4 +17,5 @@ export type ActorRoundAlertType =
   | 'fear-check-suggested'
   | 'revulsion-rr'
   | 'reaction-available'
-  | 'terrible-luck';
+  | 'terrible-luck'
+  | 'mental-focus';

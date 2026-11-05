@@ -20,6 +20,7 @@ import {
   ActorRoundDefenseMode,
   ActorRoundEffect,
   ActorRoundFatigue,
+  ActorRoundHeldAction,
   ActorRoundHpLogEntry,
   ActorRoundPhaseLog,
   ActorRoundSnapshot,
@@ -168,6 +169,10 @@ export class ActorRoundModel {
 
   @Prop({ type: Boolean, required: false })
   reduceCriticalSeverity?: boolean;
+
+  /** Workspace spec 077: held actions of the actor, concentration foci. */
+  @Prop({ type: [ActorRoundHeldAction], required: false, default: [] })
+  heldActions?: ActorRoundHeldAction[];
 
   @Prop({ type: ActorRoundSnapshot, required: false })
   snapshot?: ActorRoundSnapshot;

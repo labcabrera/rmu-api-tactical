@@ -119,6 +119,18 @@ import {
   UNARMORED_AT,
 } from '../value-objects/actor-round-item.vo.js';
 import { type BreakageModifier, BreakageResolver, type BreakageResult } from '../services/breakage-resolver.js';
+import {
+  CONCENTRATING,
+  CONCENTRATING_EFFECT_KINDS,
+  CONCENTRATION_COST_MULTIPLIER,
+  type ConcentrationFocus,
+  type ConcentrationKind,
+  type ConcentrationSourceAction,
+  type HeldActionFocus,
+  MENTAL_FOCUS_EXTENDED_ROUNDS,
+  type MentalFocusOutcome,
+  type MentalFocusReason,
+} from '../value-objects/concentration-focus.vo.js';
 
 /** Lightning Reflexes (workspace spec 032): initiative per time selected. */
 const LIGHTNING_REFLEXES = 'lightning-reflexes';
@@ -198,7 +210,10 @@ export interface LedgerSourceAction {
 }
 
 /** Alerts the game master marks as resolved by hand (spec 034, workspace spec 076). */
-const MANUALLY_RESOLVED_ALERTS: string[] = ['critical', 'reaction-available', 'terrible-luck'];
+const MANUALLY_RESOLVED_ALERTS: string[] = ['critical', 'reaction-available', 'terrible-luck', 'mental-focus'];
+
+/** Effects that break every concentration at once (§8.1; workspace spec 077, decision A2.5). */
+const CONCENTRATION_BREAKING_EFFECTS = [UNCONSCIOUS, DEAD, PARALYZED];
 
 /** Phase number of the upkeep (see `Game.getEffectPhase`). */
 const UPKEEP_PHASE = 5;
@@ -304,6 +319,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
 
   /** The fighting style it fights with (workspace spec 032), kept from round to round. */
   public activeStyle: ActorRoundActiveStyle | null = null;
+
+  /** Held actions of the actor (§8.3), each a concentration focus (workspace spec 077, decision A2.1). */
+  public heldActions: HeldActionFocus[] = [];
 
   /** The last breakage check (spec 019), for the answer of the check; not stored. */
   public lastBreakageCheck: BreakageCheckResult | undefined;
@@ -475,11 +493,14 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.frightLevel = props.frightLevel ?? null;
     actorRound.criticalSize = props.criticalSize ?? null;
     actorRound.reduceCriticalSeverity = props.reduceCriticalSeverity ?? false;
+    actorRound.heldActions = (props.heldActions ?? []).map(each => ({ ...each }));
     actorRound.normalizeLegacy();
     // Derived: recomputed so that values stored with the penalties folded in are corrected.
     actorRound.calculateCurrentBo();
     // Derived too: actor rounds stored with older hit point or stun penalties read with the current ones.
     actorRound.applyPenalties();
+    // The held actions are concentration foci (workspace spec 077): the AP modifiers count them.
+    actorRound.refreshActionPoints();
     return actorRound;
   }
 
@@ -553,6 +574,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.frightLevel = previous.frightLevel;
     actorRound.criticalSize = previous.criticalSize;
     actorRound.reduceCriticalSeverity = previous.reduceCriticalSeverity;
+    // Workspace spec 077, decision A2.1: a held action goes on held in the next round, and so does its focus.
+    actorRound.heldActions = previous.heldActions.map(each => ({ ...each }));
+    actorRound.refreshActionPoints();
     actorRound.applyItemConditions();
     actorRound.calculateCurrentBo();
     actorRound.applyPenalties();
@@ -1448,6 +1472,16 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     if (effect.status === UNCONSCIOUS || effect.status === DEAD) {
       this.effects = this.effects.filter(e => e.status !== FRENZY);
     }
+    // Workspace spec 077, decision A2.5: unconscious, dead or paralyzed, every concentration breaks at once; stunned, it
+    // takes a Mental Focus maneuver.
+    if (CONCENTRATION_BREAKING_EFFECTS.includes(effect.status) && !ActorRoundEffect.isPending(effect, this.round)) {
+      this.breakConcentration();
+    } else if (effect.status === 'stunned' && this.concentration().length > 0) {
+      this.addMentalFocusAlert('stunned');
+    }
+    if (effect.status === CONCENTRATING) {
+      this.normalizeConcentrating(effect);
+    }
     if (effect.status === SURPRISED) {
       this.normalizeSurprise(effect);
     }
@@ -1503,6 +1537,20 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       }
     }
     this.effects.push(effect);
+  }
+
+  /** Workspace spec 077, decision A2.1: the kind of a `concentrating` effect (manual by default) and when it started. */
+  private normalizeConcentrating(effect: ActorRoundEffect): void {
+    const kind = (effect.data?.kind as ConcentrationKind | undefined) ?? 'manual';
+    if (!CONCENTRATING_EFFECT_KINDS.includes(kind)) {
+      throw new ValidationError(
+        `A concentrating effect is of kind ${CONCENTRATING_EFFECT_KINDS.join(', ')}, not ${kind}`,
+        'err-effect-invalid-value',
+      );
+    }
+    const since = typeof effect.data?.since === 'number' ? effect.data.since : this.round;
+    effect.data = { ...(effect.data ?? {}), kind, since };
+    effect.rounds = undefined;
   }
 
   private normalizeSurprise(effect: ActorRoundEffect): void {
@@ -1686,6 +1734,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     this.advancePoisonings(UPKEEP_PHASE);
     // Workspace spec 068, decision 5
     if (options.tourniquet) this.checkTourniquets(options.tourniquet);
+    // Workspace spec 077, decisions A2.4 and A2.6
+    this.addConcentrationAlerts();
     const bleeding = this.getBleeding();
     if (this.effects.length === 0 && bleeding === 0) {
       this.applyPenalties();
@@ -1722,8 +1772,130 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     if (this.hasEffect(FRENZY_DYING) && !this.alerts.some(alert => alert.type === 'frenzy-dying' && alert.status === 'pending')) {
       this.alerts.push(ActorRoundAlert.buildFrenzyDying());
     }
+    // Workspace spec 077, decision A2.5: still stunned and concentrating for the next round, a Mental Focus maneuver.
+    if (this.hasEffect('stunned') && this.lastingConcentration().length > 0) {
+      this.addMentalFocusAlert('stunned');
+    }
     this.applyPenalties();
     this.refreshActionPoints();
+  }
+
+  // --- Concentration (§8.1; workspace spec 077, block A2) ---
+
+  /**
+   * What the actor concentrates on (decision A2.1): a partial dodge or block, its held actions and its `concentrating`
+   * effects.
+   */
+  concentration(): ConcentrationFocus[] {
+    const foci: ConcentrationFocus[] = [];
+    if (this.defenseMode?.dodge === 'partial') foci.push({ kind: 'partial-dodge' });
+    if (this.defenseMode?.block === 'partial') foci.push({ kind: 'partial-block' });
+    (this.heldActions ?? []).forEach(held => foci.push({ kind: 'held-action', actionId: held.actionId, since: held.since }));
+    this.activeEffects()
+      .filter(effect => effect.status === CONCENTRATING)
+      .forEach(effect => {
+        const data = effect.data ?? {};
+        foci.push({
+          kind: (data.kind as ConcentrationKind | undefined) ?? 'manual',
+          effectId: effect.id,
+          ...(typeof data.actionId === 'string' ? { actionId: data.actionId } : {}),
+          ...(typeof data.since === 'number' ? { since: data.since } : effect.appliedRound ? { since: effect.appliedRound } : {}),
+          ...(typeof data.note === 'string' ? { note: data.note } : {}),
+        });
+      });
+    return foci;
+  }
+
+  /** Two foci at once (decision A2.4): the actor only moves at creeping pace. */
+  isDoubleConcentrating(): boolean {
+    return this.concentration().length >= 2;
+  }
+
+  /** The foci that go on into the next round: a partial dodge or block is declared every round. */
+  private lastingConcentration(): ConcentrationFocus[] {
+    return this.concentration().filter(focus => focus.kind !== 'partial-dodge' && focus.kind !== 'partial-block');
+  }
+
+  /** Capacity each AP of another action takes now (decision A2.2): 2 while concentrating, else 1. */
+  costMultiplier(): number {
+    return this.apModifiers
+      .filter(modifier => modifier.kind === 'cost-multiplier')
+      .reduce((max, modifier) => Math.max(max, modifier.value), 1);
+  }
+
+  /**
+   * The held actions of the actor's round (decision A2.1), kept as foci: a held action keeps the round it was first held
+   * in, also as the continuation of an action held in the previous round. Returns whether they changed.
+   */
+  syncHeldActions(actions: ConcentrationSourceAction[]): boolean {
+    // An unconscious, paralyzed or dead actor holds nothing (decision A2.5): its held actions stop being foci.
+    const broken = this.effects.some(
+      effect => CONCENTRATION_BREAKING_EFFECTS.includes(effect.status) && !ActorRoundEffect.isPending(effect, this.round),
+    );
+    const next = actions
+      .filter(action => action.status === 'held' && !broken)
+      .map(action => {
+        const known = this.heldActions.find(held => held.actionId === action.id || held.actionId === action.continuesActionId);
+        return { actionId: action.id, since: known?.since ?? this.round };
+      });
+    const same =
+      next.length === this.heldActions.length &&
+      next.every((held, index) => held.actionId === this.heldActions[index].actionId && held.since === this.heldActions[index].since);
+    if (same) {
+      return false;
+    }
+    this.heldActions = next;
+    this.refreshActionPoints();
+    return true;
+  }
+
+  /**
+   * Every concentration of the actor breaks (decisions A2.4-A2.5): a partial dodge or block goes back to none, the
+   * `concentrating` effects go and the held actions stop being foci. Returns the held actions, which the caller
+   * interrupts.
+   */
+  breakConcentration(): string[] {
+    const held = this.heldActions.map(each => each.actionId);
+    this.heldActions = [];
+    this.effects = this.effects.filter(effect => effect.status !== CONCENTRATING);
+    const dodge = this.defenseMode.dodge === 'partial' ? 'none' : this.defenseMode.dodge;
+    const block = this.defenseMode.block === 'partial' ? 'none' : this.defenseMode.block;
+    this.defenseMode = new ActorRoundDefenseMode(dodge, block);
+    this.refreshActionPoints();
+    return held;
+  }
+
+  /** A Mental Focus alert, unless one of the same reason (and rounds) is still pending. */
+  private addMentalFocusAlert(reason: MentalFocusReason, focus?: ConcentrationFocus, rounds?: number): void {
+    const pending = this.alerts.some(
+      alert =>
+        alert.type === 'mental-focus' &&
+        alert.status === 'pending' &&
+        alert.getModifierText('reason') === reason &&
+        alert.getModifierValue('rounds') === rounds,
+    );
+    if (!pending) {
+      this.alerts.push(ActorRoundAlert.buildMentalFocus(reason, focus, rounds));
+    }
+  }
+
+  /**
+   * In the upkeep, for the round that starts (decisions A2.4 and A2.6): two lasting foci ask for a Mental Focus maneuver
+   * every round; a focus held for 6 rounds, in its 6th round and then every 6.
+   */
+  private addConcentrationAlerts(): void {
+    const lasting = this.lastingConcentration();
+    if (lasting.length >= 2) {
+      this.addMentalFocusAlert('double');
+    }
+    lasting
+      .filter(focus => focus.since !== undefined)
+      .forEach(focus => {
+        const rounds = this.round + 2 - focus.since!;
+        if (rounds >= MENTAL_FOCUS_EXTENDED_ROUNDS && rounds % MENTAL_FOCUS_EXTENDED_ROUNDS === 0) {
+          this.addMentalFocusAlert('extended', focus, rounds);
+        }
+      });
   }
 
   /**
@@ -2248,11 +2420,15 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     return Math.max(0, this.capacityOf(phase) - this.spentInPhase(phase));
   }
 
-  /** AP an action spent (lost entries left out). */
+  /**
+   * AP an action spent (lost entries left out). Those spent while concentrating on something else count half, rounded
+   * down over all of them (§8.1; workspace spec 077, decision A2.2).
+   */
   spentByAction(actionId: string): number {
-    return this.apLedger
-      .filter(entry => entry.actionId === actionId && ApLedgerEntry.usesCapacity(entry))
-      .reduce((sum, entry) => sum + entry.ap, 0);
+    const entries = this.apLedger.filter(entry => entry.actionId === actionId && ApLedgerEntry.usesCapacity(entry));
+    const normal = entries.filter(entry => !entry.concentrated).reduce((sum, entry) => sum + entry.ap, 0);
+    const concentrated = entries.filter(entry => entry.concentrated).reduce((sum, entry) => sum + entry.ap, 0);
+    return normal + Math.floor(concentrated / CONCENTRATION_COST_MULTIPLIER);
   }
 
   /** Ledger entries of an action, lost ones included, in phase order. */
@@ -2278,14 +2454,18 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    * Records `ap` AP of `phase` on an action. A `spent` or `instant` entry needs that free capacity in the phase
    * (`err-action-points-exceeded`); a `lost` one records an AP an open action could not get, and uses none.
    */
-  spend(phase: number, actionId: string | undefined, ap: number, kind: ApLedgerKind = 'spent'): ApLedgerEntry {
+  spend(phase: number, actionId: string | undefined, ap: number, kind: ApLedgerKind = 'spent', concentrable = true): ApLedgerEntry {
     if (!Number.isInteger(phase) || phase < 1 || phase > ACTION_PHASES) {
       throw new ValidationError(`Action points are spent in a phase from 1 to ${ACTION_PHASES}`, 'err-action-invalid-phase');
     }
     if (!Number.isInteger(ap) || ap < 0) {
       throw new ValidationError('Action points spent must be a whole number from 0', 'err-action-points-invalid');
     }
-    const entry = new ApLedgerEntry(phase, actionId, ap, kind);
+    // Workspace spec 077, decision A2.2: from the phase a focus is declared, the AP of another action count half (a
+    // movement keeps its AP and halves its BMR instead, decision A2.3).
+    const concentrated =
+      concentrable && kind !== 'lost' && ap > 0 && this.concentration().some(focus => !focus.actionId || focus.actionId !== actionId);
+    const entry = new ApLedgerEntry(phase, actionId, ap, kind, concentrated || undefined);
     if (ApLedgerEntry.usesCapacity(entry) && ap > this.freeCapacity(phase)) {
       throw new ValidationError(`The actor has no action points left in phase ${phase}`, 'err-action-points-exceeded');
     }
@@ -2411,6 +2591,10 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     if (naturalHaste > 0) {
       modifiers.push(new ApModifier('natural-haste', 'bonus', naturalHaste));
     }
+    // Workspace spec 077, decision A2.2: concentrating, each AP of another action counts half.
+    if (this.concentration().length > 0) {
+      modifiers.push(new ApModifier('concentration', 'cost-multiplier', CONCENTRATION_COST_MULTIPLIER));
+    }
     return modifiers;
   }
 
@@ -2469,6 +2653,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       throw new ValidationError('The actor has no shield to block with');
     }
     this.defenseMode = ActorRoundDefenseMode.of(newDodge, newBlock);
+    // A partial dodge or block is a concentration focus (workspace spec 077, decision A2.1).
+    this.refreshActionPoints();
   }
 
   /** Full dodge or block (§9.6): the whole round spent on it, set when a 4 AP dodge action completes. */
@@ -2480,6 +2666,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       defenseType === 'dodge'
         ? ActorRoundDefenseMode.of('full', this.defenseMode.block === 'full' ? 'none' : this.defenseMode.block)
         : ActorRoundDefenseMode.of(this.defenseMode.dodge === 'full' ? 'none' : this.defenseMode.dodge, 'full');
+    this.refreshActionPoints();
   }
 
   /** A 33 or 77 on the attack roll: the item of the attack (spec 019, decision 6). */
@@ -2509,7 +2696,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    * Spec 034: the game master is done with an alert handled by hand (the critical of a fumble). Endurance and breakage
    * alerts are resolved with their rolls.
    */
-  resolveAlert(alertId: string): void {
+  resolveAlert(alertId: string, outcome?: MentalFocusOutcome): string[] {
     const alert = this.alerts.find(a => a.id === alertId);
     if (!alert) {
       throw new NotFoundError('Alert', alertId);
@@ -2519,6 +2706,13 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       throw new ValidationError(`A ${alert.type} alert is resolved with its roll`, 'err-alert-not-resolvable');
     }
     alert.status = 'resolved';
+    // Workspace spec 077, decision A2.4: a failed Mental Focus maneuver breaks every focus; the caller interrupts the
+    // held actions it returns.
+    if (alert.type !== 'mental-focus' || !outcome) {
+      return [];
+    }
+    alert.modifiers?.push(new ActorRoundAlertModifier('outcome', null, outcome));
+    return outcome === 'failed' ? this.breakConcentration() : [];
   }
 
   /**
@@ -2800,6 +2994,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       frightLevel: this.frightLevel,
       criticalSize: this.criticalSize,
       reduceCriticalSeverity: this.reduceCriticalSeverity,
+      heldActions: this.heldActions,
       imageUrl: this.imageUrl,
       owner: this.owner,
       createdAt: this.createdAt,

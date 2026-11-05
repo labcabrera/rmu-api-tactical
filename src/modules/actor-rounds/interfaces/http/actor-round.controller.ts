@@ -31,6 +31,7 @@ import { DeclareFightingStyleDto } from './dto/actor-round-fighting-style.dto.js
 import { DeclareFightingStyleCommand } from '../../application/cqrs/commands/declare-fighting-style.command.js';
 import { ActorRoundDto, CharacterRoundPageDto } from './dto/actor-round.dto.js';
 import { AddEffectDto } from './dto/add-effect.dto.js';
+import { ResolveAlertDto } from './dto/resolve-alert.dto.js';
 import { AddFatigueAccumulatorDto } from './dto/add-fatigue-accumulator.dto.js';
 import { AddHpDto } from './dto/add-hp.dto.js';
 import { UseHerbDto, UseHerbResultDto } from './dto/use-herb.dto.js';
@@ -204,10 +205,18 @@ export class ActorRoundController {
   @Post(':id/alerts/:alertId/resolve')
   @HttpCode(200)
   @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
-  @ApiOperation({ operationId: 'resolveAlert', summary: 'Resolve an alert handled by hand (the critical of a fumble)' })
+  @ApiOperation({
+    operationId: 'resolveAlert',
+    summary: 'Resolve an alert handled by hand (the critical of a fumble, a Mental Focus maneuver with its outcome)',
+  })
   @ApiErrors({ 404: 'Actor round or alert not found', 400: 'The alert is resolved with its roll' })
-  async resolveAlert(@Param('id') id: string, @Param('alertId') alertId: string, @CurrentUser() user: AuthenticatedUser) {
-    const command = new ResolveAlertCommand(id, alertId, user.id, user.roles);
+  async resolveAlert(
+    @Param('id') id: string,
+    @Param('alertId') alertId: string,
+    @Body() dto: ResolveAlertDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const command = new ResolveAlertCommand(id, alertId, user.id, user.roles, dto?.outcome);
     const entity = await this.commandBus.execute<ResolveAlertCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
   }

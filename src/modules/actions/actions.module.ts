@@ -29,6 +29,7 @@ import { ManageActionPointsHandler } from './application/cqrs/handlers/manage-ac
 import { UpdateActionHandler } from './application/cqrs/handlers/update-action.handler.js';
 import { PrepareAttackHandler } from './application/cqrs/handlers/prepare-attack.handler.js';
 import { CompleteActionHandler } from './application/cqrs/handlers/complete-action.handler.js';
+import { InterruptHeldActionsHandler } from './application/cqrs/handlers/interrupt-held-actions.handler.js';
 import { ResolveManeuverHandler } from './application/cqrs/handlers/resolve-maneuver.handler.js';
 import { ResolveMovementHandler } from './application/cqrs/handlers/resolve-movement.handler.js';
 import { UpdateAttackRollHandler } from './application/cqrs/handlers/update-attack-roll.handler.js';
@@ -106,6 +107,7 @@ import { SKILL_CATALOG_PORT } from './application/ports/skill-catalog.port.js';
     ResolveMovementHandler,
     ResolveManeuverHandler,
     CompleteActionHandler,
+    InterruptHeldActionsHandler,
     PrepareAttackHandler,
     DeclareParryHandler,
     UpdateAttackRollHandler,

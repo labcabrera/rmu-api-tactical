@@ -394,7 +394,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       return undefined;
     }
     const kind = actorRound.freeCapacity(phase) > 0 ? 'spent' : 'lost';
-    actorRound.spend(phase, this.id, 1, kind);
+    actorRound.spend(phase, this.id, 1, kind, this.isConcentrable());
     this.actionPoints = this.apOf(actorRound, phase);
     this.updatedAt = new Date();
     return kind;
@@ -418,6 +418,14 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       return 'carried';
     }
     return 'expired';
+  }
+
+  /**
+   * Its AP count half while the actor concentrates on something else (workspace spec 077, decision A2.2). A movement
+   * keeps its AP and halves its BMR instead (decision A2.3).
+   */
+  isConcentrable(): boolean {
+    return this.actionType !== 'movement';
   }
 
   /** Over in its round: completed, interrupted, expired or carried to the next one. */
@@ -506,7 +514,9 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       return { actionPoints, readiness: 'blocked', readinessPenalty: null };
     }
     const phase = currentPhase ?? ACTION_PHASES + 1;
-    const left = actorRound && phase <= ACTION_PHASES ? actorRound.remainingCapacity(phase) : 0;
+    // Workspace spec 077, decision A2.2: concentrating, the AP left count half for the action.
+    const capacityLeft = actorRound && phase <= ACTION_PHASES ? actorRound.remainingCapacity(phase) : 0;
+    const left = actorRound && this.isConcentrable() ? Math.floor(capacityLeft / actorRound.costMultiplier()) : capacityLeft;
     return { actionPoints, readiness: actionPoints + left >= profile.min ? 'blocked' : 'unreachable', readinessPenalty: null };
   }
 
@@ -598,7 +608,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       throw new ValidationError('An instantaneous action takes no more action points', 'err-action-instant');
     }
     this.fillLegacyLedger(actorRound, currentPhase);
-    actorRound.spend(currentPhase, this.id, 1);
+    actorRound.spend(currentPhase, this.id, 1, 'spent', this.isConcentrable());
     this.actionPoints = this.apOf(actorRound, currentPhase);
     this.updatedAt = new Date();
   }
@@ -642,7 +652,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       if (phase === undefined) {
         throw new ValidationError('The actor has no action points left this round', 'err-action-points-exceeded');
       }
-      actorRound.spend(phase, this.id, 1);
+      actorRound.spend(phase, this.id, 1, 'spent', this.isConcentrable());
     }
     this.resolution = resolution;
     this.actionPoints = this.apOf(actorRound, currentPhase);
@@ -705,6 +715,10 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     }
     if (actorRound.hasEffect('flatfooted')) {
       throw new ValidationError('A flatfooted actor cannot declare actions this round', 'err-action-flatfooted');
+    }
+    // Workspace spec 077, decision A2.4: with two foci the actor only moves (at creeping pace, checked when it resolves).
+    if (request.actionType !== 'movement' && actorRound.isDoubleConcentrating()) {
+      throw new ValidationError('An actor concentrating on two things only moves at creeping pace', 'err-action-double-concentration');
     }
     const phase = request.phaseStart;
     if (!Number.isInteger(phase) || phase < 1 || phase > ACTION_PHASES || phase !== currentPhase) {
@@ -825,7 +839,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       action.close(actorRound, currentPhase, 'interrupted');
     });
     if (plan.spend) {
-      actorRound.spend(plan.spend.phase, this.id, plan.spend.ap, plan.spend.kind);
+      actorRound.spend(plan.spend.phase, this.id, plan.spend.ap, plan.spend.kind, this.isConcentrable());
     }
     this.actionPoints = this.apOf(actorRound, currentPhase);
   }

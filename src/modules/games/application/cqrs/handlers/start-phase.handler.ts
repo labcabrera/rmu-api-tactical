@@ -81,6 +81,8 @@ export class StartPhaseHandler implements ICommandHandler<StartPhaseCommand, Gam
       const actorActions = actions.filter(action => action.actorId === actorRound.actorId);
       // Workspace spec 076, decision B1: the reactions not taken expire with the phase.
       let changed = actorRound.expireReactionAlerts();
+      // Workspace spec 077, decision A2.1: the held actions are concentration foci.
+      changed = actorRound.syncHeldActions(actorActions) || changed;
       if (ending !== undefined) {
         actorRound.logPhase(ending, Action.spentApInPhase(actorActions, ending));
         actorRound.fillLedgerFromActions(

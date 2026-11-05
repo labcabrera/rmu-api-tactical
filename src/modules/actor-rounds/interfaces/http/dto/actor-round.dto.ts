@@ -8,6 +8,7 @@ import { ActorRound } from '../../../domain/aggregates/actor-round.js';
 import { ActorRoundEffect } from '../../../domain/value-objects/actor-round-effect.vo.js';
 import { rollProfileOf } from '../../../domain/value-objects/actor-roll-profile.vo.js';
 import { ActorRoundAlertDto } from './actor-round-alert.dto.js';
+import { ConcentrationFocusDto } from './concentration-focus.dto.js';
 import { ActorRoundApLedgerEntryDto } from './actor-round-ap-ledger-entry.dto.js';
 import { ActorRoundApModifierDto } from './actor-round-ap-modifier.dto.js';
 import { ActorRoundAttackDto } from './actor-round-attack.dto.js';
@@ -116,6 +117,12 @@ export class ActorRoundDto {
 
   @ApiProperty({ description: 'Action points spent, lost or used by phase and action', type: [ActorRoundApLedgerEntryDto] })
   apLedger: ActorRoundApLedgerEntryDto[];
+
+  @ApiProperty({
+    description: 'What the actor concentrates on (spec 077): with any, each AP of another action counts half',
+    type: [ConcentrationFocusDto],
+  })
+  concentration: ConcentrationFocusDto[];
 
   @ApiProperty({ description: 'Hit points' })
   hp: ActorRoundHPDto;
@@ -234,6 +241,7 @@ export class ActorRoundDto {
     dto.apModifiers = entity.apModifiers.map(modifier => ActorRoundApModifierDto.fromEntity(modifier));
     dto.apCapacity = [...entity.apCapacity];
     dto.apLedger = entity.apLedger.map(entry => ActorRoundApLedgerEntryDto.fromEntity(entry));
+    dto.concentration = entity.concentration().map(focus => ConcentrationFocusDto.fromEntity(focus));
     dto.hp = ActorRoundHPDto.fromEntity(entity.hp);
     dto.fatigue = ActorRoundFatigueDto.fromEntity(entity.fatigue);
     dto.defense = ActorRoundDefenseDto.fromEntity(entity.defense);

@@ -11,6 +11,10 @@ import { type ManeuverPort, MANEUVER_PORT } from '../ports/maneuver.port.js';
 import { MANEUVER_RULES, ManeuverBaseModifiersService } from './maneuver/maneuver-base-modifiers.service.js';
 import { ManeuverContextService } from './maneuver/maneuver-context.service.js';
 import { BLINDED } from '../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
+import type { BmrMultiplier } from '../../domain/value-objects/action-movement.vo.js';
+
+/** Half movement and concentration halve the BMR. */
+const HALF_BMR = 0.5;
 
 @Injectable()
 export class MovementProcessorService {
@@ -98,10 +102,15 @@ export class MovementProcessorService {
       critical = maneuverResult.critical ?? null;
       message = maneuverResult.message;
     }
-    // Spec 034: half movement rate (a crippled leg, frostbite...).
-    const bmr = actorRound.movement.bmr * (actorRound.hasHalfMovement() ? 0.5 : 1);
+    // Spec 034: half movement rate (a crippled leg, frostbite...). Workspace spec 077, decision A2.3: concentrating, the
+    // movement keeps its AP and covers half the BMR per AP.
+    const bmrMultipliers: BmrMultiplier[] = [];
+    if (actorRound.hasHalfMovement()) bmrMultipliers.push({ key: 'half-movement', value: HALF_BMR });
+    if (actorRound.concentration().length > 0) bmrMultipliers.push({ key: 'concentration', value: HALF_BMR });
+    const bmr = bmrMultipliers.reduce((value, multiplier) => value * multiplier.value, actorRound.movement.bmr);
     const paceMultiplier = this.getPaceMultiplier(action.movement.modifiers.pace);
-    const distance = (bmr * percent * actionPoints * paceMultiplier) / 100;
+    // Workspace spec 077, decision A3.5: a failed Feat of Strength keeps a grappled actor (or its grappler) in place.
+    const distance = action.movement.modifiers.grappleFeat === 'failed' ? 0 : (bmr * percent * actionPoints * paceMultiplier) / 100;
     action.movement.calculated = {
       bmr: bmr,
       paceMultiplier: paceMultiplier,
@@ -110,6 +119,7 @@ export class MovementProcessorService {
       distanceAdjusted: distance,
       critical: critical,
       description: message || `Movement completed at ${percent}%`,
+      ...(bmrMultipliers.length > 0 ? { bmrMultipliers } : {}),
     };
   }
 

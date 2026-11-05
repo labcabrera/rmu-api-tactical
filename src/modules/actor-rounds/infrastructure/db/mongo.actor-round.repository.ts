@@ -146,7 +146,14 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
         : ActorRoundDefenseMode.none(),
       phaseLog: (doc.phaseLog || []).map(entry => new ActorRoundPhaseLog(entry.phase, entry.spentAp, entry.totalSpentAp)),
       apLedger: (doc.apLedger || []).map(
-        entry => new ApLedgerEntry(entry.phase, entry.actionId ?? undefined, entry.ap, entry.kind as ApLedgerKind),
+        entry =>
+          new ApLedgerEntry(
+            entry.phase,
+            entry.actionId ?? undefined,
+            entry.ap,
+            entry.kind as ApLedgerKind,
+            entry.concentrated || undefined,
+          ),
       ),
       injuries: (doc.injuries || []).map(injury => ({ ...injury, treatments: injury.treatments || [] })),
       poisonExposures: doc.poisonExposures || [],
@@ -164,6 +171,7 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       frightLevel: doc.frightLevel ?? null,
       criticalSize: doc.criticalSize ?? null,
       reduceCriticalSeverity: doc.reduceCriticalSeverity ?? false,
+      heldActions: (doc.heldActions || []).map(each => ({ actionId: each.actionId, since: each.since })),
       snapshot: doc.snapshot
         ? { hp: doc.snapshot.hp, injuryIds: [...(doc.snapshot.injuryIds || [])], conditionIds: [...(doc.snapshot.conditionIds || [])] }
         : undefined,

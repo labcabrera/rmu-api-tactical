@@ -4,6 +4,7 @@ import { ActorRoundAlertModifier } from './actor-round-alert-modifier.vo.js';
 import type { ActorRoundAlertStatus } from './actor-round-alert-status.vo.js';
 import type { ActorRoundAlertType } from './actor-round-alert-type.vo.js';
 import type { GamePhase } from '../../../games/domain/value-objects/game-phase.vo.js';
+import type { ConcentrationFocus, MentalFocusReason } from './concentration-focus.vo.js';
 
 /** The fields of a stored alert. */
 export type ActorRoundAlertData = Pick<ActorRoundAlert, 'id' | 'type' | 'message' | 'modifiers' | 'status'> & {
@@ -133,6 +134,20 @@ export class ActorRoundAlert {
     const modifiers = [new ActorRoundAlertModifier('origin', null, origin), new ActorRoundAlertModifier('actionId', null, actionId)];
     if (attackName) modifiers.push(new ActorRoundAlertModifier('attackName', null, attackName));
     return new ActorRoundAlert(randomUUID(), 'terrible-luck', `Terrible Luck: natural 01 (${origin})`, modifiers);
+  }
+
+  /**
+   * Workspace spec 077, decisions A2.4-A2.6: a Mental Focus maneuver keeps the concentration of the actor (two foci at
+   * once, stunned while concentrating, or a focus held for long). The game master marks it passed or failed; a failure
+   * breaks every focus. `focus` is the one held for long.
+   */
+  static buildMentalFocus(reason: MentalFocusReason, focus?: ConcentrationFocus, rounds?: number): ActorRoundAlert {
+    const modifiers = [new ActorRoundAlertModifier('reason', null, reason)];
+    if (focus) modifiers.push(new ActorRoundAlertModifier('kind', null, focus.kind));
+    if (focus?.actionId) modifiers.push(new ActorRoundAlertModifier('actionId', null, focus.actionId));
+    if (focus?.effectId) modifiers.push(new ActorRoundAlertModifier('effectId', null, focus.effectId));
+    if (rounds) modifiers.push(new ActorRoundAlertModifier('rounds', rounds, null));
+    return new ActorRoundAlert(randomUUID(), 'mental-focus', `Mental Focus maneuver to keep the concentration (${reason})`, modifiers);
   }
 
   /** Text value of a modifier (`origin`, `actionId`...). */
