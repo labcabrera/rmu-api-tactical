@@ -983,10 +983,32 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     return changed;
   }
 
+  /**
+   * Workspace spec 084: whether a parry not declared yet needs the maneuver depends on the foes parried by now, not by
+   * when the attack was prepared. One already declared keeps what it had. Returns whether anything changed.
+   */
+  refreshParryManeuvers(actorId: string, actions: Action[]): boolean {
+    let changed = false;
+    (this.parries ?? [])
+      .filter(parry => parry.actorId === actorId && parry.parryType === 'parry' && !parry.carriedOver && !parry.parry)
+      .forEach(parry => {
+        const foes = Action.parriedFoes(actorId, actions, this.actorId).size;
+        if ((parry.parryManeuver?.foes ?? 0) !== foes) {
+          parry.parryManeuver = foes > 0 ? { required: true, foes, result: null, passed: null } : null;
+          changed = true;
+        }
+      });
+    return changed;
+  }
+
   /** The same, for an action that still waits for the parries: one already declared keeps what it had to choose from. */
-  refreshOpenParries(actorRound: ActorRound): boolean {
+  refreshOpenParries(actorRound: ActorRound, actions: Action[]): boolean {
     const declared = (this.parries ?? []).some(parry => parry.actorId === actorRound.actorId && parry.parry > 0);
-    return this.status === 'parry' && !declared && this.refreshParryAvailable(actorRound);
+    if (this.status !== 'parry' || declared) {
+      return false;
+    }
+    const available = this.refreshParryAvailable(actorRound);
+    return this.refreshParryManeuvers(actorRound.actorId, actions) || available;
   }
 
   /**
@@ -999,7 +1021,13 @@ export class Action extends BaseAggregateRoot<ActionProps> {
    * (`reverseStrikes`, by actor id) for the `parry-positional` modifier, and one that already parried other foes this
    * round needs a Combat Training maneuver to parry this one (`parryManeuver`), unless it parries this attacker again.
    */
-  processParryOptions(actorRounds: ActorRound[], actions: Action[], phase: number, reverseStrikes: Map<string, number> = new Map()) {
+  processParryOptions(
+    actorRounds: ActorRound[],
+    actions: Action[],
+    phase: number,
+    reverseStrikes: Map<string, number> = new Map(),
+    maneuverSkills: Map<string, number> = new Map(),
+  ) {
     if (!this.attacks || this.attacks.length === 0) {
       return;
     }
@@ -1084,6 +1112,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
           added.positional = Action.parryPositional(attack.modifiers.positionalTarget, reverseStrikes.get(attackTarget.actorId) ?? 0);
           const foes = added.carriedOver ? 0 : Action.parriedFoes(attackTarget.actorId, actions, this.actorId).size;
           added.parryManeuver = foes > 0 ? { required: true, foes, result: null, passed: null } : null;
+          added.maneuverSkill = maneuverSkills.get(attackTarget.actorId);
         }
       }
       for (const protectorId of attack.protectors || []) {

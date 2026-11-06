@@ -65,27 +65,34 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     }
 
     // Workspace spec 083: declaring again replaces the parries of this action, and the rest of the OB committed counts.
+    const roundActions = (await this.actionRepository.findByRsql(`gameId==${action.gameId};round==${game.round}`, 0, 1000)).content;
     actorRounds.forEach(actorRound => {
       actorRound.releaseBoReservations(action.id, 'parry');
       action.refreshParryAvailable(actorRound);
+      action.refreshParryManeuvers(actorRound.actorId, roundActions);
     });
 
     // Update attack parries with command values
-    command.parries.forEach(parryItem => {
+    for (const parryItem of command.parries) {
       const parry = action.parries?.find(p => p.id === parryItem.parryId);
       if (!parry) {
         throw new ValidationError(`Parry ${parryItem.parryId} not found`);
       }
       // A parry carried over from an earlier action against this foe is fixed: its OB is already spent.
       if (parry.carriedOver) {
-        return;
+        continue;
       }
       if (parryItem.parry < 0 || parryItem.parry > parry.parryAvailable) {
         throw new ValidationError(`Parry must be between 0 and ${parry.parryAvailable}`);
       }
       parry.parry = parryItem.parry;
-      DeclareParryHandler.applyParryManeuver(parry, parryItem);
-    });
+      const rolled = parry.parry > 0 && parryItem.maneuverRoll !== undefined && parryItem.maneuverRoll !== null;
+      if (rolled) {
+        await this.rollParryManeuver(parry, parryItem, actorRounds);
+      } else {
+        DeclareParryHandler.applyParryManeuver(parry, parryItem);
+      }
+    }
 
     // The parries of one actor share its available parry; protecting also spends the protect penalty.
     const byActor = new Map<string, { total: number; available: number }>();
@@ -140,9 +147,30 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
   }
 
   /**
+   * Workspace spec 084: the maneuver of the next method from the defender's roll: the roll, its Combat Training and
+   * penalties and the difficulty (medium by default), on the absolute table.
+   */
+  private async rollParryManeuver(parry: ActionParry, item: DeclareParryItem, actorRounds: ActorRound[]): Promise<void> {
+    const maneuver = parry.parryManeuver;
+    if (!maneuver?.required) {
+      throw new ValidationError(`Parry ${parry.id} needs no maneuver`, 'err-parry-maneuver-not-needed', { parryId: parry.id });
+    }
+    const difficulty = item.maneuverDifficulty ?? SHIELD_MANEUVER_DEFAULT_DIFFICULTY;
+    const penalty = Math.min(0, actorRounds.find(actor => actor.actorId === parry.actorId)?.getPenaltySum() ?? 0);
+    const total = item.maneuverRoll! + (parry.maneuverSkill ?? 0) + penalty + (DIFFICULTY_MAP.get(difficulty) ?? 0);
+    const { result } = await this.maneuverPort.absolute(total, SHIELD_MANEUVER_TABLE);
+    const passed = PARRY_MANEUVER_PASSED_RESULTS.includes(result);
+    Object.assign(maneuver, { roll: item.maneuverRoll, difficulty, penalty, total, result, passed, manual: false });
+    if (!passed) {
+      parry.parry = 0;
+    }
+  }
+
+  /**
    * Workspace spec 079, decision A2 (§9.6 Parrying more than one foe): a parry against a further foe of the round needs
-   * the result of its Combat Training maneuver when it gives any OB (`err-parry-maneuver-required`); below a success the
-   * parry has no effect and takes no OB. A result for a parry that needs none is `err-parry-maneuver-not-needed`.
+   * its Combat Training maneuver when it gives any OB (`err-parry-maneuver-required`); below a success the parry has no
+   * effect and takes no OB. A result for a parry that needs none is `err-parry-maneuver-not-needed`. Here the game master
+   * gives the result without a roll.
    */
   static applyParryManeuver(parry: ActionParry, item: DeclareParryItem): void {
     const maneuver = parry.parryManeuver;
@@ -167,6 +195,7 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     if (!ABSOLUTE_MANEUVER_RESULTS.includes(result)) {
       throw new ValidationError(`Invalid maneuver result ${result}`);
     }
+    Object.assign(maneuver, { roll: null, difficulty: null, penalty: null, total: null, manual: true });
     maneuver.result = result;
     maneuver.passed = PARRY_MANEUVER_PASSED_RESULTS.includes(result);
     if (!maneuver.passed) {

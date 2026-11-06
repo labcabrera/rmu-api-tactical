@@ -52,7 +52,7 @@ export class RoundBoCommitments {
     for (const action of actions.filter(each => !exceptActionIds.includes(each.id))) {
       const actorRound = changedActors.find(each => each.actorId === action.actorId);
       const lowered = actorRound ? action.lowerAttacksBo(attackName => actorRound.getCurrentBo(attackName)) : [];
-      const parries = changedActors.map(each => action.refreshOpenParries(each)).some(Boolean);
+      const parries = changedActors.map(each => action.refreshOpenParries(each, actions)).some(Boolean);
       if (lowered.length > 0 || parries) {
         await this.save(action);
       }

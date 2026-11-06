@@ -41,6 +41,7 @@ import { PrepareAttackCommand, PrepareAttackCommandItem } from '../commands/prep
 import { type AttackTableModifiersPort, ATTACK_TABLE_MODIFIERS_PORT } from '../../ports/attack-table.port.js';
 import { specialManeuverModifier } from '../../../domain/services/special-maneuvers.js';
 import { type EffectivePace, effectiveActionPace, freeMovementPaceFor } from '../../../domain/services/free-movement-pace.js';
+import { ManeuverBaseModifiersService } from '../../services/maneuver/maneuver-base-modifiers.service.js';
 import { RoundBoCommitments } from '../../services/round-bo-commitments.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
@@ -148,7 +149,11 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
         this.mapSkills(characters.get(actor.actorId)).find(s => s.skillId === 'reverse-strike')?.bonus ?? 0,
       ]),
     );
-    action.processParryOptions(targetActors, roundActions, currentPhase, reverseStrikes);
+    // Workspace spec 084: the skill of the weapon each defender parries with, for its Combat Training maneuver.
+    const maneuverSkills = new Map(
+      targetActors.map(actor => [actor.actorId, PrepareAttackHandler.parryManeuverSkill(actor, characters.get(actor.actorId))]),
+    );
+    action.processParryOptions(targetActors, roundActions, currentPhase, reverseStrikes, maneuverSkills);
     action.markPrepared();
 
     action.updatedAt = new Date();
@@ -364,6 +369,17 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
   }
 
   /** Combat skills of a sheet, with their ranks (0 for older sheets and stat blocks without them). */
+  /** Combat Training (§9.6): the skill of the weapon the actor parries with, as any other maneuver reads it. */
+  private static parryManeuverSkill(actor: ActorRound, character: ActorSheet | undefined): number {
+    const attackName = actor.getParryBreakdown()?.attackName;
+    const skill = actor.attacks.find(attack => attack.attackName === attackName)?.skillId;
+    if (!skill || !character) {
+      return 0;
+    }
+    const [skillId, specialization] = skill.split('@');
+    return ManeuverBaseModifiersService.skillBonus(character, skillId, specialization ?? null).bonus;
+  }
+
   private mapSkills(character: ActorSheet | undefined): CombatAttackSourceSkill[] {
     return (
       character?.skills

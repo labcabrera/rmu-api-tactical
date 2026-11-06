@@ -1,4 +1,5 @@
 import type { ProtectPosition } from './action-attack-modifiers.vo.js';
+import type { Difficulty } from './difficulty.vo.js';
 import type { ModifierParams } from './key-value-modifier.vo.js';
 import type { ParryType } from './parry-type.vo.js';
 
@@ -36,8 +37,8 @@ export interface ParryPositional {
 
 /**
  * The absolute Combat Training maneuver of a parry against a further foe (workspace spec 079, decision A2; §9.6 Parrying
- * more than one foe): from the second foe the defender parries in the round. The result is entered; only a success or
- * better lets the parry count.
+ * more than one foe): from the second foe the defender parries in the round. It comes from a roll on the absolute table,
+ * or the game master gives the result (workspace spec 084); only a success or better lets the parry count.
  */
 export interface ParryManeuver {
   required: true;
@@ -46,6 +47,13 @@ export interface ParryManeuver {
   /** Result of the absolute maneuver (`absolute-failure`...`absolute-success`); null while pending. */
   result: string | null;
   passed: boolean | null;
+  roll?: number | null;
+  difficulty?: Difficulty | null;
+  /** Penalties of the defender (negative) when it rolled. */
+  penalty?: number | null;
+  total?: number | null;
+  /** The game master gave the result without a roll. */
+  manual?: boolean;
 }
 
 /** Results of the parry maneuver that let the parry count. */
@@ -60,6 +68,9 @@ export class ActionParry {
 
   /** The Combat Training maneuver this parry needs (workspace spec 079, decision A2). */
   public parryManeuver?: ParryManeuver | null;
+
+  /** Combat Training of the weapon the actor parries with, when the attack was prepared (workspace spec 084). */
+  public maneuverSkill?: number;
 
   constructor(
     public readonly id: string,

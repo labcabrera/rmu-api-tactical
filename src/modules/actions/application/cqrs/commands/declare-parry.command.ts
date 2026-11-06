@@ -20,6 +20,10 @@ export class DeclareParryItem {
      * of the round (`absolute-failure`...`absolute-success`), required when the parry needs it and gives any OB.
      */
     public readonly maneuverResult?: string,
+    /** Workspace spec 084: the defender's roll of that maneuver. The result then comes from the table. */
+    public readonly maneuverRoll?: number,
+    /** Difficulty of the roll (medium when missing). */
+    public readonly maneuverDifficulty?: Difficulty,
   ) {}
 }
 
