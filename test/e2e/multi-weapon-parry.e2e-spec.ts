@@ -11,6 +11,7 @@ beforeAll(async () => {
   e2e.world.characters.set('aragorn', character('aragorn'));
   const [mainHand] = character('eomer').attacks;
   e2e.world.characters.set('eomer', character('eomer', { attacks: [mainHand, { ...mainHand, attackName: 'offHand' }] }));
+  e2e.world.characters.set('theoden', character('theoden', { attacks: [mainHand, { ...mainHand, attackName: 'offHand', bo: 20 }] }));
   e2e.world.characters.set('lurtz', character('lurtz', { faction: { id: 'faction-2', name: 'Uruk-hai' } }));
   e2e.world.attackEntry = new AttackTableEntry('0', 0, undefined, undefined);
 });
@@ -138,5 +139,63 @@ describe('a parry after preparing an attack', () => {
     const rolled = await as('owner').patch(`/v1/actions/${own}/attack/roll`, { attackName: 'mainHand', roll: 40 });
     expect(rolled.status).toBe(400);
     expect(rolled.body).toMatchObject({ code: 'err-attack-no-ob' });
+  });
+
+  it('lets a lowered attack be prepared again, up to the OB left', async () => {
+    const gameId = await gameWith('aragorn');
+    const { own } = await parryWith(gameId, 40);
+    const above = await prepare(own, 'lurtz', { mainHand: 30 });
+    expect(above.status).toBe(400);
+    const again = await prepare(own, 'lurtz', { mainHand: 15 });
+    expect(again.status).toBe(200);
+    expect((again.body as ActionBody).attacks[0].modifiers.bo).toBe(15);
+  });
+
+  it('does not lower an attack already rolled', async () => {
+    const gameId = await gameWith('aragorn');
+    const attack = await declare(gameId, 'lurtz');
+    const own = await declare(gameId, 'aragorn');
+    await nextPhase(gameId);
+    expect((await prepare(own, 'lurtz', { mainHand: 60 })).status).toBe(200);
+    expect((await as('owner').patch(`/v1/actions/${own}/attack/parry`, { parries: [] })).status).toBe(200);
+    expect((await as('owner').patch(`/v1/actions/${own}/attack/roll`, { attackName: 'mainHand', roll: 40 })).status).toBe(200);
+    const prepared = await prepare(attack, 'aragorn', { mainHand: 60 });
+    const option = (prepared.body as ActionBody).parries.find(each => each.actorId === 'aragorn')!;
+    expect((await as('owner').patch(`/v1/actions/${attack}/attack/parry`, { parries: [{ parryId: option.id, parry: 40 }] })).status).toBe(
+      200,
+    );
+    expect((await as('owner').patch(`/v1/actions/${attack}/attack/roll`, { attackName: 'mainHand', roll: 40 })).status).toBe(200);
+    expect((await as('owner').patch(`/v1/actions/${attack}/attack/apply`)).status).toBe(200);
+    const action = (await as('owner').get(`/v1/actions/${own}`)).body as ActionBody;
+    expect(action.attacks[0].modifiers.bo).toBe(60);
+  });
+
+  it('gets a kata with a weapon left at 0 out of the dead end by preparing it again without that weapon', async () => {
+    const gameId = await gameWith('theoden');
+    const attack = await declare(gameId, 'lurtz');
+    const own = await declare(gameId, 'theoden');
+    await nextPhase(gameId);
+    expect((await prepare(own, 'lurtz', { mainHand: 30, offHand: 20 })).status).toBe(200);
+    const prepared = await prepare(attack, 'theoden', { mainHand: 60 });
+    const option = (prepared.body as ActionBody).parries.find(each => each.actorId === 'theoden')!;
+    expect((await as('owner').patch(`/v1/actions/${attack}/attack/parry`, { parries: [{ parryId: option.id, parry: 20 }] })).status).toBe(
+      200,
+    );
+    expect((await as('owner').patch(`/v1/actions/${attack}/attack/roll`, { attackName: 'mainHand', roll: 40 })).status).toBe(200);
+    expect((await as('owner').patch(`/v1/actions/${attack}/attack/apply`)).status).toBe(200);
+    expect(await attacksOf(gameId, 'theoden')).toEqual({ mainHand: 40, offHand: 0 });
+
+    const rolled = await as('owner').patch(`/v1/actions/${own}/attack/roll`, { attackName: 'offHand', roll: 40 });
+    expect(rolled.body).toMatchObject({ code: 'err-attack-no-ob' });
+    expect((await as('owner').patch(`/v1/actions/${own}/attack/roll`, { attackName: 'mainHand', roll: 40 })).status).toBe(200);
+    expect((await as('owner').patch(`/v1/actions/${own}/attack/apply`)).body).toMatchObject({ code: 'err-attack-pending-rolls' });
+
+    const again = await prepare(own, 'lurtz', { mainHand: 30 });
+    expect(again.status).toBe(200);
+    expect((again.body as ActionBody).attacks[0].calculated.rollModifiers.map(modifier => modifier.key)).not.toContain('attack-number');
+    expect((await as('owner').patch(`/v1/actions/${own}/attack/parry`, { parries: [] })).status).toBe(200);
+    expect((await as('owner').patch(`/v1/actions/${own}/attack/roll`, { attackName: 'mainHand', roll: 40 })).status).toBe(200);
+    expect((await as('owner').patch(`/v1/actions/${own}/attack/apply`)).status).toBe(200);
+    expect(await attacksOf(gameId, 'theoden')).toEqual({ mainHand: 10, offHand: 0 });
   });
 });
