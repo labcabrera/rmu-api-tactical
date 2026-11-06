@@ -55,7 +55,10 @@ export interface CombatAttackPreparationModifiers {
   bd: number;
   /** Distance to the target (ranged and thrown attacks). */
   range: number | undefined;
+  /** Pace of the attacker: the faster of the declared one and its free movement's (workspace spec 080). */
   pace: string | undefined;
+  /** The free movement the pace comes from, when it does (workspace spec 080). */
+  paceMovementId?: string;
   calledShotPenalty: number;
   customBonus: number;
   attackTable: string;

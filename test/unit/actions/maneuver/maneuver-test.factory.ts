@@ -121,11 +121,15 @@ export const action = (props: Partial<ActionProps>): Action =>
     ...props,
   });
 
-export const movementAction = (pace: Pace, id = 'move-1'): Action =>
+/** A resolved movement of the actor, free by default (workspace spec 080: only a free movement penalizes other actions). */
+export const movementAction = (pace: Pace, id = 'move-1', props: Partial<ActionProps> = {}): Action =>
   action({
     id,
     actionType: 'movement',
+    freeAction: true,
     status: 'completed',
+    phaseEnd: 1,
+    ...props,
     movement: {
       modifiers: { pace, requiredManeuver: false, skillId: null, difficulty: null, customBonus: null },
       roll: null,

@@ -519,3 +519,54 @@ describe('magical talents (workspace spec 077, block C)', () => {
     expect(target.total).toBe(44);
   });
 });
+
+describe('free movement while casting (workspace spec 080)', () => {
+  const declareMovement = async (gameId: string, phaseStart = 1) => {
+    const response = await as('owner').post('/v1/actions', {
+      gameId,
+      actorId: 'gandalf',
+      actionType: 'movement',
+      phaseStart,
+      freeAction: true,
+    });
+    expect(response.status).toBe(201);
+    return response.body as { id: string; actionPoints: number };
+  };
+  const resolveMovement = (actionId: string, pace: string) =>
+    as('owner').patch(`/v1/actions/${actionId}/movement/resolve`, { modifiers: { pace, requiredManeuver: false } });
+
+  it('costs no AP, leaves the instantaneous spell free, goes up to run and adds its pace to the SCR', async () => {
+    const gameId = await gameInPhase1();
+    const movement = await declareMovement(gameId);
+    expect(movement.actionPoints).toBe(0);
+    // The instantaneous action of the round is still there: the instant spell takes no AP either
+    const instant = (await declared(gameId, 'sleep', true)) as SpellActionBody & { actionPoints: number };
+    expect(instant.actionPoints).toBe(0);
+
+    const sprint = await resolveMovement(movement.id, 'sprint');
+    expect([sprint.status, sprint.body]).toEqual([
+      400,
+      expect.objectContaining({ code: 'err-free-movement-pace', details: { pace: 'sprint' } }),
+    ]);
+    expect((await resolveMovement(movement.id, 'walk')).status).toBe(200);
+
+    const preview = await as('owner').post(`/v1/actions/${instant.id}/spell/preview`, {});
+    expect(preview.status).toBe(200);
+    expect((preview.body as { modifiers: Modifier[] }).modifiers.find(each => each.key === 'pace')).toMatchObject({
+      value: -25,
+      group: 'situation',
+      rule: 'Table 5-3',
+      params: { pace: 'walk', source: 'free-movement', movementId: movement.id },
+    });
+  });
+
+  it('a movement paid with AP takes its AP and does not penalize the cast', async () => {
+    const gameId = await gameInPhase1();
+    const paid = await as('owner').post('/v1/actions', { gameId, actorId: 'gandalf', actionType: 'movement', phaseStart: 1 });
+    expect([paid.status, (paid.body as { actionPoints: number }).actionPoints]).toEqual([201, 1]);
+    expect((await resolveMovement((paid.body as { id: string }).id, 'sprint')).status).toBe(200);
+    const instant = await declared(gameId, 'sleep', true);
+    const preview = await as('owner').post(`/v1/actions/${instant.id}/spell/preview`, {});
+    expect((preview.body as { modifiers: Modifier[] }).modifiers.some(each => each.key === 'pace')).toBe(false);
+  });
+});

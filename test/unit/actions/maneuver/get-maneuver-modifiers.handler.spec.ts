@@ -27,7 +27,14 @@ describe('GetManeuverModifiersHandler', () => {
       { key: 'penalty-injury', value: -20, source: 'actor-round', group: 'penalty' },
       { key: 'armor-maneuver', value: -30, source: 'equipment', group: 'penalty', rule: '§7.2' },
       { key: 'encumbrance', value: -10, source: 'equipment', group: 'penalty', rule: '§5.4' },
-      { key: 'pace', value: -25, source: 'movement', group: 'situation', rule: 'Table 5-3', params: { pace: 'walk' } },
+      {
+        key: 'pace',
+        value: -25,
+        source: 'movement',
+        group: 'situation',
+        rule: 'Table 5-3',
+        params: { pace: 'walk', source: 'free-movement', movementId: 'move-1' },
+      },
     ]);
     expect(listing.difficulty.default).toBe('m');
     expect(listing.difficulty.options).toEqual(

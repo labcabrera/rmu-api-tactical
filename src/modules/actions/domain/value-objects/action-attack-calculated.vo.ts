@@ -1,3 +1,4 @@
+import type { EffectivePace } from '../services/free-movement-pace.js';
 import type { AttackLocation } from './attack-location.vo.js';
 import { KeyValueModifier } from './key-value-modifier.vo.js';
 import type { SkippedRule } from './skipped-rule.vo.js';
@@ -23,5 +24,10 @@ export class ActionAttackCalculated {
      * the criticals of the attack are rolled with it. Missing when the location was not rolled.
      */
     public locationRoll?: number,
+    /**
+     * Workspace spec 080: the pace the attack was prepared with, the faster of the declared one and the free movement of
+     * the attacker at the same time, and where it comes from. Missing in older actions and without a pace.
+     */
+    public pace?: EffectivePace,
   ) {}
 }

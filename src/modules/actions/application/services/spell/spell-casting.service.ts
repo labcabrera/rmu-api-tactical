@@ -29,6 +29,7 @@ import {
   spellAttackProfile,
 } from '../../../domain/services/spell-casting.rules.js';
 import { adjustRadius, adjustSpell, boltMaxTargets } from '../../../domain/services/spell-talents.js';
+import { freeMovementPaceFor } from '../../../domain/services/free-movement-pace.js';
 import {
   type ActionSpell,
   type ActionSpellOptions,
@@ -183,6 +184,10 @@ export class SpellCastingService {
     };
     const { action, actorRound, currentPhase } = context;
     const actionPoints = action.apOf(actorRound, currentPhase);
+    // Workspace spec 080, decision 4: the free movement of the caster at the same time.
+    const rsql = `gameId==${action.gameId};actorId==${action.actorId};round==${action.round}`;
+    const roundActions = (await this.actionRepository.findByRsql(rsql, 0, 100)).content;
+    const movementPace = freeMovementPaceFor(roundActions, action, currentPhase);
     const apPenalty = action.takesApPenalty() ? action.apProfile().penaltyFor(actionPoints) : 0;
     const input = {
       spell: context.spell.spell,
@@ -192,6 +197,7 @@ export class SpellCastingService {
       penalties: actorRound.getPenaltiesBySource(),
       actionPoints,
       traits: actorRound.traits,
+      movementPace,
     };
     const tables = await this.tables.findModifiers();
     const modifiers = scrModifiers({ ...input, expertise: await this.magicalExpertise(actorRound, context.spell) }, tables);

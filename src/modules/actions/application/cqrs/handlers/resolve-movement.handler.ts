@@ -23,6 +23,8 @@ import { ActionMovement, ActionMovementModifiers } from '../../../domain/value-o
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
 import { MovementProcessorService } from '../../services/movement-processor.service.js';
 import { FALL_SKILLS } from '../../../domain/services/fall-control.js';
+import { FREE_MOVEMENT_MAX_PACE } from '../../../domain/services/free-movement-pace.js';
+import { PACE_ORDER } from '../../../domain/services/uncoordinated-pace.js';
 import { ResolveMovementCommand } from '../commands/resolve-movement.command.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
@@ -227,6 +229,11 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
       throw new ValidationError('Action is not a movement action');
     } else if (action.status === 'completed') {
       throw new ValidationError('Action is already completed');
+    }
+    // Workspace spec 080, decision 2 (Core Law §8.2): a free movement goes up to run; sprint and dash take AP.
+    const pace = command.modifiers.pace;
+    if (action.isFreeMovement() && PACE_ORDER.indexOf(pace) > PACE_ORDER.indexOf(FREE_MOVEMENT_MAX_PACE)) {
+      throw new ValidationError(`A free movement goes up to ${FREE_MOVEMENT_MAX_PACE}, not ${pace}`, 'err-free-movement-pace', { pace });
     }
     if (command.modifiers.requiredManeuver === true) {
       if (command.roll === null || command.roll === undefined) {

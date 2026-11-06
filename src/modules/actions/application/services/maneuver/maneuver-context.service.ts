@@ -96,6 +96,7 @@ import {
   ManeuverBaseModifiersService,
   type ManeuverSkillBonus,
 } from './maneuver-base-modifiers.service.js';
+import { freeMovementPaceFor } from '../../../domain/services/free-movement-pace.js';
 import { ERR_INVALID_MODIFIER, resolveSelections } from './maneuver-selections.js';
 import {
   situationalTraitModifiers,
@@ -318,6 +319,8 @@ export class ManeuverContextService {
           : skillProfile;
     const actionPoints =
       options.actionPoints !== undefined ? options.actionPoints : ManeuverContextService.expectedActionPoints(action, game, actorRound);
+    // Workspace spec 080, decision 3: only a free movement made at the same time penalizes the maneuver.
+    const movementPace = freeMovementPaceFor(roundActions.content, action, Game.toActionPhase(game.phase));
     const {
       skill: skillBonus,
       base,
@@ -330,7 +333,8 @@ export class ManeuverContextService {
       specialization,
       actionPoints,
       freeAction: action.freeAction,
-      pace: ManeuverBaseModifiersService.roundPace(roundActions.content, action.actorId, action.round),
+      pace: movementPace?.pace ?? null,
+      paceMovementId: movementPace?.movementId ?? null,
       includePace: true,
       categoryId: skill.categoryId ?? null,
       withoutFortitude: options.purpose === FORTITUDE,

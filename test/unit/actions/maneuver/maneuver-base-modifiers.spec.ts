@@ -5,7 +5,7 @@ import {
 } from '../../../../src/modules/actions/application/services/maneuver/maneuver-base-modifiers.service.js';
 import type { Character } from '../../../../src/modules/strategic/application/ports/character.port.js';
 import { load } from '../../actor-rounds/actor-round-test.factory.js';
-import { action, movementAction, profile } from './maneuver-test.factory.js';
+import { profile } from './maneuver-test.factory.js';
 
 const service = new ManeuverBaseModifiersService();
 
@@ -145,11 +145,16 @@ describe('ManeuverBaseModifiersService', () => {
     expect(service.compute(input({ skillId: 'wall-scaling', specialization: 'trees' })).skill.bonus).toBe(35);
   });
 
-  it('takes the fastest pace of the actor movement actions of the round', () => {
-    const actions = [movementAction('walk', 'm1'), movementAction('run', 'm2'), action({ actionType: 'maneuver' })];
-    expect(ManeuverBaseModifiersService.roundPace(actions, 'actor-1', 1)).toBe('run');
-    expect(ManeuverBaseModifiersService.roundPace(actions, 'actor-1', 2)).toBeNull();
-    expect(ManeuverBaseModifiersService.roundPace(actions, 'other', 1)).toBeNull();
+  it('says the free movement the pace comes from (workspace spec 080)', () => {
+    expect(service.compute(input({ pace: 'jog', paceMovementId: 'move-9' })).base.find(m => m.key === 'pace')).toEqual({
+      key: 'pace',
+      value: -50,
+      source: 'movement',
+      group: 'situation',
+      rule: 'Table 5-3',
+      params: { pace: 'jog', source: 'free-movement', movementId: 'move-9' },
+    });
+    expect(service.compute(input({ pace: 'jog' })).base.find(m => m.key === 'pace')?.params).toEqual({ pace: 'jog' });
   });
 });
 
