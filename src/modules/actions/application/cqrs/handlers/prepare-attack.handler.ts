@@ -469,6 +469,11 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     }
     // Workspace spec 076, decision B1: a reaction is not limited by the OB given to parries; a fixed OB is not limited.
     const maxBo = reaction ? source.getBoIgnoringParries(attack.attackName) : attack.currentBo;
+    // Workspace spec 082, decision 7 (§9.6): with no OB there is no attack, and an attack at 0 only adds its penalties.
+    const fixedOb = !!reaction && reaction.obOverride !== null;
+    if (action.actionType !== 'cast_spell' && !action.strayShot && !fixedOb && (commandAttack.modifiers.bo <= 0 || maxBo <= 0)) {
+      throw new ValidationError(`The attack ${attack.attackName} has no OB`, 'err-attack-no-ob', { attackName: attack.attackName });
+    }
     if ((!reaction || reaction.obOverride === null) && commandAttack.modifiers.bo > maxBo) {
       throw new ValidationError(`BO cannot be higher than current BO (${maxBo})`);
     }

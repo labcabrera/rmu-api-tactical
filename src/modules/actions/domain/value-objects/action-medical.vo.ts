@@ -124,6 +124,7 @@ export interface ActionWarning {
 }
 
 export type ActionWarningCode =
+  | 'attack-ob-reduced'
   | 'movement-round-limit'
   | 'movement-phase-over-dash'
   | 'movement-prone-with-action'

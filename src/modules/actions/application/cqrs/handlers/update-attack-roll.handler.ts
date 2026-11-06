@@ -120,6 +120,10 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     if (!attack.calculated) {
       throw new ValidationError(`Attack ${command.attackName} has no calculated data`);
     }
+    // Workspace spec 082, decision 8: a parry left it without OB, so the action has to be prepared again.
+    if (action.spendsRoundBo() && attack.modifiers.bo === 0) {
+      throw new ValidationError(`The attack ${command.attackName} has no OB`, 'err-attack-no-ob', { attackName: command.attackName });
+    }
     // Workspace spec 077, decision A1.7: the Shield maneuver comes before the attack roll.
     if (isShieldManeuverPending(attack.shieldManeuver)) {
       throw new ValidationError(`The Shield maneuver against ${command.attackName} is pending`, 'err-shield-maneuver-required', {
