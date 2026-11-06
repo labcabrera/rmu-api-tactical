@@ -404,6 +404,12 @@ describe('Combat plugins', () => {
       expect((await prepare(CombatPacePlugin, ctx)).modifiers).toEqual({ 'pace-penalty': -50, 'pace-penalty-skill': 20 });
     });
 
+    it('does not add a negative footwork to the pace penalty', async () => {
+      const ctx = createCombatPluginContext({ pace: 'jog', sourceSkills: skill('footwork', -25) });
+
+      expect((await prepare(CombatPacePlugin, ctx)).modifiers).toEqual({ 'pace-penalty': -50 });
+    });
+
     it('applies footwork to thrown attacks (§8.2)', async () => {
       const ctx = createCombatPluginContext({ attackType: 'thrown', pace: 'walk', sourceSkills: skill('footwork', 20) });
 
