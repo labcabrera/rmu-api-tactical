@@ -81,4 +81,7 @@ export class ActionParry {
   /** Workspace spec 079, decision A2: the Combat Training maneuver of a parry against a further foe. */
   @Prop({ type: Object, required: false })
   parryManeuver?: ParryManeuver | null;
+
+  @Prop({ type: Number, required: false })
+  maneuverSkill?: number;
 }

@@ -72,6 +72,9 @@ export class ActionParryDto {
   /** The Combat Training maneuver of a parry against a further foe of the round (spec 079). */
   parryManeuver: ParryManeuver | null;
 
+  /** Combat Training of the weapon the actor parries with (spec 084). */
+  maneuverSkill?: number;
+
   static fromEntity(entity: ActionParry): ActionParryDto {
     const dto = new ActionParryDto();
     dto.id = entity.id;
@@ -87,6 +90,7 @@ export class ActionParryDto {
     dto.breakdown = entity.breakdown ? ParryBreakdownDto.fromEntity(entity.breakdown) : undefined;
     dto.positional = entity.positional ? { ...entity.positional } : null;
     dto.parryManeuver = entity.parryManeuver ? { ...entity.parryManeuver } : null;
+    dto.maneuverSkill = entity.maneuverSkill;
     return dto;
   }
 }

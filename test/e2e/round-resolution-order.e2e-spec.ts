@@ -70,8 +70,8 @@ const prepare = (id: string, targetId: string, bo: number) =>
     attacks: [{ attackName: 'mainHand', modifiers: { targetId, bo }, protectors: null }],
   });
 
-const parry = (id: string, parryId: string, value: number) =>
-  as('owner').patch(`/v1/actions/${id}/attack/parry`, { parries: [{ parryId, parry: value }] });
+const parry = (id: string, parryId: string, value: number, extra: object = {}) =>
+  as('owner').patch(`/v1/actions/${id}/attack/parry`, { parries: [{ parryId, parry: value, ...extra }] });
 
 const roll = (id: string) => as('owner').patch(`/v1/actions/${id}/attack/roll`, { attackName: 'mainHand', roll: 40 });
 
@@ -147,7 +147,7 @@ describe('a parry counts from when it is declared', () => {
     expect((await parry(first, optionOfFirst.id, 30)).status).toBe(200);
     expect((await actionOf(second)).parries[0].parryAvailable).toBe(30);
     expect((await parry(second, optionOfSecond.id, 40)).status).toBe(400);
-    expect((await parry(second, optionOfSecond.id, 30)).status).toBe(200);
+    expect((await parry(second, optionOfSecond.id, 30, { maneuverResult: 'success' })).status).toBe(200);
     expect(await obOf(gameId, 'aragorn')).toBe(0);
   });
 

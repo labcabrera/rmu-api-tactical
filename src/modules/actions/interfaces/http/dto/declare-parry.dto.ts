@@ -28,8 +28,27 @@ export class DeclareParryItemDto {
   @IsIn(ABSOLUTE_MANEUVER_RESULTS)
   maneuverResult?: string;
 
+  @ApiProperty({
+    required: false,
+    description: 'Open-ended roll of that maneuver (spec 084); the result comes from the table',
+    example: 72,
+  })
+  @IsOptional()
+  @IsNumber()
+  maneuverRoll?: number;
+
+  @ApiProperty({
+    type: String,
+    required: false,
+    enum: [...DIFFICULTY_MAP.keys()],
+    description: 'Difficulty of the roll (medium when missing)',
+  })
+  @IsOptional()
+  @IsIn([...DIFFICULTY_MAP.keys()])
+  maneuverDifficulty?: Difficulty;
+
   static toCommandItem(dto: DeclareParryItemDto): DeclareParryItem {
-    return new DeclareParryItem(dto.parryId, dto.parry, dto.maneuverResult);
+    return new DeclareParryItem(dto.parryId, dto.parry, dto.maneuverResult, dto.maneuverRoll, dto.maneuverDifficulty);
   }
 }
 
