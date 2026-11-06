@@ -3,7 +3,6 @@ import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-rou
 import { activeStyleAbility } from '../../../../actor-rounds/domain/value-objects/actor-round-fighting-style.vo.js';
 import { ValidationError } from '../../../../shared/domain/errors/errors.js';
 import type { ActorSheet } from '../../../../actor-rounds/application/services/actor-sheet.service.js';
-import { Action } from '../../../domain/aggregates/action.js';
 import { KeyValueModifier, type ModifierGroup, type ModifierParams } from '../../../domain/value-objects/key-value-modifier.vo.js';
 import { SkippedRule } from '../../../domain/value-objects/skipped-rule.vo.js';
 import { AP_PENALTY_PER_MISSING, ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo.js';
@@ -11,7 +10,8 @@ import type { SkillManeuverProfile } from '../../../domain/value-objects/maneuve
 import type { Pace } from '../../../domain/value-objects/pace.vo.js';
 import { toOptionalKey } from '../../../../shared/domain/services/key.js';
 import { ActorRoundTrait, UNCOORDINATED } from '../../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
-import { effectivePace, PACE_ORDER, pacePenaltyFor } from '../../../domain/services/uncoordinated-pace.js';
+import { effectivePace, pacePenaltyFor } from '../../../domain/services/uncoordinated-pace.js';
+import { FREE_MOVEMENT_SOURCE } from '../../../domain/services/free-movement-pace.js';
 
 /** Bonus of a character without the skill (chapter 3). */
 export const UNSKILLED_BONUS = -25;
@@ -94,8 +94,13 @@ export interface ManeuverBaseInput {
   actionPoints: number | null;
   /** The action is an instantaneous one (a sprint or a dash still allows it). */
   freeAction?: boolean;
-  /** Fastest pace the actor moved at in the current round. */
+  /**
+   * Pace the action is made at: the fastest free movement of the actor that overlaps it (workspace spec 080, decision
+   * 3), or the pace of the movement itself for its roll.
+   */
   pace: Pace | null;
+  /** The free movement the pace comes from (workspace spec 080): the `pace` line says so. */
+  paceMovementId?: string | null;
   /** False for the movement roll itself: the pace penalty does not affect it (§5.3). */
   includePace: boolean;
   /** Skill category of the skill rolled: Adrenal Focus helps the Brawn, Gymnastic and Movement maneuvers (spec 079). */
@@ -129,7 +134,14 @@ export class ManeuverBaseModifiersService {
       this.addEquipmentPenalties(base, input.character, input.actorRound);
     }
     if (input.includePace) {
-      this.addPacePenalty(base, skipped, input.pace, !!input.freeAction, ActorRoundTrait.tierOf(input.actorRound.traits, UNCOORDINATED));
+      this.addPacePenalty(
+        base,
+        skipped,
+        input.pace,
+        !!input.freeAction,
+        ActorRoundTrait.tierOf(input.actorRound.traits, UNCOORDINATED),
+        input.paceMovementId ?? null,
+      );
     } else if (input.pace) {
       skipped.push(new SkippedRule('pace', 'situation', 'pace-movement-roll', MANEUVER_PHASE, MANEUVER_RULES.pace, { pace: input.pace }));
     }
@@ -174,18 +186,6 @@ export class ManeuverBaseModifiersService {
           ...specialization,
         })
       : new KeyValueModifier(skill.skillId, skill.bonus, 'skill', 'skill', MANEUVER_RULES.skill, { ranks: skill.ranks, ...specialization });
-  }
-
-  /** Fastest pace of the actor's movement actions in the round (only resolved ones carry a pace). */
-  static roundPace(actions: Action[], actorId: string, round: number): Pace | null {
-    const paces = actions
-      .filter(action => action.actorId === actorId && action.round === round && action.actionType === 'movement')
-      .map(action => action.movement?.modifiers?.pace)
-      .filter((pace): pace is Pace => !!pace && PACE_ORDER.includes(pace));
-    if (paces.length === 0) {
-      return null;
-    }
-    return paces.reduce((fastest, pace) => (PACE_ORDER.indexOf(pace) > PACE_ORDER.indexOf(fastest) ? pace : fastest));
   }
 
   /** Hit points, stun, criticals, fatigue, non-violent…: one `penalty-<source>` entry per source, as in attacks. */
@@ -236,7 +236,8 @@ export class ManeuverBaseModifiersService {
   }
 
   /**
-   * Table 5-3: the fastest pace of the round. An instantaneous action skips it, and says so. Workspace spec 079, D1: an
+   * Table 5-3: the pace of the free movement the maneuver is made during (workspace spec 080; `params.source` and
+   * `params.movementId` when it comes from one). An instantaneous action skips sprint and dash, and says so. Workspace spec 079, D1: an
    * Uncoordinated actor counts the pace one faster per tier (`uncoordinated`, apart), -25 more per pace beyond run; only
    * the pace it moved at (sprint, dash) leaves no room for the maneuver.
    */
@@ -246,6 +247,7 @@ export class ManeuverBaseModifiersService {
     pace: Pace | null,
     freeAction: boolean,
     uncoordinatedTier = 0,
+    movementId: string | null = null,
   ): void {
     if (!pace) {
       return;
@@ -265,7 +267,7 @@ export class ManeuverBaseModifiersService {
       source: 'movement',
       group: 'situation',
       rule: MANEUVER_RULES.pace,
-      params: { pace },
+      params: movementId ? { pace, source: FREE_MOVEMENT_SOURCE, movementId } : { pace },
     });
     if (uncoordinatedTier > 0) {
       base.push({

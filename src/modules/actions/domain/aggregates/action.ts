@@ -407,7 +407,15 @@ export class Action extends BaseAggregateRoot<ActionProps> {
    * 0 AP by its profile (a draw with Quickdraw, workspace spec 076).
    */
   countsAsInstant(): boolean {
-    return this.freeAction && !this.isAttack() && !(this.apRange && this.apRange.max === 0);
+    return this.freeAction && !this.isAttack() && !this.isFreeMovement() && !(this.apRange && this.apRange.max === 0);
+  }
+
+  /**
+   * Free movement (Core Law §8.2; workspace spec 080, decision 1): a movement made while taking other actions, up to run.
+   * It never costs AP nor counts as the instantaneous action of the round.
+   */
+  isFreeMovement(): boolean {
+    return this.actionType === 'movement' && this.freeAction;
   }
 
   /**
@@ -481,6 +489,10 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       profile = new ActionApProfile(this.apRange.min, this.apRange.max, ActionApProfile.forAction(this.actionType).penaltyPerMissing);
     } else {
       profile = ActionApProfile.forAction(this.actionType);
+    }
+    // Workspace spec 080 (Core Law §8.2): a free movement never takes AP
+    if (this.isFreeMovement()) {
+      return new ActionApProfile(0, 0, 0);
     }
     if (this.freeAction && !this.isAttack()) {
       return new ActionApProfile(0, profile.max, profile.penaltyPerMissing, profile.multiRound);
@@ -631,6 +643,11 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     } else {
       this.phaseEnd = status === 'completed' ? Math.max(this.phaseStart, currentPhase) : this.phaseStart;
     }
+    // Workspace spec 080, decision 3: a free movement spans every phase up to the one it is resolved in (its distance
+    // too), so the actions it overlaps take its pace.
+    if (status === 'completed' && this.isFreeMovement()) {
+      this.phaseEnd = Math.max(this.phaseEnd ?? this.phaseStart, Math.min(currentPhase, ACTION_PHASES));
+    }
     this.status = status;
     this.updatedAt = new Date();
   }
@@ -777,7 +794,8 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     const releasable = medical.filter(action =>
       actorRound.ledgerOf(action.id).some(entry => entry.phase === phase && entry.kind === 'spent'),
     );
-    if (request.zeroCost) {
+    // Workspace spec 080, decision 1: a free movement is not one of the instantaneous actions either.
+    if (request.zeroCost || (request.freeAction && request.actionType === 'movement')) {
       Action.checkFearDeclaration(actorRound, request, 0);
       return { spend: { phase, ap: 0, kind: 'instant' }, interrupted: [] };
     }

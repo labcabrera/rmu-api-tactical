@@ -40,6 +40,7 @@ import { COMBAT_SKILL_IDS, CombatModifierBag, CombatProcessor, sizeDifference, s
 import { PrepareAttackCommand, PrepareAttackCommandItem } from '../commands/prepare-attack.command.js';
 import { type AttackTableModifiersPort, ATTACK_TABLE_MODIFIERS_PORT } from '../../ports/attack-table.port.js';
 import { specialManeuverModifier } from '../../../domain/services/special-maneuvers.js';
+import { type EffectivePace, effectiveActionPace, freeMovementPaceFor } from '../../../domain/services/free-movement-pace.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 /** An attack with the body (natural weapons, unarmed skills), which a disarmed actor can still make. */
@@ -104,6 +105,9 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       .findByRsql(`gameId==${action.gameId};round==${game.round}`, 0, 1000)
       .then(res => res.content);
 
+    // Workspace spec 080, decision 3: the free movement of the attacker made at the same time sets its pace.
+    const movementPace = freeMovementPaceFor(roundActions, action, currentPhase);
+
     // One after the other: an attack covered by the target's shield takes one of its blocks for the next ones.
     const reservedShieldBlocks = new Map<string, number>();
     for (const [index, attack] of actionAttacks.entries()) {
@@ -122,6 +126,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
         targetsNumber,
         gameLethality,
         light: game.environment?.light ?? null,
+        movementPace,
       });
       // Workspace spec 077, decision A1.2: an attack waiting for its Shield maneuver takes a block too (a failed roll spends it).
       const shieldUsed = ctx.attack!.calculated!.rollModifiers.some(
@@ -192,7 +197,8 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     ctx.sourceTraits = ctx.sourceActor.traits || [];
     ctx.targetTraits = ctx.targetActor.traits || [];
 
-    ctx.attackPreparation = this.mapAttackPreparation(ctx);
+    const pace = effectiveActionPace(input.attack.modifiers.pace, input.movementPace ?? null);
+    ctx.attackPreparation = this.mapAttackPreparation(ctx, pace);
     ctx.attackPreparation.modifiers.specialManeuverModifier = await this.readSpecialManeuverModifier(ctx);
     ctx = await this.combatProcessor.runPhase('prepare', ctx);
 
@@ -208,6 +214,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       ctx.attackCalculation.calculated.fumble,
       ctx.skipped ?? [],
     );
+    ctx.attack!.calculated.pace = pace;
 
     return ctx;
   }
@@ -361,7 +368,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
   }
 
   /** The data the prepare plugins read. The modifier lists start empty: every modifier comes from a plugin. */
-  private mapAttackPreparation(ctx: CombatContext): CombatAttackPreparation {
+  private mapAttackPreparation(ctx: CombatContext, pace: EffectivePace | undefined): CombatAttackPreparation {
     const attack = ctx.attack!;
     const action = ctx.action;
     const attackModifiers = attack.modifiers;
@@ -397,7 +404,8 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
         bo: attackModifiers.bo || 0,
         bd: actorRoundTarget.defense.bd || 0,
         range: attackModifiers.range,
-        pace: attackModifiers.pace,
+        pace: pace?.pace,
+        paceMovementId: pace?.movementId,
         calledShotPenalty: attackModifiers.calledShotPenalty || 0,
         customBonus: attackModifiers.customBonus || 0,
         attackTable: attackInfo.attackTable,

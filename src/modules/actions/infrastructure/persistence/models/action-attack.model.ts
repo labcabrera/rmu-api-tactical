@@ -1,4 +1,5 @@
 import { Prop, Schema } from '@nestjs/mongoose';
+import type { EffectivePace } from '../../../domain/services/free-movement-pace.js';
 import { Modifier } from '../../../../shared/infrastructure/persistence/models/modifier.model.js';
 import type { AttackType, ProtectPosition } from '../../../domain/value-objects/action-attack-modifiers.vo.js';
 import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo.js';
@@ -63,6 +64,10 @@ export class ActionAttackCalculated {
 
   @Prop({ type: Number, required: false })
   public locationRoll: number | undefined;
+
+  /** Workspace spec 080: pace of the attack and where it comes from. */
+  @Prop({ type: Object, required: false })
+  public pace?: EffectivePace;
 }
 
 @Schema({ _id: false })

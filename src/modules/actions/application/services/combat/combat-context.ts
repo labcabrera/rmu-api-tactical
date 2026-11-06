@@ -1,4 +1,5 @@
 import type { Action } from '../../../domain/aggregates/action.js';
+import type { FreeMovementPace } from '../../../domain/services/free-movement-pace.js';
 import type { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
 import type { ActorRoundAttack } from '../../../../actor-rounds/domain/value-objects/actor-round-attack.vo.js';
 import type { ActionAttack, AttackTableEntry } from '../../../domain/value-objects/action-attack.vo.js';
@@ -95,6 +96,8 @@ export interface CombatPrepareAttackInput {
   gameLethality: number;
   /** Ambient light of the tactical game (workspace spec 076, P6). */
   light?: LightType | null;
+  /** Workspace spec 080: the free movement of the attacker that overlaps the attack, whose pace counts. */
+  movementPace?: FreeMovementPace | null;
 }
 
 export interface CombatResolutionInput {

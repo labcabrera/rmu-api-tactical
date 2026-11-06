@@ -7,6 +7,10 @@ import type { SpellcastingTablesPort } from '../../../src/modules/actions/applic
 import type { SpellcastingTables } from '../../../src/modules/actions/domain/services/spell-casting.rules.js';
 import type { ActionSpell } from '../../../src/modules/actions/domain/value-objects/action-spell.vo.js';
 import type { CharacterPort, CharacterSkill } from '../../../src/modules/strategic/application/ports/character.port.js';
+import type { ActionRepository } from '../../../src/modules/actions/application/ports/action-repository.port.js';
+import type { Action } from '../../../src/modules/actions/domain/aggregates/action.js';
+import { KeyValueModifier } from '../../../src/modules/actions/domain/value-objects/key-value-modifier.vo.js';
+import { movementAction } from './maneuver/maneuver-test.factory.js';
 
 // Made-up numbers (not the book's Table 4-2): metal armour -2 per Enc % for Essence.
 const column = (value: number | null) => ({ channeling: value, essence: value, mentalism: value });
@@ -22,11 +26,11 @@ const TABLES: SpellcastingTables = {
   preparation: { perRound: 10, max: 20 },
 };
 
-const service = (skills: CharacterSkill[] = []) =>
+const service = (skills: CharacterSkill[] = [], roundActions: Action[] = []) =>
   new SpellCastingService(
     {} as never,
     {} as never,
-    {} as never,
+    { findByRsql: () => Promise.resolve({ content: roundActions }) } as unknown as ActionRepository,
     {} as never,
     { findModifiers: () => Promise.resolve(TABLES) } as unknown as SpellcastingTablesPort,
     { findById: () => Promise.resolve({ skills }) } as unknown as CharacterPort,
@@ -56,7 +60,16 @@ const spell = (): ActionSpell => ({
 
 const context = (armorEncumbrance: number, actionSpell = spell()): SpellActionContext =>
   ({
-    action: { apOf: () => 4, takesApPenalty: () => false },
+    action: {
+      id: 'cast-1',
+      gameId: 'game-1',
+      actorId: 'actor-1',
+      round: 1,
+      phaseStart: 1,
+      phaseEnd: null,
+      apOf: () => 4,
+      takesApPenalty: () => false,
+    },
     spell: actionSpell,
     currentPhase: 1,
     actorRound: { armorEncumbrance, traits: [], getPenaltiesBySource: () => [] },
@@ -74,6 +87,28 @@ describe('SpellCastingService.calculate', () => {
     const calculation = await service().calculate(context(15), { armor: 'metal', armorEncumbrance: 5 });
 
     expect(calculation.options.armorEncumbrance).toBe(5);
+  });
+});
+
+describe('Pace of a free movement in the SCR (workspace spec 080, decision 4)', () => {
+  it('adds the Table 5-3 penalty of the free movement made while casting, with the movement', async () => {
+    const calculation = await service([], [movementAction('walk', 'move-1')]).calculate(context(0), {});
+
+    expect(calculation.modifiers.find(modifier => modifier.key === 'pace')).toEqual(
+      new KeyValueModifier('pace', -25, 'situation', 'movement', 'Table 5-3', {
+        pace: 'walk',
+        source: 'free-movement',
+        movementId: 'move-1',
+      }),
+    );
+  });
+
+  it('leaves out a movement paid with AP and a free movement of another phase', async () => {
+    const paid = movementAction('jog', 'move-1', { freeAction: false });
+    const later = movementAction('run', 'move-2', { phaseStart: 3, phaseEnd: 3 });
+    const calculation = await service([], [paid, later]).calculate(context(0), {});
+
+    expect(calculation.modifiers.some(modifier => modifier.key === 'pace')).toBe(false);
   });
 });
 

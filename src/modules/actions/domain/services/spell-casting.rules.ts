@@ -14,6 +14,8 @@ import type {
 import { SPELL_REALMS } from '../value-objects/action-spell.vo.js';
 import type { ActorRoundTrait } from '../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
 import { scrTalentModifiers } from './spell-talents.js';
+import { FREE_MOVEMENT_SOURCE, type FreeMovementPace } from './free-movement-pace.js';
+import { pacePenaltyFor } from './uncoordinated-pace.js';
 
 /** A Table 4-2 cell: a modifier, a modifier per encumbrance percent, or null when it does not apply. */
 export type SpellcastingCell = number | { perEncumbrancePercent: number } | null;
@@ -43,6 +45,7 @@ export const SPELL_RULES = {
   failure: 'Spell Law §4.4',
   resistance: 'Spell Law §4.5',
   resistanceTable: 'Spell Law Table 4-5',
+  pace: 'Table 5-3',
 } as const;
 
 /** Phases of the rules a spell roll skips, as `SkippedRule.phase`. */
@@ -86,6 +89,8 @@ export interface ScrInput {
   traits?: ActorRoundTrait[];
   /** Magical Expertise bonuses of the caster for the list cast (workspace spec 079, decision B4). */
   expertise?: MagicalExpertise;
+  /** The free movement of the caster at the same time (Core Law §8.2; workspace spec 080, decision 4). */
+  movementPace?: FreeMovementPace | null;
 }
 
 /**
@@ -182,9 +187,25 @@ export function scrModifiers(input: ScrInput, tables: SpellcastingTables): KeyVa
     ...magicalExpertiseModifiers(input.expertise, casting),
     ...input.penalties.map(penalty => new KeyValueModifier(`penalty-${penalty.source}`, penalty.value, 'penalty', 'actor-round')),
     ...scrTalentModifiers(input.traits, spell),
+    ...paceModifiers(input.movementPace),
     new KeyValueModifier('custom', options.customBonus || 0, 'situation', 'custom'),
   ];
   return modifiers.filter(modifier => modifier.key === 'ranks' || modifier.value !== 0);
+}
+
+/**
+ * Workspace spec 080, decision 4 (Core Law §8.2): a caster moving freely while it casts takes the pace penalty of Table
+ * 5-3. Footwork does not reduce it (only melee and thrown attacks).
+ */
+function paceModifiers(movementPace: FreeMovementPace | null | undefined): KeyValueModifier[] {
+  if (!movementPace) return [];
+  return [
+    new KeyValueModifier('pace', pacePenaltyFor(movementPace.pace), 'situation', 'movement', SPELL_RULES.pace, {
+      pace: movementPace.pace,
+      source: FREE_MOVEMENT_SOURCE,
+      movementId: movementPace.movementId,
+    }),
+  ];
 }
 
 /**
