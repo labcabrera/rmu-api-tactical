@@ -1,3 +1,4 @@
+import type { ActorRoundBoReservation } from '../../../domain/value-objects/actor-round-bo-reservation.vo.js';
 import { LostLimbDto } from './lost-limb.dto.js';
 import { ActorRoundBreathDto } from './actor-round-breath.dto.js';
 import { ItemConsumedDto, TemporaryModifierDto } from './temporary-modifier.dto.js';
@@ -148,6 +149,9 @@ export class ActorRoundDto {
 
   @ApiProperty({ description: 'Parries', type: [ActorRoundParryDto] })
   parries: number[];
+
+  @ApiProperty({ description: 'OB committed by actions not applied yet (spec 083)', type: 'array', items: { type: 'object' } })
+  boReservations: ActorRoundBoReservation[];
 
   @ApiProperty({ description: 'Penalties' })
   penalty: ActorRoundPenaltyDto;
@@ -302,7 +306,8 @@ export class ActorRoundDto {
     dto.defenseMode = ActorRoundDefenseModeDto.fromEntity(entity.defenseMode);
     dto.phaseLog = entity.getPhaseLog().map(entry => ActorRoundPhaseLogDto.fromEntity(entry));
     dto.attacks = entity.attacks.map(a => ActorRoundAttackDto.fromEntity(a));
-    dto.parries = entity.parries;
+    dto.parries = entity.committedParries();
+    dto.boReservations = entity.boReservations;
     dto.penalty = ActorRoundPenaltyDto.fromEntity(entity.penalty);
     dto.effects = entity.effects;
     dto.alerts = entity.alerts.map(a => ActorRoundAlertDto.fromEntity(a));

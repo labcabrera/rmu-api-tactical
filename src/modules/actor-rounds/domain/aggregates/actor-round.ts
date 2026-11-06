@@ -79,6 +79,7 @@ import { ActorRoundPhaseLog } from '../value-objects/actor-round-phase-log.vo.js
 import { ActorRoundShield } from '../value-objects/actor-round-shield.vo.js';
 import { ActorRoundTrait, NATURAL_HASTE, STRIKE_REFLEX } from '../value-objects/actor-round-trait.vo.js';
 import { ActorRoundUsedBo } from '../value-objects/actor-round-used-bo.vo.js';
+import type { ActorRoundBoReservation } from '../value-objects/actor-round-bo-reservation.vo.js';
 import type { ActorType } from '../value-objects/actor-type.vo.js';
 import { ApLedgerEntry, type ApLedgerKind } from '../value-objects/ap-ledger-entry.vo.js';
 import { ApModifier, type ApModifierSource } from '../value-objects/ap-modifier.vo.js';
@@ -344,9 +345,18 @@ const ADRENAL_DEFENSE_FULL = 2;
 const ADRENAL_DEFENSE_INSTANT_FULL = 4;
 const FORTITUDE_SOURCES: ActorRoundPenaltySource[] = ['injury', 'critical', 'hp', 'stunned', 'fatigue', 'fatigue-critical'];
 
+/** The OB of the round a calculation works on (workspace spec 083): spent for good, or with the reservations on top. */
+interface BoState {
+  usedBo: ActorRoundUsedBo[];
+  ceiling: number | null;
+  parries: number[];
+}
+
 export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   /** Workspace spec 082: the most OB any attack has, without the parries, after the attacks of the round. Null: no cap. */
   public boCeiling: number | null = null;
+  /** Workspace spec 083, ADR 0013: OB committed by actions not applied yet, in the order it was committed. */
+  public boReservations: ActorRoundBoReservation[] = [];
 
   private constructor(
     id: string,
@@ -643,6 +653,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.breath = copyBreath(props.breath);
     actorRound.protectedFromEnvironment = props.protectedFromEnvironment ?? false;
     actorRound.boCeiling = props.boCeiling ?? null;
+    actorRound.boReservations = (props.boReservations ?? []).map(reservation => ({ ...reservation }));
     actorRound.normalizeLegacy();
     // Derived: recomputed so that values stored with the penalties folded in are corrected.
     actorRound.calculateCurrentBo();
@@ -2101,7 +2112,11 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     this.refreshActionPoints();
   }
 
-  declareParry(parry: number): void {
+  /** The parry takes its OB for good. What the action had reserved for it stops counting (workspace spec 083). */
+  declareParry(parry: number, actionId?: string): void {
+    if (actionId) {
+      this.boReservations = this.boReservations.filter(each => each.actionId !== actionId || each.kind !== 'parry');
+    }
     this.parries.push(parry);
     this.calculateCurrentBo();
   }
@@ -2113,37 +2128,66 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   /**
    * The OB used by the attacks of one action (workspace spec 082, ADR 0012). It leaves a margin that caps the OB of all
    * the attacks of the actor: with one attack, the best OB less the OB used; with several, the least any of them has left.
+   * What the action had reserved when it rolled stops counting (workspace spec 083).
    */
-  spendBo(spends: { attackName: string; bo: number }[]): void {
-    const used = spends.filter(spend => spend.bo > 0);
-    if (used.length === 0) {
-      return;
+  spendBo(spends: { attackName: string; bo: number }[], actionId?: string): void {
+    if (actionId) {
+      this.boReservations = this.boReservations.filter(each => each.actionId !== actionId || each.kind !== 'attack');
     }
-    const current = used.map(spend => {
-      const attack = this.attacks.find(a => a.attackName === spend.attackName);
-      if (!attack) {
-        throw new UnprocessableEntityError(`Attack not found: ${spend.attackName}`);
-      }
-      return attack.currentBo - spend.bo;
-    });
-    if (!this.isLegacyBo()) {
-      const best = Math.max(
-        ...this.usableAttacks().map(attack => attack.currentBo),
-        ...used.map(spend => this.getCurrentBo(spend.attackName)),
-      );
-      const margin = Math.max(0, used.length === 1 ? best - used[0].bo : Math.min(...current));
-      const ceiling = margin + this.parriesSum();
-      this.boCeiling = this.boCeiling === null ? ceiling : Math.min(this.boCeiling, ceiling);
-    }
-    used.forEach(spend => {
-      const existing = this.usedBo.find(u => u.attackName === spend.attackName);
-      if (existing) {
-        existing.usedBo += spend.bo;
-      } else {
-        this.usedBo.push(new ActorRoundUsedBo(spend.attackName, spend.bo));
-      }
-    });
+    const committed: BoState = { usedBo: this.usedBo, ceiling: this.boCeiling, parries: this.parries };
+    this.addSpends(committed, spends);
+    this.boCeiling = committed.ceiling;
     this.calculateCurrentBo();
+  }
+
+  /**
+   * Workspace spec 083, decision 1: the parries of one action count from when they are declared. Declaring them again
+   * replaces them, and a parry that gives no OB reserves nothing. Returns whether the reservation changed.
+   */
+  reserveParryBo(actionId: string, parry: number): boolean {
+    return this.reserveBo(parry > 0 ? { actionId, kind: 'parry', parry } : { actionId, kind: 'parry' }, parry > 0);
+  }
+
+  /**
+   * Workspace spec 083, decision 1: the attacks of one action count from its first roll. Rolling again does not count
+   * them twice. Returns whether the reservation changed.
+   */
+  reserveAttackBo(actionId: string, spends: { attackName: string; bo: number }[]): boolean {
+    const used = spends.filter(spend => spend.bo > 0);
+    return this.reserveBo({ actionId, kind: 'attack', spends: used }, used.length > 0);
+  }
+
+  private reserveBo(reservation: ActorRoundBoReservation, counts: boolean): boolean {
+    const index = this.boReservations.findIndex(each => each.actionId === reservation.actionId && each.kind === reservation.kind);
+    const unchanged = index < 0 ? !counts : counts && JSON.stringify(this.boReservations[index]) === JSON.stringify(reservation);
+    if (unchanged) {
+      return false;
+    }
+    if (index >= 0 && counts) {
+      this.boReservations[index] = reservation;
+    } else if (index >= 0) {
+      this.boReservations.splice(index, 1);
+    } else {
+      this.boReservations.push(reservation);
+    }
+    this.calculateCurrentBo();
+    return true;
+  }
+
+  /** Gives back what an action had reserved (workspace spec 083). Returns whether there was anything to give back. */
+  releaseBoReservations(actionId: string, kind?: ActorRoundBoReservation['kind']): boolean {
+    const before = this.boReservations.length;
+    this.boReservations = this.boReservations.filter(each => each.actionId !== actionId || (!!kind && each.kind !== kind));
+    if (this.boReservations.length === before) {
+      return false;
+    }
+    this.calculateCurrentBo();
+    return true;
+  }
+
+  /** The parries of the round, also those of actions not applied yet: what the actor has given so far. */
+  committedParries(): number[] {
+    return this.boState().parries;
   }
 
   /**
@@ -2866,33 +2910,83 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    * are not in it; the combat plugins apply them to the roll, and they cap the parry (`getAvailableParry`).
    */
   private calculateCurrentBo() {
-    const parries = this.parriesSum();
+    const state = this.boState();
     this.attacks.forEach(attack => {
-      const left = this.boWithoutParries(attack) - parries;
-      attack.currentBo = this.isLegacyBo() ? left : Math.max(0, left);
+      attack.currentBo = this.boLeft(attack, state);
     });
+  }
+
+  /** What the actor has spent for good, with the reservations on top: giving one back is taking it off this list. */
+  private boState(): BoState {
+    const state: BoState = {
+      usedBo: this.usedBo.map(used => new ActorRoundUsedBo(used.attackName, used.usedBo)),
+      ceiling: this.boCeiling,
+      parries: [...this.parries],
+    };
+    this.boReservations.forEach(reservation => {
+      if (reservation.kind === 'parry') {
+        state.parries.push(reservation.parry ?? 0);
+      } else {
+        this.addSpends(state, reservation.spends ?? []);
+      }
+    });
+    return state;
+  }
+
+  private addSpends(state: BoState, spends: { attackName: string; bo: number }[]): void {
+    const used = spends.filter(spend => spend.bo > 0);
+    if (used.length === 0) {
+      return;
+    }
+    const currentBoOf = (spend: { attackName: string }) => {
+      const attack = this.attacks.find(a => a.attackName === spend.attackName);
+      if (!attack) {
+        throw new UnprocessableEntityError(`Attack not found: ${spend.attackName}`);
+      }
+      return this.boLeft(attack, state);
+    };
+    const current = used.map(spend => currentBoOf(spend) - spend.bo);
+    if (!ActorRound.isLegacyBoState(state)) {
+      const best = Math.max(...this.usableAttacks().map(attack => this.boLeft(attack, state)), ...used.map(currentBoOf));
+      const margin = Math.max(0, used.length === 1 ? best - used[0].bo : Math.min(...current));
+      const ceiling = margin + ActorRound.parriesSum(state);
+      state.ceiling = state.ceiling === null ? ceiling : Math.min(state.ceiling, ceiling);
+    }
+    used.forEach(spend => {
+      const index = state.usedBo.findIndex(u => u.attackName === spend.attackName);
+      if (index >= 0) {
+        state.usedBo[index] = new ActorRoundUsedBo(spend.attackName, state.usedBo[index].usedBo + spend.bo);
+      } else {
+        state.usedBo.push(new ActorRoundUsedBo(spend.attackName, spend.bo));
+      }
+    });
+  }
+
+  private boLeft(attack: ActorRoundAttack, state: BoState): number {
+    const left = this.boWithoutParries(attack, state) - ActorRound.parriesSum(state);
+    return ActorRound.isLegacyBoState(state) ? left : Math.max(0, left);
   }
 
   /**
    * Workspace spec 082, decision 4: the base OB less what the attack itself used, capped by the margin of the round.
    * A round started before the spec (OB used, no ceiling) takes all the OB used from every attack until it ends.
    */
-  private boWithoutParries(attack: ActorRoundAttack): number {
+  private boWithoutParries(attack: ActorRoundAttack, state: BoState): number {
     // Spec 019: the base OB counts the breakage the item brought; the one of the game is applied here.
     const base = attack.baseBo + (attack.breakagePenalty || 0);
-    if (this.isLegacyBo()) {
-      return this.usedBo.reduce((left, used) => left - used.usedBo, base);
+    if (ActorRound.isLegacyBoState(state)) {
+      return state.usedBo.reduce((left, used) => left - used.usedBo, base);
     }
-    const own = this.usedBo.find(used => used.attackName === attack.attackName)?.usedBo ?? 0;
-    return Math.min(base - own, this.boCeiling ?? Infinity);
+    const own = state.usedBo.find(used => used.attackName === attack.attackName)?.usedBo ?? 0;
+    return Math.min(base - own, state.ceiling ?? Infinity);
   }
 
-  private isLegacyBo(): boolean {
-    return this.boCeiling === null && this.usedBo.length > 0;
+  private static isLegacyBoState(state: BoState): boolean {
+    return state.ceiling === null && state.usedBo.length > 0;
   }
 
-  private parriesSum(): number {
-    return this.parries.reduce((sum, parry) => sum + parry, 0);
+  private static parriesSum(state: BoState): number {
+    return state.parries.reduce((sum, parry) => sum + parry, 0);
   }
 
   /** The attacks the actor can still use: not broken and, disarmed, only the ones of its body (workspace spec 082). */
@@ -2954,7 +3048,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     if (!attack) {
       throw new UnprocessableEntityError(`Attack not found: ${attackName}`);
     }
-    return this.boWithoutParries(attack);
+    return this.boWithoutParries(attack, this.boState());
   }
 
   getCurrentBo(attackName: string): number {
@@ -3045,7 +3139,25 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     this.initiative.strikeReflex = strikeReflexBonus || undefined;
     this.initiative.reflexes = reflexesBonus || undefined;
     this.initiative.style = styleBonus || undefined;
+    this.initiative.lowered = undefined;
     this.initiative.total = (this.initiative.base || 0) + penalty + strikeReflexBonus + reflexesBonus + styleBonus + roll;
+  }
+
+  /**
+   * §8.3 (workspace spec 083, decision 4): the actor lowers its initiative for the rest of the round, down to its value
+   * in negative. It cannot raise it again, and the next round rolls a new one.
+   */
+  lowerInitiative(total: number): void {
+    const current = this.initiative.total;
+    if (current === undefined) {
+      throw new ValidationError('The actor has not declared its initiative', 'err-initiative-not-declared');
+    }
+    const lowest = -Math.abs(current - (this.initiative.lowered || 0));
+    if (total >= current || total < lowest) {
+      throw new ValidationError(`The initiative can only go down, to ${lowest} at most`, 'err-initiative-lower', { current, lowest });
+    }
+    this.initiative.lowered = (this.initiative.lowered || 0) + total - current;
+    this.initiative.total = total;
   }
 
   // --- Fighting styles (workspace spec 032) ---
@@ -3950,6 +4062,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       attacks: this.attacks,
       usedBo: this.usedBo,
       boCeiling: this.boCeiling,
+      boReservations: this.boReservations,
       parries: this.parries,
       effects: this.effects,
       alerts: this.alerts,

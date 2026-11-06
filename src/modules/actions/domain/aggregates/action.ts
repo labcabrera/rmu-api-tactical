@@ -939,16 +939,19 @@ export class Action extends BaseAggregateRoot<ActionProps> {
 
   /**
    * Workspace spec 082, decision 8: a parry of the actor lowers the OB of its prepared attacks that have not rolled yet
-   * to what it has left. A roll already made does not change.
+   * to what it has left. An action that has rolled has its OB reserved (workspace spec 083) and does not change.
    */
   lowerAttacksBo(currentBoOf: (attackName: string) => number): { attackName: string; from: number; to: number }[] {
     if (!this.spendsRoundBo() || !['prepared', 'parry', 'pending_roll'].includes(this.status)) {
       return [];
     }
+    if ((this.attacks ?? []).some(attack => attack.roll?.roll)) {
+      return [];
+    }
     return (this.attacks ?? []).flatMap(attack => {
       const from = attack.modifiers.bo ?? 0;
       const to = Math.max(0, currentBoOf(attack.attackName));
-      if (attack.roll?.roll || to >= from) {
+      if (to >= from) {
         return [];
       }
       attack.modifiers.bo = to;
@@ -959,6 +962,31 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       }
       return [{ attackName: attack.attackName, from, to }];
     });
+  }
+
+  /**
+   * What the actor can give now to its parries in this action (workspace spec 083): the OB it committed elsewhere since
+   * the action was prepared no longer counts. One carried over is fixed, already paid. Returns whether anything changed.
+   */
+  refreshParryAvailable(actorRound: ActorRound): boolean {
+    const available = actorRound.getAvailableParry();
+    const breakdown = actorRound.getParryBreakdown();
+    let changed = false;
+    (this.parries ?? [])
+      .filter(parry => parry.actorId === actorRound.actorId && !parry.carriedOver)
+      .forEach(parry => {
+        const value = parry.parryType === 'protect' ? Math.max(0, available + (parry.penalty || 0)) : available;
+        changed = changed || value !== parry.parryAvailable;
+        parry.parryAvailable = value;
+        parry.breakdown = breakdown && (parry.parryType === 'protect' ? { ...breakdown, protectPenalty: parry.penalty } : breakdown);
+      });
+    return changed;
+  }
+
+  /** The same, for an action that still waits for the parries: one already declared keeps what it had to choose from. */
+  refreshOpenParries(actorRound: ActorRound): boolean {
+    const declared = (this.parries ?? []).some(parry => parry.actorId === actorRound.actorId && parry.parry > 0);
+    return this.status === 'parry' && !declared && this.refreshParryAvailable(actorRound);
   }
 
   /**

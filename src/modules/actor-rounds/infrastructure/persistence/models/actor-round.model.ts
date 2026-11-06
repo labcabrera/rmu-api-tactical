@@ -16,6 +16,7 @@ import { ActorRoundHP } from './actor-round-hp.model.js';
 import { ActorRoundInitiative } from './actor-round-initiative.model.js';
 import { ActorRoundMovement } from './actor-round-movement.model.js';
 import { ActorRoundPenalty } from './actor-round-penalty.model.js';
+import { ActorRoundBoReservation } from './actor-round-bo-reservation.model.js';
 import { ActorRoundUsedBo } from './actor-round-used-bo.model.js';
 import {
   ActorRoundApLedgerEntry,
@@ -97,6 +98,9 @@ export class ActorRoundModel {
 
   @Prop({ type: Number, default: null })
   boCeiling: number | null;
+
+  @Prop({ type: [ActorRoundBoReservation], default: [] })
+  boReservations: ActorRoundBoReservation[];
 
   @Prop({ type: [Number], required: true })
   parries: number[];

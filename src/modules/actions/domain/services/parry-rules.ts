@@ -10,6 +10,9 @@ export const ownParryOf = (parries: ActionParry[] | null | undefined, defenderId
     parry => parry.actorId === defenderId && parry.targetActorId === defenderId && parry.parryType === 'parry' && parry.parry > 0,
   );
 
+/** The OB a parry takes: the parry, plus the protect penalty when protecting with any amount (Table 9-7c). */
+export const parryCost = (parry: ActionParry): number => (parry.parry > 0 ? parry.parry - (parry.penalty || 0) : 0);
+
 /**
  * The defender parried the attacker with all the OB it had available (workspace spec 040, decision 3; spec 076,
  * decision B2): one parry of its own, not a protection, equal to its available OB. A carried-over parry counts when

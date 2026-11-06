@@ -42,6 +42,8 @@ import { UseHerbDto, UseHerbResultDto } from './dto/use-herb.dto.js';
 import { UseHerbCommand } from '../../application/cqrs/commands/use-herb.command.js';
 import type { UseHerbResult } from '../../application/cqrs/handlers/use-herb.handler.js';
 import { DeclareInitiativeDto } from './dto/declare-initiative.dto.js';
+import { LowerInitiativeDto } from './dto/lower-initiative.dto.js';
+import type { LowerInitiativeCommand } from '../../application/cqrs/commands/lower-initiative.command.js';
 import { ResolveEnduranceCheckDto } from './dto/resolve-endurance-check.dto.js';
 import { ResolveBreakageCheckDto } from './dto/resolve-breakage-check.dto.js';
 import { ResolveBreakageCheckCommand } from '../../application/cqrs/commands/resolve-breakage-check.command.js';
@@ -111,6 +113,17 @@ export class ActorRoundController {
   async declareInitiative(@Param('id') id: string, @Body() dto: DeclareInitiativeDto, @CurrentUser() user: AuthenticatedUser) {
     const command = DeclareInitiativeDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<DeclareInitiativeCommand, ActorRound>(command);
+    return ActorRoundDto.fromEntity(entity);
+  }
+
+  @ActorRoundAccess('act')
+  @Patch(':id/initiative/lower')
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
+  @ApiOperation({ operationId: 'lowerInitiative', summary: 'Lower the initiative for the rest of the round' })
+  @ApiErrors({ 404: 'Actor round not found' })
+  async lowerInitiative(@Param('id') id: string, @Body() dto: LowerInitiativeDto, @CurrentUser() user: AuthenticatedUser) {
+    const command = LowerInitiativeDto.toCommand(id, dto, user.id, user.roles);
+    const entity = await this.commandBus.execute<LowerInitiativeCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
   }
 

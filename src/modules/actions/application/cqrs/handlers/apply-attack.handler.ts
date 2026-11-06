@@ -53,6 +53,7 @@ import type { CriticalEffect } from '../../../domain/value-objects/critical-resu
 import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo.js';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
 import { ApplyAttackCommand } from '../commands/apply-attack.command.js';
+import { RoundBoCommitments } from '../../services/round-bo-commitments.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 import { SpellCastingService } from '../../services/spell/spell-casting.service.js';
 
@@ -158,7 +159,8 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
 
     await this.useShieldBlocks(action, actors);
     await this.spendCoatings(sourceActor.id, coatingsSpent);
-    const loweredBo = await this.processDeclareActorParry(action, command.userId, command.roles);
+    await this.processDeclareActorParry(action, command.userId, command.roles);
+    const loweredBo = await this.refreshCommitments(action);
     await this.processFatigue(action, game.round, strategicGame, command.userId, command.roles);
     await this.raiseRipostes(action, actors, game);
     await this.raiseStrayShots(action, sourceActor, game);
@@ -223,7 +225,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       }
       return { attackName: a.attackName, bo: attack.modifiers.bo ?? 0 };
     });
-    return spends.some(spend => spend.bo > 0) ? [new SubstractBoCommand(actorRound.id, spends, userId, roles)] : [];
+    return spends.some(spend => spend.bo > 0) ? [new SubstractBoCommand(actorRound.id, spends, userId, roles, action.id)] : [];
   }
 
   /**
@@ -368,43 +370,22 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     if (raised) await this.actorRoundRepository.update(current);
   }
 
-  private async processDeclareActorParry(action: Action, userId: string, roles: string[]): Promise<ActionWarning[]> {
+  private async processDeclareActorParry(action: Action, userId: string, roles: string[]): Promise<void> {
     if (!action.parries || action.parries.length === 0) {
-      return [];
+      return;
     }
     // A parry carried over from an earlier action against this foe was already paid.
     for (const parry of action.parries.filter(p => p.parry > 0 && !p.carriedOver)) {
-      const command = DeclareActorParryCommand.fromParry(action.gameId, action.actorId, action.round, parry, userId, roles);
+      const command = DeclareActorParryCommand.fromParry(action.gameId, action.actorId, action.round, parry, userId, roles, action.id);
       await this.commandBus.execute(command);
     }
-    const parrying = new Set(action.parries.filter(p => p.parry > 0 && !p.carriedOver).map(p => p.actorId));
-    return (await Promise.all([...parrying].map(actorId => this.lowerPreparedAttacks(action, actorId)))).flat();
   }
 
-  /** Workspace spec 082, decision 8: the attacks the actor had prepared cannot use the OB it has just given to parry. */
-  private async lowerPreparedAttacks(action: Action, actorId: string): Promise<ActionWarning[]> {
-    const actorRound = await this.actorRoundRepository.findByActorIdAndRound(action.gameId, actorId, action.round);
-    if (!actorRound) {
-      return [];
-    }
-    const rsql = `gameId==${action.gameId};round==${action.round};actorId==${actorId}`;
-    const own = (await this.actionRepository.findByRsql(rsql, 0, 1000)).content.filter(each => each.id !== action.id);
-    const warnings: ActionWarning[] = [];
-    for (const each of own) {
-      const lowered = each.lowerAttacksBo(attackName => actorRound.getCurrentBo(attackName));
-      if (lowered.length > 0) {
-        const updated = await this.actionRepository.update(each);
-        await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
-        lowered.forEach(({ attackName, from, to }) =>
-          warnings.push({
-            code: 'attack-ob-reduced',
-            params: { actor: actorRound.actorName, attackName, from, to },
-            requiresConfirm: false,
-          }),
-        );
-      }
-    }
-    return warnings;
+  /** Workspace spec 082, decision 8, and spec 083: what the OB spent now changes in the other open actions of the round. */
+  private async refreshCommitments(action: Action): Promise<ActionWarning[]> {
+    const parrying = (action.parries ?? []).filter(parry => parry.parry > 0 && !parry.carriedOver).map(parry => parry.actorId);
+    const commitments = new RoundBoCommitments(this.actionRepository, this.actorRoundRepository, this.eventPublisher);
+    return commitments.refresh(action.gameId, action.round, new Set([action.actorId, ...parrying]), [action.id]);
   }
 
   /** The source of the injuries and effects of an attack. */

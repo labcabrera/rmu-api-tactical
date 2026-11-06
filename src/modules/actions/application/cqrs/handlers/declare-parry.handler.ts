@@ -25,11 +25,14 @@ import {
   SHIELD_MANEUVER_TABLE,
 } from '../../../domain/value-objects/shield-maneuver.vo.js';
 import type { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
+import { parryCost } from '../../../domain/services/parry-rules.js';
+import { RoundBoCommitments } from '../../services/round-bo-commitments.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 @CommandHandler(DeclareParryCommand)
 export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand, Action> {
   private readonly logger = new Logger(DeclareParryHandler.name);
+  private readonly commitments: RoundBoCommitments;
 
   constructor(
     @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
@@ -38,7 +41,9 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
     private readonly combatProcessor: CombatProcessor,
     @Inject(MANEUVER_PORT) private readonly maneuverPort: ManeuverPort,
-  ) {}
+  ) {
+    this.commitments = new RoundBoCommitments(actionRepository, actorRoundRepository, eventPublisher);
+  }
 
   async execute(command: DeclareParryCommand): Promise<Action> {
     this.logger.log(`Processing parry for action ${command.actionId} for user ${command.userId}`);
@@ -58,6 +63,12 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     if (actorIds.length !== actorRounds.length) {
       throw new ValidationError('Unable to find all actor rounds');
     }
+
+    // Workspace spec 083: declaring again replaces the parries of this action, and the rest of the OB committed counts.
+    actorRounds.forEach(actorRound => {
+      actorRound.releaseBoReservations(action.id, 'parry');
+      action.refreshParryAvailable(actorRound);
+    });
 
     // Update attack parries with command values
     command.parries.forEach(parryItem => {
@@ -106,9 +117,26 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     // Update action and publish events. It stays in the parry step while a Shield maneuver is pending.
     action.status = action.hasPendingShieldManeuvers() ? 'parry' : 'pending_roll';
     action.updatedAt = new Date();
+    const reserved = await this.reserveParries(action, actorRounds);
     const updated = await this.actionRepository.update(action);
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
+    updated.warnings = await this.commitments.refresh(action.gameId, game.round, reserved, [action.id]);
     return updated;
+  }
+
+  /** Workspace spec 083, decision 1: the OB of the parries counts from now on. Answers the actors they belong to. */
+  private async reserveParries(action: Action, actorRounds: ActorRound[]): Promise<Set<string>> {
+    const parries = (action.parries ?? []).filter(parry => !parry.carriedOver);
+    const parrying = new Set(parries.map(parry => parry.actorId));
+    for (const actorRound of actorRounds.filter(each => parrying.has(each.actorId))) {
+      const own = parries.filter(parry => parry.actorId === actorRound.actorId);
+      actorRound.reserveParryBo(
+        action.id,
+        own.reduce((sum, parry) => sum + parryCost(parry), 0),
+      );
+      await this.actorRoundRepository.update(actorRound);
+    }
+    return parrying;
   }
 
   /**
@@ -197,6 +225,7 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     action.attacks?.forEach(attack => {
       actorIds.add(attack.modifiers.targetId!);
     });
+    action.parries?.forEach(parry => actorIds.add(parry.actorId));
     return Array.from(actorIds);
   }
 

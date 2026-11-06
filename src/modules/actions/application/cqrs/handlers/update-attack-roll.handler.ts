@@ -18,11 +18,13 @@ import { opportunisticStrikeTrigger } from '../../../domain/services/reaction-ru
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
 import { CombatAttackRollResolverService } from '../../services/combat/index.js';
 import { UpdateAttackRollCommand } from '../commands/update-attack-roll.command.js';
+import { RoundBoCommitments } from '../../services/round-bo-commitments.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 @CommandHandler(UpdateAttackRollCommand)
 export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRollCommand, Action> {
   private readonly logger = new Logger(UpdateAttackRollHandler.name);
+  private readonly commitments: RoundBoCommitments;
 
   constructor(
     @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
@@ -30,7 +32,9 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
     @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
     private readonly combatAttackRollResolver: CombatAttackRollResolverService,
-  ) {}
+  ) {
+    this.commitments = new RoundBoCommitments(actionRepository, actorRoundRepository, eventPublisher);
+  }
 
   async execute(command: UpdateAttackRollCommand): Promise<Action> {
     this.logger.log(`Execute << ${JSON.stringify(command)}`);
@@ -87,7 +91,14 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
     if (natural.terribleLuck || natural.spasm) {
       sourceChanged = true;
     }
-    if (sourceChanged) {
+    // Workspace spec 083, decision 1: from its first roll, the OB of the whole action counts.
+    const reserved =
+      action.spendsRoundBo() &&
+      sourceActor.reserveAttackBo(
+        action.id,
+        action.attacks!.map(each => ({ attackName: each.attackName, bo: each.modifiers.bo ?? 0 })),
+      );
+    if (sourceChanged || reserved) {
       await this.actorRoundRepository.update(sourceActor);
     }
     // Workspace spec 076, decision B3: a new fumble of a melee attack lets a target with Opportunistic Strike attack.
@@ -100,6 +111,9 @@ export class UpdateAttackRollHandler implements ICommandHandler<UpdateAttackRoll
 
     const updated = await this.actionRepository.update(action);
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
+    if (reserved) {
+      updated.warnings = await this.commitments.refresh(action.gameId, action.round, new Set([action.actorId]), [action.id]);
+    }
     return updated;
   }
 

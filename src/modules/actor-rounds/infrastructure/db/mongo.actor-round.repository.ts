@@ -123,6 +123,11 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       attacks: attacks,
       usedBo: doc.usedBo,
       boCeiling: doc.boCeiling ?? null,
+      boReservations: (doc.boReservations ?? []).map(({ actionId, kind, parry, spends }) => ({
+        actionId,
+        kind,
+        ...(kind === 'parry' ? { parry } : { spends: (spends ?? []).map(({ attackName, bo }) => ({ attackName, bo })) }),
+      })),
       parries: doc.parries,
       effects: (doc.effects || []).map(
         e =>

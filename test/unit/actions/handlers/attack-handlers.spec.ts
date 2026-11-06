@@ -36,7 +36,8 @@ import {
   DeclareShieldManeuverItem,
 } from '../../../../src/modules/actions/application/cqrs/commands/declare-parry.command.js';
 import { UpdateAttackRollCommand } from '../../../../src/modules/actions/application/cqrs/commands/update-attack-roll.command.js';
-import { createCombatPluginContext } from '../combat/combat-plugin-test.factory.js';
+import type { ActorRound } from '../../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
+import { createDefender, createCombatPluginContext } from '../combat/combat-plugin-test.factory.js';
 import { fakeCriticalLocationPort } from '../../../fixtures/critical-locations.js';
 
 const processor = () => new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST));
@@ -50,6 +51,7 @@ const absoluteManeuvers = () => ({ absolute: absoluteTable }) as unknown as Mane
 const repositories = (action: Action, actors = createCombatPluginContext().actors!) => {
   const actionRepository = {
     findById: vi.fn(() => Promise.resolve(action)),
+    findByRsql: vi.fn(() => Promise.resolve({ content: [action] })),
     update: vi.fn((updated: Action) => Promise.resolve(updated)),
   } as unknown as ActionRepository;
   const gameRepository = {
@@ -63,6 +65,11 @@ const repositories = (action: Action, actors = createCombatPluginContext().actor
   } as unknown as ActorRoundRepository;
   const actionEventBus = { publish: vi.fn(() => Promise.resolve()) } as unknown as DomainEventPublisher;
   return { actionRepository, gameRepository, actorRoundRepository, actorRoundUpdate, actionEventBus };
+};
+
+const withParryOb = (actor: ActorRound, bo: number) => {
+  actor.attacks = [new ActorRoundAttack('mainHand', [], bo, bo, 'melee', 'arming-sword', 'melee-one-hand', 0, 3, false, null, null)];
+  return actor;
 };
 
 /** An attack already rolled, with the criticals given and, optionally, a fumble. */
@@ -288,6 +295,7 @@ describe('DeclareParryHandler', () => {
   it('runs the parry phase on each attack and recomputes the total', async () => {
     const ctx = createCombatPluginContext();
     ctx.attack!.calculated = new ActionAttackCalculated([new KeyValueModifier('bo', 75), new KeyValueModifier('bd', -25)], 50, undefined);
+    withParryOb(ctx.targetActor!, 40);
     ctx.action.parries = [new ActionParry('parry-1', 'defender-1', 'defender-1', 'parry', 40, 0)];
     ctx.action.status = 'parry';
     const repos = repositories(ctx.action, ctx.actors);
@@ -314,6 +322,7 @@ describe('DeclareParryHandler', () => {
   it('adds no parry when the attack disables it', async () => {
     const ctx = createCombatPluginContext({ modifiers: { disabledParry: true } });
     ctx.attack!.calculated = new ActionAttackCalculated([new KeyValueModifier('bo', 75)], 75, undefined);
+    withParryOb(ctx.targetActor!, 40);
     ctx.action.parries = [new ActionParry('parry-1', 'defender-1', 'defender-1', 'parry', 40, 0)];
     const repos = repositories(ctx.action, ctx.actors);
     const handler = new DeclareParryHandler(
@@ -333,6 +342,7 @@ describe('DeclareParryHandler', () => {
   it('rejects a parry above the one available', async () => {
     const ctx = createCombatPluginContext();
     ctx.attack!.calculated = new ActionAttackCalculated([new KeyValueModifier('bo', 75)], 75, undefined);
+    withParryOb(ctx.targetActor!, 5);
     ctx.action.parries = [new ActionParry('parry-1', 'defender-1', 'defender-1', 'parry', 5, 0)];
     ctx.action.status = 'parry';
     const repos = repositories(ctx.action, ctx.actors);
@@ -357,7 +367,11 @@ describe('DeclareParryHandler carried over and protect parries', () => {
     ctx.attack!.calculated = new ActionAttackCalculated([new KeyValueModifier('bo', 75)], 75, undefined);
     ctx.action.parries = parries;
     ctx.action.status = 'parry';
-    const repos = repositories(ctx.action, ctx.actors);
+    const helper = Object.assign(withParryOb(createDefender(), 100), { actorId: 'helper' });
+    const repos = repositories(
+      ctx.action,
+      [...ctx.actors!, helper].filter(actor => actor.actorId !== 'helper' || parries.some(parry => parry.actorId === 'helper')),
+    );
     const handler = new DeclareParryHandler(
       repos.gameRepository,
       repos.actorRoundRepository,
@@ -397,6 +411,7 @@ describe('DeclareParryHandler shared parry', () => {
   it('rejects parries of one actor that add up above its available parry', async () => {
     const ctx = createCombatPluginContext();
     ctx.attack!.calculated = new ActionAttackCalculated([new KeyValueModifier('bo', 75)], 75, undefined);
+    withParryOb(ctx.targetActor!, 10);
     ctx.action.parries = [
       new ActionParry('parry-1', 'defender-1', 'defender-1', 'parry', 10, 0),
       new ActionParry('parry-2', 'defender-1', 'defender-1', 'parry', 10, 0),
@@ -465,12 +480,11 @@ describe('UpdateAttackRollHandler', () => {
   });
 
   it('raises no alert for other rolls', async () => {
-    const { ctx, repos, execute } = setup();
+    const { ctx, execute } = setup();
 
     await execute(50);
 
     expect(ctx.sourceActor!.alerts).toHaveLength(0);
-    expect(repos.actorRoundUpdate).not.toHaveBeenCalled();
   });
 });
 

@@ -10,5 +10,7 @@ export class ActorRoundInitiative {
     public reflexes?: number,
     /** Fighting style bonus (Lightning Reflexes, spec 032), already in `total`. */
     public style?: number,
+    /** What the actor lowered it by, negative (§8.3, workspace spec 083), already in `total`. */
+    public lowered?: number,
   ) {}
 }
