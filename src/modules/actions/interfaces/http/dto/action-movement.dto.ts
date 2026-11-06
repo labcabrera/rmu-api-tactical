@@ -28,7 +28,13 @@ export class ActionMovementDto {
 }
 
 export class ActionMovementModifiersDto {
-  @ApiProperty({ type: String, description: 'The pace of the movement', example: 'walk' })
+  @ApiProperty({
+    type: String,
+    required: false,
+    description: 'Required in a free movement. A normal movement only sends `dash`; else its pace comes from its AP (workspace spec 081)',
+    example: 'walk',
+  })
+  @IsOptional()
   @IsString()
   pace: Pace;
 
@@ -68,6 +74,11 @@ export class ActionMovementModifiersDto {
   @IsIn(GRAPPLE_FEATS)
   grappleFeat?: GrappleFeat | null;
 
+  @ApiProperty({ required: false, description: 'Spec 081: moving backwards, at half speed and up to jog' })
+  @IsOptional()
+  @IsBoolean()
+  backwards?: boolean | null;
+
   static fromEntity(modifiers: ActionMovementModifiers): ActionMovementModifiersDto {
     const dto = new ActionMovementModifiersDto();
     dto.pace = modifiers.pace;
@@ -77,6 +88,7 @@ export class ActionMovementModifiersDto {
     dto.customBonus = modifiers.customBonus;
     dto.light = modifiers.light ?? null;
     if (modifiers.grappleFeat) dto.grappleFeat = modifiers.grappleFeat;
+    if (modifiers.backwards) dto.backwards = true;
     return dto;
   }
 
@@ -89,13 +101,14 @@ export class ActionMovementModifiersDto {
       dto.customBonus,
       dto.light,
       dto.grappleFeat ?? null,
+      dto.backwards ?? null,
     );
   }
 }
 
 export class ActionMovementResultDto {
   bmr: number;
-  paceMultiplier: number;
+  paceMultiplier: number | null;
   percent: number;
   distance: number;
   distanceAdjusted: number;

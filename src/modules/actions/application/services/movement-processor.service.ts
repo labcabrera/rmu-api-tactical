@@ -13,7 +13,7 @@ import { ManeuverContextService } from './maneuver/maneuver-context.service.js';
 import { BLINDED } from '../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
 import type { BmrMultiplier } from '../../domain/value-objects/action-movement.vo.js';
 
-/** Half movement and concentration halve the BMR. */
+/** Half movement, concentration and moving backwards or prone halve the BMR. */
 const HALF_BMR = 0.5;
 
 @Injectable()
@@ -38,8 +38,11 @@ export class MovementProcessorService {
   ) {}
 
   /**
-   * `actionPoints`: AP the distance is covered in, the action's when left out (an instantaneous movement alongside
-   * another action takes no AP of its own but still covers the phases it spans).
+   * `actionPoints`: AP the distance is covered in, the action's when left out (a free movement takes no AP but covers
+   * the phases it spans).
+   *
+   * Core Law §8.1-8.2 (workspace spec 081, decision 4): a normal movement covers 1 BMR per AP, and a dash 1.25; a free
+   * movement, its pace's share of the BMR per phase (Table 5-3).
    */
   async process(roll: number | null, action: Action, actorRound: ActorRound, actionPoints = action.actionPoints): Promise<void> {
     if (!action.movement || !action.movement.modifiers) {
@@ -47,7 +50,9 @@ export class MovementProcessorService {
     } else if (!actionPoints) {
       throw new Error('Action does not have action points data');
     }
-    this.checkMaxPace(action.movement.modifiers.pace, actorRound.movement.maxPace);
+    const perPhase = action.freeAction || action.movement.modifiers.pace === 'dash';
+    // The maximum pace of a normal movement is a limit on the distance of the round (workspace spec 081, decision 7).
+    if (perPhase) this.checkMaxPace(action.movement.modifiers.pace, actorRound.movement.maxPace);
     let percent = 100;
     let critical: string | null = null;
     let message: string | null = null;
@@ -109,10 +114,13 @@ export class MovementProcessorService {
     const bmrMultipliers: BmrMultiplier[] = [];
     if (actorRound.hasHalfMovement()) bmrMultipliers.push({ key: 'half-movement', value: HALF_BMR });
     if (actorRound.concentration().length > 0) bmrMultipliers.push({ key: 'concentration', value: HALF_BMR });
+    // Workspace spec 081, decision 10: once, moving backwards while prone is not slower still.
+    if (action.movement.modifiers.backwards) bmrMultipliers.push({ key: 'backwards', value: HALF_BMR });
+    else if (actorRound.hasEffect('prone')) bmrMultipliers.push({ key: 'prone', value: HALF_BMR });
     const bmr = bmrMultipliers.reduce((value, multiplier) => value * multiplier.value, actorRound.movement.bmr);
-    const paceMultiplier = this.getPaceMultiplier(action.movement.modifiers.pace);
+    const paceMultiplier = perPhase ? this.getPaceMultiplier(action.movement.modifiers.pace) : null;
     // Workspace spec 077, decision A3.5: a failed Feat of Strength keeps a grappled actor (or its grappler) in place.
-    const distance = action.movement.modifiers.grappleFeat === 'failed' ? 0 : (bmr * percent * actionPoints * paceMultiplier) / 100;
+    const distance = action.movement.modifiers.grappleFeat === 'failed' ? 0 : (bmr * percent * actionPoints * (paceMultiplier ?? 1)) / 100;
     action.movement.calculated = {
       bmr: bmr,
       paceMultiplier: paceMultiplier,

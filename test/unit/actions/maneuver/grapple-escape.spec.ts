@@ -167,7 +167,10 @@ describe('Movement of a grappled actor (workspace spec 077, decision A3.5)', () 
         findByActorIdAndRound: vi.fn(() => Promise.resolve(actorRound)),
         findByRsql: vi.fn(() => Promise.resolve({ content: [actorRound, ...others] })),
       } as unknown as ActorRoundRepository,
-      { findById: vi.fn(() => Promise.resolve(movement)) } as unknown as ActionRepository,
+      {
+        findById: vi.fn(() => Promise.resolve(movement)),
+        findByRsql: vi.fn(() => Promise.resolve({ content: [] })),
+      } as unknown as ActionRepository,
       { findById: vi.fn(() => Promise.resolve({ id: 'sg-1' })) } as unknown as StrategicGamePort,
       { publish: vi.fn() },
     );

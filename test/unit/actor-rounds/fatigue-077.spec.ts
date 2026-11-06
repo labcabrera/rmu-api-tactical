@@ -113,13 +113,14 @@ describe('Fatigue of the criticals (workspace spec 077, decision D8)', () => {
 });
 
 describe('Fatigue of the movements (workspace spec 077, decision D6)', () => {
-  const move = async (pace: string, accumulator: number) => {
+  /** A normal movement of 1 AP after `previousAp` AP of movement in the round (workspace spec 081, decision 6). */
+  const move = async (previousAp: number, accumulator: number) => {
     const actorRound = load();
     actorRound.fatigue.accumulator = accumulator;
     const movement = action({ id: 'move-1', actionType: 'movement', movement: null });
     actorRound.spend(1, 'move-1', 1);
     const process = vi.fn((_roll: number | null, target: Action) => {
-      target.movement = movementAction(pace as never).movement;
+      target.movement = movementAction('walk').movement;
       return Promise.resolve();
     });
     const update = vi.fn((updated: ActorRound) => Promise.resolve(updated));
@@ -133,26 +134,36 @@ describe('Fatigue of the movements (workspace spec 077, decision D6)', () => {
         findByRsql: vi.fn(() => Promise.resolve({ content: [actorRound] })),
         update,
       } as unknown as ActorRoundRepository,
-      { findById: vi.fn(() => Promise.resolve(movement)), update: vi.fn((a: Action) => Promise.resolve(a)) } as unknown as ActionRepository,
+      {
+        findById: vi.fn(() => Promise.resolve(movement)),
+        findByRsql: vi.fn(() =>
+          Promise.resolve({
+            content: previousAp
+              ? [action({ id: 'move-0', actionType: 'movement', status: 'completed', actionPoints: previousAp, movement: null })]
+              : [],
+          }),
+        ),
+        update: vi.fn((a: Action) => Promise.resolve(a)),
+      } as unknown as ActionRepository,
       { findById: vi.fn(() => Promise.resolve({ id: 'sg-1', options: null })) } as unknown as StrategicGamePort,
       { publish: vi.fn() },
     );
-    await handler.execute(new ResolveMovementCommand('move-1', { pace, requiredManeuver: false } as never, null, null, 'user-1', []));
+    await handler.execute(new ResolveMovementCommand('move-1', { requiredManeuver: false } as never, null, null, 'user-1', []));
     return { actorRound, movement };
   };
 
   it('a sprint that passes 100 raises the endurance alert and exerts the actor', async () => {
-    const { actorRound, movement } = await move('sprint', 95);
-    expect(movement.fatigue).toBe(12.5);
-    expect(actorRound.fatigue.accumulator).toBe(107.5);
+    const { actorRound, movement } = await move(3, 95);
+    expect(movement.fatigue).toBeCloseTo(50 - 100 / 12);
+    expect(actorRound.fatigue.accumulator).toBeCloseTo(95 + 50 - 100 / 12);
     expect(actorRound.fatigue.exerted).toBe(true);
     expect(actorRound.alerts.map(alert => alert.type)).toEqual(['endurance']);
   });
 
-  it('jog and run follow Table 5-5: 0.42 and 2.08 per AP', async () => {
-    expect((await move('jog', 0)).movement.fatigue).toBe(0.42);
-    expect((await move('run', 0)).movement.fatigue).toBe(2.08);
-    const walk = await move('walk', 0);
+  it('jog and run follow Table 5-5 by the AP of the round, and the first AP is walking', async () => {
+    expect((await move(1, 0)).movement.fatigue).toBeCloseTo(100 / 60);
+    expect((await move(2, 0)).movement.fatigue).toBeCloseTo(100 / 12 - 100 / 60);
+    const walk = await move(0, 0);
     expect(walk.movement.fatigue).toBeNull();
     expect(walk.actorRound.fatigue.exerted).toBe(false);
   });

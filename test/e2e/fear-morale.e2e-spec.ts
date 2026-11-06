@@ -216,7 +216,13 @@ describe('injury limits and tourniquets (workspace spec 068)', () => {
     expect(sam.injuries.find(each => each.id === 'cut')!.tourniquet).toMatchObject({ tightSince: 1 });
     await as('owner').post(`/v1/tactical-games/${gameId}/initiatives/randomize`);
     await as('owner').post(`/v1/tactical-games/${gameId}/phases/start`);
-    const movement = await as('owner').post('/v1/actions', { gameId, actorId: 'sam', actionType: 'movement', phaseStart: 1 });
+    const movement = await as('owner').post('/v1/actions', {
+      gameId,
+      actorId: 'sam',
+      actionType: 'movement',
+      phaseStart: 1,
+      freeAction: true,
+    });
     expect(movement.status).toBe(201);
     const resolve = (pace: string) =>
       as('owner').patch(`/v1/actions/${(movement.body as { id: string }).id}/movement/resolve`, {

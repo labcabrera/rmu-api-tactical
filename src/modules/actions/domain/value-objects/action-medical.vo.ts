@@ -124,6 +124,9 @@ export interface ActionWarning {
 }
 
 export type ActionWarningCode =
+  | 'movement-round-limit'
+  | 'movement-phase-over-dash'
+  | 'movement-prone-with-action'
   | 'treatment-interrupted'
   | 'exertion-reopens-wound'
   | 'limb-unusable'
