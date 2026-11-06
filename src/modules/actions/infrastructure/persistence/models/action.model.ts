@@ -5,7 +5,7 @@ import type { ActionStatus } from '../../../domain/value-objects/action-status.v
 import type { ActionType } from '../../../domain/value-objects/action-type.vo.js';
 import type { ActionSpell } from '../../../domain/value-objects/action-spell.vo.js';
 import type { ActionMedical, ActionUseItem } from '../../../domain/value-objects/action-medical.vo.js';
-import type { ActionAim, ActionDrawAndLoad, ActionReaction } from '../../../domain/aggregates/action.js';
+import type { ActionAim, ActionDrawAndLoad, ActionOther, ActionStrayShot, ActionReaction } from '../../../domain/aggregates/action.js';
 import { ActionAttack } from './action-attack.model.js';
 import { ActionManeuver } from './action-maneuver.model.js';
 import { ActionMovement } from './action-movement.model.js';
@@ -106,6 +106,14 @@ export class ActionModel {
   /** Workspace spec 076: the foe and weapon of an `aim` action. */
   @Prop({ type: Object, required: false })
   aim?: ActionAim | null;
+
+  /** Workspace spec 079: the fixed-cost subtype of an `other` action (Table 8-1). */
+  @Prop({ type: Object, required: false })
+  otherAction?: ActionOther | null;
+
+  /** Workspace spec 079: the stray shot an attack forced as `stray-shot` comes from. */
+  @Prop({ type: Object, required: false })
+  strayShot?: ActionStrayShot | null;
 
   @Prop({ required: true })
   owner: string;

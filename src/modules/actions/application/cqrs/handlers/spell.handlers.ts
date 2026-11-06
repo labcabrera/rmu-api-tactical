@@ -20,7 +20,13 @@ import {
   spellAllowsRr,
   spellResistanceRoll,
 } from '../../../domain/services/spell-casting.rules.js';
-import { failureTalentModifier, ironWillModifier, MIN_FAILURE_TOTAL, powerRecycling } from '../../../domain/services/spell-talents.js';
+import {
+  elementalRrModifier,
+  failureTalentModifier,
+  ironWillModifier,
+  MIN_FAILURE_TOTAL,
+  powerRecycling,
+} from '../../../domain/services/spell-talents.js';
 import type { ActionSpellTarget, SpellRealm } from '../../../domain/value-objects/action-spell.vo.js';
 import type { KeyValueModifier } from '../../../domain/value-objects/key-value-modifier.vo.js';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
@@ -192,6 +198,8 @@ export class ResolveSpellResistanceHandler implements ICommandHandler<ResolveSpe
       spell.spell.listRealms.forEach(realm => (bonuses[realm] = target.resistanceBonus(realm) ?? request.bonus ?? 0));
       // Workspace spec 077, decision C9: Iron Will counts against a mental attack spell of any realm.
       const ironWill = ironWillModifier(target.traits, spell.spell);
+      // Workspace spec 079, D4: Elemental Resistance and Susceptibility against a spell of their element
+      const elemental = elementalRrModifier(target.traits, spell.spell);
       const rr = spellResistanceRoll({
         roll: request.roll!,
         bonuses,
@@ -200,7 +208,7 @@ export class ResolveSpellResistanceHandler implements ICommandHandler<ResolveSpe
         spellModifier: spell.spell.resistance?.modifier ?? 0,
         conditions,
         scr,
-        talentModifiers: ironWill ? [ironWill] : [],
+        talentModifiers: [ironWill, elemental].filter((modifier): modifier is NonNullable<typeof modifier> => !!modifier),
       });
       targets.push({
         actorId: target.actorId,

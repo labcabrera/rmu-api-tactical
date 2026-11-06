@@ -11,10 +11,17 @@ export class ActorRoundDefenseModeDto {
   @ApiProperty({ type: String, description: 'Shield block declared this round', enum: DEFENSE_LEVELS, example: 'passive' })
   block: DefenseLevel;
 
+  @ApiProperty({
+    description: 'Spec 079: the full dodge was declared with Adrenal Defense, without the 4 AP dodge action',
+    required: false,
+  })
+  adrenal?: boolean;
+
   static fromEntity(entity: ActorRoundDefenseMode): ActorRoundDefenseModeDto {
     const dto = new ActorRoundDefenseModeDto();
     dto.dodge = entity.dodge;
     dto.block = entity.block;
+    if (entity.adrenal) dto.adrenal = true;
     return dto;
   }
 }
@@ -22,7 +29,7 @@ export class ActorRoundDefenseModeDto {
 export class DeclareDefenseModeDto {
   @ApiProperty({
     type: String,
-    description: 'Dodge (full only with a 4 AP dodge action); kept when missing',
+    description: 'Dodge (full only with a 4 AP dodge action, or with Adrenal Defense since spec 079); kept when missing',
     enum: DEFENSE_LEVELS,
     required: false,
   })

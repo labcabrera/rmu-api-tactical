@@ -10,6 +10,8 @@ import { AP_PENALTY_PER_MISSING, ActionApProfile } from '../../../domain/value-o
 import type { SkillManeuverProfile } from '../../../domain/value-objects/maneuver-profile.vo.js';
 import type { Pace } from '../../../domain/value-objects/pace.vo.js';
 import { toOptionalKey } from '../../../../shared/domain/services/key.js';
+import { ActorRoundTrait, UNCOORDINATED } from '../../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
+import { effectivePace, PACE_ORDER, pacePenaltyFor } from '../../../domain/services/uncoordinated-pace.js';
 
 /** Bonus of a character without the skill (chapter 3). */
 export const UNSKILLED_BONUS = -25;
@@ -17,19 +19,8 @@ export const UNSKILLED_BONUS = -25;
 /** §8.1: penalty per action point below the maximum of the action's range. */
 export const ACTION_POINT_PENALTY = AP_PENALTY_PER_MISSING;
 
-/** Table 5-3: penalty of the pace to the other actions of the round. */
-const PACE_PENALTIES: Record<string, number> = {
-  creep: 0,
-  walk: -25,
-  jog: -50,
-  run: -75,
-};
-
 /** Table 5-3 gives only an AP cost for these paces: the whole round goes into moving. */
 const FULL_ROUND_PACES = new Set(['sprint', 'dash']);
-
-/** Paces from slowest to fastest. */
-const PACE_ORDER: Pace[] = ['creep', 'walk', 'jog', 'run', 'sprint', 'dash'];
 
 /**
  * Fixed bonuses of fighting style abilities to a skill while the style is active (workspace spec 032, group A). The
@@ -78,6 +69,9 @@ export const MANEUVER_RULES = {
   lightSensitivity: '§4.5',
   conflict: '§8.2',
   frenzy: '§3.4',
+  adrenal: '§3.4, Table 3-4',
+  uncoordinated: 'Core Law ch. 4',
+  situationalTalent: 'Core Law ch. 4',
 } as const;
 
 export interface ManeuverSkillBonus {
@@ -104,7 +98,14 @@ export interface ManeuverBaseInput {
   pace: Pace | null;
   /** False for the movement roll itself: the pace penalty does not affect it (§5.3). */
   includePace: boolean;
+  /** Skill category of the skill rolled: Adrenal Focus helps the Brawn, Gymnastic and Movement maneuvers (spec 079). */
+  categoryId?: string | null;
+  /** A Fortitude maneuver takes every penalty, without the relief of an earlier Fortitude (§3.5; spec 079). */
+  withoutFortitude?: boolean;
 }
+
+/** Skill categories Adrenal Focus helps (§3.4; workspace spec 079, decision B3). */
+export const ADRENAL_FOCUS_CATEGORIES = ['brawn', 'gymnastic', 'movement'];
 
 export interface ManeuverBaseResult {
   skill: ManeuverSkillBonus;
@@ -122,12 +123,13 @@ export class ManeuverBaseModifiersService {
   compute(input: ManeuverBaseInput): ManeuverBaseResult {
     const base: ManeuverBaseModifier[] = [];
     const skipped: SkippedRule[] = [];
-    this.addActorPenalties(base, input.actorRound);
+    this.addActorPenalties(base, input.actorRound, !!input.withoutFortitude);
+    this.addAdrenalModifiers(base, input.actorRound, input.skillId, input.categoryId ?? null);
     if (input.profile.movement) {
       this.addEquipmentPenalties(base, input.character, input.actorRound);
     }
     if (input.includePace) {
-      this.addPacePenalty(base, skipped, input.pace, !!input.freeAction);
+      this.addPacePenalty(base, skipped, input.pace, !!input.freeAction, ActorRoundTrait.tierOf(input.actorRound.traits, UNCOORDINATED));
     } else if (input.pace) {
       skipped.push(new SkippedRule('pace', 'situation', 'pace-movement-roll', MANEUVER_PHASE, MANEUVER_RULES.pace, { pace: input.pace }));
     }
@@ -187,10 +189,39 @@ export class ManeuverBaseModifiersService {
   }
 
   /** Hit points, stun, criticals, fatigue, non-violent…: one `penalty-<source>` entry per source, as in attacks. */
-  private addActorPenalties(base: ManeuverBaseModifier[], actorRound: ActorRound): void {
-    actorRound
-      .getPenaltiesBySource()
-      .forEach(({ source, value }) => base.push({ key: `penalty-${source}`, value, source: 'actor-round', group: 'penalty' }));
+  private addActorPenalties(base: ManeuverBaseModifier[], actorRound: ActorRound, withoutFortitude: boolean): void {
+    (withoutFortitude ? actorRound.getPenaltiesWithoutFortitude() : actorRound.getPenaltiesBySource()).forEach(({ source, value }) =>
+      base.push({ key: `penalty-${source}`, value, source: 'actor-round', group: 'penalty' }),
+    );
+  }
+
+  /**
+   * Workspace spec 079, decision B3 (§3.4): the bonus of an active Adrenal Focus to a Brawn, Gymnastic or Movement
+   * maneuver, and the mental block (-25) an absolute failure of Table 3-4 left on the skill.
+   */
+  private addAdrenalModifiers(base: ManeuverBaseModifier[], actorRound: ActorRound, skillId: string, categoryId: string | null): void {
+    const focus = actorRound.adrenalFocusBonus?.() ?? 0;
+    if (focus > 0 && categoryId && ADRENAL_FOCUS_CATEGORIES.includes(categoryId)) {
+      base.push({
+        key: 'adrenal-focus',
+        value: focus,
+        source: 'actor-round',
+        group: 'situation',
+        rule: MANEUVER_RULES.adrenal,
+        params: { category: categoryId },
+      });
+    }
+    const block = actorRound.adrenalBlockPenalty?.(skillId) ?? 0;
+    if (block < 0) {
+      base.push({
+        key: 'adrenal-block',
+        value: block,
+        source: 'actor-round',
+        group: 'penalty',
+        rule: MANEUVER_RULES.adrenal,
+        params: { skill: skillId },
+      });
+    }
   }
 
   /**
@@ -204,8 +235,18 @@ export class ManeuverBaseModifiersService {
     base.push({ key: 'item-breakage', value: actorRound.getArmorBreakagePenalty?.() || 0, ...equipment, rule: MANEUVER_RULES.breakage });
   }
 
-  /** Table 5-3: the fastest pace of the round. An instantaneous action skips it, and says so. */
-  private addPacePenalty(base: ManeuverBaseModifier[], skipped: SkippedRule[], pace: Pace | null, freeAction: boolean): void {
+  /**
+   * Table 5-3: the fastest pace of the round. An instantaneous action skips it, and says so. Workspace spec 079, D1: an
+   * Uncoordinated actor counts the pace one faster per tier (`uncoordinated`, apart), -25 more per pace beyond run; only
+   * the pace it moved at (sprint, dash) leaves no room for the maneuver.
+   */
+  private addPacePenalty(
+    base: ManeuverBaseModifier[],
+    skipped: SkippedRule[],
+    pace: Pace | null,
+    freeAction: boolean,
+    uncoordinatedTier = 0,
+  ): void {
     if (!pace) {
       return;
     }
@@ -217,14 +258,25 @@ export class ManeuverBaseModifiersService {
       skipped.push(new SkippedRule('pace', 'situation', 'pace-instant-action', MANEUVER_PHASE, MANEUVER_RULES.pace, { pace }));
       return;
     }
+    const penalty = pacePenaltyFor(pace);
     base.push({
       key: 'pace',
-      value: PACE_PENALTIES[pace] ?? 0,
+      value: penalty,
       source: 'movement',
       group: 'situation',
       rule: MANEUVER_RULES.pace,
       params: { pace },
     });
+    if (uncoordinatedTier > 0) {
+      base.push({
+        key: UNCOORDINATED,
+        value: pacePenaltyFor(pace, uncoordinatedTier) - penalty,
+        source: 'movement',
+        group: 'situation',
+        rule: MANEUVER_RULES.uncoordinated,
+        params: { pace, effectivePace: effectivePace(pace, uncoordinatedTier), tier: uncoordinatedTier },
+      });
+    }
   }
 
   private addStyleBonuses(base: ManeuverBaseModifier[], actorRound: ActorRound, skillId: string, specialization: string | null): void {

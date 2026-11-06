@@ -17,6 +17,14 @@ import {
 } from 'class-validator';
 import type { GrappleEscapeRow } from '../../../domain/services/grapple-escape.js';
 import {
+  type ComplementaryChoice,
+  SIMILARITY_VALUES,
+  type SimilarityChoice,
+  type SimilarityValue,
+  SKILL_RELATIONS,
+  type SkillRelation,
+} from '../../../domain/services/skill-aids.js';
+import {
   MISSING_SENSE_HELPFUL_DEFAULT,
   MISSING_SENSE_HELPFUL_MIN,
   HEATSENSE_MAX,
@@ -93,6 +101,75 @@ export class GrappleEscapeRowDto {
   @IsOptional()
   @IsNumber()
   passiveTotal?: number;
+}
+
+/** Workspace spec 079, decision B1: the skill the maneuver needs, when the actor rolls a similar one (Table 3-0c). */
+export class SimilarityDto {
+  @ApiProperty({ description: 'Skill the maneuver needs; the one rolled is similar to it', example: 'perception' })
+  @IsString()
+  targetSkillId: string;
+
+  @ApiProperty({ type: String, description: 'Specialization of the skill needed', required: false, nullable: true })
+  @IsOptional()
+  @IsString()
+  targetSpecialization?: string | null;
+
+  @ApiProperty({ description: 'Very similar (0), similar (-25) or slightly similar (-50)', enum: SIMILARITY_VALUES, example: -25 })
+  @IsIn([...SIMILARITY_VALUES])
+  similarity: SimilarityValue;
+
+  @ApiProperty({
+    type: String,
+    description: 'Relation the game master rules; read from the skill categories when left out (-25, -50, -75)',
+    enum: SKILL_RELATIONS,
+    required: false,
+  })
+  @IsOptional()
+  @IsIn(SKILL_RELATIONS)
+  relation?: SkillRelation;
+}
+
+/** Workspace spec 079, decision B1: a helper of a complementary skill, an actor of the same game. */
+export class ComplementaryHelperDto {
+  @ApiProperty({ description: 'Actor of the same tactical game that helps; the one who rolls when left out', required: false })
+  @IsOptional()
+  @IsString()
+  actorId?: string;
+
+  @ApiProperty({ description: 'Skill whose ranks help', example: 'traps' })
+  @IsString()
+  skillId: string;
+
+  @ApiProperty({ type: String, description: 'Specialization of the skill', required: false, nullable: true })
+  @IsOptional()
+  @IsString()
+  specialization?: string | null;
+}
+
+/** Workspace spec 079, decision B2: the load of a feat of strength (§5.2). */
+export class FeatOfStrengthDto {
+  @ApiProperty({ description: 'Weight of the load in pounds', example: 100 })
+  @IsNumber()
+  @Min(0.01)
+  loadWeight: number;
+
+  @ApiProperty({ description: 'Part of the weight left by the mechanical advantage (0.01-1, 0.5 dragged)', required: false, example: 1 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0.01)
+  @Max(1)
+  mechanicalFactor?: number;
+
+  @ApiProperty({ description: 'Body weight in pounds of an actor without a sheet that gives it (NPC)', required: false })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  bodyWeight?: number;
+
+  @ApiProperty({ description: 'St bonus of an actor without a sheet that gives it (NPC); 0 when left out', required: false })
+  @IsOptional()
+  @IsInt()
+  strengthBonus?: number;
 }
 
 /** @deprecated Body of the resolve request before spec 010. Read for one more version. */
@@ -194,7 +271,10 @@ export class ResolveManeuverDto {
       'What the maneuver is for: Adrenal Focus to enter or leave the frenzy (spec 040), or a combat talent (spec 076): ' +
       'battle-cry (Influence), sense-weakness and study-offense (Perception, 4 AP), precision (Ambush); or grapple-escape ' +
       '(spec 077: unarmed-st, unarmed-ag or contortions, percent, 2-4 AP, with grappleEscape rows) or fall-control ' +
-      '(spec 077: acrobatics, absolute, instantaneous or forced, 0 AP, medium by default)',
+      '(spec 077: acrobatics, absolute, instantaneous or forced, 0 AP, medium by default); feat-of-strength (spec 079: ' +
+      'weight-training with featOfStrength, difficulty of Table 5-2), adrenal (spec 079: adrenal-defense, -focus, -speed ' +
+      'or -strength, absolute, Table 3-4, benefit from the next round) or fortitude (spec 079: fortitude, absolute, ' +
+      'instantaneous or forced, 0 AP, Table 3-4)',
     enum: MANEUVER_PURPOSES,
     required: false,
   })
@@ -298,6 +378,58 @@ export class ResolveManeuverDto {
   @Type(() => GrappleEscapeRowDto)
   grappleEscape?: GrappleEscapeRowDto[];
 
+  @ApiProperty({
+    description: 'Spec 079: the actor rolls a similar skill of the one the maneuver needs',
+    type: SimilarityDto,
+    required: false,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SimilarityDto)
+  similarity?: SimilarityDto;
+
+  @ApiProperty({
+    description: 'Spec 079: helpers of complementary skills; the first adds its ranks, each next one half the one before',
+    type: [ComplementaryHelperDto],
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @ValidateNested({ each: true })
+  @Type(() => ComplementaryHelperDto)
+  complementary?: ComplementaryHelperDto[];
+
+  @ApiProperty({
+    description: 'feat-of-strength (spec 079): the load; the API reads the difficulty on Table 5-2',
+    type: FeatOfStrengthDto,
+    required: false,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => FeatOfStrengthDto)
+  featOfStrength?: FeatOfStrengthDto;
+
+  @ApiProperty({
+    description: 'Spec 079, D3: situational talents of the actor the game master ticks (err-maneuver-situational-trait)',
+    type: [String],
+    required: false,
+    example: ['golden-throat'],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  situationalTraits?: string[];
+
+  @ApiProperty({
+    description: 'Spec 079, D3: actor perceived or tracked by smell, whose Neutral or Distinct Odor counts (targetActorId when left out)',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  senseTargetActorId?: string;
+
   @ApiProperty({ description: 'Roll; a grapple escape sends one in each grappleEscape row instead', type: ManeuverRollDto })
   @ValidateIf((dto: ResolveManeuverDto) => dto.purpose !== 'grapple-escape' || dto.roll !== undefined)
   @ValidateNested()
@@ -348,7 +480,25 @@ export class ResolveManeuverDto {
         difficulty: row.difficulty,
         passiveTotal: row.passiveTotal,
       })),
+      dto.similarity ? ResolveManeuverDto.toSimilarity(dto.similarity) : undefined,
+      dto.complementary?.map((helper): ComplementaryChoice => ({
+        ...(helper.actorId ? { actorId: helper.actorId } : {}),
+        skillId: helper.skillId,
+        ...(helper.specialization ? { specialization: helper.specialization } : {}),
+      })),
+      dto.featOfStrength ? { ...dto.featOfStrength } : undefined,
+      dto.situationalTraits,
+      dto.senseTargetActorId,
     );
+  }
+
+  static toSimilarity(dto: SimilarityDto): SimilarityChoice {
+    return {
+      targetSkillId: dto.targetSkillId,
+      ...(dto.targetSpecialization ? { targetSpecialization: dto.targetSpecialization } : {}),
+      similarity: dto.similarity,
+      ...(dto.relation ? { relation: dto.relation } : {}),
+    };
   }
 
   private static toSenses(dto: ResolveManeuverDto): SenseChoices | undefined {

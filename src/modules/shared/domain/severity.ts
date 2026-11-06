@@ -9,20 +9,32 @@ const A_INDEX = SEVERITIES.indexOf('A');
 
 /**
  * Keys of the steps that move the critical severity (§9.4, T-3.1d, T-3.1e; workspace spec 075, decision 3).
- * `fall-control`: the Acrobatics maneuver of a fall (workspace spec 077, decision D4).
+ * `fall-control`: the Acrobatics maneuver of a fall (workspace spec 077, decision D4). `adrenal-strength`: the attack
+ * sizes of an active Adrenal Strength (§3.4; workspace spec 079, decision B3). `elemental-talent`: Elemental Resistance
+ * or Susceptibility on a fixed critical of its element without a roll (workspace spec 079, D4).
  */
 export type SeverityAdjustmentKey =
-  'attack-size' | 'charge' | 'fighting-style' | 'target-size' | 'light-boned' | 'critical-code' | 'fall-control';
+  | 'attack-size'
+  | 'adrenal-strength'
+  | 'charge'
+  | 'fighting-style'
+  | 'target-size'
+  | 'light-boned'
+  | 'critical-code'
+  | 'fall-control'
+  | 'elemental-talent';
 
 /** Order the steps are listed in. */
 const SEVERITY_KEYS: SeverityAdjustmentKey[] = [
   'attack-size',
+  'adrenal-strength',
   'charge',
   'fighting-style',
   'target-size',
   'light-boned',
   'critical-code',
   'fall-control',
+  'elemental-talent',
 ];
 
 export interface SeverityAdjustmentStep {
@@ -44,6 +56,17 @@ export const adjustSeverity = (original: string, total: number, reduceSeverity: 
     return SEVERITIES[Math.min(index, SEVERITIES.length - 1)];
   }
   return index === A_INDEX - 1 && !reduceSeverity ? 'Z' : null;
+};
+
+/**
+ * The severity no worse than `cap` (workspace spec 079, decision A4: the hazard of a knock-back gives no critical worse
+ * than the one that provoked it). Null stays null; without a cap it does not change.
+ */
+export const capSeverity = (severity: string | null, cap: string | null | undefined): string | null => {
+  if (!severity || !cap || !SEVERITIES.includes(cap)) {
+    return severity;
+  }
+  return SEVERITIES.indexOf(severity) > SEVERITIES.indexOf(cap) ? cap : severity;
 };
 
 /**

@@ -1,3 +1,5 @@
+import type { FogLevel } from '../../../actions/domain/value-objects/fog-level.vo.js';
+import type { TemperatureKind } from '../../../actor-rounds/domain/services/environment-rules.js';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -68,6 +70,14 @@ export class MongoGameRepository extends MongoBaseRepository<Game, GameModel> im
           doc.environment.temperatureFatigueModifier,
           doc.environment.altitudeFatigueModifier,
           (doc.environment.light as LightType | undefined) ?? undefined,
+          (doc.environment.fog as FogLevel | undefined) ?? undefined,
+          doc.environment.extremeTemperature
+            ? {
+                kind: doc.environment.extremeTemperature.kind as TemperatureKind,
+                temperature: doc.environment.extremeTemperature.temperature ?? null,
+                severity: doc.environment.extremeTemperature.severity ?? null,
+              }
+            : undefined,
         )
       : undefined;
     return Game.fromProps({

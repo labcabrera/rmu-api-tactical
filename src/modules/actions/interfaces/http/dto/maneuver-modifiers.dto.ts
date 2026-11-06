@@ -1,5 +1,10 @@
+import type { SituationalTraitOption } from '../../../domain/services/situational-trait-bonuses.js';
 import { ApiProperty } from '@nestjs/swagger';
-import type { ManeuverModifiersListing } from '../../../application/services/maneuver/maneuver-context.service.js';
+import type {
+  FeatOfStrengthListing,
+  ManeuverFogListing,
+  ManeuverModifiersListing,
+} from '../../../application/services/maneuver/maneuver-context.service.js';
 import type { ModifierParams } from '../../../domain/value-objects/key-value-modifier.vo.js';
 import type { ManeuverModifierDefinition } from '../../../domain/value-objects/maneuver-profile.vo.js';
 import { SkippedRuleDto } from './skipped-rule.dto.js';
@@ -200,6 +205,15 @@ export class ManeuverModifiersDto {
   @ApiProperty({ type: ManeuverSensesDto, required: false, description: 'Perception and Tracking only (spec 076)' })
   senses?: ManeuverSensesDto;
 
+  @ApiProperty({
+    type: Object,
+    required: false,
+    description:
+      'Spec 079, C5 (Table 15-7): the fog of the game for Perception and Tracking: level, visibilityFeet, vision (modifier ' +
+      'of a visual maneuver, not reduced by vision talents) and hearingBeyondRange (with the selection beyond-visual-range)',
+  })
+  fog?: ManeuverFogListing;
+
   @ApiProperty({ type: [ManeuverModifierDefinitionDto] })
   skillModifiers: ManeuverModifierDefinitionDto[];
 
@@ -211,6 +225,31 @@ export class ManeuverModifiersDto {
 
   @ApiProperty({ type: [SkippedRuleDto], description: 'Rules of the base modifiers that do not apply, and why' })
   skipped: SkippedRuleDto[];
+
+  @ApiProperty({
+    type: [ManeuverBaseModifierDto],
+    required: false,
+    description: 'Spec 079: the lines of the similar skill and the complementary skills asked for',
+  })
+  aids?: ManeuverBaseModifierDto[];
+
+  @ApiProperty({
+    type: Object,
+    required: false,
+    description:
+      'Spec 079, feat-of-strength: bodyWeight and strengthBonus of the sheet (null when it has none), the Adrenal Strength ' +
+      'weightMultiplier, and the result (difficulty of Table 5-2) or the invalid reason of the load asked for',
+  })
+  featOfStrength?: FeatOfStrengthListing;
+
+  @ApiProperty({
+    type: [Object],
+    required: false,
+    description:
+      'Spec 079, D3: situational talents of the actor for this skill (traitId, value, tier, condition, mode ticked or ' +
+      'automatic, rule, specialization, replaces)',
+  })
+  situationalTraits?: SituationalTraitOption[];
 
   static fromListing(listing: ManeuverModifiersListing): ManeuverModifiersDto {
     const dto = new ManeuverModifiersDto();
@@ -229,10 +268,14 @@ export class ManeuverModifiersDto {
         modifiers: listing.senses.modifiers.map(modifier => ({ ...modifier, params: { ...modifier.params } })),
       };
     }
+    if (listing.fog) dto.fog = { ...listing.fog };
     dto.skillModifiers = listing.skillModifiers.map(modifier => ManeuverModifierDefinitionDto.fromEntity(modifier));
     dto.conflicting = listing.conflicting;
     dto.progress = listing.progress;
     dto.skipped = listing.skipped.map(rule => SkippedRuleDto.fromEntity(rule));
+    if (listing.aids) dto.aids = listing.aids.map(modifier => ({ ...modifier }) as ManeuverBaseModifierDto);
+    if (listing.featOfStrength) dto.featOfStrength = { ...listing.featOfStrength };
+    if (listing.situationalTraits) dto.situationalTraits = listing.situationalTraits.map(option => ({ ...option }));
     return dto;
   }
 }

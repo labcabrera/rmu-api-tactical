@@ -67,8 +67,12 @@ export class CreateGameHandler implements ICommandHandler<CreateGameCommand, Gam
           command.environment.temperatureFatigueModifier,
           command.environment.altitudeFatigueModifier,
           command.environment.light ?? undefined,
+          command.environment.fog ?? undefined,
+          command.environment.extremeTemperature ?? undefined,
         )
       : undefined;
+    // Workspace spec 079, C3: the extreme temperature has to give a critical (Table 15-3)
+    GameEnvironment.resolveTemperature(environment);
 
     const game = Game.create(
       command.strategicGameId,

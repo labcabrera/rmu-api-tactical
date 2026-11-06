@@ -2,7 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TokenService } from '../../../shared/infrastructure/security/token.service.js';
 import { HttpClient } from '../../../shared/infrastructure/http/http-client.js';
-import type { AttackTableLookupRequest, AttackTablePort } from '../../application/ports/attack-table.port.js';
+import type {
+  AttackTableLookupRequest,
+  AttackTableModifiers,
+  AttackTableModifiersPort,
+  AttackTablePort,
+} from '../../application/ports/attack-table.port.js';
 import { AttackTableEntry } from '../../domain/value-objects/action-attack.vo.js';
 
 const MIN_ROLL = 1;
@@ -20,7 +25,7 @@ interface AttackTableResponse {
 }
 
 @Injectable()
-export class ApiAttackTableAdapter implements AttackTablePort {
+export class ApiAttackTableAdapter implements AttackTablePort, AttackTableModifiersPort {
   private readonly apiAttackTablesUri: string;
 
   constructor(
@@ -39,5 +44,13 @@ export class ApiAttackTableAdapter implements AttackTablePort {
     const uri = `${this.apiAttackTablesUri}/attack-tables/${encodeURIComponent(request.attackTable)}/${armor}/${roll}`;
     const data = await this.httpClient.get<AttackTableResponse>(uri, { token });
     return new AttackTableEntry(data.text, data.damage || 0, data.criticalType || undefined, data.criticalSeverity || undefined);
+  }
+
+  /** Workspace spec 079, A7: the disarm and subdual modifiers of the table. */
+  async modifiers(attackTable: string): Promise<AttackTableModifiers> {
+    const token = await this.tokenService.getToken();
+    const uri = `${this.apiAttackTablesUri}/attack-tables/${encodeURIComponent(attackTable)}/modifiers`;
+    const data = await this.httpClient.get<AttackTableModifiers>(uri, { token });
+    return { disarm: data.disarm ?? null, subdual: data.subdual ?? null };
   }
 }

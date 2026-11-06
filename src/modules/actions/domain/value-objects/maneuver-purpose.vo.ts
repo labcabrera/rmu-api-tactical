@@ -19,12 +19,33 @@ export type FallControlPurpose = 'fall-control';
 export const FALL_CONTROL: FallControlPurpose = 'fall-control';
 
 /**
- * What a maneuver is for: the frenzy (workspace spec 040), a combat talent (workspace spec 076), an escape from a
- * grapple or the control of a fall (workspace spec 077).
+ * Workspace spec 079, block B: a feat of strength with Weight Training (§5.2), an adrenal move (§3.4, Table 3-4) and
+ * Fortitude (§3.5, instantaneous, 0 AP, Table 3-4).
  */
-export type ManeuverPurpose = FrenzyPurpose | CombatTalentPurpose | GrapplePurpose | FallControlPurpose;
+export type FeatOfStrengthPurpose = 'feat-of-strength';
+export type AdrenalPurpose = 'adrenal';
+export type FortitudePurpose = 'fortitude';
 
-export const MANEUVER_PURPOSES: ManeuverPurpose[] = [...FRENZY_PURPOSES, ...COMBAT_TALENT_PURPOSES, GRAPPLE_ESCAPE, FALL_CONTROL];
+export const FEAT_OF_STRENGTH: FeatOfStrengthPurpose = 'feat-of-strength';
+export const ADRENAL: AdrenalPurpose = 'adrenal';
+export const FORTITUDE: FortitudePurpose = 'fortitude';
+
+/**
+ * What a maneuver is for: the frenzy (workspace spec 040), a combat talent (workspace spec 076), an escape from a
+ * grapple or the control of a fall (workspace spec 077), a feat of strength, an adrenal move or Fortitude (spec 079).
+ */
+export type ManeuverPurpose =
+  FrenzyPurpose | CombatTalentPurpose | GrapplePurpose | FallControlPurpose | FeatOfStrengthPurpose | AdrenalPurpose | FortitudePurpose;
+
+export const MANEUVER_PURPOSES: ManeuverPurpose[] = [
+  ...FRENZY_PURPOSES,
+  ...COMBAT_TALENT_PURPOSES,
+  GRAPPLE_ESCAPE,
+  FALL_CONTROL,
+  FEAT_OF_STRENGTH,
+  ADRENAL,
+  FORTITUDE,
+];
 
 export const isFrenzyPurpose = (purpose: ManeuverPurpose | undefined): purpose is FrenzyPurpose =>
   !!purpose && (FRENZY_PURPOSES as string[]).includes(purpose);

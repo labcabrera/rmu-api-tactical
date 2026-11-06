@@ -7,6 +7,9 @@ import { ActorRound } from '../../../domain/aggregates/actor-round.js';
 import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port.js';
 import { ActorSheetService } from '../../services/actor-sheet.service.js';
 import { ResolveEnduranceCheckCommand } from '../commands/resolve-endurance-check.command.js';
+import { elementalModifier } from '../../../domain/services/elemental-talents.js';
+import { temperatureElement } from '../../../domain/services/environment-rules.js';
+import type { Game } from '../../../../games/domain/aggregates/game.js';
 
 /**
  * Endurance roll (§5.5, Table 5-5, M6): the result's fatigue goes into the actor's fatigue penalty, which every
@@ -22,6 +25,17 @@ import { ResolveEnduranceCheckCommand } from '../commands/resolve-endurance-chec
 export const ENCUMBRANCE_KEY = 'encumbrance';
 /** Key of the automatic armor maneuver penalty of the endurance roll (Table 5-5). */
 export const ARMOR_MANEUVER_KEY = 'armor-maneuver-penalty';
+/**
+ * Workspace spec 079, D4: key of the automatic Elemental Resistance or Susceptibility of the endurance roll when the game
+ * has an extreme temperature of its element (steam is heat): +5/-5 per tier.
+ */
+export const ELEMENTAL_ENVIRONMENT_KEY = 'elemental-environment';
+
+/** The Elemental Resistance or Susceptibility of the actor against the extreme temperature of the game; 0 without one. */
+export function elementalEnvironmentModifier(actorRound: ActorRound, game: Pick<Game, 'environment'> | null | undefined): number {
+  const kind = game?.environment?.extremeTemperature?.kind;
+  return kind ? elementalModifier(actorRound.traits, temperatureElement(kind)) : 0;
+}
 
 @CommandHandler(ResolveEnduranceCheckCommand)
 export class ResolveEnduranceCheckHandler implements ICommandHandler<ResolveEnduranceCheckCommand, ActorRound> {
@@ -49,9 +63,11 @@ export class ResolveEnduranceCheckHandler implements ICommandHandler<ResolveEndu
       throw new ValidationError('Required roll value');
     }
 
-    const sent = (command.modifiers || []).filter(mod => mod.key !== ENCUMBRANCE_KEY && mod.key !== ARMOR_MANEUVER_KEY);
+    const automatic = [ENCUMBRANCE_KEY, ARMOR_MANEUVER_KEY, ELEMENTAL_ENVIRONMENT_KEY];
+    const sent = (command.modifiers || []).filter(mod => !automatic.includes(mod.key));
     const sheetPenalties = await this.sheetPenalties(actorRound);
-    const modifiers = sent.reduce((acc, mod) => acc + (mod.value || 0), 0) + sheetPenalties;
+    const modifiers =
+      sent.reduce((acc, mod) => acc + (mod.value || 0), 0) + sheetPenalties + elementalEnvironmentModifier(actorRound, game);
     const result = await this.maneuverPort.endurance(command.roll + modifiers);
     this.logger.debug(`Endurance check result: ${JSON.stringify(result)}`);
 

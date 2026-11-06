@@ -1,3 +1,4 @@
+import { ATTACK_TABLE_MODIFIERS_FAKE } from '../../fixtures/attack-table-modifiers.js';
 import { describe, expect, it, vi } from 'vitest';
 import type { CommandBus } from '@nestjs/cqrs';
 import { CompleteActionCommand } from '../../../src/modules/actions/application/cqrs/commands/complete-action.command.js';
@@ -109,6 +110,7 @@ const prepareAttack = async (options: { phase: number; ledger: number[]; resolut
     { findById: vi.fn(() => Promise.resolve({ options: {} })) } as unknown as StrategicGameApiClient,
     { publish: vi.fn(() => Promise.resolve()) },
     new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST)),
+    ATTACK_TABLE_MODIFIERS_FAKE,
   );
   const prepared = await handler.execute(
     new PrepareAttackCommand(

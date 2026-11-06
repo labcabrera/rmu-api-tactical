@@ -4,10 +4,11 @@ import {
   type ActorRoundRepository,
   ACTOR_ROUND_REPOSITORY,
 } from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
-import { ActorRoundAlert } from '../../../../actor-rounds/domain/value-objects/actor-round-alert.vo.js';
+import { ActorRoundAlert, MOVING_MANEUVER_CRITICAL_TYPE } from '../../../../actor-rounds/domain/value-objects/actor-round-alert.vo.js';
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
 import { Action } from '../../../domain/aggregates/action.js';
+import type { ActorRoundTrait } from '../../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { ActionManeuverResult } from '../../../domain/value-objects/action-maneuver.vo.js';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
@@ -31,8 +32,11 @@ import {
 } from '../../../domain/services/combat-talent-maneuver.js';
 import { applyNaturalRoll } from '../../../domain/services/roll-talents.js';
 import {
+  ADRENAL,
   type CombatTalentPurpose,
   FALL_CONTROL,
+  FEAT_OF_STRENGTH,
+  FORTITUDE,
   GRAPPLE_ESCAPE,
   isCombatTalentPurpose,
   isFrenzyPurpose,
@@ -45,6 +49,15 @@ import {
 } from '../../../domain/services/grapple-escape.js';
 import type { GrappleEscapeResult } from '../../../domain/value-objects/action-maneuver.vo.js';
 import { FALL_SKILLS, fallControlSteps, validateFallControlManeuver } from '../../../domain/services/fall-control.js';
+import {
+  adrenalOutcome,
+  adrenalSummary,
+  applyAdrenalOutcome,
+  fortitudeOutcome,
+  unusualAdrenalResult,
+  validateAdrenalManeuver,
+} from '../../../domain/services/adrenal-maneuver.js';
+import { validateFeatOfStrength } from '../../../domain/services/feat-of-strength.js';
 import type { ActorRoundEffect } from '../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
 import {
   absoluteEaseResult,
@@ -69,9 +82,6 @@ const MAX_PRICE = 200;
 
 /** Percent a task needs to be complete (§5.1). */
 const COMPLETED_PERCENT = 100;
-
-/** Critical type of the alert of a moving maneuver gone wrong, as the movement roll uses it. */
-const MOVING_MANEUVER_CRITICAL_TYPE = 'k';
 
 @CommandHandler(ResolveManeuverCommand)
 export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCommand, Action> {
@@ -121,8 +131,21 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     if (fallControl) {
       validateFallControlManeuver(action, context.skill.skillId, context.maneuverType);
     }
+    // Workspace spec 079, decisions B3-B4: an adrenal move rolls an adrenal skill on Table 3-4, and Fortitude is
+    // instantaneous and takes 0 AP, as a fall control.
+    const fortitude = request.purpose === FORTITUDE;
+    const adrenalPurpose = request.purpose === ADRENAL || fortitude;
+    const adrenalKind = adrenalPurpose
+      ? validateAdrenalManeuver(action, fortitude ? FORTITUDE : ADRENAL, context.skill.skillId, context.maneuverType)
+      : null;
+    // Workspace spec 079, decision B2: the difficulty of a feat of strength comes from its load (Table 5-2).
+    let feat: ReturnType<ManeuverContextService['featOfStrength']> | undefined;
+    if (request.purpose === FEAT_OF_STRENGTH) {
+      validateFeatOfStrength(context.skill.skillId);
+      feat = this.maneuverContextService.featOfStrength(context, request.featOfStrength ?? { loadWeight: 0 });
+    }
     action.checkResolvable(context.actorRound, currentPhase);
-    const fallControlLedger = fallControl && ResolveManeuverHandler.freeFallControlAp(action, context, currentPhase);
+    const fallControlLedger = (fallControl || fortitude) && ResolveManeuverHandler.freeFallControlAp(action, context, currentPhase);
     if (request.purpose === GRAPPLE_ESCAPE) {
       const grapples = validateGrappleEscape(context.actorRound, context.skill.skillId, request.grappleEscape);
       return this.resolveGrappleEscape(command, action, context, grapples, currentPhase);
@@ -137,9 +160,26 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     checkOpenEndedDice(command.roll.dice, 'both', rollProfile, { total: command.roll.roll, unmodified: command.roll.unmodified });
     action.actionPoints = action.apOf(context.actorRound, currentPhase);
     const passive = request.passive ? await this.maneuverContextService.passiveTotal(context, action, request.passive) : undefined;
+    // Workspace spec 079, decision B1: a similar skill and the helpers' ranks
+    const aids =
+      request.similarity || request.complementary?.length
+        ? await this.maneuverContextService.skillAids(context, action, {
+            similarity: request.similarity,
+            complementary: request.complementary,
+          })
+        : undefined;
+    // Workspace spec 079, D3: the actor perceived or tracked by smell, whose odour talents count
+    const senseTarget = await this.senseTarget(action, request);
     const choices = {
       ...request,
-      difficulty: talent ? combatTalentDifficulty(talent, request.difficulty, DEFAULT_DIFFICULTY) : request.difficulty,
+      aids,
+      feat,
+      senseTarget,
+      difficulty: feat
+        ? feat.difficulty
+        : talent
+          ? combatTalentDifficulty(talent, request.difficulty, DEFAULT_DIFFICULTY)
+          : request.difficulty,
       combatTalent: talentChoices,
       passiveTotal: passive && (request.passiveTotal === undefined || request.passiveTotal === null) ? passive.total : request.passiveTotal,
     };
@@ -149,6 +189,13 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     action.maneuver!.modifiers.targetActorId = request.passive?.targetActorId;
     action.maneuver!.modifiers.passiveSkillId = passive?.skillId;
     action.maneuver!.modifiers.purpose = request.purpose;
+    action.maneuver!.modifiers.similarity = request.similarity;
+    action.maneuver!.modifiers.complementary = request.complementary?.length ? request.complementary : undefined;
+    action.maneuver!.modifiers.featOfStrength = request.purpose === FEAT_OF_STRENGTH ? request.featOfStrength : undefined;
+    action.maneuver!.modifiers.situationalTraits = request.situationalTraits?.length ? [...new Set(request.situationalTraits)] : undefined;
+    action.maneuver!.modifiers.senseTargetActorId = senseTarget
+      ? (request.senseTargetActorId ?? request.passive?.targetActorId)
+      : undefined;
     if (talent) {
       action.maneuver!.modifiers.foeActorId = talentChoices.foeActorId;
       action.maneuver!.modifiers.foeLevel = talentChoices.foeLevel;
@@ -179,6 +226,10 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     if (fallControl) {
       action.maneuver!.result!.fallControlSteps = fallControlSteps(action.maneuver!.result?.result);
     }
+    if (feat && action.maneuver!.result) {
+      action.maneuver!.result.featOfStrength = feat;
+    }
+    const adrenalChanged = adrenalPurpose ? this.applyAdrenal(action, context, adrenalKind, calculation.total, game.name) : false;
 
     const application = () => ({ phase: currentPhase, spentAp: context.actorRound.getSpentAp(currentPhase) });
     const frenzyChanged = isFrenzyPurpose(request.purpose)
@@ -186,7 +237,8 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
       : false;
     const talentEffect = talent
       ? applyCombatTalentManeuver(context.actorRound, talent, combatTalentSucceeded(action.maneuver!.result), talentChoices, {
-          ambushRanks: context.skill.ranks,
+          // Workspace spec 079, decision B1: a similar skill never gives its ranks
+          ambushRanks: request.similarity ? 0 : context.skill.ranks,
           application: application(),
         })
       : undefined;
@@ -206,7 +258,7 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
     // Workspace spec 068, decision 5: a failed maneuver reopens the stitches of the actor
     const reopened = ResolveManeuverHandler.failed(action) ? context.actorRound.reopenWounds('failed-roll') : [];
     const talentsChanged = !!talentEffect || natural.terribleLuck || natural.spasm;
-    if (alert || frenzyChanged || talentsChanged || reopened.length > 0 || fallSuggested || fallControlLedger) {
+    if (alert || frenzyChanged || talentsChanged || reopened.length > 0 || fallSuggested || fallControlLedger || adrenalChanged) {
       await this.actorRoundRepository.update(context.actorRound);
     }
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
@@ -286,6 +338,31 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
   }
 
   /**
+   * Workspace spec 079, decisions B3-B4: the outcome of an adrenal move or of Fortitude on Table 3-4. The cleansing
+   * trance of an unusual event makes a success absolute and a failure absolute. Answers whether the actor changed.
+   */
+  private applyAdrenal(
+    action: Action,
+    context: ManeuverContext,
+    kind: ReturnType<typeof validateAdrenalManeuver>,
+    total: number,
+    gameName: string | undefined,
+  ): boolean {
+    const result = action.maneuver!.result;
+    if (!result) return false;
+    if (result.unusualEvent) {
+      result.result = unusualAdrenalResult(result.result);
+    }
+    const skillId = context.skill.skillId;
+    const round = context.actorRound.round;
+    const outcome = kind
+      ? adrenalOutcome(kind, skillId, result.result, total, round)
+      : fortitudeOutcome(skillId, result.result, total, round);
+    result.adrenal = adrenalSummary(kind ?? 'fortitude', outcome);
+    return applyAdrenalOutcome(context.actorRound, skillId, outcome, gameName);
+  }
+
+  /**
    * Workspace spec 077, decision D4 (P13): a fall-control maneuver takes 0 AP, even when the instantaneous actions of
    * the round were used up: its entries become one instantaneous entry of 0 AP. Answers whether the ledger changed.
    */
@@ -330,6 +407,21 @@ export class ResolveManeuverHandler implements ICommandHandler<ResolveManeuverCo
       // A total of 0 is a valid roll (an absolute failure).
       throw new ValidationError('Required roll value');
     }
+  }
+
+  /**
+   * Workspace spec 079, D3: the actor a Perception or Tracking maneuver by smell is about (`senseTargetActorId`, else the
+   * passive side), with its talents; undefined for another sense or without one. `err-maneuver-target-not-found`.
+   */
+  private async senseTarget(
+    action: Action,
+    request: ResolveManeuverCommand['request'],
+  ): Promise<{ traits: ActorRoundTrait[]; name: string } | undefined> {
+    const targetId = request.senseTargetActorId ?? request.passive?.targetActorId;
+    if (request.senses?.sense !== 'smell' || !targetId) return undefined;
+    const target = await this.actorRoundRepository.findByActorIdAndRound(action.gameId, targetId, action.round);
+    if (!target) throw new NotFoundError('Target actor', targetId, 'err-maneuver-target-not-found');
+    return { traits: target.traits?.length ? target.traits : [], name: target.actorName };
   }
 
   private updateModifiers(action: Action, request: ManeuverChoices, context: ManeuverContext, calculation: ManeuverRollCalculation): void {

@@ -4,7 +4,7 @@ import { type AttackTablePort, ATTACK_TABLE_PORT } from '../../../actions/applic
 import { type CriticalTablePort, CRITICAL_TABLE_PORT } from '../../../actions/application/ports/critical-table.port.js';
 import type { AttackLocation } from '../../../actions/domain/value-objects/attack-location.vo.js';
 import { ValidationError } from '../../../shared/domain/errors/errors.js';
-import { adjustSeverity, expandSeverity, severitySteps } from '../../../shared/domain/severity.js';
+import { adjustSeverity, capSeverity, expandSeverity, severitySteps } from '../../../shared/domain/severity.js';
 import { hitMultiplierOf, stepsOf, stepsOfWeight } from '../../../shared/domain/size-scale.js';
 import { ActorRound } from '../../domain/aggregates/actor-round.js';
 import { CriticalInjuryFactory, type CriticalEffectData } from '../../domain/services/critical-injury.factory.js';
@@ -23,6 +23,8 @@ import { ActorRoundTrait, LIGHT_BONED, RAPID_BLEEDER, SLOW_BLEEDER } from '../..
 import type { HpChange } from '../../domain/value-objects/hp-log-entry.vo.js';
 import { type InjurySource, sideOfRoll } from '../../domain/value-objects/injury.vo.js';
 import type { HazardRequest } from '../cqrs/commands/resolve-hazard.command.js';
+import { resolveExtremeTemperature, temperatureElement } from '../../domain/services/environment-rules.js';
+import { elementalSeveritySteps } from '../../domain/services/elemental-talents.js';
 
 /** Armour type when the actor has none. */
 const NO_ARMOR = 1;
@@ -79,7 +81,16 @@ export class HazardAttackService {
    * Resolves the hazard on the actor and keeps it in `hazards`: the hits of the table (`hazard` in the hits log) and
    * each critical with its roll, or a `critical` alert with origin `hazard` for the ones without it.
    */
-  async resolve(actor: ActorRound, request: HazardRequest, fallControlSteps: number, context: HazardContext): Promise<ActorRoundHazard> {
+  async resolve(
+    actor: ActorRound,
+    request: HazardRequest,
+    fallControlSteps: number,
+    context: HazardContext,
+    severityCap: string | null = null,
+  ): Promise<ActorRoundHazard> {
+    if (request.kind === 'extreme-temperature') {
+      return this.resolveTemperature(actor, request, context);
+    }
     if (!Number.isFinite(request.distanceFeet) || request.distanceFeet <= 0) {
       throw new ValidationError('A hazard falls more than 0 feet', 'err-hazard-invalid-distance', { distanceFeet: request.distanceFeet });
     }
@@ -111,13 +122,14 @@ export class HazardAttackService {
       'fall-control': fall ? fallControlSteps : 0,
     });
     const originalSeverity = entry.criticalType && entry.criticalSeverity ? entry.criticalSeverity : null;
-    const severity = originalSeverity
+    const adjusted = originalSeverity
       ? adjustSeverity(
           originalSeverity,
           steps.reduce((sum, step) => sum + step.value, 0),
           actor.reduceCriticalSeverity,
         )
       : null;
+    const severity = capSeverity(adjusted, severityCap);
     const hazard: ActorRoundHazard = {
       id: randomUUID(),
       kind: request.kind,
@@ -145,6 +157,8 @@ export class HazardAttackService {
       originalSeverity,
       severity,
       severitySteps: steps,
+      severityCap,
+      knockedBackAlertId: request.knockedBackAlertId ?? null,
       criticals: [],
       note: request.note,
       createdAt: new Date().toISOString(),
@@ -159,10 +173,83 @@ export class HazardAttackService {
       const changes: HpChange[] = [{ kind: 'hazard', amount: -damage, phase: context.phase }];
       actor.applyAttackResults(damage, undefined, undefined, this.application(actor, context), [], changes);
     }
-    const criticalType = entry.criticalType ?? '';
+    await this.addCriticals(actor, hazard, entry.criticalType ?? '', severity, request.criticalRolls, hazardSource, context);
+    actor.hazards.push(hazard);
+    return hazard;
+  }
+
+  /**
+   * Workspace spec 079, C3 (§15.3): an extreme temperature, or contact with frost, fire or steam. No attack roll: the
+   * critical of Table 15-3 (or the severity the game master gives) of cold `O`, heat `H` or steam, several above E, each
+   * rolled now or left as a `critical` alert with origin `hazard`. Workspace spec 079, D4: Elemental Resistance and
+   * Susceptibility of the element (steam is heat) move the severity one step per 2 tiers (`elemental-talent`).
+   */
+  private async resolveTemperature(actor: ActorRound, request: HazardRequest, context: HazardContext): Promise<ActorRoundHazard> {
+    const resolved = resolveExtremeTemperature({
+      kind: request.temperatureKind,
+      temperature: request.temperature,
+      severity: request.severity,
+    });
+    const steps = severitySteps({ 'elemental-talent': elementalSeveritySteps(actor.traits, temperatureElement(resolved.kind)) });
+    const severity = resolved.severity ? adjustSeverity(resolved.severity, steps[0]?.value ?? 0, true) : null;
+    const hazard: ActorRoundHazard = {
+      id: randomUUID(),
+      kind: request.kind,
+      round: actor.round,
+      phase: context.phase,
+      distanceFeet: 0,
+      deliberate: false,
+      heightFeet: null,
+      fallControlActionId: null,
+      fallControlSteps: 0,
+      objectSize: null,
+      weightLbs: null,
+      shield: false,
+      attackTable: null,
+      attackSize: 0,
+      ob: 0,
+      db: 0,
+      roll: 0,
+      total: 0,
+      armor: actor.defense.bodyAt ?? actor.defense.at ?? NO_ARMOR,
+      text: '',
+      baseDamage: 0,
+      multiplier: 1,
+      damage: 0,
+      originalSeverity: resolved.severity,
+      severity,
+      severitySteps: steps,
+      severityCap: null,
+      knockedBackAlertId: null,
+      criticals: [],
+      temperature: {
+        kind: resolved.kind,
+        celsius: resolved.temperature,
+        criticalType: resolved.criticalType,
+        severitySource: resolved.severitySource,
+      },
+      note: request.note,
+      createdAt: new Date().toISOString(),
+    };
+    const source: InjurySource = { kind: 'hazard', tacticalGameId: context.gameId, tacticalGameName: context.gameName, round: actor.round };
+    await this.addCriticals(actor, hazard, resolved.criticalType, severity, request.criticalRolls, source, context);
+    actor.hazards.push(hazard);
+    return hazard;
+  }
+
+  /** The criticals of a hazard: each rolled now, or a `critical` alert with origin `hazard` for the game master. */
+  private async addCriticals(
+    actor: ActorRound,
+    hazard: ActorRoundHazard,
+    criticalType: string,
+    severity: string | null,
+    criticalRolls: number[],
+    hazardSource: InjurySource,
+    context: HazardContext,
+  ): Promise<void> {
     const severities = severity ? expandSeverity(severity) : [];
     for (const [index, criticalSeverity] of severities.entries()) {
-      const roll = request.criticalRolls[index];
+      const roll = criticalRolls[index];
       const critical: HazardCritical = {
         criticalType,
         criticalSeverity,
@@ -182,8 +269,6 @@ export class HazardAttackService {
       }
       hazard.criticals.push(critical);
     }
-    actor.hazards.push(hazard);
-    return hazard;
   }
 
   /**

@@ -84,12 +84,53 @@ export interface ScrInput {
   actionPoints?: number;
   /** Talents and flaws of the caster: the magical ones enter the SCR (workspace spec 077, decision C1). */
   traits?: ActorRoundTrait[];
+  /** Magical Expertise bonuses of the caster for the list cast (workspace spec 079, decision B4). */
+  expertise?: MagicalExpertise;
+}
+
+/**
+ * Bonuses of the Magical Expertise skills (Core Law §3.14, Spell Law §4.2) of a caster for a list: Grace and Spell
+ * Trickery of that list (specialization = the spell list key), Transcendence. Only a positive bonus counts.
+ */
+export interface MagicalExpertise {
+  grace?: number;
+  spellTrickery?: number;
+  transcendence?: number;
+}
+
+/** Group and rule of the Magical Expertise lines of the SCR (workspace spec 079, decision B4). */
+export const MAGICAL_EXPERTISE_GROUP = 'magical-expertise';
+const MAGICAL_EXPERTISE_RULE = 'Core Law §3.14, Spell Law §4.2';
+
+/**
+ * Magical Expertise (workspace spec 079, decision B4): each skill takes off the penalties it compensates, never more
+ * (the SCR modification goes at best to 0): Grace the overcasting, Spell Trickery the subtlety, hands and voice, and
+ * Transcendence the armor and helmet. The spell failure roll then reads the reduced penalties (Spell Law §4.4).
+ */
+export function magicalExpertiseModifiers(expertise: MagicalExpertise | undefined, penalties: KeyValueModifier[]): KeyValueModifier[] {
+  if (!expertise) return [];
+  const penaltyOf = (keys: string[]) =>
+    -penalties.filter(modifier => keys.includes(modifier.key)).reduce((sum, modifier) => sum + Math.min(0, modifier.value), 0);
+  const line = (key: string, bonus: number | undefined, keys: string[]) => {
+    const penalty = penaltyOf(keys);
+    const value = Math.min(Math.max(0, bonus ?? 0), penalty);
+    return new KeyValueModifier(key, value, MAGICAL_EXPERTISE_GROUP, 'magical-expertise', MAGICAL_EXPERTISE_RULE, {
+      bonus: Math.max(0, bonus ?? 0),
+      penalty,
+    });
+  };
+  return [
+    line('grace', expertise.grace, ['overcasting']),
+    line('spell-trickery', expertise.spellTrickery, ['subtlety', 'hands', 'voice']),
+    line('transcendence', expertise.transcendence, ['helmet', 'armor']),
+  ].filter(modifier => modifier.value > 0);
 }
 
 /**
  * Modifiers of the Spellcasting Roll (Spell Law 4.2): list ranks, realm stat and list type, then the "other modifiers"
- * of Table 4-2 for the caster's realm column, fast casting, overcasting, preparation, general penalties, the magical
- * talents of the caster (group `talent`, workspace spec 077, decision C1) and the game master's. Zero entries are left
+ * of Table 4-2 for the caster's realm column, fast casting, overcasting, preparation, the Magical Expertise that offsets
+ * them (group `magical-expertise`, workspace spec 079, decision B4), general penalties, the magical talents of the
+ * caster (group `talent`, workspace spec 077, decision C1) and the game master's. Zero entries are left
  * out, except the ranks.
  */
 export function scrModifiers(input: ScrInput, tables: SpellcastingTables): KeyValueModifier[] {
@@ -110,8 +151,7 @@ export function scrModifiers(input: ScrInput, tables: SpellcastingTables): KeyVa
     new KeyValueModifier(key, value, 'casting', 'casting-table', SPELL_RULES.castingTable, { ...params, column });
   const armorParams: ModifierParams = { armor: options.armor };
   if (typeof tables.armor[options.armor]?.[column] === 'object') armorParams.encumbrance = options.armorEncumbrance || 0;
-  const modifiers: KeyValueModifier[] = [
-    skill('ranks', caster.ranks, { ranks: caster.ranks, list: caster.listSkillId }),
+  const casting: KeyValueModifier[] = [
     skill('realm-stat', caster.realmStatBonus, { realm: column }),
     skill('list-type', caster.listTypeModifier, { list: caster.listSkillId }),
     table('subtlety', options.subtle ? cell(tables.subtlety, spell.type) : 0, { type: spell.type }),
@@ -135,6 +175,11 @@ export function scrModifiers(input: ScrInput, tables: SpellcastingTables): KeyVa
     new KeyValueModifier('preparation', preparation, 'casting', 'preparation', SPELL_RULES.casting, {
       rounds: Math.max(0, options.preparationRounds || 0),
     }),
+  ];
+  const modifiers: KeyValueModifier[] = [
+    skill('ranks', caster.ranks, { ranks: caster.ranks, list: caster.listSkillId }),
+    ...casting,
+    ...magicalExpertiseModifiers(input.expertise, casting),
     ...input.penalties.map(penalty => new KeyValueModifier(`penalty-${penalty.source}`, penalty.value, 'penalty', 'actor-round')),
     ...scrTalentModifiers(input.traits, spell),
     new KeyValueModifier('custom', options.customBonus || 0, 'situation', 'custom'),

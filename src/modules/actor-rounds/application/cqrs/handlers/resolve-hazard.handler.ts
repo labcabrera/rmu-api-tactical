@@ -20,7 +20,8 @@ export const phaseOf = (game: Game): number => {
  * `POST /v1/actor-rounds/:id/hazards` (workspace spec 077, decision D2): the game master resolves a fall or a falling
  * object on the actor. A fall can cite the `fall-control` maneuver of the actor, whose steps move its critical (D4).
  * The height sent for an actor without one (an NPC) is kept as its height (D12). Registered in the actions module, which
- * has the attack and critical table ports and the actions.
+ * has the attack and critical table ports and the actions. Workspace spec 079, decision A4: a hazard can resolve a
+ * `knocked-back` alert, whose severity caps its critical.
  */
 @CommandHandler(ResolveHazardCommand)
 export class ResolveHazardHandler implements ICommandHandler<ResolveHazardCommand, ActorRound> {
@@ -53,12 +54,18 @@ export class ResolveHazardHandler implements ICommandHandler<ResolveHazardComman
     ) {
       actorRound.height = request.heightFeet;
     }
-    await this.hazards.resolve(actorRound, request, steps, {
-      gameId: game.id,
-      gameName: game.name,
-      round: actorRound.round,
-      phase: phaseOf(game),
-    });
+    // Workspace spec 079, decision A4: the hazard of a knock-back resolves its alert and is capped at its severity.
+    const knockedBack = request.knockedBackAlertId ? actorRound.pendingKnockedBack(request.knockedBackAlertId) : null;
+    const hazard = await this.hazards.resolve(
+      actorRound,
+      request,
+      steps,
+      { gameId: game.id, gameName: game.name, round: actorRound.round, phase: phaseOf(game) },
+      knockedBack?.getModifierText('severityCap') ?? null,
+    );
+    if (knockedBack) {
+      actorRound.resolveKnockedBack(knockedBack.id, hazard.id);
+    }
     return this.actorRoundRepository.update(actorRound);
   }
 }

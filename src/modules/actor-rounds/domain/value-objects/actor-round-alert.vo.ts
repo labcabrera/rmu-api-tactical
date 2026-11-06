@@ -4,9 +4,28 @@ import { ActorRoundAlertModifier } from './actor-round-alert-modifier.vo.js';
 import type { ActorRoundAlertStatus } from './actor-round-alert-status.vo.js';
 import type { ActorRoundAlertType } from './actor-round-alert-type.vo.js';
 import type { GamePhase } from '../../../games/domain/value-objects/game-phase.vo.js';
-import type { ConcentrationFocus, MentalFocusReason } from './concentration-focus.vo.js';
+import {
+  type ConcentrationFocus,
+  MENTAL_FOCUS_OUTCOMES,
+  type MentalFocusOutcome,
+  type MentalFocusReason,
+} from './concentration-focus.vo.js';
+
+/**
+ * Outcome the game master sends when it resolves an alert by hand: `passed`/`failed` of a Mental Focus maneuver
+ * (workspace spec 077), `confirmed` of a `death-threshold` alert (workspace spec 079, decision A3).
+ */
+export type AlertOutcome = MentalFocusOutcome | 'confirmed';
+
+export const ALERT_OUTCOMES: AlertOutcome[] = [...MENTAL_FOCUS_OUTCOMES, 'confirmed'];
 
 /** The fields of a stored alert. */
+/**
+ * Critical type of the alert of a moving maneuver (or movement) gone wrong: Unbalancing (§5, workspace spec 079,
+ * decision 0.1).
+ */
+export const MOVING_MANEUVER_CRITICAL_TYPE = 'U';
+
 export type ActorRoundAlertData = Pick<ActorRoundAlert, 'id' | 'type' | 'message' | 'modifiers' | 'status'> & {
   reaction?: ReactionAlertData | null;
 };
@@ -28,8 +47,23 @@ export interface ReactionAlertData {
   phase: GamePhase;
 }
 
+/** Why the total penalties ask for an endurance roll (workspace spec 079, decision A3). */
+export type PenaltyEnduranceReason = 'penalty-exertion' | 'penalty-dying';
+
 /** What asks for a breakage check (spec 019, decision 6). */
-export type BreakageOrigin = 'attack-roll' | 'critical' | 'fumble';
+export type BreakageOrigin = 'attack-roll' | 'critical' | 'fumble' | 'disarm';
+
+/**
+ * Workspace spec 079, decision A6 (§9.7 Firing into Melee): the ranged attack `attackName` of the action `actionId` missed;
+ * it may hit `targetActorId`, chosen at random among the combatants that gave cover (`candidates`).
+ */
+export interface StrayShotData {
+  actionId: string;
+  attackName: string;
+  targetActorId: string;
+  candidates: string[];
+  round: number;
+}
 
 export class ActorRoundAlert {
   constructor(
@@ -67,6 +101,71 @@ export class ActorRoundAlert {
   }
 
   /**
+   * Workspace spec 079, decision A3 (§9.8 Penalties): an endurance roll asked by the total penalties of the actor, not by
+   * its accumulated fatigue. `penalty-exertion` (-100 or worse) for an action with effort in the round, `penalty-dying`
+   * (-200 or worse) in every round.
+   */
+  static buildPenaltyEndurance(reason: PenaltyEnduranceReason, total: number, round: number): ActorRoundAlert {
+    return new ActorRoundAlert(randomUUID(), 'endurance', `Endurance roll required by the total penalties (${total})`, [
+      new ActorRoundAlertModifier('reason', null, reason),
+      new ActorRoundAlertModifier('total', total, null),
+      new ActorRoundAlertModifier('round', round, null),
+    ]);
+  }
+
+  /** Workspace spec 079, decision A3: total penalties of -300 or worse; the game master confirms the death or dismisses it. */
+  static buildDeathThreshold(total: number, round: number): ActorRoundAlert {
+    return new ActorRoundAlert(
+      randomUUID(),
+      'death-threshold',
+      `Total penalties of ${total}: the actor dies unless the game master rules otherwise`,
+      [new ActorRoundAlertModifier('total', total, null), new ActorRoundAlertModifier('round', round, null)],
+    );
+  }
+
+  /**
+   * Workspace spec 079, decision A4 (§9.8 Knocked Back): a critical moved the actor `feet` away. The game master asks for a
+   * recovery maneuver (Acrobatics or a Movement skill, difficulty of his choice) and may resolve a hazard whose critical is
+   * no worse than `severityCap`, the severity of the critical that knocked it back.
+   */
+  static buildKnockedBack(feet: number, severityCap: string | null, criticalKey?: string): ActorRoundAlert {
+    const modifiers = [new ActorRoundAlertModifier('feet', feet, null)];
+    if (severityCap) modifiers.push(new ActorRoundAlertModifier('severityCap', null, severityCap));
+    if (criticalKey) modifiers.push(new ActorRoundAlertModifier('criticalKey', null, criticalKey));
+    return new ActorRoundAlert(randomUUID(), 'knocked-back', `Knocked back ${feet} feet`, modifiers);
+  }
+
+  /**
+   * Workspace spec 079, decision A6: a missed shot into a melee. The game master confirms it, declaring the second attack
+   * (OB 0, no cover, fumbles ignored) as a forced `stray-shot` attack, or dismisses it.
+   */
+  static buildStrayShot(data: StrayShotData): ActorRoundAlert {
+    return new ActorRoundAlert(randomUUID(), 'stray-shot', `The missed shot may hit ${data.targetActorId}`, [
+      new ActorRoundAlertModifier('actionId', null, data.actionId),
+      new ActorRoundAlertModifier('attackName', null, data.attackName),
+      new ActorRoundAlertModifier('targetActorId', null, data.targetActorId),
+      ...data.candidates.map(candidate => new ActorRoundAlertModifier('candidate', null, candidate)),
+      new ActorRoundAlertModifier('round', data.round, null),
+    ]);
+  }
+
+  /** An endurance alert asked by the accumulated fatigue (§5.5), not by the total penalties (spec 079). */
+  static isFatigueEndurance(alert: Pick<ActorRoundAlert, 'type' | 'modifiers'>): boolean {
+    return alert.type === 'endurance' && !alert.modifiers?.some(modifier => modifier.key === 'reason');
+  }
+
+  /** A pending endurance alert of the total penalties (spec 079) for that reason, raised in `round`. */
+  static isPendingPenaltyEndurance(alert: Pick<ActorRoundAlert, 'type' | 'modifiers' | 'status'>, reason: string, round?: number): boolean {
+    const text = (key: string) => alert.modifiers?.find(modifier => modifier.key === key);
+    return (
+      alert.type === 'endurance' &&
+      alert.status === 'pending' &&
+      text('reason')?.modifier === reason &&
+      (round === undefined || text('round')?.value === round)
+    );
+  }
+
+  /**
    * A breakage check to make (spec 019, decision 6): its origin, the penalty of the critical or fumble, the location
    * hit, the item to check by default and the ones the game master can choose.
    */
@@ -101,12 +200,91 @@ export class ActorRoundAlert {
   }
 
   /** Workspace spec 068, decision 5: the tourniquet has to be loosened, or the limb is lost. */
-  static buildTourniquet(type: 'tourniquet-loosen' | 'limb-loss', injuryId: string, rounds: number): ActorRoundAlert {
+  static buildTourniquet(
+    type: 'tourniquet-loosen' | 'limb-loss',
+    injuryId: string,
+    rounds: number,
+    limb?: { location?: string; side?: string },
+  ): ActorRoundAlert {
     const message = type === 'limb-loss' ? 'The tourniquet was not loosened: the limb may be lost' : 'Loosen the tourniquet';
-    return new ActorRoundAlert(randomUUID(), type, message, [
-      new ActorRoundAlertModifier('injuryId', null, injuryId),
-      new ActorRoundAlertModifier('rounds', rounds, null),
+    const modifiers = [new ActorRoundAlertModifier('injuryId', null, injuryId), new ActorRoundAlertModifier('rounds', rounds, null)];
+    // Workspace spec 079, C1: the limb the game master confirms the loss of
+    if (type === 'limb-loss') {
+      modifiers.push(new ActorRoundAlertModifier('origin', null, 'tourniquet'));
+      if (limb?.location) modifiers.push(new ActorRoundAlertModifier('location', null, limb.location));
+      if (limb?.side) modifiers.push(new ActorRoundAlertModifier('side', null, limb.side));
+    }
+    return new ActorRoundAlert(randomUUID(), type, message, modifiers);
+  }
+
+  /**
+   * Workspace spec 079, C1: a critical may cost the actor a limb (its injury is flagged `limb-loss`). Like the one of a
+   * tourniquet, the game master confirms the loss (outcome `confirmed`) or dismisses it.
+   */
+  static buildLimbLoss(injuryId: string, origin: 'critical' | 'tourniquet', location?: string, side?: string): ActorRoundAlert {
+    const modifiers = [new ActorRoundAlertModifier('injuryId', null, injuryId), new ActorRoundAlertModifier('origin', null, origin)];
+    if (location) modifiers.push(new ActorRoundAlertModifier('location', null, location));
+    if (side) modifiers.push(new ActorRoundAlertModifier('side', null, side));
+    return new ActorRoundAlert(randomUUID(), 'limb-loss', 'The limb may be lost: confirm the loss', modifiers);
+  }
+
+  /**
+   * Workspace spec 079, C1: the critical of a failed amputation (§13.1), a D Slash one result lower on the stump; the game
+   * master rolls it with the critical alerts (`resultShift` -1: he takes the next lower result).
+   */
+  static buildAmputationCritical(location: string): ActorRoundAlert {
+    return new ActorRoundAlert(randomUUID(), 'critical', 'Critical D on S from a failed amputation (one result lower)', [
+      new ActorRoundAlertModifier('origin', null, 'amputation'),
+      new ActorRoundAlertModifier('criticalType', null, 'S'),
+      new ActorRoundAlertModifier('criticalSeverity', null, 'D'),
+      new ActorRoundAlertModifier('location', null, location),
+      new ActorRoundAlertModifier('resultShift', -1, null),
     ]);
+  }
+
+  /** Workspace spec 079, C6: the electricity critical of a defibrillation with a dangerous source (Table 13-2a). */
+  static buildDefibrillationCritical(criticalSeverity: string): ActorRoundAlert {
+    return new ActorRoundAlert(randomUUID(), 'critical', `Critical ${criticalSeverity} on L from a defibrillation`, [
+      new ActorRoundAlertModifier('origin', null, 'defibrillation'),
+      new ActorRoundAlertModifier('criticalType', null, 'L'),
+      new ActorRoundAlertModifier('criticalSeverity', null, criticalSeverity),
+      new ActorRoundAlertModifier('location', null, 'chest'),
+    ]);
+  }
+
+  /**
+   * Workspace spec 079, C3 (§15.3): the critical of each round in an extreme temperature (the environment of the game),
+   * rolled by the game master with the critical alerts. `kind` is cold, heat or steam.
+   */
+  static buildEnvironmentCritical(criticalType: string, criticalSeverity: string, kind: string, round: number): ActorRoundAlert {
+    return new ActorRoundAlert(randomUUID(), 'critical', `Critical ${criticalSeverity} on ${criticalType} from the extreme ${kind}`, [
+      new ActorRoundAlertModifier('origin', null, 'environment'),
+      new ActorRoundAlertModifier('criticalType', null, criticalType),
+      new ActorRoundAlertModifier('criticalSeverity', null, criticalSeverity),
+      new ActorRoundAlertModifier('temperatureKind', null, kind),
+      new ActorRoundAlertModifier('round', round, null),
+    ]);
+  }
+
+  /**
+   * Workspace spec 079, C4 (§15.2): the actor has held its breath past its limit. An absolute Endurance maneuver of
+   * `difficulty` (Easy, one step harder each round), +25 with an active Adrenal Focus. The game master marks the outcome:
+   * a failure starts the suffocation.
+   */
+  static buildBreathCheck(props: { round: number; heldRounds: number; limitRounds: number; difficulty: string; adrenalFocus: number }) {
+    const modifiers = [
+      new ActorRoundAlertModifier('difficulty', null, props.difficulty),
+      new ActorRoundAlertModifier('heldRounds', props.heldRounds, null),
+      new ActorRoundAlertModifier('limitRounds', props.limitRounds, null),
+      new ActorRoundAlertModifier('round', props.round, null),
+    ];
+    if (props.adrenalFocus) modifiers.push(new ActorRoundAlertModifier('adrenal-focus', props.adrenalFocus, null));
+    return new ActorRoundAlert(
+      randomUUID(),
+      'breath-check',
+      `Endurance maneuver to keep holding the breath (${props.difficulty})`,
+      modifiers,
+    );
   }
 
   /** Workspace spec 068, decision 16: a fear check is suggested to a faction; it is not rolled by itself. */

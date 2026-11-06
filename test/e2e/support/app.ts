@@ -5,7 +5,12 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import type { Connection } from 'mongoose';
 import request from 'supertest';
 import { configureHttp } from '../../../src/bootstrap/http.js';
-import { ATTACK_TABLE_PORT, type AttackTableLookupRequest } from '../../../src/modules/actions/application/ports/attack-table.port.js';
+import {
+  ATTACK_TABLE_MODIFIERS_PORT,
+  ATTACK_TABLE_PORT,
+  type AttackTableLookupRequest,
+  type AttackTableModifiers,
+} from '../../../src/modules/actions/application/ports/attack-table.port.js';
 import {
   CRITICAL_TABLE_PORT,
   type CriticalTableLookupRequest,
@@ -82,6 +87,8 @@ export type World = {
   realms: Map<string, Realm>;
   /** The attack table answers this entry to every lookup. */
   attackEntry: AttackTableEntry;
+  /** Disarm and subdual modifiers of every attack table (workspace spec 079), made up. */
+  attackTableModifiers: AttackTableModifiers;
   critical: CriticalResult;
   fumble: Fumble;
   /** Treatment tables of core's healing tables (workspace spec 022); null is a core without them. */
@@ -127,6 +134,7 @@ const newWorld = (): World => ({
   factions: new Map(),
   realms: new Map(),
   attackEntry: new AttackTableEntry('12CS', 12, 'S', 'C'),
+  attackTableModifiers: { disarm: { melee: -40, ranged: -90 }, subdual: { melee: -30, ranged: -60 } },
   critical: new CriticalResult('Strike to the leg.', 6, 'leg', [], undefined),
   fumble: new Fumble('completed', 'Off balance.', undefined, 0, []),
   treatmentTables: null,
@@ -222,6 +230,7 @@ function fakePorts(world: World) {
         },
       },
     ],
+    [ATTACK_TABLE_MODIFIERS_PORT, { modifiers: () => Promise.resolve(world.attackTableModifiers) }],
     [
       CRITICAL_TABLE_PORT,
       {

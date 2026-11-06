@@ -10,7 +10,8 @@ import { ResolveCriticalAlertCommand } from '../commands/resolve-critical-alert.
 import { phaseOf } from './resolve-hazard.handler.js';
 
 /** Source of the injuries and effects of the critical, by the origin of its alert. */
-const SOURCE_KINDS: Record<string, InjurySourceKind> = { fumble: 'fumble', hazard: 'hazard' };
+// Workspace spec 079, C3: the critical of an extreme temperature of the environment is a hazard too
+const SOURCE_KINDS: Record<string, InjurySourceKind> = { fumble: 'fumble', hazard: 'hazard', environment: 'hazard' };
 
 /**
  * `POST /v1/actor-rounds/:id/alerts/:alertId/critical-roll` (workspace spec 077, decision D3): the critical of a fumble

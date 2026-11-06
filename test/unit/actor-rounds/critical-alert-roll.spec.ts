@@ -59,12 +59,12 @@ describe('Critical alerts rolled by the game master (workspace spec 077, decisio
     await expect(setup(actor).roll(actor.alerts[0].id, 10)).rejects.toMatchObject({ code: 'validation' });
   });
 
-  it('a movement critical (k) rolls on K with a critical source', async () => {
+  it('a movement critical rolls on Unbalancing (U) with a critical source', async () => {
     const actor = load();
-    actor.alerts.push(ActorRoundAlert.buildCritical('k', 'A'));
+    actor.alerts.push(ActorRoundAlert.buildCritical('U', 'A'));
     const { roll, lookups } = setup(actor);
     const result = await roll(actor.alerts[0].id, 77);
-    expect(lookups[0]).toMatchObject({ criticalType: 'K', criticalSeverity: 'A' });
+    expect(lookups[0]).toMatchObject({ criticalType: 'U', criticalSeverity: 'A' });
     expect(result.injuries).toHaveLength(0);
     expect(result.hp.current).toBe(47);
   });
@@ -93,7 +93,7 @@ describe('Critical alerts rolled by the game master (workspace spec 077, decisio
   it('only pending critical alerts are rolled (err-alert-not-resolvable)', async () => {
     const actor = load();
     actor.alerts.push(ActorRoundAlert.buildEndurance());
-    actor.alerts.push(ActorRoundAlert.buildCritical('k', 'A'));
+    actor.alerts.push(ActorRoundAlert.buildCritical('U', 'A'));
     actor.alerts[1].status = 'resolved';
     const { roll } = setup(actor);
     await expect(roll(actor.alerts[0].id, 10)).rejects.toMatchObject({ code: 'err-alert-not-resolvable' });

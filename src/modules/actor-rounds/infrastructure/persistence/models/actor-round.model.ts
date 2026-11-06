@@ -1,3 +1,5 @@
+import type { LostLimb } from '../../../domain/value-objects/lost-limb.vo.js';
+import type { ActorRoundBreath } from '../../../domain/value-objects/actor-round-breath.vo.js';
 import type { ItemConsumed, TemporaryModifier } from '../../../domain/value-objects/temporary-modifier.vo.js';
 import type { ActorRoundItem } from '../../../domain/value-objects/actor-round-item.vo.js';
 import type { ActorRoundActiveStyle, ActorRoundFightingStyle } from '../../../domain/value-objects/actor-round-fighting-style.vo.js';
@@ -171,6 +173,10 @@ export class ActorRoundModel {
   @Prop({ type: Boolean, required: false })
   reduceCriticalSeverity?: boolean;
 
+  /** Workspace spec 079, decision A3: critical code @ of an NPC (immune to stun). */
+  @Prop({ type: Boolean, required: false })
+  stunImmune?: boolean;
+
   /** Workspace spec 077, decision B1.2: Enc % of the worn armour, from the character sheet. */
   @Prop({ type: Number, required: false })
   armorEncumbrance?: number;
@@ -186,6 +192,22 @@ export class ActorRoundModel {
   /** Workspace spec 077, decision D2: falls and falling objects of the round (stored as documents of their own shape). */
   @Prop({ type: [Object], required: false, default: [] })
   hazards?: ActorRoundHazard[];
+
+  /** Workspace spec 079, C1: limbs lost for good (plain subdocuments). */
+  @Prop({ type: [Object], required: false, default: [] })
+  lostLimbs?: LostLimb[];
+
+  /** Workspace spec 079, C6: the round the actor died in; null while alive. */
+  @Prop({ type: Number, required: false })
+  deathRound?: number | null;
+
+  /** Workspace spec 079, C4: the breath the actor holds (a plain subdocument); null while it breathes. */
+  @Prop({ type: Object, required: false })
+  breath?: ActorRoundBreath | null;
+
+  /** Workspace spec 079, C3: protected from the extreme temperature of the environment. */
+  @Prop({ type: Boolean, required: false })
+  protectedFromEnvironment?: boolean;
 
   @Prop({ type: ActorRoundSnapshot, required: false })
   snapshot?: ActorRoundSnapshot;

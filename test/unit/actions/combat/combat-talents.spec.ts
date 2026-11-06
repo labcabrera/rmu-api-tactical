@@ -1,3 +1,4 @@
+import { ATTACK_TABLE_MODIFIERS_FAKE } from '../../../fixtures/attack-table-modifiers.js';
 import { describe, expect, it, vi } from 'vitest';
 import { randomUUID } from 'crypto';
 import {
@@ -233,11 +234,22 @@ describe('Combat talents', () => {
       expect(rollModifierValues(ctx)).toEqual({ uncoordinated: -25 });
     });
 
-    it('rejects the attack when the pace counts as sprint or dash', async () => {
-      await expect(prepare({ pace: 'run', sourceTraits: [trait('uncoordinated', 1)] })).rejects.toThrow(ValidationError);
-      await expect(prepare({ pace: 'run', sourceTraits: [trait('uncoordinated', 1)] })).rejects.toMatchObject({
+    it('keeps the attack legal when the pace counts as sprint or dash, -25 per pace beyond run (spec 079, D1)', async () => {
+      expect(rollModifierValues(await prepare({ pace: 'run', sourceTraits: [trait('uncoordinated', 1)] }))).toEqual({
+        'pace-penalty': -75,
+        uncoordinated: -25,
+      });
+      expect(rollModifierValues(await prepare({ pace: 'jog', sourceTraits: [trait('uncoordinated', 2)] }))).toEqual({
+        'pace-penalty': -50,
+        uncoordinated: -50,
+      });
+    });
+
+    it('rejects the attack only for the declared pace (spec 079, D1)', async () => {
+      await expect(prepare({ pace: 'sprint', sourceTraits: [trait('uncoordinated', 1)] })).rejects.toMatchObject({
         code: 'err-attack-invalid-pace',
       });
+      await expect(prepare({ pace: 'dash' })).rejects.toThrow(ValidationError);
     });
   });
 
@@ -277,6 +289,7 @@ describe('Combat talents', () => {
         { findById: vi.fn(() => Promise.resolve({ options: {} })) } as unknown as StrategicGameApiClient,
         { publish: vi.fn(() => Promise.resolve()) },
         new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST)),
+        ATTACK_TABLE_MODIFIERS_FAKE,
       );
       return () =>
         handler.execute(

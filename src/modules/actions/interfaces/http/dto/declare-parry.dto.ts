@@ -7,6 +7,7 @@ import {
   DeclareShieldManeuverItem,
 } from '../../../application/cqrs/commands/declare-parry.command.js';
 import { DIFFICULTY_MAP, type Difficulty } from '../../../domain/value-objects/difficulty.vo.js';
+import { ABSOLUTE_MANEUVER_RESULTS } from '../../../domain/value-objects/action-attack-parry.vo.js';
 
 export class DeclareParryItemDto {
   @IsString()
@@ -16,8 +17,19 @@ export class DeclareParryItemDto {
   @IsNumber()
   parry: number;
 
+  @ApiProperty({
+    required: false,
+    enum: ABSOLUTE_MANEUVER_RESULTS,
+    description:
+      'Result of the absolute Combat Training maneuver of a parry against a further foe of the round (spec 079): only a ' +
+      'success or better lets the parry count',
+  })
+  @IsOptional()
+  @IsIn(ABSOLUTE_MANEUVER_RESULTS)
+  maneuverResult?: string;
+
   static toCommandItem(dto: DeclareParryItemDto): DeclareParryItem {
-    return new DeclareParryItem(dto.parryId, dto.parry);
+    return new DeclareParryItem(dto.parryId, dto.parry, dto.maneuverResult);
   }
 }
 

@@ -10,6 +10,7 @@ import { AuthModule } from '../shared/infrastructure/security/auth.module.js';
 import { ResolveEnduranceCheckHandler } from '../actor-rounds/application/cqrs/handlers/resolve-endurance-check.handler.js';
 import { ResolveBreakageCheckHandler } from '../actor-rounds/application/cqrs/handlers/resolve-breakage-check.handler.js';
 import { StabilizeEffectHandler } from '../actor-rounds/application/cqrs/handlers/stabilize-effect.handler.js';
+import { AmputateLimbHandler, ReviveActorHandler } from '../actor-rounds/application/cqrs/handlers/limb-and-life.handlers.js';
 import { TreatInjuryHandler } from '../actor-rounds/application/cqrs/handlers/treat-injury.handler.js';
 import { CauterizationBurnService } from '../actor-rounds/application/services/cauterization-burn.service.js';
 import { HazardAttackService } from '../actor-rounds/application/services/hazard-attack.service.js';
@@ -63,7 +64,7 @@ import { ManeuverController } from './interfaces/http/maneuver.controller.js';
 import { MovementController } from './interfaces/http/movement.controller.js';
 
 import { ACTION_REPOSITORY } from './application/ports/action-repository.port.js';
-import { ATTACK_TABLE_PORT } from './application/ports/attack-table.port.js';
+import { ATTACK_TABLE_MODIFIERS_PORT, ATTACK_TABLE_PORT } from './application/ports/attack-table.port.js';
 import { CRITICAL_TABLE_PORT } from './application/ports/critical-table.port.js';
 import { CRITICAL_LOCATION_PORT } from './application/ports/critical-location.port.js';
 import { FUMBLE_TABLE_PORT } from './application/ports/fumble-table.port.js';
@@ -135,6 +136,8 @@ import { SKILL_CATALOG_PORT } from './application/ports/skill-catalog.port.js';
     ResolveHazardHandler,
     ResolveCriticalAlertHandler,
     StabilizeEffectHandler,
+    AmputateLimbHandler,
+    ReviveActorHandler,
     MedicalActionService,
     ResolveMedicalHandler,
     ResolveUseItemHandler,
@@ -144,6 +147,10 @@ import { SKILL_CATALOG_PORT } from './application/ports/skill-catalog.port.js';
     },
     {
       provide: ATTACK_TABLE_PORT,
+      useClass: ApiAttackTableAdapter,
+    },
+    {
+      provide: ATTACK_TABLE_MODIFIERS_PORT,
       useClass: ApiAttackTableAdapter,
     },
     {

@@ -65,6 +65,21 @@ export class ShieldManeuverDto {
   }
 }
 
+/** Workspace spec 079, A7: the result of a disarm on Table 9-7a. */
+export class ActionAttackDisarmDto {
+  @ApiProperty({ enum: ['absolute-failure', 'failure', 'partial', 'success', 'absolute-success'], example: 'success' })
+  result: string;
+
+  @ApiProperty({ description: 'Disarm total read on Table 9-7a', example: 143 })
+  total: number;
+
+  @ApiProperty({ type: Number, nullable: true, description: 'Partial success: total of the normal attack it becomes', example: 92 })
+  attackTotal: number | null;
+
+  @ApiProperty({ description: 'Unmodified 66: an unusual event for the game master' })
+  unusual: boolean;
+}
+
 export class ActionAttackDto {
   @ApiProperty({ description: 'Name of the attack', example: 'mainHand' })
   public attackName: string;
@@ -98,6 +113,9 @@ export class ActionAttackDto {
   @ApiProperty({ type: ShieldManeuverDto, required: false, description: 'Shield maneuver of the defender (spec 077)' })
   public shieldManeuver?: ShieldManeuverDto;
 
+  @ApiProperty({ type: ActionAttackDisarmDto, required: false, description: 'Result of a disarm (spec 079)' })
+  public disarm?: ActionAttackDisarmDto;
+
   static fromEntity(entity: ActionAttack): ActionAttackDto {
     const dto = new ActionAttackDto();
     dto.attackName = entity.attackName;
@@ -105,6 +123,7 @@ export class ActionAttackDto {
     dto.modifiers = ActionAttackModifiersDto.fromEntity(entity.modifiers);
     dto.status = entity.status;
     if (entity.reaction) dto.reaction = { ...entity.reaction };
+    if (entity.disarm) dto.disarm = { ...entity.disarm };
     if (entity.shieldManeuver) dto.shieldManeuver = ShieldManeuverDto.fromEntity(entity.shieldManeuver);
     dto.roll = entity.roll ? ActionAttackRollDto.fromEntity(entity.roll) : undefined;
     dto.results = entity.results ? ActionAttackResultsDto.fromEntity(entity.results) : undefined;

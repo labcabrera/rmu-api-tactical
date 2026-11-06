@@ -3,6 +3,7 @@ import { AttackRange, type WeaponCategory } from '../../../actor-rounds/domain/v
 import { ActorRoundFaction } from '../../../actor-rounds/domain/value-objects/actor-round-faction.vo.js';
 import { ActorRoundShield } from '../../../actor-rounds/domain/value-objects/actor-round-shield.vo.js';
 import type { CharacterCondition, Injury } from '../../../actor-rounds/domain/value-objects/injury.vo.js';
+import type { LostLimb } from '../../../actor-rounds/domain/value-objects/lost-limb.vo.js';
 
 export type AttackType = 'melee' | 'ranged';
 
@@ -20,6 +21,8 @@ export interface Character {
   faction: ActorRoundFaction;
   name: string;
   info: CharacterInfo;
+  /** Stats of the sheet by key (`st`, `ag`...). */
+  statistics?: Partial<Record<string, CharacterStat>>;
   experience: CharacterExperience;
   movement: CharacterMovement;
   defense: CharacterDefense;
@@ -40,6 +43,8 @@ export interface Character {
   temporaryModifiers?: TemporaryModifier[];
   /** Spec 013: missing in strategic versions before it. */
   conditions?: CharacterCondition[];
+  /** Workspace spec 079, C1: limbs lost for good. Missing in older strategic versions: none. */
+  lostLimbs?: LostLimb[];
   /** `dead` once a tactical game killed it (spec 013); missing in older versions. */
   status?: string;
   imageUrl: string | undefined;
@@ -58,6 +63,13 @@ export interface CharacterInfo {
   effectiveSizeId?: string;
   /** Height in feet (workspace spec 077, block D). Missing in older strategic versions. */
   height?: number | null;
+  /** Body weight in pounds (workspace spec 079, decision B2: feats of strength). */
+  weight?: number | null;
+}
+
+/** A stat of the sheet: its total bonus (workspace spec 079, decision B2 reads the St one). */
+export interface CharacterStat {
+  totalBonus: number;
 }
 
 /** Workspace spec 077: endurance of the sheet (block D reads it). */
@@ -66,6 +78,8 @@ export interface CharacterEndurance {
   fatiguePenalty?: number;
   /** Racial endurance bonus. */
   racialBonus?: number;
+  /** Workspace spec 079, D2: Vigorous (+10/tier) and Feeble (-10/tier). Missing in older sheets: 0. */
+  traitBonus?: number;
 }
 
 /** Workspace spec 077, decision B1.5: the load of the sheet, worn and carried, and its percent of the body weight. */
@@ -173,12 +187,16 @@ export interface CharacterEquipment {
   armorEncumbrance?: number;
   /** Workspace spec 077, decision B1.5. Missing in older strategic versions. */
   load?: CharacterLoad;
+  /** Workspace spec 079, D2: the load penalty without Beast of Burden, for the dodge. Missing: `encumbrancePenalty`. */
+  dodgeEncumbrancePenalty?: number;
 }
 
 export interface CharacterAttackRange {
   from: number;
   to: number;
   bonus: number;
+  /** Workspace spec 079, D1: the part of `bonus` Deadeye gave. Missing in older sheets: 0. */
+  traitBonus?: number;
 }
 
 export interface CharacterAttack {

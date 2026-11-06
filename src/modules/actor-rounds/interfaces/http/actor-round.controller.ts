@@ -45,11 +45,28 @@ import { DeclareInitiativeDto } from './dto/declare-initiative.dto.js';
 import { ResolveEnduranceCheckDto } from './dto/resolve-endurance-check.dto.js';
 import { ResolveBreakageCheckDto } from './dto/resolve-breakage-check.dto.js';
 import { ResolveBreakageCheckCommand } from '../../application/cqrs/commands/resolve-breakage-check.command.js';
-import { MedicalResultDto, MedicalRollDto, TreatInjuryDto, UpdateInjuryDto } from './dto/treat-injury.dto.js';
+import {
+  AmputateLimbDto,
+  AmputationResultDto,
+  MedicalResultDto,
+  MedicalRollDto,
+  ReviveActorDto,
+  ReviveResultDto,
+  TreatInjuryDto,
+  UpdateInjuryDto,
+} from './dto/treat-injury.dto.js';
+import { AmputateLimbCommand, ReviveActorCommand } from '../../application/cqrs/commands/limb-and-life.commands.js';
+import type { AmputateLimbResult, ReviveActorResult } from '../../application/cqrs/handlers/limb-and-life.handlers.js';
 import { ApiErrors } from '../../../shared/interfaces/http/api-errors.decorator.js';
 import { CurrentUser } from '../../../shared/interfaces/http/current-user.decorator.js';
 import type { AuthenticatedUser } from '../../../shared/interfaces/http/authenticated-request.js';
 import { ActorRoundAccess, ActorRoundAccessGuard } from './security/actor-round-access.guard.js';
+import { EnvironmentProtectionDto, StartBreathDto } from './dto/actor-round-breath.dto.js';
+import {
+  SetEnvironmentProtectionCommand,
+  StartBreathCommand,
+  StopBreathCommand,
+} from '../../application/cqrs/commands/environment.commands.js';
 
 @UseGuards(JwtAuthGuard, ActorRoundAccessGuard)
 @Controller('v1/actor-rounds')
@@ -220,7 +237,7 @@ export class ActorRoundController {
     @Body() dto: ResolveAlertDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    const command = new ResolveAlertCommand(id, alertId, user.id, user.roles, dto?.outcome);
+    const command = new ResolveAlertCommand(id, alertId, user.id, user.roles, dto?.outcome, dto?.side);
     const entity = await this.commandBus.execute<ResolveAlertCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
   }
@@ -270,6 +287,66 @@ export class ActorRoundController {
     const command = ResolveHazardDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<ResolveHazardCommand, ActorRound>(command);
     return ActorRoundDto.fromEntity(entity);
+  }
+
+  @ActorRoundAccess('manage')
+  @Post(':id/breath')
+  @HttpCode(200)
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success, with the breath held' })
+  @ApiOperation({
+    operationId: 'startBreath',
+    summary: 'The actor starts holding its breath in this round (spec 079, C4, game master only)',
+    description:
+      'Limit: 12 + Constitution bonus rounds when prepared, the bonus alone when not, at least 1; with Breath Holding (spec 079, ' +
+      'D5) 12 × level rounds, ×2 inactive, ×3 with Meditation, when longer. Past it, each upkeep raises ' +
+      'a breath-check alert (absolute Endurance maneuver, Easy and a step harder each round, +25 with Adrenal Focus) resolved ' +
+      'with its outcome; a failure starts the suffocation (1d10 hits per round, stunned -50 underwater).',
+  })
+  @ApiErrors({
+    400: 'err-breath-already-held, err-breath-dead or validation',
+    403: 'Not a manager of the game',
+    404: 'Actor round not found',
+    409: 'err-game-finished',
+  })
+  async startBreath(@Param('id') id: string, @Body() dto: StartBreathDto, @CurrentUser() user: AuthenticatedUser) {
+    const command = new StartBreathCommand(
+      id,
+      dto.prepared ?? true,
+      dto.underwater ?? false,
+      dto.constitutionBonus,
+      dto.note?.trim() || null,
+      user.id,
+      user.roles,
+      dto.inactive ?? false,
+      dto.meditation ?? false,
+    );
+    return ActorRoundDto.fromEntity(await this.commandBus.execute<StartBreathCommand, ActorRound>(command));
+  }
+
+  @ActorRoundAccess('manage')
+  @Delete(':id/breath')
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success: the actor breathes again' })
+  @ApiOperation({
+    operationId: 'stopBreath',
+    summary: 'The actor breathes again: the held breath, its pending checks and the suffocation end (spec 079, C4)',
+  })
+  @ApiErrors({ 400: 'err-breath-not-held', 403: 'Not a manager of the game', 404: 'Actor round not found', 409: 'err-game-finished' })
+  async stopBreath(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    const command = new StopBreathCommand(id, user.id, user.roles);
+    return ActorRoundDto.fromEntity(await this.commandBus.execute<StopBreathCommand, ActorRound>(command));
+  }
+
+  @ActorRoundAccess('manage')
+  @Patch(':id/environment-protection')
+  @ApiOkResponse({ type: ActorRoundDto, description: 'Success' })
+  @ApiOperation({
+    operationId: 'setEnvironmentProtection',
+    summary: 'Marks the actor protected from the extreme temperature of the environment, or not (spec 079, C3)',
+  })
+  @ApiErrors({ 403: 'Not a manager of the game', 404: 'Actor round not found', 409: 'err-game-finished' })
+  async setEnvironmentProtection(@Param('id') id: string, @Body() dto: EnvironmentProtectionDto, @CurrentUser() user: AuthenticatedUser) {
+    const command = new SetEnvironmentProtectionCommand(id, dto.protected, user.id, user.roles);
+    return ActorRoundDto.fromEntity(await this.commandBus.execute<SetEnvironmentProtectionCommand, ActorRound>(command));
   }
 
   @ActorRoundAccess('act')
@@ -355,6 +432,63 @@ export class ActorRoundController {
     );
     const result = await this.commandBus.execute<StabilizeEffectCommand, StabilizeEffectResult>(command);
     return MedicalResultDto.fromStabilize(result);
+  }
+
+  @ActorRoundAccess('act')
+  @Post(':id/amputations')
+  @HttpCode(200)
+  @ApiOkResponse({ type: AmputationResultDto, description: 'Success' })
+  @ApiOperation({
+    operationId: 'amputateLimb',
+    summary: 'Emergency amputation of an arm or a leg with a Medicine roll at -30 (spec 079)',
+    description:
+      'The limb is lost whatever the result and the stump heals as -40 bone, muscle, skin and burn injuries. A failure ' +
+      'leaves the critical of the stump (S, D, one result lower) as an alert; an absolute failure is system shock (dying ' +
+      '2d10 rounds). 400 err-limb-already-lost.',
+  })
+  @ApiErrors({ 400: 'err-limb-already-lost or validation', 404: 'Actor round or injury not found', 409: 'err-game-finished' })
+  async amputate(@Param('id') id: string, @Body() dto: AmputateLimbDto, @CurrentUser() user: AuthenticatedUser) {
+    const command = new AmputateLimbCommand(
+      id,
+      dto.location,
+      dto.side,
+      dto.injuryId,
+      { healerActorId: dto.healerActorId, healer: dto.healer },
+      dto.roll,
+      dto.difficulty,
+      dto.systemShockRoll,
+      user.id,
+      user.roles,
+    );
+    return AmputationResultDto.fromAmputation(await this.commandBus.execute<AmputateLimbCommand, AmputateLimbResult>(command));
+  }
+
+  @ActorRoundAccess('act')
+  @Post(':id/revive')
+  @HttpCode(200)
+  @ApiOkResponse({ type: ReviveResultDto, description: 'Success' })
+  @ApiOperation({
+    operationId: 'reviveActor',
+    summary: 'Revive a dead body with a Medicine roll (spec 079): respiratory -50, cardiac -100, defibrillation -20 to -70',
+    description:
+      'Success: dead becomes unconscious (a defibrillation also on a partial success). A dangerous defibrillation source ' +
+      'leaves an L critical alert and its hits. 400 err-revive-not-dead, err-revive-soul-departed (60 rounds after the ' +
+      'death), err-revive-beyond-death-threshold, err-revive-invalid-difficulty.',
+  })
+  @ApiErrors({ 400: 'err-revive-* or validation', 404: 'Actor round not found', 409: 'err-game-finished' })
+  async revive(@Param('id') id: string, @Body() dto: ReviveActorDto, @CurrentUser() user: AuthenticatedUser) {
+    const command = new ReviveActorCommand(
+      id,
+      dto.method,
+      { healerActorId: dto.healerActorId, healer: dto.healer },
+      dto.roll,
+      dto.defibrillationDifficulty,
+      dto.dangerousSource ?? false,
+      dto.shockHitsRoll,
+      user.id,
+      user.roles,
+    );
+    return ReviveResultDto.fromRevive(await this.commandBus.execute<ReviveActorCommand, ReviveActorResult>(command));
   }
 
   @ActorRoundAccess('act')

@@ -1,3 +1,5 @@
+import { LostLimbDto } from './lost-limb.dto.js';
+import { ActorRoundBreathDto } from './actor-round-breath.dto.js';
 import { ItemConsumedDto, TemporaryModifierDto } from './temporary-modifier.dto.js';
 import { ActorRoundItemDto } from './actor-round-item.dto.js';
 import { BreakageCheckResultDto } from './resolve-breakage-check.dto.js';
@@ -222,6 +224,9 @@ export class ActorRoundDto {
   @ApiProperty({ description: 'Critical code I of an NPC: every critical is one severity lower, none below A (spec 075)' })
   reduceCriticalSeverity: boolean;
 
+  @ApiProperty({ description: 'Critical code @ of an NPC: a stun is a single -25 for 1 round that does not stack (spec 079)' })
+  stunImmune: boolean;
+
   @ApiProperty({
     description: 'Enc % of the armour the character wears (spec 077), the default armorEncumbrance of its casts; 0 for NPCs',
     example: 15,
@@ -238,6 +243,29 @@ export class ActorRoundDto {
 
   @ApiProperty({ type: [ActorRoundHazardDto], description: 'Falls and falling objects of this round (spec 077)' })
   hazards: ActorRoundHazardDto[];
+
+  @ApiProperty({ type: [LostLimbDto], description: 'Limbs lost for good (spec 079): a lost arm is useless, a lost leg crawls' })
+  lostLimbs: LostLimbDto[];
+
+  @ApiProperty({ type: Number, nullable: true, description: 'Round the actor died in (spec 079); null while alive' })
+  deathRound: number | null;
+
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Rounds left before the soul departs (60 after the death, spec 079): 0 once it left; null while alive',
+  })
+  soulRoundsLeft: number | null;
+
+  @ApiProperty({
+    type: ActorRoundBreathDto,
+    nullable: true,
+    description: 'The breath the actor holds (spec 079, C4); null while it breathes',
+  })
+  breath: ActorRoundBreathDto | null;
+
+  @ApiProperty({ description: 'Protected from the extreme temperature of the environment (spec 079, C3)' })
+  protectedFromEnvironment: boolean;
 
   @ApiProperty({ description: 'What the character brought into the game (only in the actor round built from it)', required: false })
   snapshot?: ActorRoundSnapshotDto;
@@ -296,9 +324,15 @@ export class ActorRoundDto {
     dto.frightLevel = entity.frightLevel ?? null;
     dto.criticalSize = entity.criticalSize ?? null;
     dto.reduceCriticalSeverity = entity.reduceCriticalSeverity ?? false;
+    dto.stunImmune = entity.stunImmune ?? false;
     dto.armorEncumbrance = entity.armorEncumbrance ?? 0;
     dto.height = entity.height ?? null;
     dto.hazards = (entity.hazards || []).map(hazard => ActorRoundHazardDto.fromEntity(hazard));
+    dto.lostLimbs = (entity.lostLimbs || []).map(limb => LostLimbDto.fromEntity(limb));
+    dto.deathRound = entity.deathRound ?? null;
+    dto.soulRoundsLeft = entity.soulRoundsLeft();
+    dto.breath = entity.breath ? ActorRoundBreathDto.fromEntity(entity.breath, entity) : null;
+    dto.protectedFromEnvironment = entity.protectedFromEnvironment ?? false;
     dto.snapshot = entity.snapshot ? ActorRoundSnapshotDto.fromEntity(entity.snapshot) : undefined;
     dto.bleeding = entity.getBleeding();
     dto.imageUrl = entity.imageUrl;

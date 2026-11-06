@@ -5,6 +5,7 @@ import {
   type ChargeSpeed,
   normalizeChargeSpeed,
 } from '../../../domain/value-objects/action-attack-modifiers.vo.js';
+import { ATTACK_MODES, type AttackMode } from '../../../domain/services/special-maneuvers.js';
 
 export class ActionAttackModifiersDto {
   @ApiProperty({ type: String, description: 'Target actor round identifier', required: false, example: 'actor-round-003' })
@@ -97,6 +98,27 @@ export class ActionAttackModifiersDto {
   @ApiProperty({ type: String, description: 'Fighting style ability that changes the critical', required: false })
   public styleCriticalOption: string | undefined;
 
+  @ApiProperty({ type: String, description: 'Attack mode (spec 079, A7)', required: false, enum: ATTACK_MODES, example: 'normal' })
+  public attackMode: AttackMode;
+
+  @ApiProperty({ type: Number, nullable: true, description: "Disarm: total of the defender's roll (Table 9-7a)", required: false })
+  public disarmDefenseRoll: number | null;
+
+  @ApiProperty({ type: Boolean, description: 'Disarm: the foe wields its weapon with both hands', required: false })
+  public disarmTwoHanded: boolean;
+
+  @ApiProperty({ type: Number, nullable: true, description: 'Subdual: skill bonus entered by the game master', required: false })
+  public subdualBonus: number | null;
+
+  @ApiProperty({ type: Boolean, description: 'Subdual: the target has an unfamiliar anatomy', required: false })
+  public unfamiliarAnatomy: boolean;
+
+  @ApiProperty({ type: [String], description: 'Ranged attack into a melee: combatants engaged with the target (§9.7)', required: false })
+  public meleeCoverActorIds: string[];
+
+  @ApiProperty({ type: Boolean, description: 'The attack is made with the flexible limb of Extra Joints (spec 079, D3)', required: false })
+  public extraJoints: boolean;
+
   static fromEntity(entity: ActionAttackModifiers): ActionAttackModifiersDto {
     const dto = new ActionAttackModifiersDto();
     dto.targetId = entity.targetId;
@@ -125,6 +147,13 @@ export class ActionAttackModifiersDto {
     dto.customBonus = entity.customBonus;
     dto.chargeSpeed = entity.chargeSpeed ? normalizeChargeSpeed(entity.chargeSpeed) : undefined;
     dto.styleCriticalOption = entity.styleCriticalOption;
+    dto.attackMode = entity.attackMode ?? 'normal';
+    dto.disarmDefenseRoll = entity.disarmDefenseRoll ?? null;
+    dto.disarmTwoHanded = entity.disarmTwoHanded ?? false;
+    dto.subdualBonus = entity.subdualBonus ?? null;
+    dto.unfamiliarAnatomy = entity.unfamiliarAnatomy ?? false;
+    dto.meleeCoverActorIds = entity.meleeCoverActorIds ?? [];
+    dto.extraJoints = entity.extraJoints ?? false;
     return dto;
   }
 }

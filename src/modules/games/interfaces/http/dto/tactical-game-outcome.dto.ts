@@ -1,3 +1,4 @@
+import { LostLimbDto } from '../../../../actor-rounds/interfaces/http/dto/lost-limb.dto.js';
 import { ItemConsumedDto, TemporaryModifierDto } from '../../../../actor-rounds/interfaces/http/dto/temporary-modifier.dto.js';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -80,6 +81,9 @@ export class TacticalGameOutcomeCharacterDto {
   @ApiProperty({ type: [TemporaryModifierDto], description: 'Spec 068: temporary modifiers created in the game' })
   temporaryModifiers: TemporaryModifierDto[];
 
+  @ApiProperty({ type: [LostLimbDto], description: 'Spec 079: every limb lost at the end of the game' })
+  lostLimbs: LostLimbDto[];
+
   @ApiProperty({ required: false })
   appliedAt?: string;
 
@@ -97,6 +101,7 @@ export class TacticalGameOutcomeCharacterDto {
       items: (entity.items || []).map(item => ({ ...item, modifiers: item.modifiers.map(modifier => ({ ...modifier })) })),
       itemsConsumed: (entity.itemsConsumed || []).map(each => ItemConsumedDto.fromEntity(each)),
       temporaryModifiers: (entity.temporaryModifiers || []).map(each => TemporaryModifierDto.fromEntity(each)),
+      lostLimbs: (entity.lostLimbs || []).map(each => LostLimbDto.fromEntity(each)),
     });
   }
 }

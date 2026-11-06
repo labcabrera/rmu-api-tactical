@@ -7,6 +7,8 @@ import type { ManeuverPurpose } from '../../../domain/value-objects/maneuver-pur
 import type { CombatTalentChoices } from '../../../domain/services/combat-talent-maneuver.js';
 import type { SenseChoices } from '../../../../shared/domain/senses/sense-modifiers.js';
 import type { GrappleEscapeRow } from '../../../domain/services/grapple-escape.js';
+import type { ComplementaryChoice, SimilarityChoice } from '../../../domain/services/skill-aids.js';
+import type { FeatOfStrengthChoices } from '../../../domain/services/feat-of-strength.js';
 
 /** The passive side of a conflicting maneuver as an actor of the game (workspace spec 022, decision 12). */
 export interface PassiveSide {
@@ -44,6 +46,19 @@ export class ResolveManeuverRequest {
     public readonly senses?: SenseChoices | undefined,
     /** Workspace spec 077, decision A3.3: a `grapple-escape` maneuver rolls once against each grapple. */
     public readonly grappleEscape?: GrappleEscapeRow[] | undefined,
+    /** Workspace spec 079, decision B1: the skill rolled is a similar one of `similarity.targetSkillId`. */
+    public readonly similarity?: SimilarityChoice | undefined,
+    /** Workspace spec 079, decision B1: helpers whose ranks add up (halved after the first). */
+    public readonly complementary?: ComplementaryChoice[] | undefined,
+    /** Workspace spec 079, decision B2: the load of a `feat-of-strength` maneuver. */
+    public readonly featOfStrength?: FeatOfStrengthChoices | undefined,
+    /** Workspace spec 079, D3: the situational talents of the actor the game master ticks. */
+    public readonly situationalTraits?: string[] | undefined,
+    /**
+     * Workspace spec 079, D3: the actor perceived or tracked by smell, whose Neutral or Distinct Odor counts; the passive
+     * side's actor when left out.
+     */
+    public readonly senseTargetActorId?: string | undefined,
   ) {}
 }
 

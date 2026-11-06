@@ -36,6 +36,8 @@ export class AddEffectsCommand extends AuthenticatedCommand {
     public readonly fumbleCriticals: string[] = [],
     /** Poisons of coated weapons that reached the actor with a critical (workspace spec 042, decision 11). */
     public readonly poisonExposures: { poison: PoisonData; source: InjurySource }[] = [],
+    /** A successful disarm dropped the actor's weapon: it takes a breakage check (workspace spec 079, Table 9-7a). */
+    public disarmBreakage = false,
   ) {
     super(userId, roles);
   }

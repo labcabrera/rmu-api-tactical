@@ -49,6 +49,8 @@ export interface Npc {
 export interface NpcCriticalCodes {
   /** Code I: the creature reduces the severity of any critical by one; below A it is not rolled. */
   reduceSeverity?: boolean;
+  /** Code @: immune to stun (§9.8 Stun; workspace spec 079, decision A3). */
+  stunImmune?: boolean;
 }
 
 export interface NpcMovement {

@@ -1,3 +1,4 @@
+import { ATTACK_TABLE_MODIFIERS_FAKE } from '../../../fixtures/attack-table-modifiers.js';
 import { describe, expect, it, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import {
@@ -62,6 +63,7 @@ const setup = (
     strategicGameClient,
     actionEventBus,
     new CombatProcessor(new CombatPluginRegistryService(COMBAT_PLUGIN_LIST)),
+    ATTACK_TABLE_MODIFIERS_FAKE,
   );
   const execute = (modifiers: Partial<PrepareAttackCommandModifiers>, attackNames = ['Longsword']) =>
     handler.execute(

@@ -1,5 +1,6 @@
+import { DEADEYE } from '../../../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
 import { UnprocessableEntityError, ValidationError } from '../../../../../shared/domain/errors/errors.js';
-import { isMelee, isPreparing, preparation, rollModifiers } from '../combat-modifiers.js';
+import { isMelee, isPreparing, preparation, rollModifiers, sourceTraitTierForSkill } from '../combat-modifiers.js';
 import type { CombatPlugin } from '../combat-plugin.js';
 
 export const CombatRangePlugin: CombatPlugin = {
@@ -14,13 +15,18 @@ export const CombatRangePlugin: CombatPlugin = {
           if (!ctx.sourceAttack) {
             throw new UnprocessableEntityError(`Attack ${ctx.attack?.attackName} not found on actor`);
           }
-          let penalty: number;
+          let bracket: { bonus: number; traitBonus?: number };
           try {
-            penalty = ctx.sourceAttack.calculateRangeBonus(preparation(ctx).range!);
+            bracket = ctx.sourceAttack.findRange(preparation(ctx).range!);
           } catch (err) {
             throw new ValidationError(`Attack ${ctx.attack?.attackName}: ${(err as Error).message}`);
           }
-          rollModifiers(ctx).add('range-penalty', penalty);
+          // Workspace spec 079, D1: the sheet already reduced the penalty by Deadeye (`traitBonus`); the breakdown shows
+          // the penalty of the table and Deadeye's share apart, adding up to the same value.
+          const deadeye = Math.max(0, bracket.traitBonus || 0);
+          rollModifiers(ctx)
+            .add('range-penalty', bracket.bonus - deadeye)
+            .add(DEADEYE, deadeye, { tier: sourceTraitTierForSkill(ctx, DEADEYE, ctx.sourceAttack.skillId) });
         },
       },
     ],

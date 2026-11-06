@@ -15,7 +15,9 @@ export type ModifierGroup =
   /** The sense talents of a Perception or Tracking maneuver and Light Sensitivity (workspace spec 076, block C). */
   | 'senses'
   /** The magical talents of a Spellcasting Roll and Iron Will in a resistance roll (workspace spec 077, block C). */
-  | 'talent';
+  | 'talent'
+  /** Grace, Spell Trickery and Transcendence in a Spellcasting Roll (workspace spec 079, decision B4). */
+  | 'magical-expertise';
 
 /** Numbers a rule's explanation shows: the inputs of its formula (workspace spec 051). */
 export type ModifierParams = Record<string, number | string | boolean>;

@@ -11,7 +11,12 @@ import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { ActionAttack } from '../../../domain/value-objects/action-attack.vo.js';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
 import { CombatModifierBag, CombatProcessor, PARRY_PHASE } from '../../services/combat/index.js';
-import { DeclareParryCommand, type DeclareShieldManeuverItem } from '../commands/declare-parry.command.js';
+import { DeclareParryCommand, type DeclareParryItem, type DeclareShieldManeuverItem } from '../commands/declare-parry.command.js';
+import {
+  ABSOLUTE_MANEUVER_RESULTS,
+  type ActionParry,
+  PARRY_MANEUVER_PASSED_RESULTS,
+} from '../../../domain/value-objects/action-attack-parry.vo.js';
 import { type ManeuverPort, MANEUVER_PORT } from '../../ports/maneuver.port.js';
 import { DIFFICULTY_MAP } from '../../../domain/value-objects/difficulty.vo.js';
 import {
@@ -68,6 +73,7 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
         throw new ValidationError(`Parry must be between 0 and ${parry.parryAvailable}`);
       }
       parry.parry = parryItem.parry;
+      DeclareParryHandler.applyParryManeuver(parry, parryItem);
     });
 
     // The parries of one actor share its available parry; protecting also spends the protect penalty.
@@ -103,6 +109,41 @@ export class DeclareParryHandler implements ICommandHandler<DeclareParryCommand,
     const updated = await this.actionRepository.update(action);
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     return updated;
+  }
+
+  /**
+   * Workspace spec 079, decision A2 (§9.6 Parrying more than one foe): a parry against a further foe of the round needs
+   * the result of its Combat Training maneuver when it gives any OB (`err-parry-maneuver-required`); below a success the
+   * parry has no effect and takes no OB. A result for a parry that needs none is `err-parry-maneuver-not-needed`.
+   */
+  static applyParryManeuver(parry: ActionParry, item: DeclareParryItem): void {
+    const maneuver = parry.parryManeuver;
+    const result = item.maneuverResult;
+    if (!maneuver?.required) {
+      if (result) {
+        throw new ValidationError(`Parry ${parry.id} needs no maneuver`, 'err-parry-maneuver-not-needed', { parryId: parry.id });
+      }
+      return;
+    }
+    if (!result) {
+      if (parry.parry > 0) {
+        throw new ValidationError(`Parry ${parry.id} needs its Combat Training maneuver`, 'err-parry-maneuver-required', {
+          parryId: parry.id,
+          foes: maneuver.foes,
+        });
+      }
+      maneuver.result = null;
+      maneuver.passed = null;
+      return;
+    }
+    if (!ABSOLUTE_MANEUVER_RESULTS.includes(result)) {
+      throw new ValidationError(`Invalid maneuver result ${result}`);
+    }
+    maneuver.result = result;
+    maneuver.passed = PARRY_MANEUVER_PASSED_RESULTS.includes(result);
+    if (!maneuver.passed) {
+      parry.parry = 0;
+    }
   }
 
   /**

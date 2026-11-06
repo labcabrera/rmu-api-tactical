@@ -3,7 +3,7 @@ import type { AttackLocation } from '../../../actions/domain/value-objects/attac
 import { BaseAggregateRoot } from '../../../shared/domain/aggregates/base-aggregate.js';
 import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors/errors.js';
 import { ActorRoundCreatedEvent } from '../events/actor-round.events.js';
-import { ActorRoundAlert, type ReactionAlertData } from '../value-objects/actor-round-alert.vo.js';
+import { ActorRoundAlert, type AlertOutcome, type ReactionAlertData, type StrayShotData } from '../value-objects/actor-round-alert.vo.js';
 import { type ActorRollProfile, rollProfileOf } from '../value-objects/actor-roll-profile.vo.js';
 import { ActorRoundAlertModifier } from '../value-objects/actor-round-alert-modifier.vo.js';
 import { ActorRoundAttack } from '../value-objects/actor-round-attack.vo.js';
@@ -11,7 +11,12 @@ import { ActorRoundDefenseMode, type DefenseLevel } from '../value-objects/actor
 import { ActorRoundDefense } from '../value-objects/actor-round-defense.vo.js';
 import {
   ActorRoundEffect,
+  ADRENAL_BLOCK,
+  ADRENAL_DEFENSE,
+  ADRENAL_FOCUS,
   ADRENAL_SPEED,
+  ADRENAL_STRENGTH,
+  FORTITUDE,
   AP_CAP,
   ARM_USELESS,
   ATTACK_PENALTY,
@@ -25,6 +30,7 @@ import {
   SPASM_AP_LOSS,
   SPASM_HITS,
   SPASM_STUN,
+  SUFFOCATING,
   CANNOT_ATTACK,
   CANNOT_PARRY,
   DEAD,
@@ -88,6 +94,7 @@ import {
 import {
   buildInjury,
   deriveInjurySeverity,
+  type BodySide,
   type Injury,
   type InjurySource,
   type InjuryTreatment,
@@ -100,6 +107,20 @@ import {
 } from '../value-objects/injury.vo.js';
 import type { ItemConsumed, TemporaryModifier, TemporaryModifierKind } from '../value-objects/temporary-modifier.vo.js';
 import type { ActorRoundProps, ActorRoundSnapshot } from './actor-round-props.js';
+import { isLostLimbLocation, LOST_LEG_MAX_PACE, type LostLimb } from '../value-objects/lost-limb.vo.js';
+import { SOUL_DEPARTURE_ROUNDS } from '../services/limb-and-life-rules.js';
+import { type ActorRoundBreath, copyBreath } from '../value-objects/actor-round-breath.vo.js';
+import {
+  BREATH_ADRENAL_FOCUS_BONUS,
+  breathCheckDifficulty,
+  breathHeldRounds,
+  type ResolvedExtremeTemperature,
+  suffocationHits,
+  WATER_INHALED_STUN,
+} from '../services/environment-rules.js';
+import { adjustSeverity, expandSeverity } from '../../../shared/domain/severity.js';
+import { elementalSeveritySteps } from '../services/elemental-talents.js';
+import { toAttackLocation } from '../../../actions/domain/value-objects/attack-location.vo.js';
 import { PoisonStages, type Random } from '../services/poison-stages.js';
 import type {
   AntidoteData,
@@ -135,7 +156,6 @@ import {
   type ConcentrationSourceAction,
   type HeldActionFocus,
   MENTAL_FOCUS_EXTENDED_ROUNDS,
-  type MentalFocusOutcome,
   type MentalFocusReason,
 } from '../value-objects/concentration-focus.vo.js';
 
@@ -239,7 +259,44 @@ export interface LedgerSourceAction {
 }
 
 /** Alerts the game master marks as resolved by hand (spec 034, workspace spec 076). */
-const MANUALLY_RESOLVED_ALERTS: string[] = ['critical', 'reaction-available', 'terrible-luck', 'mental-focus', 'fall-suggested'];
+const MANUALLY_RESOLVED_ALERTS: string[] = [
+  'critical',
+  'reaction-available',
+  'terrible-luck',
+  'mental-focus',
+  'fall-suggested',
+  'death-threshold',
+  'knocked-back',
+  'stray-shot',
+  // Workspace spec 079, C1: the game master confirms the loss of the limb or dismisses it
+  'limb-loss',
+  // Workspace spec 079, C4: the outcome of the absolute Endurance maneuver of a held breath
+  'breath-check',
+];
+
+/** What the upkeep of an actor round reads besides the actor (workspace specs 068, 077 and 079). */
+export interface UpkeepOptions {
+  tourniquet?: { loosenEveryRounds: number; graceRounds: number };
+  slowFatigueRecovery?: boolean;
+  /** Workspace spec 079, C3: the extreme temperature of the environment of the game. */
+  extremeTemperature?: ResolvedExtremeTemperature | null;
+  /** Dice of the upkeep (the suffocation), for the tests. */
+  random?: () => number;
+}
+
+/** Effect of the critical tables that knocks the target back, its value in feet (workspace spec 079, decision A4). */
+export const KNOCKED_BACK_DISTANCE = 'knocked_back_distance';
+
+/** §9.8 Stun: the flat penalty of a creature immune to stun, for 1 round (workspace spec 079, decision A3). */
+export const STUN_IMMUNE_PENALTY = -25;
+
+/**
+ * §9.8 Penalties (workspace spec 079, decision A3): total penalties (hits lost included) from which an action with effort
+ * asks for an endurance roll, from which the actor is dying (a roll every round) and from which it dies.
+ */
+export const PENALTY_EXERTION_THRESHOLD = -100;
+export const PENALTY_DYING_THRESHOLD = -200;
+export const PENALTY_DEATH_THRESHOLD = -300;
 
 /** Effects that break every concentration at once (§8.1; workspace spec 077, decision A2.5). */
 const CONCENTRATION_BREAKING_EFFECTS = [UNCONSCIOUS, DEAD, PARALYZED];
@@ -281,6 +338,11 @@ export const ALL_STUN_ROUNDS = 999;
 /** Fatigue of a critical (a `fatigue` effect, negative value) and its penalty source (workspace spec 077, D8). */
 const FATIGUE_EFFECT = 'fatigue';
 const FATIGUE_CRITICAL = 'fatigue-critical';
+/** Penalty sources Fortitude reduces (§3.5): fatigue, hit loss, injuries and stun. */
+/** Adrenal Defense levels (workspace spec 079, decision B3): a full dodge as a concentration, or instantaneous. */
+const ADRENAL_DEFENSE_FULL = 2;
+const ADRENAL_DEFENSE_INSTANT_FULL = 4;
+const FORTITUDE_SOURCES: ActorRoundPenaltySource[] = ['injury', 'critical', 'hp', 'stunned', 'fatigue', 'fatigue-critical'];
 
 export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   private constructor(
@@ -374,6 +436,21 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   /** Falls and falling objects of this round (workspace spec 077, decision D2). Each round starts with none. */
   public hazards: ActorRoundHazard[] = [];
 
+  /** Limbs lost for good (workspace spec 079, C1), from the character and confirmed in the game; copied round to round. */
+  public lostLimbs: LostLimb[] = [];
+
+  /** The round the actor died in (workspace spec 079, C6): its soul departs `SOUL_DEPARTURE_ROUNDS` later. Null: alive. */
+  public deathRound: number | null = null;
+
+  /** The breath the actor holds (workspace spec 079, C4, §15.2); null while it breathes. Copied round to round. */
+  public breath: ActorRoundBreath | null = null;
+
+  /**
+   * Workspace spec 079, C3 (§15.3): the game master marked the actor protected from the extreme temperature of the
+   * environment (clothing, magic, shelter): the upkeep asks for no critical. Copied round to round.
+   */
+  public protectedFromEnvironment = false;
+
   /** The last critical rolled from an alert (workspace spec 077, decision D3), for the answer; not stored. */
   public lastCriticalRoll: CriticalAlertRoll | undefined;
 
@@ -406,6 +483,12 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
 
   /** Critical code I of an NPC (T-3.1e): every critical it suffers is one severity lower, and below A none. */
   public reduceCriticalSeverity = false;
+
+  /**
+   * Critical code @ of an NPC (§9.8 Stun; workspace spec 079, decision A3): a stun becomes a single -25 for 1 round,
+   * which does not stack.
+   */
+  public stunImmune = false;
 
   static create(
     gameId: string,
@@ -547,10 +630,15 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.frightLevel = props.frightLevel ?? null;
     actorRound.criticalSize = props.criticalSize ?? null;
     actorRound.reduceCriticalSeverity = props.reduceCriticalSeverity ?? false;
+    actorRound.stunImmune = props.stunImmune ?? false;
     actorRound.armorEncumbrance = props.armorEncumbrance ?? 0;
     actorRound.heldActions = (props.heldActions ?? []).map(each => ({ ...each }));
     actorRound.height = props.height ?? null;
     actorRound.hazards = (props.hazards ?? []).map(hazard => structuredClone(hazard));
+    actorRound.lostLimbs = (props.lostLimbs ?? []).map(limb => ({ ...limb }));
+    actorRound.deathRound = props.deathRound ?? null;
+    actorRound.breath = copyBreath(props.breath);
+    actorRound.protectedFromEnvironment = props.protectedFromEnvironment ?? false;
     actorRound.normalizeLegacy();
     // Derived: recomputed so that values stored with the penalties folded in are corrected.
     actorRound.calculateCurrentBo();
@@ -632,10 +720,17 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.frightLevel = previous.frightLevel;
     actorRound.criticalSize = previous.criticalSize;
     actorRound.reduceCriticalSeverity = previous.reduceCriticalSeverity;
+    actorRound.stunImmune = previous.stunImmune;
     actorRound.armorEncumbrance = previous.armorEncumbrance;
     // Workspace spec 077, decision A2.1: a held action goes on held in the next round, and so does its focus.
     actorRound.heldActions = previous.heldActions.map(each => ({ ...each }));
     actorRound.height = previous.height;
+    // Workspace spec 079: the lost limbs and the round of the death go on
+    actorRound.lostLimbs = previous.lostLimbs.map(limb => ({ ...limb }));
+    actorRound.deathRound = previous.deathRound;
+    // Workspace spec 079, C3-C4: the held breath and the protection from the environment go on
+    actorRound.breath = copyBreath(previous.breath);
+    actorRound.protectedFromEnvironment = previous.protectedFromEnvironment;
     actorRound.refreshActionPoints();
     actorRound.applyItemConditions();
     actorRound.calculateCurrentBo();
@@ -903,6 +998,10 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       return;
     }
     this.injuries.push(injury);
+    // Workspace spec 079, C1: a critical result flagged `limb-loss` asks the game master to confirm the loss
+    if (injury.flags?.includes('limb-loss') && injury.source?.kind !== 'manual') {
+      this.alerts.push(ActorRoundAlert.buildLimbLoss(injury.id, 'critical', injury.location, injury.side));
+    }
   }
 
   findInjury(injuryId: string): Injury {
@@ -1306,6 +1405,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       .filter(injury => isPenalizing(injury) && !!injury.limits?.pace)
       .map(injury => PACES.indexOf(injury.limits!.pace!))
       .filter(index => index >= 0);
+    // Workspace spec 079, C1: a lost leg leaves the actor crawling
+    if (this.lostLimbs.some(limb => limb.location === 'leg')) limits.push(PACES.indexOf(LOST_LEG_MAX_PACE));
     return limits.length > 0 ? PACES[Math.min(...limits)] : undefined;
   }
 
@@ -1360,9 +1461,275 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       if (elapsed >= rules.loosenEveryRounds + rules.graceRounds && !alerted('limb-loss')) {
         injury.flags = [...new Set([...(injury.flags ?? []), 'limb-loss' as const])];
         injury.updatedAt = new Date().toISOString();
-        this.alerts.push(ActorRoundAlert.buildTourniquet('limb-loss', injury.id, elapsed));
+        this.alerts.push(
+          ActorRoundAlert.buildTourniquet('limb-loss', injury.id, elapsed, { location: injury.location, side: injury.side }),
+        );
       }
     }
+  }
+
+  // --- Lost limbs, amputation and death (workspace spec 079, C1 and C6) ---
+
+  /** The lost arms: useless for good (the warnings of the attacks). */
+  lostArms(): LostLimb[] {
+    return this.lostLimbs.filter(limb => limb.location === 'arm');
+  }
+
+  /**
+   * The limb is lost for good (§13.1): an arm is useless and a leg leaves the actor crawling. The tourniquet and the
+   * bleeding of the injury that cost it end. `err-limb-already-lost` when it is lost already.
+   */
+  loseLimb(limb: Omit<LostLimb, 'at'>): LostLimb {
+    if (this.lostLimbs.some(each => each.location === limb.location && each.side === limb.side)) {
+      throw new ValidationError(`The ${limb.side} ${limb.location} is already lost`, 'err-limb-already-lost');
+    }
+    const lost: LostLimb = { ...limb, at: new Date().toISOString(), tacticalGameId: limb.tacticalGameId ?? this.gameId };
+    this.lostLimbs.push(lost);
+    const injury = limb.injuryId ? this.injuries.find(each => each.id === limb.injuryId) : undefined;
+    if (injury && injury.status !== 'healed') {
+      if (injury.bleeding) {
+        injury.bleeding = 0;
+        injury.bleedingControl = 'cauterized';
+      }
+      injury.tourniquet = null;
+      injury.updatedAt = new Date().toISOString();
+      this.alerts
+        .filter(alert => alert.type === 'tourniquet-loosen' && alert.status === 'pending' && ActorRound.alertInjury(alert) === injury.id)
+        .forEach(alert => (alert.status = 'resolved'));
+    }
+    this.applyPenalties();
+    this.refreshActionPoints();
+    return lost;
+  }
+
+  /** A confirmed limb-loss alert: the limb of its injury (an arm or a leg, the side given when the injury has none). */
+  private confirmLimbLoss(alert: ActorRoundAlert, side?: BodySide): void {
+    const injuryId = alert.getModifierText('injuryId');
+    const injury = injuryId ? this.injuries.find(each => each.id === injuryId) : undefined;
+    const location = alert.getModifierText('location') ?? injury?.location;
+    const limbSide = (alert.getModifierText('side') as BodySide | undefined) ?? injury?.side ?? side;
+    if (!isLostLimbLocation(location)) {
+      throw new ValidationError('Only an arm or a leg can be lost', 'err-limb-loss-location');
+    }
+    if (!limbSide) {
+      throw new ValidationError('The side of the limb is required', 'err-limb-loss-side-required');
+    }
+    this.loseLimb({ location, side: limbSide, cause: 'limb-loss', ...(injuryId ? { injuryId } : {}) });
+  }
+
+  /**
+   * An emergency amputation (§13.1), whatever its result: the limb is lost and the stump heals as its own injuries. A
+   * failure adds the critical alert of the stump, and an absolute failure system shock (`dyingRounds` of dying).
+   */
+  amputate(
+    limb: Omit<LostLimb, 'at' | 'cause'>,
+    stump: Injury[],
+    consequence: { critical?: boolean; dyingRounds?: number },
+    source: InjurySource,
+  ): LostLimb {
+    const lost = this.loseLimb({ ...limb, cause: 'amputation' });
+    stump.forEach(injury => this.addInjury(injury));
+    if (consequence.critical) {
+      this.alerts.push(ActorRoundAlert.buildAmputationCritical(toAttackLocation(limb.location) ?? limb.location));
+    }
+    if (consequence.dyingRounds) {
+      this.addEffect(
+        new ActorRoundEffect(randomUUID(), DYING, undefined, consequence.dyingRounds, undefined, undefined, undefined, undefined, source),
+        undefined,
+      );
+    }
+    this.applyPenalties();
+    this.refreshActionPoints();
+    return lost;
+  }
+
+  /** Round in which the soul of a dead actor departs (§13.2): five minutes after the death. Null while alive. */
+  soulDepartureRound(): number | null {
+    return this.isDead() && this.deathRound !== null ? this.deathRound + SOUL_DEPARTURE_ROUNDS : null;
+  }
+
+  /** Rounds left before the soul departs (0 once it left); null while alive or for a death of unknown round. */
+  soulRoundsLeft(): number | null {
+    const departure = this.soulDepartureRound();
+    return departure === null ? null : Math.max(0, departure - this.round);
+  }
+
+  /**
+   * Whether the body can be revived (§13.2): dead, with its soul still there and its hits no longer beyond the death
+   * threshold (a revived body would die again at once). `err-revive-*` otherwise.
+   */
+  checkRevivable(): void {
+    if (!this.isDead()) {
+      throw new ValidationError('The actor is not dead', 'err-revive-not-dead');
+    }
+    if (this.soulRoundsLeft() === 0) {
+      throw new ValidationError('The soul of the actor has departed', 'err-revive-soul-departed');
+    }
+    if (this.isBeyondDeathThreshold()) {
+      throw new ValidationError('The hits of the actor are still beyond the death threshold', 'err-revive-beyond-death-threshold', {
+        hits: this.hp.current,
+        threshold: -this.deathThreshold(),
+      });
+    }
+  }
+
+  /** The body breathes again: dead becomes unconscious (§13.2). */
+  revive(source: InjurySource): void {
+    this.checkRevivable();
+    this.effects = this.effects.filter(effect => effect.status !== DEAD);
+    this.deathRound = null;
+    this.addEffect(
+      new ActorRoundEffect(randomUUID(), UNCONSCIOUS, undefined, undefined, undefined, undefined, undefined, undefined, source),
+      undefined,
+    );
+    this.applyPenalties();
+    this.refreshActionPoints();
+  }
+
+  /** The hits of an electricity shock (a defibrillation, Table 13-2a), logged as a critical, and the state of the hits. */
+  takeShockHits(hits: number, phase?: number): void {
+    if (hits <= 0) return;
+    this.hp.current -= hits;
+    this.logHp({ kind: 'treatment', amount: -hits, phase });
+    this.checkHitsState();
+    this.applyPenalties();
+    this.refreshActionPoints();
+  }
+
+  // --- Extreme temperatures and held breath (workspace spec 079, C3 and C4) ---
+
+  /**
+   * §15.3: every round in an extreme temperature without protection asks for its critical (several above E), as
+   * `critical` alerts with origin `environment` the game master rolls. Nothing for a dead actor or one marked protected,
+   * and nothing twice in the same round. Workspace spec 079, D4: Elemental Resistance or Susceptibility of the element
+   * (steam is heat) moves the severity one step per 2 tiers; below A there is no critical.
+   */
+  addEnvironmentCriticalAlerts(temperature: ResolvedExtremeTemperature): ActorRoundAlert[] {
+    if (this.protectedFromEnvironment || this.isDead()) {
+      return [];
+    }
+    const raised = this.alerts.some(
+      alert =>
+        alert.type === 'critical' && alert.getModifierText('origin') === 'environment' && alert.getModifierValue('round') === this.round,
+    );
+    if (raised) {
+      return [];
+    }
+    const steps = elementalSeveritySteps(this.traits, temperature.kind === 'cold' ? 'cold' : 'heat');
+    const severity = steps ? adjustSeverity(temperature.severity, steps, true) : temperature.severity;
+    if (!severity) {
+      return [];
+    }
+    const alerts = expandSeverity(severity).map(severity =>
+      ActorRoundAlert.buildEnvironmentCritical(temperature.criticalType, severity, temperature.kind, this.round),
+    );
+    this.alerts.push(...alerts);
+    return alerts;
+  }
+
+  /** The game master marks the actor protected from the extreme temperature of the environment, or not. */
+  setEnvironmentProtection(value: boolean): void {
+    this.protectedFromEnvironment = value;
+  }
+
+  /**
+   * The actor starts holding its breath in this round (§15.2). `err-breath-already-held` when it holds it already.
+   */
+  startBreath(breath: Omit<ActorRoundBreath, 'sinceRound' | 'failedRound'>): ActorRoundBreath {
+    if (this.breath) {
+      throw new ValidationError('The actor holds its breath already', 'err-breath-already-held');
+    }
+    if (this.isDead()) {
+      throw new ValidationError('A dead actor does not breathe', 'err-breath-dead');
+    }
+    this.breath = { ...breath, sinceRound: this.round, failedRound: null };
+    return this.breath;
+  }
+
+  /**
+   * The actor breathes again (§15.2): the held breath and the suffocation end, and the pending breath checks are closed.
+   * A stun of inhaled water stays until the game master removes it (the lungs are cleared). `err-breath-not-held`.
+   */
+  stopBreath(): void {
+    if (!this.breath) {
+      throw new ValidationError('The actor does not hold its breath', 'err-breath-not-held');
+    }
+    this.breath = null;
+    this.effects = this.effects.filter(effect => effect.status !== SUFFOCATING);
+    this.alerts
+      .filter(alert => alert.type === 'breath-check' && alert.status === 'pending')
+      .forEach(alert => {
+        alert.status = 'resolved';
+        alert.modifiers?.push(new ActorRoundAlertModifier('outcome', null, 'breathing'));
+      });
+    this.applyPenalties();
+    this.refreshActionPoints();
+  }
+
+  /** Rounds the actor has held its breath at the end of this round; null while it breathes. */
+  breathHeldRounds(): number | null {
+    return this.breath ? breathHeldRounds(this.breath.sinceRound, this.round) : null;
+  }
+
+  /**
+   * In the upkeep (§15.2): past its limit, the actor makes an absolute Endurance maneuver every round, Easy the first
+   * one and a step harder each round after; an active Adrenal Focus adds +25. One alert per round; none after a failure
+   * (the actor suffocates) or when dead.
+   */
+  private checkBreath(): void {
+    const breath = this.breath;
+    const held = this.breathHeldRounds();
+    if (!breath || held === null || breath.failedRound !== null || this.isDead() || held <= breath.limitRounds) {
+      return;
+    }
+    const raised = this.alerts.some(alert => alert.type === 'breath-check' && alert.getModifierValue('round') === this.round);
+    if (raised) {
+      return;
+    }
+    const focus = this.activeEffects().some(effect => effect.status === ADRENAL_FOCUS && (effect.value ?? 0) > 0);
+    this.alerts.push(
+      ActorRoundAlert.buildBreathCheck({
+        round: this.round,
+        heldRounds: held,
+        limitRounds: breath.limitRounds,
+        difficulty: breathCheckDifficulty(held - breath.limitRounds - 1),
+        adrenalFocus: focus ? BREATH_ADRENAL_FOCUS_BONUS : 0,
+      }),
+    );
+  }
+
+  /**
+   * A failed breath check (§15.2): the actor takes a breath of whatever is around and suffocates (1d10 hits per round);
+   * underwater it inhales water and is also stunned -50 until it clears its lungs. The later rolls are the game master's.
+   */
+  private failBreath(): void {
+    if (!this.breath || this.breath.failedRound !== null) {
+      return;
+    }
+    this.breath.failedRound = this.round;
+    const underwater = this.breath.underwater;
+    const source: InjurySource = { kind: 'manual', tacticalGameId: this.gameId, round: this.round };
+    const effect = new ActorRoundEffect(
+      randomUUID(),
+      SUFFOCATING,
+      undefined,
+      undefined,
+      this.round,
+      undefined,
+      undefined,
+      undefined,
+      source,
+    );
+    effect.data = { underwater };
+    this.addEffect(effect, undefined);
+    if (underwater) {
+      this.addEffect(
+        new ActorRoundEffect(randomUUID(), 'stunned', WATER_INHALED_STUN, undefined, this.round, undefined, undefined, undefined, source),
+        undefined,
+      );
+    }
+    this.applyPenalties();
+    this.refreshActionPoints();
   }
 
   // --- Items consumed and temporary modifiers (workspace spec 068, decisions 7 and 19) ---
@@ -1518,8 +1885,17 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       }
       return;
     }
+    // Workspace spec 079, decision A4: a knock-back is not an effect but an alert for the game master (§9.8 Knocked Back).
+    if (effect.status === KNOCKED_BACK_DISTANCE) {
+      this.addKnockedBackAlert(effect.value ?? 0, effect.source?.criticalKey);
+      return;
+    }
     if (this.isDead() && effect.status === DYING) {
       return;
+    }
+    // Workspace spec 079, C6: the round of the death, from which the soul departs
+    if (effect.status === DEAD && !this.isDead()) {
+      this.deathRound = this.round;
     }
     if (effect.status === FRENZY) {
       effect.value = effect.value ?? 1;
@@ -1570,6 +1946,15 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
         current.value = Math.min(current.value ?? 0, effect.value ?? 0);
         return;
       }
+    }
+    // §9.8 Stun, workspace spec 079, decision A3: a creature immune to stun takes a flat -25 for 1 round instead, whatever
+    // the severity and rounds of the stun; a new one replaces it and nothing stacks.
+    if (effect.status === 'stunned' && this.stunImmune) {
+      effect.value = STUN_IMMUNE_PENALTY;
+      effect.rounds = 1;
+      this.effects = this.effects.filter(e => e.status !== 'stunned');
+      this.effects.push(effect);
+      return;
     }
     // §9.8 Stun: stuns of the same severity add up their rounds. The merged one keeps the stamp of the first.
     if (effect.status === 'stunned') {
@@ -1741,13 +2126,13 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     }
     this.fatigue.accumulator += fatigue;
     if (this.fatigue.accumulator >= 100) {
-      if (this.alerts.find(a => a.type === 'endurance')) {
+      if (this.alerts.find(a => ActorRoundAlert.isFatigueEndurance(a))) {
         return;
       }
       const alert = ActorRoundAlert.buildEndurance();
       this.alerts.push(alert);
     } else {
-      this.alerts = this.alerts.filter(a => a.type !== 'endurance');
+      this.alerts = this.alerts.filter(a => !ActorRoundAlert.isFatigueEndurance(a));
     }
   }
 
@@ -1764,10 +2149,14 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       this.addFatigueInjury(excess, gameName);
     }
     this.fatigue.fatigue = Math.min(fatigue, MAX_FATIGUE_PENALTY);
-    this.fatigue.accumulator = Math.max(0, (this.fatigue.accumulator || 0) - 100);
+    // Workspace spec 079, decision A3: a roll asked by the total penalties does not use up the activity points.
+    const resolved = this.alerts.find(alert => alert.id === alertId);
+    if (!resolved || ActorRoundAlert.isFatigueEndurance(resolved)) {
+      this.fatigue.accumulator = Math.max(0, (this.fatigue.accumulator || 0) - 100);
+    }
     this.alerts = this.alerts.filter(alert => alert.id !== alertId);
     if (this.fatigue.accumulator < 100) {
-      this.alerts = this.alerts.filter(alert => alert.type !== 'endurance');
+      this.alerts = this.alerts.filter(alert => !ActorRoundAlert.isFatigueEndurance(alert));
     }
     // applyAttackResults checks unconsciousness and death, and recomputes the penalties (the fatigue one included).
     const taken = Math.max(0, hits);
@@ -1799,9 +2188,12 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    * §8.3 Upkeep Phase: bleeding, then the effects' durations. An unconscious actor stays unconscious: it only dies
    * when bleeding takes it beyond its death threshold or a dying effect runs out.
    */
-  applyUpkeep(options: { tourniquet?: { loosenEveryRounds: number; graceRounds: number }; slowFatigueRecovery?: boolean } = {}) {
+  applyUpkeep(options: UpkeepOptions = {}) {
     // Workspace spec 077, decision D7: a round without exertion is rest.
     this.recoverFatigue(!!options.slowFatigueRecovery);
+    // Workspace spec 079, C3-C4: the critical of an extreme temperature and the breath held past its limit
+    if (options.extremeTemperature) this.addEnvironmentCriticalAlerts(options.extremeTemperature);
+    this.checkBreath();
     // Workspace spec 042: the poisonings advance one round before the bleeding.
     this.advancePoisonings(UPKEEP_PHASE);
     // Workspace spec 068, decision 5
@@ -1811,10 +2203,12 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     const bleeding = this.getBleeding();
     if (this.effects.length === 0 && bleeding === 0) {
       this.applyPenalties();
+      this.checkPenaltyThresholds();
       return;
     }
     this.applyStaggeredUpkeep();
     this.applySpasmUpkeep();
+    this.applySuffocationUpkeep(options.random ?? Math.random);
     // Spec 013, §3: the bleeding of the injuries, logged by injury (§1.1).
     this.hp.current -= bleeding;
     this.injuries
@@ -1849,7 +2243,85 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       this.addMentalFocusAlert('stunned');
     }
     this.applyPenalties();
+    this.checkPenaltyThresholds();
     this.refreshActionPoints();
+  }
+
+  /**
+   * §9.8 Penalties in the upkeep (workspace spec 079, decision A3), with the total of every penalty, hits lost included:
+   * from -200 the actor is dying and makes an endurance roll every round; from -300 a `death-threshold` alert asks the game
+   * master to confirm the death (it is never applied by itself). One pending alert of each kind at a time.
+   */
+  private checkPenaltyThresholds(): void {
+    if (this.isDead()) {
+      return;
+    }
+    const total = this.getPenaltySum();
+    if (total <= PENALTY_DEATH_THRESHOLD && !this.alerts.some(alert => alert.type === 'death-threshold' && alert.status === 'pending')) {
+      this.alerts.push(ActorRoundAlert.buildDeathThreshold(total, this.round));
+    }
+    if (total <= PENALTY_DYING_THRESHOLD && !this.alerts.some(alert => ActorRoundAlert.isPendingPenaltyEndurance(alert, 'penalty-dying'))) {
+      this.alerts.push(ActorRoundAlert.buildPenaltyEndurance('penalty-dying', total, this.round));
+    }
+  }
+
+  /**
+   * Workspace spec 079, decision A4 (§9.8 Knocked Back): a critical knocked the actor `feet` away. The alert keeps the
+   * severity of that critical (read from its key, `<type>-<severity>-<roll>`), the most a hazard of the knock-back can
+   * give. Without a distance nothing is raised.
+   */
+  addKnockedBackAlert(feet: number, criticalKey?: string): ActorRoundAlert | undefined {
+    if (!feet || feet <= 0) {
+      return undefined;
+    }
+    const alert = ActorRoundAlert.buildKnockedBack(feet, ActorRound.severityOfCriticalKey(criticalKey), criticalKey);
+    this.alerts.push(alert);
+    return alert;
+  }
+
+  /** A pending `knocked-back` alert of the actor (`err-alert-not-resolvable` otherwise), workspace spec 079. */
+  pendingKnockedBack(alertId: string): ActorRoundAlert {
+    const alert = this.alerts.find(each => each.id === alertId);
+    if (!alert) {
+      throw new NotFoundError('Alert', alertId);
+    }
+    if (alert.type !== 'knocked-back' || alert.status !== 'pending') {
+      throw new ValidationError(`The ${alert.type} alert is not a pending knock-back`, 'err-alert-not-resolvable');
+    }
+    return alert;
+  }
+
+  /** Closes a `knocked-back` alert with the hazard the game master resolved for it (workspace spec 079). */
+  resolveKnockedBack(alertId: string, hazardId: string): void {
+    const alert = this.pendingKnockedBack(alertId);
+    alert.status = 'resolved';
+    alert.modifiers?.push(new ActorRoundAlertModifier('hazardId', null, hazardId));
+  }
+
+  /** Severity of a critical key (`K-C-45`, `steam-B-12`); null when it is not one. */
+  static severityOfCriticalKey(criticalKey: string | undefined | null): string | null {
+    const parts = (criticalKey ?? '').split('-');
+    const severity = parts.length >= 3 ? parts[parts.length - 2] : '';
+    return /^[A-JZ]$/.test(severity) ? severity : null;
+  }
+
+  /**
+   * §9.8 Penalties (workspace spec 079, decision A3): with total penalties of -100 or worse, an action with effort
+   * (movement, attacks, spells, physical maneuvers) asks for an endurance roll, once per round. From -200 the roll of
+   * every round covers it: it is raised here if it is not pending yet. Answers whether the alert was raised.
+   */
+  addPenaltyExertionAlert(): boolean {
+    const total = this.getPenaltySum();
+    if (this.isDead() || total > PENALTY_EXERTION_THRESHOLD) {
+      return false;
+    }
+    const reason = total <= PENALTY_DYING_THRESHOLD ? 'penalty-dying' : 'penalty-exertion';
+    const round = reason === 'penalty-exertion' ? this.round : undefined;
+    if (this.alerts.some(alert => ActorRoundAlert.isPendingPenaltyEndurance(alert, reason, round))) {
+      return false;
+    }
+    this.alerts.push(ActorRoundAlert.buildPenaltyEndurance(reason, total, this.round));
+    return true;
   }
 
   /**
@@ -1871,7 +2343,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     }
     if (fatigue.restRounds >= REST_ROUNDS_PER_POINT) {
       fatigue.accumulator = 0;
-      this.alerts = this.alerts.filter(alert => alert.type !== 'endurance' || alert.status !== 'pending');
+      this.alerts = this.alerts.filter(alert => !ActorRoundAlert.isFatigueEndurance(alert) || alert.status !== 'pending');
       this.effects = this.effects.filter(effect => effect.status !== FATIGUE_EFFECT);
     }
   }
@@ -1884,7 +2356,13 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    */
   concentration(): ConcentrationFocus[] {
     const foci: ConcentrationFocus[] = [];
-    if (this.defenseMode?.dodge === 'partial') foci.push({ kind: 'partial-dodge' });
+    // Workspace spec 079, decision B3: Adrenal Defense makes a partial dodge instantaneous, and a full dodge declared
+    // without the 4 AP action a concentration (instantaneous too in the doubled round of an absolute success).
+    const adrenalDefense = this.adrenalDefenseLevel();
+    if (this.defenseMode?.dodge === 'partial' && adrenalDefense < 1) foci.push({ kind: 'partial-dodge' });
+    if (this.defenseMode?.dodge === 'full' && this.defenseMode.adrenal && adrenalDefense < ADRENAL_DEFENSE_INSTANT_FULL) {
+      foci.push({ kind: 'full-dodge' });
+    }
     if (this.defenseMode?.block === 'partial') foci.push({ kind: 'partial-block' });
     (this.heldActions ?? []).forEach(held => foci.push({ kind: 'held-action', actionId: held.actionId, since: held.since }));
     this.activeEffects()
@@ -1909,7 +2387,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
 
   /** The foci that go on into the next round: a partial dodge or block is declared every round. */
   private lastingConcentration(): ConcentrationFocus[] {
-    return this.concentration().filter(focus => focus.kind !== 'partial-dodge' && focus.kind !== 'partial-block');
+    return this.concentration().filter(focus => !['partial-dodge', 'partial-block', 'full-dodge'].includes(focus.kind));
   }
 
   /** Capacity each AP of another action takes now (decision A2.2): 2 while concentrating, else 1. */
@@ -1954,7 +2432,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     const held = this.heldActions.map(each => each.actionId);
     this.heldActions = [];
     this.effects = this.effects.filter(effect => effect.status !== CONCENTRATING);
-    const dodge = this.defenseMode.dodge === 'partial' ? 'none' : this.defenseMode.dodge;
+    // Workspace spec 079, decision B3: a full dodge of Adrenal Defense is a concentration too.
+    const adrenalFull = this.defenseMode.dodge === 'full' && !!this.defenseMode.adrenal;
+    const dodge = this.defenseMode.dodge === 'partial' || adrenalFull ? 'none' : this.defenseMode.dodge;
     const block = this.defenseMode.block === 'partial' ? 'none' : this.defenseMode.block;
     this.defenseMode = new ActorRoundDefenseMode(dodge, block);
     this.refreshActionPoints();
@@ -2101,6 +2581,16 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     }
   }
 
+  /** Workspace spec 079, C4 (§15.2): a suffocating actor takes 1d10 hits in every upkeep. */
+  private applySuffocationUpkeep(random: () => number): void {
+    if (!this.hasEffect(SUFFOCATING) || this.isDead()) {
+      return;
+    }
+    const hits = suffocationHits(random);
+    this.hp.current -= hits;
+    this.logHp({ kind: 'suffocation', amount: -hits, phase: UPKEEP_PHASE });
+  }
+
   /** Workspace spec 076, §2.4: a spasm takes 1 hit in every upkeep while it lasts. */
   private applySpasmUpkeep(): void {
     if (!this.hasEffect(SPASM)) {
@@ -2157,6 +2647,104 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     this.applyNonViolentPenalty();
     this.applyFatiguePenalty();
     this.applyGrapplePenalty();
+    this.applyFortitude();
+  }
+
+  /**
+   * §3.5 Fortitude (workspace spec 079, decision B4): while a `fortitude` effect lasts, its percent of the fatigue, hit
+   * loss, injury and stun penalties is taken off as a `fortitude` source of its own (positive, rounded in favour of the
+   * actor), so the breakdown shows it. The actor is still stunned for the attacks against it and for concentration.
+   */
+  private applyFortitude() {
+    this.penalty.modifiers = this.penalty.modifiers.filter(m => m.source !== FORTITUDE);
+    const percent = this.fortitudePercent();
+    if (percent <= 0) {
+      return;
+    }
+    const reduced = this.penalty.modifiers
+      .filter(m => (FORTITUDE_SOURCES as string[]).includes(m.source))
+      .reduce((sum, m) => sum + Math.min(0, m.value), 0);
+    const relief = Math.ceil((-reduced * percent) / 100);
+    if (relief > 0) {
+      this.penalty.addModifier(FORTITUDE, relief);
+    }
+  }
+
+  /** Percent of the penalties Fortitude takes off this round: the best active `fortitude` effect, at most 100. */
+  fortitudePercent(): number {
+    const best = this.activeEffects()
+      .filter(effect => effect.status === FORTITUDE)
+      .reduce((max, effect) => Math.max(max, effect.value ?? 0), 0);
+    return Math.min(100, best);
+  }
+
+  /**
+   * Penalties without the relief of Fortitude (workspace spec 079, decision B4): every injury penalty applies to a
+   * Fortitude maneuver even after a successful one (§3.5).
+   */
+  getPenaltiesWithoutFortitude(): Array<{ source: ActorRoundPenaltySource; value: number }> {
+    return this.getPenaltiesBySource().filter(penalty => penalty.source !== FORTITUDE);
+  }
+
+  /** Bonus of Adrenal Focus to a Brawn, Gymnastic or Movement maneuver this round (§3.4): the best active one. */
+  adrenalFocusBonus(): number {
+    return this.activeEffects()
+      .filter(effect => effect.status === ADRENAL_FOCUS)
+      .reduce((max, effect) => Math.max(max, effect.value ?? 0), 0);
+  }
+
+  /**
+   * Attack size steps of Adrenal Strength this round (§3.4): the best active bonus (+1, +2 doubled), else the -1 of an
+   * absolute failure; 0 without the effect.
+   */
+  adrenalStrengthSteps(): number {
+    const values = this.activeEffects()
+      .filter(effect => effect.status === ADRENAL_STRENGTH)
+      .map(effect => effect.value ?? 0);
+    if (values.length === 0) return 0;
+    const best = Math.max(...values);
+    return best > 0 ? best : Math.min(...values);
+  }
+
+  /** Level of Adrenal Defense this round (§3.4, see `ADRENAL_DEFENSE`): the best active one, -1 when it cannot dodge. */
+  adrenalDefenseLevel(): number {
+    const values = this.activeEffects()
+      .filter(effect => effect.status === ADRENAL_DEFENSE)
+      .map(effect => effect.value ?? 0);
+    if (values.length === 0) return 0;
+    const best = Math.max(...values);
+    return best > 0 ? best : Math.min(...values);
+  }
+
+  /** The mental block of Table 3-4 on a skill (§3.4): its penalty (-25), or 0. */
+  adrenalBlockPenalty(skillId: string): number {
+    return this.activeEffects()
+      .filter(effect => effect.status === ADRENAL_BLOCK && effect.data?.skillId === skillId)
+      .reduce((min, effect) => Math.min(min, effect.value ?? 0), 0);
+  }
+
+  /** An absolute success lifts the mental block of the skill (Table 3-4). Answers whether there was one. */
+  liftAdrenalBlock(skillId: string): boolean {
+    const before = this.effects.length;
+    this.effects = this.effects.filter(effect => effect.status !== ADRENAL_BLOCK || effect.data?.skillId !== skillId);
+    return this.effects.length !== before;
+  }
+
+  /**
+   * Adds a fatigue penalty (positive `amount`) as a failed endurance roll does (§5.5), without touching the activity
+   * points: beyond -50 it becomes an injury (workspace spec 079, decision B4: the absolute failure of Fortitude).
+   */
+  addFatiguePenalty(amount: number, gameName?: string): void {
+    if (amount <= 0) {
+      return;
+    }
+    const fatigue = (this.fatigue.fatigue || 0) + amount;
+    const excess = Math.max(0, fatigue - MAX_FATIGUE_PENALTY);
+    if (excess > 0) {
+      this.addFatigueInjury(excess, gameName);
+    }
+    this.fatigue.fatigue = Math.min(fatigue, MAX_FATIGUE_PENALTY);
+    this.applyPenalties();
   }
 
   /** Workspace spec 077, decision A3.2: the grapples add up to a penalty to every action, -100 at most. */
@@ -2850,13 +3438,24 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   setDefenseMode(dodge: DefenseLevel | undefined, block: DefenseLevel | undefined): void {
     const newDodge = dodge ?? this.defenseMode.dodge;
     const newBlock = block ?? this.defenseMode.block;
-    if ((newDodge === 'full' && this.defenseMode.dodge !== 'full') || (newBlock === 'full' && this.defenseMode.block !== 'full')) {
+    // Workspace spec 079, decision B3: the absolute failure of Adrenal Defense keeps the actor from dodging next round,
+    // and its success lets it declare a full dodge here, without the 4 AP action.
+    const adrenalDefense = this.adrenalDefenseLevel();
+    if (newDodge !== 'none' && adrenalDefense < 0) {
+      throw new ValidationError('The actor cannot dodge this round (Adrenal Defense)', 'err-adrenal-no-dodge');
+    }
+    const adrenalFullDodge = newDodge === 'full' && this.defenseMode.dodge !== 'full' && adrenalDefense >= ADRENAL_DEFENSE_FULL;
+    if (
+      (newDodge === 'full' && this.defenseMode.dodge !== 'full' && !adrenalFullDodge) ||
+      (newBlock === 'full' && this.defenseMode.block !== 'full')
+    ) {
       throw new ValidationError('A full dodge or block is declared with a 4 AP dodge action');
     }
     if (newBlock !== 'none' && !this.defense.shield) {
       throw new ValidationError('The actor has no shield to block with');
     }
-    this.defenseMode = ActorRoundDefenseMode.of(newDodge, newBlock);
+    const adrenal = adrenalFullDodge || (newDodge === 'full' && !!this.defenseMode.adrenal);
+    this.defenseMode = ActorRoundDefenseMode.of(newDodge, newBlock, adrenal);
     // A partial dodge or block is a concentration focus (workspace spec 077, decision A2.1).
     this.refreshActionPoints();
   }
@@ -2865,6 +3464,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   setFullDefense(defenseType: 'dodge' | 'block'): void {
     if (defenseType === 'block' && !this.defense.shield) {
       throw new ValidationError('The actor has no shield to block with');
+    }
+    if (defenseType === 'dodge' && this.adrenalDefenseLevel() < 0) {
+      throw new ValidationError('The actor cannot dodge this round (Adrenal Defense)', 'err-adrenal-no-dodge');
     }
     this.defenseMode =
       defenseType === 'dodge'
@@ -2900,7 +3502,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    * Spec 034: the game master is done with an alert handled by hand (the critical of a fumble). Endurance and breakage
    * alerts are resolved with their rolls.
    */
-  resolveAlert(alertId: string, outcome?: MentalFocusOutcome): string[] {
+  resolveAlert(alertId: string, outcome?: AlertOutcome, limbSide?: BodySide): string[] {
     const alert = this.alerts.find(a => a.id === alertId);
     if (!alert) {
       throw new NotFoundError('Alert', alertId);
@@ -2910,9 +3512,35 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       throw new ValidationError(`A ${alert.type} alert is resolved with its roll`, 'err-alert-not-resolvable');
     }
     alert.status = 'resolved';
+    // Workspace spec 079, decision A3: the game master confirms the death of a `death-threshold` alert, or dismisses it.
+    if (alert.type === 'death-threshold') {
+      alert.modifiers?.push(new ActorRoundAlertModifier('outcome', null, outcome === 'confirmed' ? 'confirmed' : 'dismissed'));
+      if (outcome === 'confirmed' && !this.isDead()) {
+        this.addEffect(new ActorRoundEffect(randomUUID(), DEAD, undefined, undefined), undefined);
+        this.effects = this.effects.filter(e => e.status !== DYING);
+        this.applyPenalties();
+      }
+      return [];
+    }
+    // Workspace spec 079, C4: the outcome of a breath check; a failure starts the suffocation
+    if (alert.type === 'breath-check') {
+      if (outcome !== 'passed' && outcome !== 'failed') {
+        alert.status = 'pending';
+        throw new ValidationError('A breath check is resolved with its outcome, passed or failed', 'err-alert-not-resolvable');
+      }
+      alert.modifiers?.push(new ActorRoundAlertModifier('outcome', null, outcome));
+      if (outcome === 'failed') this.failBreath();
+      return [];
+    }
+    // Workspace spec 079, C1: a confirmed limb-loss alert costs the actor the limb; otherwise it is dismissed
+    if (alert.type === 'limb-loss') {
+      alert.modifiers?.push(new ActorRoundAlertModifier('outcome', null, outcome === 'confirmed' ? 'confirmed' : 'dismissed'));
+      if (outcome === 'confirmed') this.confirmLimbLoss(alert, limbSide);
+      return [];
+    }
     // Workspace spec 077, decision A2.4: a failed Mental Focus maneuver breaks every focus; the caller interrupts the
     // held actions it returns.
-    if (alert.type !== 'mental-focus' || !outcome) {
+    if (alert.type !== 'mental-focus' || (outcome !== 'passed' && outcome !== 'failed')) {
       return [];
     }
     alert.modifiers?.push(new ActorRoundAlertModifier('outcome', null, outcome));
@@ -3029,6 +3657,41 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     const pending = this.alerts.filter(alert => alert.type === 'reaction-available' && alert.status === 'pending');
     pending.forEach(alert => (alert.status = 'expired'));
     return pending.length > 0;
+  }
+
+  /**
+   * Workspace spec 079, decision A6: a missed shot into a melee may hit a combatant in the way. One alert per attack: the
+   * same attack applied again does not raise it twice.
+   */
+  addStrayShotAlert(data: StrayShotData): ActorRoundAlert | undefined {
+    const raised = this.alerts.some(
+      alert =>
+        alert.type === 'stray-shot' &&
+        alert.getModifierText?.('actionId') === data.actionId &&
+        alert.getModifierText?.('attackName') === data.attackName,
+    );
+    if (raised) {
+      return undefined;
+    }
+    const alert = ActorRoundAlert.buildStrayShot(data);
+    this.alerts.push(alert);
+    return alert;
+  }
+
+  /** A pending `stray-shot` alert of the actor, of this round (workspace spec 079). */
+  pendingStrayShotAlert(alertId: string): ActorRoundAlert | undefined {
+    return this.alerts.find(alert => alert.id === alertId && alert.type === 'stray-shot' && alert.status === 'pending');
+  }
+
+  /**
+   * Workspace spec 079, decision A7 (Table 9-7a): a successful disarm drops the foe's weapon, which takes a breakage check.
+   * Its candidates are the weapons in hand, then the shield.
+   */
+  addDisarmBreakageAlert(): void {
+    const weapons = (this.items ?? []).filter(item => item.kind === 'weapon' && (item.slot === 'mainHand' || item.slot === 'offHand'));
+    const shields = (this.items ?? []).filter(item => item.kind === 'shield' && item.slot === 'offHand');
+    const candidates = [...weapons, ...shields].map(item => item.itemId);
+    this.alerts.push(ActorRoundAlert.buildBreakage('disarm', { itemId: candidates[0], candidates }));
   }
 
   /** Spec 034: the fumble gives the fumbler a critical of that severity, for the game master to roll. */
@@ -3245,10 +3908,15 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       frightLevel: this.frightLevel,
       criticalSize: this.criticalSize,
       reduceCriticalSeverity: this.reduceCriticalSeverity,
+      stunImmune: this.stunImmune,
       armorEncumbrance: this.armorEncumbrance,
       heldActions: this.heldActions,
       height: this.height,
       hazards: this.hazards,
+      lostLimbs: this.lostLimbs,
+      deathRound: this.deathRound,
+      breath: this.breath,
+      protectedFromEnvironment: this.protectedFromEnvironment,
       imageUrl: this.imageUrl,
       owner: this.owner,
       createdAt: this.createdAt,

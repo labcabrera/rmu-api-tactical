@@ -9,9 +9,13 @@ import type { TreatmentEffect } from '../../domain/services/injury-treatment.js'
 import { ActorRoundEffect } from '../../domain/value-objects/actor-round-effect.vo.js';
 import type { HpChange } from '../../domain/value-objects/hp-log-entry.vo.js';
 import type { Injury, InjurySource } from '../../domain/value-objects/injury.vo.js';
+import { elementalSeveritySteps } from '../../domain/services/elemental-talents.js';
+import { adjustSeverity } from '../../../shared/domain/severity.js';
 
 /** Table code of the heat criticals of a cauterization. */
 const HEAT_CRITICAL_TABLE = 'H';
+/** Severity of a burn whose critical Elemental Resistance took below A. */
+const NO_CRITICAL = 'none';
 
 const MIN_CRITICAL_ROLL = 1;
 const MAX_CRITICAL_ROLL = 100;
@@ -19,8 +23,10 @@ const D10 = 10;
 
 /** What a cauterization did to the patient besides the bleeding (Table 13-1c). */
 export interface HeatResult {
-  /** Severity of the heat critical. */
+  /** Severity of the heat critical; `none` when Elemental Resistance took it below A (workspace spec 079, D4). */
   critical: string;
+  /** Workspace spec 079, D4: the severity of the treatment before Elemental Resistance or Susceptibility moved it. */
+  originalCritical?: string;
   /** Number of d10 of extra hits, and the hits taken. */
   hitsDice: number;
   hits: number;
@@ -77,21 +83,33 @@ export class CauterizationBurnService {
     const dice = effect.heatHitsDice ?? 0;
     const hits = CauterizationBurnService.hits(dice, rolls.heatHitsRoll ?? undefined);
     const location = CauterizationBurnService.toAttackLocation(injury.location);
-    const heat: HeatResult = { critical: effect.heatCritical, hitsDice: dice, hits };
+    // Workspace spec 079, D4: a fixed heat critical without an attack roll, moved by Elemental Resistance/Susceptibility
+    const steps = elementalSeveritySteps(patient.traits, 'heat');
+    const severity = steps ? adjustSeverity(effect.heatCritical, steps, true) : effect.heatCritical;
+    const heat: HeatResult = {
+      critical: severity ?? NO_CRITICAL,
+      ...(steps ? { originalCritical: effect.heatCritical } : {}),
+      hitsDice: dice,
+      hits,
+    };
     const hpChanges: HpChange[] = [{ kind: 'treatment', amount: -hits, injuryId: injury.id }];
+    if (!severity) {
+      patient.applyAttackResults(hits, undefined, undefined, undefined, [], hpChanges);
+      return heat;
+    }
     const criticalRoll = rolls.heatCriticalRoll ?? undefined;
     if (criticalRoll === undefined) {
       patient.applyAttackResults(hits, undefined, undefined, undefined, [], hpChanges);
-      heat.alertId = patient.addHeatCriticalAlert(effect.heatCritical, location).id;
+      heat.alertId = patient.addHeatCriticalAlert(severity, location).id;
       return heat;
     }
     const critical = await this.criticalTable.lookup({
       criticalType: HEAT_CRITICAL_TABLE,
-      criticalSeverity: effect.heatCritical,
+      criticalSeverity: severity,
       roll: criticalRoll,
       location,
     });
-    const criticalKey = `${HEAT_CRITICAL_TABLE}-${effect.heatCritical}-${criticalRoll}`;
+    const criticalKey = `${HEAT_CRITICAL_TABLE}-${severity}-${criticalRoll}`;
     const criticalSource: InjurySource = { ...source, criticalKey };
     const built = CriticalInjuryFactory.build({
       effects: critical.effects,

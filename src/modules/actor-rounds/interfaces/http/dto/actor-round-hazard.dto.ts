@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, Min, ValidateIf } from 'class-validator';
+import { TEMPERATURE_KINDS, type TemperatureKind } from '../../../domain/services/environment-rules.js';
 import { SIZE_IDS, type SizeId } from '../../../../shared/domain/size-scale.js';
 import { ResolveHazardCommand } from '../../../application/cqrs/commands/resolve-hazard.command.js';
 import {
@@ -9,22 +10,56 @@ import {
   type HazardAttackTable,
   type HazardCritical,
   type HazardKind,
+  type HazardTemperature,
 } from '../../../domain/value-objects/actor-round-hazard.vo.js';
 
-/** Workspace spec 077, decision D2: a fall or a falling object the game master resolves on the actor. */
+/** Whether the request is an attack (a fall or a falling object), which takes a distance and a roll. */
+const isAttack = (dto: ResolveHazardDto) => dto.kind !== 'extreme-temperature';
+
+/**
+ * Workspace spec 077, decision D2: a fall or a falling object the game master resolves on the actor. Workspace spec 079,
+ * C3: an extreme temperature, with its kind and its °C or a severity, and no distance or roll.
+ */
 export class ResolveHazardDto {
   @ApiProperty({ type: String, enum: HAZARD_KINDS, example: 'fall' })
   @IsIn(HAZARD_KINDS)
   kind: HazardKind;
 
-  @ApiProperty({ description: 'Feet fallen (the actor or the object), more than 0', example: 20 })
+  @ApiPropertyOptional({ description: 'Feet fallen (the actor or the object), more than 0; not for a temperature', example: 20 })
+  @ValidateIf(isAttack)
   @IsNumber()
   distanceFeet: number;
 
-  @ApiProperty({ description: 'Open-ended roll, upwards only and without fumble', example: 71 })
+  @ApiPropertyOptional({ description: 'Open-ended roll, upwards only and without fumble; not for a temperature', example: 71 })
+  @ValidateIf(isAttack)
   @IsInt()
   @Min(1)
   roll: number;
+
+  @ApiPropertyOptional({
+    type: String,
+    enum: TEMPERATURE_KINDS,
+    nullable: true,
+    description: 'Extreme temperature: cold (O), heat (H) or steam; by default the side of the temperature',
+  })
+  @IsOptional()
+  @IsIn(TEMPERATURE_KINDS)
+  temperatureKind?: TemperatureKind | null;
+
+  @ApiPropertyOptional({ type: Number, nullable: true, description: 'Extreme temperature: °C (Table 15-3)', example: 180 })
+  @IsOptional()
+  @IsNumber()
+  temperature?: number | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    description: 'Extreme temperature: a severity (A-J) set by the game master instead of the temperature (contact)',
+    example: 'C',
+  })
+  @IsOptional()
+  @IsString()
+  severity?: string | null;
 
   @ApiPropertyOptional({
     type: [Number],
@@ -90,13 +125,22 @@ export class ResolveHazardDto {
   @IsBoolean()
   shield?: boolean;
 
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    description: 'The knocked-back alert of the actor it resolves (spec 079): its severity caps the critical of the hazard',
+  })
+  @IsOptional()
+  @IsString()
+  knockedBackAlertId?: string | null;
+
   static toCommand(id: string, dto: ResolveHazardDto, userId: string, roles: string[]): ResolveHazardCommand {
     return new ResolveHazardCommand(
       id,
       {
         kind: dto.kind,
-        distanceFeet: dto.distanceFeet,
-        roll: dto.roll,
+        distanceFeet: dto.distanceFeet ?? 0,
+        roll: dto.roll ?? 0,
         criticalRolls: dto.criticalRolls ?? [],
         db: dto.db ?? null,
         note: dto.note ?? null,
@@ -106,6 +150,10 @@ export class ResolveHazardDto {
         objectSize: dto.objectSize ?? null,
         weightLbs: dto.weightLbs ?? null,
         shield: dto.shield ?? true,
+        knockedBackAlertId: dto.knockedBackAlertId ?? null,
+        temperatureKind: dto.temperatureKind ?? null,
+        temperature: dto.temperature ?? null,
+        severity: dto.severity ?? null,
       },
       userId,
       roles,
@@ -134,6 +182,20 @@ export class HazardCriticalDto implements HazardCritical {
 
   @ApiProperty({ type: String, nullable: true, description: 'The critical alert left when it was not rolled' })
   alertId: string | null;
+}
+
+export class HazardTemperatureDto implements HazardTemperature {
+  @ApiProperty({ type: String, enum: TEMPERATURE_KINDS })
+  kind: TemperatureKind;
+
+  @ApiProperty({ type: Number, nullable: true, description: '°C given; null when the severity was given' })
+  celsius: number | null;
+
+  @ApiProperty({ example: 'O' })
+  criticalType: string;
+
+  @ApiProperty({ type: String, enum: ['table', 'given'] })
+  severitySource: 'table' | 'given';
 }
 
 export class SeverityStepDto {
@@ -181,8 +243,8 @@ export class ActorRoundHazardDto {
   @ApiProperty()
   shield: boolean;
 
-  @ApiProperty({ type: String, enum: ['crush', 'rock'] })
-  attackTable: HazardAttackTable;
+  @ApiProperty({ type: String, enum: ['crush', 'rock'], nullable: true, description: 'Null for an extreme temperature' })
+  attackTable: HazardAttackTable | null;
 
   @ApiProperty({ description: 'Steps from medium of the attack size' })
   attackSize: number;
@@ -224,8 +286,17 @@ export class ActorRoundHazardDto {
   @Type(() => SeverityStepDto)
   severitySteps: SeverityStepDto[];
 
+  @ApiProperty({ type: String, nullable: true, description: 'Most severe critical of a knock-back hazard (spec 079)' })
+  severityCap: string | null;
+
+  @ApiProperty({ type: String, nullable: true, description: 'The knocked-back alert it resolved (spec 079)' })
+  knockedBackAlertId: string | null;
+
   @ApiProperty({ type: [HazardCriticalDto] })
   criticals: HazardCriticalDto[];
+
+  @ApiProperty({ type: HazardTemperatureDto, nullable: true, description: 'The extreme temperature of the hazard (spec 079, C3)' })
+  temperature: HazardTemperatureDto | null;
 
   @ApiProperty({ type: String, nullable: true })
   note: string | null;
@@ -236,6 +307,9 @@ export class ActorRoundHazardDto {
   static fromEntity(hazard: ActorRoundHazard): ActorRoundHazardDto {
     return Object.assign(new ActorRoundHazardDto(), {
       ...hazard,
+      severityCap: hazard.severityCap ?? null,
+      knockedBackAlertId: hazard.knockedBackAlertId ?? null,
+      temperature: hazard.temperature ? { ...hazard.temperature } : null,
       severitySteps: (hazard.severitySteps || []).map(step => ({ ...step })),
       criticals: (hazard.criticals || []).map(critical => ({ ...critical })),
     });

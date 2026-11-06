@@ -1,7 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
+import type { FeatOfStrengthResult } from '../../../domain/services/feat-of-strength.js';
 import {
   type ActionManeuverEffect,
   ActionManeuverResult,
+  type AdrenalManeuverOutcome,
   type GrappleEscapeResult,
   type ManeuverRollTalent,
 } from '../../../domain/value-objects/action-maneuver.vo.js';
@@ -122,6 +124,24 @@ export class ActionManeuverResultDto {
   })
   fallControlSteps?: number;
 
+  @ApiProperty({
+    description:
+      'feat-of-strength (spec 079): load, mechanical factor, effective load, body weight, Adrenal Strength multiplier, St ' +
+      'bonus, percent, percent less 2 x St, difficulty of Table 5-2 and whether it is beyond the table',
+    required: false,
+    type: Object,
+  })
+  featOfStrength?: FeatOfStrengthResult;
+
+  @ApiProperty({
+    description:
+      'adrenal and fortitude (spec 079): kind, rounds of the benefit, first round, doubled first round, partial, mental ' +
+      'block set or lifted, and the fatigue of an absolute failure of Fortitude',
+    required: false,
+    type: Object,
+  })
+  adrenal?: AdrenalManeuverOutcome;
+
   static fromEntity(entity: ActionManeuverResult): ActionManeuverResultDto {
     const dto = new ActionManeuverResultDto();
     dto.result = entity.result ?? undefined;
@@ -138,6 +158,8 @@ export class ActionManeuverResultDto {
     dto.rollTalent = entity.rollTalent ?? undefined;
     dto.grappleEscape = entity.grappleEscape ?? undefined;
     dto.fallControlSteps = entity.fallControlSteps ?? undefined;
+    dto.featOfStrength = entity.featOfStrength ?? undefined;
+    dto.adrenal = entity.adrenal ?? undefined;
     return dto;
   }
 }

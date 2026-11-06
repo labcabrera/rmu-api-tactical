@@ -23,7 +23,44 @@ export interface ParryExclusion {
   params?: ModifierParams;
 }
 
+/**
+ * The attacker strikes the defender from its flank or rear (workspace spec 079, decision A2; §9.6 Parrying): the DB the
+ * parry gives loses `penalty` (-30 flank, -70 rear), offset 1:1 by the defender's Reverse Strike.
+ */
+export interface ParryPositional {
+  position: 'flank' | 'rear';
+  penalty: number;
+  /** Reverse Strike bonus of the defender when the attack was prepared (0 without it). */
+  reverseStrike: number;
+}
+
+/**
+ * The absolute Combat Training maneuver of a parry against a further foe (workspace spec 079, decision A2; §9.6 Parrying
+ * more than one foe): from the second foe the defender parries in the round. The result is entered; only a success or
+ * better lets the parry count.
+ */
+export interface ParryManeuver {
+  required: true;
+  /** Foes the defender already parried in the round. */
+  foes: number;
+  /** Result of the absolute maneuver (`absolute-failure`...`absolute-success`); null while pending. */
+  result: string | null;
+  passed: boolean | null;
+}
+
+/** Results of the parry maneuver that let the parry count. */
+export const PARRY_MANEUVER_PASSED_RESULTS = ['success', 'absolute-success'];
+
+/** Results an absolute maneuver can give. */
+export const ABSOLUTE_MANEUVER_RESULTS = ['absolute-failure', 'failure', 'partial-success', 'success', 'absolute-success'];
+
 export class ActionParry {
+  /** The attacker is on the defender's flank or rear (workspace spec 079, decision A2). */
+  public positional?: ParryPositional | null;
+
+  /** The Combat Training maneuver this parry needs (workspace spec 079, decision A2). */
+  public parryManeuver?: ParryManeuver | null;
+
   constructor(
     public readonly id: string,
     /** Actor identifier. Can be the target of the attack or a protector */

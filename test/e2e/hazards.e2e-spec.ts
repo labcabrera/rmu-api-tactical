@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { AttackTableEntry } from '../../src/modules/actions/domain/value-objects/action-attack.vo.js';
-import { CriticalResult } from '../../src/modules/actions/domain/value-objects/critical-result.vo.js';
+import { CriticalEffect, CriticalResult } from '../../src/modules/actions/domain/value-objects/critical-result.vo.js';
 import { character, startApp, USERS, type E2eApp, type UserName } from './support/app.js';
 
 /* Workspace spec 077, block D: falls, falling objects and critical alerts. Table entries and criticals are made up. */
@@ -146,5 +146,69 @@ describe('POST /v1/actor-rounds/:id/alerts/:alertId/critical-roll', () => {
     expect(again.status).toBe(400);
     expect((again.body as { code: string }).code).toBe('err-alert-not-resolvable');
     expect((await as('owner').post(`/v1/actor-rounds/${gimli.id}/alerts/${alert.id}/critical-roll`, { roll: 101 })).status).toBe(400);
+  });
+});
+
+describe('workspace spec 079, A4: knocked back', () => {
+  it('raises a knocked-back alert from the critical and caps the hazard that resolves it', async () => {
+    e2e.world.attackEntry = new AttackTableEntry('10CI', 10, 'I', 'C');
+    e2e.world.critical = new CriticalResult('Sent flying.', 2, 'chest', [
+      new CriticalEffect('knocked_back_distance', undefined, 10, undefined, undefined),
+    ]);
+    const { gimli } = await startedGame();
+    const fall = await as('owner').post(`/v1/actor-rounds/${gimli.id}/hazards`, { kind: 'fall', distanceFeet: 10, roll: 60 });
+    const critical = (fall.body as ActorRoundBody).alerts.find(each => each.type === 'critical')!;
+    const rolled = await as('owner').post(`/v1/actor-rounds/${gimli.id}/alerts/${critical.id}/critical-roll`, { roll: 45 });
+    expect(rolled.status).toBe(200);
+    const knockedBack = (rolled.body as ActorRoundBody).alerts.find(each => each.type === 'knocked-back')!;
+    expect(knockedBack.modifiers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: 'feet', value: 10 }),
+        expect.objectContaining({ key: 'severityCap', modifier: 'C' }),
+      ]),
+    );
+
+    e2e.world.attackEntry = new AttackTableEntry('20EI', 20, 'I', 'E');
+    e2e.world.critical = new CriticalResult('Hits the wall.', 3, 'chest', []);
+    const hazard = await as('owner').post(`/v1/actor-rounds/${gimli.id}/hazards`, {
+      kind: 'falling-object',
+      distanceFeet: 10,
+      roll: 50,
+      objectSize: 'medium',
+      knockedBackAlertId: knockedBack.id,
+    });
+    expect(hazard.status).toBe(200);
+    const body = hazard.body as ActorRoundBody & { hazards: (HazardBody & { severityCap: string; knockedBackAlertId: string })[] };
+    expect(body.hazards.at(-1)).toMatchObject({ severity: 'C', severityCap: 'C', knockedBackAlertId: knockedBack.id });
+    expect(body.alerts.find(each => each.id === knockedBack.id)?.status).toBe('resolved');
+    const again = await as('owner').post(`/v1/actor-rounds/${gimli.id}/hazards`, {
+      kind: 'fall',
+      distanceFeet: 10,
+      roll: 50,
+      knockedBackAlertId: knockedBack.id,
+    });
+    expect(again.status).toBe(400);
+    expect(again.body).toMatchObject({ code: 'err-alert-not-resolvable' });
+  });
+
+  it('dismisses a knocked-back alert by hand, and rejects an unknown outcome', async () => {
+    e2e.world.attackEntry = new AttackTableEntry('10CI', 10, 'I', 'C');
+    e2e.world.critical = new CriticalResult('Sent flying.', 2, 'chest', [
+      new CriticalEffect('knocked_back_distance', undefined, 5, undefined, undefined),
+    ]);
+    const { legolas } = await startedGame();
+    const fall = await as('owner').post(`/v1/actor-rounds/${legolas.id}/hazards`, {
+      kind: 'fall',
+      distanceFeet: 10,
+      roll: 60,
+      criticalRolls: [45],
+    });
+    const knockedBack = (fall.body as ActorRoundBody).alerts.find(each => each.type === 'knocked-back')!;
+    expect((await as('owner').post(`/v1/actor-rounds/${legolas.id}/alerts/${knockedBack.id}/resolve`, { outcome: 'maybe' })).status).toBe(
+      400,
+    );
+    const resolved = await as('owner').post(`/v1/actor-rounds/${legolas.id}/alerts/${knockedBack.id}/resolve`, {});
+    expect(resolved.status).toBe(200);
+    expect((resolved.body as ActorRoundBody).alerts.find(each => each.id === knockedBack.id)?.status).toBe('resolved');
   });
 });

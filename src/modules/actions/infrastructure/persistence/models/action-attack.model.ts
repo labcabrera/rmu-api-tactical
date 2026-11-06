@@ -4,7 +4,13 @@ import type { AttackType, ProtectPosition } from '../../../domain/value-objects/
 import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo.js';
 import type { ModifierGroup } from '../../../domain/value-objects/key-value-modifier.vo.js';
 import type { AttackStatus } from '../../../domain/value-objects/attack-status.vo.js';
-import type { ActionAttackReaction, DamageAdjustment, SeverityAdjustment } from '../../../domain/value-objects/action-attack.vo.js';
+import type {
+  ActionAttackDisarm,
+  ActionAttackReaction,
+  DamageAdjustment,
+  SeverityAdjustment,
+  SubdualAdjustment,
+} from '../../../domain/value-objects/action-attack.vo.js';
 import { ActionAttackModifiers } from './action-attack-modifiers.model.js';
 import type { ShieldManeuver } from '../../../domain/value-objects/shield-maneuver.vo.js';
 
@@ -205,6 +211,10 @@ export class ActionAttackResult {
   /** Workspace spec 075: the critical severity of the table, the final one (null: none) and the steps. */
   @Prop({ type: Object, required: false })
   public severityAdjustment?: SeverityAdjustment;
+
+  /** Workspace spec 079: the hits and critical of the table before a subdual attack changed them. */
+  @Prop({ type: Object, required: false })
+  public subdualAdjustment?: SubdualAdjustment;
 }
 
 @Schema({ _id: false })
@@ -247,4 +257,8 @@ export class ActionAttack {
   /** Workspace spec 077, decision A1.2: the Shield maneuver of the defender. */
   @Prop({ type: Object, required: false })
   public shieldManeuver?: ShieldManeuver | null;
+
+  /** Workspace spec 079: the result of a disarm on Table 9-7a. */
+  @Prop({ type: Object, required: false })
+  public disarm?: ActionAttackDisarm | null;
 }

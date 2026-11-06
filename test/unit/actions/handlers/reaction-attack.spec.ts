@@ -1,3 +1,4 @@
+import { ATTACK_TABLE_MODIFIERS_FAKE } from '../../../fixtures/attack-table-modifiers.js';
 import { describe, expect, it, vi } from 'vitest';
 import {
   PrepareAttackCommand,
@@ -70,6 +71,7 @@ const prepare = async (ctx: ReturnType<typeof reactionContext>, bo: number) => {
     { findById: vi.fn(() => Promise.resolve({ options: {} })) } as unknown as StrategicGameApiClient,
     { publish: vi.fn(() => Promise.resolve()) },
     processor(),
+    ATTACK_TABLE_MODIFIERS_FAKE,
   );
   const prepared = await handler.execute(
     new PrepareAttackCommand(

@@ -143,7 +143,7 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       traits: (doc.traits || []).map(trait => new ActorRoundTrait(trait.traitId, trait.tier || 1, trait.specialization ?? null)),
       alerts: (doc.alerts || []).map(alert => ActorRoundAlert.from(alert as unknown as ActorRoundAlertData)),
       defenseMode: doc.defenseMode
-        ? new ActorRoundDefenseMode(doc.defenseMode.dodge ?? 'none', doc.defenseMode.block ?? 'none')
+        ? new ActorRoundDefenseMode(doc.defenseMode.dodge ?? 'none', doc.defenseMode.block ?? 'none', doc.defenseMode.adrenal || undefined)
         : ActorRoundDefenseMode.none(),
       phaseLog: (doc.phaseLog || []).map(entry => new ActorRoundPhaseLog(entry.phase, entry.spentAp, entry.totalSpentAp)),
       apLedger: (doc.apLedger || []).map(
@@ -172,10 +172,15 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       frightLevel: doc.frightLevel ?? null,
       criticalSize: doc.criticalSize ?? null,
       reduceCriticalSeverity: doc.reduceCriticalSeverity ?? false,
+      stunImmune: doc.stunImmune ?? false,
       armorEncumbrance: doc.armorEncumbrance ?? 0,
       heldActions: (doc.heldActions || []).map(each => ({ actionId: each.actionId, since: each.since })),
       height: doc.height ?? null,
       hazards: doc.hazards || [],
+      lostLimbs: (doc.lostLimbs || []).map(limb => ({ ...limb })),
+      deathRound: doc.deathRound ?? null,
+      breath: doc.breath ? { ...doc.breath } : null,
+      protectedFromEnvironment: doc.protectedFromEnvironment ?? false,
       snapshot: doc.snapshot
         ? {
             hp: doc.snapshot.hp,

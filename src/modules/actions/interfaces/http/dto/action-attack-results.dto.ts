@@ -16,6 +16,18 @@ export class AttackTableEntryDto {
   criticalSeverity: string | undefined;
 }
 
+/** Workspace spec 079, A7: the table result a subdual attack changed (§9.7). */
+export class SubdualAdjustmentDto {
+  @ApiProperty({ description: 'Hits before halving', example: 12 })
+  baseDamage: number;
+
+  @ApiProperty({ type: String, nullable: true, description: 'Critical type of the table', example: 'S' })
+  criticalType: string | null;
+
+  @ApiProperty({ type: String, nullable: true, description: 'Critical severity of the table, before the cap at E', example: 'F' })
+  criticalSeverity: string | null;
+}
+
 export class DamageAdjustmentDto {
   @ApiProperty({ description: 'Damage of the attack table before the Hit Multiplier', example: 10 })
   baseDamage: number;
@@ -27,7 +39,17 @@ export class DamageAdjustmentDto {
 export class SeverityAdjustmentStepDto {
   @ApiProperty({
     description: 'What moves the severity',
-    enum: ['attack-size', 'charge', 'fighting-style', 'target-size', 'light-boned', 'critical-code'],
+    enum: [
+      'attack-size',
+      'adrenal-strength',
+      'charge',
+      'fighting-style',
+      'target-size',
+      'light-boned',
+      'critical-code',
+      'fall-control',
+      'elemental-talent',
+    ],
     example: 'attack-size',
   })
   key: string;
@@ -97,6 +119,13 @@ export class ActionAttackResultsDto {
   })
   severityAdjustment?: SeverityAdjustmentDto;
 
+  @ApiProperty({
+    type: SubdualAdjustmentDto,
+    required: false,
+    description: 'Spec 079: present on a subdual attack; the hits and critical of the table before halving and the subdual type',
+  })
+  subdualAdjustment?: SubdualAdjustmentDto;
+
   static fromEntity(entity: ActionAttackResult): ActionAttackResultsDto {
     const dto = new ActionAttackResultsDto();
     dto.attackTableEntry = entity.attackTableEntry
@@ -137,6 +166,7 @@ export class ActionAttackResultsDto {
           steps: (entity.severityAdjustment.steps || []).map(step => ({ key: step.key, value: step.value })),
         }
       : undefined;
+    dto.subdualAdjustment = entity.subdualAdjustment ? { ...entity.subdualAdjustment } : undefined;
     return dto;
   }
 }

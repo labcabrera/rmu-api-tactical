@@ -19,6 +19,8 @@ import { openRoundsOf, STRATEGIC_GAME_PORT } from '../../../../strategic/applica
 import type { StrategicGamePort } from '../../../../strategic/application/ports/strategic-game.port.js';
 import { Game } from '../../../domain/aggregates/game.js';
 import { Actor } from '../../../domain/value-objects/actor.vo.js';
+import { GameEnvironment } from '../../../domain/value-objects/game-environment.vo.js';
+import type { ResolvedExtremeTemperature } from '../../../../actor-rounds/domain/services/environment-rules.js';
 import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port.js';
 import { StartRoundCommand } from '../commands/start-round.command.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
@@ -53,8 +55,11 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
     if (game.round > 0) {
       // Workspace spec 077, decision D7: at altitude the fatigue takes twice the rest.
       const slow = (game.environment?.altitudeFatigueModifier ?? 0) < 0;
+      const temperature = this.extremeTemperatureOf(game);
       await Promise.all(
-        game.actors.map(actor => this.applyUpkeepToActorRounds(game.id, actor, game.round, command.userId, command.roles, slow)),
+        game.actors.map(actor =>
+          this.applyUpkeepToActorRounds(game.id, actor, game.round, command.userId, command.roles, slow, temperature),
+        ),
       );
       await this.addFearAlerts(game);
     }
@@ -159,6 +164,16 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
     }
   }
 
+  /** Workspace spec 079, C3: the critical of the extreme temperature of the game; a stored one gone invalid is skipped. */
+  private extremeTemperatureOf(game: Game): ResolvedExtremeTemperature | null {
+    try {
+      return GameEnvironment.resolveTemperature(game.environment);
+    } catch (error) {
+      this.logger.warn(`Extreme temperature of game ${game.id} ignored: ${(error as Error).message}`);
+      return null;
+    }
+  }
+
   private async createActorRounds(gameId: string, round: number, actor: Actor): Promise<void> {
     const command = new CreateActorRoundCommand(gameId, actor, round);
     await this.commandBus.execute(command);
@@ -171,8 +186,9 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
     userId: string,
     roles: string[],
     slowFatigueRecovery: boolean,
+    extremeTemperature: ResolvedExtremeTemperature | null,
   ): Promise<void> {
-    const command = new UpkeepActorRoundCommand(gameId, actor.id, round, userId, roles, slowFatigueRecovery);
+    const command = new UpkeepActorRoundCommand(gameId, actor.id, round, userId, roles, slowFatigueRecovery, extremeTemperature);
     await this.commandBus.execute(command);
   }
 }

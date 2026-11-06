@@ -19,6 +19,14 @@ import type { ActionSpellAdjusted, ActionSpellInfo, SpellAdjustmentSource, Spell
 import type { ManeuverActionPoints } from '../value-objects/maneuver-profile.vo.js';
 import { KeyValueModifier } from '../value-objects/key-value-modifier.vo.js';
 import type { SpellRollModifier } from './spell-casting.rules.js';
+import {
+  type Element,
+  ELEMENTAL_RULE,
+  elementalModifier,
+  elementalParams,
+  elementOfAttackTable,
+  elementOfCritical,
+} from '../../../actor-rounds/domain/services/elemental-talents.js';
 
 /** Rule references of the magical talents (workspace spec 077, block C). */
 export const SPELL_TALENT_RULES = {
@@ -246,5 +254,36 @@ export function ironWillModifier(traits: Traits, spell: Pick<ActionSpellInfo, 's
     source: 'talents',
     rule: SPELL_TALENT_RULES.ironWill,
     params: { tier },
+  };
+}
+
+/**
+ * Element of a spell (workspace spec 079, D4): the critical type of any of its effects (`H` and steam heat, `O` cold,
+ * `L` electricity), else its elemental attack table. Null for the rest: the game master applies them by hand.
+ */
+export function spellElement(spell: Pick<ActionSpellInfo, 'effects'>): Element | null {
+  for (const effect of spell.effects ?? []) {
+    const element =
+      elementOfCritical(effect.criticalType as string | undefined) ?? elementOfAttackTable(effect.attackTable as string | undefined);
+    if (element) return element;
+  }
+  return null;
+}
+
+/**
+ * Workspace spec 079, D4: Elemental Resistance (+5 per tier) and Susceptibility (-5 per tier) of the target to the RR
+ * against a spell of its element.
+ */
+export function elementalRrModifier(traits: Traits, spell: Pick<ActionSpellInfo, 'effects'>): SpellRollModifier | undefined {
+  const element = spellElement(spell);
+  const value = elementalModifier(traits, element);
+  if (!element || !value) return undefined;
+  return {
+    key: 'elemental-talent',
+    value,
+    group: 'talent',
+    source: 'talents',
+    rule: ELEMENTAL_RULE,
+    params: elementalParams(traits, element),
   };
 }

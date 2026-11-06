@@ -11,7 +11,15 @@ import type {
 export class ActionWarningDto {
   @ApiProperty({
     type: String,
-    enum: ['treatment-interrupted', 'exertion-reopens-wound', 'limb-unusable', 'fear-balk-pace', 'fear-balk-charge', 'fear-retreat-pace'],
+    enum: [
+      'treatment-interrupted',
+      'exertion-reopens-wound',
+      'limb-unusable',
+      'limb-lost',
+      'fear-balk-pace',
+      'fear-balk-charge',
+      'fear-retreat-pace',
+    ],
   })
   code: ActionWarningCode;
 

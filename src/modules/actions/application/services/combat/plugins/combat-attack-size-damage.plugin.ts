@@ -2,8 +2,10 @@ import { hitMultiplierOf } from '../../../../../shared/domain/size-scale.js';
 import { ActionAttackResult } from '../../../../domain/value-objects/action-attack.vo.js';
 import type { CombatContext } from '../combat-context.js';
 import type { CombatPlugin } from '../combat-plugin.js';
+import { adrenalStrengthSteps } from './combat-attack-size.plugin.js';
 
-const multiplierOf = (ctx: CombatContext): number => hitMultiplierOf(ctx.sourceAttack?.attackSize || 0);
+/** Workspace spec 079, decision B3: Adrenal Strength treats the attack as larger (or smaller) for its damage too. */
+const multiplierOf = (ctx: CombatContext): number => hitMultiplierOf((ctx.sourceAttack?.attackSize || 0) + adrenalStrengthSteps(ctx));
 
 /**
  * Scales the damage of the table by the Hit Multiplier of the attack size (Table 9-4a, Hits Adjustment Due to Size;
