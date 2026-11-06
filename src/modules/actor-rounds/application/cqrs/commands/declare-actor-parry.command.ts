@@ -14,10 +14,20 @@ export class DeclareActorParryCommand {
     public readonly parry: number,
     public readonly userId: string,
     public readonly roles: string[],
+    /** The action of the attacker: what the parry reserved when it was declared stops counting (workspace spec 083). */
+    public readonly actionId?: string,
   ) {}
 
   /** The OB the parry spends: the parry, plus the protect penalty when protecting with any amount (Table 9-7c). */
-  static fromParry(gameId: string, sourceActorId: string, round: number, parry: ActionParry, userId: string, roles: string[]) {
+  static fromParry(
+    gameId: string,
+    sourceActorId: string,
+    round: number,
+    parry: ActionParry,
+    userId: string,
+    roles: string[],
+    actionId?: string,
+  ) {
     const spent = parry.parry > 0 ? parry.parry - (parry.penalty || 0) : 0;
     return new DeclareActorParryCommand(
       parry.id,
@@ -30,6 +40,7 @@ export class DeclareActorParryCommand {
       spent,
       userId,
       roles,
+      actionId,
     );
   }
 }

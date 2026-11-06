@@ -69,7 +69,7 @@ export class ActionParry {
     public readonly targetActorId: string,
     public readonly parryType: ParryType,
     /** Most OB the actor can give to this parry (for a protector, once the protect penalty is taken off). */
-    public readonly parryAvailable: number,
+    public parryAvailable: number,
     public parry: number,
     /**
      * Protect penalty (Table 9-7c) left after the Protect skill, 0 or negative: it is taken from the protector's OB
@@ -89,6 +89,6 @@ export class ActionParry {
      */
     public readonly fullParry?: boolean,
     /** Where `parryAvailable` comes from (spec 051). */
-    public readonly breakdown?: ParryBreakdown,
+    public breakdown?: ParryBreakdown,
   ) {}
 }

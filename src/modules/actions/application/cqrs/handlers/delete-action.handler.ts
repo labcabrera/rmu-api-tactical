@@ -10,6 +10,7 @@ import { NotFoundError } from '../../../../shared/domain/errors/errors.js';
 import { ActionDeletedEvent } from '../../../domain/events/action.events.js';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
 import { DeleteActionCommand } from '../commands/delete-action.command.js';
+import { RoundBoCommitments } from '../../services/round-bo-commitments.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 /** Deletes an action and frees the AP it took in the ledger of its actor round (spec 011, §2). */
@@ -39,6 +40,11 @@ export class DeleteActionHandler implements ICommandHandler<DeleteActionCommand>
     if (actorRound?.releaseAction(action.id) || aborted.length > 0) {
       await this.actorRoundRepository.update(actorRound!);
     }
+    await new RoundBoCommitments(this.actionRepository, this.actorRoundRepository, this.eventPublisher).release(
+      action.gameId,
+      action.round,
+      [action.id],
+    );
     await this.eventPublisher.publish('action', new ActionDeletedEvent(action));
   }
 }

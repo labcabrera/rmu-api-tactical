@@ -109,18 +109,19 @@ describe('a parry after preparing an attack', () => {
     const prepared = await prepare(attack, 'aragorn', { mainHand: 60 });
     expect(prepared.status).toBe(200);
     const option = (prepared.body as ActionBody).parries.find(each => each.actorId === 'aragorn')!;
-    expect((await as('owner').patch(`/v1/actions/${attack}/attack/parry`, { parries: [{ parryId: option.id, parry }] })).status).toBe(200);
+    const declared = await as('owner').patch(`/v1/actions/${attack}/attack/parry`, { parries: [{ parryId: option.id, parry }] });
+    expect(declared.status).toBe(200);
     expect((await as('owner').patch(`/v1/actions/${attack}/attack/roll`, { attackName: 'mainHand', roll: 40 })).status).toBe(200);
     const applied = await as('owner').patch(`/v1/actions/${attack}/attack/apply`);
     expect(applied.status).toBe(200);
-    return { own, applied: applied.body as ActionBody };
+    return { own, declared: declared.body as ActionBody };
   };
 
   it('lowers the OB of the attack, its total and warns', async () => {
     const gameId = await gameWith('aragorn');
     const before = 60;
-    const { own, applied } = await parryWith(gameId, 40);
-    expect(applied.warnings).toContainEqual(
+    const { own, declared } = await parryWith(gameId, 40);
+    expect(declared.warnings).toContainEqual(
       expect.objectContaining({
         code: 'attack-ob-reduced',
         params: expect.objectContaining({ attackName: 'mainHand', from: before, to: 20 }) as object,
@@ -156,18 +157,18 @@ describe('a parry after preparing an attack', () => {
     const attack = await declare(gameId, 'lurtz');
     const own = await declare(gameId, 'aragorn');
     await nextPhase(gameId);
-    expect((await prepare(own, 'lurtz', { mainHand: 60 })).status).toBe(200);
+    expect((await prepare(own, 'lurtz', { mainHand: 30 })).status).toBe(200);
     expect((await as('owner').patch(`/v1/actions/${own}/attack/parry`, { parries: [] })).status).toBe(200);
     expect((await as('owner').patch(`/v1/actions/${own}/attack/roll`, { attackName: 'mainHand', roll: 40 })).status).toBe(200);
     const prepared = await prepare(attack, 'aragorn', { mainHand: 60 });
     const option = (prepared.body as ActionBody).parries.find(each => each.actorId === 'aragorn')!;
-    expect((await as('owner').patch(`/v1/actions/${attack}/attack/parry`, { parries: [{ parryId: option.id, parry: 40 }] })).status).toBe(
+    expect((await as('owner').patch(`/v1/actions/${attack}/attack/parry`, { parries: [{ parryId: option.id, parry: 30 }] })).status).toBe(
       200,
     );
     expect((await as('owner').patch(`/v1/actions/${attack}/attack/roll`, { attackName: 'mainHand', roll: 40 })).status).toBe(200);
     expect((await as('owner').patch(`/v1/actions/${attack}/attack/apply`)).status).toBe(200);
     const action = (await as('owner').get(`/v1/actions/${own}`)).body as ActionBody;
-    expect(action.attacks[0].modifiers.bo).toBe(60);
+    expect(action.attacks[0].modifiers.bo).toBe(30);
   });
 
   it('gets a kata with a weapon left at 0 out of the dead end by preparing it again without that weapon', async () => {

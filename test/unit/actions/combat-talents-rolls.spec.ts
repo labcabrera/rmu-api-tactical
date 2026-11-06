@@ -167,12 +167,14 @@ describe('Attack roll: dice of the roll profile and luck talents (spec 076, §2.
       } as unknown as GameRepository,
       {
         findById: vi.fn(() => Promise.resolve(ctx.action)),
+        findByRsql: vi.fn(() => Promise.resolve({ content: [ctx.action] })),
         update: vi.fn((updated: Action) => Promise.resolve(updated)),
       } as unknown as ActionRepository,
       {
         findByActorIdAndRound: vi.fn((_g: string, actorId: string) =>
           Promise.resolve(ctx.actors!.find(actor => actor.actorId === actorId)),
         ),
+        findByRsql: vi.fn(() => Promise.resolve({ content: ctx.actors! })),
         update: actorRoundUpdate,
       } as unknown as ActorRoundRepository,
       { publish: vi.fn(() => Promise.resolve()) },

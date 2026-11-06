@@ -1,3 +1,4 @@
+import type { ActorRoundBoReservation } from '../value-objects/actor-round-bo-reservation.vo.js';
 import type { LostLimb } from '../value-objects/lost-limb.vo.js';
 import type { ActorRoundBreath } from '../value-objects/actor-round-breath.vo.js';
 import { ActorRoundAlert } from '../value-objects/actor-round-alert.vo.js';
@@ -58,6 +59,7 @@ export interface ActorRoundProps {
   attacks: ActorRoundAttack[];
   usedBo: ActorRoundUsedBo[];
   boCeiling?: number | null;
+  boReservations?: ActorRoundBoReservation[];
   parries: number[];
   effects: ActorRoundEffect[];
   alerts: ActorRoundAlert[];

@@ -5,5 +5,7 @@ export class SubstractBoCommand {
     public readonly spends: { attackName: string; bo: number }[],
     public readonly userId: string,
     public readonly roles: string[],
+    /** The action that spends it: what it reserved when it rolled stops counting (workspace spec 083). */
+    public readonly actionId?: string,
   ) {}
 }

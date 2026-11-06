@@ -41,6 +41,7 @@ import { PrepareAttackCommand, PrepareAttackCommandItem } from '../commands/prep
 import { type AttackTableModifiersPort, ATTACK_TABLE_MODIFIERS_PORT } from '../../ports/attack-table.port.js';
 import { specialManeuverModifier } from '../../../domain/services/special-maneuvers.js';
 import { type EffectivePace, effectiveActionPace, freeMovementPaceFor } from '../../../domain/services/free-movement-pace.js';
+import { RoundBoCommitments } from '../../services/round-bo-commitments.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 /** An attack with the body (natural weapons, unarmed skills), which a disarmed actor can still make. */
@@ -79,6 +80,10 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const actorRoundIds = this.getActorIds(action, command);
     const actors = await this.actorRoundRepository.findByGameAndRoundAndActors(game.id, game.round, actorRoundIds);
     if (actorRoundIds.length !== actors.length) throw new UnprocessableEntityError('Missing actors in the current round');
+
+    // Workspace spec 083: preparing again gives back what the action had reserved; saved once it is prepared.
+    const preparedAgain = (action.attacks ?? []).some(attack => !!attack.calculated);
+    actors.forEach(actor => actor.releaseBoReservations(action.id));
 
     const sourceActorRound = actors.find(a => a.actorId === action.actorId)!;
     // The AP of the attack come from the ledger; below the minimum it cannot be prepared unless forced (spec 011, §4).
@@ -149,6 +154,13 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action);
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
+    if (preparedAgain) {
+      await new RoundBoCommitments(this.actionRepository, this.actorRoundRepository, this.eventPublisher).release(
+        action.gameId,
+        game.round,
+        [action.id],
+      );
+    }
     updated.refreshApState(sourceActorRound, currentPhase);
     updated.warnings = warnings;
     return updated;

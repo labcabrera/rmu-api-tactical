@@ -36,6 +36,7 @@ import { GetActorRoundHandler } from './application/cqrs/handlers/get-actor-roun
 import { GetActorRoundsHandler } from './application/cqrs/handlers/get-actor-rounds.handler.js';
 import { SubstractBoHandler } from './application/cqrs/handlers/substract-bo.handler.js';
 import { DeclareInitiativeCommandHandler } from './application/cqrs/handlers/update-initiative.handler.js';
+import { LowerInitiativeHandler } from './application/cqrs/handlers/lower-initiative.handler.js';
 import { UpkeepActorRoundHandler } from './application/cqrs/handlers/upkeep-actor-round.handler.js';
 import { MongoActorRoundRepository } from './infrastructure/db/mongo.actor-round.repository.js';
 import { ActorRoundCharacterMapperAdapter } from './infrastructure/mappers/actor-round-character-mapper.adapter.js';
@@ -68,6 +69,7 @@ import { DeclareFightingStyleHandler } from './application/cqrs/handlers/declare
     CreateActorRoundHandler,
     UseHerbHandler,
     DeclareInitiativeCommandHandler,
+    LowerInitiativeHandler,
     GetActorRoundHandler,
     GetActorRoundsHandler,
     AddEffectsHandler,

@@ -39,8 +39,8 @@ export const CombatPacePlugin: CombatPlugin = {
           const graceful = effective === 'walk' && sourceTraitTier(ctx, GRACEFUL_GAIT) > 0;
           const penalty = pacePenaltyFor(pace);
           const effectivePenalty = graceful ? 0 : pacePenaltyFor(pace, tier);
-          // Footwork offsets the pace penalty of melee and thrown attacks (§8.2), not of fired ones.
-          const footwork = isMelee(ctx) || ctx.attack?.type === 'thrown' ? sourceSkill(ctx, 'footwork') : 0;
+          // Footwork offsets the pace penalty of melee and thrown attacks (§8.2), not of fired ones. A negative skill adds nothing.
+          const footwork = isMelee(ctx) || ctx.attack?.type === 'thrown' ? Math.max(0, sourceSkill(ctx, 'footwork')) : 0;
           // Workspace spec 080: the pace of a free movement says which one.
           const movementId = preparation(ctx).paceMovementId;
           rollModifiers(ctx)
