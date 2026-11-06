@@ -57,6 +57,7 @@ export interface ActorRoundProps {
   defenseMode?: ActorRoundDefenseMode;
   attacks: ActorRoundAttack[];
   usedBo: ActorRoundUsedBo[];
+  boCeiling?: number | null;
   parries: number[];
   effects: ActorRoundEffect[];
   alerts: ActorRoundAlert[];

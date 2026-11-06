@@ -43,6 +43,8 @@ const reactionContext = (options: CombatPluginContextOptions & { traitId?: strin
   };
   ctx.action.actionPoints = 0;
   ctx.sourceActor!.parries = options.parries ?? [];
+  ctx.sourceActor!.usedBo = [];
+  ctx.sourceActor!.boCeiling = null;
   // The OB left once the parries are taken off, as the actor round computes it
   ctx.sourceAttack!.currentBo -= (options.parries ?? []).reduce((sum, parry) => sum + parry, 0);
   return ctx;

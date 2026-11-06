@@ -9,6 +9,7 @@ import { ActorRoundPenaltyModifier } from '../../../src/modules/actor-rounds/dom
 import { ActorRoundPenalty } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-penalty.vo.js';
 import { ActorRoundShield } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo.js';
 import { ActorRoundTrait } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-trait.vo.js';
+import { ActorRoundUsedBo } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-used-bo.vo.js';
 import type { Injury } from '../../../src/modules/actor-rounds/domain/value-objects/injury.vo.js';
 
 export const attack = (attackName: string, baseBo: number, currentBo = baseBo, type: 'melee' | 'ranged' = 'melee') =>
@@ -17,6 +18,8 @@ export const attack = (attackName: string, baseBo: number, currentBo = baseBo, t
 export const effect = (status: string, value?: number, rounds?: number) => new ActorRoundEffect(randomUUID(), status, value, rounds);
 
 export interface LoadOptions {
+  usedBo?: ActorRoundUsedBo[];
+  boCeiling?: number | null;
   round?: number;
   attacks?: ActorRoundAttack[];
   penalties?: Array<[string, number]>;
@@ -51,7 +54,8 @@ export const load = (options: LoadOptions = {}): ActorRound => {
     ),
     defense: new ActorRoundDefense(10, 1, null, null, null, null, options.shield ?? null, 0),
     attacks: options.attacks ?? [],
-    usedBo: [],
+    usedBo: options.usedBo ?? [],
+    boCeiling: options.boCeiling ?? null,
     parries: options.parries ?? [],
     effects: options.effects ?? [],
     alerts: [],

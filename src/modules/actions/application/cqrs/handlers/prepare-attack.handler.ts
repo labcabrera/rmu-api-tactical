@@ -8,7 +8,7 @@ import {
 } from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
 import { type ActorSheet, ActorSheetService } from '../../../../actor-rounds/application/services/actor-sheet.service.js';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
-import type { ActorRoundAttack } from '../../../../actor-rounds/domain/value-objects/actor-round-attack.vo.js';
+import { type ActorRoundAttack, isBodyAttack } from '../../../../actor-rounds/domain/value-objects/actor-round-attack.vo.js';
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../../shared/domain/errors/errors.js';
 import { lethalityOf, STRATEGIC_GAME_PORT } from '../../../../strategic/application/ports/strategic-game.port.js';
@@ -44,9 +44,6 @@ import { type EffectivePace, effectiveActionPace, freeMovementPaceFor } from '..
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 /** An attack with the body (natural weapons, unarmed skills), which a disarmed actor can still make. */
-const isBodyAttack = (attack: ActorRoundAttack): boolean =>
-  attack.weaponCategory === 'natural' || attack.weaponCategory === 'unarmed' || !!attack.skillId?.startsWith('unarmed');
-
 @CommandHandler(PrepareAttackCommand)
 export class PrepareAttackHandler implements ICommandHandler<PrepareAttackCommand, Action> {
   private readonly logger = new Logger(PrepareAttackHandler.name);
@@ -472,6 +469,11 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     }
     // Workspace spec 076, decision B1: a reaction is not limited by the OB given to parries; a fixed OB is not limited.
     const maxBo = reaction ? source.getBoIgnoringParries(attack.attackName) : attack.currentBo;
+    // Workspace spec 082, decision 7 (§9.6): with no OB there is no attack, and an attack at 0 only adds its penalties.
+    const fixedOb = !!reaction && reaction.obOverride !== null;
+    if (action.actionType !== 'cast_spell' && !action.strayShot && !fixedOb && (commandAttack.modifiers.bo <= 0 || maxBo <= 0)) {
+      throw new ValidationError(`The attack ${attack.attackName} has no OB`, 'err-attack-no-ob', { attackName: attack.attackName });
+    }
     if ((!reaction || reaction.obOverride === null) && commandAttack.modifiers.bo > maxBo) {
       throw new ValidationError(`BO cannot be higher than current BO (${maxBo})`);
     }

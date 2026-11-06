@@ -6,7 +6,7 @@ import { ActorRoundCreatedEvent } from '../events/actor-round.events.js';
 import { ActorRoundAlert, type AlertOutcome, type ReactionAlertData, type StrayShotData } from '../value-objects/actor-round-alert.vo.js';
 import { type ActorRollProfile, rollProfileOf } from '../value-objects/actor-roll-profile.vo.js';
 import { ActorRoundAlertModifier } from '../value-objects/actor-round-alert-modifier.vo.js';
-import { ActorRoundAttack } from '../value-objects/actor-round-attack.vo.js';
+import { ActorRoundAttack, isBodyAttack } from '../value-objects/actor-round-attack.vo.js';
 import { ActorRoundDefenseMode, type DefenseLevel } from '../value-objects/actor-round-defense-mode.vo.js';
 import { ActorRoundDefense } from '../value-objects/actor-round-defense.vo.js';
 import {
@@ -345,6 +345,9 @@ const ADRENAL_DEFENSE_INSTANT_FULL = 4;
 const FORTITUDE_SOURCES: ActorRoundPenaltySource[] = ['injury', 'critical', 'hp', 'stunned', 'fatigue', 'fatigue-critical'];
 
 export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
+  /** Workspace spec 082: the most OB any attack has, without the parries, after the attacks of the round. Null: no cap. */
+  public boCeiling: number | null = null;
+
   private constructor(
     id: string,
     public readonly gameId: string,
@@ -639,6 +642,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     actorRound.deathRound = props.deathRound ?? null;
     actorRound.breath = copyBreath(props.breath);
     actorRound.protectedFromEnvironment = props.protectedFromEnvironment ?? false;
+    actorRound.boCeiling = props.boCeiling ?? null;
     actorRound.normalizeLegacy();
     // Derived: recomputed so that values stored with the penalties folded in are corrected.
     actorRound.calculateCurrentBo();
@@ -2103,16 +2107,42 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   }
 
   addUsedBo(attackName: string, bo: number) {
-    const attack = this.attacks.find(a => a.attackName === attackName);
-    if (!attack) {
-      throw new UnprocessableEntityError(`Attack not found: ${attackName}`);
+    this.spendBo([{ attackName, bo }]);
+  }
+
+  /**
+   * The OB used by the attacks of one action (workspace spec 082, ADR 0012). It leaves a margin that caps the OB of all
+   * the attacks of the actor: with one attack, the best OB less the OB used; with several, the least any of them has left.
+   */
+  spendBo(spends: { attackName: string; bo: number }[]): void {
+    const used = spends.filter(spend => spend.bo > 0);
+    if (used.length === 0) {
+      return;
     }
-    const existing = this.usedBo.find(u => u.attackName === attackName);
-    if (existing) {
-      existing.usedBo += bo;
-    } else {
-      this.usedBo.push(new ActorRoundUsedBo(attackName, bo));
+    const current = used.map(spend => {
+      const attack = this.attacks.find(a => a.attackName === spend.attackName);
+      if (!attack) {
+        throw new UnprocessableEntityError(`Attack not found: ${spend.attackName}`);
+      }
+      return attack.currentBo - spend.bo;
+    });
+    if (!this.isLegacyBo()) {
+      const best = Math.max(
+        ...this.usableAttacks().map(attack => attack.currentBo),
+        ...used.map(spend => this.getCurrentBo(spend.attackName)),
+      );
+      const margin = Math.max(0, used.length === 1 ? best - used[0].bo : Math.min(...current));
+      const ceiling = margin + this.parriesSum();
+      this.boCeiling = this.boCeiling === null ? ceiling : Math.min(this.boCeiling, ceiling);
     }
+    used.forEach(spend => {
+      const existing = this.usedBo.find(u => u.attackName === spend.attackName);
+      if (existing) {
+        existing.usedBo += spend.bo;
+      } else {
+        this.usedBo.push(new ActorRoundUsedBo(spend.attackName, spend.bo));
+      }
+    });
     this.calculateCurrentBo();
   }
 
@@ -2832,16 +2862,47 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   }
 
   /**
-   * OB left to spend this round: the base OB less the OB already used in attacks and parries. Penalties are not
-   * in it; the combat plugins apply them to the roll, and they cap the parry (`getAvailableParry`).
+   * OB left to spend this round: what the attack has without the parries, less the parries, never negative. Penalties
+   * are not in it; the combat plugins apply them to the roll, and they cap the parry (`getAvailableParry`).
    */
   private calculateCurrentBo() {
+    const parries = this.parriesSum();
     this.attacks.forEach(attack => {
-      // Spec 019: the base OB counts the breakage the item brought; the one of the game is applied here.
-      attack.currentBo = attack.baseBo + (attack.breakagePenalty || 0);
-      this.usedBo.forEach(u => (attack.currentBo -= u.usedBo));
-      this.parries.forEach(p => (attack.currentBo -= p));
+      const left = this.boWithoutParries(attack) - parries;
+      attack.currentBo = this.isLegacyBo() ? left : Math.max(0, left);
     });
+  }
+
+  /**
+   * Workspace spec 082, decision 4: the base OB less what the attack itself used, capped by the margin of the round.
+   * A round started before the spec (OB used, no ceiling) takes all the OB used from every attack until it ends.
+   */
+  private boWithoutParries(attack: ActorRoundAttack): number {
+    // Spec 019: the base OB counts the breakage the item brought; the one of the game is applied here.
+    const base = attack.baseBo + (attack.breakagePenalty || 0);
+    if (this.isLegacyBo()) {
+      return this.usedBo.reduce((left, used) => left - used.usedBo, base);
+    }
+    const own = this.usedBo.find(used => used.attackName === attack.attackName)?.usedBo ?? 0;
+    return Math.min(base - own, this.boCeiling ?? Infinity);
+  }
+
+  private isLegacyBo(): boolean {
+    return this.boCeiling === null && this.usedBo.length > 0;
+  }
+
+  private parriesSum(): number {
+    return this.parries.reduce((sum, parry) => sum + parry, 0);
+  }
+
+  /** The attacks the actor can still use: not broken and, disarmed, only the ones of its body (workspace spec 082). */
+  private usableAttacks(): ActorRoundAttack[] {
+    return this.attacks.filter(attack => !attack.broken && (!this.isDisarmed() || isBodyAttack(attack)));
+  }
+
+  /** The attacks the actor can parry with (workspace spec 082, decision 9): the melee ones it can still use. */
+  parryAttacks(): ActorRoundAttack[] {
+    return this.usableAttacks().filter(attack => attack.type === 'melee');
   }
 
   /** Sum of the penalties (negative). */
@@ -2862,8 +2923,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       return 0;
     }
     const penalty = this.getPenaltySum();
-    return this.attacks
-      .filter(a => a.type === 'melee')
+    return this.parryAttacks()
       .map(a => a.currentBo + penalty)
       .reduce((max, value) => Math.max(max, value), 0);
   }
@@ -2873,9 +2933,10 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    * numbers `getAvailableParry` comes from. Undefined without a melee attack.
    */
   getParryBreakdown(): { attackName: string; bo: number; penalty: number } | undefined {
-    const best = this.attacks
-      .filter(a => a.type === 'melee')
-      .reduce<ActorRoundAttack | undefined>((max, a) => (!max || a.currentBo > max.currentBo ? a : max), undefined);
+    const best = this.parryAttacks().reduce<ActorRoundAttack | undefined>(
+      (max, a) => (!max || a.currentBo > max.currentBo ? a : max),
+      undefined,
+    );
     return best ? { attackName: best.attackName, bo: best.currentBo, penalty: this.getPenaltySum() } : undefined;
   }
 
@@ -2889,7 +2950,11 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    * reaction attack can use.
    */
   getBoIgnoringParries(attackName: string): number {
-    return this.getCurrentBo(attackName) + this.parries.reduce((sum, parry) => sum + parry, 0);
+    const attack = this.attacks.find(a => a.attackName === attackName);
+    if (!attack) {
+      throw new UnprocessableEntityError(`Attack not found: ${attackName}`);
+    }
+    return this.boWithoutParries(attack);
   }
 
   getCurrentBo(attackName: string): number {
@@ -3884,6 +3949,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       defense: this.defense,
       attacks: this.attacks,
       usedBo: this.usedBo,
+      boCeiling: this.boCeiling,
       parries: this.parries,
       effects: this.effects,
       alerts: this.alerts,

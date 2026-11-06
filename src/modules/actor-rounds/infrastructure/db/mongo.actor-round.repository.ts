@@ -122,6 +122,7 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       defense: doc.defense,
       attacks: attacks,
       usedBo: doc.usedBo,
+      boCeiling: doc.boCeiling ?? null,
       parries: doc.parries,
       effects: (doc.effects || []).map(
         e =>

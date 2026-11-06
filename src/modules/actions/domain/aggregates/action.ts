@@ -932,11 +932,33 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     this.actionPoints = this.apOf(actorRound, currentPhase);
   }
 
-  setAttackBo(attackName: string, currentBo: number) {
-    if (!this.attacks) return;
-    const attack = this.attacks?.find(a => a.attackName === attackName);
-    if (!attack || !attack.modifiers) return;
-    attack.modifiers.bo = currentBo;
+  /** The attack uses the OB of the actor's round: not a spell, a reaction or a stray shot (workspace spec 082). */
+  spendsRoundBo(): boolean {
+    return this.actionType !== 'cast_spell' && !this.isReaction() && !this.strayShot;
+  }
+
+  /**
+   * Workspace spec 082, decision 8: a parry of the actor lowers the OB of its prepared attacks that have not rolled yet
+   * to what it has left. A roll already made does not change.
+   */
+  lowerAttacksBo(currentBoOf: (attackName: string) => number): { attackName: string; from: number; to: number }[] {
+    if (!this.spendsRoundBo() || !['prepared', 'parry', 'pending_roll'].includes(this.status)) {
+      return [];
+    }
+    return (this.attacks ?? []).flatMap(attack => {
+      const from = attack.modifiers.bo ?? 0;
+      const to = Math.max(0, currentBoOf(attack.attackName));
+      if (attack.roll?.roll || to >= from) {
+        return [];
+      }
+      attack.modifiers.bo = to;
+      const line = attack.calculated?.rollModifiers?.find(modifier => modifier.key === 'bo');
+      if (attack.calculated && line) {
+        line.value = to;
+        attack.calculated.rollTotal = attack.calculated.rollModifiers.reduce((sum, modifier) => sum + modifier.value, 0);
+      }
+      return [{ attackName: attack.attackName, from, to }];
+    });
   }
 
   /**

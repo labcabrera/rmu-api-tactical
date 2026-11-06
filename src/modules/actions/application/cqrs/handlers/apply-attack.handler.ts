@@ -42,6 +42,7 @@ import { type StrategicGame, STRATEGIC_GAME_PORT } from '../../../../strategic/a
 import { StrategicGameApiClient } from '../../../../strategic/infrastructure/api-clients/api.strategic-game.adapter.js';
 import { Action } from '../../../domain/aggregates/action.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
+import type { ActionWarning } from '../../../domain/value-objects/action-medical.vo.js';
 import { ADDITIONAL_CRITICAL, FUMBLE_HITS } from '../../../domain/services/fumble-hits.js';
 import { riposteTrigger } from '../../../domain/services/reaction-rules.js';
 import { aimingAfterRangedAttacks } from '../../../domain/services/aiming.js';
@@ -133,7 +134,6 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       action.actionType === 'cast_spell' || action.isReaction()
         ? []
         : this.processAttackSourceSubstractBo(action, actors, command.userId, command.roles);
-    // One after another: two attacks of the same attacker update the same actor round, and each command reloads it.
     for (const cmd of substractBoCommands) {
       await this.commandBus.execute(cmd);
     }
@@ -158,7 +158,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
 
     await this.useShieldBlocks(action, actors);
     await this.spendCoatings(sourceActor.id, coatingsSpent);
-    await this.processDeclareActorParry(action, command.userId, command.roles);
+    const loweredBo = await this.processDeclareActorParry(action, command.userId, command.roles);
     await this.processFatigue(action, game.round, strategicGame, command.userId, command.roles);
     await this.raiseRipostes(action, actors, game);
     await this.raiseStrayShots(action, sourceActor, game);
@@ -169,6 +169,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     const updated = await this.actionRepository.update(action);
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     updated.refreshApState(sourceActor, game.getActionPhase());
+    if (loweredBo.length > 0) updated.warnings = [...(updated.warnings ?? []), ...loweredBo];
     return updated;
   }
 
@@ -214,17 +215,15 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     if (!actorRound) {
       throw new NotFoundError('Actor round', action.actorId);
     }
-    const substractBoCommands: SubstractBoCommand[] = [];
-    action.attacks?.forEach(a => {
+    // One command for the whole action: its attacks set the margin of the round together (workspace spec 082).
+    const spends = (action.attacks ?? []).map(a => {
       const attack = action.getAttackByName(a.attackName);
       if (!attack) {
         throw new UnprocessableEntityError(`Attack ${a.attackName} not found`);
       }
-      if (attack.modifiers.bo! > 0) {
-        substractBoCommands.push(new SubstractBoCommand(actorRound.id, a.attackName, attack.modifiers.bo!, userId, roles));
-      }
+      return { attackName: a.attackName, bo: attack.modifiers.bo ?? 0 };
     });
-    return substractBoCommands;
+    return spends.some(spend => spend.bo > 0) ? [new SubstractBoCommand(actorRound.id, spends, userId, roles)] : [];
   }
 
   /**
@@ -369,15 +368,43 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     if (raised) await this.actorRoundRepository.update(current);
   }
 
-  private async processDeclareActorParry(action: Action, userId: string, roles: string[]): Promise<void> {
+  private async processDeclareActorParry(action: Action, userId: string, roles: string[]): Promise<ActionWarning[]> {
     if (!action.parries || action.parries.length === 0) {
-      return;
+      return [];
     }
     // A parry carried over from an earlier action against this foe was already paid.
     for (const parry of action.parries.filter(p => p.parry > 0 && !p.carriedOver)) {
       const command = DeclareActorParryCommand.fromParry(action.gameId, action.actorId, action.round, parry, userId, roles);
       await this.commandBus.execute(command);
     }
+    const parrying = new Set(action.parries.filter(p => p.parry > 0 && !p.carriedOver).map(p => p.actorId));
+    return (await Promise.all([...parrying].map(actorId => this.lowerPreparedAttacks(action, actorId)))).flat();
+  }
+
+  /** Workspace spec 082, decision 8: the attacks the actor had prepared cannot use the OB it has just given to parry. */
+  private async lowerPreparedAttacks(action: Action, actorId: string): Promise<ActionWarning[]> {
+    const actorRound = await this.actorRoundRepository.findByActorIdAndRound(action.gameId, actorId, action.round);
+    if (!actorRound) {
+      return [];
+    }
+    const rsql = `gameId==${action.gameId};round==${action.round};actorId==${actorId}`;
+    const own = (await this.actionRepository.findByRsql(rsql, 0, 1000)).content.filter(each => each.id !== action.id);
+    const warnings: ActionWarning[] = [];
+    for (const each of own) {
+      const lowered = each.lowerAttacksBo(attackName => actorRound.getCurrentBo(attackName));
+      if (lowered.length > 0) {
+        const updated = await this.actionRepository.update(each);
+        await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
+        lowered.forEach(({ attackName, from, to }) =>
+          warnings.push({
+            code: 'attack-ob-reduced',
+            params: { actor: actorRound.actorName, attackName, from, to },
+            requiresConfirm: false,
+          }),
+        );
+      }
+    }
+    return warnings;
   }
 
   /** The source of the injuries and effects of an attack. */

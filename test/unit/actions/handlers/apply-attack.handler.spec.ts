@@ -99,6 +99,7 @@ const setup = (attacks: ActionAttack[], parries: ActionParry[] = [], blocks: [nu
   const actorRoundRepository = {
     findByRsql: vi.fn(() => Promise.resolve({ content: [source, target] })),
     findById: vi.fn((id: string) => Promise.resolve([source, target].find(actor => actor.id === id))),
+    findByActorIdAndRound: vi.fn(() => Promise.resolve(undefined)),
     update,
   } as unknown as ActorRoundRepository;
   const gameRepository = {
