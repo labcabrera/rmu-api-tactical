@@ -95,6 +95,9 @@ export class ActorRoundModel {
   @Prop({ type: [ActorRoundUsedBo], required: true })
   usedBo: ActorRoundUsedBo[];
 
+  @Prop({ type: Number, default: null })
+  boCeiling: number | null;
+
   @Prop({ type: [Number], required: true })
   parries: number[];
 

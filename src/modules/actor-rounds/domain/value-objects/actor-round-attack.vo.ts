@@ -104,3 +104,7 @@ export class AttackRange {
   /** Workspace spec 079, D1: the part of `bonus` Deadeye gave, shown apart in the breakdown. Missing: 0. */
   traitBonus?: number;
 }
+
+/** An attack of the body, which a disarmed actor keeps. */
+export const isBodyAttack = (attack: ActorRoundAttack): boolean =>
+  attack.weaponCategory === 'natural' || attack.weaponCategory === 'unarmed' || !!attack.skillId?.startsWith('unarmed');

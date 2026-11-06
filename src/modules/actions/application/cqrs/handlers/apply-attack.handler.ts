@@ -133,7 +133,6 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
       action.actionType === 'cast_spell' || action.isReaction()
         ? []
         : this.processAttackSourceSubstractBo(action, actors, command.userId, command.roles);
-    // One after another: two attacks of the same attacker update the same actor round, and each command reloads it.
     for (const cmd of substractBoCommands) {
       await this.commandBus.execute(cmd);
     }
@@ -214,17 +213,15 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     if (!actorRound) {
       throw new NotFoundError('Actor round', action.actorId);
     }
-    const substractBoCommands: SubstractBoCommand[] = [];
-    action.attacks?.forEach(a => {
+    // One command for the whole action: its attacks set the margin of the round together (workspace spec 082).
+    const spends = (action.attacks ?? []).map(a => {
       const attack = action.getAttackByName(a.attackName);
       if (!attack) {
         throw new UnprocessableEntityError(`Attack ${a.attackName} not found`);
       }
-      if (attack.modifiers.bo! > 0) {
-        substractBoCommands.push(new SubstractBoCommand(actorRound.id, a.attackName, attack.modifiers.bo!, userId, roles));
-      }
+      return { attackName: a.attackName, bo: attack.modifiers.bo ?? 0 };
     });
-    return substractBoCommands;
+    return spends.some(spend => spend.bo > 0) ? [new SubstractBoCommand(actorRound.id, spends, userId, roles)] : [];
   }
 
   /**

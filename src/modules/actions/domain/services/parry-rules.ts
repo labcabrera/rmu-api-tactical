@@ -25,7 +25,7 @@ export const parriedWithAllOb = (parries: ActionParry[] | null | undefined, defe
  * when it says so, else the one with the most OB left.
  */
 export const parryAttackOf = (attacks: ActorRoundAttack[] | null | undefined, parry?: ActionParry): ActorRoundAttack | undefined => {
-  const melee = (attacks || []).filter(attack => attack.type === 'melee');
+  const melee = (attacks || []).filter(attack => attack.type === 'melee' && !attack.broken);
   const named = parry?.breakdown?.attackName ? melee.find(attack => attack.attackName === parry.breakdown!.attackName) : undefined;
   return (
     named ??

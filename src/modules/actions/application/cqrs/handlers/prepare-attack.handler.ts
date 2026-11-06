@@ -8,7 +8,7 @@ import {
 } from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
 import { type ActorSheet, ActorSheetService } from '../../../../actor-rounds/application/services/actor-sheet.service.js';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
-import type { ActorRoundAttack } from '../../../../actor-rounds/domain/value-objects/actor-round-attack.vo.js';
+import { type ActorRoundAttack, isBodyAttack } from '../../../../actor-rounds/domain/value-objects/actor-round-attack.vo.js';
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../../shared/domain/errors/errors.js';
 import { lethalityOf, STRATEGIC_GAME_PORT } from '../../../../strategic/application/ports/strategic-game.port.js';
@@ -44,9 +44,6 @@ import { type EffectivePace, effectiveActionPace, freeMovementPaceFor } from '..
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 /** An attack with the body (natural weapons, unarmed skills), which a disarmed actor can still make. */
-const isBodyAttack = (attack: ActorRoundAttack): boolean =>
-  attack.weaponCategory === 'natural' || attack.weaponCategory === 'unarmed' || !!attack.skillId?.startsWith('unarmed');
-
 @CommandHandler(PrepareAttackCommand)
 export class PrepareAttackHandler implements ICommandHandler<PrepareAttackCommand, Action> {
   private readonly logger = new Logger(PrepareAttackHandler.name);
