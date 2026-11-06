@@ -166,7 +166,7 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     action.movement = this.buildActionMovement(command, ambientLight);
     const fatigueMultiplier = strategicGame.options?.fatigueMultiplier ?? 1;
     await this.movementProcessorService.process(command.roll, action, actorRound, distanceActionPoints);
-    action.processFatigue(fatigueMultiplier);
+    action.processFatigue(fatigueMultiplier, distanceActionPoints);
     const scale = strategicGame.options?.boardScaleMultiplier || 1;
     action.movement.calculated.distanceAdjusted = action.movement.calculated.distance * scale;
     this.roundResults(action);

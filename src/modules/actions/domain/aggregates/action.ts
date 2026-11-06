@@ -1234,7 +1234,11 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     }
   }
 
-  processFatigue(fatigueMultiplier: number | null): void {
+  /**
+   * Fatigue of the action: the one of its activity per AP, times `activityPoints` and the multiplier of the game. A
+   * free movement takes no AP but it still tires (Core Law §5.5): its caller counts the phases it spans (spec 080).
+   */
+  processFatigue(fatigueMultiplier: number | null, activityPoints: number | null = this.actionPoints): void {
     if (this.actionPoints === null || this.actionPoints === undefined) {
       throw new Error('Action does not have action points defined');
     }
@@ -1249,7 +1253,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
         break;
     }
     if (value) {
-      value = this.actionPoints * value;
+      value = (activityPoints ?? this.actionPoints) * value;
     }
     if (value && fatigueMultiplier) {
       value = value * fatigueMultiplier;
