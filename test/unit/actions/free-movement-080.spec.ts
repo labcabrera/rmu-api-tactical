@@ -288,3 +288,12 @@ describe('attacks take the faster of the manual pace and the free movement (deci
     expect(calculated.pace).toBeUndefined();
   });
 });
+
+describe('free movement AP profile (spec 080)', () => {
+  it('takes no AP at all, while a normal movement keeps its 1 AP', () => {
+    const free = action('free', 'movement', 1, { freeAction: true }).apProfile();
+    expect([free.min, free.max]).toEqual([0, 0]);
+    const normal = action('normal', 'movement', 1).apProfile();
+    expect([normal.min, normal.max]).toEqual([1, 1]);
+  });
+});

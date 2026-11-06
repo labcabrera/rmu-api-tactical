@@ -490,6 +490,10 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     } else {
       profile = ActionApProfile.forAction(this.actionType);
     }
+    // Workspace spec 080 (Core Law §8.2): a free movement never takes AP
+    if (this.isFreeMovement()) {
+      return new ActionApProfile(0, 0, 0);
+    }
     if (this.freeAction && !this.isAttack()) {
       return new ActionApProfile(0, profile.max, profile.penaltyPerMissing, profile.multiRound);
     }
