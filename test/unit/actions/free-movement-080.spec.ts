@@ -297,3 +297,29 @@ describe('free movement AP profile (spec 080)', () => {
     expect([normal.min, normal.max]).toEqual([1, 1]);
   });
 });
+
+describe('free movement fatigue (Core Law §5.5, spec 080)', () => {
+  const fatigueOf = (freeAction: boolean, pace: string, activityPoints?: number) => {
+    const movement = action('move', 'movement', 1, {
+      freeAction,
+      actionPoints: freeAction ? 0 : 1,
+      movement: { modifiers: { pace } } as unknown as ActionProps['movement'],
+    });
+    movement.processFatigue(1, activityPoints);
+    return movement.fatigue;
+  };
+
+  it('tires per phase spanned although it takes no AP', () => {
+    expect(fatigueOf(true, 'run', 1)).toBeCloseTo(2.08);
+    expect(fatigueOf(true, 'run', 3)).toBeCloseTo(6.24);
+    expect(fatigueOf(true, 'jog', 2)).toBeCloseTo(0.84);
+  });
+
+  it('does not tire at a pace without a check', () => {
+    expect(fatigueOf(true, 'walk', 2)).toBeNull();
+  });
+
+  it('keeps counting the AP of a movement paid with them', () => {
+    expect(fatigueOf(false, 'run')).toBeCloseTo(2.08);
+  });
+});
