@@ -1,3 +1,4 @@
+import { normalMovementFatigue } from '../services/movement-rules.js';
 import { BaseAggregateRoot } from '../../../shared/domain/aggregates/base-aggregate.js';
 import { randomUUID } from 'crypto';
 import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.js';
@@ -407,7 +408,14 @@ export class Action extends BaseAggregateRoot<ActionProps> {
    * 0 AP by its profile (a draw with Quickdraw, workspace spec 076).
    */
   countsAsInstant(): boolean {
+    // Workspace spec 081, decision 8: a dash takes the instantaneous action too.
+    if (this.isDash()) return true;
     return this.freeAction && !this.isAttack() && !this.isFreeMovement() && !(this.apRange && this.apRange.max === 0);
+  }
+
+  /** A normal movement at dash pace (Core Law §8.2; workspace spec 081, decision 8). */
+  isDash(): boolean {
+    return this.actionType === 'movement' && !this.freeAction && this.movement?.modifiers?.pace === 'dash';
   }
 
   /**
@@ -806,6 +814,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
         return { spend: { phase, ap: 0, kind: 'instant' }, interrupted: [] };
       }
       Action.checkFearDeclaration(actorRound, request, 1);
+      Action.checkDashTaken(actions, request);
       if (actorRound.freeCapacity(phase) + releasable.length < 1) {
         throw new ValidationError(`The actor has no action points left in phase ${phase}`, 'err-action-points-exceeded');
       }
@@ -817,6 +826,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       };
     }
     Action.checkFearDeclaration(actorRound, request, 1);
+    Action.checkDashTaken(actions, request);
     const canRelease = request.actionType !== 'movement';
     if (actorRound.freeCapacity(phase) + (canRelease ? releasable.length : 0) < 1) {
       throw new ValidationError(`The actor has no action points left in phase ${phase}`, 'err-action-points-exceeded');
@@ -840,6 +850,15 @@ export class Action extends BaseAggregateRoot<ActionProps> {
   static freeInstantsFor(actorRound: ActorRound, actionType: ActionType): number {
     const quick = ActorRoundTrait.tierOf(actorRound.traits, QUICK_ACTION) > 0;
     return quick && actionType !== 'cast_spell' && actionType !== 'dodge' ? QUICK_ACTION_FREE_INSTANTS : FREE_INSTANTS;
+  }
+
+  /** Workspace spec 081, decision 8: a dash takes every AP of the round, so nothing but movement comes after it. */
+  private static checkDashTaken(actions: Action[], request: DeclarationRequest): void {
+    if (request.actionType !== 'movement' && actions.some(action => action.isDash())) {
+      throw new ValidationError('The actor dashed this round: its AP only go to movement', 'err-dash-requirements', {
+        reason: 'dash-taken',
+      });
+    }
   }
 
   /**
@@ -1259,6 +1278,20 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       value = value * fatigueMultiplier;
     }
     this.fatigue = value;
+  }
+
+  /**
+   * Fatigue of a movement (workspace spec 081, decision 6). A normal one adds what the pace of the round reaches with
+   * its AP over `previousAp`; a free one or a dash goes by phase or AP, and climbing and swimming by their own interval.
+   */
+  processMovementFatigue(fatigueMultiplier: number | null, activityPoints: number, previousAp: number): void {
+    const skillId = this.movement?.modifiers.skillId;
+    if (this.freeAction || this.isDash() || skillId === 'climbing' || skillId === 'swimming') {
+      this.processFatigue(fatigueMultiplier, activityPoints);
+      return;
+    }
+    const value = normalMovementFatigue(previousAp, activityPoints);
+    this.fatigue = value > 0 ? value * (fatigueMultiplier || 1) : null;
   }
 
   private getCombatFatigue(): number | null {

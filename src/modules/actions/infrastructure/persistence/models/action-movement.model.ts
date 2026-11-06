@@ -28,6 +28,10 @@ export class ActionMovementModifiers {
   /** Workspace spec 077, decision A3.5. */
   @Prop({ type: String, required: false })
   grappleFeat?: GrappleFeat | null;
+
+  /** Workspace spec 081, decision 10. */
+  @Prop({ type: Boolean, required: false })
+  backwards?: boolean | null;
 }
 
 @Schema({ _id: false })
@@ -35,8 +39,9 @@ export class ActionMovementResult {
   @Prop({ type: Number, required: true })
   bmr: number;
 
-  @Prop({ type: Number, required: true })
-  paceMultiplier: number;
+  /** Workspace spec 081, decision 11: null for a normal movement. */
+  @Prop({ type: Number, required: false })
+  paceMultiplier: number | null;
 
   @Prop({ type: Number, required: true })
   percent: number;
