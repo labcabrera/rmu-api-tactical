@@ -447,6 +447,13 @@ const UNDECLARED_DIFFERENCES: Record<string, { note: string; adjust: (c: Regress
       exp.criticalSplit = TACTICAL_CRITICAL_SPLIT;
     },
   },
+  // Python added a negative skill as a further penalty; tactical ignores it, as it does for Footwork (spec 084).
+  'rq-confined-negative-skill': {
+    note: 'a negative skill adds no further penalty',
+    adjust: (_c, exp) => {
+      exp.rollModifiers = removeKeys(exp.rollModifiers, 'restricted-quarters-skill');
+    },
+  },
 };
 
 // ---------------------------------------------------------------------------------------------------------------
