@@ -79,7 +79,7 @@ export const SITUATIONAL_TRAIT_BONUSES: SituationalTraitBonus[] = [
   },
   {
     traitId: ANIMAL_EMPATHY,
-    skills: ['animal-handling', 'animal-training', 'riding'],
+    skills: ['animal-handling', 'riding'],
     valuePerTier: 25,
     fixed: true,
     condition: 'animal-of-its-type',
