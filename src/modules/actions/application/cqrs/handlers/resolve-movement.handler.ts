@@ -29,7 +29,9 @@ import {
   BMR_PER_ROUND,
   distanceInPhase,
   movedDistance,
+  NORMAL_MOVEMENT_PACES,
   normalMovementAp,
+  normalMovementPace,
   overDashInPhase,
   paceOfMovementAp,
   SLOW_MOVEMENT_MAX_PACE,
@@ -76,8 +78,10 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     const previousAp = normalMovementAp(roundActions);
     const free = action.isFreeMovement();
     const dash = !free && command.modifiers.pace === 'dash';
-    // Workspace spec 081, decision 5: a normal movement takes its pace from the AP of movement of the round.
-    const pace = free || dash ? command.modifiers.pace : paceOfMovementAp(previousAp + action.apOf(actorRound, currentPhase));
+    // A normal movement may choose its pace, to go slower than its AP allow; it caps the distance of the round.
+    const chosen = !free && !dash && !!command.modifiers.pace;
+    // Workspace spec 081, decision 5: otherwise it takes its pace from the AP of movement of the round.
+    const pace = free || dash || chosen ? command.modifiers.pace : paceOfMovementAp(previousAp + action.apOf(actorRound, currentPhase));
     // Workspace spec 077, decision A2.4: with two foci the actor only moves at creeping pace, which takes no AP.
     if (actorRound.isDoubleConcentrating() && (!free || pace !== 'creep')) {
       throw new ValidationError('An actor concentrating on two things only moves at creeping pace', 'err-action-double-concentration', {
@@ -85,8 +89,9 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
       });
     }
     await this.checkGrapple(command, actorRound);
-    const warnings = ResolveMovementHandler.paceWarnings(pace, actorRound, !free && !dash);
-    this.checkSlowMovement(command, actorRound, pace, free || dash);
+    const warnings = ResolveMovementHandler.paceWarnings(pace, actorRound, !free && !dash && !chosen);
+    this.checkSlowMovement(command, actorRound, pace, free || dash || chosen);
+    if (chosen) ResolveMovementHandler.checkChosenPace(pace, actorRound);
     if (dash) await this.checkDash(action, actorRound, roundActions, currentPhase);
     if (!command.confirm && warnings.some(warning => warning.requiresConfirm)) {
       throw new ConflictError('The movement needs a confirmation: send it again with confirm: true', 'err-action-confirm-required', {
@@ -100,7 +105,7 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
       strategicGame,
       currentPhase,
       pace,
-      previousAp,
+      chosen,
       roundActions,
       game.environment?.light ?? null,
     );
@@ -212,6 +217,16 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     }
   }
 
+  /** A chosen pace of a normal movement goes up to the maximum pace of the actor (`err-pace-above-max`). */
+  private static checkChosenPace(pace: Pace, actorRound: ActorRound): void {
+    const max = PACE_ORDER.indexOf(actorRound.movement.maxPace as Pace);
+    if (max >= 0 && PACE_ORDER.indexOf(pace) > max) {
+      throw new ValidationError(`Pace ${pace} is above the actor's maximum pace ${actorRound.movement.maxPace}`, 'err-pace-above-max', {
+        pace,
+      });
+    }
+  }
+
   /**
    * Core Law §8.2 (workspace spec 081, decision 8; `err-dash-requirements` with `details.reason`): at least half a BMR
    * in the previous phase, the instantaneous action free, and no AP of the round on anything but movement.
@@ -240,16 +255,33 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
   /**
    * Table 5-3 and §8.2 (workspace spec 081, decision 7): the movement of the round goes up to what the maximum pace of
    * the actor covers, with its load and its injuries. Past it the movement is cut, and with nothing left it is rejected.
+   *
+   * `chosenPace`, the pace a normal movement chose: the round goes up to what it covers too, without a warning, since
+   * the actor meant to go slower (`err-movement-pace-reached` when the round has already covered it).
    */
-  private applyRoundLimit(action: Action, actorRound: ActorRound, roundActions: Action[]): ActionWarning[] {
+  private applyRoundLimit(action: Action, actorRound: ActorRound, roundActions: Action[], chosenPace?: Pace): ActionWarning[] {
     const calculated = action.movement!.calculated;
+    if (calculated.distance <= 0) {
+      return [];
+    }
+    const moved = movedDistance(roundActions);
+    if (chosenPace) {
+      const limit = calculated.bmr * BMR_PER_ROUND[chosenPace];
+      if (limit - moved <= 0.001) {
+        throw new ValidationError(`The actor has already moved the ${limit}' of a round at ${chosenPace}`, 'err-movement-pace-reached', {
+          pace: chosenPace,
+          limit,
+          moved,
+        });
+      }
+      calculated.distance = Math.min(calculated.distance, limit - moved);
+    }
     const slow = (calculated.bmrMultipliers ?? []).some(multiplier => multiplier.key === 'backwards' || multiplier.key === 'prone');
     const maxPace = slowestPace(actorRound.movement.maxPace, actorRound.injuryPaceLimit(), slow ? SLOW_MOVEMENT_MAX_PACE : null);
-    if (!maxPace || calculated.distance <= 0) {
+    if (!maxPace) {
       return [];
     }
     const limit = calculated.bmr * BMR_PER_ROUND[maxPace];
-    const moved = movedDistance(roundActions);
     const left = limit - moved;
     if (left <= 0.001) {
       throw new ValidationError(`The actor has already moved its ${limit}' of the round`, 'err-movement-round-limit', { limit, moved });
@@ -268,7 +300,7 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     strategicGame: StrategicGame,
     currentPhase: number,
     pace: Pace,
-    previousAp: number,
+    chosen: boolean,
     roundActions: Action[],
     ambientLight: LightType | null = null,
   ): Promise<ActionWarning[]> {
@@ -279,8 +311,8 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     action.movement = this.buildActionMovement(command, pace, ambientLight);
     const fatigueMultiplier = strategicGame.options?.fatigueMultiplier ?? 1;
     await this.movementProcessorService.process(command.roll, action, actorRound, distanceActionPoints);
-    action.processMovementFatigue(fatigueMultiplier, distanceActionPoints, previousAp);
-    const limited = this.applyRoundLimit(action, actorRound, roundActions);
+    action.processMovementFatigue(fatigueMultiplier, distanceActionPoints, normalMovementPace(roundActions), pace);
+    const limited = this.applyRoundLimit(action, actorRound, roundActions, chosen ? pace : undefined);
     const scale = strategicGame.options?.boardScaleMultiplier || 1;
     action.movement.calculated.distanceAdjusted = action.movement.calculated.distance * scale;
     this.roundResults(action);
@@ -357,6 +389,9 @@ export class ResolveMovementHandler implements ICommandHandler<ResolveMovementCo
     }
     if (action.isFreeMovement() && PACE_ORDER.indexOf(pace) > PACE_ORDER.indexOf(FREE_MOVEMENT_MAX_PACE)) {
       throw new ValidationError(`A free movement goes up to ${FREE_MOVEMENT_MAX_PACE}, not ${pace}`, 'err-free-movement-pace', { pace });
+    }
+    if (!action.isFreeMovement() && pace && pace !== 'dash' && !NORMAL_MOVEMENT_PACES.includes(pace)) {
+      throw new ValidationError(`Unknown pace: ${pace}`, 'err-movement-pace-unknown', { pace });
     }
     if (command.modifiers.requiredManeuver === true) {
       if (command.roll === null || command.roll === undefined) {

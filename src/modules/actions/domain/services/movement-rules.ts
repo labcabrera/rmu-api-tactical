@@ -32,6 +32,32 @@ export const normalMovementAp = (actions: Action[]): number =>
 export const normalMovementFatigue = (previousAp: number, actionPoints: number): number =>
   ROUND_FATIGUE[paceOfMovementAp(previousAp + actionPoints)] - ROUND_FATIGUE[paceOfMovementAp(previousAp)];
 
+/** Paces a normal movement can choose instead of the one of its AP: up to sprint (a dash has its own option). */
+export const NORMAL_MOVEMENT_PACES: Pace[] = ['creep', 'walk', 'jog', 'run', 'sprint'];
+
+/**
+ * The fastest pace the resolved normal movements of `actions` reached, chosen or from their AP; a dash does not count,
+ * since it tallies its own fatigue. A movement without a stored pace counts with the pace of the AP of the round.
+ */
+export const normalMovementPace = (actions: Action[]): Pace | undefined => {
+  const normal = actions.filter(
+    action =>
+      action.actionType === 'movement' && !action.freeAction && action.status === 'completed' && action.movement?.modifiers.pace !== 'dash',
+  );
+  const paces = normal.map(action => action.movement?.modifiers.pace || paceOfMovementAp(normalMovementAp(actions)));
+  return paces.reduce<Pace | undefined>(
+    (fastest, pace) => (!fastest || PACE_ORDER.indexOf(pace) > PACE_ORDER.indexOf(fastest) ? pace : fastest),
+    undefined,
+  );
+};
+
+/**
+ * The fatigue a normal movement at `pace` adds when the round had already reached `previousPace`: what that pace takes
+ * over what the round had paid, never less than nothing. With the paces of the AP it is `normalMovementFatigue`.
+ */
+export const paceFatigue = (previousPace: Pace | undefined, pace: Pace): number =>
+  Math.max(0, ROUND_FATIGUE[pace] - (previousPace ? ROUND_FATIGUE[previousPace] : 0));
+
 /** The slower of the paces that cap a movement, ignoring the ones not known. */
 export const slowestPace = (...paces: Array<string | null | undefined>): Pace | undefined => {
   const indexes = paces.map(pace => PACE_ORDER.indexOf(pace as Pace)).filter(index => index >= 0);
