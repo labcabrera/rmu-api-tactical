@@ -311,6 +311,15 @@ export class CreateActionDto {
   @IsBoolean()
   confirm?: boolean;
 
+  @ApiProperty({
+    description: 'Declared by a manager of the game in a past phase of the current round (workspace spec 089)',
+    required: false,
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  retroactive?: boolean;
+
   static toCommand(dto: CreateActionDto, userId: string, roles: string[]) {
     return new CreateActionCommand(
       dto.gameId,
@@ -336,6 +345,7 @@ export class CreateActionDto {
       dto.drawAndLoad ? { itemId: dto.drawAndLoad.itemId } : undefined,
       dto.aim ? { targetActorId: dto.aim.targetActorId, itemId: dto.aim.itemId } : undefined,
       dto.otherAction ? { kind: dto.otherAction.kind, attackName: dto.otherAction.attackName } : undefined,
+      dto.retroactive === true,
     );
   }
 }

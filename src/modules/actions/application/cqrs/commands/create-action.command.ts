@@ -31,6 +31,8 @@ export class CreateActionCommand {
     public readonly aim?: CreateActionCommandAim,
     /** The fixed-cost subtype of an `other` action (workspace spec 079). */
     public readonly otherAction?: CreateActionCommandOther,
+    /** Declared by the game master in a past phase of the round (workspace spec 089). */
+    public readonly retroactive?: boolean,
   ) {}
 }
 

@@ -63,6 +63,8 @@ export interface DeclarationRequest {
    * spec 076, decision B4). It interrupts nothing.
    */
   zeroCost?: boolean;
+  /** Workspace spec 089: the game master declares it in a past phase of the round, forgotten when it was its turn. */
+  retroactive?: boolean;
 }
 
 /** Free instantaneous actions of a round: 1, or 2 with Quick Action (workspace spec 076, decision B5). */
@@ -148,6 +150,7 @@ export interface ActionProps {
   continuesActionId?: string | null;
   /** AP the continued action had at the end of its round: they count toward this one's AP. */
   carriedAp?: number | null;
+  retroactive?: boolean;
   /** The spell of a `cast_spell` action (spec 030). */
   spell?: ActionSpell | null;
   /** Actors who cannot parry or protect against the attacks, and why (spec 051). */
@@ -205,6 +208,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     public aim: ActionAim | null = null,
     public otherAction: ActionOther | null = null,
     public strayShot: ActionStrayShot | null = null,
+    public retroactive: boolean = false,
   ) {
     super(id);
   }
@@ -289,6 +293,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       props.aim ?? null,
       props.otherAction ?? null,
       props.strayShot ?? null,
+      props.retroactive ?? false,
     );
   }
 
@@ -757,6 +762,41 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     currentPhase: number,
     roundActions: Action[] = actions,
   ): DeclarationPlan {
+    if (request.retroactive && request.forced) {
+      throw new ValidationError('A forced action starts in the current phase', 'err-action-invalid-phase');
+    }
+    const plan = Action.planDeclaration(actorRound, actions, request, currentPhase, roundActions);
+    if (request.retroactive) {
+      Action.checkRetroactive(actorRound, request.phaseStart, plan, currentPhase);
+    }
+    return plan;
+  }
+
+  /**
+   * Workspace spec 089: a declaration in a past phase changes nothing else of the round, so it cannot interrupt an open
+   * action, and an action that takes AP needs one free in every phase it would have run through up to the current one.
+   */
+  private static checkRetroactive(actorRound: ActorRound, phaseStart: number, plan: DeclarationPlan, currentPhase: number): void {
+    if (plan.interrupted.length > 0 || (plan.released ?? []).length > 0) {
+      throw new ValidationError('The actor has an open action: resolve or cancel it first', 'err-action-retroactive-open-action');
+    }
+    if (plan.spend?.kind !== 'spent') {
+      return;
+    }
+    for (let phase = phaseStart; phase <= currentPhase; phase++) {
+      if (actorRound.freeCapacity(phase) < 1) {
+        throw new ValidationError(`The actor has no action points left in phase ${phase}`, 'err-action-retroactive-no-ap');
+      }
+    }
+  }
+
+  private static planDeclaration(
+    actorRound: ActorRound,
+    actions: Action[],
+    request: DeclarationRequest,
+    currentPhase: number,
+    roundActions: Action[],
+  ): DeclarationPlan {
     const attack = request.actionType === 'melee_attack' || request.actionType === 'ranged_attack';
     if (request.freeAction && attack) {
       throw new ValidationError('An attack cannot be an instantaneous action', 'err-action-free-not-allowed');
@@ -789,7 +829,12 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       throw new ValidationError('An actor concentrating on two things only moves at creeping pace', 'err-action-double-concentration');
     }
     const phase = request.phaseStart;
-    if (!Number.isInteger(phase) || phase < 1 || phase > ACTION_PHASES || phase !== currentPhase) {
+    if (
+      !Number.isInteger(phase) ||
+      phase < 1 ||
+      phase > ACTION_PHASES ||
+      (request.retroactive ? phase >= currentPhase : phase !== currentPhase)
+    ) {
       throw new ValidationError(
         `An action is declared in the current phase (${currentPhase}), not in ${phase}`,
         'err-action-invalid-phase',
@@ -929,6 +974,12 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     });
     if (plan.spend) {
       actorRound.spend(plan.spend.phase, this.id, plan.spend.ap, plan.spend.kind, this.isConcentrable());
+    }
+    // Workspace spec 089: what the phases already started would have taken from it had it been declared on time
+    if (this.retroactive) {
+      for (let phase = this.phaseStart + 1; phase <= currentPhase; phase++) {
+        this.advanceToPhase(actorRound, phase);
+      }
     }
     this.actionPoints = this.apOf(actorRound, currentPhase);
   }
@@ -1414,6 +1465,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       fatigue: this.fatigue,
       description: this.description,
       resolution: this.resolution,
+      retroactive: this.retroactive,
       apRange: this.apRange,
       continuesActionId: this.continuesActionId,
       carriedAp: this.carriedAp,

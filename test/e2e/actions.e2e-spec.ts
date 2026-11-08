@@ -1135,3 +1135,38 @@ describe('workspace spec 079, special maneuvers (A6-A7)', () => {
     expect(attack.calculated.rollModifiers.some(modifier => modifier.key === 'cover' || modifier.key === 'melee-cover')).toBe(false);
   });
 });
+
+describe('Retroactive declaration (workspace spec 089)', () => {
+  const inPhase3 = async (others: string[] = []) => {
+    const gameId = await gameInPhase1('aragorn', others);
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/phases/start`)).status).toBe(200);
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/phases/start`)).status).toBe(200);
+    return gameId;
+  };
+
+  it('declares in a past phase, with the AP of the phases gone by', async () => {
+    const gameId = await inPhase3();
+    const body = { gameId, actorId: 'aragorn', actionType: 'melee_attack', phaseStart: 1, retroactive: true };
+
+    const response = await as('owner').post('/v1/actions', body);
+
+    expect(response.status).toBe(201);
+    expect(response.body).toMatchObject({ phaseStart: 1, retroactive: true, actionPoints: 3 });
+    const read = await as('owner').get(`/v1/actions/${(response.body as ActionBody).id}`);
+    expect(read.body).toMatchObject({ phaseStart: 1, retroactive: true, actionPoints: 3 });
+  });
+
+  it('rejects a past phase without the flag', async () => {
+    const gameId = await inPhase3();
+    const response = await as('owner').post('/v1/actions', { gameId, actorId: 'aragorn', actionType: 'melee_attack', phaseStart: 1 });
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({ code: 'err-action-invalid-phase' });
+  });
+
+  it('is only for a manager of the game, even for the owner of the actor', async () => {
+    const gameId = await inPhase3(['faramir']);
+    const body = { gameId, actorId: 'faramir', actionType: 'melee_attack' };
+    expect((await as('other').post('/v1/actions', { ...body, phaseStart: 1, retroactive: true })).status).toBe(403);
+    expect((await as('other').post('/v1/actions', { ...body, phaseStart: 3 })).status).toBe(201);
+  });
+});
