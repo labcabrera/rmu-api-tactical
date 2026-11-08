@@ -5,7 +5,9 @@ import {
   movedDistance,
   normalMovementAp,
   normalMovementFatigue,
+  normalMovementPace,
   overDashInPhase,
+  paceFatigue,
   paceOfMovementAp,
   slowestPace,
 } from '../../../src/modules/actions/domain/services/movement-rules.js';
@@ -81,5 +83,26 @@ describe('a normal and a free movement in one phase (decision 2)', () => {
   it('does not warn for movements of different phases, nor of one kind', () => {
     expect(overDashInPhase(movement(false, 1, 1, 20), [movement(true, 2, 2, 15)], 20)).toBe(false);
     expect(overDashInPhase(movement(true, 1, 1, 15), [movement(true, 1, 1, 15)], 20)).toBe(false);
+  });
+});
+
+describe('a chosen pace of a normal movement', () => {
+  const at = (pace: string, freeAction = false) =>
+    ({ ...movement(freeAction, 1, 1, 10), movement: { modifiers: { pace }, calculated: { distance: 10 } } }) as unknown as Action;
+
+  it('the round reaches the fastest pace of its normal movements, without free movements or dashes', () => {
+    expect(normalMovementPace([at('walk'), at('jog'), at('run', true), at('dash')])).toBe('jog');
+    expect(normalMovementPace([])).toBeUndefined();
+  });
+
+  it('adds what the pace takes over what the round paid, never less than nothing', () => {
+    expect(paceFatigue(undefined, 'walk')).toBe(0);
+    expect(paceFatigue('walk', 'jog')).toBeCloseTo(100 / 60);
+    expect(paceFatigue(undefined, 'sprint')).toBe(50);
+    expect(paceFatigue('run', 'walk')).toBe(0);
+  });
+
+  it('matches the fatigue of the AP when the paces are the ones of the AP', () => {
+    expect(paceFatigue(paceOfMovementAp(1), paceOfMovementAp(2))).toBeCloseTo(normalMovementFatigue(1, 1));
   });
 });

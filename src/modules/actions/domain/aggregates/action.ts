@@ -1,4 +1,5 @@
-import { normalMovementFatigue } from '../services/movement-rules.js';
+import { paceFatigue } from '../services/movement-rules.js';
+import type { Pace } from '../value-objects/pace.vo.js';
 import { BaseAggregateRoot } from '../../../shared/domain/aggregates/base-aggregate.js';
 import { randomUUID } from 'crypto';
 import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.js';
@@ -1360,16 +1361,17 @@ export class Action extends BaseAggregateRoot<ActionProps> {
   }
 
   /**
-   * Fatigue of a movement (workspace spec 081, decision 6). A normal one adds what the pace of the round reaches with
-   * its AP over `previousAp`; a free one or a dash goes by phase or AP, and climbing and swimming by their own interval.
+   * Fatigue of a movement (workspace spec 081, decision 6). A normal one adds what its pace, chosen or from the AP of
+   * the round, takes over the pace the round had already reached (`previousPace`); a free one or a dash goes by phase
+   * or AP, and climbing and swimming by their own interval.
    */
-  processMovementFatigue(fatigueMultiplier: number | null, activityPoints: number, previousAp: number): void {
+  processMovementFatigue(fatigueMultiplier: number | null, activityPoints: number, previousPace: Pace | undefined, pace: Pace): void {
     const skillId = this.movement?.modifiers.skillId;
     if (this.freeAction || this.isDash() || skillId === 'climbing' || skillId === 'swimming') {
       this.processFatigue(fatigueMultiplier, activityPoints);
       return;
     }
-    const value = normalMovementFatigue(previousAp, activityPoints);
+    const value = paceFatigue(previousPace, pace);
     this.fatigue = value > 0 ? value * (fatigueMultiplier || 1) : null;
   }
 

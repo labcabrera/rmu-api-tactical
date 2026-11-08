@@ -121,6 +121,23 @@ describe('normal movement', () => {
     expect(second.movement.modifiers.pace).toBe('jog');
   });
 
+  it('a chosen pace caps the distance of the round', async () => {
+    const gameId = await gameInPhase2();
+    const creep = (await resolve(await declare(gameId, 1), { pace: 'creep' })).body as MovementBody;
+    expect(creep.movement.modifiers.pace).toBe('creep');
+    expect(creep.movement.calculated.distance).toBe(creep.movement.calculated.bmr / 2);
+    await nextPhase(gameId);
+    // The round has covered what creeping does: the actor has to choose a faster pace.
+    const second = await declare(gameId, 2);
+    const again = await resolve(second, { pace: 'creep' });
+    expect(again.status).toBe(400);
+    expect((again.body as { code: string }).code).toBe('err-movement-pace-reached');
+    expect((await resolve(second, { pace: 'gallop' })).status).toBe(400);
+    const walk = (await resolve(second, { pace: 'walk' })).body as MovementBody;
+    expect(walk.movement.modifiers.pace).toBe('walk');
+    expect(walk.movement.calculated.distance).toBe(walk.movement.calculated.bmr / 2);
+  });
+
   it('halves the distance moving backwards', async () => {
     const gameId = await gameInPhase2();
     const body = (await resolve(await declare(gameId, 1), { backwards: true })).body as MovementBody;
