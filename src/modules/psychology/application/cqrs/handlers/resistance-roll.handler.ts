@@ -7,9 +7,14 @@ import {
 } from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { ResistanceRollCalculator, type ResistanceRollResult } from '../../../domain/services/resistance-roll.calculator.js';
 import { type PsychologyTablesPort, PSYCHOLOGY_TABLES_PORT } from '../../ports/psychology-tables.port.js';
 import { ResistanceRollCommand } from '../commands/resistance-roll.command.js';
+import { Game } from '../../../../games/domain/aggregates/game.js';
+
+/** Alerts an RR answers (workspace spec 087). */
+const RR_ALERTS: string[] = ['frenzy-dying', 'revulsion-rr'];
 
 export interface ActorResistanceRoll {
   actorRound: ActorRound;
@@ -31,6 +36,7 @@ export class ResistanceRollHandler implements ICommandHandler<ResistanceRollComm
   constructor(
     @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
     @Inject(PSYCHOLOGY_TABLES_PORT) private readonly psychologyTables: PsychologyTablesPort,
+    @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
   ) {}
 
   async execute(command: ResistanceRollCommand): Promise<ActorResistanceRoll> {
@@ -44,6 +50,11 @@ export class ResistanceRollHandler implements ICommandHandler<ResistanceRollComm
     const frenzyDying = command.reason === 'frenzy-dying';
     if (frenzyDying && command.kind !== 'physical') {
       throw new ValidationError('The RR of a frenzy-dying actor is physical', 'err-resistance-roll-invalid');
+    }
+    // Workspace spec 087: the alert the RR answers, closed with its result for the round log
+    const alert = command.alertId ? actorRound.alerts.find(each => each.id === command.alertId) : undefined;
+    if (command.alertId && (!alert || alert.status !== 'pending' || !RR_ALERTS.includes(alert.type))) {
+      throw new ValidationError(`The alert ${command.alertId} is not a pending RR alert`, 'err-alert-not-resolvable');
     }
     // Workspace spec 040, decision 14: attack level 0 and no penalties (the actor is unconscious).
     const attackLevel = frenzyDying ? 0 : command.attackLevel;
@@ -63,8 +74,19 @@ export class ResistanceRollHandler implements ICommandHandler<ResistanceRollComm
       },
       tables,
     );
+    const phase = alert ? Game.effectPhaseIn(await this.gameRepository.findById(actorRound.gameId), actorRound.round) : undefined;
     if (frenzyDying) {
-      actorRound.resolveFrenzyDyingRr(result.resisted);
+      actorRound.resolveFrenzyDyingRr(result.resisted, { roll: command.roll, total: result.total }, phase);
+      const updated = await this.actorRoundRepository.update(actorRound);
+      return { actorRound: updated, bonus, attackLevel, result };
+    }
+    if (alert) {
+      actorRound.closeAlert(alert, phase, {
+        outcome: result.resisted ? 'resisted' : (result.result ?? 'failed'),
+        roll: command.roll,
+        total: result.total,
+        values: { attackLevel, fearState: result.fearState ?? null },
+      });
       const updated = await this.actorRoundRepository.update(actorRound);
       return { actorRound: updated, bonus, attackLevel, result };
     }

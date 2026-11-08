@@ -8,6 +8,7 @@ import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/a
 import { HazardAttackService } from '../../services/hazard-attack.service.js';
 import { ResolveCriticalAlertCommand } from '../commands/resolve-critical-alert.command.js';
 import { phaseOf } from './resolve-hazard.handler.js';
+import { Game } from '../../../../games/domain/aggregates/game.js';
 
 /** Source of the injuries and effects of the critical, by the origin of its alert. */
 // Workspace spec 079, C3: the critical of an extreme temperature of the environment is a hazard too
@@ -54,14 +55,17 @@ export class ResolveCriticalAlertHandler implements ICommandHandler<ResolveCriti
       },
       context,
     );
-    actorRound.completeCriticalAlert({
-      alertId: pending.alert.id,
-      origin: pending.origin,
-      criticalType: criticalType.toUpperCase(),
-      criticalSeverity: pending.criticalSeverity,
-      roll: command.roll,
-      ...applied,
-    });
+    actorRound.completeCriticalAlert(
+      {
+        alertId: pending.alert.id,
+        origin: pending.origin,
+        criticalType: criticalType.toUpperCase(),
+        criticalSeverity: pending.criticalSeverity,
+        roll: command.roll,
+        ...applied,
+      },
+      Game.effectPhaseIn(game, actorRound.round),
+    );
     const updated = await this.actorRoundRepository.update(actorRound);
     updated.lastCriticalRoll = actorRound.lastCriticalRoll;
     return updated;

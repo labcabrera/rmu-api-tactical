@@ -9,6 +9,7 @@ import { type PsychologyTablesPort, PSYCHOLOGY_TABLES_PORT } from '../../ports/p
 import { GroupCheckService, type Leader } from '../../services/group-check.service.js';
 import { FearCheckCommand } from '../commands/group-check.commands.js';
 import { actorResult, type GroupCheckResult } from '../group-check.result.js';
+import { Game } from '../../../../games/domain/aggregates/game.js';
 
 /**
  * A fear check of a group (workspace spec 022, decision 9, §14.3): each actor of the group rolls its fear RR against
@@ -32,6 +33,7 @@ export class FearCheckHandler implements ICommandHandler<FearCheckCommand, Group
     const leader = request.leader ? await this.groupCheckService.leader(rounds, request.leader) : undefined;
     const frightLevel = await this.frightLevel(command, rounds);
     const tables = await this.psychologyTables.find();
+    const suggested = FearCheckHandler.suggestedAlert(rounds, request.alertId);
     const source: InjurySource = { kind: 'manual', tacticalGameId: game.id, tacticalGameName: game.name, round: game.round };
     const changed: ActorRound[] = [];
     const actors = members.map(member => {
@@ -77,6 +79,14 @@ export class FearCheckHandler implements ICommandHandler<FearCheckCommand, Group
       }
       return result;
     });
+    if (suggested) {
+      const count = (status: string) => actors.filter(actor => actor.status === status).length;
+      suggested.actorRound.closeAlert(suggested.alert, Game.effectPhaseIn(game, suggested.actorRound.round), {
+        outcome: 'checked',
+        values: { frightLevel, afraid: count('afraid'), resisted: count('resisted') },
+      });
+      if (!changed.includes(suggested.actorRound)) changed.push(suggested.actorRound);
+    }
     const actorRounds = await this.groupCheckService.save(changed);
     return { kind: 'fear', gameId: game.id, round: game.round, leader, frightLevel, actors, actorRounds };
   }
@@ -102,6 +112,16 @@ export class FearCheckHandler implements ICommandHandler<FearCheckCommand, Group
       return this.groupCheckService.intimidationRanks(rounds, request.intimidatorActorId, request.intimidationRanks);
     }
     throw new ValidationError('A fear check needs a fright level or an intimidating actor', 'err-fright-level-required');
+  }
+
+  /** Workspace spec 087: the pending `fear-check-suggested` alert the check answers (`err-alert-not-resolvable`). */
+  private static suggestedAlert(rounds: ActorRound[], alertId: string | undefined) {
+    if (!alertId) return undefined;
+    for (const actorRound of rounds) {
+      const alert = actorRound.alerts.find(each => each.id === alertId);
+      if (alert?.type === 'fear-check-suggested' && alert.status === 'pending') return { actorRound, alert };
+    }
+    throw new ValidationError(`The alert ${alertId} is not a pending suggested fear check`, 'err-alert-not-resolvable');
   }
 
   /** A follower of a recognized leader adds its bonus; the leader does not. */

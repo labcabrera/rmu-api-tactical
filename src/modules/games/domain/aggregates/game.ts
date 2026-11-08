@@ -393,6 +393,15 @@ export class Game extends BaseAggregateRoot<GameProps> {
     return Game.toActionPhase(this.phase) ?? 0;
   }
 
+  /**
+   * Workspace spec 087: the effect phase (0 before the action phases, 1-4, 5 the upkeep) while `game` is in `round`;
+   * undefined without a game or for an actor round of another round.
+   */
+  static effectPhaseIn(game: Pick<Game, 'round' | 'phase'> | null | undefined, round: number): number | undefined {
+    if (!game || game.round !== round) return undefined;
+    return game.phase === 'upkeep' ? 5 : (Game.toActionPhase(game.phase) ?? 0);
+  }
+
   getActionPhase(): number {
     this.checkValidActionManagement();
     return parseInt(this.phase.replace('phase_', ''));

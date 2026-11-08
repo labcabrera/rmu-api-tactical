@@ -218,7 +218,8 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     if (!alert || !data || data.round !== game.round || data.phase !== game.phase) {
       throw new ValidationError(`The reaction ${forced.alertId ?? ''} is not available to the actor`, 'err-reaction-not-available');
     }
-    alert.status = 'resolved';
+    // Workspace spec 087: the attack it declared is in the round log too
+    actorRound.closeAlert(alert, Game.effectPhaseIn(game, actorRound.round), { outcome: 'declared' });
     return { traitId: data.traitId, triggerActionId: data.triggerActionId, obOverride: data.obOverride ?? null, alertId: alert.id };
   }
 
@@ -236,7 +237,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     if (!alert || !targetActorId || !attackName || !triggerActionId || alert.getModifierValue('round') !== game.round) {
       throw new ValidationError(`The stray shot ${alertId ?? ''} is not available to the actor`, 'err-stray-shot-not-available');
     }
-    alert.status = 'resolved';
+    actorRound.closeAlert(alert, Game.effectPhaseIn(game, actorRound.round), { outcome: 'declared' });
     return { alertId: alert.id, triggerActionId, attackName, targetActorId };
   }
 

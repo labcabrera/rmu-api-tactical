@@ -64,6 +64,14 @@ export class ResistanceRollDto {
   @IsOptional()
   @IsIn(RESISTANCE_REASONS)
   reason?: ResistanceReason;
+
+  @ApiProperty({
+    required: false,
+    description: 'Workspace spec 087: the frenzy-dying or revulsion-rr alert the RR answers, closed with its result',
+  })
+  @IsOptional()
+  @IsString()
+  alertId?: string;
 }
 
 export class ResistanceRollResultDto {

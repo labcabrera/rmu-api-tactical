@@ -24,6 +24,8 @@ export interface FearCheckRequest extends GroupCheckRequest {
   rolls?: Record<string, number>;
   /** Fear RR bonus of each actor without one in its sheet (NPCs), by actor id. */
   bonuses?: Record<string, number>;
+  /** Workspace spec 087: the `fear-check-suggested` alert the check answers, closed with its result. */
+  alertId?: string;
 }
 
 export interface LeaderRollRequest extends GroupCheckRequest {

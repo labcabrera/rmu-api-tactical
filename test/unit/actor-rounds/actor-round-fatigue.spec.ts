@@ -73,7 +73,9 @@ describe('ActorRound fatigue (§5.5)', () => {
     expect(round.alerts.map(a => a.type)).toEqual(['endurance']);
     round.applyEnduranceResult(0, 0, round.alerts[0].id);
     expect(round.fatigue.accumulator).toBe(20);
-    expect(round.alerts).toEqual([]);
+    // Workspace spec 087: the alert is resolved, not removed, for the round log
+    expect(round.alerts.filter(a => a.status === 'pending')).toEqual([]);
+    expect(round.alerts[0]).toMatchObject({ status: 'resolved', resolvedRound: round.round });
   });
 
   it('carries the fatigue into the next round', () => {
@@ -111,7 +113,9 @@ describe('ResolveEnduranceCheckHandler', () => {
     );
     expect(enduranceFn).toHaveBeenCalledWith(60);
     expect(fatiguePenalty(updated)).toBe(-10);
-    expect(updated.alerts).toEqual([]);
+    // Workspace spec 087: the roll stays in the resolved alert
+    expect(updated.alerts).toHaveLength(1);
+    expect(updated.alerts[0]).toMatchObject({ status: 'resolved', result: { roll: 40, total: 60, values: { fatigue: 10, hits: 0 } } });
   });
 
   it('adds the load penalty of the sheet as the encumbrance modifier, leaving out the one sent (spec 077, B1.6)', async () => {

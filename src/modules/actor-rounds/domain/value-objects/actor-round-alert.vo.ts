@@ -28,7 +28,25 @@ export const MOVING_MANEUVER_CRITICAL_TYPE = 'U';
 
 export type ActorRoundAlertData = Pick<ActorRoundAlert, 'id' | 'type' | 'message' | 'modifiers' | 'status'> & {
   reaction?: ReactionAlertData | null;
+  raisedRound?: number | null;
+  resolvedRound?: number | null;
+  resolvedPhase?: number | null;
+  resolvedAt?: string | null;
+  result?: AlertResult | null;
 };
+
+/**
+ * What a resolved alert left (workspace spec 087), for the round log: `outcome` is a translatable key (`success`,
+ * `confirmed`, `dismissed`, `resisted`...), `roll` and `total` the dice and the total of its roll, `text` a key or a
+ * name (the critical key, the item) and `values` the numbers of its kind (fatigue, hits, damage...).
+ */
+export interface AlertResult {
+  outcome?: string | null;
+  roll?: number | null;
+  total?: number | null;
+  text?: string | null;
+  values?: Record<string, number | string | boolean | null> | null;
+}
 
 /** Talents that attack out of turn as a reaction (workspace spec 076, decisions B1-B3). */
 export type ReactionTraitId = 'riposte' | 'opportunistic-strike';
@@ -76,6 +94,25 @@ export class ActorRoundAlert {
     public readonly reaction: ReactionAlertData | null = null,
   ) {}
 
+  /** Round the alert was raised in (workspace spec 087); stamped by the actor round that holds it. */
+  raisedRound: number | null = null;
+  /** Round and phase (0 before the action phases, 1-4, 5 the upkeep) it was resolved in, and when (spec 087). */
+  resolvedRound: number | null = null;
+  resolvedPhase: number | null = null;
+  resolvedAt: string | null = null;
+  /** What it left, for the round log (workspace spec 087). */
+  result: AlertResult | null = null;
+
+  /** Resolved in `round` and `phase` (workspace spec 087): it leaves the pending alerts and goes to the round log. */
+  close(round: number, phase: number | null | undefined, result: AlertResult | null = null): void {
+    this.status = 'resolved';
+    this.raisedRound ??= round;
+    this.resolvedRound = round;
+    this.resolvedPhase = phase ?? null;
+    this.resolvedAt = new Date().toISOString();
+    this.result = result;
+  }
+
   /** An alert read from storage or built by hand, as an instance. */
   static from(stored: ActorRoundAlert | ActorRoundAlertData): ActorRoundAlert {
     if (stored instanceof ActorRoundAlert) {
@@ -86,7 +123,13 @@ export class ActorRoundAlert {
       ? alert.modifiers.map(modifier => new ActorRoundAlertModifier(modifier.key, modifier.value ?? null, modifier.modifier ?? null))
       : null;
     const reaction = alert.reaction ? { ...alert.reaction, obOverride: alert.reaction.obOverride ?? null } : null;
-    return new ActorRoundAlert(alert.id, alert.type, alert.message, modifiers, alert.status ?? 'pending', reaction);
+    const built = new ActorRoundAlert(alert.id, alert.type, alert.message, modifiers, alert.status ?? 'pending', reaction);
+    built.raisedRound = alert.raisedRound ?? null;
+    built.resolvedRound = alert.resolvedRound ?? null;
+    built.resolvedPhase = alert.resolvedPhase ?? null;
+    built.resolvedAt = alert.resolvedAt ?? null;
+    built.result = alert.result ?? null;
+    return built;
   }
 
   /** Workspace spec 076, decision B1: a reaction talent can attack out of turn. */
@@ -337,14 +380,13 @@ export class ActorRoundAlert {
     return this.modifiers?.find(modifier => modifier.key === key)?.value ?? undefined;
   }
 
-  /** The check is made: the item checked, its result and its total stay in the alert. */
+  /** The check is made: the item checked, its result and its total stay in the alert, which the actor round closes. */
   resolveBreakage(itemId: string, result: string, total: number): void {
     this.modifiers?.push(
       new ActorRoundAlertModifier('checkedItemId', null, itemId),
       new ActorRoundAlertModifier('result', null, result),
       new ActorRoundAlertModifier('total', total, null),
     );
-    this.status = 'resolved';
   }
 
   /** A fumble that gives the fumbler a critical (spec 034): the game master rolls it, of the type the text says. */

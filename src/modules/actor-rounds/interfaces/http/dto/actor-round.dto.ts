@@ -310,7 +310,7 @@ export class ActorRoundDto {
     dto.boReservations = entity.boReservations;
     dto.penalty = ActorRoundPenaltyDto.fromEntity(entity.penalty);
     dto.effects = entity.effects;
-    dto.alerts = entity.alerts.map(a => ActorRoundAlertDto.fromEntity(a));
+    dto.alerts = entity.alerts.map(a => ActorRoundAlertDto.fromEntity(a, entity.round));
     dto.traits = (entity.traits || []).map(t => ActorRoundTraitDto.fromEntity(t));
     dto.rollProfile = rollProfileOf(entity.traits);
     dto.injuries = (entity.injuries || []).map(injury => InjuryDto.fromEntity(injury));

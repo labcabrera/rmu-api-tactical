@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ConfigService } from '@nestjs/config';
 import type { ActorRoundRepository } from '../../../src/modules/actor-rounds/application/ports/actor-round-repository.port.js';
 import { ResistanceRollCommand } from '../../../src/modules/psychology/application/cqrs/commands/resistance-roll.command.js';
+import type { GameRepository } from '../../../src/modules/games/application/ports/game-repository.port.js';
 import { ResistanceRollHandler } from '../../../src/modules/psychology/application/cqrs/handlers/resistance-roll.handler.js';
 import type { PsychologyTablesPort } from '../../../src/modules/psychology/application/ports/psychology-tables.port.js';
 import { ResistanceRollCalculator } from '../../../src/modules/psychology/domain/services/resistance-roll.calculator.js';
@@ -56,12 +57,15 @@ describe('ResistanceRollCalculator (workspace spec 022, decision 8)', () => {
   });
 });
 
+/** No game: the RRs of these tests answer no alert, so no phase is read. */
+const NO_GAMES = { findById: vi.fn(() => Promise.resolve(null)) } as unknown as GameRepository;
+
 describe('ResistanceRollHandler', () => {
   const setup = (resistances: { resistance: string; totalBonus: number }[]) => {
     const actorRound = Object.assign(load({ resistances }), { id: 'round-1', actorId: 'frodo', actorName: 'Frodo' });
     const repository = { findById: vi.fn(() => Promise.resolve(actorRound)) } as unknown as ActorRoundRepository;
     const tables: PsychologyTablesPort = { find: vi.fn(() => Promise.resolve(PSYCHOLOGY_TABLES)) };
-    return new ResistanceRollHandler(repository, tables);
+    return new ResistanceRollHandler(repository, tables, NO_GAMES);
   };
 
   it('takes the fear RR bonus of the sheet, or the one sent', async () => {
@@ -90,7 +94,7 @@ describe('ResistanceRollHandler', () => {
     expect(actorRound.alerts).toContainEqual(expect.objectContaining({ type: 'frenzy-dying', status: 'pending' }));
     const update = vi.fn((updated: unknown) => Promise.resolve(updated));
     const repository = { findById: vi.fn(() => Promise.resolve(actorRound)), update } as unknown as ActorRoundRepository;
-    const handler = new ResistanceRollHandler(repository, { find: vi.fn(() => Promise.resolve(PSYCHOLOGY_TABLES)) });
+    const handler = new ResistanceRollHandler(repository, { find: vi.fn(() => Promise.resolve(PSYCHOLOGY_TABLES)) }, NO_GAMES);
 
     const resisted = await handler.execute(new ResistanceRollCommand('round-1', 'physical', 9, 60, [], undefined, 'u', [], 'frenzy-dying'));
     expect(resisted.attackLevel).toBe(0);
@@ -113,7 +117,7 @@ describe('ResistanceRollHandler', () => {
 
   it('answers 404 for an unknown actor round', async () => {
     const repository = { findById: vi.fn(() => Promise.resolve(null)) } as unknown as ActorRoundRepository;
-    const handler = new ResistanceRollHandler(repository, { find: vi.fn() });
+    const handler = new ResistanceRollHandler(repository, { find: vi.fn() }, NO_GAMES);
     await expect(handler.execute(new ResistanceRollCommand('x', 'fear', 2, 40, [], 1, 'u', []))).rejects.toThrow(
       expect.objectContaining({ statusCode: 404 }),
     );

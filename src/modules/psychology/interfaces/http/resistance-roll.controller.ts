@@ -39,6 +39,7 @@ export class ResistanceRollController {
       user.id,
       user.roles,
       dto.reason,
+      dto.alertId,
     );
     const result = await this.commandBus.execute<ResistanceRollCommand, ActorResistanceRoll>(command);
     return ResistanceRollResultDto.from(result);

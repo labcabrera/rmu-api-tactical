@@ -23,6 +23,15 @@ type ActorRoundBody = {
   }[];
   lastBreakageCheck?: { itemId: string; result: string; total: number };
   fatigue: { accumulator: number };
+  alerts: {
+    id: string;
+    type: string;
+    status: string;
+    raisedRound?: number;
+    resolvedRound?: number;
+    resolvedPhase?: number | null;
+    result?: { roll?: number; total?: number; values?: Record<string, unknown> };
+  }[];
 };
 
 let e2e: E2eApp;
@@ -367,6 +376,46 @@ describe('fighting styles (workspace spec 032)', () => {
     expect(option.status).toBe(400);
     expect((option.body as { code: string }).code).toBe('err-fighting-style-option');
     expect((await as('owner').patch(`/v1/actor-rounds/${actorRound.id}/fighting-style`, { skillId: 'karate' })).status).toBe(400);
+  });
+});
+
+describe('alerts in the round log (workspace spec 087)', () => {
+  const nextPhase = async (gameId: string) =>
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/phases/start`)).status).toBe(200);
+  const tire = async (id: string, fatigue: number) => {
+    const response = await as('owner').patch(`/v1/actor-rounds/${id}/fatigue-accumulator`, { fatigueAccumulator: fatigue });
+    expect(response.status).toBe(200);
+    return response.body as ActorRoundBody;
+  };
+
+  it('a resolved alert stays in its round with its roll; only the pending ones go to the next round', async () => {
+    const { gameId, actorRound } = await startedGame();
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/initiatives/randomize`)).status).toBe(200);
+    await nextPhase(gameId);
+    await nextPhase(gameId);
+    const tired = await tire(actorRound.id, 120);
+    const raised = tired.alerts.find(alert => alert.type === 'endurance')!;
+    expect(raised).toMatchObject({ status: 'pending', raisedRound: 1 });
+
+    const rolled = await as('owner').patch(`/v1/actor-rounds/${actorRound.id}/endurance-check`, { roll: 40, alertId: raised.id });
+    expect(rolled.status).toBe(200);
+    expect((rolled.body as ActorRoundBody).alerts.find(alert => alert.id === raised.id)).toMatchObject({
+      status: 'resolved',
+      raisedRound: 1,
+      resolvedRound: 1,
+      resolvedPhase: 2,
+      result: { roll: 40, total: 40, values: { fatigue: 10, hits: 0 } },
+    });
+    const pending = (await tire(actorRound.id, 100)).alerts.find(alert => alert.type === 'endurance' && alert.status === 'pending')!;
+    expect(pending.id).not.toBe(raised.id);
+
+    for (let phase = 0; phase < 3; phase++) await nextPhase(gameId);
+    expect((await as('owner').post(`/v1/tactical-games/${gameId}/rounds/start`)).status).toBe(200);
+    const next = await as('owner').get(`/v1/actor-rounds?q=gameId==${gameId};round==2`);
+    const round2 = (next.body as { content: ActorRoundBody[] }).content[0];
+    expect(round2.alerts.map(alert => [alert.id, alert.status, alert.raisedRound])).toEqual([[pending.id, 'pending', 1]]);
+    const round1 = (await as('owner').get(`/v1/actor-rounds/${actorRound.id}`)).body as ActorRoundBody;
+    expect(round1.alerts.find(alert => alert.id === raised.id)).toMatchObject({ status: 'resolved', resolvedRound: 1 });
   });
 });
 
