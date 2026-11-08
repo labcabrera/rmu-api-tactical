@@ -83,6 +83,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
         freeAction,
         forced: command.forced?.reason,
         zeroCost: draw?.zeroCost,
+        retroactive: command.retroactive,
       },
       currentPhase,
       roundActions,
@@ -117,6 +118,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       resolution,
       apRange ?? spellRange,
     );
+    action.retroactive = !!command.retroactive;
     action.spell = spell;
     action.reaction = reaction;
     action.strayShot = strayShot;

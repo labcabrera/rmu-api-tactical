@@ -83,6 +83,10 @@ export class ActionModel {
   @Prop({ type: Number, required: false })
   carriedAp?: number | null;
 
+  /** Workspace spec 089: declared by the game master in a past phase of the round. */
+  @Prop({ type: Boolean, required: false })
+  retroactive?: boolean;
+
   /** Spec 030: the spell of a `cast_spell` action, stored as the domain value object. */
   @Prop({ type: Object, required: false })
   spell?: ActionSpell | null;

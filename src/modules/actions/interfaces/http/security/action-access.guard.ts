@@ -36,6 +36,9 @@ export class ActionAccessGuard implements CanActivate {
     if (!game) return true;
     if (mode === 'read') this.gameGuard.checkRead(game, userId, roles);
     else if (mode === 'participate') this.gameGuard.checkParticipate(game, userId, roles);
+    // Workspace spec 089: only a manager of the game declares in a past phase
+    else if (mode === 'declare' && (request.body as { retroactive?: unknown }).retroactive === true)
+      this.gameGuard.checkUpdate(game, userId, roles);
     else this.gameGuard.checkAct(game, target.actorId, userId, roles);
     return true;
   }

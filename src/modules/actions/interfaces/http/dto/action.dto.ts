@@ -190,6 +190,9 @@ export class ActionDto {
   })
   carriedAp: number | null;
 
+  @ApiProperty({ description: 'Declared by the game master in a past phase of the round (workspace spec 089)', example: false })
+  retroactive: boolean;
+
   @ApiProperty({ description: 'Action movement', type: ActionMovementDto, required: false })
   movement: ActionMovementDto | null;
 
@@ -259,6 +262,7 @@ export class ActionDto {
     dto.resolution = ActionResolutionDto.fromEntity(entity.effectiveResolution());
     dto.continuesActionId = entity.continuesActionId ?? null;
     dto.carriedAp = entity.carriedAp ?? null;
+    dto.retroactive = entity.retroactive ?? false;
     dto.movement = entity.movement ? ActionMovementDto.fromEntity(entity.movement) : null;
     dto.maneuver = entity.maneuver ? ActionManeuverDto.fromEntity(entity.maneuver) : null;
     dto.spell = entity.spell ? ActionSpellDto.fromEntity(entity.spell) : null;
