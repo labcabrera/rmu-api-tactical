@@ -3,6 +3,7 @@ import { ResolveBreakageCheckCommand } from '../../../src/modules/actor-rounds/a
 import { ResolveBreakageCheckHandler } from '../../../src/modules/actor-rounds/application/cqrs/handlers/resolve-breakage-check.handler.js';
 import type { ActorRoundRepository } from '../../../src/modules/actor-rounds/application/ports/actor-round-repository.port.js';
 import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
+import { ActorRoundAlert } from '../../../src/modules/actor-rounds/domain/value-objects/actor-round-alert.vo.js';
 import { ActorRoundCharacterMapperAdapter } from '../../../src/modules/actor-rounds/infrastructure/mappers/actor-round-character-mapper.adapter.js';
 import type { GameRepository } from '../../../src/modules/games/application/ports/game-repository.port.js';
 import type { Character } from '../../../src/modules/strategic/application/ports/character.port.js';
@@ -125,6 +126,27 @@ describe('ResolveBreakageCheckHandler', () => {
       modifier: { value: -20, source: { tacticalGameName: 'Ambush' } },
     });
     expect(updated.attacks[0].currentBo).toBe(40);
+  });
+
+  it('closes its alert with the item, the roll and the result, in the phase of the game (workspace spec 087)', async () => {
+    const round = new ActorRoundCharacterMapperAdapter().toActorRound('game-1', 1, character(), ITEMS);
+    const alert = ActorRoundAlert.buildBreakage('critical', { candidates: ['sword'] });
+    round.alerts.push(alert);
+    const actorRoundRepository = {
+      findById: vi.fn(() => Promise.resolve(round)),
+      update: vi.fn((entity: ActorRound) => Promise.resolve(entity)),
+    } as unknown as ActorRoundRepository;
+    const game = { name: 'Ambush', round: 1, phase: 'phase_2', checkNotFinished: vi.fn() };
+    const gameRepository = { findById: vi.fn(() => Promise.resolve(game)) } as unknown as GameRepository;
+    await new ResolveBreakageCheckHandler(actorRoundRepository, gameRepository).execute(
+      new ResolveBreakageCheckCommand('ar-1', 'sword', -30, undefined, alert.id, undefined, [], 'u', []),
+    );
+    expect(alert).toMatchObject({
+      status: 'resolved',
+      resolvedRound: 1,
+      resolvedPhase: 2,
+      result: { outcome: 'failure', roll: -30, total: 40, values: { itemId: 'sword', damage: -20 } },
+    });
   });
 
   it('adds the Strength of a crafted item to the check (workspace spec 023, decision 3)', async () => {

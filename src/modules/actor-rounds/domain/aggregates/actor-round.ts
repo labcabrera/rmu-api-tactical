@@ -3,7 +3,13 @@ import type { AttackLocation } from '../../../actions/domain/value-objects/attac
 import { BaseAggregateRoot } from '../../../shared/domain/aggregates/base-aggregate.js';
 import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors/errors.js';
 import { ActorRoundCreatedEvent } from '../events/actor-round.events.js';
-import { ActorRoundAlert, type AlertOutcome, type ReactionAlertData, type StrayShotData } from '../value-objects/actor-round-alert.vo.js';
+import {
+  ActorRoundAlert,
+  type AlertOutcome,
+  type ReactionAlertData,
+  type StrayShotData,
+  type AlertResult,
+} from '../value-objects/actor-round-alert.vo.js';
 import { type ActorRollProfile, rollProfileOf } from '../value-objects/actor-roll-profile.vo.js';
 import { ActorRoundAlertModifier } from '../value-objects/actor-round-alert-modifier.vo.js';
 import { ActorRoundAttack, isBodyAttack } from '../value-objects/actor-round-attack.vo.js';
@@ -178,6 +184,8 @@ export interface BreakageCheckInput {
   modifiers?: BreakageModifier[];
   tacticalGameName?: string;
   actionId?: string;
+  /** Phase of the game (0-5, as the hits log) the check is made in, for the round log (workspace spec 087). */
+  phase?: number;
 }
 
 export interface BreakageCheckResult {
@@ -273,6 +281,10 @@ const MANUALLY_RESOLVED_ALERTS: string[] = [
   'limb-loss',
   // Workspace spec 079, C4: the outcome of the absolute Endurance maneuver of a held breath
   'breath-check',
+  // Workspace spec 087: read or rolled elsewhere (a group check, an RR without its alert), the game master closes them
+  'wound-reopened',
+  'fear-check-suggested',
+  'revulsion-rr',
 ];
 
 /** What the upkeep of an actor round reads besides the actor (workspace specs 068, 077 and 079). */
@@ -683,7 +695,6 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       defense,
       attacks,
       effects,
-      alerts,
       traits,
       imageUrl,
       owner,
@@ -711,7 +722,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       [],
       [],
       effects,
-      alerts,
+      previous.alertsForNextRound(),
       ActorRoundDefenseMode.none(),
       [],
       [],
@@ -1449,7 +1460,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     injury.updatedAt = new Date().toISOString();
     this.alerts
       .filter(alert => alert.type === 'tourniquet-loosen' && alert.status === 'pending' && ActorRound.alertInjury(alert) === injuryId)
-      .forEach(alert => (alert.status = 'resolved'));
+      .forEach(alert => this.closeAlert(alert, phase, { outcome: 'loosened' }));
     this.applyPenalties();
     this.refreshActionPoints();
     return injury;
@@ -1466,14 +1477,14 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   private checkTourniquets(rules: { loosenEveryRounds: number; graceRounds: number }): void {
     for (const injury of this.injuries.filter(each => !!each.tourniquet && each.status !== 'healed')) {
       const elapsed = this.round - injury.tourniquet!.tightSince + 1;
-      const alerted = (type: string) => this.alerts.some(alert => alert.type === type && ActorRound.alertInjury(alert) === injury.id);
       const pendingLoosen = this.alerts.some(
         alert => alert.type === 'tourniquet-loosen' && alert.status === 'pending' && ActorRound.alertInjury(alert) === injury.id,
       );
       if (elapsed >= rules.loosenEveryRounds && !pendingLoosen) {
         this.alerts.push(ActorRoundAlert.buildTourniquet('tourniquet-loosen', injury.id, elapsed));
       }
-      if (elapsed >= rules.loosenEveryRounds + rules.graceRounds && !alerted('limb-loss')) {
+      // Once: the flag stays on the injury, while the resolved alert stays in its round (workspace spec 087)
+      if (elapsed >= rules.loosenEveryRounds + rules.graceRounds && !injury.flags?.includes('limb-loss')) {
         injury.flags = [...new Set([...(injury.flags ?? []), 'limb-loss' as const])];
         injury.updatedAt = new Date().toISOString();
         this.alerts.push(
@@ -1494,7 +1505,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    * The limb is lost for good (§13.1): an arm is useless and a leg leaves the actor crawling. The tourniquet and the
    * bleeding of the injury that cost it end. `err-limb-already-lost` when it is lost already.
    */
-  loseLimb(limb: Omit<LostLimb, 'at'>): LostLimb {
+  loseLimb(limb: Omit<LostLimb, 'at'>, phase?: number): LostLimb {
     if (this.lostLimbs.some(each => each.location === limb.location && each.side === limb.side)) {
       throw new ValidationError(`The ${limb.side} ${limb.location} is already lost`, 'err-limb-already-lost');
     }
@@ -1510,7 +1521,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       injury.updatedAt = new Date().toISOString();
       this.alerts
         .filter(alert => alert.type === 'tourniquet-loosen' && alert.status === 'pending' && ActorRound.alertInjury(alert) === injury.id)
-        .forEach(alert => (alert.status = 'resolved'));
+        .forEach(alert => this.closeAlert(alert, phase, { outcome: 'limb-lost' }));
     }
     this.applyPenalties();
     this.refreshActionPoints();
@@ -1518,7 +1529,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   }
 
   /** A confirmed limb-loss alert: the limb of its injury (an arm or a leg, the side given when the injury has none). */
-  private confirmLimbLoss(alert: ActorRoundAlert, side?: BodySide): void {
+  private confirmLimbLoss(alert: ActorRoundAlert, side?: BodySide, phase?: number): void {
     const injuryId = alert.getModifierText('injuryId');
     const injury = injuryId ? this.injuries.find(each => each.id === injuryId) : undefined;
     const location = alert.getModifierText('location') ?? injury?.location;
@@ -1529,7 +1540,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     if (!limbSide) {
       throw new ValidationError('The side of the limb is required', 'err-limb-loss-side-required');
     }
-    this.loseLimb({ location, side: limbSide, cause: 'limb-loss', ...(injuryId ? { injuryId } : {}) });
+    this.loseLimb({ location, side: limbSide, cause: 'limb-loss', ...(injuryId ? { injuryId } : {}) }, phase);
   }
 
   /**
@@ -1665,7 +1676,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    * The actor breathes again (§15.2): the held breath and the suffocation end, and the pending breath checks are closed.
    * A stun of inhaled water stays until the game master removes it (the lungs are cleared). `err-breath-not-held`.
    */
-  stopBreath(): void {
+  stopBreath(phase?: number): void {
     if (!this.breath) {
       throw new ValidationError('The actor does not hold its breath', 'err-breath-not-held');
     }
@@ -1674,8 +1685,8 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     this.alerts
       .filter(alert => alert.type === 'breath-check' && alert.status === 'pending')
       .forEach(alert => {
-        alert.status = 'resolved';
         alert.modifiers?.push(new ActorRoundAlertModifier('outcome', null, 'breathing'));
+        this.closeAlert(alert, phase, { outcome: 'breathing' });
       });
     this.applyPenalties();
     this.refreshActionPoints();
@@ -1850,7 +1861,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   private endFrenzyDyingWhenHealed(): void {
     if (!this.isBeyondDeathThreshold() && this.effects.some(effect => effect.status === FRENZY_DYING)) {
       this.effects = this.effects.filter(effect => effect.status !== FRENZY_DYING);
-      this.alerts.filter(alert => alert.type === 'frenzy-dying').forEach(alert => (alert.status = 'resolved'));
+      this.alerts
+        .filter(alert => alert.type === 'frenzy-dying' && alert.status === 'pending')
+        .forEach(alert => this.closeAlert(alert, undefined, { outcome: 'healed' }));
     }
   }
 
@@ -1858,7 +1871,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    * Physical RR of a frenzy-dying actor in the upkeep (workspace spec 040, decision 14): failed, it dies; resisted, it
    * stays dying until the next one.
    */
-  resolveFrenzyDyingRr(resisted: boolean): void {
+  resolveFrenzyDyingRr(resisted: boolean, rolled?: { roll: number; total: number }, phase?: number): void {
     if (!this.hasEffect(FRENZY_DYING)) {
       throw new UnprocessableEntityError('The actor is not dying in frenzy', 'err-frenzy-not-dying');
     }
@@ -1866,7 +1879,11 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
       this.effects = this.effects.filter(effect => effect.status !== FRENZY_DYING);
       this.addEffect(new ActorRoundEffect(randomUUID(), DEAD, undefined, undefined), undefined);
     }
-    this.alerts.filter(alert => alert.type === 'frenzy-dying').forEach(alert => (alert.status = 'resolved'));
+    this.alerts
+      .filter(alert => alert.type === 'frenzy-dying' && alert.status === 'pending')
+      .forEach(alert =>
+        this.closeAlert(alert, phase, { outcome: resisted ? 'resisted' : 'failed', roll: rolled?.roll, total: rolled?.total }),
+      );
     this.applyPenalties();
     this.refreshActionPoints();
   }
@@ -2200,13 +2217,13 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     }
     this.fatigue.accumulator += fatigue;
     if (this.fatigue.accumulator >= 100) {
-      if (this.alerts.find(a => ActorRoundAlert.isFatigueEndurance(a))) {
+      if (this.alerts.some(a => ActorRoundAlert.isFatigueEndurance(a) && a.status === 'pending')) {
         return;
       }
       const alert = ActorRoundAlert.buildEndurance();
       this.alerts.push(alert);
     } else {
-      this.alerts = this.alerts.filter(a => !ActorRoundAlert.isFatigueEndurance(a));
+      this.alerts = this.alerts.filter(a => !ActorRoundAlert.isFatigueEndurance(a) || a.status !== 'pending');
     }
   }
 
@@ -2214,9 +2231,16 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    * Applies an endurance roll (§5.5, Table 5-5): `fatigueChange` adds to the fatigue penalty (negative shakes it off)
    * and `hits` are taken. Fatigue beyond -50 becomes an injury penalty (§5.5 Injuries due to Fatigue): an injury of
    * unknown type with a fatigue source, the one of this game made worse if there is one. The roll uses up the activity
-   * points that called for it and its alert.
+   * points that called for it and closes its alert with the roll (workspace spec 087).
    */
-  applyEnduranceResult(fatigueChange: number, hits: number, alertId?: string, gameName?: string, phase?: number): void {
+  applyEnduranceResult(
+    fatigueChange: number,
+    hits: number,
+    alertId?: string,
+    gameName?: string,
+    phase?: number,
+    rolled?: { roll: number; total: number },
+  ): void {
     const fatigue = Math.max(0, (this.fatigue.fatigue || 0) + fatigueChange);
     const excess = Math.max(0, fatigue - MAX_FATIGUE_PENALTY);
     if (excess > 0) {
@@ -2228,9 +2252,15 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     if (!resolved || ActorRoundAlert.isFatigueEndurance(resolved)) {
       this.fatigue.accumulator = Math.max(0, (this.fatigue.accumulator || 0) - 100);
     }
-    this.alerts = this.alerts.filter(alert => alert.id !== alertId);
+    if (resolved && resolved.status === 'pending') {
+      this.closeAlert(resolved, phase, {
+        roll: rolled?.roll,
+        total: rolled?.total,
+        values: { fatigue: fatigueChange, hits: Math.max(0, hits) },
+      });
+    }
     if (this.fatigue.accumulator < 100) {
-      this.alerts = this.alerts.filter(alert => !ActorRoundAlert.isFatigueEndurance(alert));
+      this.alerts = this.alerts.filter(alert => !ActorRoundAlert.isFatigueEndurance(alert) || alert.status !== 'pending');
     }
     // applyAttackResults checks unconsciousness and death, and recomputes the penalties (the fatigue one included).
     const taken = Math.max(0, hits);
@@ -2366,9 +2396,9 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   }
 
   /** Closes a `knocked-back` alert with the hazard the game master resolved for it (workspace spec 079). */
-  resolveKnockedBack(alertId: string, hazardId: string): void {
+  resolveKnockedBack(alertId: string, hazardId: string, phase?: number): void {
     const alert = this.pendingKnockedBack(alertId);
-    alert.status = 'resolved';
+    this.closeAlert(alert, phase, { outcome: 'hazard', values: { hazardId } });
     alert.modifiers?.push(new ActorRoundAlertModifier('hazardId', null, hazardId));
   }
 
@@ -3679,7 +3709,7 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    * Spec 034: the game master is done with an alert handled by hand (the critical of a fumble). Endurance and breakage
    * alerts are resolved with their rolls.
    */
-  resolveAlert(alertId: string, outcome?: AlertOutcome, limbSide?: BodySide): string[] {
+  resolveAlert(alertId: string, outcome?: AlertOutcome, limbSide?: BodySide, phase?: number): string[] {
     const alert = this.alerts.find(a => a.id === alertId);
     if (!alert) {
       throw new NotFoundError('Alert', alertId);
@@ -3688,7 +3718,19 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     if (!MANUALLY_RESOLVED_ALERTS.includes(alert.type)) {
       throw new ValidationError(`A ${alert.type} alert is resolved with its roll`, 'err-alert-not-resolvable');
     }
-    alert.status = 'resolved';
+    if (alert.type === 'breath-check' && outcome !== 'passed' && outcome !== 'failed') {
+      throw new ValidationError('A breath check is resolved with its outcome, passed or failed', 'err-alert-not-resolvable');
+    }
+    // Workspace spec 087: what the game master decided goes to the round log
+    const confirmable = alert.type === 'death-threshold' || alert.type === 'limb-loss';
+    const passable = alert.type === 'breath-check' || alert.type === 'mental-focus';
+    const decided =
+      confirmable && outcome === 'confirmed'
+        ? 'confirmed'
+        : passable && (outcome === 'passed' || outcome === 'failed')
+          ? outcome
+          : 'dismissed';
+    this.closeAlert(alert, phase, { outcome: decided });
     // Workspace spec 079, decision A3: the game master confirms the death of a `death-threshold` alert, or dismisses it.
     if (alert.type === 'death-threshold') {
       alert.modifiers?.push(new ActorRoundAlertModifier('outcome', null, outcome === 'confirmed' ? 'confirmed' : 'dismissed'));
@@ -3701,18 +3743,14 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     }
     // Workspace spec 079, C4: the outcome of a breath check; a failure starts the suffocation
     if (alert.type === 'breath-check') {
-      if (outcome !== 'passed' && outcome !== 'failed') {
-        alert.status = 'pending';
-        throw new ValidationError('A breath check is resolved with its outcome, passed or failed', 'err-alert-not-resolvable');
-      }
-      alert.modifiers?.push(new ActorRoundAlertModifier('outcome', null, outcome));
+      alert.modifiers?.push(new ActorRoundAlertModifier('outcome', null, decided));
       if (outcome === 'failed') this.failBreath();
       return [];
     }
     // Workspace spec 079, C1: a confirmed limb-loss alert costs the actor the limb; otherwise it is dismissed
     if (alert.type === 'limb-loss') {
       alert.modifiers?.push(new ActorRoundAlertModifier('outcome', null, outcome === 'confirmed' ? 'confirmed' : 'dismissed'));
-      if (outcome === 'confirmed') this.confirmLimbLoss(alert, limbSide);
+      if (outcome === 'confirmed') this.confirmLimbLoss(alert, limbSide, phase);
       return [];
     }
     // Workspace spec 077, decision A2.4: a failed Mental Focus maneuver breaks every focus; the caller interrupts the
@@ -3722,6 +3760,28 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     }
     alert.modifiers?.push(new ActorRoundAlertModifier('outcome', null, outcome));
     return outcome === 'failed' ? this.breakConcentration() : [];
+  }
+
+  /**
+   * Workspace spec 087: the alert is resolved in this round and `phase` (0 before the action phases, 1-4, 5 the upkeep;
+   * null when unknown), with what it left. It stays in this round, which the round log reads.
+   */
+  closeAlert(alert: ActorRoundAlert, phase: number | null | undefined, result: AlertResult | null = null): void {
+    alert.close(this.round, phase, result);
+  }
+
+  /**
+   * Workspace spec 087: the alerts the next round takes, copies of the pending ones with the round they were raised in.
+   * The resolved and the expired ones stay in this round.
+   */
+  alertsForNextRound(): ActorRoundAlert[] {
+    return this.alerts
+      .filter(alert => alert.status === 'pending')
+      .map(alert => {
+        const copy = ActorRoundAlert.from(structuredClone({ ...alert }));
+        copy.raisedRound = alert.raisedRound ?? this.round;
+        return copy;
+      });
   }
 
   /**
@@ -3754,10 +3814,14 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
    * Closes a critical alert once its critical is applied (decision D3): the roll stays in the alert, and the critical of
    * a hazard of this round gets its result.
    */
-  completeCriticalAlert(rolled: CriticalAlertRoll): void {
+  completeCriticalAlert(rolled: CriticalAlertRoll, phase?: number): void {
     const alert = this.alerts.find(each => each.id === rolled.alertId);
     if (!alert) return;
-    alert.status = 'resolved';
+    this.closeAlert(alert, phase, {
+      roll: rolled.roll,
+      text: rolled.text,
+      values: { criticalKey: rolled.criticalKey, damage: rolled.damage, location: rolled.location },
+    });
     alert.modifiers?.push(
       new ActorRoundAlertModifier('roll', rolled.roll, null),
       new ActorRoundAlertModifier('criticalKey', null, rolled.criticalKey),
@@ -3973,6 +4037,13 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
     }
     if (alert) {
       alert.resolveBreakage(item.itemId, outcome.result, outcome.total);
+      this.closeAlert(alert, input.phase, {
+        outcome: outcome.result,
+        roll: input.roll,
+        total: outcome.total,
+        text: item.name,
+        values: { itemId: item.itemId, itemTypeId: item.itemTypeId ?? null, damage: outcome.damage, broken: outcome.broken },
+      });
     }
     this.applyItemConditions();
     this.calculateCurrentBo();

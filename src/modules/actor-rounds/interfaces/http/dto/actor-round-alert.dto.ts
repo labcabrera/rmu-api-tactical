@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import type { ActorRoundAlertStatus } from '../../../domain/value-objects/actor-round-alert-status.vo.js';
 import type { ActorRoundAlertType } from '../../../domain/value-objects/actor-round-alert-type.vo.js';
-import { ActorRoundAlert, type ReactionTraitId } from '../../../domain/value-objects/actor-round-alert.vo.js';
+import { ActorRoundAlert, type AlertResult, type ReactionTraitId } from '../../../domain/value-objects/actor-round-alert.vo.js';
 import type { GamePhase } from '../../../../games/domain/value-objects/game-phase.vo.js';
 
 /** Workspace spec 076: the reaction a `reaction-available` alert offers. */
@@ -49,7 +49,34 @@ export class ActorRoundAlertDto {
   @ApiProperty({ type: ReactionAlertDto, required: false, description: 'Reaction of a reaction-available alert (spec 076)' })
   reaction?: ReactionAlertDto;
 
-  static fromEntity(alert: ActorRoundAlert): ActorRoundAlertDto {
+  @ApiProperty({ type: Number, required: false, description: 'Round the alert was raised in (workspace spec 087)', example: 2 })
+  raisedRound?: number;
+
+  @ApiProperty({ type: Number, required: false, description: 'Round it was resolved in (workspace spec 087)', example: 2 })
+  resolvedRound?: number;
+
+  @ApiProperty({
+    type: Number,
+    required: false,
+    nullable: true,
+    description: 'Phase it was resolved in: 0 before the action phases, 1-4, 5 the upkeep; null when unknown (spec 087)',
+    example: 3,
+  })
+  resolvedPhase?: number | null;
+
+  @ApiProperty({ type: String, required: false, description: 'When it was resolved (workspace spec 087)' })
+  resolvedAt?: string;
+
+  @ApiProperty({
+    type: Object,
+    required: false,
+    description: 'What it left, for the round log (workspace spec 087): outcome, roll, total, text and values of its kind',
+    example: { outcome: 'partial-success', roll: 64, total: 78, text: 'arming-sword', values: { damage: -5 } },
+  })
+  result?: AlertResult;
+
+  /** `round`: the round of the actor round, which raised the alert when it has no `raisedRound` yet. */
+  static fromEntity(alert: ActorRoundAlert, round?: number): ActorRoundAlertDto {
     const modifiers = alert.modifiers ? alert.modifiers.map(m => ActorRoundAlertModifierDto.fromEntity(m)) : null;
     const dto = new ActorRoundAlertDto();
     dto.id = alert.id;
@@ -58,6 +85,14 @@ export class ActorRoundAlertDto {
     dto.modifiers = modifiers;
     dto.status = alert.status;
     if (alert.reaction) dto.reaction = { ...alert.reaction };
+    const raisedRound = alert.raisedRound ?? round;
+    if (raisedRound !== undefined) dto.raisedRound = raisedRound;
+    if (alert.resolvedRound !== null) {
+      dto.resolvedRound = alert.resolvedRound;
+      dto.resolvedPhase = alert.resolvedPhase;
+      if (alert.resolvedAt) dto.resolvedAt = alert.resolvedAt;
+      if (alert.result) dto.result = alert.result;
+    }
     return dto;
   }
 }

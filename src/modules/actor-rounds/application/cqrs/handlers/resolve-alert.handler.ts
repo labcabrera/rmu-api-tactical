@@ -6,6 +6,7 @@ import { NotFoundError } from '../../../../shared/domain/errors/errors.js';
 import { ActorRound } from '../../../domain/aggregates/actor-round.js';
 import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port.js';
 import { ResolveAlertCommand } from '../commands/resolve-alert.command.js';
+import { Game } from '../../../../games/domain/aggregates/game.js';
 
 @CommandHandler(ResolveAlertCommand)
 export class ResolveAlertHandler implements ICommandHandler<ResolveAlertCommand, ActorRound> {
@@ -22,9 +23,10 @@ export class ResolveAlertHandler implements ICommandHandler<ResolveAlertCommand,
 
     const actorRound = await this.actorRoundRepository.findById(command.actorRoundId);
     if (!actorRound) throw new NotFoundError('Actor round', command.actorRoundId);
-    (await this.gameRepository.findById(actorRound.gameId))?.checkNotFinished();
+    const game = await this.gameRepository.findById(actorRound.gameId);
+    game?.checkNotFinished();
 
-    const held = actorRound.resolveAlert(command.alertId, command.outcome, command.side);
+    const held = actorRound.resolveAlert(command.alertId, command.outcome, command.side, Game.effectPhaseIn(game, actorRound.round));
     const updated = await this.actorRoundRepository.update(actorRound);
     // Workspace spec 077, decision A2.4: a failed Mental Focus maneuver interrupts the held actions.
     if (held.length > 0) {

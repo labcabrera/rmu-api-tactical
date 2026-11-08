@@ -3,7 +3,7 @@ import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../../../actions/application/ports/action-repository.port.js';
 import { fallControlStepsOf } from '../../../../actions/domain/services/fall-control.js';
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
-import type { Game } from '../../../../games/domain/aggregates/game.js';
+import { Game } from '../../../../games/domain/aggregates/game.js';
 import { NotFoundError } from '../../../../shared/domain/errors/errors.js';
 import { ActorRound } from '../../../domain/aggregates/actor-round.js';
 import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port.js';
@@ -64,7 +64,7 @@ export class ResolveHazardHandler implements ICommandHandler<ResolveHazardComman
       knockedBack?.getModifierText('severityCap') ?? null,
     );
     if (knockedBack) {
-      actorRound.resolveKnockedBack(knockedBack.id, hazard.id);
+      actorRound.resolveKnockedBack(knockedBack.id, hazard.id, Game.effectPhaseIn(game, actorRound.round));
     }
     return this.actorRoundRepository.update(actorRound);
   }

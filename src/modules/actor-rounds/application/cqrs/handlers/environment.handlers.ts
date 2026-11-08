@@ -9,6 +9,7 @@ import type { ActorRoundBreath } from '../../../domain/value-objects/actor-round
 import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port.js';
 import { ActorSheetService } from '../../services/actor-sheet.service.js';
 import { SetEnvironmentProtectionCommand, StartBreathCommand, StopBreathCommand } from '../commands/environment.commands.js';
+import { Game } from '../../../../games/domain/aggregates/game.js';
 
 /** Constitution stat of the sheet. */
 const CONSTITUTION = 'co';
@@ -84,7 +85,8 @@ export class StopBreathHandler implements ICommandHandler<StopBreathCommand, Act
 
   async execute(command: StopBreathCommand): Promise<ActorRound> {
     const actorRound = await loadOpen(this.actorRoundRepository, this.gameRepository, command.actorRoundId);
-    actorRound.stopBreath();
+    const game = await this.gameRepository.findById(actorRound.gameId);
+    actorRound.stopBreath(Game.effectPhaseIn(game, actorRound.round));
     return this.actorRoundRepository.update(actorRound);
   }
 }
