@@ -3,6 +3,8 @@ import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { NotFoundError } from '../../../../shared/domain/errors/errors.js';
 import { Game } from '../../../domain/aggregates/game.js';
 import { type GameRepository, GAME_REPOSITORY } from '../../ports/game-repository.port.js';
+import { type FactionPort, FACTION_PORT } from '../../../../strategic/application/ports/faction.port.js';
+import { factionPlayersOf } from '../../services/faction-players.js';
 import { AddGameFactionsCommand } from '../commands/add-game-factions.command.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
@@ -13,6 +15,7 @@ export class AddGameFactionsHandler implements ICommandHandler<AddGameFactionsCo
   constructor(
     @Inject(GAME_REPOSITORY) private readonly gameRepository: GameRepository,
     @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
+    @Inject(FACTION_PORT) private readonly factionPort: FactionPort,
   ) {}
 
   async execute(command: AddGameFactionsCommand): Promise<Game> {
@@ -22,6 +25,8 @@ export class AddGameFactionsHandler implements ICommandHandler<AddGameFactionsCo
       throw new NotFoundError('Game', command.gameId);
     }
     game.addFactions(command.factions);
+    // Workspace spec 072: a game whose factions came after their faction events still knows their players.
+    game.setFactionPlayers(await factionPlayersOf(this.factionPort, command.factions));
     const updated = await this.gameRepository.update(game);
     const events = game.getUncommittedEvents();
     void this.eventPublisher.publish('game', ...events);

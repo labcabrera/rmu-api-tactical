@@ -12,6 +12,10 @@ import type {
   SpellType,
 } from '../value-objects/action-spell.vo.js';
 import { SPELL_REALMS } from '../value-objects/action-spell.vo.js';
+import type { ActorRoundTrait } from '../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
+import { scrTalentModifiers } from './spell-talents.js';
+import { FREE_MOVEMENT_SOURCE, type FreeMovementPace } from './free-movement-pace.js';
+import { pacePenaltyFor } from './uncoordinated-pace.js';
 
 /** A Table 4-2 cell: a modifier, a modifier per encumbrance percent, or null when it does not apply. */
 export type SpellcastingCell = number | { perEncumbrancePercent: number } | null;
@@ -41,6 +45,7 @@ export const SPELL_RULES = {
   failure: 'Spell Law §4.4',
   resistance: 'Spell Law §4.5',
   resistanceTable: 'Spell Law Table 4-5',
+  pace: 'Table 5-3',
 } as const;
 
 /** Phases of the rules a spell roll skips, as `SkippedRule.phase`. */
@@ -80,12 +85,58 @@ export interface ScrInput {
   penalties: { source: string; value: number }[];
   /** AP of the action, for the explanation of the fast casting penalty. */
   actionPoints?: number;
+  /** Talents and flaws of the caster: the magical ones enter the SCR (workspace spec 077, decision C1). */
+  traits?: ActorRoundTrait[];
+  /** Magical Expertise bonuses of the caster for the list cast (workspace spec 079, decision B4). */
+  expertise?: MagicalExpertise;
+  /** The free movement of the caster at the same time (Core Law §8.2; workspace spec 080, decision 4). */
+  movementPace?: FreeMovementPace | null;
+}
+
+/**
+ * Bonuses of the Magical Expertise skills (Core Law §3.14, Spell Law §4.2) of a caster for a list: Grace and Spell
+ * Trickery of that list (specialization = the spell list key), Transcendence. Only a positive bonus counts.
+ */
+export interface MagicalExpertise {
+  grace?: number;
+  spellTrickery?: number;
+  transcendence?: number;
+}
+
+/** Group and rule of the Magical Expertise lines of the SCR (workspace spec 079, decision B4). */
+export const MAGICAL_EXPERTISE_GROUP = 'magical-expertise';
+const MAGICAL_EXPERTISE_RULE = 'Core Law §3.14, Spell Law §4.2';
+
+/**
+ * Magical Expertise (workspace spec 079, decision B4): each skill takes off the penalties it compensates, never more
+ * (the SCR modification goes at best to 0): Grace the overcasting, Spell Trickery the subtlety, hands and voice, and
+ * Transcendence the armor and helmet. The spell failure roll then reads the reduced penalties (Spell Law §4.4).
+ */
+export function magicalExpertiseModifiers(expertise: MagicalExpertise | undefined, penalties: KeyValueModifier[]): KeyValueModifier[] {
+  if (!expertise) return [];
+  const penaltyOf = (keys: string[]) =>
+    -penalties.filter(modifier => keys.includes(modifier.key)).reduce((sum, modifier) => sum + Math.min(0, modifier.value), 0);
+  const line = (key: string, bonus: number | undefined, keys: string[]) => {
+    const penalty = penaltyOf(keys);
+    const value = Math.min(Math.max(0, bonus ?? 0), penalty);
+    return new KeyValueModifier(key, value, MAGICAL_EXPERTISE_GROUP, 'magical-expertise', MAGICAL_EXPERTISE_RULE, {
+      bonus: Math.max(0, bonus ?? 0),
+      penalty,
+    });
+  };
+  return [
+    line('grace', expertise.grace, ['overcasting']),
+    line('spell-trickery', expertise.spellTrickery, ['subtlety', 'hands', 'voice']),
+    line('transcendence', expertise.transcendence, ['helmet', 'armor']),
+  ].filter(modifier => modifier.value > 0);
 }
 
 /**
  * Modifiers of the Spellcasting Roll (Spell Law 4.2): list ranks, realm stat and list type, then the "other modifiers"
- * of Table 4-2 for the caster's realm column, fast casting, overcasting, preparation, general penalties and the game
- * master's. Zero entries are left out, except the ranks.
+ * of Table 4-2 for the caster's realm column, fast casting, overcasting, preparation, the Magical Expertise that offsets
+ * them (group `magical-expertise`, workspace spec 079, decision B4), general penalties, the magical talents of the
+ * caster (group `talent`, workspace spec 077, decision C1) and the game master's. Zero entries are left
+ * out, except the ranks.
  */
 export function scrModifiers(input: ScrInput, tables: SpellcastingTables): KeyValueModifier[] {
   const { spell, caster, options } = input;
@@ -105,8 +156,7 @@ export function scrModifiers(input: ScrInput, tables: SpellcastingTables): KeyVa
     new KeyValueModifier(key, value, 'casting', 'casting-table', SPELL_RULES.castingTable, { ...params, column });
   const armorParams: ModifierParams = { armor: options.armor };
   if (typeof tables.armor[options.armor]?.[column] === 'object') armorParams.encumbrance = options.armorEncumbrance || 0;
-  const modifiers: KeyValueModifier[] = [
-    skill('ranks', caster.ranks, { ranks: caster.ranks, list: caster.listSkillId }),
+  const casting: KeyValueModifier[] = [
     skill('realm-stat', caster.realmStatBonus, { realm: column }),
     skill('list-type', caster.listTypeModifier, { list: caster.listSkillId }),
     table('subtlety', options.subtle ? cell(tables.subtlety, spell.type) : 0, { type: spell.type }),
@@ -130,10 +180,32 @@ export function scrModifiers(input: ScrInput, tables: SpellcastingTables): KeyVa
     new KeyValueModifier('preparation', preparation, 'casting', 'preparation', SPELL_RULES.casting, {
       rounds: Math.max(0, options.preparationRounds || 0),
     }),
+  ];
+  const modifiers: KeyValueModifier[] = [
+    skill('ranks', caster.ranks, { ranks: caster.ranks, list: caster.listSkillId }),
+    ...casting,
+    ...magicalExpertiseModifiers(input.expertise, casting),
     ...input.penalties.map(penalty => new KeyValueModifier(`penalty-${penalty.source}`, penalty.value, 'penalty', 'actor-round')),
+    ...scrTalentModifiers(input.traits, spell),
+    ...paceModifiers(input.movementPace),
     new KeyValueModifier('custom', options.customBonus || 0, 'situation', 'custom'),
   ];
   return modifiers.filter(modifier => modifier.key === 'ranks' || modifier.value !== 0);
+}
+
+/**
+ * Workspace spec 080, decision 4 (Core Law §8.2): a caster moving freely while it casts takes the pace penalty of Table
+ * 5-3. Footwork does not reduce it (only melee and thrown attacks).
+ */
+function paceModifiers(movementPace: FreeMovementPace | null | undefined): KeyValueModifier[] {
+  if (!movementPace) return [];
+  return [
+    new KeyValueModifier('pace', pacePenaltyFor(movementPace.pace), 'situation', 'movement', SPELL_RULES.pace, {
+      pace: movementPace.pace,
+      source: FREE_MOVEMENT_SOURCE,
+      movementId: movementPace.movementId,
+    }),
+  ];
 }
 
 /**
@@ -265,6 +337,8 @@ export interface SpellRrInput {
   conditions: SpellTargetConditions;
   /** The SCR of the cast: the RR has to reach it. */
   scr: number;
+  /** The target's talents against the spell (Iron Will, workspace spec 077, decision C9), for every realm. */
+  talentModifiers?: SpellRollModifier[];
 }
 
 export interface SpellRrResult {
@@ -297,6 +371,7 @@ export function spellResistanceRoll(input: SpellRrInput): SpellRrResult {
       },
       { key: 'spell', value: input.spellModifier, group: 'casting', source: 'spell', rule },
       ...rrConditionModifiers(input.conditions, realm),
+      ...(input.talentModifiers ?? []),
     ];
     const breakdown = entries.filter(modifier => modifier.key === 'roll' || modifier.value !== 0);
     const total = breakdown.reduce((sum, modifier) => sum + modifier.value, 0);
@@ -353,17 +428,27 @@ export function directedSpellSpecialization(attackTable: string): string | null 
   return null;
 }
 
+/** What the caster's talents change in the attack of a spell (workspace spec 077, decision C6). */
+export interface SpellAttackAdjustment {
+  /** Radius of a ball with Scope Skills and Lack of Scope. */
+  radius?: number | null;
+  /** Targets of a bolt: 1 + the tier of Scope Skills. */
+  maxTargets?: number;
+}
+
 /**
  * The attack of an attack spell (Spell Law 4.3, RMCL 9.3), read by the combat engine as a ranged weapon:
  * - a bolt adds the caster's Directed Spells bonus for its table (unskilled -25), fumbles on an unmodified 1-2
  *   whatever its ranks (RMCL 9.2) and takes -10/-25/-50/-100 beyond its short range, one bracket per range increment;
  * - a ball (or cone) adds only the ranks in the list, fumbles on 1-2 and has no range modifier up to its range.
+ * `range` is the one adjusted by the caster's talents when they change it (workspace spec 077, decision C6).
  */
 export function spellAttackProfile(
   effect: SpellAttackEffect,
   range: Record<string, unknown> | null,
   listRanks: number,
   directed: DirectedSpellSkill | null,
+  adjustment: SpellAttackAdjustment = {},
 ): ActionSpellAttack {
   const ball = effect.ob === 'list-ranks' || /-ball$/.test(effect.attackTable);
   const specialization = directedSpellSpecialization(effect.attackTable);
@@ -385,6 +470,7 @@ export function spellAttackProfile(
     bo: ball ? listRanks : (directed?.totalBonus ?? UNSKILLED_BONUS),
     skillId: ball || !specialization ? null : `directed-spell@${specialization}`,
     ranges,
-    radius: typeof effect.radius === 'number' ? effect.radius : null,
+    radius: adjustment.radius !== undefined ? adjustment.radius : typeof effect.radius === 'number' ? effect.radius : null,
+    ...(!ball && (adjustment.maxTargets ?? 1) > 1 ? { maxTargets: adjustment.maxTargets } : {}),
   };
 }

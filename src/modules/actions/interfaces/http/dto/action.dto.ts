@@ -1,3 +1,4 @@
+import { OTHER_ACTION_KINDS, type OtherActionKind } from '../../../domain/value-objects/action-ap-profile.vo.js';
 import { ApiProperty } from '@nestjs/swagger';
 import { PaginationDto } from '../../../../shared/interfaces/http/dto/page.dto.js';
 import { Action } from '../../../domain/aggregates/action.js';
@@ -53,6 +54,63 @@ export class ActionResolutionDto {
     if (resolution.note) dto.note = resolution.note;
     return dto;
   }
+}
+
+/** Workspace spec 079, A6: the stray shot an attack forced as `stray-shot` comes from (§9.7). */
+export class ActionStrayShotDto {
+  @ApiProperty({ description: 'stray-shot alert of the attacker it was declared from' })
+  alertId: string;
+
+  @ApiProperty({ description: 'Ranged attack that missed' })
+  triggerActionId: string;
+
+  @ApiProperty({ description: 'Attack of the actor that missed, used again', example: 'mainHand' })
+  attackName: string;
+
+  @ApiProperty({ description: 'Combatant chosen at random among those that gave cover' })
+  targetActorId: string;
+}
+
+/** Workspace spec 076: the reaction of an attack forced as `reaction`. */
+export class ActionReactionDto {
+  @ApiProperty({ example: 'riposte' })
+  traitId: string;
+
+  @ApiProperty({ description: 'Action that triggered the reaction' })
+  triggerActionId: string;
+
+  @ApiProperty({ type: Number, nullable: true, description: 'Fixed OB of the attack (Riposte); null: the OB declared', example: 15 })
+  obOverride: number | null;
+
+  @ApiProperty({ type: String, nullable: true, description: 'Alert it was declared from; null when forced by the game master' })
+  alertId: string | null;
+}
+
+/** Workspace spec 076: the weapon of a `draw_and_load` action. */
+export class ActionDrawAndLoadDto {
+  @ApiProperty({ type: String, nullable: true, description: 'Item of the actor drawn or loaded' })
+  itemId: string | null;
+}
+
+/** Workspace spec 076: the foe and the ranged weapon of an `aim` action (Sharpshooter). */
+export class ActionAimDto {
+  @ApiProperty({ description: 'Foe aimed at' })
+  targetActorId: string;
+
+  @ApiProperty({ description: 'Ranged weapon (item of the actor) aimed with' })
+  itemId: string;
+}
+
+/** Workspace spec 079, decision A5: the fixed-cost subtype of an `other` action (Table 8-1). */
+export class ActionOtherDto {
+  @ApiProperty({ enum: OTHER_ACTION_KINDS, example: 'load-crossbow' })
+  kind: OtherActionKind;
+
+  @ApiProperty({ type: String, nullable: true, description: 'Attack of the weapon strung or loaded' })
+  attackName: string | null;
+
+  @ApiProperty({ description: 'AP the action takes (Table 8-1)', example: 6 })
+  ap: number;
 }
 
 export class ActionDto {
@@ -132,6 +190,9 @@ export class ActionDto {
   })
   carriedAp: number | null;
 
+  @ApiProperty({ description: 'Declared by the game master in a past phase of the round (workspace spec 089)', example: false })
+  retroactive: boolean;
+
   @ApiProperty({ description: 'Action movement', type: ActionMovementDto, required: false })
   movement: ActionMovementDto | null;
 
@@ -155,6 +216,21 @@ export class ActionDto {
 
   @ApiProperty({ description: 'Item of a use_item action (spec 068)', type: ActionUseItemDto, required: false, nullable: true })
   useItem: ActionUseItemDto | null;
+
+  @ApiProperty({ description: 'Reaction of an attack forced as reaction (spec 076)', type: ActionReactionDto, nullable: true })
+  reaction: ActionReactionDto | null;
+
+  @ApiProperty({ description: 'Weapon of a draw_and_load action (spec 076)', type: ActionDrawAndLoadDto, nullable: true })
+  drawAndLoad: ActionDrawAndLoadDto | null;
+
+  @ApiProperty({ description: 'Foe and weapon of an aim action (spec 076)', type: ActionAimDto, nullable: true })
+  aim: ActionAimDto | null;
+
+  @ApiProperty({ description: 'Fixed-cost subtype of an other action (spec 079)', type: ActionOtherDto, nullable: true })
+  otherAction: ActionOtherDto | null;
+
+  @ApiProperty({ description: 'Stray shot of an attack forced as stray-shot (spec 079)', type: ActionStrayShotDto, nullable: true })
+  strayShot: ActionStrayShotDto | null;
 
   @ApiProperty({ description: 'Warnings of the request that did not need a confirmation (spec 068)', type: [ActionWarningDto] })
   warnings: ActionWarningDto[];
@@ -186,6 +262,7 @@ export class ActionDto {
     dto.resolution = ActionResolutionDto.fromEntity(entity.effectiveResolution());
     dto.continuesActionId = entity.continuesActionId ?? null;
     dto.carriedAp = entity.carriedAp ?? null;
+    dto.retroactive = entity.retroactive ?? false;
     dto.movement = entity.movement ? ActionMovementDto.fromEntity(entity.movement) : null;
     dto.maneuver = entity.maneuver ? ActionManeuverDto.fromEntity(entity.maneuver) : null;
     dto.spell = entity.spell ? ActionSpellDto.fromEntity(entity.spell) : null;
@@ -194,6 +271,11 @@ export class ActionDto {
     dto.parryExclusions = (entity.parryExclusions ?? []).map(p => ParryExclusionDto.fromEntity(p));
     dto.medical = entity.medical ? ActionMedicalDto.fromEntity(entity.medical) : null;
     dto.useItem = entity.useItem ? ActionUseItemDto.fromEntity(entity.useItem) : null;
+    dto.reaction = entity.reaction ? { ...entity.reaction } : null;
+    dto.drawAndLoad = entity.drawAndLoad ? { ...entity.drawAndLoad } : null;
+    dto.otherAction = entity.otherAction ? { ...entity.otherAction } : null;
+    dto.strayShot = entity.strayShot ? { ...entity.strayShot } : null;
+    dto.aim = entity.aim ? { ...entity.aim } : null;
     dto.warnings = (entity.warnings ?? []).map(warning => ActionWarningDto.fromEntity(warning));
     dto.fatigue = entity.fatigue;
     dto.description = entity.description;

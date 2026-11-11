@@ -113,6 +113,20 @@ describe('GameNpcsService', () => {
     await expect(npcs.toActors(context({ factionIds: ['f-1', 'f-3', 'f-4'] }), [request])).rejects.toMatchObject({ code });
   });
 
+  it('takes a global NPC in any campaign, even private and of another user, without asking core', async () => {
+    const { service: npcs, realmPort } = service([
+      npc('global', { realmId: null, accessType: 'private', owner: 'admin' }),
+      npc('legacy', { realmId: undefined }),
+    ]);
+    await expect(
+      npcs.toActors(context({ realmId: 'realm-9' }), [
+        { npcId: 'global', factionId: 'environment' },
+        { npcId: 'legacy', factionId: 'environment' },
+      ]),
+    ).resolves.toMatchObject({ actors: [{ npcId: 'global' }, { npcId: 'legacy' }] });
+    expect(realmPort.findById).not.toHaveBeenCalled();
+  });
+
   it('takes a private NPC of the owner of the faction', async () => {
     const { service: npcs } = service([npc('secret', { accessType: 'private', owner: 'player' })], [faction('f-1')]);
     await expect(npcs.toActors(context(), [{ npcId: 'secret', factionId: 'f-1' }])).resolves.toMatchObject({ actors: [{}] });
@@ -207,7 +221,11 @@ describe('RemoveDeletedFactionHandler', () => {
       factions: ['f-1', 'f-2'],
       actors: [Actor.fromProps({ id: 'g-1', npcId: 'guard', name: 'Guard', faction: { id: 'f-2', name: 'F2' }, type: 'npc', owner: 'p' })],
     });
-    const repository = { findCreatedByFaction: vi.fn(() => Promise.resolve([tactical])), update: vi.fn((g: Game) => Promise.resolve(g)) };
+    const repository = {
+      findCreatedByFaction: vi.fn(() => Promise.resolve([tactical])),
+      update: vi.fn((g: Game) => Promise.resolve(g)),
+      removeFactionPlayers: vi.fn(() => Promise.resolve(1)),
+    };
     const publisher = { publish: vi.fn(() => Promise.resolve()) };
     await new RemoveDeletedFactionHandler(repository as unknown as GameRepository, publisher).execute(
       new RemoveDeletedFactionCommand('f-2'),
@@ -216,6 +234,7 @@ describe('RemoveDeletedFactionHandler', () => {
     expect(tactical.factions).toEqual(['f-1']);
     expect(tactical.actors).toEqual([]);
     expect(publisher.publish).toHaveBeenCalled();
+    expect(repository.removeFactionPlayers).toHaveBeenCalledWith('f-2');
   });
 
   it('is dispatched by the faction deleted event of strategic', async () => {

@@ -31,4 +31,16 @@ export class GameEnvironment {
 
   @Prop({ required: false })
   altitudeFatigueModifier?: number;
+
+  /** Workspace spec 076, P6: ambient light (a `LightType`). */
+  @Prop({ type: String, required: false })
+  light?: string;
+
+  /** Workspace spec 079, C5: fog (a `FogLevel`). */
+  @Prop({ type: String, required: false })
+  fog?: string;
+
+  /** Workspace spec 079, C3: extreme temperature `{kind, temperature, severity}` (a plain subdocument). */
+  @Prop({ type: Object, required: false })
+  extremeTemperature?: { kind: string; temperature: number | null; severity: string | null };
 }

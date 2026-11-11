@@ -2,6 +2,7 @@ import type { GameRepository } from '../../../src/modules/games/application/port
 import { describe, expect, it, vi } from 'vitest';
 import type { EnduranceManeuverResult, ManeuverPort } from '../../../src/modules/actions/application/ports/maneuver.port.js';
 import { ResolveEnduranceCheckCommand } from '../../../src/modules/actor-rounds/application/cqrs/commands/resolve-endurance-check.command.js';
+import type { ActorSheetService } from '../../../src/modules/actor-rounds/application/services/actor-sheet.service.js';
 import { ResolveEnduranceCheckHandler } from '../../../src/modules/actor-rounds/application/cqrs/handlers/resolve-endurance-check.handler.js';
 import type { ActorRoundRepository } from '../../../src/modules/actor-rounds/application/ports/actor-round-repository.port.js';
 import { ActorRound } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
@@ -72,7 +73,9 @@ describe('ActorRound fatigue (§5.5)', () => {
     expect(round.alerts.map(a => a.type)).toEqual(['endurance']);
     round.applyEnduranceResult(0, 0, round.alerts[0].id);
     expect(round.fatigue.accumulator).toBe(20);
-    expect(round.alerts).toEqual([]);
+    // Workspace spec 087: the alert is resolved, not removed, for the round log
+    expect(round.alerts.filter(a => a.status === 'pending')).toEqual([]);
+    expect(round.alerts[0]).toMatchObject({ status: 'resolved', resolvedRound: round.round });
   });
 
   it('carries the fatigue into the next round', () => {
@@ -83,7 +86,7 @@ describe('ActorRound fatigue (§5.5)', () => {
 });
 
 describe('ResolveEnduranceCheckHandler', () => {
-  const setup = (endurance: { fatigue: number; hitPoints: number }) => {
+  const setup = (endurance: { fatigue: number; hitPoints: number }, encumbrancePenalty = 0, maneuverPenalty = 0) => {
     const round = load({ hp: [50, 50] });
     const alert = ActorRoundAlert.buildEndurance();
     round.alerts.push(alert);
@@ -96,7 +99,10 @@ describe('ResolveEnduranceCheckHandler', () => {
     );
     const maneuverPort = { endurance: enduranceFn } as unknown as ManeuverPort;
     const gameRepository = { findById: vi.fn(() => Promise.resolve(null)) } as unknown as GameRepository;
-    const handler = new ResolveEnduranceCheckHandler(actorRoundRepository, maneuverPort, gameRepository);
+    const sheets = {
+      find: vi.fn(() => Promise.resolve({ skills: [], equipment: { maneuverPenalty, encumbrancePenalty } })),
+    } as unknown as ActorSheetService;
+    const handler = new ResolveEnduranceCheckHandler(actorRoundRepository, maneuverPort, gameRepository, sheets);
     return { handler, alert, enduranceFn };
   };
 
@@ -107,7 +113,49 @@ describe('ResolveEnduranceCheckHandler', () => {
     );
     expect(enduranceFn).toHaveBeenCalledWith(60);
     expect(fatiguePenalty(updated)).toBe(-10);
-    expect(updated.alerts).toEqual([]);
+    // Workspace spec 087: the roll stays in the resolved alert
+    expect(updated.alerts).toHaveLength(1);
+    expect(updated.alerts[0]).toMatchObject({ status: 'resolved', result: { roll: 40, total: 60, values: { fatigue: 10, hits: 0 } } });
+  });
+
+  it('adds the load penalty of the sheet as the encumbrance modifier, leaving out the one sent (spec 077, B1.6)', async () => {
+    const { handler, alert, enduranceFn } = setup({ fatigue: 0, hitPoints: 0 }, -13);
+
+    await handler.execute(
+      new ResolveEnduranceCheckCommand(
+        'ar-1',
+        alert.id,
+        40,
+        [
+          { key: 'body-development', value: 20 },
+          { key: 'encumbrance', value: -30 },
+        ],
+        'user-1',
+        [],
+      ),
+    );
+
+    expect(enduranceFn).toHaveBeenCalledWith(47);
+  });
+
+  it('adds the armor maneuver penalty of the sheet too, as Table 5-5 asks, leaving out the one sent', async () => {
+    const { handler, alert, enduranceFn } = setup({ fatigue: 0, hitPoints: 0 }, -13, -15);
+
+    await handler.execute(
+      new ResolveEnduranceCheckCommand(
+        'ar-1',
+        alert.id,
+        40,
+        [
+          { key: 'body-development', value: 20 },
+          { key: 'armor-maneuver-penalty', value: -40 },
+        ],
+        'user-1',
+        [],
+      ),
+    );
+
+    expect(enduranceFn).toHaveBeenCalledWith(32);
   });
 
   it('rejects an alert the actor round does not have', async () => {

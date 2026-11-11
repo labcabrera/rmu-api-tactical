@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { PoisonRrResult } from '../../../src/modules/actor-rounds/domain/aggregates/actor-round.js';
 import { PoisonStages } from '../../../src/modules/actor-rounds/domain/services/poison-stages.js';
-import type { AntidoteData, PoisonData, PoisonSeverityRow } from '../../../src/modules/actor-rounds/domain/value-objects/poison.vo.js';
+import {
+  type AntidoteData,
+  type PoisonData,
+  type PoisonSeverityRow,
+  ROUNDS_PER_HOUR,
+  ROUNDS_PER_UNIT,
+} from '../../../src/modules/actor-rounds/domain/value-objects/poison.vo.js';
 import { load } from './actor-round-test.factory.js';
 
 // Made-up rows (the real ones come from core's imported tables).
@@ -48,12 +54,24 @@ const failed = (severity: PoisonRrResult['severity'], failure = 30): PoisonRrRes
 const random = () => 0;
 
 describe('PoisonStages (workspace spec 042, decision 5)', () => {
+  it('counts 5-second rounds (§8.1, workspace spec 079, decision 0.2)', () => {
+    expect(ROUNDS_PER_UNIT).toEqual({ round: 1, minute: 12, hour: 720, day: 17280 });
+    expect(ROUNDS_PER_HOUR).toBe(720);
+  });
+
+  it('turns hours and days of the table into rounds', () => {
+    const rows = [row('mild', { start: { min: 1, max: 1, unit: 'hour' }, duration: { min: 1, max: 1, unit: 'day' } })];
+    const [mild] = PoisonStages.build(POISON, 'mild', rows, random);
+    expect(mild).toMatchObject({ startsAt: 720, endsAt: 720 + 17280 });
+  });
+
   it('builds one stage per severity up to the one reached, never starting before the previous one', () => {
     const stages = PoisonStages.build(POISON, 'severe', ROWS, random);
     expect(stages.map(stage => stage.severity)).toEqual(['mild', 'moderate', 'severe']);
     // Moderate rolls 1 round but cannot start before mild (2).
     expect(stages.map(stage => stage.startsAt)).toEqual([2, 2, 4]);
-    expect(stages[0].endsAt).toBe(2 + 6);
+    // A minute is 12 rounds of 5 seconds (§8.1).
+    expect(stages[0].endsAt).toBe(2 + 12);
     expect(stages[1].penalty).toBe(-20);
     expect(stages[2]).toMatchObject({ endsAt: null, condition: 'paralyzed', conditionAt: 5, conditionUntil: 7 });
   });
@@ -86,8 +104,11 @@ describe('PoisonStages (workspace spec 042, decision 5)', () => {
 
   it('an antidote given too late does nothing', () => {
     const poison = PoisonStages.poisoning(POISON, failed('mild'), 'mild', ROWS, new Date().toISOString(), random);
-    poison.elapsedRounds = 361;
-    expect(PoisonStages.neutralizes({ source: 'item', name: 'a', categories: ['muscle'], level: 5, withinHours: 1 }, poison)).toBe(false);
+    const antidote: AntidoteData = { source: 'item', name: 'a', categories: ['muscle'], level: 5, withinHours: 1 };
+    poison.elapsedRounds = ROUNDS_PER_HOUR;
+    expect(PoisonStages.neutralizes(antidote, poison)).toBe(true);
+    poison.elapsedRounds = ROUNDS_PER_HOUR + 1;
+    expect(PoisonStages.neutralizes(antidote, poison)).toBe(false);
   });
 });
 
@@ -142,7 +163,8 @@ describe('Poisoning an actor round (workspace spec 042)', () => {
 
   it('heals the injury when the last stage ends', () => {
     const { actorRound, injury } = poisoned('moderate');
-    for (let round = 0; round < 8; round++) actorRound.applyUpkeep();
+    // The mild stage starts at 2 and lasts a minute: 12 rounds of 5 seconds (§8.1).
+    for (let round = 0; round < 14; round++) actorRound.applyUpkeep();
     const healed = actorRound.findInjury(injury.id);
     expect(healed.poison?.finished).toBe(true);
     expect(healed.penalty).toBe(0);
@@ -156,7 +178,8 @@ describe('Poisoning an actor round (workspace spec 042)', () => {
     const actorRound = load();
     const exposure = actorRound.exposeToPoison(POISON);
     const injury = actorRound.resolvePoisonExposure(exposure.id, failed('mild'), rows, random)!;
-    for (let round = 0; round < 8; round++) actorRound.applyUpkeep();
+    // The mild stage starts at 2 and lasts a minute: 12 rounds of 5 seconds (§8.1).
+    for (let round = 0; round < 14; round++) actorRound.applyUpkeep();
     expect(actorRound.findInjury(injury.id)).toMatchObject({ status: 'permanent', penalty: -10, permanent: { penalty: -10 } });
   });
 

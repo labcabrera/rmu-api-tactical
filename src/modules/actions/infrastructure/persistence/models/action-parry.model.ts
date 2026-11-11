@@ -1,6 +1,7 @@
 import { Prop, Schema } from '@nestjs/mongoose';
 import type { ProtectPosition } from '../../../domain/value-objects/action-attack-modifiers.vo.js';
 import type { ParryType } from '../../../domain/value-objects/parry-type.vo.js';
+import type { ParryManeuver, ParryPositional } from '../../../domain/value-objects/action-attack-parry.vo.js';
 
 @Schema({ _id: false })
 export class ParryBreakdownModel {
@@ -72,4 +73,15 @@ export class ActionParry {
 
   @Prop({ type: ParryBreakdownModel, required: false })
   breakdown?: ParryBreakdownModel;
+
+  /** Workspace spec 079, decision A2: flank or rear attacker, and the defender's Reverse Strike. */
+  @Prop({ type: Object, required: false })
+  positional?: ParryPositional | null;
+
+  /** Workspace spec 079, decision A2: the Combat Training maneuver of a parry against a further foe. */
+  @Prop({ type: Object, required: false })
+  parryManeuver?: ParryManeuver | null;
+
+  @Prop({ type: Number, required: false })
+  maneuverSkill?: number;
 }

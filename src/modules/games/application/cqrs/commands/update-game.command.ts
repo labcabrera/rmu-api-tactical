@@ -1,5 +1,6 @@
 import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command.js';
 import { GameEnvironment } from '../../../domain/value-objects/game-environment.vo.js';
+import type { PsychologyRules } from '../../../domain/value-objects/game-side.vo.js';
 
 export class UpdateGameCommand extends AuthenticatedCommand {
   constructor(
@@ -14,6 +15,8 @@ export class UpdateGameCommand extends AuthenticatedCommand {
     public readonly expectedVersion?: number,
     /** Spec 055: the new name of the environment faction. */
     public readonly environmentFactionName?: string,
+    /** Workspace spec 100: only while the game is created. */
+    public readonly psychologyRules?: PsychologyRules,
   ) {
     super(userId, roles);
   }

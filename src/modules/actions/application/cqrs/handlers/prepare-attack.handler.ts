@@ -1,3 +1,4 @@
+import { splitBoltOb } from '../../../domain/services/spell-talents.js';
 import { checkStyleCriticalOption } from '../../../domain/services/style-critical-option.js';
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
@@ -7,13 +8,14 @@ import {
 } from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
 import { type ActorSheet, ActorSheetService } from '../../../../actor-rounds/application/services/actor-sheet.service.js';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
-import type { ActorRoundAttack } from '../../../../actor-rounds/domain/value-objects/actor-round-attack.vo.js';
+import { type ActorRoundAttack, isBodyAttack } from '../../../../actor-rounds/domain/value-objects/actor-round-attack.vo.js';
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { NotFoundError, UnprocessableEntityError, ValidationError } from '../../../../shared/domain/errors/errors.js';
 import { lethalityOf, STRATEGIC_GAME_PORT } from '../../../../strategic/application/ports/strategic-game.port.js';
 import { StrategicGameApiClient } from '../../../../strategic/infrastructure/api-clients/api.strategic-game.adapter.js';
 import { Action } from '../../../domain/aggregates/action.js';
 import { FEAR_BALK, FEAR_RETREAT } from '../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
+import { ActorRoundTrait } from '../../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
 import type { ActionWarning } from '../../../domain/value-objects/action-medical.vo.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { ActionAttackCalculated } from '../../../domain/value-objects/action-attack-calculated.vo.js';
@@ -36,11 +38,14 @@ import type {
 } from '../../services/combat/index.js';
 import { COMBAT_SKILL_IDS, CombatModifierBag, CombatProcessor, sizeDifference, sourceAttackOf } from '../../services/combat/index.js';
 import { PrepareAttackCommand, PrepareAttackCommandItem } from '../commands/prepare-attack.command.js';
+import { type AttackTableModifiersPort, ATTACK_TABLE_MODIFIERS_PORT } from '../../ports/attack-table.port.js';
+import { specialManeuverModifier } from '../../../domain/services/special-maneuvers.js';
+import { type EffectivePace, effectiveActionPace, freeMovementPaceFor } from '../../../domain/services/free-movement-pace.js';
+import { ManeuverBaseModifiersService } from '../../services/maneuver/maneuver-base-modifiers.service.js';
+import { RoundBoCommitments } from '../../services/round-bo-commitments.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 /** An attack with the body (natural weapons, unarmed skills), which a disarmed actor can still make. */
-const isBodyAttack = (attack: ActorRoundAttack): boolean => attack.weaponCategory === 'natural' || !!attack.skillId?.startsWith('unarmed');
-
 @CommandHandler(PrepareAttackCommand)
 export class PrepareAttackHandler implements ICommandHandler<PrepareAttackCommand, Action> {
   private readonly logger = new Logger(PrepareAttackHandler.name);
@@ -53,6 +58,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     @Inject(STRATEGIC_GAME_PORT) private readonly strategicGameClient: StrategicGameApiClient,
     @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
     private readonly combatProcessor: CombatProcessor,
+    @Inject(ATTACK_TABLE_MODIFIERS_PORT) private readonly attackTables: AttackTableModifiersPort,
   ) {}
 
   async execute(command: PrepareAttackCommand): Promise<Action> {
@@ -61,6 +67,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const action = await this.actionRepository.findById(command.actionId);
     if (!action) throw new NotFoundError('Action', command.actionId);
     if (action.actionType === 'cast_spell') this.checkSpellAttack(action, command);
+    if (action.strayShot) PrepareAttackHandler.applyStrayShot(action, command);
 
     const game = await this.gameRepository.findById(action.gameId);
     if (!game) throw new NotFoundError('Game', action.gameId);
@@ -75,12 +82,17 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     const actors = await this.actorRoundRepository.findByGameAndRoundAndActors(game.id, game.round, actorRoundIds);
     if (actorRoundIds.length !== actors.length) throw new UnprocessableEntityError('Missing actors in the current round');
 
+    // Workspace spec 083: preparing again gives back what the action had reserved; saved once it is prepared.
+    const preparedAgain = (action.attacks ?? []).some(attack => !!attack.calculated);
+    actors.forEach(actor => actor.releaseBoReservations(action.id));
+
     const sourceActorRound = actors.find(a => a.actorId === action.actorId)!;
     // The AP of the attack come from the ledger; below the minimum it cannot be prepared unless forced (spec 011, §4).
     action.checkResolvable(sourceActorRound, currentPhase);
     const warnings = PrepareAttackHandler.chargeWarnings(command, sourceActorRound);
     action.actionPoints = action.apOf(sourceActorRound, currentPhase);
     const actionAttacks = command.attacks.map(attack => this.mapAttacks(attack, action, sourceActorRound));
+    actionAttacks.forEach(attack => PrepareAttackHandler.checkSpecialManeuvers(action, attack));
 
     const characters = await this.readSheets(actors);
     const sourceCharacter = characters.get(action.actorId);
@@ -91,9 +103,13 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     command.attacks.forEach(a => targets.add(a.modifiers.targetId));
     const targetsNumber = targets.size;
     const kataAttacks = actionAttacks.map(attack => sourceAttackOf(action, sourceActorRound, attack.attackName)!);
+    // Every action of the round: the foes of a target (workspace spec 079, decisions A1 and A2) are any actor's.
     const roundActions = await this.actionRepository
-      .findByRsql(`gameId==${action.gameId};round==${game.round};actorId=in=(${Array.from(actorRoundIds).join(',')})`, 0, 1000)
+      .findByRsql(`gameId==${action.gameId};round==${game.round}`, 0, 1000)
       .then(res => res.content);
+
+    // Workspace spec 080, decision 3: the free movement of the attacker made at the same time sets its pace.
+    const movementPace = freeMovementPaceFor(roundActions, action, currentPhase);
 
     // One after the other: an attack covered by the target's shield takes one of its blocks for the next ones.
     const reservedShieldBlocks = new Map<string, number>();
@@ -112,20 +128,44 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
         attackNumber,
         targetsNumber,
         gameLethality,
+        light: game.environment?.light ?? null,
+        movementPace,
       });
-      if (ctx.attack!.calculated!.rollModifiers.some(modifier => modifier.key === 'shield' || modifier.key === 'shield-block')) {
+      // Workspace spec 077, decision A1.2: an attack waiting for its Shield maneuver takes a block too (a failed roll spends it).
+      const shieldUsed = ctx.attack!.calculated!.rollModifiers.some(
+        modifier => modifier.key === 'shield' || modifier.key === 'shield-block',
+      );
+      if (shieldUsed || ctx.attack!.shieldManeuver) {
         reservedShieldBlocks.set(targetId, (reservedShieldBlocks.get(targetId) || 0) + 1);
       }
     }
     action.attacks = actionAttacks;
 
     const targetActors = actors.filter(a => a.actorId !== action.actorId);
-    action.processParryOptions(targetActors, roundActions, currentPhase);
+    // Workspace spec 079, decision A2: the Reverse Strike of each defender offsets the positional penalty of its parry.
+    const reverseStrikes = new Map(
+      targetActors.map(actor => [
+        actor.actorId,
+        this.mapSkills(characters.get(actor.actorId)).find(s => s.skillId === 'reverse-strike')?.bonus ?? 0,
+      ]),
+    );
+    // Workspace spec 084: the skill of the weapon each defender parries with, for its Combat Training maneuver.
+    const maneuverSkills = new Map(
+      targetActors.map(actor => [actor.actorId, PrepareAttackHandler.parryManeuverSkill(actor, characters.get(actor.actorId))]),
+    );
+    action.processParryOptions(targetActors, roundActions, currentPhase, reverseStrikes, maneuverSkills);
     action.markPrepared();
 
     action.updatedAt = new Date();
     const updated = await this.actionRepository.update(action);
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
+    if (preparedAgain) {
+      await new RoundBoCommitments(this.actionRepository, this.actorRoundRepository, this.eventPublisher).release(
+        action.gameId,
+        game.round,
+        [action.id],
+      );
+    }
     updated.refreshApState(sourceActorRound, currentPhase);
     updated.warnings = warnings;
     return updated;
@@ -161,6 +201,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       attackNumber: input.attackNumber,
       targetsNumber: input.targetsNumber,
       gameLethality: input.gameLethality,
+      light: input.light ?? null,
       sourceActor: input.actors.find(a => a.actorId === input.action.actorId),
       targetActor: input.actors.find(a => a.actorId === input.attack.modifiers.targetId),
       trace: [],
@@ -170,7 +211,9 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     ctx.sourceTraits = ctx.sourceActor.traits || [];
     ctx.targetTraits = ctx.targetActor.traits || [];
 
-    ctx.attackPreparation = this.mapAttackPreparation(ctx);
+    const pace = effectiveActionPace(input.attack.modifiers.pace, input.movementPace ?? null);
+    ctx.attackPreparation = this.mapAttackPreparation(ctx, pace);
+    ctx.attackPreparation.modifiers.specialManeuverModifier = await this.readSpecialManeuverModifier(ctx);
     ctx = await this.combatProcessor.runPhase('prepare', ctx);
 
     ctx.attackCalculation = this.calculatePreparedAttack(ctx);
@@ -185,13 +228,16 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       ctx.attackCalculation.calculated.fumble,
       ctx.skipped ?? [],
     );
+    ctx.attack!.calculated.pace = pace;
 
     return ctx;
   }
 
   /**
    * The attack of a cast (spec 030, phase 4) follows a successful SCR of an attack spell and comes before the cast is
-   * applied: a bolt strikes one target, a ball one attack per target in its area.
+   * applied: a bolt strikes one target, or up to 1 + tier with Scope Skills (workspace spec 077, decision C6), and a ball
+   * one attack per target in its area. A bolt with several targets splits its OB among them (P9): as `obSplit` says or
+   * in equal parts, which become the OB of each attack.
    */
   private checkSpellAttack(action: Action, command: PrepareAttackCommand): void {
     const spell = action.spell;
@@ -201,19 +247,114 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     if (spell.powerPointsSpent !== null && spell.powerPointsSpent !== undefined) {
       throw new ValidationError('The cast is already applied', 'err-spell-invalid-step');
     }
-    if (spell.attack.kind === 'bolt' && command.attacks.length > 1) {
-      throw new ValidationError('A bolt strikes a single target', 'err-spell-bolt-single-target');
+    const maxTargets = spell.attack.maxTargets ?? 1;
+    if (spell.attack.kind === 'bolt' && command.attacks.length > maxTargets) {
+      throw new ValidationError(
+        maxTargets > 1 ? `The bolt strikes up to ${maxTargets} targets` : 'A bolt strikes a single target',
+        'err-spell-bolt-single-target',
+        { maxTargets },
+      );
     }
     const targets = command.attacks.map(attack => attack.modifiers.targetId);
     if (new Set(targets).size !== targets.length) {
       throw new ValidationError('A target takes a single attack of the spell', 'err-spell-invalid-target');
     }
+    if (spell.attack.kind === 'bolt' && command.attacks.length > 1) {
+      PrepareAttackHandler.splitBolt(spell.attack.bo, command);
+    } else if (command.obSplit?.length) {
+      throw new ValidationError('Only a bolt with several targets splits its OB', 'err-spell-ob-split-invalid');
+    }
+  }
+
+  /** Workspace spec 077, P9: the OB of each target of a bolt (`obSplit`, or equal parts). */
+  private static splitBolt(bo: number, command: PrepareAttackCommand): void {
+    const split = command.obSplit;
+    if (split?.length) {
+      const sum = split.reduce((total, value) => total + value, 0);
+      if (split.length !== command.attacks.length || split.some(value => !Number.isInteger(value) || value < 0) || sum > Math.max(0, bo)) {
+        throw new ValidationError(
+          `The OB of the bolt (${bo}) is split in one whole part from 0 per target, adding up to it at most`,
+          'err-spell-ob-split-invalid',
+          { bo, targets: command.attacks.length },
+        );
+      }
+    }
+    const shares = splitBoltOb(bo, command.attacks.length, split);
+    command.attacks.forEach((attack, index) => (attack.modifiers.bo = shares[index]));
   }
 
   private getActorIds(action: Action, command: PrepareAttackCommand): string[] {
     const targetIds = command.attacks.map(a => a.modifiers.targetId);
     const protectors = command.attacks.flatMap(a => a.protectors || []);
-    return Array.from(new Set([...targetIds, ...protectors, action.actorId]));
+    // Workspace spec 079, A6: the combatants giving cover must be actors of the round too.
+    const meleeCover = command.attacks.flatMap(a => a.modifiers.special?.meleeCoverActorIds || []);
+    return Array.from(new Set([...targetIds, ...protectors, ...meleeCover, action.actorId]));
+  }
+
+  /**
+   * Workspace spec 079, decision A6 (§9.7 Firing into Melee): the attack of a stray shot is a single attack with the
+   * weapon that missed against the combatant chosen, at OB 0, without cover nor combatants in the way, as a normal attack.
+   */
+  static applyStrayShot(action: Action, command: PrepareAttackCommand): void {
+    const stray = action.strayShot!;
+    const attack = command.attacks[0];
+    if (command.attacks.length !== 1 || attack.attackName !== stray.attackName || attack.modifiers.targetId !== stray.targetActorId) {
+      throw new ValidationError(
+        `A stray shot is one attack with ${stray.attackName} against ${stray.targetActorId}`,
+        'err-stray-shot-invalid',
+        { attackName: stray.attackName, targetActorId: stray.targetActorId },
+      );
+    }
+    attack.modifiers.bo = 0;
+    attack.modifiers.cover = 'none';
+    attack.modifiers.special = { attackMode: 'normal' };
+    attack.protectors = null;
+  }
+
+  /**
+   * Workspace spec 079, decisions A6-A7: a disarm or subdual is a weapon attack, not a spell's; a disarm needs the
+   * defender's roll; only a ranged or thrown attack has combatants in the way, never the target or the attacker
+   * (`err-attack-mode-invalid`, `err-disarm-defense-roll-required`, `err-melee-cover-invalid`).
+   */
+  static checkSpecialManeuvers(action: Action, attack: ActionAttack): void {
+    const modifiers = attack.modifiers;
+    const mode = modifiers.attackMode ?? 'normal';
+    if (mode !== 'normal' && action.actionType === 'cast_spell') {
+      throw new ValidationError(`A spell attack cannot ${mode}`, 'err-attack-mode-invalid', { attackMode: mode });
+    }
+    if (mode === 'disarm' && (modifiers.disarmDefenseRoll === undefined || modifiers.disarmDefenseRoll === null)) {
+      throw new ValidationError("A disarm needs the total of the defender's roll", 'err-disarm-defense-roll-required');
+    }
+    const cover = modifiers.meleeCoverActorIds ?? [];
+    if (cover.length > 0 && attack.type === 'melee') {
+      throw new ValidationError('Only a ranged attack is fired into a melee', 'err-melee-cover-invalid', { reason: 'melee' });
+    }
+    if (cover.some(actorId => actorId === modifiers.targetId || actorId === action.actorId)) {
+      throw new ValidationError('The combatants in the way are neither the target nor the attacker', 'err-melee-cover-invalid', {
+        reason: 'self',
+      });
+    }
+  }
+
+  /**
+   * Workspace spec 079, decision A7: the disarm or subdual modifier of the weapon's attack table (Tables 9-7a and 9-7e),
+   * only for those modes. A table where the maneuver does not apply (balls, bolts) rejects it (`err-attack-mode-invalid`).
+   */
+  private async readSpecialManeuverModifier(ctx: CombatContext): Promise<number | null> {
+    const mode = ctx.attack!.modifiers.attackMode ?? 'normal';
+    if (mode === 'normal') {
+      return null;
+    }
+    const table = ctx.sourceAttack!.attackTable;
+    const modifiers = await this.attackTables.modifiers(table);
+    const value = specialManeuverModifier(mode === 'disarm' ? modifiers.disarm : modifiers.subdual, ctx.attack!.type);
+    if (value === null) {
+      throw new ValidationError(`The attack table ${table} does not allow to ${mode}`, 'err-attack-mode-invalid', {
+        attackMode: mode,
+        attackTable: table,
+      });
+    }
+    return value;
   }
 
   /**
@@ -228,6 +369,17 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
   }
 
   /** Combat skills of a sheet, with their ranks (0 for older sheets and stat blocks without them). */
+  /** Combat Training (§9.6): the skill of the weapon the actor parries with, as any other maneuver reads it. */
+  private static parryManeuverSkill(actor: ActorRound, character: ActorSheet | undefined): number {
+    const attackName = actor.getParryBreakdown()?.attackName;
+    const skill = actor.attacks.find(attack => attack.attackName === attackName)?.skillId;
+    if (!skill || !character) {
+      return 0;
+    }
+    const [skillId, specialization] = skill.split('@');
+    return ManeuverBaseModifiersService.skillBonus(character, skillId, specialization ?? null).bonus;
+  }
+
   private mapSkills(character: ActorSheet | undefined): CombatAttackSourceSkill[] {
     return (
       character?.skills
@@ -241,7 +393,7 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
   }
 
   /** The data the prepare plugins read. The modifier lists start empty: every modifier comes from a plugin. */
-  private mapAttackPreparation(ctx: CombatContext): CombatAttackPreparation {
+  private mapAttackPreparation(ctx: CombatContext, pace: EffectivePace | undefined): CombatAttackPreparation {
     const attack = ctx.attack!;
     const action = ctx.action;
     const attackModifiers = attack.modifiers;
@@ -277,7 +429,8 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
         bo: attackModifiers.bo || 0,
         bd: actorRoundTarget.defense.bd || 0,
         range: attackModifiers.range,
-        pace: attackModifiers.pace,
+        pace: pace?.pace,
+        paceMovementId: pace?.movementId,
         calledShotPenalty: attackModifiers.calledShotPenalty || 0,
         customBonus: attackModifiers.customBonus || 0,
         attackTable: attackInfo.attackTable,
@@ -338,8 +491,19 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
     if (source.isDisarmed() && !isBodyAttack(attack)) {
       throw new ValidationError(`The actor is disarmed: it cannot attack with ${attack.attackName}`, 'err-attack-disarmed');
     }
-    if (commandAttack.modifiers.bo > attack.currentBo) {
-      throw new ValidationError(`BO cannot be higher than current BO (${attack.currentBo})`);
+    const reaction = action.isReaction() ? action.reaction! : null;
+    if (reaction) {
+      PrepareAttackHandler.checkReactionWeapon(reaction.traitId, attack, source);
+    }
+    // Workspace spec 076, decision B1: a reaction is not limited by the OB given to parries; a fixed OB is not limited.
+    const maxBo = reaction ? source.getBoIgnoringParries(attack.attackName) : attack.currentBo;
+    // Workspace spec 082, decision 7 (§9.6): with no OB there is no attack, and an attack at 0 only adds its penalties.
+    const fixedOb = !!reaction && reaction.obOverride !== null;
+    if (action.actionType !== 'cast_spell' && !action.strayShot && !fixedOb && (commandAttack.modifiers.bo <= 0 || maxBo <= 0)) {
+      throw new ValidationError(`The attack ${attack.attackName} has no OB`, 'err-attack-no-ob', { attackName: attack.attackName });
+    }
+    if ((!reaction || reaction.obOverride === null) && commandAttack.modifiers.bo > maxBo) {
+      throw new ValidationError(`BO cannot be higher than current BO (${maxBo})`);
     }
     const parry = 0;
     // A foe can be surprised and stunned at once (§9.5): both bonuses apply.
@@ -373,10 +537,22 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       normalizeChargeSpeed(commandAttack.modifiers.chargeSpeed),
       commandAttack.modifiers.styleCriticalOption,
     );
+    const special = commandAttack.modifiers.special;
+    modifiers.attackMode = special?.attackMode ?? 'normal';
+    if (modifiers.attackMode === 'disarm') {
+      modifiers.disarmDefenseRoll = special?.disarmDefenseRoll ?? null;
+      modifiers.disarmTwoHanded = special?.disarmTwoHanded ?? false;
+    }
+    if (modifiers.attackMode === 'subdual') {
+      modifiers.subdualBonus = special?.subdualBonus ?? null;
+      modifiers.unfamiliarAnatomy = special?.unfamiliarAnatomy ?? false;
+    }
+    modifiers.meleeCoverActorIds = [...new Set(special?.meleeCoverActorIds ?? [])];
+    if (special?.extraJoints) modifiers.extraJoints = true;
     if (modifiers.styleCriticalOption) {
       checkStyleCriticalOption(source.activeStyle, commandAttack.attackName, modifiers.styleCriticalOption);
     }
-    return new ActionAttack(
+    const actionAttack = new ActionAttack(
       commandAttack.attackName,
       attack.type,
       modifiers,
@@ -387,5 +563,23 @@ export class PrepareAttackHandler implements ICommandHandler<PrepareAttackComman
       commandAttack.protectors,
       commandAttack.protectorPositions,
     );
+    if (reaction) {
+      actionAttack.reaction = { traitId: reaction.traitId, triggerActionId: reaction.triggerActionId, obOverride: reaction.obOverride };
+    }
+    return actionAttack;
+  }
+
+  /**
+   * Workspace spec 076, decision B1: a reaction attacks with a weapon of the specialization its talent was taken for
+   * (`err-reaction-weapon-mismatch`).
+   */
+  static checkReactionWeapon(traitId: string, attack: ActorRoundAttack, source: ActorRound): void {
+    if (ActorRoundTrait.tierForSkill(source.traits, traitId, attack.skillId) === 0) {
+      throw new ValidationError(
+        `The ${traitId} of the actor was not taken for the weapon of ${attack.attackName}`,
+        'err-reaction-weapon-mismatch',
+        { traitId, attackName: attack.attackName },
+      );
+    }
   }
 }

@@ -114,6 +114,7 @@ describe('Combat fighting styles (spec 032)', () => {
     own.attackTableEntry = { criticalSeverity: 'B' } as AttackTableEntry;
     await runPluginHook(CombatAttackSizePlugin, 'afterAttackRoll', own);
     expect(own.attackTableEntry.criticalSeverity).toBe('C');
+    expect(own.attack!.results?.severityAdjustment?.steps).toEqual([{ key: 'fighting-style', value: 1 }]);
   });
 
   it('makes each parry point worth more with Improved Parry, and lifts the unarmed restriction with Unarmed Parry', async () => {

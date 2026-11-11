@@ -13,6 +13,7 @@ import { type FumbleTablePort, FUMBLE_TABLE_PORT } from '../../ports/fumble-tabl
 import { CombatProcessor, sourceAttackOf } from '../../services/combat/index.js';
 import { FumbleHits } from '../../../domain/services/fumble-hits.js';
 import { UpdateFumbleRollCommand } from '../commands/update-fumble-roll.command.js';
+import { checkOpenEndedDice, DEFAULT_OPEN_ENDED } from '../../../../shared/domain/rolls/open-ended.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 
 @CommandHandler(UpdateFumbleRollCommand)
@@ -30,6 +31,7 @@ export class UpdateFumbleRollHandler implements ICommandHandler<UpdateFumbleRoll
 
   async execute(command: UpdateFumbleRollCommand): Promise<Action> {
     this.logger.log(`Execute << ${JSON.stringify(command)}`);
+    checkOpenEndedDice(command.dice, 'none', DEFAULT_OPEN_ENDED, { total: command.fumbleRoll });
 
     const action = await this.actionRepository.findById(command.actionId);
     if (!action) throw new NotFoundError('Action', command.actionId);

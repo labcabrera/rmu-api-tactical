@@ -10,8 +10,12 @@ import { AuthModule } from '../shared/infrastructure/security/auth.module.js';
 import { ResolveEnduranceCheckHandler } from '../actor-rounds/application/cqrs/handlers/resolve-endurance-check.handler.js';
 import { ResolveBreakageCheckHandler } from '../actor-rounds/application/cqrs/handlers/resolve-breakage-check.handler.js';
 import { StabilizeEffectHandler } from '../actor-rounds/application/cqrs/handlers/stabilize-effect.handler.js';
+import { AmputateLimbHandler, ReviveActorHandler } from '../actor-rounds/application/cqrs/handlers/limb-and-life.handlers.js';
 import { TreatInjuryHandler } from '../actor-rounds/application/cqrs/handlers/treat-injury.handler.js';
 import { CauterizationBurnService } from '../actor-rounds/application/services/cauterization-burn.service.js';
+import { HazardAttackService } from '../actor-rounds/application/services/hazard-attack.service.js';
+import { ResolveHazardHandler } from '../actor-rounds/application/cqrs/handlers/resolve-hazard.handler.js';
+import { ResolveCriticalAlertHandler } from '../actor-rounds/application/cqrs/handlers/resolve-critical-alert.handler.js';
 import { MedicalRollService } from '../actor-rounds/application/services/medical-roll.service.js';
 import { ActorsRoundModule } from '../actor-rounds/actor-rounds.module.js';
 import { GamesModule } from '../games/games.module.js';
@@ -29,6 +33,7 @@ import { ManageActionPointsHandler } from './application/cqrs/handlers/manage-ac
 import { UpdateActionHandler } from './application/cqrs/handlers/update-action.handler.js';
 import { PrepareAttackHandler } from './application/cqrs/handlers/prepare-attack.handler.js';
 import { CompleteActionHandler } from './application/cqrs/handlers/complete-action.handler.js';
+import { InterruptHeldActionsHandler } from './application/cqrs/handlers/interrupt-held-actions.handler.js';
 import { ResolveManeuverHandler } from './application/cqrs/handlers/resolve-maneuver.handler.js';
 import { ResolveMovementHandler } from './application/cqrs/handlers/resolve-movement.handler.js';
 import { UpdateAttackRollHandler } from './application/cqrs/handlers/update-attack-roll.handler.js';
@@ -47,6 +52,7 @@ import { ManeuverBaseModifiersService } from './application/services/maneuver/ma
 import { ManeuverContextService } from './application/services/maneuver/maneuver-context.service.js';
 import { ApiAttackTableAdapter } from './infrastructure/api-clients/api.attack-table.adapter.js';
 import { ApiCriticalTableAdapter } from './infrastructure/api-clients/api.critical-table.adapter.js';
+import { ApiCriticalLocationAdapter } from './infrastructure/api-clients/api.critical-location.adapter.js';
 import { ApiFumbleTableAdapter } from './infrastructure/api-clients/api.fumble-table.adapter.js';
 import { ApiManeuverAdapter } from './infrastructure/api-clients/api.maneuver.adapter.js';
 import { ApiSkillCatalogAdapter } from './infrastructure/api-clients/api.skill-catalog.adapter.js';
@@ -58,8 +64,9 @@ import { ManeuverController } from './interfaces/http/maneuver.controller.js';
 import { MovementController } from './interfaces/http/movement.controller.js';
 
 import { ACTION_REPOSITORY } from './application/ports/action-repository.port.js';
-import { ATTACK_TABLE_PORT } from './application/ports/attack-table.port.js';
+import { ATTACK_TABLE_MODIFIERS_PORT, ATTACK_TABLE_PORT } from './application/ports/attack-table.port.js';
 import { CRITICAL_TABLE_PORT } from './application/ports/critical-table.port.js';
+import { CRITICAL_LOCATION_PORT } from './application/ports/critical-location.port.js';
 import { FUMBLE_TABLE_PORT } from './application/ports/fumble-table.port.js';
 import { SPELLCASTING_TABLES_PORT } from './application/ports/spellcasting-tables.port.js';
 import { ApiSpellcastingTablesAdapter } from './infrastructure/api-clients/api.spellcasting-tables.adapter.js';
@@ -106,6 +113,7 @@ import { SKILL_CATALOG_PORT } from './application/ports/skill-catalog.port.js';
     ResolveMovementHandler,
     ResolveManeuverHandler,
     CompleteActionHandler,
+    InterruptHeldActionsHandler,
     PrepareAttackHandler,
     DeclareParryHandler,
     UpdateAttackRollHandler,
@@ -124,7 +132,12 @@ import { SKILL_CATALOG_PORT } from './application/ports/skill-catalog.port.js';
     MedicalRollService,
     TreatInjuryHandler,
     CauterizationBurnService,
+    HazardAttackService,
+    ResolveHazardHandler,
+    ResolveCriticalAlertHandler,
     StabilizeEffectHandler,
+    AmputateLimbHandler,
+    ReviveActorHandler,
     MedicalActionService,
     ResolveMedicalHandler,
     ResolveUseItemHandler,
@@ -137,8 +150,16 @@ import { SKILL_CATALOG_PORT } from './application/ports/skill-catalog.port.js';
       useClass: ApiAttackTableAdapter,
     },
     {
+      provide: ATTACK_TABLE_MODIFIERS_PORT,
+      useClass: ApiAttackTableAdapter,
+    },
+    {
       provide: CRITICAL_TABLE_PORT,
       useClass: ApiCriticalTableAdapter,
+    },
+    {
+      provide: CRITICAL_LOCATION_PORT,
+      useClass: ApiCriticalLocationAdapter,
     },
     {
       provide: FUMBLE_TABLE_PORT,

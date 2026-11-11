@@ -1,4 +1,4 @@
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
 import { randomUUID } from 'crypto';
 import { AddEffectsCommand } from '../../../application/cqrs/commands/add-effects.command.js';
 import { ActorRoundEffect } from '../../../domain/value-objects/actor-round-effect.vo.js';
@@ -27,8 +27,24 @@ export class AddEffectDto {
   @IsNumber()
   rounds: number | undefined;
 
+  /** Actor the effect refers to (workspace spec 076): the foe of `aiming`, `critical-reroll` or `precision`. */
+  @IsOptional()
+  @IsString()
+  targetActorId?: string;
+
+  /**
+   * Data of the effect (workspace spec 076): `{ itemId }` for `aiming`, `{ kind: 'offense' | 'defense' }` for
+   * `critical-reroll` and `{ obPenalty }` for `precision`.
+   */
+  @IsOptional()
+  @IsObject()
+  data?: Record<string, unknown>;
+
   static toCommand(id: string, dto: AddEffectDto, userId: string, userRoles: string[]): AddEffectsCommand {
-    const effects = [new ActorRoundEffect(randomUUID(), dto.status, dto.value, dto.rounds)];
+    const effect = new ActorRoundEffect(randomUUID(), dto.status, dto.value, dto.rounds);
+    if (dto.targetActorId) effect.targetActorId = dto.targetActorId;
+    if (dto.data) effect.data = { ...dto.data };
+    const effects = [effect];
     return new AddEffectsCommand(id, 0, effects, undefined, userId, userRoles);
   }
 }

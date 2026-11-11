@@ -1,3 +1,4 @@
+import { SPASM } from '../../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
 import { isPreparing, rollModifiers, targetHasStatus } from '../combat-modifiers.js';
 import type { CombatPlugin } from '../combat-plugin.js';
 
@@ -8,7 +9,9 @@ export const CombatStunPlugin: CombatPlugin = {
   hooks: {
     prepare: [
       {
-        condition: ctx => isPreparing(ctx) && (targetHasStatus(ctx, 'stunned') || !!ctx.attack?.modifiers.stunnedFoe),
+        // Workspace spec 076: a spasm stuns as a Stun.
+        condition: ctx =>
+          isPreparing(ctx) && (targetHasStatus(ctx, 'stunned') || targetHasStatus(ctx, SPASM) || !!ctx.attack?.modifiers.stunnedFoe),
         apply: ctx => void rollModifiers(ctx).add('stunned-target', 20),
       },
     ],

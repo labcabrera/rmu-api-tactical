@@ -89,6 +89,21 @@ const spellbook = (current = 10): CharacterSpellcasting => ({
           powerPoints: 1,
         },
         {
+          // Workspace spec 077: a mental attack (Iron Will) of 5 power points (Power Recycling).
+          spell: {
+            id: 'mind',
+            name: 'E2E Mind',
+            level: 1,
+            modifiers: {
+              type: 'force',
+              subtype: 'mental-attack',
+              instant: false,
+              resistance: { kind: 'realm', modifier: 0, scaling: null },
+            },
+          },
+          powerPoints: 5,
+        },
+        {
           spell: {
             id: 'big',
             name: 'E2E Big',
@@ -394,5 +409,164 @@ describe('attack spells (phase 4)', () => {
       attacks: [{ attackName: 'x', modifiers: { targetId: 'lurtz', bo: 5 }, protectors: null }],
     });
     expect(prepared.body).toMatchObject({ code: 'err-spell-no-attack' });
+  });
+});
+
+describe('magical talents (workspace spec 077, block C)', () => {
+  type Trait = { traitId: string; tier: number; specialization?: string };
+  const withTraits = (id: string, traits: Trait[], overrides: Parameters<typeof character>[1] = {}) =>
+    e2e.world.characters.set(id, character(id, { ...overrides, traits }));
+
+  afterEach(() => {
+    e2e.world.characters.set('gandalf', character('gandalf'));
+    e2e.world.characters.set(
+      'lurtz',
+      character('lurtz', { faction: { id: 'faction-2', name: 'Uruk-hai' }, resistances: [{ resistance: 'essence', totalBonus: 10 }] }),
+    );
+    e2e.world.spellFailure = { text: 'The spell fizzles.', pp: 'half-down' };
+  });
+
+  it('Quick-Caster casts in 3 AP without penalty, Eloquence adds to the SCR and Scope Skills splits a bolt', async () => {
+    const gandalf = character('gandalf', {
+      traits: [
+        { traitId: 'eloquence', tier: 2 },
+        { traitId: 'quick-caster', tier: 1, specialization: 'e2e-list' },
+        { traitId: 'scope-skills', tier: 1, specialization: 'e2e-list' },
+      ],
+    });
+    gandalf.skills.push({ skillId: 'directed-spell', specialization: 'elemental-bolts', totalBonus: 40, ranks: 10 });
+    e2e.world.characters.set('gandalf', gandalf);
+    const gameId = await gameInPhase1();
+    const action = (await declare(gameId, 'firebolt')).body as AttackActionBody & {
+      apProfile: { min: number; max: number };
+      spell: { spell: { adjusted?: { sources: { traitId: string }[] } } };
+    };
+    expect(action.apProfile).toEqual({ min: 2, max: 3 });
+    expect(action.spell.attack).toMatchObject({ kind: 'bolt', bo: 40, maxTargets: 2 });
+    expect(action.spell.spell.adjusted?.sources.map(source => source.traitId)).toContain('scope-skills');
+    await nextPhase(gameId);
+    await nextPhase(gameId);
+
+    const rolled = await as('owner').patch(`/v1/actions/${action.id}/spell/roll`, { roll: 60 });
+    expect(rolled.status).toBe(200);
+    const modifiers = (rolled.body as SpellActionBody).spell.roll!.modifiers;
+    expect(modifiers.find(modifier => modifier.key === 'eloquence')).toMatchObject({ value: 10, group: 'talent' });
+    expect(modifiers.map(modifier => modifier.key)).not.toContain('fast-casting');
+    // 60 + 5 ranks + 8 realm stat + 5 list type + 10 Eloquence
+    expect((rolled.body as SpellActionBody).spell.roll).toMatchObject({ totalRoll: 88 });
+
+    const prepare = (obSplit?: number[]) =>
+      as('owner').patch(`/v1/actions/${action.id}/attack/prepare`, {
+        attacks: [
+          { attackName: 'fire-bolt', modifiers: { targetId: 'lurtz', bo: 40, range: 20 }, protectors: null },
+          { attackName: 'fire-bolt-2', modifiers: { targetId: 'gandalf', bo: 40, range: 20 }, protectors: null },
+        ],
+        ...(obSplit ? { obSplit } : {}),
+      });
+    const bo = (body: unknown) =>
+      (body as AttackActionBody).attacks!.map(attack => attack.calculated.rollModifiers.find(modifier => modifier.key === 'bo')?.value);
+
+    const equal = await prepare();
+    expect(equal.status).toBe(200);
+    expect(bo(equal.body)).toEqual([20, 20]);
+    expect(bo((await prepare([30, 10])).body)).toEqual([30, 10]);
+    expect((await prepare([30, 30])).body).toMatchObject({ code: 'err-spell-ob-split-invalid' });
+  });
+
+  it('Graceful Recovery takes the failure roll down to 1, and Power Recycling proposes half the power points', async () => {
+    withTraits('gandalf', [
+      { traitId: 'graceful-recovery', tier: 3 },
+      { traitId: 'power-recycling', tier: 1 },
+    ]);
+    e2e.world.spellFailure = { text: 'The spell fizzles.', pp: 'normal' };
+    const gameId = await gameInPhase1();
+    const action = await declared(gameId, 'mind');
+    for (let phase = 2; phase <= 4; phase++) await nextPhase(gameId);
+    expect((await as('owner').patch(`/v1/actions/${action.id}/spell/roll`, { roll: -30 })).body).toMatchObject({
+      spell: { result: 'failure' },
+    });
+
+    const failure = await as('owner').patch(`/v1/actions/${action.id}/spell/failure-roll`, { roll: 12 });
+    expect(failure.status).toBe(200);
+    // 12 + 0 - 15 of Graceful Recovery III, never below 1
+    expect((failure.body as SpellActionBody).spell.failure).toMatchObject({ modifier: 0, talentModifier: -15, total: 1 });
+    expect(e2e.world.spellFailureLookups.at(-1)).toMatchObject({ roll: 1 });
+
+    const applied = await as('owner').patch(`/v1/actions/${action.id}/spell/apply`);
+    expect(applied.status).toBe(200);
+    // 5 power points of the result, half in favour of the caster
+    expect(applied.body).toMatchObject({ status: 'completed', spell: { powerPointsSpent: 2, powerPointsRecycled: 3 } });
+    expect(e2e.world.powerSpent).toEqual([{ characterId: 'gandalf', amount: 2 }]);
+  });
+
+  it('Iron Will adds to the RR of the target against a mental attack of Essence', async () => {
+    withTraits('lurtz', [{ traitId: 'iron-will', tier: 2 }], {
+      faction: { id: 'faction-2', name: 'Uruk-hai' },
+      resistances: [{ resistance: 'essence', totalBonus: 10 }],
+    });
+    const gameId = await gameInPhase1();
+    const action = await declared(gameId, 'mind');
+    for (let phase = 2; phase <= 4; phase++) await nextPhase(gameId);
+    expect((await as('owner').patch(`/v1/actions/${action.id}/spell/roll`, { roll: 60 })).body).toMatchObject({
+      spell: { result: 'success' },
+    });
+
+    const rr = await as('owner').patch(`/v1/actions/${action.id}/spell/resistance-rolls`, { targets: [{ actorId: 'lurtz', roll: 30 }] });
+    expect(rr.status).toBe(200);
+    const target = (rr.body as SpellActionBody).spell.targets![0];
+    expect(target.breakdown).toContainEqual(expect.objectContaining({ key: 'iron-will', value: 10, group: 'talent' }));
+    // 30 + 10 essence RR - 6 caster level + 10 Iron Will II
+    expect(target.total).toBe(44);
+  });
+});
+
+describe('free movement while casting (workspace spec 080)', () => {
+  const declareMovement = async (gameId: string, phaseStart = 1) => {
+    const response = await as('owner').post('/v1/actions', {
+      gameId,
+      actorId: 'gandalf',
+      actionType: 'movement',
+      phaseStart,
+      freeAction: true,
+    });
+    expect(response.status).toBe(201);
+    return response.body as { id: string; actionPoints: number };
+  };
+  const resolveMovement = (actionId: string, pace: string) =>
+    as('owner').patch(`/v1/actions/${actionId}/movement/resolve`, { modifiers: { pace, requiredManeuver: false } });
+
+  it('costs no AP, leaves the instantaneous spell free, goes up to run and adds its pace to the SCR', async () => {
+    const gameId = await gameInPhase1();
+    const movement = await declareMovement(gameId);
+    expect(movement.actionPoints).toBe(0);
+    // The instantaneous action of the round is still there: the instant spell takes no AP either
+    const instant = (await declared(gameId, 'sleep', true)) as SpellActionBody & { actionPoints: number };
+    expect(instant.actionPoints).toBe(0);
+
+    const sprint = await resolveMovement(movement.id, 'sprint');
+    expect([sprint.status, sprint.body]).toEqual([
+      400,
+      expect.objectContaining({ code: 'err-free-movement-pace', details: { pace: 'sprint' } }),
+    ]);
+    expect((await resolveMovement(movement.id, 'walk')).status).toBe(200);
+
+    const preview = await as('owner').post(`/v1/actions/${instant.id}/spell/preview`, {});
+    expect(preview.status).toBe(200);
+    expect((preview.body as { modifiers: Modifier[] }).modifiers.find(each => each.key === 'pace')).toMatchObject({
+      value: -25,
+      group: 'situation',
+      rule: 'Table 5-3',
+      params: { pace: 'walk', source: 'free-movement', movementId: movement.id },
+    });
+  });
+
+  it('a movement paid with AP takes its AP and does not penalize the cast', async () => {
+    const gameId = await gameInPhase1();
+    const paid = await as('owner').post('/v1/actions', { gameId, actorId: 'gandalf', actionType: 'movement', phaseStart: 1 });
+    expect([paid.status, (paid.body as { actionPoints: number }).actionPoints]).toEqual([201, 1]);
+    expect((await resolveMovement((paid.body as { id: string }).id, 'sprint')).status).toBe(200);
+    const instant = await declared(gameId, 'sleep', true);
+    const preview = await as('owner').post(`/v1/actions/${instant.id}/spell/preview`, {});
+    expect((preview.body as { modifiers: Modifier[] }).modifiers.some(each => each.key === 'pace')).toBe(false);
   });
 });

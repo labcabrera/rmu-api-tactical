@@ -6,6 +6,8 @@ import {
   ACTOR_ROUND_REPOSITORY,
 } from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
+import { ActorRoundEffect } from '../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
+import { randomUUID } from 'crypto';
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { NotFoundError, ValidationError } from '../../../../shared/domain/errors/errors.js';
 import { ActorSheetService } from '../../../../actor-rounds/application/services/actor-sheet.service.js';
@@ -13,6 +15,7 @@ import { Action } from '../../../domain/aggregates/action.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
 import { ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo.js';
 import { SIMPLE_ACTION_TYPES } from '../../../domain/value-objects/action-type.vo.js';
+import { accumulateAiming } from '../../../domain/services/aiming.js';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
 import { CompleteActionCommand } from '../commands/complete-action.command.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
@@ -20,11 +23,14 @@ import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../s
 /** Full dodge or block: the whole round (§9.6). */
 const FULL_DEFENSE_ACTION_POINTS = ActionApProfile.forAction('dodge').max;
 
+/** Effect of a prone actor (§9.8 Prone). */
+const PRONE = 'prone';
+
 /** Action phases of a round. */
 const ACTION_PHASES = 4;
 
 /**
- * Completes an action that has no rolls (stand up, dodge, draw and load, other) in the current phase, with the AP of
+ * Completes an action that has no rolls (stand up, dodge, draw and load, aim, other) in the current phase, with the AP of
  * the ledger (spec 011): it needs the minimum AP of its profile unless it is forced. Standing up checks its cost and
  * clears the actor's prone effects. A dodge is the 4 AP full dodge or full block of the round (§9.6): completing it
  * takes the AP of the phases left in the round, and sets the actor's defence mode.
@@ -71,8 +77,23 @@ export class CompleteActionHandler implements ICommandHandler<CompleteActionComm
 
     if (command.note !== undefined) action.description = command.note;
     action.close(actorRound, currentPhase);
+    // Workspace spec 076, decision B6: a full round aiming adds to the aiming of the actor.
+    const aimed = action.actionType === 'aim' && !!action.aim;
+    if (aimed) {
+      accumulateAiming(actorRound, action.aim!, { phase: currentPhase, spentAp: actorRound.getSpentAp(currentPhase) });
+    }
 
-    if (action.actionType === 'dodge' || actorRound.apLedger.length !== ledgerSize) {
+    // Workspace spec 079, decision A5: dropping prone leaves the actor prone.
+    const droppedProne = action.actionType === 'other' && action.otherAction?.kind === 'drop-prone' && !actorRound.hasEffect(PRONE);
+    if (droppedProne) {
+      const phase = game.getEffectPhase();
+      actorRound.applyAttackResults(undefined, [new ActorRoundEffect(randomUUID(), PRONE, undefined, undefined)], undefined, {
+        phase,
+        spentAp: phase >= 1 && phase <= ACTION_PHASES ? actorRound.getSpentAp(phase) : 0,
+      });
+    }
+
+    if (action.actionType === 'dodge' || aimed || droppedProne || actorRound.apLedger.length !== ledgerSize) {
       await this.actorRoundRepository.update(actorRound);
     }
     if (action.actionType === 'stand_up') {
@@ -120,7 +141,8 @@ export class CompleteActionHandler implements ICommandHandler<CompleteActionComm
     if (left > 0) {
       throw error();
     }
-    plan.forEach(([phase, ap]) => actorRound.spend(phase, action.id, ap));
+    // The whole round goes to the full defense: no concentration halves it (workspace spec 077).
+    plan.forEach(([phase, ap]) => actorRound.spend(phase, action.id, ap, 'spent', false));
   }
 
   private async clearProne(actorRound: ActorRound, command: CompleteActionCommand): Promise<void> {

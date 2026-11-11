@@ -107,6 +107,11 @@ export class FearCheckDto extends GroupCheckDto {
   @IsOptional()
   @IsObject()
   bonuses?: Record<string, number>;
+
+  @ApiProperty({ required: false, description: 'Workspace spec 087: the fear-check-suggested alert the check answers' })
+  @IsOptional()
+  @IsString()
+  alertId?: string;
 }
 
 export class LeaderRollDto extends GroupCheckDto {

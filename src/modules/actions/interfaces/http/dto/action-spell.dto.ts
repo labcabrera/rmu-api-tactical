@@ -1,6 +1,19 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, Max, Min, ValidateNested } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 import type { SpellPreview } from '../../../application/cqrs/handlers/spell.handlers.js';
 import {
   type ActionSpell,
@@ -82,6 +95,34 @@ export class RollSpellDto {
   @ApiProperty({ description: 'Open-ended roll', example: 72 })
   @IsNumber()
   roll: number;
+
+  @ApiProperty({ description: 'First die, unmodified (spec 076: a natural 01 or 66 of Terrible Luck or Spasm)', required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  unmodified?: number;
+
+  @ApiProperty({
+    description: 'Every die of the open-ended roll (spec 076): checked with the roll profile of the caster (err-roll-open-ended-invalid)',
+    required: false,
+    type: [Number],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsInt({ each: true })
+  dice?: number[];
+
+  @ApiProperty({
+    description: 'Spasm (spec 076): rounds of the spasm of a natural 66 (d10); rolled by the API when left out',
+    required: false,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  spasmRounds?: number;
 }
 
 export class PreviewSpellDto {
@@ -168,7 +209,12 @@ export class ResolveSpellResistanceDto {
 }
 
 export class ApplySpellDto {
-  @ApiProperty({ description: 'Power points to spend; the spell or the failure result gives them by default', required: false })
+  @ApiProperty({
+    description:
+      'Power points to spend; the spell or the failure result gives them by default (halved or none with Power Recycling ' +
+      'on a failure or no-effect, spec 077)',
+    required: false,
+  })
   @IsOptional()
   @IsInt()
   @Min(0)
@@ -204,7 +250,13 @@ export class SpellPreviewDto {
 
 /** The spell of a `cast_spell` action, as the domain keeps it (spec 030). */
 export class ActionSpellDto {
-  @ApiProperty({ type: 'object', additionalProperties: true, description: 'The spell cast, from the caster spellbook' })
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: true,
+    description:
+      'The spell cast, from the caster spellbook. Spec 077: `adjusted` {range, area, duration, sources[{traitId, tier, ' +
+      'applies}]} holds them with the magical talents of the caster, when any changes them',
+  })
   spell: ActionSpell['spell'];
 
   @ApiProperty({ type: 'object', additionalProperties: true, description: 'Realms, realm stat bonus, level and list ranks' })
@@ -219,7 +271,11 @@ export class ActionSpellDto {
   @ApiProperty({ type: String, enum: ['success', 'no-effect', 'failure'], required: false })
   result?: ActionSpell['result'];
 
-  @ApiPropertyOptional({ type: 'object', additionalProperties: true })
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: true,
+    description: 'Spell failure roll; spec 077: talentModifier (Inglorious Failure +5, Graceful Recovery -5 per tier), total from 1',
+  })
   failure?: ActionSpell['failure'];
 
   @ApiProperty({ type: 'array', items: { type: 'object' }, required: false })
@@ -228,11 +284,21 @@ export class ActionSpellDto {
   @ApiProperty({ type: Number, nullable: true, required: false })
   powerPointsSpent?: number | null;
 
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    required: false,
+    description: 'Spec 077: power points Power Recycling saved from a failed cast in the proposal (null without it)',
+  })
+  powerPointsRecycled?: number | null;
+
   @ApiPropertyOptional({
     type: 'object',
     additionalProperties: true,
     nullable: true,
-    description: 'Attack of an attack spell (bolt or ball), resolved with the attack endpoints after a successful SCR',
+    description:
+      'Attack of an attack spell (bolt or ball), resolved with the attack endpoints after a successful SCR. Spec 077: ' +
+      'maxTargets of a bolt with Scope Skills (1 when missing)',
   })
   attack?: ActionSpell['attack'];
 

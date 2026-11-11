@@ -7,10 +7,13 @@ import { ActionAttackRoll } from '../../../domain/value-objects/action-attack-ro
 import { ActionAttack, ActionAttackResult, Fumble } from '../../../domain/value-objects/action-attack.vo.js';
 import { Critical } from '../../../domain/value-objects/critical.vo.js';
 import { type AttackTablePort, ATTACK_TABLE_PORT } from '../../ports/attack-table.port.js';
+import { type CriticalLocationPort, CRITICAL_LOCATION_PORT } from '../../ports/critical-location.port.js';
 import type { CombatContext } from './combat-context.js';
 import { CombatModifierBag } from './combat-modifier-bag.js';
 import { sourceAttackOf } from './combat-source-attack.js';
+import { needsLocationRoll } from './plugins/combat-location-armor.plugin.js';
 import { CombatProcessor } from './engine/combat-processor.service.js';
+import { type DisarmResult, disarmResult } from '../../../domain/services/special-maneuvers.js';
 
 export interface ResolveAttackRollInput {
   action: Action;
@@ -22,6 +25,11 @@ export interface ResolveAttackRollInput {
   unmodified?: number;
   /** Every die of the open-ended roll, in order, when the client sends them. */
   dice?: number[];
+  /**
+   * Workspace spec 077, decision B2.1: the unmodified critical roll (1-100), required against a target with armour by
+   * location without a called shot; its location decides the armour of the attack.
+   */
+  criticalRoll?: number;
 }
 
 @Injectable()
@@ -29,6 +37,7 @@ export class CombatAttackRollResolverService {
   constructor(
     private readonly combatProcessor: CombatProcessor,
     @Inject(ATTACK_TABLE_PORT) private readonly attackTablePort: AttackTablePort,
+    @Inject(CRITICAL_LOCATION_PORT) private readonly criticalLocationPort: CriticalLocationPort,
   ) {}
 
   /**
@@ -52,9 +61,14 @@ export class CombatAttackRollResolverService {
       targetTraits: input.targetActor.traits || [],
       sourceAttack: this.getSourceAttack(input.action, input.sourceActor, attack.attackName),
       armorType: input.targetActor.defense.at,
+      locationRoll: input.criticalRoll,
       trace: [],
     };
     this.resetPreviousRoll(ctx);
+    ctx.fumbled = this.isFumble(ctx);
+    if (input.criticalRoll !== undefined && !ctx.fumbled && needsLocationRoll(attack, input.targetActor)) {
+      ctx.criticalLocations = await this.criticalLocationPort.findLocations();
+    }
 
     ctx = await this.combatProcessor.runPhase('beforeAttackRoll', ctx);
     ctx.rollTotal = ctx.attackRoll! + CombatModifierBag.from(calculated.rollModifiers).sum();
@@ -62,8 +76,13 @@ export class CombatAttackRollResolverService {
     calculated.rollTotal = ctx.rollTotal;
     attack.roll = new ActionAttackRoll(ctx.attackRoll!, undefined, undefined, input.unmodified);
 
-    if (this.isFumble(ctx)) {
+    const disarm = ctx.fumbled ? null : this.resolveDisarm(ctx);
+    if (ctx.fumbled || disarm === 'absolute-failure') {
+      // Table 9-7a: an absolute failure of a disarm fumbles the weapon, through the fumble roll of the attack.
       attack.results = new ActionAttackResult(undefined, undefined, new Fumble('pending_roll', undefined, undefined, undefined, undefined));
+    } else if (disarm && disarm !== 'partial') {
+      // Table 9-7a: a disarm that fails or succeeds makes no attack; its effects come when it is applied.
+      attack.results = new ActionAttackResult(undefined, undefined, undefined);
     } else {
       ctx.attackTableEntry = await this.attackTablePort.lookup({
         attackTable: ctx.sourceAttack!.attackTable,
@@ -75,6 +94,11 @@ export class CombatAttackRollResolverService {
     }
 
     ctx = await this.combatProcessor.runPhase('afterAttackRoll', ctx);
+    // The plugins change the entry (the damage scaled by size, the severity shifted); the attack loaded from Mongo
+    // holds a copy of it, so the final entry is written back.
+    if (ctx.attackTableEntry && attack.results) {
+      attack.results.attackTableEntry = ctx.attackTableEntry;
+    }
     this.createCriticals(ctx);
     calculated.criticalAdjustment = CombatModifierBag.from(calculated.criticalModifiers).sum() || undefined;
     ctx.action.refreshAttackStatuses();
@@ -92,10 +116,33 @@ export class CombatAttackRollResolverService {
     }
   }
 
+  /**
+   * Workspace spec 079, decision A7: a disarm reads its total on the bands of Table 9-7a. A partial success becomes a
+   * normal attack with the same roll and every modifier but the disarm ones, which `ctx.rollTotal` takes. Null when the
+   * attack is not a disarm.
+   */
+  private resolveDisarm(ctx: CombatContext): DisarmResult | null {
+    const attack = ctx.attack!;
+    attack.disarm = null;
+    if ((attack.modifiers.attackMode ?? 'normal') !== 'disarm') {
+      return null;
+    }
+    const total = ctx.rollTotal!;
+    const result = disarmResult(total);
+    const disarmModifiers = (attack.calculated!.rollModifiers || []).filter(modifier => modifier.source === 'disarm');
+    const attackTotal = result === 'partial' ? total - CombatModifierBag.from(disarmModifiers).sum() : null;
+    attack.disarm = { result, total, attackTotal, unusual: (ctx.unmodifiedRoll ?? ctx.attackRoll) === 66 };
+    if (attackTotal !== null) {
+      ctx.rollTotal = attackTotal;
+    }
+    return result;
+  }
+
   /** A new roll replaces the previous one: its results and what the roll phases added. */
   private resetPreviousRoll(ctx: CombatContext): void {
     const calculated = ctx.attack!.calculated!;
     calculated.breakageRoll = undefined;
+    calculated.locationRoll = undefined;
     calculated.criticalModifiers = (calculated.criticalModifiers || []).filter(modifier => modifier.group !== 'resolution');
     ctx.attack!.results = undefined;
     ctx.attack!.status = 'pending_attack_roll';
@@ -114,6 +161,10 @@ export class CombatAttackRollResolverService {
    * checked against the unmodified die (Fumbling, ch. 9), not the open-ended total.
    */
   private isFumble(ctx: CombatContext): boolean {
+    // Workspace spec 079, decision A6 (§9.7 Firing into Melee): the second attack of a stray shot ignores fumbles.
+    if (ctx.action.strayShot) {
+      return false;
+    }
     const fumble = ctx.attack?.calculated?.fumble ?? (ctx.sourceAttack!.fumble || 0);
     return fumble > 0 && (ctx.unmodifiedRoll ?? ctx.attackRoll!) <= fumble;
   }

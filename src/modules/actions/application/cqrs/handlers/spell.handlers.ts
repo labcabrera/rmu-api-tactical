@@ -6,6 +6,9 @@ import {
   ACTOR_ROUND_REPOSITORY,
 } from '../../../../actor-rounds/application/ports/actor-round-repository.port.js';
 import { ValidationError } from '../../../../shared/domain/errors/errors.js';
+import { rollProfileOf } from '../../../../actor-rounds/domain/value-objects/actor-roll-profile.vo.js';
+import { checkOpenEndedDice } from '../../../../shared/domain/rolls/open-ended.js';
+import { applyNaturalRoll } from '../../../domain/services/roll-talents.js';
 import { isUpstreamHttpError } from '../../../../shared/infrastructure/http/http-client.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 import { Action } from '../../../domain/aggregates/action.js';
@@ -17,6 +20,13 @@ import {
   spellAllowsRr,
   spellResistanceRoll,
 } from '../../../domain/services/spell-casting.rules.js';
+import {
+  elementalRrModifier,
+  failureTalentModifier,
+  ironWillModifier,
+  MIN_FAILURE_TOTAL,
+  powerRecycling,
+} from '../../../domain/services/spell-talents.js';
 import type { ActionSpellTarget, SpellRealm } from '../../../domain/value-objects/action-spell.vo.js';
 import type { KeyValueModifier } from '../../../domain/value-objects/key-value-modifier.vo.js';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
@@ -62,6 +72,7 @@ export class RollSpellHandler implements ICommandHandler<RollSpellCommand, Actio
     @Inject(ACTION_REPOSITORY) private readonly actionRepository: ActionRepository,
     @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
     private readonly spellCasting: SpellCastingService,
+    @Inject(ACTOR_ROUND_REPOSITORY) private readonly actorRoundRepository: ActorRoundRepository,
   ) {}
 
   async execute(command: RollSpellCommand): Promise<Action> {
@@ -69,6 +80,12 @@ export class RollSpellHandler implements ICommandHandler<RollSpellCommand, Actio
     checkRoll(command.roll);
     const context = await this.spellCasting.load(command.actionId);
     checkStatus(context, 'declared', 'Spellcasting Roll');
+    const natural = command.natural ?? {};
+    // Workspace spec 076, §2.8: the dice sent are an open-ended chain of the caster's roll profile.
+    checkOpenEndedDice(natural.dice, 'both', rollProfileOf(context.actorRound.traits), {
+      total: command.roll,
+      unmodified: natural.unmodified,
+    });
     context.action.checkResolvable(context.actorRound, context.currentPhase);
     const calculation = await this.spellCasting.calculate(context, command.options);
     this.spellCasting.checkPreparation(context.spell, calculation.options);
@@ -82,11 +99,27 @@ export class RollSpellHandler implements ICommandHandler<RollSpellCommand, Actio
     context.action.actionPoints = context.action.apOf(context.actorRound, context.currentPhase);
     context.action.status = result === 'failure' ? 'pending_roll' : 'pending_apply';
     context.action.updatedAt = new Date();
+    // Workspace spec 076, decision B10 (P5): Terrible Luck and Spasm on the natural roll of the cast.
+    const outcome = applyNaturalRoll(
+      context.actorRound,
+      natural.unmodified ?? natural.dice?.[0],
+      { kind: 'spell', actionId: context.action.id },
+      {
+        spasmRounds: natural.spasmRounds,
+        application: () => ({ phase: context.currentPhase, spentAp: context.actorRound.getSpentAp(context.currentPhase) }),
+      },
+    );
+    if (outcome.terribleLuck || outcome.spasm) {
+      await this.actorRoundRepository.update(context.actorRound);
+    }
     return saveAction(this.actionRepository, this.eventPublisher, context);
   }
 }
 
-/** The spell failure roll (Spell Law 4.4): open-ended, plus the negative SCR modifiers, on the realm's table. */
+/**
+ * The spell failure roll (Spell Law 4.4): open-ended, plus the negative SCR modifiers, on the realm's table. Workspace
+ * spec 077, decision C2: plus 5 per tier of Inglorious Failure, minus 5 per tier of Graceful Recovery, never below 1.
+ */
 @CommandHandler(RollSpellFailureCommand)
 export class RollSpellFailureHandler implements ICommandHandler<RollSpellFailureCommand, Action> {
   constructor(
@@ -106,9 +139,10 @@ export class RollSpellFailureHandler implements ICommandHandler<RollSpellFailure
       throw new ValidationError(`The list of ${spell.spell.name} is not of the ${realm} realm`, 'err-spell-invalid-realm');
     }
     const modifier = failureRollModifier(spell.roll?.modifiers ?? []);
-    const total = command.roll + modifier;
+    const talentModifier = failureTalentModifier(context.actorRound.traits);
+    const total = Math.max(MIN_FAILURE_TOTAL, command.roll + modifier + talentModifier);
     const lookup = await this.tables.findFailure(realm, spell.spell.type, total);
-    spell.failure = { realm, roll: command.roll, modifier, total, text: lookup.text, suggestedPp: lookup.pp };
+    spell.failure = { realm, roll: command.roll, modifier, talentModifier, total, text: lookup.text, suggestedPp: lookup.pp };
     context.action.status = 'pending_apply';
     context.action.updatedAt = new Date();
     return saveAction(this.actionRepository, this.eventPublisher, context);
@@ -162,6 +196,10 @@ export class ResolveSpellResistanceHandler implements ICommandHandler<ResolveSpe
       checkRoll(request.roll);
       const bonuses: Partial<Record<SpellRealm, number>> = {};
       spell.spell.listRealms.forEach(realm => (bonuses[realm] = target.resistanceBonus(realm) ?? request.bonus ?? 0));
+      // Workspace spec 077, decision C9: Iron Will counts against a mental attack spell of any realm.
+      const ironWill = ironWillModifier(target.traits, spell.spell);
+      // Workspace spec 079, D4: Elemental Resistance and Susceptibility against a spell of their element
+      const elemental = elementalRrModifier(target.traits, spell.spell);
       const rr = spellResistanceRoll({
         roll: request.roll!,
         bonuses,
@@ -170,6 +208,7 @@ export class ResolveSpellResistanceHandler implements ICommandHandler<ResolveSpe
         spellModifier: spell.spell.resistance?.modifier ?? 0,
         conditions,
         scr,
+        talentModifiers: [ironWill, elemental].filter((modifier): modifier is NonNullable<typeof modifier> => !!modifier),
       });
       targets.push({
         actorId: target.actorId,
@@ -193,7 +232,9 @@ export class ResolveSpellResistanceHandler implements ICommandHandler<ResolveSpe
 
 /**
  * Applies the cast (decision 10): spends the power points in strategic (the spell's, or what the spell failure result
- * takes, as the game master confirms) and completes the action. A cast never applied spends nothing.
+ * takes, as the game master confirms) and completes the action. A cast never applied spends nothing. Workspace spec
+ * 077, decision C3 (P8): with Power Recycling, a `failure` or `no-effect` proposes half of that (I) or none (II), and
+ * keeps what it saved in `powerPointsRecycled`.
  */
 @CommandHandler(ApplySpellCommand)
 export class ApplySpellHandler implements ICommandHandler<ApplySpellCommand, Action> {
@@ -213,10 +254,12 @@ export class ApplySpellHandler implements ICommandHandler<ApplySpellCommand, Act
     const spell = context.spell;
     const spellcasting = await this.spellCasting.readSpellcasting(context.actorRound);
     const current = spellcasting.power?.current ?? 0;
-    const suggested =
+    const base =
       spell.result === 'failure' && spell.failure
         ? failurePowerPoints(spell.failure.suggestedPp, spell.spell.powerPoints, current)
         : spell.spell.powerPoints;
+    const recycling = powerRecycling(context.actorRound.traits, spell.result, base);
+    const suggested = recycling ? recycling.charged : base;
     const amount = command.powerPoints ?? suggested;
     if (!Number.isInteger(amount) || amount < 0) {
       throw new ValidationError('Power points to spend must be a whole number from 0', 'err-spell-invalid-power');
@@ -235,6 +278,7 @@ export class ApplySpellHandler implements ICommandHandler<ApplySpellCommand, Act
       }
     }
     spell.powerPointsSpent = amount;
+    spell.powerPointsRecycled = recycling ? recycling.recycled : null;
     context.action.close(context.actorRound, context.currentPhase, 'completed');
     return saveAction(this.actionRepository, this.eventPublisher, context);
   }

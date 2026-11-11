@@ -13,4 +13,8 @@ export class ActorRoundMovement {
 
   @Prop({ required: true })
   baseDifficulty: string;
+
+  // Workspace spec 079, D2
+  @Prop({ type: Number, required: false })
+  dodgePenalty?: number;
 }

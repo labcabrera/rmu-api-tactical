@@ -4,6 +4,7 @@ import { HttpClient } from '../../../../src/modules/shared/infrastructure/http/h
 import type { TokenService } from '../../../../src/modules/shared/infrastructure/security/token.service.js';
 import { ApiAttackTableAdapter } from '../../../../src/modules/actions/infrastructure/api-clients/api.attack-table.adapter.js';
 import { ApiCriticalTableAdapter } from '../../../../src/modules/actions/infrastructure/api-clients/api.critical-table.adapter.js';
+import { ApiCriticalLocationAdapter } from '../../../../src/modules/actions/infrastructure/api-clients/api.critical-location.adapter.js';
 import { ApiFumbleTableAdapter } from '../../../../src/modules/actions/infrastructure/api-clients/api.fumble-table.adapter.js';
 import { ValidationError } from '../../../../src/modules/shared/domain/errors/errors.js';
 
@@ -95,6 +96,49 @@ describe('ApiCriticalTableAdapter', () => {
 
     expect(requestedUri(get)).toBe(`${BASE_URI}/critical-tables/K/E/100`);
     expect(result.effects).toEqual([]);
+  });
+
+  it('asks for the natural 66 row (spec 077, B2.5)', async () => {
+    const get = mockGet(tableEntry);
+
+    await adapter.lookup({ criticalType: 'S', criticalSeverity: 'C', roll: 66, location: 'chest', natural: true });
+
+    expect(requestedUri(get)).toBe(`${BASE_URI}/critical-tables/S/C/66?location=chest&natural=true`);
+  });
+});
+
+describe('ApiCriticalLocationAdapter (spec 077, B2.2)', () => {
+  it('reads the map once, with the token, with the limbs as attack locations', async () => {
+    const adapter = new ApiCriticalLocationAdapter(tokenService, httpClient, configService);
+    const get = mockGet([
+      { from: 1, to: 10, location: 'leg' },
+      { from: 11, to: 20, location: 'arm' },
+      { from: 21, to: 100, location: null },
+    ]);
+
+    const first = await adapter.findLocations();
+    const second = await adapter.findLocations();
+
+    expect(requestedUri(get)).toBe(`${BASE_URI}/critical-tables/locations`);
+    expect(get.mock.calls[0][1]).toEqual(withToken);
+    expect(get).toHaveBeenCalledTimes(1);
+    expect(second).toBe(first);
+    expect(first).toEqual([
+      { from: 1, to: 10, location: 'legs' },
+      { from: 11, to: 20, location: 'arms' },
+      { from: 21, to: 100, location: null },
+    ]);
+  });
+
+  it('asks again after a failed read', async () => {
+    const adapter = new ApiCriticalLocationAdapter(tokenService, httpClient, configService);
+    answer(500, { error: 'down' });
+    await expect(adapter.findLocations()).rejects.toBeDefined();
+
+    const get = mockGet([{ from: 1, to: 100, location: 'chest' }]);
+
+    await expect(adapter.findLocations()).resolves.toEqual([{ from: 1, to: 100, location: 'chest' }]);
+    expect(get).toHaveBeenCalledTimes(1);
   });
 });
 

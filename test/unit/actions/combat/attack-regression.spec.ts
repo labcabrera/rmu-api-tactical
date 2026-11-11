@@ -28,9 +28,11 @@ import type {
   RestrictedQuarters,
 } from '../../../../src/modules/actions/domain/value-objects/action-attack-modifiers.vo.js';
 import { ActionAttack, AttackTableEntry } from '../../../../src/modules/actions/domain/value-objects/action-attack.vo.js';
+import { hitMultiplierOf } from '../../../../src/modules/shared/domain/size-scale.js';
 import type { KeyValueModifier } from '../../../../src/modules/actions/domain/value-objects/key-value-modifier.vo.js';
 import { ActorRoundShield } from '../../../../src/modules/actor-rounds/domain/value-objects/actor-round-shield.vo.js';
 import { createCombatPluginContext } from './combat-plugin-test.factory.js';
+import { CRITICAL_LOCATIONS, fakeCriticalLocationPort } from '../../../fixtures/critical-locations.js';
 
 // ---------------------------------------------------------------------------------------------------------------
 // Key names
@@ -195,8 +197,13 @@ interface Expectation {
   criticalSplit: Record<string, string[]>;
   /** Sizes the critical severity is shifted by (Python: the attack size only). */
   sizeSteps: number;
-  /** Sizes the damage is scaled by: none since spec 007 (Python: the attack size). */
+  /** Sizes the damage is scaled by: the attack size (Python and spec 075). */
   damageSteps: number;
+  /**
+   * How the size scales the damage and the severity: Python's ×(1 + 0.5/step) rounded up and a severity clamped at Z,
+   * or spec 075's Hit Multiplier (Table 9-4a) rounded to the nearest and no critical two steps below A.
+   */
+  sizeRule: 'python' | 'spec-075';
 }
 
 interface Resolution {
@@ -248,10 +255,17 @@ const resolution = (c: RegressionCase, exp: Expectation): Resolution => {
     };
   }
   const entry = fakeTable(rawTotal, exp.at);
-  const damage = Math.ceil(entry.damage * (1 + exp.damageSteps * 0.5));
+  const python = exp.sizeRule === 'python';
+  const multiplier = hitMultiplierOf(exp.damageSteps);
+  const damage = python
+    ? Math.ceil(entry.damage * (1 + exp.damageSteps * 0.5))
+    : entry.damage > 0 && multiplier !== 1
+      ? Math.round(entry.damage * multiplier)
+      : entry.damage;
   const baseIndex = entry.criticalSeverity ? SEVERITIES.indexOf(entry.criticalSeverity) : -1;
-  const severity = baseIndex >= 0 ? SEVERITIES[clamp(baseIndex + exp.sizeSteps, 0, SEVERITIES.length - 1)] : null;
-  const type = entry.criticalType ?? null;
+  const shifted = baseIndex + exp.sizeSteps;
+  const severity = baseIndex < 0 || (!python && shifted < 0) ? null : SEVERITIES[clamp(shifted, 0, SEVERITIES.length - 1)];
+  const type = severity ? (entry.criticalType ?? null) : null;
   const criticals =
     type && severity
       ? (exp.criticalSplit[severity] ?? [severity]).map((s, index) => ({
@@ -433,6 +447,13 @@ const UNDECLARED_DIFFERENCES: Record<string, { note: string; adjust: (c: Regress
       exp.criticalSplit = TACTICAL_CRITICAL_SPLIT;
     },
   },
+  // Python added a negative skill as a further penalty; tactical ignores it, as it does for Footwork (spec 084).
+  'rq-confined-negative-skill': {
+    note: 'a negative skill adds no further penalty',
+    adjust: (_c, exp) => {
+      exp.rollModifiers = removeKeys(exp.rollModifiers, 'restricted-quarters-skill');
+    },
+  },
 };
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -440,19 +461,6 @@ const UNDECLARED_DIFFERENCES: Record<string, { note: string; adjust: (c: Regress
 // ---------------------------------------------------------------------------------------------------------------
 
 const SPEC_007_DIFFERENCES: Record<string, { note: string; adjust: (c: RegressionCase, exp: Expectation) => void }> = {
-  // §9.7: without a called shot a target with mixed armour is hit with its torso armour; no location is rolled.
-  'location-arms-at': {
-    note: 'torso armour without a called shot',
-    adjust: (c, exp) => {
-      exp.at = c.input.armor.bodyAt;
-    },
-  },
-  'location-chest-at-missing': {
-    note: 'torso armour without a called shot',
-    adjust: (c, exp) => {
-      exp.at = c.input.armor.bodyAt;
-    },
-  },
   // §9.7 Katas: the skill offsets the sum of the penalties once (Python offset each one).
   'multiple-attacks-targets-skill': {
     note: 'multiple attacks skill offsets the total once',
@@ -564,7 +572,7 @@ const prepare = async (input: CaseInput): Promise<PreparedAttack> => {
 
 const resolve = async (input: CaseInput, prepared: PreparedAttack) => {
   const lookup = vi.fn((request: AttackTableLookupRequest) => Promise.resolve(fakeTable(request.roll, request.armor)));
-  const resolver = new CombatAttackRollResolverService(processor, { lookup });
+  const resolver = new CombatAttackRollResolverService(processor, { lookup }, fakeCriticalLocationPort());
   const { ctx, attack } = prepared;
   await resolver.resolve({
     action: ctx.action,
@@ -573,6 +581,8 @@ const resolve = async (input: CaseInput, prepared: PreparedAttack) => {
     targetActor: ctx.targetActor!,
     roll: input.roll,
     unmodified: input.unmodified,
+    // Workspace spec 077, decision B2.2: the location of the case comes from a critical roll sent with the attack roll.
+    criticalRoll: input.location ? CRITICAL_LOCATIONS.find(range => range.location === input.location)?.from : undefined,
   });
   return lookup;
 };
@@ -593,7 +603,7 @@ const adjustCriticalRoll = async (prepared: PreparedAttack, criticalKey: string,
 
 /** What the Python calculator did where spec 007 now follows the rules: the expectation fields to check its model. */
 const pythonRules = (c: RegressionCase): Partial<Expectation> => ({
-  damageSteps: c.input.attackSize,
+  sizeRule: 'python',
   ...(SPEC_007_DIFFERENCES[c.id]
     ? {
         at: c.expected.effectiveAt,
@@ -612,7 +622,8 @@ const expectationOf = (c: RegressionCase): Expectation => {
     at: c.expected.effectiveAt,
     criticalSplit: PYTHON_CRITICAL_SPLIT,
     sizeSteps: c.input.attackSize,
-    damageSteps: 0,
+    damageSteps: c.input.attackSize,
+    sizeRule: 'spec-075',
   };
   c.deviations.forEach(deviation => DEVIATION_RULES[deviation.key].adjust(c, exp));
   UNDECLARED_DIFFERENCES[c.id]?.adjust(c, exp);
@@ -716,7 +727,8 @@ describe('attack regression against the Python calculator (spec 003)', () => {
         !exp.prepareCriticalModifiers.length &&
         exp.criticalSplit === PYTHON_CRITICAL_SPLIT &&
         exp.sizeSteps === c.input.attackSize &&
-        (exp.damageSteps === c.input.attackSize || c.expected.damage === c.expected.damageBase);
+        model.damage === c.expected.damage &&
+        model.criticalSeverity === c.expected.criticalSeverity;
       if (sameAsPython) {
         // Parity: no difference at all with the recorded Python output.
         expect(model).toEqual(pythonResolution(c));

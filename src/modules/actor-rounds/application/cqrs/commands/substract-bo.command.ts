@@ -1,9 +1,11 @@
 export class SubstractBoCommand {
   constructor(
     public readonly actorRoundId: string,
-    public readonly attackName: string,
-    public readonly bo: number,
+    /** All the attacks of one action: they spend together (workspace spec 082). */
+    public readonly spends: { attackName: string; bo: number }[],
     public readonly userId: string,
     public readonly roles: string[],
+    /** The action that spends it: what it reserved when it rolled stops counting (workspace spec 083). */
+    public readonly actionId?: string,
   ) {}
 }

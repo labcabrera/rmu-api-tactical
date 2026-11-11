@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.js';
 import { DYING, UNCONSCIOUS } from '../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
 import { HpLog } from '../../../actor-rounds/domain/value-objects/hp-log-entry.vo.js';
+import { MAX_FATIGUE_PENALTY } from '../../../actor-rounds/domain/value-objects/actor-round-fatigue.vo.js';
 import type { CharacterCondition, InjurySource } from '../../../actor-rounds/domain/value-objects/injury.vo.js';
 import { ValidationError } from '../../../shared/domain/errors/errors.js';
 import type { HealingCombatRules } from '../../../actor-rounds/domain/value-objects/treatment-difficulty.vo.js';
@@ -122,7 +123,14 @@ export class TacticalGameOutcomeCalculator {
       // Workspace spec 068, decisions 7 and 19: the items spent and the lasting modifiers created in this game
       itemsConsumed: (last.itemsConsumed ?? []).map(each => ({ ...each })),
       temporaryModifiers: (last.temporaryModifiers ?? []).filter(each => each.tacticalGameId === game.id).map(each => ({ ...each })),
+      // Workspace spec 079, C1: every limb lost at the end; strategic adds the new ones
+      lostLimbs: (last.lostLimbs ?? []).map(limb => ({ ...limb })),
     };
+    // Workspace spec 077, decision D10: the fatigue it brought and the one it ends with (the critical one is left out).
+    if (typeof snapshot?.fatigue === 'number') {
+      const fatigueEnd = Math.min(MAX_FATIGUE_PENALTY, Math.max(0, last.fatigue?.fatigue ?? 0));
+      outcome.fatigue = { start: snapshot.fatigue, end: fatigueEnd, delta: fatigueEnd - snapshot.fatigue };
+    }
     if (fate) {
       outcome.fate = fate;
     }

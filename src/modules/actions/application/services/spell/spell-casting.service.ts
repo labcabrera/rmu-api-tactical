@@ -22,11 +22,14 @@ import {
   type DirectedSpellSkill,
   directedSpellSpecialization,
   needsPreparation,
+  type MagicalExpertise,
   scrModifiers,
   scrSkipped,
   spellAttackEffect,
   spellAttackProfile,
 } from '../../../domain/services/spell-casting.rules.js';
+import { adjustRadius, adjustSpell, boltMaxTargets } from '../../../domain/services/spell-talents.js';
+import { freeMovementPaceFor } from '../../../domain/services/free-movement-pace.js';
 import {
   type ActionSpell,
   type ActionSpellOptions,
@@ -37,6 +40,12 @@ import {
 import type { KeyValueModifier } from '../../../domain/value-objects/key-value-modifier.vo.js';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
 import { type SpellcastingTablesPort, SPELLCASTING_TABLES_PORT } from '../../ports/spellcasting-tables.port.js';
+import { toOptionalKey } from '../../../../shared/domain/services/key.js';
+
+/** Magical Expertise skills (Core Law §3.14; workspace spec 079, decision B4). */
+const GRACE_SKILL_ID = 'grace';
+const SPELL_TRICKERY_SKILL_ID = 'spell-trickery';
+const TRANSCENDENCE_SKILL_ID = 'transcendence';
 
 /** A spell action with its game, current phase and caster round, read once per request. */
 export interface SpellActionContext {
@@ -97,11 +106,19 @@ export class SpellCastingService {
       );
     }
     const actionSpell = SpellCastingService.toActionSpell(spellcasting, list, known);
-    // An attack spell: its attack is fixed now, with the caster's Directed Spells skill (phase 4).
+    // Workspace spec 077, decision C5: range, area and duration with the caster's magical talents.
+    const adjusted = adjustSpell(actorRound.traits, actionSpell.spell);
+    if (adjusted) actionSpell.spell.adjusted = adjusted;
+    // An attack spell: its attack is fixed now, with the caster's Directed Spells skill (phase 4), and with the range,
+    // radius and targets of its talents (workspace spec 077, decision C6).
     const effect = spellAttackEffect(actionSpell.spell.effects);
     if (effect) {
       const directed = await this.readDirectedSpell(actorRound, effect.attackTable);
-      actionSpell.attack = spellAttackProfile(effect, actionSpell.spell.range, list.ranks, directed);
+      const radius = typeof effect.radius === 'number' ? adjustRadius(actorRound.traits, actionSpell.spell, effect.radius) : null;
+      actionSpell.attack = spellAttackProfile(effect, adjusted?.range ?? actionSpell.spell.range, list.ranks, directed, {
+        radius,
+        maxTargets: boltMaxTargets(actorRound.traits, actionSpell.spell),
+      });
     }
     return actionSpell;
   }
@@ -113,6 +130,32 @@ export class SpellCastingService {
     const character = await this.characters.findById(actorRound.characterId ?? actorRound.actorId);
     const skill = character?.skills.find(each => each.skillId === 'directed-spell' && each.specialization === specialization);
     return skill ? { ranks: skill.ranks ?? 0, totalBonus: skill.totalBonus } : null;
+  }
+
+  /**
+   * Workspace spec 079, decision B4: the caster's Magical Expertise for the list cast, from its sheet: Grace and Spell
+   * Trickery with the list key as their specialization (Spell Trickery without one counts for every list), and
+   * Transcendence. An NPC or a character without them has none.
+   */
+  async magicalExpertise(actorRound: ActorRound, spell: ActionSpell): Promise<MagicalExpertise | undefined> {
+    if (actorRound.actorType === 'npc') return undefined;
+    const character = await this.characters.findById(actorRound.characterId ?? actorRound.actorId);
+    const skills = character?.skills ?? [];
+    if (skills.length === 0) return undefined;
+    const list = toOptionalKey(spell.spell.listCode);
+    const bonus = (skillId: string, byList: boolean): number | undefined => {
+      const entries = skills.filter(skill => skill.skillId === skillId);
+      const entry = byList
+        ? (entries.find(skill => toOptionalKey(skill.specialization) === list) ?? entries.find(skill => !skill.specialization))
+        : entries[0];
+      return entry && entry.totalBonus > 0 ? entry.totalBonus : undefined;
+    };
+    const expertise: MagicalExpertise = {
+      grace: list ? bonus(GRACE_SKILL_ID, true) : undefined,
+      spellTrickery: bonus(SPELL_TRICKERY_SKILL_ID, true),
+      transcendence: bonus(TRANSCENDENCE_SKILL_ID, false),
+    };
+    return Object.values(expertise).some(value => value !== undefined) ? expertise : undefined;
   }
 
   /** The action, its game and phase and its caster's round; the action has to be a cast. */
@@ -132,9 +175,19 @@ export class SpellCastingService {
 
   /** Modifiers of the Spellcasting Roll with the AP the action has now (decisions 6 and 7). */
   async calculate(context: SpellActionContext, requested: Partial<ActionSpellOptions> | undefined): Promise<ScrCalculation> {
-    const options: ActionSpellOptions = { ...DEFAULT_SPELL_OPTIONS, ...(context.spell.options ?? {}), ...(requested ?? {}) };
+    // Workspace spec 077, decision B1.2: the Enc % of the armour the caster wears is the default of `armorEncumbrance`.
+    const options: ActionSpellOptions = {
+      ...DEFAULT_SPELL_OPTIONS,
+      armorEncumbrance: context.actorRound.armorEncumbrance ?? 0,
+      ...(context.spell.options ?? {}),
+      ...(requested ?? {}),
+    };
     const { action, actorRound, currentPhase } = context;
     const actionPoints = action.apOf(actorRound, currentPhase);
+    // Workspace spec 080, decision 4: the free movement of the caster at the same time.
+    const rsql = `gameId==${action.gameId};actorId==${action.actorId};round==${action.round}`;
+    const roundActions = (await this.actionRepository.findByRsql(rsql, 0, 100)).content;
+    const movementPace = freeMovementPaceFor(roundActions, action, currentPhase);
     const apPenalty = action.takesApPenalty() ? action.apProfile().penaltyFor(actionPoints) : 0;
     const input = {
       spell: context.spell.spell,
@@ -143,9 +196,11 @@ export class SpellCastingService {
       apPenalty,
       penalties: actorRound.getPenaltiesBySource(),
       actionPoints,
+      traits: actorRound.traits,
+      movementPace,
     };
     const tables = await this.tables.findModifiers();
-    const modifiers = scrModifiers(input, tables);
+    const modifiers = scrModifiers({ ...input, expertise: await this.magicalExpertise(actorRound, context.spell) }, tables);
     return {
       options,
       modifiers,

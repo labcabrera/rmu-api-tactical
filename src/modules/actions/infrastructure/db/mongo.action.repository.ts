@@ -49,10 +49,20 @@ export class MongoActionRepository extends MongoBaseRepository<Action, ActionMod
       apRange: doc.apRange ? { min: doc.apRange.min, max: doc.apRange.max } : null,
       continuesActionId: doc.continuesActionId ?? null,
       carriedAp: doc.carriedAp ?? null,
+      retroactive: doc.retroactive ?? false,
       spell: doc.spell ?? null,
       parryExclusions: doc.parryExclusions ?? null,
       medical: doc.medical ?? null,
       useItem: doc.useItem ?? null,
+      reaction: doc.reaction
+        ? { ...doc.reaction, obOverride: doc.reaction.obOverride ?? null, alertId: doc.reaction.alertId ?? null }
+        : null,
+      drawAndLoad: doc.drawAndLoad ? { itemId: doc.drawAndLoad.itemId ?? null } : null,
+      aim: doc.aim ? { targetActorId: doc.aim.targetActorId, itemId: doc.aim.itemId } : null,
+      otherAction: doc.otherAction
+        ? { kind: doc.otherAction.kind, attackName: doc.otherAction.attackName ?? null, ap: doc.otherAction.ap }
+        : null,
+      strayShot: doc.strayShot ? { ...doc.strayShot } : null,
       owner: doc.owner,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,

@@ -5,8 +5,11 @@ import { GAME_REPOSITORY, type GameRepository } from '../../../../games/applicat
 import type { AuthenticatedRequest } from '../../../../shared/interfaces/http/authenticated-request.js';
 import { ACTOR_ROUND_REPOSITORY, type ActorRoundRepository } from '../../../application/ports/actor-round-repository.port.js';
 
-/** `read`: as the game is read. `act`: a manager of the game or the owner of the actor (spec 021, decision 2). */
-export type ActorRoundAccessMode = 'read' | 'act';
+/**
+ * `read`: as the game is read. `act`: a manager of the game or the owner of the actor (spec 021, decision 2). `manage`:
+ * only a manager of the game, the game master (workspace spec 077, decision D2).
+ */
+export type ActorRoundAccessMode = 'read' | 'act' | 'manage';
 
 export const ActorRoundAccess = Reflector.createDecorator<ActorRoundAccessMode>();
 
@@ -30,6 +33,7 @@ export class ActorRoundAccessGuard implements CanActivate {
     const game = await this.gameRepository.findById(actorRound.gameId);
     if (!game) return true;
     if (mode === 'read') this.gameGuard.checkRead(game, userId, roles);
+    else if (mode === 'manage') this.gameGuard.checkUpdate(game, userId, roles);
     else this.gameGuard.checkAct(game, actorRound.actorId, userId, roles);
     return true;
   }

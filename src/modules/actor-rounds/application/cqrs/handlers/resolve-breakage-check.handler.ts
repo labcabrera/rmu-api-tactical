@@ -5,6 +5,7 @@ import { NotFoundError } from '../../../../shared/domain/errors/errors.js';
 import { ActorRound } from '../../../domain/aggregates/actor-round.js';
 import { type ActorRoundRepository, ACTOR_ROUND_REPOSITORY } from '../../ports/actor-round-repository.port.js';
 import { ResolveBreakageCheckCommand } from '../commands/resolve-breakage-check.command.js';
+import { Game } from '../../../../games/domain/aggregates/game.js';
 
 /**
  * Breakage check (§6.1, spec 019): the roll of an item of the actor resolved on Table 6-1. The damage goes to the
@@ -34,6 +35,7 @@ export class ResolveBreakageCheckHandler implements ICommandHandler<ResolveBreak
       strength: command.strength,
       modifiers: command.modifiers,
       tacticalGameName: game?.name,
+      phase: Game.effectPhaseIn(game, actorRound.round),
     });
     this.logger.debug(`Breakage check result: ${JSON.stringify(result)}`);
     const updated = await this.actorRoundRepository.update(actorRound);

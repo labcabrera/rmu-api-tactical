@@ -1,4 +1,5 @@
 import type { Action } from '../../../domain/aggregates/action.js';
+import type { FreeMovementPace } from '../../../domain/services/free-movement-pace.js';
 import type { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
 import type { ActorRoundAttack } from '../../../../actor-rounds/domain/value-objects/actor-round-attack.vo.js';
 import type { ActionAttack, AttackTableEntry } from '../../../domain/value-objects/action-attack.vo.js';
@@ -11,6 +12,8 @@ import type {
 } from './combat-attack-calculation.js';
 import type { CombatModifierOrigin } from './combat-modifier-bag.js';
 import type { SkippedRule } from '../../../domain/value-objects/skipped-rule.vo.js';
+import type { LightType } from '../../../domain/value-objects/light-type.vo.js';
+import type { CriticalLocationRange } from '../../../domain/services/critical-location.js';
 
 export interface CombatTraceEntry {
   source: string;
@@ -27,6 +30,15 @@ export interface CombatContext {
   /** Every die of the open-ended attack roll, in order, when the client sent them. */
   attackDice?: number[];
   rollTotal?: number;
+  /** The unmodified attack roll is a fumble: set before `beforeAttackRoll`. */
+  fumbled?: boolean;
+  /**
+   * Workspace spec 077, decision B2.1: the unmodified critical roll sent with the attack roll, which decides the location
+   * hit on a target with armour by location.
+   */
+  locationRoll?: number;
+  /** The roll → location map of the critical tables, read when a location roll decides the location. */
+  criticalLocations?: CriticalLocationRange[];
   location?: AttackLocation;
   sourceActor?: ActorRound;
   targetActor?: ActorRound;
@@ -49,6 +61,8 @@ export interface CombatContext {
   attackNumber?: number;
   targetsNumber?: number;
   gameLethality?: number;
+  /** Ambient light of the tactical game (workspace spec 076, P6); null or missing when it has none. */
+  light?: LightType | null;
   attackPreparation?: CombatAttackPreparation;
   /** Armour type the attack table is looked up with (the target's, or the one of the location hit). */
   armorType?: number | null;
@@ -80,6 +94,10 @@ export interface CombatPrepareAttackInput {
   attackNumber: number;
   targetsNumber: number;
   gameLethality: number;
+  /** Ambient light of the tactical game (workspace spec 076, P6). */
+  light?: LightType | null;
+  /** Workspace spec 080: the free movement of the attacker that overlaps the attack, whose pace counts. */
+  movementPace?: FreeMovementPace | null;
 }
 
 export interface CombatResolutionInput {

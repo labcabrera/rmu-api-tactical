@@ -29,6 +29,10 @@ export class ActorRoundInitiativeDto {
   @IsOptional()
   style?: number;
 
+  @ApiProperty({ description: 'What the actor lowered it by (spec 083), already in the total', required: false, example: -5 })
+  @IsOptional()
+  lowered?: number;
+
   static fromEntity(model: ActorRoundInitiative): ActorRoundInitiativeDto {
     const dto = new ActorRoundInitiativeDto();
     dto.base = model.base;
@@ -38,6 +42,7 @@ export class ActorRoundInitiativeDto {
     dto.strikeReflex = model.strikeReflex;
     dto.reflexes = model.reflexes;
     dto.style = model.style;
+    dto.lowered = model.lowered;
     return dto;
   }
 }

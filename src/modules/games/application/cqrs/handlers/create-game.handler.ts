@@ -2,6 +2,9 @@ import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { ValidationError } from '../../../../shared/domain/errors/errors.js';
 import { type CharacterPort, CHARACTER_PORT } from '../../../../strategic/application/ports/character.port.js';
+import { type FactionPort, FACTION_PORT } from '../../../../strategic/application/ports/faction.port.js';
+import { StrategicMembers } from '../../../domain/value-objects/strategic-member.vo.js';
+import { factionPlayersOf } from '../../services/faction-players.js';
 import { type StrategicGamePort, STRATEGIC_GAME_PORT } from '../../../../strategic/application/ports/strategic-game.port.js';
 import { Game } from '../../../domain/aggregates/game.js';
 import { Actor } from '../../../domain/value-objects/actor.vo.js';
@@ -21,6 +24,7 @@ export class CreateGameHandler implements ICommandHandler<CreateGameCommand, Gam
     @Inject(STRATEGIC_GAME_PORT) private readonly strategicGameClient: StrategicGamePort,
     @Inject(CHARACTER_PORT) private readonly characterClient: CharacterPort,
     private readonly gameNpcs: GameNpcsService,
+    @Inject(FACTION_PORT) private readonly factionPort: FactionPort,
     @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisher,
   ) {}
 
@@ -59,8 +63,16 @@ export class CreateGameHandler implements ICommandHandler<CreateGameCommand, Gam
     const environmentFaction =
       command.environmentFaction || environmentNpcs.length > 0 ? EnvironmentFactions.create(environmentName, environmentNpcs) : null;
     const environment = command.environment
-      ? new GameEnvironment(command.environment.temperatureFatigueModifier, command.environment.altitudeFatigueModifier)
+      ? new GameEnvironment(
+          command.environment.temperatureFatigueModifier,
+          command.environment.altitudeFatigueModifier,
+          command.environment.light ?? undefined,
+          command.environment.fog ?? undefined,
+          command.environment.extremeTemperature ?? undefined,
+        )
       : undefined;
+    // Workspace spec 079, C3: the extreme temperature has to give a critical (Table 15-3)
+    GameEnvironment.resolveTemperature(environment);
 
     const game = Game.create(
       command.strategicGameId,
@@ -74,6 +86,10 @@ export class CreateGameHandler implements ICommandHandler<CreateGameCommand, Gam
       strategicGame.owner,
       strategicGame.accessType,
       environmentFaction,
+      // Workspace spec 072: the members and faction players, until the events of strategic change them.
+      StrategicMembers.fromEvent(strategicGame.members),
+      await factionPlayersOf(this.factionPort, factions),
+      command.psychologyRules,
     );
     const saved = await this.gameRepository.save(game);
     const events = game.getUncommittedEvents();

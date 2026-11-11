@@ -14,12 +14,16 @@ export class ActorRoundMovementDto {
   @ApiProperty({ description: 'Base difficulty', example: 'normal' })
   baseDifficulty: string;
 
+  @ApiProperty({ description: 'Armour and load penalty of the dodge, without Beast of Burden (spec 079, D2)', example: -10 })
+  dodgePenalty: number;
+
   static fromEntity(entity: ActorRoundMovement): ActorRoundMovementDto {
     const dto = new ActorRoundMovementDto();
     dto.bmr = entity.bmr;
     dto.penalty = entity.penalty;
     dto.maxPace = entity.maxPace;
     dto.baseDifficulty = entity.baseDifficulty;
+    dto.dodgePenalty = ActorRoundMovement.dodgePenaltyOf(entity);
     return dto;
   }
 }

@@ -1,7 +1,10 @@
+import type { LostLimb } from '../../../domain/value-objects/lost-limb.vo.js';
+import type { ActorRoundBreath } from '../../../domain/value-objects/actor-round-breath.vo.js';
 import type { ItemConsumed, TemporaryModifier } from '../../../domain/value-objects/temporary-modifier.vo.js';
 import type { ActorRoundItem } from '../../../domain/value-objects/actor-round-item.vo.js';
 import type { ActorRoundActiveStyle, ActorRoundFightingStyle } from '../../../domain/value-objects/actor-round-fighting-style.vo.js';
 import type { ActorRoundResistance } from '../../../domain/value-objects/actor-round-resistance.vo.js';
+import type { ActorRoundHazard } from '../../../domain/value-objects/actor-round-hazard.vo.js';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import type { HydratedDocument } from 'mongoose';
 import type { Injury } from '../../../domain/value-objects/injury.vo.js';
@@ -13,6 +16,7 @@ import { ActorRoundHP } from './actor-round-hp.model.js';
 import { ActorRoundInitiative } from './actor-round-initiative.model.js';
 import { ActorRoundMovement } from './actor-round-movement.model.js';
 import { ActorRoundPenalty } from './actor-round-penalty.model.js';
+import { ActorRoundBoReservation } from './actor-round-bo-reservation.model.js';
 import { ActorRoundUsedBo } from './actor-round-used-bo.model.js';
 import {
   ActorRoundApLedgerEntry,
@@ -20,6 +24,7 @@ import {
   ActorRoundDefenseMode,
   ActorRoundEffect,
   ActorRoundFatigue,
+  ActorRoundHeldAction,
   ActorRoundHpLogEntry,
   ActorRoundPhaseLog,
   ActorRoundSnapshot,
@@ -91,6 +96,12 @@ export class ActorRoundModel {
   @Prop({ type: [ActorRoundUsedBo], required: true })
   usedBo: ActorRoundUsedBo[];
 
+  @Prop({ type: Number, default: null })
+  boCeiling: number | null;
+
+  @Prop({ type: [ActorRoundBoReservation], default: [] })
+  boReservations: ActorRoundBoReservation[];
+
   @Prop({ type: [Number], required: true })
   parries: number[];
 
@@ -161,6 +172,49 @@ export class ActorRoundModel {
 
   @Prop({ type: Number, required: false })
   frightLevel?: number | null;
+
+  /** Workspace spec 075: critical size of an NPC (steps) when it differs from its size, and its critical code I. */
+  @Prop({ type: Number, required: false })
+  criticalSize?: number | null;
+
+  @Prop({ type: Boolean, required: false })
+  reduceCriticalSeverity?: boolean;
+
+  /** Workspace spec 079, decision A3: critical code @ of an NPC (immune to stun). */
+  @Prop({ type: Boolean, required: false })
+  stunImmune?: boolean;
+
+  /** Workspace spec 077, decision B1.2: Enc % of the worn armour, from the character sheet. */
+  @Prop({ type: Number, required: false })
+  armorEncumbrance?: number;
+
+  /** Workspace spec 077: held actions of the actor, concentration foci. */
+  @Prop({ type: [ActorRoundHeldAction], required: false, default: [] })
+  heldActions?: ActorRoundHeldAction[];
+
+  /** Workspace spec 077, decision D12: height of the actor in feet; null for NPCs until the game master gives it. */
+  @Prop({ type: Number, required: false })
+  height?: number | null;
+
+  /** Workspace spec 077, decision D2: falls and falling objects of the round (stored as documents of their own shape). */
+  @Prop({ type: [Object], required: false, default: [] })
+  hazards?: ActorRoundHazard[];
+
+  /** Workspace spec 079, C1: limbs lost for good (plain subdocuments). */
+  @Prop({ type: [Object], required: false, default: [] })
+  lostLimbs?: LostLimb[];
+
+  /** Workspace spec 079, C6: the round the actor died in; null while alive. */
+  @Prop({ type: Number, required: false })
+  deathRound?: number | null;
+
+  /** Workspace spec 079, C4: the breath the actor holds (a plain subdocument); null while it breathes. */
+  @Prop({ type: Object, required: false })
+  breath?: ActorRoundBreath | null;
+
+  /** Workspace spec 079, C3: protected from the extreme temperature of the environment. */
+  @Prop({ type: Boolean, required: false })
+  protectedFromEnvironment?: boolean;
 
   @Prop({ type: ActorRoundSnapshot, required: false })
   snapshot?: ActorRoundSnapshot;

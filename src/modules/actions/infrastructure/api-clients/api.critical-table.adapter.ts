@@ -48,7 +48,8 @@ export class ApiCriticalTableAdapter implements CriticalTablePort {
     const token = await this.tokenService.getToken();
     const roll = Math.min(Math.max(Math.trunc(request.roll), MIN_ROLL), MAX_ROLL);
     const location = request.location ? TABLE_LOCATIONS[request.location] : undefined;
-    const query = location ? `?location=${location}` : '';
+    const params = [location ? `location=${location}` : '', request.natural ? 'natural=true' : ''].filter(Boolean);
+    const query = params.length > 0 ? `?${params.join('&')}` : '';
     const uri = `${this.apiAttackTablesUri}/critical-tables/${request.criticalType}/${request.criticalSeverity}/${roll}${query}`;
     const data = await this.httpClient.get<CriticalTableResponse>(uri, { token });
     return this.mapResult(data);

@@ -30,14 +30,14 @@ export class CombatModifierBag {
 
   /**
    * Adds a modifier and the skill's part of it: `<key>-skill` is min(|value|, skill). A positive skill offsets
-   * the modifier up to its size; a negative skill adds its whole value as a further penalty.
+   * the modifier up to its size; a negative skill offsets nothing and adds no further penalty.
    */
   addWithSkill(key: string, value: number, skill: number): CombatModifierBag {
     if (!value) {
       return this;
     }
     this.add(key, value);
-    this.add(`${key}-skill`, Math.min(Math.abs(value), skill));
+    this.add(`${key}-skill`, Math.min(Math.abs(value), Math.max(0, skill)));
     return this;
   }
 

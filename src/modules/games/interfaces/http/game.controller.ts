@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Logger, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Inject, Delete, Get, HttpCode, Logger, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBody, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../shared/infrastructure/security/jwt-auth.guard.js';
@@ -25,6 +25,7 @@ import { ApiErrors } from '../../../shared/interfaces/http/api-errors.decorator.
 import { CurrentUser } from '../../../shared/interfaces/http/current-user.decorator.js';
 import type { AuthenticatedUser } from '../../../shared/interfaces/http/authenticated-request.js';
 import { GameAccess, GameAccessGuard } from './security/game-access.guard.js';
+import { GAME_GUARD, type GameGuardPort } from '../../application/ports/game-guard.port.js';
 
 @UseGuards(JwtAuthGuard, GameAccessGuard)
 @Controller('v1/tactical-games')
@@ -35,6 +36,7 @@ export class GameController {
   constructor(
     private commandBus: CommandBus,
     private queryBus: QueryBus,
+    @Inject(GAME_GUARD) private readonly gameGuard: GameGuardPort,
   ) {}
 
   @GameAccess('read')
@@ -46,7 +48,7 @@ export class GameController {
     this.logger.debug(`Find game << ${id}`);
     const query = new GetGameQuery(id, user.id, user.roles);
     const entity = await this.queryBus.execute<GetGameQuery, Game>(query);
-    return GameDto.fromEntity(entity);
+    return this.toDto(entity, user);
   }
 
   @Get('')
@@ -57,7 +59,7 @@ export class GameController {
     this.logger.debug(`Find games << ${JSON.stringify(dto)}`);
     const query = new GetGamesQuery(dto.q, dto.page, dto.size, user.id, user.roles, dto.sort);
     const page = await this.queryBus.execute<GetGamesQuery, Page<Game>>(query);
-    const mapped = page.content.map(game => GameDto.fromEntity(game));
+    const mapped = page.content.map(game => this.toDto(game, user));
     return new Page<GameDto>(mapped, page.pagination.page, page.pagination.size, page.pagination.totalElements);
   }
 
@@ -71,7 +73,7 @@ export class GameController {
     this.logger.debug(`Create game << ${JSON.stringify(dto)}`);
     const command = CreateGameDto.toCommand(dto, user.id, user.roles);
     const entity = await this.commandBus.execute<CreateGameCommand, Game>(command);
-    return GameDto.fromEntity(entity);
+    return this.toDto(entity, user);
   }
 
   @GameAccess('manage')
@@ -83,7 +85,7 @@ export class GameController {
     this.logger.debug(`Update game << ${JSON.stringify(dto)}`);
     const command = UpdateGameDto.toCommand(id, dto, user.id, user.roles);
     const entity = await this.commandBus.execute<UpdateGameCommand, Game>(command);
-    return GameDto.fromEntity(entity);
+    return this.toDto(entity, user);
   }
 
   @GameAccess('delete')
@@ -107,7 +109,7 @@ export class GameController {
     this.logger.debug(`Start round for game << ${id}`);
     const command = new StartRoundCommand(id, user.id, user.roles);
     const entity = await this.commandBus.execute<StartRoundCommand, Game>(command);
-    return GameDto.fromEntity(entity);
+    return this.toDto(entity, user);
   }
 
   @GameAccess('manage')
@@ -120,7 +122,7 @@ export class GameController {
     this.logger.debug(`Start phase for game << ${id}`);
     const command = new StartPhaseCommand(id, user.id, user.roles);
     const entity = await this.commandBus.execute<StartPhaseCommand, Game>(command);
-    return GameDto.fromEntity(entity);
+    return this.toDto(entity, user);
   }
 
   @GameAccess('manage')
@@ -133,7 +135,7 @@ export class GameController {
     this.logger.debug(`Randomize initiatives for game << ${id}`);
     const command = new RandomizeInitiativesCommand(id, user.id, user.roles);
     const entity = await this.commandBus.execute<RandomizeInitiativesCommand, Game>(command);
-    return GameDto.fromEntity(entity);
+    return this.toDto(entity, user);
   }
 
   @GameAccess('read')
@@ -160,7 +162,7 @@ export class GameController {
   async finish(@Param('id') id: string, @Body() dto: FinishGameDto, @CurrentUser() user: AuthenticatedUser) {
     const command = new FinishGameCommand(id, dto.fates || [], user.id, user.roles);
     const entity = await this.commandBus.execute<FinishGameCommand, Game>(command);
-    return GameDto.fromEntity(entity);
+    return this.toDto(entity, user);
   }
 
   @GameAccess('manage')
@@ -172,6 +174,11 @@ export class GameController {
   async applyOutcome(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     const command = new ApplyGameCommand(id, user.id, user.roles);
     const entity = await this.commandBus.execute<ApplyGameCommand, Game>(command);
-    return GameDto.fromEntity(entity);
+    return this.toDto(entity, user);
+  }
+
+  /** The game with the `access` of the caller (workspace spec 072, contract 23). */
+  private toDto(game: Game, user: AuthenticatedUser): GameDto {
+    return GameDto.fromEntity(game, this.gameGuard.accessOf(game, user.id, user.roles));
   }
 }

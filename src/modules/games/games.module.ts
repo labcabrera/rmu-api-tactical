@@ -20,12 +20,15 @@ import { DeleteGameFactionsHandler } from './application/cqrs/handlers/delete-ga
 import { DeleteGameHandler } from './application/cqrs/handlers/delete-game.handler.js';
 import { DeleteGamesByStrategicIdHandler } from './application/cqrs/handlers/delete-games-by-strategic-id.handler.js';
 import { RemoveDeletedFactionHandler } from './application/cqrs/handlers/remove-deleted-faction.handler.js';
+import { SyncFactionPlayersHandler } from './application/cqrs/handlers/sync-faction-players.handler.js';
+import { SyncStrategicMembersHandler } from './application/cqrs/handlers/sync-strategic-members.handler.js';
 import { GetGameHandler } from './application/cqrs/handlers/get-game.handler.js';
 import { GetGamesHandler } from './application/cqrs/handlers/get-games.handler.js';
 import { RandomizeInitiativesHandler } from './application/cqrs/handlers/randomize-initiatives.handler.js';
 import { StartPhaseHandler } from './application/cqrs/handlers/start-phase.handler.js';
 import { StartRoundHandler } from './application/cqrs/handlers/start-round.handler.js';
 import { UpdateGameHandler } from './application/cqrs/handlers/update-game.handler.js';
+import { SetGameSidesHandler } from './application/cqrs/handlers/set-game-sides.handler.js';
 import { ApiRealmAdapter } from './infrastructure/api-clients/api.realm.adapter.js';
 import { GameNpcsService } from './application/services/game-npcs.service.js';
 import { NpcsModule } from '../npcs/npcs.module.js';
@@ -60,6 +63,7 @@ import { REALM_PORT } from './application/ports/realm.port.js';
     GetGameHandler,
     CreateGameHandler,
     UpdateGameHandler,
+    SetGameSidesHandler,
     DeleteGameHandler,
     StartRoundHandler,
     StartPhaseHandler,
@@ -69,6 +73,8 @@ import { REALM_PORT } from './application/ports/realm.port.js';
     DeleteGameActorsHandler,
     DeleteGamesByStrategicIdHandler,
     RemoveDeletedFactionHandler,
+    SyncStrategicMembersHandler,
+    SyncFactionPlayersHandler,
     RandomizeInitiativesHandler,
     GetFinishPreviewHandler,
     FinishGameHandler,

@@ -1,5 +1,9 @@
+import type { FogLevel } from '../../../../actions/domain/value-objects/fog-level.vo.js';
+import type { GameExtremeTemperature } from '../../../domain/value-objects/game-environment.vo.js';
+import type { LightType } from '../../../../actions/domain/value-objects/light-type.vo.js';
 import { AuthenticatedCommand } from '../../../../shared/application/cqrs/authenticated-command.js';
 import type { ActorType } from '../../../domain/value-objects/actor-type.vo.js';
+import type { PsychologyRules } from '../../../domain/value-objects/game-side.vo.js';
 
 export class CreateGameCommand extends AuthenticatedCommand {
   constructor(
@@ -18,6 +22,8 @@ export class CreateGameCommand extends AuthenticatedCommand {
     public readonly npcs?: GameNpcRequest[],
     /** Spec 055: the environment faction, with its NPCs. */
     public readonly environmentFaction?: CreateGameCommandEnvironmentFaction,
+    /** Workspace spec 100: `house` when not given. */
+    public readonly psychologyRules?: PsychologyRules,
   ) {
     super(userId, roles);
   }
@@ -27,6 +33,10 @@ export class CreateGameCommandEnvironment {
   constructor(
     public readonly temperatureFatigueModifier?: number,
     public readonly altitudeFatigueModifier?: number,
+    public readonly light?: LightType | null,
+    /** Workspace spec 079, C5 and C3. */
+    public readonly fog?: FogLevel | null,
+    public readonly extremeTemperature?: GameExtremeTemperature | null,
   ) {}
 }
 

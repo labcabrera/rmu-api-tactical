@@ -99,6 +99,7 @@ const setup = (attacks: ActionAttack[], parries: ActionParry[] = [], blocks: [nu
   const actorRoundRepository = {
     findByRsql: vi.fn(() => Promise.resolve({ content: [source, target] })),
     findById: vi.fn((id: string) => Promise.resolve([source, target].find(actor => actor.id === id))),
+    findByActorIdAndRound: vi.fn(() => Promise.resolve(undefined)),
     update,
   } as unknown as ActorRoundRepository;
   const gameRepository = {
@@ -162,6 +163,17 @@ describe('ApplyAttackHandler', () => {
 
     expect(target.defense.shield!.currentBlocks).toBe(1);
     expect(update).toHaveBeenCalledWith(target);
+  });
+
+  it('spends a block for an attack with a failed Shield maneuver too (workspace spec 077, A1.2)', async () => {
+    const failed = Object.assign(appliedAttack('offHand', [new KeyValueModifier('bo', 60)]), {
+      shieldManeuver: { targetId: 'defender', required: true, skill: 40, modifiers: [], roll: 20, passed: false },
+    });
+    const { run, target } = setup([appliedAttack('mainHand', [new KeyValueModifier('shield', -20)]), failed], [], [2, 0]);
+
+    await run();
+
+    expect(target.defense.shield!.currentBlocks).toBe(2);
   });
 
   it('does not spend a block the shield no longer has', async () => {
@@ -518,5 +530,26 @@ describe('ApplyAttackHandler: coated weapons (workspace spec 042, decision 11)',
     const ctx = coated(attack);
     await ctx.run();
     expect(ctx.source.items[0].coating).toMatchObject({ name: 'Test venom' });
+  });
+});
+
+describe('ApplyAttackHandler: aiming (spec 076, decision B6)', () => {
+  it('a target that takes damage loses its aiming', async () => {
+    const { run, target, effectCommands } = setup([criticalAttack([])]);
+    const aiming = new ActorRoundEffect('aiming-1', 'aiming', 10, undefined, 1, undefined, undefined, 'attacker');
+    target.effects.push(aiming);
+
+    await run();
+
+    expect(effectCommands().get('defender-round')!.consumedEffectIds).toContain('aiming-1');
+  });
+
+  it('a target that takes no damage keeps it', async () => {
+    const { run, target, effectCommands } = setup([appliedAttack('mainHand', [])]);
+    target.effects.push(new ActorRoundEffect('aiming-1', 'aiming', 10, undefined, 1, undefined, undefined, 'attacker'));
+
+    await run();
+
+    expect(effectCommands().get('defender-round')).toBeUndefined();
   });
 });

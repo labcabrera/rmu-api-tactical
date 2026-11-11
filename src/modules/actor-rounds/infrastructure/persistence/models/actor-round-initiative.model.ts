@@ -22,4 +22,7 @@ export class ActorRoundInitiative {
 
   @Prop({ type: Number, required: false })
   style?: number;
+
+  @Prop({ type: Number, required: false })
+  lowered?: number;
 }

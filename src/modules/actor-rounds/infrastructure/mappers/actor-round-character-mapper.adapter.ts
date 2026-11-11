@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ValidationError } from '../../../shared/domain/errors/errors.js';
+import { stepsOf } from '../../../shared/domain/size-scale.js';
 import { type Character, isCharacterNotAble } from '../../../strategic/application/ports/character.port.js';
 import type { ActorRoundCharacterMapperPort } from '../../application/ports/actor-round-character-mapper.port.js';
 import { ActorRound, BASE_ACTION_POINTS } from '../../domain/aggregates/actor-round.js';
@@ -7,7 +8,7 @@ import { ActorRoundAlert } from '../../domain/value-objects/actor-round-alert.vo
 import { ActorRoundAttack } from '../../domain/value-objects/actor-round-attack.vo.js';
 import { ActorRoundDefense } from '../../domain/value-objects/actor-round-defense.vo.js';
 import { ActorRoundEffect, UNCONSCIOUS } from '../../domain/value-objects/actor-round-effect.vo.js';
-import { ActorRoundFatigue } from '../../domain/value-objects/actor-round-fatigue.vo.js';
+import { ActorRoundFatigue, MAX_FATIGUE_PENALTY } from '../../domain/value-objects/actor-round-fatigue.vo.js';
 import { ActorRoundHP } from '../../domain/value-objects/actor-round-hp.vo.js';
 import { ActorRoundInitiative } from '../../domain/value-objects/actor-round-initiative.vo.js';
 import { ActorRoundMovement } from '../../domain/value-objects/actor-round-movement.vo.js';
@@ -15,12 +16,15 @@ import { ActorRoundPenalty } from '../../domain/value-objects/actor-round-penalt
 import { ActorRoundShield } from '../../domain/value-objects/actor-round-shield.vo.js';
 import { ActorRoundTrait } from '../../domain/value-objects/actor-round-trait.vo.js';
 import type { Injury } from '../../domain/value-objects/injury.vo.js';
+import { isLostLimbLocation } from '../../domain/value-objects/lost-limb.vo.js';
 import type { ActorRoundItem, ActorRoundItemKind, ActorRoundItemSlot } from '../../domain/value-objects/actor-round-item.vo.js';
 import type { StrategicItem } from '../../../strategic/application/ports/item.port.js';
 import { type ActorRoundFightingStyle, FIGHTING_STYLE_SKILLS } from '../../domain/value-objects/actor-round-fighting-style.vo.js';
 
-const ACTOR_SIZES: Record<string, number> = { medium: 0, small: -1, big: 1 };
 const BODY_DEVELOPMENT_SKILL_ID = 'body-development';
+
+/** Fighting style ability that covers one more attack with the shield per time taken (workspace spec 077, P2). */
+const STEADY_SHIELD = 'steady-shield';
 
 @Injectable()
 export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapperPort {
@@ -28,18 +32,26 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
     if (isCharacterNotAble(character)) {
       throw new ValidationError(`Character ${character.id} is dead or permanently unconscious`, 'err-character-not-able');
     }
-    if (ACTOR_SIZES[character.info.sizeId] === undefined) {
-      throw new ValidationError(`Character size ${character.info.sizeId} not supported`);
+    // Any size of the scale (workspace spec 075, decision 1); only an unknown id is rejected. Workspace spec 077,
+    // decision C13: the effective size (race size moved by Increased or Decreased Size), the race one for older sheets.
+    const sizeId = character.info.effectiveSizeId || character.info.sizeId;
+    const size = stepsOf(sizeId);
+    if (size === undefined) {
+      throw new ValidationError(`Character size ${sizeId} not supported`);
     }
     let shield: ActorRoundShield | null = null;
     if (character.defense.shield) {
-      shield = new ActorRoundShield(character.defense.shield.db, character.defense.shield.blockCount, 0);
+      // Workspace spec 077, decision A1.8 (P2): each Steady Shield of its fighting styles covers one more attack.
+      const blockCount = character.defense.shield.blockCount + ActorRoundCharacterMapperAdapter.steadyShieldTimes(character);
+      shield = new ActorRoundShield(character.defense.shield.db, blockCount, 0);
     }
     const movement = new ActorRoundMovement(
       character.movement.baseMovementRate,
       character.equipment.maneuverPenalty + character.equipment.encumbrancePenalty,
       character.movement.maxPace,
       character.equipment.movementBaseDifficulty,
+      // Workspace spec 079, D2: the dodge keeps the load penalty without Beast of Burden
+      character.equipment.maneuverPenalty + (character.equipment.dodgeEncumbrancePenalty ?? character.equipment.encumbrancePenalty),
     );
     const actorRound = ActorRound.create(
       gameId,
@@ -47,7 +59,7 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
       'character',
       character.id,
       character.name,
-      ACTOR_SIZES[character.info.sizeId],
+      size,
       character.info.raceName,
       character.experience.level,
       character.faction.id,
@@ -55,7 +67,7 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
       new ActorRoundInitiative(character.initiative.totalBonus, 0, undefined, undefined),
       BASE_ACTION_POINTS,
       new ActorRoundHP(character.hp.max, character.hp.current, this.getDeathThreshold(character)),
-      ActorRoundFatigue.empty(),
+      ActorRoundCharacterMapperAdapter.mapFatigue(character),
       ActorRoundPenalty.empty(),
       new ActorRoundDefense(
         character.defense.defensiveBonus,
@@ -88,15 +100,41 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
         hp: character.hp.current,
         injuryIds: injuries.map(injury => injury.id),
         conditionIds: conditions.map(condition => condition.id),
+        // Workspace spec 077, decision D10: the fatigue it brought, the start of the fatigue of the outcome.
+        fatigue: ActorRoundCharacterMapperAdapter.fatiguePenaltyOf(character),
       },
       character.temporaryModifiers ?? [],
     );
     actorRound.initItems(this.mapItems(character, items));
     actorRound.fightingStyles = this.mapFightingStyles(character);
+    // Workspace spec 077, decision B1.2: the Enc % of the worn armour, the default of the casts of the actor.
+    actorRound.armorEncumbrance = Math.max(0, character.equipment?.armorEncumbrance ?? 0);
+    // Workspace spec 077, decision D12: the height in feet, which a deliberate fall takes off the distance.
+    actorRound.height = typeof character.info.height === 'number' && character.info.height > 0 ? character.info.height : null;
+    // Workspace spec 079, C1: the limbs it lost for good (a lost arm is useless, a lost leg crawls)
+    actorRound.lostLimbs = (character.lostLimbs || [])
+      .filter(limb => isLostLimbLocation(limb.location) && (limb.side === 'left' || limb.side === 'right'))
+      .map(limb => ({ ...limb }));
     actorRound.resistances = (character.resistances || [])
       .filter(resistance => !!resistance.resistance)
       .map(resistance => ({ resistance: resistance.resistance, totalBonus: resistance.totalBonus || 0 }));
     return actorRound;
+  }
+
+  /**
+   * Workspace spec 077, decision D9: the fatigue penalty of the sheet (0-50) and the endurance bonus, Body Development
+   * plus the racial endurance bonus. Workspace spec 079, D2: plus Vigorous and Feeble (`endurance.traitBonus`).
+   */
+  static mapFatigue(character: Character): ActorRoundFatigue {
+    const bodyDevelopment = character.skills?.find(skill => skill.skillId === BODY_DEVELOPMENT_SKILL_ID)?.totalBonus ?? 0;
+    const endurance = bodyDevelopment + (character.endurance?.racialBonus ?? 0) + (character.endurance?.traitBonus ?? 0);
+    return new ActorRoundFatigue(endurance, ActorRoundCharacterMapperAdapter.fatiguePenaltyOf(character), 0);
+  }
+
+  /** The fatigue penalty points of the sheet, from 0 to 50. */
+  static fatiguePenaltyOf(character: Character): number {
+    const penalty = character.endurance?.fatiguePenalty ?? 0;
+    return Number.isFinite(penalty) ? Math.min(MAX_FATIGUE_PENALTY, Math.max(0, Math.abs(penalty))) : 0;
   }
 
   /**
@@ -155,6 +193,15 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
       }));
   }
 
+  /** Times Steady Shield was taken in the character's fighting styles (Character Companion ch. 4; workspace spec 077, P2). */
+  static steadyShieldTimes(character: Character): number {
+    return (character.skills || [])
+      .filter(skill => FIGHTING_STYLE_SKILLS.includes(skill.skillId) && (skill.ranks ?? 0) > 0)
+      .flatMap(skill => skill.styleAbilities || [])
+      .filter(ability => ability.abilityId === STEADY_SHIELD)
+      .reduce((sum, ability) => sum + Math.max(0, ability.times || 0), 0);
+  }
+
   /** Traits without an id (older sheets) are left out. */
   private mapTraits(character: Character): ActorRoundTrait[] {
     return (character.traits || [])
@@ -184,7 +231,7 @@ export class ActorRoundCharacterMapperAdapter implements ActorRoundCharacterMapp
         attack.fumble,
         false,
         attack.meleeRange,
-        attack.ranges,
+        attack.ranges ? attack.ranges.map(range => ({ ...range })) : attack.ranges,
         attack.twoHanded ?? false,
         attack.weaponCategory ?? 'standard',
         attack.skillId || null,

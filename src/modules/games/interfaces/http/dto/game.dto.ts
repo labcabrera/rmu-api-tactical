@@ -8,6 +8,9 @@ import { TacticalGameOutcomeDto } from './tactical-game-outcome.dto.js';
 import { ActorDto } from './actor.dto.js';
 import { GameEnvironmentDto } from './game-environment.dto.js';
 import { EnvironmentFactionDto } from './environment-faction.dto.js';
+import { GameSideDto } from './game-side.dto.js';
+import { PSYCHOLOGY_RULES, type PsychologyRules } from '../../../domain/value-objects/game-side.vo.js';
+import type { TacticalGameAccess } from '../../../domain/value-objects/strategic-member.vo.js';
 
 export class GameDto {
   @ApiProperty({ description: 'Game identifier', example: 'lotr' })
@@ -41,6 +44,22 @@ export class GameDto {
   })
   factions: string[];
 
+  @ApiProperty({
+    type: [GameSideDto],
+    description: 'Workspace spec 100: the sides of the game; without sides defined, one per faction (id = faction id, name null)',
+  })
+  sides: GameSideDto[];
+
+  @ApiProperty({ description: 'Workspace spec 100: the game master defined the sides (false: one side per faction)' })
+  sidesDefined: boolean;
+
+  @ApiProperty({
+    type: String,
+    enum: PSYCHOLOGY_RULES,
+    description: 'Workspace spec 100: fear alerts of the upkeep by heads (book) or by levels (house)',
+  })
+  psychologyRules: PsychologyRules;
+
   @ApiProperty({ description: 'Actors involved in the game', type: [ActorDto] })
   actors: ActorDto[];
 
@@ -56,7 +75,9 @@ export class GameDto {
 
   @ApiProperty({
     type: Object,
-    description: 'Workspace spec 068: thresholds of fallen allies already alerted by faction (`{factionId: [key]}`)',
+    description:
+      'Fear triggers already alerted (spec 068): by side `side:<sideId>` and by actor `actor:<actorId>` since spec 100; ' +
+      'older games keep keys by faction id',
   })
   fearThresholdsAlerted: Record<string, string[]>;
 
@@ -80,10 +101,21 @@ export class GameDto {
   @ApiProperty({ type: String, description: 'accessType of the strategic game: who reads this game (spec 021)', example: 'private' })
   accessType: string;
 
+  @ApiProperty({
+    type: String,
+    enum: ['read', 'act', 'manage'],
+    description:
+      'Workspace spec 072: what the caller does with the game. manage: change, play and delete it; act: act for some of its ' +
+      'actors (owner or faction player); read: only read it',
+    example: 'read',
+  })
+  access: TacticalGameAccess;
+
   @ApiProperty({ description: 'Outcome of a finished game (spec 013)', type: () => TacticalGameOutcomeDto, required: false })
   outcome?: TacticalGameOutcomeDto;
 
-  static fromEntity(entity: Game) {
+  /** The members and faction players of the game stay out: only the `access` of the caller goes (spec 072). */
+  static fromEntity(entity: Game, access: TacticalGameAccess) {
     const dto = new GameDto();
     dto.id = entity.id;
     dto.version = entity.version;
@@ -93,6 +125,9 @@ export class GameDto {
     dto.phase = entity.phase;
     dto.round = entity.round;
     dto.factions = entity.factions;
+    dto.sides = entity.effectiveSides().map(side => GameSideDto.fromEntity(side));
+    dto.sidesDefined = entity.sidesDefined();
+    dto.psychologyRules = entity.psychologyRulesOrDefault();
     dto.actors = entity.actors.map(actor => ActorDto.fromEntity(actor));
     dto.environment = entity.environment ? GameEnvironmentDto.fromEntity(entity.environment) : undefined;
     dto.environmentFaction = entity.environmentFaction ? EnvironmentFactionDto.fromEntity(entity.environmentFaction) : null;
@@ -102,6 +137,7 @@ export class GameDto {
     dto.owner = entity.owner;
     dto.strategicGameOwner = entity.strategicGameOwner;
     dto.accessType = entity.accessType;
+    dto.access = access;
     dto.outcome = entity.outcome ? TacticalGameOutcomeDto.fromEntity(entity.outcome) : undefined;
     return dto;
   }

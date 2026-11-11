@@ -1,4 +1,5 @@
 import type { ProtectPosition } from './action-attack-modifiers.vo.js';
+import type { Difficulty } from './difficulty.vo.js';
 import type { ModifierParams } from './key-value-modifier.vo.js';
 import type { ParryType } from './parry-type.vo.js';
 
@@ -23,7 +24,54 @@ export interface ParryExclusion {
   params?: ModifierParams;
 }
 
+/**
+ * The attacker strikes the defender from its flank or rear (workspace spec 079, decision A2; §9.6 Parrying): the DB the
+ * parry gives loses `penalty` (-30 flank, -70 rear), offset 1:1 by the defender's Reverse Strike.
+ */
+export interface ParryPositional {
+  position: 'flank' | 'rear';
+  penalty: number;
+  /** Reverse Strike bonus of the defender when the attack was prepared (0 without it). */
+  reverseStrike: number;
+}
+
+/**
+ * The absolute Combat Training maneuver of a parry against a further foe (workspace spec 079, decision A2; §9.6 Parrying
+ * more than one foe): from the second foe the defender parries in the round. It comes from a roll on the absolute table,
+ * or the game master gives the result (workspace spec 084); only a success or better lets the parry count.
+ */
+export interface ParryManeuver {
+  required: true;
+  /** Foes the defender already parried in the round. */
+  foes: number;
+  /** Result of the absolute maneuver (`absolute-failure`...`absolute-success`); null while pending. */
+  result: string | null;
+  passed: boolean | null;
+  roll?: number | null;
+  difficulty?: Difficulty | null;
+  /** Penalties of the defender (negative) when it rolled. */
+  penalty?: number | null;
+  total?: number | null;
+  /** The game master gave the result without a roll. */
+  manual?: boolean;
+}
+
+/** Results of the parry maneuver that let the parry count. */
+export const PARRY_MANEUVER_PASSED_RESULTS = ['success', 'absolute-success'];
+
+/** Results an absolute maneuver can give. */
+export const ABSOLUTE_MANEUVER_RESULTS = ['absolute-failure', 'failure', 'partial-success', 'success', 'absolute-success'];
+
 export class ActionParry {
+  /** The attacker is on the defender's flank or rear (workspace spec 079, decision A2). */
+  public positional?: ParryPositional | null;
+
+  /** The Combat Training maneuver this parry needs (workspace spec 079, decision A2). */
+  public parryManeuver?: ParryManeuver | null;
+
+  /** Combat Training of the weapon the actor parries with, when the attack was prepared (workspace spec 084). */
+  public maneuverSkill?: number;
+
   constructor(
     public readonly id: string,
     /** Actor identifier. Can be the target of the attack or a protector */
@@ -32,7 +80,7 @@ export class ActionParry {
     public readonly targetActorId: string,
     public readonly parryType: ParryType,
     /** Most OB the actor can give to this parry (for a protector, once the protect penalty is taken off). */
-    public readonly parryAvailable: number,
+    public parryAvailable: number,
     public parry: number,
     /**
      * Protect penalty (Table 9-7c) left after the Protect skill, 0 or negative: it is taken from the protector's OB
@@ -52,6 +100,6 @@ export class ActionParry {
      */
     public readonly fullParry?: boolean,
     /** Where `parryAvailable` comes from (spec 051). */
-    public readonly breakdown?: ParryBreakdown,
+    public breakdown?: ParryBreakdown,
   ) {}
 }

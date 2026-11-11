@@ -19,7 +19,7 @@ export const LOOK_OF_EAGLES_FEAR_RR_PER_TIER = 2;
 
 /**
  * Who takes a group check (workspace spec 022, decision 6): the actors of some factions and some single actors of the
- * game; with neither, the faction of `defaultActorId`.
+ * game; with neither, the side of `defaultActorId` (every faction of it, workspace spec 100, decision 7).
  */
 export interface GroupSelection {
   factionIds?: string[];
@@ -72,8 +72,16 @@ export class GroupCheckService {
     return { game, rounds: page.content };
   }
 
-  /** The members of the group, in the order of the game; an empty group is an error. */
-  static group(rounds: ActorRound[], selection: GroupSelection | undefined, defaultActorId: string | undefined): ActorRound[] {
+  /**
+   * The members of the group, in the order of the game; an empty group is an error. `allies` gives the factions of the
+   * side of a faction (`Game.allyFactionIds`); without it, the faction alone.
+   */
+  static group(
+    rounds: ActorRound[],
+    selection: GroupSelection | undefined,
+    defaultActorId: string | undefined,
+    allies?: (factionId: string) => string[],
+  ): ActorRound[] {
     let factionIds = selection?.factionIds ?? [];
     const actorIds = selection?.actorIds ?? [];
     if (factionIds.length === 0 && actorIds.length === 0) {
@@ -81,7 +89,7 @@ export class GroupCheckService {
       if (!anchor) {
         throw new ValidationError('Choose the group: factions, actors or a leader', 'err-group-required');
       }
-      factionIds = [anchor.factionId];
+      factionIds = allies ? allies(anchor.factionId) : [anchor.factionId];
     }
     const unknown = actorIds.filter(id => !rounds.some(round => round.actorId === id));
     if (unknown.length > 0) {
@@ -112,7 +120,10 @@ export class GroupCheckService {
     const leadershipBonus = request.leadershipBonus ?? skill?.totalBonus ?? 0;
     const lookOfEaglesTier = actorRound.traitTier(LOOK_OF_EAGLES);
     const recognized = request.recognized !== false;
-    const fearRrBonus = recognized ? leadershipRanks + LOOK_OF_EAGLES_FEAR_RR_PER_TIER * lookOfEaglesTier : 0;
+    // Workspace spec 100: a fallen leader (dead, dying, unconscious, incapacitated, paralyzed, routed or broken) gives
+    // no bonus, recognized or not.
+    const inspiring = recognized && !actorRound.isFallen();
+    const fearRrBonus = inspiring ? leadershipRanks + LOOK_OF_EAGLES_FEAR_RR_PER_TIER * lookOfEaglesTier : 0;
     return { actorRound, recognized, leadershipRanks, leadershipBonus, lookOfEaglesTier, fearRrBonus };
   }
 

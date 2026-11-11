@@ -124,4 +124,14 @@ export interface ActionWarning {
 }
 
 export type ActionWarningCode =
-  'treatment-interrupted' | 'exertion-reopens-wound' | 'limb-unusable' | 'fear-balk-pace' | 'fear-balk-charge' | 'fear-retreat-pace';
+  | 'attack-ob-reduced'
+  | 'movement-round-limit'
+  | 'movement-phase-over-dash'
+  | 'movement-prone-with-action'
+  | 'treatment-interrupted'
+  | 'exertion-reopens-wound'
+  | 'limb-unusable'
+  | 'limb-lost'
+  | 'fear-balk-pace'
+  | 'fear-balk-charge'
+  | 'fear-retreat-pace';

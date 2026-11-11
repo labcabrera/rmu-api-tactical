@@ -51,8 +51,8 @@ export const sizeDifference = (ctx: CombatContext): number => {
 /** Size of the target against attacks: a Light-boned target counts one size smaller per tier. */
 export const targetEffectiveSize = (ctx: CombatContext): number => (ctx.targetActor?.size || 0) - targetTraitTier(ctx, LIGHT_BONED);
 
-const sourceTraits = (ctx: CombatContext) => ctx.sourceTraits ?? ctx.sourceActor?.traits;
-const targetTraits = (ctx: CombatContext) => ctx.targetTraits ?? ctx.targetActor?.traits;
+export const sourceTraits = (ctx: CombatContext) => ctx.sourceTraits ?? ctx.sourceActor?.traits;
+export const targetTraits = (ctx: CombatContext) => ctx.targetTraits ?? ctx.targetActor?.traits;
 
 /** Tier of one of the source's traits (0 when it does not have it). */
 export const sourceTraitTier = (ctx: CombatContext, traitId: string): number => ActorRoundTrait.tierOf(sourceTraits(ctx), traitId);
@@ -82,6 +82,22 @@ export const targetSkill = (ctx: CombatContext, skillId: string): number => find
 /** Ranks of one of the target's combat skills. */
 export const targetSkillRanks = (ctx: CombatContext, skillId: string): number => findSkill(ctx.targetSkills, skillId)?.ranks || 0;
 
+/**
+ * Foes attacking the target of the attack this round (workspace spec 079, decision A1): the distinct actors with an
+ * attack against it in the round's actions, the source of this one always among them. At least 1.
+ */
+export const targetFoes = (ctx: CombatContext): number => {
+  const targetId = ctx.targetActor?.actorId ?? ctx.attack?.modifiers.targetId;
+  const foes = new Set<string>([ctx.action.actorId]);
+  (ctx.roundActions || [])
+    .filter(
+      action =>
+        !['interrupted', 'expired'].includes(action.status) && action.attacks?.some(attack => attack.modifiers.targetId === targetId),
+    )
+    .forEach(action => foes.add(action.actorId));
+  return foes.size;
+};
+
 /** Melee attack: thrown and ranged attacks are not. */
 export const isMelee = (ctx: CombatContext): boolean => ctx.attack?.type === 'melee';
 
@@ -98,6 +114,8 @@ export const COMBAT_SKILL_IDS = [
   'ambush',
   'running',
   'shield',
+  // Workspace spec 079, A7: offsets the disarm penalties of Table 9-7a.
+  'disarm',
 ];
 
 /** Inputs of the prepare phase. Only call it from a prepare hook (the handler always sets the preparation there). */

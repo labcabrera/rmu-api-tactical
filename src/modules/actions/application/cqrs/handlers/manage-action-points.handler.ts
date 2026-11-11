@@ -55,12 +55,21 @@ export class ManageActionPointsHandler implements ICommandHandler<ManageActionPo
         break;
     }
 
-    if (actorRound.apLedger.length !== ledgerSize) {
+    // Workspace spec 077, decision A2.1: a held action is a concentration focus of its actor.
+    const heldChanged = command.operation === 'hold' && actorRound.syncHeldActions(await this.actorActions(action));
+    if (actorRound.apLedger.length !== ledgerSize || heldChanged) {
       await this.actorRoundRepository.update(actorRound);
     }
     const updated = await this.actionRepository.update(action);
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     updated.refreshApState(actorRound, currentPhase);
     return updated;
+  }
+
+  /** The actions of the actor in the round, with the one being changed as it is now. */
+  private async actorActions(action: Action): Promise<Action[]> {
+    const rsql = `gameId==${action.gameId};round==${action.round};actorId==${action.actorId}`;
+    const stored = (await this.actionRepository.findByRsql(rsql, 0, 1000)).content;
+    return [...stored.filter(each => each.id !== action.id), action];
   }
 }

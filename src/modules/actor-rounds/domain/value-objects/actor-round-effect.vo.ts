@@ -46,6 +46,15 @@ export const FRENZY_DYING = 'frenzy-dying';
 /** Critical states that keep the actor from acting (enriched critical data). */
 export const INCAPACITATED = 'incapacitated';
 export const PARALYZED = 'paralyzed';
+/**
+ * Grapple (§9.8; workspace spec 077, decision A3.1): `value` is the percent of the grapple, a penalty to every action
+ * of the grappled actor. One effect per grappler (`targetActorId`, from the attacker of the critical): another grapple of
+ * the same grappler adds up. An object (a net, a vine) has no grappler and `data.object` true; `data.tightened` is set
+ * by an absolute failure of a Contortions escape, after which the actor cannot escape it alone.
+ */
+export const GRAPPLED = 'grappled';
+/** Statuses that make a grappler let go of its grapples (decision A3.4). */
+export const GRAPPLE_RELEASE_STATUSES = ['stunned', UNCONSCIOUS, INCAPACITATED, PARALYZED, DEAD];
 /** Statuses of the critical data that become injuries instead of effects (spec 013, §3). */
 export const PENALTY = 'penalty';
 export const BLEEDING = 'bleeding';
@@ -84,6 +93,66 @@ export const HALF_ACTIVITY_AP = 2;
 /** OB modifier of a blinded attacker: the pitch black row of Table 5-1 where sight is required (ch. 15). */
 export const BLINDED_MODIFIER = -100;
 
+/**
+ * Workspace spec 076, §2.4: positive OB and DB effects. `ob_bonus` and `db_bonus` (`value` > 0) add up, one effect
+ * each; `battle-cry` gives `value` (10) to both for the rest of the combat (no rounds) and is unique.
+ */
+export const OB_BONUS = 'ob_bonus';
+export const DB_BONUS = 'db_bonus';
+export const BATTLE_CRY = 'battle-cry';
+export const BATTLE_CRY_BONUS = 10;
+/**
+ * Workspace spec 076, §2.4: `aiming` (+`value` to the next ranged attack against `targetActorId` with the item
+ * `data.itemId`), `critical-reroll` (a critical against or from `targetActorId` can be rolled again; `data.kind` is
+ * `offense` or `defense`) and `precision` (`value` added to the next critical against `targetActorId`, `data.obPenalty`
+ * taken from its OB). Each one is unique: the new one replaces the old.
+ */
+export const AIMING = 'aiming';
+export const CRITICAL_REROLL = 'critical-reroll';
+export const PRECISION = 'precision';
+/** Kind of a `critical-reroll`: the attacker rerolls its critical (`offense`) or the defender the one it takes (`defense`). */
+export type CriticalRerollKind = 'offense' | 'defense';
+/**
+ * Workspace spec 076, §2.4: a spasm for `rounds` rounds: a stun of `value` (-50), 2 AP less and 1 hit lost in every
+ * upkeep. Unique: the new one replaces the old.
+ */
+export const SPASM = 'spasm';
+export const SPASM_STUN = -50;
+export const SPASM_AP_LOSS = 2;
+export const SPASM_HITS = 1;
+
+/**
+ * Adrenal moves (§3.4; workspace spec 079, decision B3), created by an `adrenal` maneuver from the next round:
+ * - `adrenal-defense`: `value` 1 (partial success) a partial dodge takes no concentration; 2 (success) also a full
+ *   dodge declared as a concentration; 4 (the doubled first round of an absolute success) a full dodge as an
+ *   instantaneous action; -1 (absolute failure) no dodge at all;
+ * - `adrenal-focus`: `value` to the Brawn, Gymnastic and Movement maneuvers (+25, +50 doubled, +12 partial);
+ * - `adrenal-strength`: `value` attack sizes of the melee attacks and the weight multiplier of the feats of strength
+ *   (+1 ×4, +2 ×8; -1 ×1/4 after an absolute failure);
+ * - `adrenal-speed` (above) gives its AP.
+ * `adrenal-block`: the mental block of an absolute failure of Table 3-4, `value` (-25) to the skill `data.skillId` for
+ * the rest of the combat (an absolute success of that skill lifts it).
+ */
+export const ADRENAL_DEFENSE = 'adrenal-defense';
+export const ADRENAL_FOCUS = 'adrenal-focus';
+export const ADRENAL_STRENGTH = 'adrenal-strength';
+export const ADRENAL_BLOCK = 'adrenal-block';
+export const ADRENAL_BLOCK_PENALTY = -25;
+/**
+ * Fortitude (§3.5; workspace spec 079, decision B4): `value` is the percent of the fatigue, hit loss, injury and stun
+ * penalties taken off (50, 100 in the first round of an absolute success, 25 on a partial success).
+ */
+export const FORTITUDE = 'fortitude';
+
+/**
+ * Workspace spec 079, C4 (§15.2): the actor failed a breath check and suffocates: 1d10 hits in every upkeep while it
+ * lasts. `data.underwater` when it inhaled water (it is also stunned -50). It ends when the game master stops the breath.
+ */
+export const SUFFOCATING = 'suffocating';
+
+/** Effects of which only the last one applied counts (workspace spec 076). */
+const REPLACING_STATUSES = [AIMING, CRITICAL_REROLL, PRECISION, SPASM];
+
 export const AP_EFFECT_STATUSES = [
   SURPRISED,
   FLATFOOTED,
@@ -121,6 +190,8 @@ export class ActorRoundEffect {
      * treated; the next successful stabilization removes it.
      */
     public causeTreated?: boolean,
+    /** Data the effect needs that `value` and `targetActorId` do not hold (workspace spec 076, §2.4). */
+    public data?: Record<string, unknown>,
   ) {}
 
   /** The effect is delayed and has not started by `round`. */
@@ -135,11 +206,18 @@ export class ActorRoundEffect {
       case DISARMED:
       case FRENZY:
       case FRENZY_DYING:
+      case BATTLE_CRY:
+      case SUFFOCATING:
       case 'surprised':
       case 'flatfooted':
         return true;
     }
     return false;
+  }
+
+  /** Only the last one counts: a new one replaces the one the actor had (workspace spec 076). */
+  static isReplacing(effect: ActorRoundEffect): boolean {
+    return REPLACING_STATUSES.includes(effect.status);
   }
 
   static isStackable(effect: ActorRoundEffect): boolean {

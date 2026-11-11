@@ -20,6 +20,8 @@ import {
   NON_VIOLENT,
   PRESSING_ADVANTAGE,
   UNCONSCIOUS,
+  AIMING,
+  DISARMED,
 } from '../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
 import {
   ActorRoundTrait,
@@ -40,12 +42,18 @@ import { type StrategicGame, STRATEGIC_GAME_PORT } from '../../../../strategic/a
 import { StrategicGameApiClient } from '../../../../strategic/infrastructure/api-clients/api.strategic-game.adapter.js';
 import { Action } from '../../../domain/aggregates/action.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
+import type { ActionWarning } from '../../../domain/value-objects/action-medical.vo.js';
 import { ADDITIONAL_CRITICAL, FUMBLE_HITS } from '../../../domain/services/fumble-hits.js';
+import { riposteTrigger } from '../../../domain/services/reaction-rules.js';
+import { aimingAfterRangedAttacks } from '../../../domain/services/aiming.js';
+import { precisionEffectFor } from '../../../domain/services/precision.js';
+import { isDisarmSuccess, pickStrayShotTarget } from '../../../domain/services/special-maneuvers.js';
 import { ActionAttack } from '../../../domain/value-objects/action-attack.vo.js';
 import type { CriticalEffect } from '../../../domain/value-objects/critical-result.vo.js';
 import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo.js';
 import { type ActionRepository, ACTION_REPOSITORY } from '../../ports/action-repository.port.js';
 import { ApplyAttackCommand } from '../commands/apply-attack.command.js';
+import { RoundBoCommitments } from '../../services/round-bo-commitments.js';
 import { DOMAIN_EVENT_PUBLISHER, type DomainEventPublisher } from '../../../../shared/application/ports/domain-event-publisher.port.js';
 import { SpellCastingService } from '../../services/spell/spell-casting.service.js';
 
@@ -122,10 +130,11 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     // has no longer enough.
     const sourceRound = actors.find(a => a.actorId === action.actorId)!;
     if (action.actionType === 'cast_spell') await this.spendSpellPower(action, sourceRound);
-    // A spell is not a weapon: no OB of the actor round is used.
+    // A spell is not a weapon: no OB of the actor round is used. Nor by a reaction, out of the OB of the round (spec 076).
     const substractBoCommands =
-      action.actionType === 'cast_spell' ? [] : this.processAttackSourceSubstractBo(action, actors, command.userId, command.roles);
-    // One after another: two attacks of the same attacker update the same actor round, and each command reloads it.
+      action.actionType === 'cast_spell' || action.isReaction()
+        ? []
+        : this.processAttackSourceSubstractBo(action, actors, command.userId, command.roles);
     for (const cmd of substractBoCommands) {
       await this.commandBus.execute(cmd);
     }
@@ -136,6 +145,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     const updateCommands = new Map<string, AddEffectsCommand>();
     const origin: AttackOrigin = { game, action, sourceActor };
     actionAttacks.forEach(actionAttack => {
+      this.processDisarm(actionAttack, actors, origin, applications, updateCommands, command.userId, command.roles);
       this.processTargetEffects(actionAttack, actors, origin, applications, updateCommands, command.userId, command.roles);
       this.processSourceEffects(actionAttack, origin, applications, updateCommands, command.userId, command.roles);
     });
@@ -150,7 +160,10 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     await this.useShieldBlocks(action, actors);
     await this.spendCoatings(sourceActor.id, coatingsSpent);
     await this.processDeclareActorParry(action, command.userId, command.roles);
+    const loweredBo = await this.refreshCommitments(action);
     await this.processFatigue(action, game.round, strategicGame, command.userId, command.roles);
+    await this.raiseRipostes(action, actors, game);
+    await this.raiseStrayShots(action, sourceActor, game);
 
     // The AP and the last phase of the attack come from the ledger (spec 011, §9).
     action.completeAttacks();
@@ -158,6 +171,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     const updated = await this.actionRepository.update(action);
     await this.eventPublisher.publish('action', new ActionUpdatedEvent(updated));
     updated.refreshApState(sourceActor, game.getActionPhase());
+    if (loweredBo.length > 0) updated.warnings = [...(updated.warnings ?? []), ...loweredBo];
     return updated;
   }
 
@@ -203,28 +217,32 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     if (!actorRound) {
       throw new NotFoundError('Actor round', action.actorId);
     }
-    const substractBoCommands: SubstractBoCommand[] = [];
-    action.attacks?.forEach(a => {
+    // One command for the whole action: its attacks set the margin of the round together (workspace spec 082).
+    const spends = (action.attacks ?? []).map(a => {
       const attack = action.getAttackByName(a.attackName);
       if (!attack) {
         throw new UnprocessableEntityError(`Attack ${a.attackName} not found`);
       }
-      if (attack.modifiers.bo! > 0) {
-        substractBoCommands.push(new SubstractBoCommand(actorRound.id, a.attackName, attack.modifiers.bo!, userId, roles));
-      }
+      return { attackName: a.attackName, bo: attack.modifiers.bo ?? 0 };
     });
-    return substractBoCommands;
+    return spends.some(spend => spend.bo > 0) ? [new SubstractBoCommand(actorRound.id, spends, userId, roles, action.id)] : [];
   }
 
   /**
-   * Spends a shield block of the target for each attack its shield covered (§9.6 Shields). The actor round is read
+   * Spends a shield block of the target for each attack its shield covered (§9.6 Shields), or that needed a Shield
+   * maneuver. The actor round is read
    * again, since the effects of this attack were already saved. A block already spent by an attack applied in the
    * meantime is not spent twice.
    */
   private async useShieldBlocks(action: Action, actors: ActorRound[]): Promise<void> {
     const blocks = new Map<string, number>();
     action.attacks
-      ?.filter(attack => attack.calculated?.rollModifiers.some(modifier => modifier.key === 'shield' || modifier.key === 'shield-block'))
+      ?.filter(
+        attack =>
+          // Workspace spec 077, decision A1.2: a Shield maneuver spends the block whatever its result.
+          !!attack.shieldManeuver?.required ||
+          attack.calculated?.rollModifiers.some(modifier => modifier.key === 'shield' || modifier.key === 'shield-block'),
+      )
       .forEach(attack => blocks.set(attack.modifiers.targetId!, (blocks.get(attack.modifiers.targetId!) || 0) + 1));
     for (const [targetId, count] of blocks) {
       const id = actors.find(a => a.actorId === targetId)?.id;
@@ -282,15 +300,92 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     await this.actorRoundRepository.update(source);
   }
 
+  /**
+   * Workspace spec 076, decision B2: a target with Riposte that parried with all its OB and took no damage nor critical
+   * can attack back. The trigger reads the actor rounds as they were before the attack (the weapon it parried with);
+   * the alert goes on the actor round read again, since the effects and the parry were already saved.
+   */
+  private async raiseRipostes(action: Action, actors: ActorRound[], game: Game): Promise<void> {
+    if (action.actionType !== 'melee_attack') return;
+    for (const attack of action.attacks || []) {
+      const defender = actors.find(actor => actor.actorId === attack.modifiers.targetId);
+      const trigger = defender ? riposteTrigger(action, attack, defender) : undefined;
+      if (!defender || !trigger) continue;
+      const current = await this.actorRoundRepository.findById(defender.id);
+      if (current?.addReactionAlert({ ...trigger, round: game.round, phase: game.phase })) {
+        await this.actorRoundRepository.update(current);
+      }
+    }
+  }
+
+  /**
+   * Workspace spec 079, decision A7 (Table 9-7a): a successful disarm drops the target's weapon: `disarmed` (until the game
+   * master removes it, as the one of the criticals) and a breakage check of the weapon. An absolute success or an
+   * unmodified 66 is narrated by the game master.
+   */
+  private processDisarm(
+    actionAttack: ActionAttack,
+    actors: ActorRound[],
+    origin: AttackOrigin,
+    applications: Map<string, EffectApplication>,
+    updateCommands: Map<string, AddEffectsCommand>,
+    userId: string,
+    roles: string[],
+  ): void {
+    if (!isDisarmSuccess(actionAttack.disarm?.result)) return;
+    const target = actors.find(a => a.actorId === actionAttack.modifiers.targetId);
+    if (!target) return;
+    const cmd = this.commandFor(target, applications, updateCommands, userId, roles);
+    if (!target.isDisarmed()) {
+      cmd.effects.push(new ActorRoundEffect(randomUUID(), DISARMED, undefined, undefined));
+    }
+    cmd.disarmBreakage = true;
+  }
+
+  /**
+   * Workspace spec 079, decision A6 (§9.7 Firing into Melee): a ranged attack with combatants in the way that makes no
+   * hits (decision: a miss is no hits, no critical) may hit one of them, chosen at random. The alert goes to the attacker,
+   * read again since the effects were already saved; the second attack of a stray shot raises none.
+   */
+  private async raiseStrayShots(action: Action, sourceActor: ActorRound, game: Game): Promise<void> {
+    if (action.strayShot) return;
+    const missed = (action.attacks || []).filter(
+      attack =>
+        attack.type !== 'melee' &&
+        (attack.modifiers.meleeCoverActorIds?.length ?? 0) > 0 &&
+        !isDisarmSuccess(attack.disarm?.result) &&
+        (attack.results?.attackTableEntry?.damage ?? 0) <= 0 &&
+        (attack.results?.criticals?.length ?? 0) === 0,
+    );
+    if (missed.length === 0) return;
+    const current = await this.actorRoundRepository.findById(sourceActor.id);
+    if (!current) return;
+    let raised = false;
+    for (const attack of missed) {
+      const candidates = attack.modifiers.meleeCoverActorIds!;
+      const targetActorId = pickStrayShotTarget(candidates)!;
+      const data = { actionId: action.id, attackName: attack.attackName, targetActorId, candidates, round: game.round };
+      raised = !!current.addStrayShotAlert(data) || raised;
+    }
+    if (raised) await this.actorRoundRepository.update(current);
+  }
+
   private async processDeclareActorParry(action: Action, userId: string, roles: string[]): Promise<void> {
     if (!action.parries || action.parries.length === 0) {
       return;
     }
     // A parry carried over from an earlier action against this foe was already paid.
     for (const parry of action.parries.filter(p => p.parry > 0 && !p.carriedOver)) {
-      const command = DeclareActorParryCommand.fromParry(action.gameId, action.actorId, action.round, parry, userId, roles);
+      const command = DeclareActorParryCommand.fromParry(action.gameId, action.actorId, action.round, parry, userId, roles, action.id);
       await this.commandBus.execute(command);
     }
+  }
+
+  /** Workspace spec 082, decision 8, and spec 083: what the OB spent now changes in the other open actions of the round. */
+  private async refreshCommitments(action: Action): Promise<ActionWarning[]> {
+    const parrying = (action.parries ?? []).filter(parry => parry.parry > 0 && !parry.carriedOver).map(parry => parry.actorId);
+    const commitments = new RoundBoCommitments(this.actionRepository, this.actorRoundRepository, this.eventPublisher);
+    return commitments.refresh(action.gameId, action.round, new Set([action.actorId, ...parrying]), [action.id]);
   }
 
   /** The source of the injuries and effects of an attack. */
@@ -385,6 +480,10 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     }
     const cmd = this.commandFor(target, applications, updateCommands, userId, roles);
     cmd.dmg += dmg || 0;
+    // Workspace spec 076, decision B6: taking damage loses the aiming.
+    if (dmg > 0) {
+      cmd.consumedEffectIds.push(...(target.effects || []).filter(effect => effect.status === AIMING).map(effect => effect.id));
+    }
     cmd.hpChanges.push(...hpChanges.filter(change => change.amount !== 0));
     cmd.effects.push(...criticalEffects);
     cmd.injuries.push(...injuries);
@@ -477,6 +576,7 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     const consumed = (actor.effects || [])
       .filter(effect => effect.status === PRESSING_ADVANTAGE && !!effect.targetActorId && targetIds.has(effect.targetActorId))
       .map(effect => effect.id);
+    consumed.push(...ApplyAttackHandler.usedCombatTalentEffects(action, actor));
     const effects: ActorRoundEffect[] = [];
     const inflicting = (action.attacks || []).filter(attack => (attack.results?.criticals?.length || 0) > 0);
     const pressing = inflicting
@@ -512,6 +612,30 @@ export class ApplyAttackHandler implements ICommandHandler<ApplyAttackCommand, A
     const cmd = this.commandFor(actor, applications, updateCommands, userId, roles);
     cmd.effects.push(...effects);
     cmd.consumedEffectIds.push(...consumed);
+  }
+
+  /**
+   * Workspace spec 076, §2.7 and decision B9: the ranged attacks of the action use up the aiming of the attacker one of
+   * them took its bonus from (same foe, same item), and lose any other aiming; a melee attack that took a Precision
+   * against its foe uses it up.
+   */
+  static usedCombatTalentEffects(action: Action, actor: ActorRound): string[] {
+    const attacks = action.attacks || [];
+    const ranged = attacks
+      .filter(attack => attack.type === 'ranged')
+      .map(attack => ({
+        targetId: attack.modifiers.targetId,
+        itemId: actor.attacks?.find(each => each.attackName === attack.attackName)?.itemId ?? null,
+      }));
+    const aiming = aimingAfterRangedAttacks(actor, ranged);
+    const precision = attacks
+      .map(attack => {
+        const skillId = actor.attacks?.find(each => each.attackName === attack.attackName)?.skillId;
+        return precisionEffectFor(actor, attack.type, attack.modifiers.targetId, skillId);
+      })
+      .filter(effect => !!effect)
+      .map(effect => effect.id);
+    return [...new Set([...aiming.used, ...aiming.lost, ...precision])];
   }
 
   private async processFatigue(

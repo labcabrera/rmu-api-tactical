@@ -11,8 +11,11 @@ export type BodySide = 'left' | 'right';
 export type BleedingControl = 'pressure' | 'stitches' | 'tourniquet' | 'cauterized' | 'magic';
 export type InjuryFlag = 'permanent-risk' | 'limb-loss' | 'blinding' | 'paralysis';
 export type InjuryStatus = 'active' | 'recovering' | 'permanent' | 'healed';
-/** `poison`: the effects a poisoning puts on the actor (workspace spec 042). */
-export type InjurySourceKind = 'critical' | 'fumble' | 'fatigue' | 'manual' | 'poison';
+/**
+ * `poison`: the effects a poisoning puts on the actor (workspace spec 042). `hazard`: a fall or a falling object
+ * (workspace spec 077, decision D1).
+ */
+export type InjurySourceKind = 'critical' | 'fumble' | 'fatigue' | 'manual' | 'poison' | 'hazard';
 
 export const INJURY_TYPES: InjuryType[] = ['bone', 'cut-burn', 'muscle-tendon', 'organ', 'poison-disease', 'skin-tissue', 'unknown'];
 export const INJURY_SEVERITIES: InjurySeverity[] = ['light', 'medium', 'severe'];

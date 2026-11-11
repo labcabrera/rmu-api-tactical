@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { type ActionManeuverEffect, ActionManeuverResult } from '../../../domain/value-objects/action-maneuver.vo.js';
+import type { FeatOfStrengthResult } from '../../../domain/services/feat-of-strength.js';
+import {
+  type ActionManeuverEffect,
+  ActionManeuverResult,
+  type AdrenalManeuverOutcome,
+  type GrappleEscapeResult,
+  type ManeuverRollTalent,
+} from '../../../domain/value-objects/action-maneuver.vo.js';
 
 export class ActionManeuverEffectDto {
   @ApiProperty({ example: 'penaltyUntilAbsoluteSuccess' })
@@ -16,6 +23,47 @@ export class ActionManeuverEffectDto {
 
   @ApiProperty({ required: false })
   roundDelay?: number;
+}
+
+export class GrappleEscapeResultDto {
+  @ApiProperty()
+  effectId: string;
+
+  @ApiProperty({ description: 'The grappler; none for an object', required: false })
+  grapplerId?: string;
+
+  @ApiProperty()
+  roll: number;
+
+  @ApiProperty()
+  difficulty: string;
+
+  @ApiProperty({ required: false })
+  passiveTotal?: number;
+
+  @ApiProperty()
+  total: number;
+
+  @ApiProperty({ type: [Object] })
+  modifiers: object[];
+
+  @ApiProperty({ description: 'Percent of the table, taken off the grapple' })
+  percent: number;
+
+  @ApiProperty({ type: String, required: false, nullable: true })
+  critical?: string | null;
+
+  @ApiProperty({ required: false })
+  message?: string;
+
+  @ApiProperty({ description: 'Percent of the grapple left' })
+  remaining: number;
+
+  @ApiProperty()
+  released: boolean;
+
+  @ApiProperty({ required: false })
+  tightened?: boolean;
 }
 
 export class ActionManeuverResultDto {
@@ -52,6 +100,48 @@ export class ActionManeuverResultDto {
   @ApiProperty({ required: false })
   moraleModifierDays?: number;
 
+  @ApiProperty({
+    type: String,
+    description: 'Talent that changed the result of the table (spec 076)',
+    enum: ['unusual-luck', 'absolute-ease', 'absolute-disaster'],
+    required: false,
+  })
+  rollTalent?: ManeuverRollTalent;
+
+  @ApiProperty({
+    description:
+      'grapple-escape (spec 077): per grapple, the roll, total, modifiers, percent taken off, percent left, whether it was ' +
+      'released and whether an absolute failure of Contortions tightened it',
+    type: [GrappleEscapeResultDto],
+    required: false,
+  })
+  grappleEscape?: GrappleEscapeResult[];
+
+  @ApiProperty({
+    description: 'fall-control (spec 077): critical severity steps of the fall, +1 absolute failure, -1 success, -2 absolute success',
+    required: false,
+    example: -1,
+  })
+  fallControlSteps?: number;
+
+  @ApiProperty({
+    description:
+      'feat-of-strength (spec 079): load, mechanical factor, effective load, body weight, Adrenal Strength multiplier, St ' +
+      'bonus, percent, percent less 2 x St, difficulty of Table 5-2 and whether it is beyond the table',
+    required: false,
+    type: Object,
+  })
+  featOfStrength?: FeatOfStrengthResult;
+
+  @ApiProperty({
+    description:
+      'adrenal and fortitude (spec 079): kind, rounds of the benefit, first round, doubled first round, partial, mental ' +
+      'block set or lifted, and the fatigue of an absolute failure of Fortitude',
+    required: false,
+    type: Object,
+  })
+  adrenal?: AdrenalManeuverOutcome;
+
   static fromEntity(entity: ActionManeuverResult): ActionManeuverResultDto {
     const dto = new ActionManeuverResultDto();
     dto.result = entity.result ?? undefined;
@@ -65,6 +155,11 @@ export class ActionManeuverResultDto {
     dto.outcome = entity.outcome ?? undefined;
     dto.moraleModifier = entity.moraleModifier ?? undefined;
     dto.moraleModifierDays = entity.moraleModifierDays ?? undefined;
+    dto.rollTalent = entity.rollTalent ?? undefined;
+    dto.grappleEscape = entity.grappleEscape ?? undefined;
+    dto.fallControlSteps = entity.fallControlSteps ?? undefined;
+    dto.featOfStrength = entity.featOfStrength ?? undefined;
+    dto.adrenal = entity.adrenal ?? undefined;
     return dto;
   }
 }

@@ -5,6 +5,7 @@ import type { CombatPlugin } from '../combat-plugin.js';
 import { CombatAbsoluteHitPlugin } from './combat-absolute-hit.plugin.js';
 import { CombatActionPointsPlugin } from './combat-action-points.plugin.js';
 import { CombatAttackSizePlugin } from './combat-attack-size.plugin.js';
+import { CombatAttackSizeDamagePlugin } from './combat-attack-size-damage.plugin.js';
 import { CombatBreakagePlugin } from './combat-breakage.plugin.js';
 import { CombatCalledShotPlugin } from './combat-called-shot.plugin.js';
 import { CombatCoverPlugin } from './combat-cover.plugin.js';
@@ -14,6 +15,8 @@ import { CombatActorPenaltiesPlugin } from './combat-actor-penalties.plugin.js';
 import { CombatCustomBonusPlugin } from './combat-custom-bonus.plugin.js';
 import { CombatDefensiveBonusPlugin } from './combat-defensive-bonus.plugin.js';
 import { CombatDodgePlugin } from './combat-dodge.plugin.js';
+import { CombatElementalDefensePlugin, CombatExtraJointsPlugin } from './combat-talents-079.plugin.js';
+import { CombatEffectDefenseBonusPlugin, CombatEffectOffenseBonusPlugin } from './combat-effect-bonuses.plugin.js';
 import { CombatFlatfootedTargetPlugin } from './combat-flatfooted-target.plugin.js';
 import { CombatFoilerPlugin } from './combat-foiler.plugin.js';
 import { CombatFrenzyPlugin } from './combat-frenzy.plugin.js';
@@ -40,7 +43,15 @@ import { CombatStunPlugin } from './combat-stun.plugin.js';
 import { CombatSurprisedPlugin } from './combat-surprised.plugin.js';
 import { CombatSurvivalInstinctPlugin } from './combat-survival-instinct.plugin.js';
 import { CombatTextEffectsPlugin } from './combat-text-effects.plugin.js';
+import { CombatLightSensitivityPlugin } from './combat-light-sensitivity.plugin.js';
+import { CombatPrecisionPlugin } from './combat-precision.plugin.js';
 import { CombatTwoHandedWeaponPlugin } from './combat-two-handed-weapon.plugin.js';
+import {
+  CombatDisarmPlugin,
+  CombatMeleeCoverPlugin,
+  CombatSubdualDamagePlugin,
+  CombatSubdualPlugin,
+} from './combat-special-maneuvers.plugin.js';
 
 export const COMBAT_PLUGIN_LIST: CombatPlugin[] = [
   // prepare
@@ -51,11 +62,14 @@ export const COMBAT_PLUGIN_LIST: CombatPlugin[] = [
   CombatPressingAdvantagePlugin,
   CombatNonViolentPlugin,
   CombatFrenzyPlugin,
+  CombatEffectOffenseBonusPlugin,
   CombatRangePlugin,
   CombatActionPointsPlugin,
   CombatDefensiveBonusPlugin,
+  CombatEffectDefenseBonusPlugin,
   CombatShieldPlugin,
   CombatDodgePlugin,
+  CombatElementalDefensePlugin,
   // parry
   CombatParryPlugin,
   CombatFightingStyleTargetPlugin,
@@ -64,6 +78,7 @@ export const COMBAT_PLUGIN_LIST: CombatPlugin[] = [
   CombatRestrictedQuartersPlugin,
   CombatProneSourcePlugin,
   CombatTextEffectsPlugin,
+  CombatLightSensitivityPlugin,
   CombatStunPlugin,
   CombatSurprisedPlugin,
   CombatFlatfootedTargetPlugin,
@@ -71,21 +86,28 @@ export const COMBAT_PLUGIN_LIST: CombatPlugin[] = [
   CombatPositionalSourcePlugin,
   CombatPositionalTargetPlugin,
   CombatCoverPlugin,
+  CombatMeleeCoverPlugin,
   CombatRangeInMeleePlugin,
   CombatSizeDifferencePlugin,
   CombatFightingStyleSourcePlugin,
   CombatCalledShotPlugin,
+  CombatDisarmPlugin,
+  CombatSubdualPlugin,
   CombatMultipleAttacksPlugin,
   CombatHigherGroundPlugin,
   CombatGameLethalityPlugin,
   CombatCustomBonusPlugin,
   CombatFoilerPlugin,
+  CombatPrecisionPlugin,
+  CombatExtraJointsPlugin,
   // beforeAttackRoll
   CombatLocationArmorPlugin,
   CombatBreakagePlugin,
   // afterAttackRoll
   CombatAbsoluteHitPlugin,
   CombatAttackSizePlugin,
+  CombatAttackSizeDamagePlugin,
+  CombatSubdualDamagePlugin,
   CombatCriticalExpansionPlugin,
   // prepare (ambush) and criticalRoll
   CombatCriticalAdjustmentPlugin,
@@ -96,6 +118,7 @@ export * from './combat-non-violent.plugin.js';
 export * from './combat-absolute-hit.plugin.js';
 export * from './combat-action-points.plugin.js';
 export * from './combat-attack-size.plugin.js';
+export * from './combat-attack-size-damage.plugin.js';
 export * from './combat-breakage.plugin.js';
 export * from './combat-called-shot.plugin.js';
 export * from './combat-cover.plugin.js';
@@ -104,6 +127,8 @@ export * from './combat-critical-expansion.plugin.js';
 export * from './combat-custom-bonus.plugin.js';
 export * from './combat-defensive-bonus.plugin.js';
 export * from './combat-dodge.plugin.js';
+export * from './combat-effect-bonuses.plugin.js';
+export * from './combat-precision.plugin.js';
 export * from './combat-flatfooted-target.plugin.js';
 export * from './combat-fighting-style.plugin.js';
 export * from './combat-foiler.plugin.js';
@@ -129,3 +154,6 @@ export * from './combat-stun.plugin.js';
 export * from './combat-surprised.plugin.js';
 export * from './combat-survival-instinct.plugin.js';
 export * from './combat-two-handed-weapon.plugin.js';
+export * from './combat-text-effects.plugin.js';
+export * from './combat-light-sensitivity.plugin.js';
+export * from './combat-special-maneuvers.plugin.js';

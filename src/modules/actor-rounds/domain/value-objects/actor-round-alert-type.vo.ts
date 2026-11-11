@@ -2,7 +2,16 @@
  * `frenzy-dying`: the physical RR of an actor dying in frenzy, in every upkeep (workspace spec 040). Workspace spec 068:
  * `wound-reopened` (a treated wound bleeds again), `tourniquet-loosen` and `limb-loss` (a tourniquet left too long),
  * `fear-check-suggested` (a faction crossed a threshold of fallen allies) and `revulsion-rr` (the fear RR of the
- * Revulsion flaw).
+ * Revulsion flaw). Workspace spec 076: `reaction-available` (a reaction talent can attack out of turn, see
+ * `ReactionAlertData`) and `terrible-luck` (a natural 01 of an actor with Terrible Luck, narrated by the game master).
+ * Workspace spec 077: `mental-focus` (a Mental Focus maneuver to keep the concentration: double, stunned or extended)
+ * and `fall-suggested` (an absolute failure of a climbing or jumping maneuver or movement: the game master may resolve
+ * a fall, decision D5). Workspace spec 079: `death-threshold` (total penalties of -300 or worse: the game master confirms
+ * the death, decision A3), `knocked-back` (a critical knocked the actor back, decision A4) and `stray-shot` (a ranged
+ * attack into a melee missed: it may hit a combatant in the way, decision A6) and `breath-check` (an actor past the
+ * rounds it holds its breath makes an absolute Endurance maneuver, C4). Workspace spec 100 (house rules):
+ * `fear-surrounded` and `fear-alone` (the individual fear RR of an actor surrounded or last standing of its side) and
+ * `fear-ease-suggested` (a side won the round: the game master may lift the balk and retreat of its members).
  */
 export type ActorRoundAlertType =
   | 'endurance'
@@ -13,4 +22,15 @@ export type ActorRoundAlertType =
   | 'tourniquet-loosen'
   | 'limb-loss'
   | 'fear-check-suggested'
-  | 'revulsion-rr';
+  | 'revulsion-rr'
+  | 'reaction-available'
+  | 'terrible-luck'
+  | 'mental-focus'
+  | 'fall-suggested'
+  | 'death-threshold'
+  | 'knocked-back'
+  | 'stray-shot'
+  | 'breath-check'
+  | 'fear-surrounded'
+  | 'fear-alone'
+  | 'fear-ease-suggested';

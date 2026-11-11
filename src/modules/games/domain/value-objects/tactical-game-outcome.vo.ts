@@ -1,3 +1,4 @@
+import type { LostLimb } from '../../../actor-rounds/domain/value-objects/lost-limb.vo.js';
 import type { ItemConsumed, TemporaryModifier } from '../../../actor-rounds/domain/value-objects/temporary-modifier.vo.js';
 import type { HpBySource, HpLogEntry } from '../../../actor-rounds/domain/value-objects/hp-log-entry.vo.js';
 import type { CharacterCondition, Injury } from '../../../actor-rounds/domain/value-objects/injury.vo.js';
@@ -31,6 +32,11 @@ export interface TacticalGameOutcomeCharacter {
   name: string;
   /** `delta = end - start`. */
   hp: { start: number; end: number; delta: number };
+  /**
+   * Workspace spec 077, decision D10: fatigue penalty points (0-50) at the start and end of the game, without the
+   * temporary fatigue of the criticals. Missing for actors that brought no fatigue data (strategic keeps its fatigue).
+   */
+  fatigue?: { start: number; end: number; delta: number };
   /** Every change of the hits in the game, by round (spec 013, §1.1). Missing in outcomes stored before it existed. */
   hpLog?: HpLogEntry[];
   /** Totals of `hpLog` by kind and by attacker. */
@@ -51,6 +57,8 @@ export interface TacticalGameOutcomeCharacter {
   itemsConsumed?: ItemConsumed[];
   /** Workspace spec 068: the temporary modifiers created in this game. */
   temporaryModifiers?: TemporaryModifier[];
+  /** Workspace spec 079, C1: every limb the actor has lost at the end (the ones it brought too). */
+  lostLimbs?: LostLimb[];
   appliedAt?: string;
   error?: string;
 }

@@ -1,20 +1,24 @@
+import { paceFatigue } from '../services/movement-rules.js';
+import type { Pace } from '../value-objects/pace.vo.js';
 import { BaseAggregateRoot } from '../../../shared/domain/aggregates/base-aggregate.js';
 import { randomUUID } from 'crypto';
 import { ActorRound } from '../../../actor-rounds/domain/aggregates/actor-round.js';
 import { UnprocessableEntityError, ValidationError } from '../../../shared/domain/errors/errors.js';
 import { ActionCreatedEvent } from '../events/action.events.js';
 import type { ProtectPosition } from '../value-objects/action-attack-modifiers.vo.js';
-import { ActionParry, type ParryExclusion } from '../value-objects/action-attack-parry.vo.js';
+import { ActionParry, type ParryExclusion, type ParryPositional } from '../value-objects/action-attack-parry.vo.js';
 import { ActionAttack } from '../value-objects/action-attack.vo.js';
 import { ActionManeuver } from '../value-objects/action-maneuver.vo.js';
-import { ActionApProfile } from '../value-objects/action-ap-profile.vo.js';
+import { ActionApProfile, type OtherActionKind } from '../value-objects/action-ap-profile.vo.js';
 import { ActionMovement } from '../value-objects/action-movement.vo.js';
 import type { ActionSpell } from '../value-objects/action-spell.vo.js';
 import type { ActionMedical, ActionUseItem, ActionWarning } from '../value-objects/action-medical.vo.js';
-import { ActionResolution, type ForceReason } from '../value-objects/action-resolution.vo.js';
+import { ActionResolution, type ForceReason, isApFreeReason } from '../value-objects/action-resolution.vo.js';
+import { ActorRoundTrait, QUICK_ACTION } from '../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
 import { type ActionStatus, CLOSED_ACTION_STATUSES, IN_RESOLUTION_ACTION_STATUSES } from '../value-objects/action-status.vo.js';
 import type { ActionType } from '../value-objects/action-type.vo.js';
 import type { ParryType } from '../value-objects/parry-type.vo.js';
+import { isShieldManeuverPending } from '../value-objects/shield-maneuver.vo.js';
 import type { ModifierParams } from '../value-objects/key-value-modifier.vo.js';
 import type { ManeuverActionPoints } from '../value-objects/maneuver-profile.vo.js';
 
@@ -54,7 +58,65 @@ export interface DeclarationRequest {
   phaseStart: number;
   freeAction: boolean;
   forced?: ForceReason;
+  /**
+   * The action costs 0 AP and is not one of the instantaneous actions of the round (a draw with Quickdraw, workspace
+   * spec 076, decision B4). It interrupts nothing.
+   */
+  zeroCost?: boolean;
+  /** Workspace spec 089: the game master declares it in a past phase of the round, forgotten when it was its turn. */
+  retroactive?: boolean;
 }
+
+/** Free instantaneous actions of a round: 1, or 2 with Quick Action (workspace spec 076, decision B5). */
+export const FREE_INSTANTS = 1;
+export const QUICK_ACTION_FREE_INSTANTS = 2;
+
+/**
+ * The reaction an attack forced as `reaction` comes from (workspace spec 076, decision B1): the talent, the action that
+ * triggered it, the fixed OB (Riposte; null for the actor's OB) and the alert it was declared from (null when the game
+ * master forced it without one).
+ */
+export interface ActionReaction {
+  traitId: string;
+  triggerActionId: string;
+  obOverride: number | null;
+  alertId: string | null;
+}
+
+/** The weapon of a `draw_and_load` action (workspace spec 076, decision B4); null when not given. */
+export interface ActionDrawAndLoad {
+  itemId: string | null;
+}
+
+/**
+ * The fixed-cost action of Table 8-1 an `other` action is (workspace spec 079, decision A5): its kind, the attack of the
+ * weapon strung or loaded (null when not given) and the AP it takes.
+ */
+export interface ActionOther {
+  kind: OtherActionKind;
+  attackName: string | null;
+  ap: number;
+}
+
+/**
+ * Workspace spec 079, decision A6 (§9.7 Firing into Melee): the second attack of a ranged attack that missed, against a
+ * combatant that gave cover, declared from the `stray-shot` alert of the attacker.
+ */
+export interface ActionStrayShot {
+  alertId: string;
+  triggerActionId: string;
+  attackName: string;
+  targetActorId: string;
+}
+
+/** What an `aim` action aims at (Sharpshooter, workspace spec 076, decision B6): the foe, with that ranged weapon. */
+export interface ActionAim {
+  targetActorId: string;
+  itemId: string;
+}
+
+/** §9.6 Parrying (workspace spec 079, decision A2): the DB of a parry toward the flank or the rear. */
+const PARRY_POSITIONAL_PENALTIES: Record<'flank' | 'rear', number> = { flank: -30, rear: -70 };
 
 /** Table 9-7c: OB penalty of a protector by where it stands. */
 const PROTECT_PENALTIES: Record<ProtectPosition, number> = {
@@ -88,6 +150,7 @@ export interface ActionProps {
   continuesActionId?: string | null;
   /** AP the continued action had at the end of its round: they count toward this one's AP. */
   carriedAp?: number | null;
+  retroactive?: boolean;
   /** The spell of a `cast_spell` action (spec 030). */
   spell?: ActionSpell | null;
   /** Actors who cannot parry or protect against the attacks, and why (spec 051). */
@@ -96,6 +159,16 @@ export interface ActionProps {
   medical?: ActionMedical | null;
   /** The item of a `use_item` action (workspace spec 068). */
   useItem?: ActionUseItem | null;
+  /** The reaction of an attack forced as `reaction` (workspace spec 076). */
+  reaction?: ActionReaction | null;
+  /** The weapon of a `draw_and_load` action (workspace spec 076). */
+  drawAndLoad?: ActionDrawAndLoad | null;
+  /** The foe and weapon of an `aim` action (workspace spec 076). */
+  aim?: ActionAim | null;
+  /** The fixed-cost subtype of an `other` action (workspace spec 079). */
+  otherAction?: ActionOther | null;
+  /** The stray shot an attack forced as `stray-shot` comes from (workspace spec 079). */
+  strayShot?: ActionStrayShot | null;
   owner: string;
   createdAt: Date;
   updatedAt: Date | null;
@@ -130,6 +203,12 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     public parryExclusions: ParryExclusion[] | null = null,
     public medical: ActionMedical | null = null,
     public useItem: ActionUseItem | null = null,
+    public reaction: ActionReaction | null = null,
+    public drawAndLoad: ActionDrawAndLoad | null = null,
+    public aim: ActionAim | null = null,
+    public otherAction: ActionOther | null = null,
+    public strayShot: ActionStrayShot | null = null,
+    public retroactive: boolean = false,
   ) {
     super(id);
   }
@@ -209,6 +288,12 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       props.parryExclusions ?? null,
       props.medical ?? null,
       props.useItem ?? null,
+      props.reaction ?? null,
+      props.drawAndLoad ?? null,
+      props.aim ?? null,
+      props.otherAction ?? null,
+      props.strayShot ?? null,
+      props.retroactive ?? false,
     );
   }
 
@@ -246,6 +331,11 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       null,
       previous.medical ? structuredClone(previous.medical) : null,
       previous.useItem ? structuredClone(previous.useItem) : null,
+      previous.reaction ? { ...previous.reaction } : null,
+      previous.drawAndLoad ? { ...previous.drawAndLoad } : null,
+      previous.aim ? { ...previous.aim } : null,
+      previous.otherAction ? { ...previous.otherAction } : null,
+      previous.strayShot ? { ...previous.strayShot } : null,
     );
     action.apply(new ActionCreatedEvent(action));
     return action;
@@ -309,9 +399,37 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     return this.effectiveResolution().mode === 'forced';
   }
 
-  /** The attack takes the AP penalty: not an instantaneous or legacy free action, nor forced by an effect. */
+  /** The attack takes the AP penalty: not an instantaneous or legacy free action, nor forced by an effect or a reaction. */
   takesApPenalty(): boolean {
-    return !this.freeAction && this.effectiveResolution().reason !== 'effect';
+    return !this.freeAction && !isApFreeReason(this.effectiveResolution().reason);
+  }
+
+  /** An attack of a reaction talent (workspace spec 076): its OB is not reduced by the parries of the round. */
+  isReaction(): boolean {
+    return !!this.reaction && this.effectiveResolution().reason === 'reaction';
+  }
+
+  /**
+   * One of the instantaneous actions of the round that the free ones are counted from: not an attack, nor an action of
+   * 0 AP by its profile (a draw with Quickdraw, workspace spec 076).
+   */
+  countsAsInstant(): boolean {
+    // Workspace spec 081, decision 8: a dash takes the instantaneous action too.
+    if (this.isDash()) return true;
+    return this.freeAction && !this.isAttack() && !this.isFreeMovement() && !(this.apRange && this.apRange.max === 0);
+  }
+
+  /** A normal movement at dash pace (Core Law §8.2; workspace spec 081, decision 8). */
+  isDash(): boolean {
+    return this.actionType === 'movement' && !this.freeAction && this.movement?.modifiers?.pace === 'dash';
+  }
+
+  /**
+   * Free movement (Core Law §8.2; workspace spec 080, decision 1): a movement made while taking other actions, up to run.
+   * It never costs AP nor counts as the instantaneous action of the round.
+   */
+  isFreeMovement(): boolean {
+    return this.actionType === 'movement' && this.freeAction;
   }
 
   /**
@@ -332,7 +450,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       return undefined;
     }
     const kind = actorRound.freeCapacity(phase) > 0 ? 'spent' : 'lost';
-    actorRound.spend(phase, this.id, 1, kind);
+    actorRound.spend(phase, this.id, 1, kind, this.isConcentrable());
     this.actionPoints = this.apOf(actorRound, phase);
     this.updatedAt = new Date();
     return kind;
@@ -358,6 +476,14 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     return 'expired';
   }
 
+  /**
+   * Its AP count half while the actor concentrates on something else (workspace spec 077, decision A2.2). A movement
+   * keeps its AP and halves its BMR instead (decision A2.3).
+   */
+  isConcentrable(): boolean {
+    return this.actionType !== 'movement';
+  }
+
   /** Over in its round: completed, interrupted, expired or carried to the next one. */
   isClosed(): boolean {
     return CLOSED_ACTION_STATUSES.includes(this.status);
@@ -369,12 +495,18 @@ export class Action extends BaseAggregateRoot<ActionProps> {
    */
   apProfile(): ActionApProfile {
     let profile: ActionApProfile;
-    if (this.apRange && this.actionType === 'maneuver') {
+    if (this.actionType === 'other' && this.otherAction) {
+      profile = ActionApProfile.fixed(this.otherAction.ap);
+    } else if (this.apRange && this.actionType === 'maneuver') {
       profile = ActionApProfile.forManeuver(this.apRange);
     } else if (this.apRange) {
       profile = new ActionApProfile(this.apRange.min, this.apRange.max, ActionApProfile.forAction(this.actionType).penaltyPerMissing);
     } else {
       profile = ActionApProfile.forAction(this.actionType);
+    }
+    // Workspace spec 080 (Core Law §8.2): a free movement never takes AP
+    if (this.isFreeMovement()) {
+      return new ActionApProfile(0, 0, 0);
     }
     if (this.freeAction && !this.isAttack()) {
       return new ActionApProfile(0, profile.max, profile.penaltyPerMissing, profile.multiRound);
@@ -424,7 +556,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     const profile = this.apProfile();
     const resolution = this.effectiveResolution();
     if (resolution.mode === 'forced') {
-      const penalty = resolution.reason === 'effect' ? 0 : profile.penaltyFor(actionPoints);
+      const penalty = isApFreeReason(resolution.reason) ? 0 : profile.penaltyFor(actionPoints);
       return { actionPoints, readiness: byStatus ?? (penalty === 0 ? 'optimal' : 'ready'), readinessPenalty: penalty };
     }
     // A free action (an instantaneous spell...) takes no AP penalty, as its resolution does not apply one.
@@ -444,7 +576,9 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       return { actionPoints, readiness: 'blocked', readinessPenalty: null };
     }
     const phase = currentPhase ?? ACTION_PHASES + 1;
-    const left = actorRound && phase <= ACTION_PHASES ? actorRound.remainingCapacity(phase) : 0;
+    // Workspace spec 077, decision A2.2: concentrating, the AP left count half for the action.
+    const capacityLeft = actorRound && phase <= ACTION_PHASES ? actorRound.remainingCapacity(phase) : 0;
+    const left = actorRound && this.isConcentrable() ? Math.floor(capacityLeft / actorRound.costMultiplier()) : capacityLeft;
     return { actionPoints, readiness: actionPoints + left >= profile.min ? 'blocked' : 'unreachable', readinessPenalty: null };
   }
 
@@ -523,6 +657,11 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     } else {
       this.phaseEnd = status === 'completed' ? Math.max(this.phaseStart, currentPhase) : this.phaseStart;
     }
+    // Workspace spec 080, decision 3: a free movement spans every phase up to the one it is resolved in (its distance
+    // too), so the actions it overlaps take its pace.
+    if (status === 'completed' && this.isFreeMovement()) {
+      this.phaseEnd = Math.max(this.phaseEnd ?? this.phaseStart, Math.min(currentPhase, ACTION_PHASES));
+    }
     this.status = status;
     this.updatedAt = new Date();
   }
@@ -536,7 +675,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       throw new ValidationError('An instantaneous action takes no more action points', 'err-action-instant');
     }
     this.fillLegacyLedger(actorRound, currentPhase);
-    actorRound.spend(currentPhase, this.id, 1);
+    actorRound.spend(currentPhase, this.id, 1, 'spent', this.isConcentrable());
     this.actionPoints = this.apOf(actorRound, currentPhase);
     this.updatedAt = new Date();
   }
@@ -567,6 +706,12 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     if (this.status !== 'declared' && this.status !== 'held') {
       throw new ValidationError(`Only an open action can be forced, not a ${this.status} one`, 'err-action-not-open');
     }
+    if (reason === 'reaction' || reason === 'stray-shot') {
+      throw new ValidationError(
+        `A ${reason} is declared as a new forced attack (workspace specs 076, 079)`,
+        'err-action-force-invalid-reason',
+      );
+    }
     const resolution = ActionResolution.forced(reason, note);
     if (resolution.apSource === 'next-phase') {
       if (this.apOf(actorRound, currentPhase) < 1) {
@@ -577,7 +722,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       if (phase === undefined) {
         throw new ValidationError('The actor has no action points left this round', 'err-action-points-exceeded');
       }
-      actorRound.spend(phase, this.id, 1);
+      actorRound.spend(phase, this.id, 1, 'spent', this.isConcentrable());
     }
     this.resolution = resolution;
     this.actionPoints = this.apOf(actorRound, currentPhase);
@@ -600,7 +745,9 @@ export class Action extends BaseAggregateRoot<ActionProps> {
    *
    * - A flatfooted actor declares nothing. An attack is never instantaneous.
    * - A normal action starts in the current phase, which must have capacity (lost to surprise, Hold Kind…).
-   * - The first instantaneous action of the round takes 0 AP; the next ones 1 AP of free capacity.
+   * - The first instantaneous action of the round takes 0 AP (the first two with Quick Action, but never a second spell or
+   *   dodge); the next ones 1 AP of free capacity. An action of 0 AP by its profile (Quickdraw) takes none and is not
+   *   counted (workspace spec 076, decisions B4-B5).
    * - Any other action takes 1 AP of free capacity of the phase, and interrupts the open action of the actor (its AP
    *   stay spent), except when it is a movement or the open action is a melee attack the actor parried with.
    * - A forced action (an effect, the game master) takes no AP and interrupts nothing; a withdrawal or passing through
@@ -615,6 +762,41 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     currentPhase: number,
     roundActions: Action[] = actions,
   ): DeclarationPlan {
+    if (request.retroactive && request.forced) {
+      throw new ValidationError('A forced action starts in the current phase', 'err-action-invalid-phase');
+    }
+    const plan = Action.planDeclaration(actorRound, actions, request, currentPhase, roundActions);
+    if (request.retroactive) {
+      Action.checkRetroactive(actorRound, request.phaseStart, plan, currentPhase);
+    }
+    return plan;
+  }
+
+  /**
+   * Workspace spec 089: a declaration in a past phase changes nothing else of the round, so it cannot interrupt an open
+   * action, and an action that takes AP needs one free in every phase it would have run through up to the current one.
+   */
+  private static checkRetroactive(actorRound: ActorRound, phaseStart: number, plan: DeclarationPlan, currentPhase: number): void {
+    if (plan.interrupted.length > 0 || (plan.released ?? []).length > 0) {
+      throw new ValidationError('The actor has an open action: resolve or cancel it first', 'err-action-retroactive-open-action');
+    }
+    if (plan.spend?.kind !== 'spent') {
+      return;
+    }
+    for (let phase = phaseStart; phase <= currentPhase; phase++) {
+      if (actorRound.freeCapacity(phase) < 1) {
+        throw new ValidationError(`The actor has no action points left in phase ${phase}`, 'err-action-retroactive-no-ap');
+      }
+    }
+  }
+
+  private static planDeclaration(
+    actorRound: ActorRound,
+    actions: Action[],
+    request: DeclarationRequest,
+    currentPhase: number,
+    roundActions: Action[],
+  ): DeclarationPlan {
     const attack = request.actionType === 'melee_attack' || request.actionType === 'ranged_attack';
     if (request.freeAction && attack) {
       throw new ValidationError('An attack cannot be an instantaneous action', 'err-action-free-not-allowed');
@@ -622,6 +804,12 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     if (request.forced) {
       if (ActionResolution.apSourceOf(request.forced) === 'next-phase') {
         throw new ValidationError(`A new action cannot be forced as a ${request.forced}`, 'err-action-force-invalid-reason');
+      }
+      if (request.forced === 'reaction' && !attack) {
+        throw new ValidationError('A reaction is an attack (workspace spec 076)', 'err-reaction-invalid-action');
+      }
+      if (request.forced === 'stray-shot' && request.actionType !== 'ranged_attack') {
+        throw new ValidationError('A stray shot is a ranged attack (workspace spec 079)', 'err-stray-shot-invalid');
       }
       return { spend: null, interrupted: [] };
     }
@@ -636,8 +824,17 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     if (actorRound.hasEffect('flatfooted')) {
       throw new ValidationError('A flatfooted actor cannot declare actions this round', 'err-action-flatfooted');
     }
+    // Workspace spec 077, decision A2.4: with two foci the actor only moves (at creeping pace, checked when it resolves).
+    if (request.actionType !== 'movement' && actorRound.isDoubleConcentrating()) {
+      throw new ValidationError('An actor concentrating on two things only moves at creeping pace', 'err-action-double-concentration');
+    }
     const phase = request.phaseStart;
-    if (!Number.isInteger(phase) || phase < 1 || phase > ACTION_PHASES || phase !== currentPhase) {
+    if (
+      !Number.isInteger(phase) ||
+      phase < 1 ||
+      phase > ACTION_PHASES ||
+      (request.retroactive ? phase >= currentPhase : phase !== currentPhase)
+    ) {
       throw new ValidationError(
         `An action is declared in the current phase (${currentPhase}), not in ${phase}`,
         'err-action-invalid-phase',
@@ -651,13 +848,19 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     const releasable = medical.filter(action =>
       actorRound.ledgerOf(action.id).some(entry => entry.phase === phase && entry.kind === 'spent'),
     );
+    // Workspace spec 080, decision 1: a free movement is not one of the instantaneous actions either.
+    if (request.zeroCost || (request.freeAction && request.actionType === 'movement')) {
+      Action.checkFearDeclaration(actorRound, request, 0);
+      return { spend: { phase, ap: 0, kind: 'instant' }, interrupted: [] };
+    }
     if (request.freeAction) {
-      const first = !actions.some(action => action.freeAction && !action.isAttack());
-      if (first) {
+      const instants = actions.filter(action => action.countsAsInstant()).length;
+      if (instants < Action.freeInstantsFor(actorRound, request.actionType)) {
         Action.checkFearDeclaration(actorRound, request, 0);
         return { spend: { phase, ap: 0, kind: 'instant' }, interrupted: [] };
       }
       Action.checkFearDeclaration(actorRound, request, 1);
+      Action.checkDashTaken(actions, request);
       if (actorRound.freeCapacity(phase) + releasable.length < 1) {
         throw new ValidationError(`The actor has no action points left in phase ${phase}`, 'err-action-points-exceeded');
       }
@@ -669,6 +872,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       };
     }
     Action.checkFearDeclaration(actorRound, request, 1);
+    Action.checkDashTaken(actions, request);
     const canRelease = request.actionType !== 'movement';
     if (actorRound.freeCapacity(phase) + (canRelease ? releasable.length : 0) < 1) {
       throw new ValidationError(`The actor has no action points left in phase ${phase}`, 'err-action-points-exceeded');
@@ -683,6 +887,24 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       );
     }
     return { spend: { phase, ap: 1, kind: 'spent' }, interrupted, ...(released.length > 0 ? { released } : {}) };
+  }
+
+  /**
+   * Instantaneous actions of the round at 0 AP (workspace spec 076, decision B5): 2 with Quick Action, except for a spell
+   * or a dodge, which never take the second one; 1 otherwise.
+   */
+  static freeInstantsFor(actorRound: ActorRound, actionType: ActionType): number {
+    const quick = ActorRoundTrait.tierOf(actorRound.traits, QUICK_ACTION) > 0;
+    return quick && actionType !== 'cast_spell' && actionType !== 'dodge' ? QUICK_ACTION_FREE_INSTANTS : FREE_INSTANTS;
+  }
+
+  /** Workspace spec 081, decision 8: a dash takes every AP of the round, so nothing but movement comes after it. */
+  private static checkDashTaken(actions: Action[], request: DeclarationRequest): void {
+    if (request.actionType !== 'movement' && actions.some(action => action.isDash())) {
+      throw new ValidationError('The actor dashed this round: its AP only go to movement', 'err-dash-requirements', {
+        reason: 'dash-taken',
+      });
+    }
   }
 
   /**
@@ -709,6 +931,15 @@ export class Action extends BaseAggregateRoot<ActionProps> {
    */
   static isExertion(actionType: ActionType): boolean {
     return actionType === 'melee_attack' || actionType === 'ranged_attack' || actionType === 'maneuver';
+  }
+
+  /**
+   * An action with effort for the total penalties of -100 or worse (§9.8 Penalties; workspace spec 079, decision A3):
+   * movement, attacks, spells, physical maneuvers, standing up, a full dodge, and dropping prone or mounting.
+   */
+  static isEffort(actionType: ActionType, otherKind?: OtherActionKind | null): boolean {
+    const effort: ActionType[] = ['melee_attack', 'ranged_attack', 'maneuver', 'movement', 'cast_spell', 'stand_up', 'dodge'];
+    return effort.includes(actionType) || (actionType === 'other' && (otherKind === 'drop-prone' || otherKind === 'mount-dismount'));
   }
 
   /** An open action that a new one interrupts: declared, not instantaneous, forced nor a movement (spec 011, §2). */
@@ -742,16 +973,94 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       action.close(actorRound, currentPhase, 'interrupted');
     });
     if (plan.spend) {
-      actorRound.spend(plan.spend.phase, this.id, plan.spend.ap, plan.spend.kind);
+      actorRound.spend(plan.spend.phase, this.id, plan.spend.ap, plan.spend.kind, this.isConcentrable());
+    }
+    // Workspace spec 089: what the phases already started would have taken from it had it been declared on time
+    if (this.retroactive) {
+      for (let phase = this.phaseStart + 1; phase <= currentPhase; phase++) {
+        this.advanceToPhase(actorRound, phase);
+      }
     }
     this.actionPoints = this.apOf(actorRound, currentPhase);
   }
 
-  setAttackBo(attackName: string, currentBo: number) {
-    if (!this.attacks) return;
-    const attack = this.attacks?.find(a => a.attackName === attackName);
-    if (!attack || !attack.modifiers) return;
-    attack.modifiers.bo = currentBo;
+  /** The attack uses the OB of the actor's round: not a spell, a reaction or a stray shot (workspace spec 082). */
+  spendsRoundBo(): boolean {
+    return this.actionType !== 'cast_spell' && !this.isReaction() && !this.strayShot;
+  }
+
+  /**
+   * Workspace spec 082, decision 8: a parry of the actor lowers the OB of its prepared attacks that have not rolled yet
+   * to what it has left. An action that has rolled has its OB reserved (workspace spec 083) and does not change.
+   */
+  lowerAttacksBo(currentBoOf: (attackName: string) => number): { attackName: string; from: number; to: number }[] {
+    if (!this.spendsRoundBo() || !['prepared', 'parry', 'pending_roll'].includes(this.status)) {
+      return [];
+    }
+    if ((this.attacks ?? []).some(attack => attack.roll?.roll)) {
+      return [];
+    }
+    return (this.attacks ?? []).flatMap(attack => {
+      const from = attack.modifiers.bo ?? 0;
+      const to = Math.max(0, currentBoOf(attack.attackName));
+      if (to >= from) {
+        return [];
+      }
+      attack.modifiers.bo = to;
+      const line = attack.calculated?.rollModifiers?.find(modifier => modifier.key === 'bo');
+      if (attack.calculated && line) {
+        line.value = to;
+        attack.calculated.rollTotal = attack.calculated.rollModifiers.reduce((sum, modifier) => sum + modifier.value, 0);
+      }
+      return [{ attackName: attack.attackName, from, to }];
+    });
+  }
+
+  /**
+   * What the actor can give now to its parries in this action (workspace spec 083): the OB it committed elsewhere since
+   * the action was prepared no longer counts. One carried over is fixed, already paid. Returns whether anything changed.
+   */
+  refreshParryAvailable(actorRound: ActorRound): boolean {
+    const available = actorRound.getAvailableParry();
+    const breakdown = actorRound.getParryBreakdown();
+    let changed = false;
+    (this.parries ?? [])
+      .filter(parry => parry.actorId === actorRound.actorId && !parry.carriedOver)
+      .forEach(parry => {
+        const value = parry.parryType === 'protect' ? Math.max(0, available + (parry.penalty || 0)) : available;
+        changed = changed || value !== parry.parryAvailable;
+        parry.parryAvailable = value;
+        parry.breakdown = breakdown && (parry.parryType === 'protect' ? { ...breakdown, protectPenalty: parry.penalty } : breakdown);
+      });
+    return changed;
+  }
+
+  /**
+   * Workspace spec 084: whether a parry not declared yet needs the maneuver depends on the foes parried by now, not by
+   * when the attack was prepared. One already declared keeps what it had. Returns whether anything changed.
+   */
+  refreshParryManeuvers(actorId: string, actions: Action[]): boolean {
+    let changed = false;
+    (this.parries ?? [])
+      .filter(parry => parry.actorId === actorId && parry.parryType === 'parry' && !parry.carriedOver && !parry.parry)
+      .forEach(parry => {
+        const foes = Action.parriedFoes(actorId, actions, this.actorId).size;
+        if ((parry.parryManeuver?.foes ?? 0) !== foes) {
+          parry.parryManeuver = foes > 0 ? { required: true, foes, result: null, passed: null } : null;
+          changed = true;
+        }
+      });
+    return changed;
+  }
+
+  /** The same, for an action that still waits for the parries: one already declared keeps what it had to choose from. */
+  refreshOpenParries(actorRound: ActorRound, actions: Action[]): boolean {
+    const declared = (this.parries ?? []).some(parry => parry.actorId === actorRound.actorId && parry.parry > 0);
+    if (this.status !== 'parry' || declared) {
+      return false;
+    }
+    const available = this.refreshParryAvailable(actorRound);
+    return this.refreshParryManeuvers(actorRound.actorId, actions) || available;
   }
 
   /**
@@ -759,8 +1068,18 @@ export class Action extends BaseAggregateRoot<ActionProps> {
    * A defender who already parried this attacker in an earlier action of the round keeps that parry, fixed and
    * already paid (§9.6 Parrying). A protector gives OB less the Table 9-7c penalty for its position, offset by its
    * Protect skill without turning into a bonus; it can protect without the skill (§9.7 Protecting Others).
+   *
+   * Workspace spec 079, decision A2: a defender attacked from its flank or rear keeps the position and its Reverse Strike
+   * (`reverseStrikes`, by actor id) for the `parry-positional` modifier, and one that already parried other foes this
+   * round needs a Combat Training maneuver to parry this one (`parryManeuver`), unless it parries this attacker again.
    */
-  processParryOptions(actorRounds: ActorRound[], actions: Action[], phase: number) {
+  processParryOptions(
+    actorRounds: ActorRound[],
+    actions: Action[],
+    phase: number,
+    reverseStrikes: Map<string, number> = new Map(),
+    maneuverSkills: Map<string, number> = new Map(),
+  ) {
     if (!this.attacks || this.attacks.length === 0) {
       return;
     }
@@ -792,6 +1111,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       }
       const attackTarget = actorRounds.find(t => t.actorId === attack.modifiers.targetId)!;
       const hasParry = this.parries.some(p => p.actorId === attackTarget.actorId && p.parryType === 'parry');
+      const parriesBefore = this.parries.length;
       if (!hasParry && !blocked(attackTarget, attackTarget.actorId, 'parry')) {
         const carried = this.findCarriedOverParry(attackTarget.actorId, actions);
         if (carried) {
@@ -839,6 +1159,13 @@ export class Action extends BaseAggregateRoot<ActionProps> {
             );
           }
         }
+        const added = this.parries.length > parriesBefore ? this.parries[this.parries.length - 1] : undefined;
+        if (added) {
+          added.positional = Action.parryPositional(attack.modifiers.positionalTarget, reverseStrikes.get(attackTarget.actorId) ?? 0);
+          const foes = added.carriedOver ? 0 : Action.parriedFoes(attackTarget.actorId, actions, this.actorId).size;
+          added.parryManeuver = foes > 0 ? { required: true, foes, result: null, passed: null } : null;
+          added.maneuverSkill = maneuverSkills.get(attackTarget.actorId);
+        }
       }
       for (const protectorId of attack.protectors || []) {
         const protector = actorRounds.find(t => t.actorId === protectorId)!;
@@ -879,6 +1206,37 @@ export class Action extends BaseAggregateRoot<ActionProps> {
         }
       }
     }
+  }
+
+  /** §9.6 Parrying: the positional penalty of a parry against a flank (-30) or rear (-70) attacker; null in front. */
+  static parryPositional(position: string | null | undefined, reverseStrike: number): ParryPositional | null {
+    if (position !== 'flank' && position !== 'rear') {
+      return null;
+    }
+    return { position, penalty: PARRY_POSITIONAL_PENALTIES[position], reverseStrike: Math.max(0, reverseStrike) };
+  }
+
+  /**
+   * Foes the defender parried this round with any OB (workspace spec 079, decision A2), other than `exceptActorId`: the
+   * actors of the actions not interrupted nor expired with a parry of the defender for itself whose maneuver, if any,
+   * passed.
+   */
+  static parriedFoes(defenderId: string, actions: Action[], exceptActorId: string): Set<string> {
+    const foes = new Set<string>();
+    actions
+      .filter(action => action.actorId !== exceptActorId && action.status !== 'interrupted' && action.status !== 'expired')
+      .filter(action =>
+        (action.parries || []).some(
+          parry =>
+            parry.actorId === defenderId &&
+            parry.targetActorId === defenderId &&
+            parry.parryType === 'parry' &&
+            (parry.parry || 0) > 0 &&
+            (!parry.parryManeuver || parry.parryManeuver.passed === true),
+        ),
+      )
+      .forEach(action => foes.add(action.actorId));
+    return foes;
   }
 
   /** Table 9-7c penalty by the protector's position, offset by its Protect skill but never a bonus. */
@@ -940,9 +1298,18 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     return this.attacks.some(attack => attack.results?.fumble && !attack.roll?.fumbleRoll);
   }
 
-  /** Prepared attacks wait for the parries, when there are any to declare, and then for their rolls. */
+  /**
+   * Prepared attacks wait for the parries, when there are any to declare, and then for their rolls. An attack that
+   * needs a Shield maneuver goes through the parry step even if nobody parries (workspace spec 077, decision A1.1).
+   */
   markPrepared(): void {
-    this.status = this.parries && this.parries.length > 0 ? 'parry' : 'pending_roll';
+    const parries = !!this.parries && this.parries.length > 0;
+    this.status = parries || this.hasPendingShieldManeuvers() ? 'parry' : 'pending_roll';
+  }
+
+  /** Some attack waits for the Shield maneuver of its defender (workspace spec 077, decision A1.2). */
+  hasPendingShieldManeuvers(): boolean {
+    return (this.attacks ?? []).some(attack => isShieldManeuverPending(attack.shieldManeuver));
   }
 
   /**
@@ -1017,7 +1384,11 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     }
   }
 
-  processFatigue(fatigueMultiplier: number | null): void {
+  /**
+   * Fatigue of the action: the one of its activity per AP, times `activityPoints` and the multiplier of the game. A
+   * free movement takes no AP but it still tires (Core Law §5.5): its caller counts the phases it spans (spec 080).
+   */
+  processFatigue(fatigueMultiplier: number | null, activityPoints: number | null = this.actionPoints): void {
     if (this.actionPoints === null || this.actionPoints === undefined) {
       throw new Error('Action does not have action points defined');
     }
@@ -1032,12 +1403,27 @@ export class Action extends BaseAggregateRoot<ActionProps> {
         break;
     }
     if (value) {
-      value = this.actionPoints * value;
+      value = (activityPoints ?? this.actionPoints) * value;
     }
     if (value && fatigueMultiplier) {
       value = value * fatigueMultiplier;
     }
     this.fatigue = value;
+  }
+
+  /**
+   * Fatigue of a movement (workspace spec 081, decision 6). A normal one adds what its pace, chosen or from the AP of
+   * the round, takes over the pace the round had already reached (`previousPace`); a free one or a dash goes by phase
+   * or AP, and climbing and swimming by their own interval.
+   */
+  processMovementFatigue(fatigueMultiplier: number | null, activityPoints: number, previousPace: Pace | undefined, pace: Pace): void {
+    const skillId = this.movement?.modifiers.skillId;
+    if (this.freeAction || this.isDash() || skillId === 'climbing' || skillId === 'swimming') {
+      this.processFatigue(fatigueMultiplier, activityPoints);
+      return;
+    }
+    const value = paceFatigue(previousPace, pace);
+    this.fatigue = value > 0 ? value * (fatigueMultiplier || 1) : null;
   }
 
   private getCombatFatigue(): number | null {
@@ -1079,6 +1465,7 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       fatigue: this.fatigue,
       description: this.description,
       resolution: this.resolution,
+      retroactive: this.retroactive,
       apRange: this.apRange,
       continuesActionId: this.continuesActionId,
       carriedAp: this.carriedAp,
@@ -1086,6 +1473,11 @@ export class Action extends BaseAggregateRoot<ActionProps> {
       parryExclusions: this.parryExclusions,
       medical: this.medical,
       useItem: this.useItem,
+      reaction: this.reaction,
+      drawAndLoad: this.drawAndLoad,
+      aim: this.aim,
+      otherAction: this.otherAction,
+      strayShot: this.strayShot,
       owner: this.owner,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
@@ -1110,13 +1502,14 @@ export class Action extends BaseAggregateRoot<ActionProps> {
     if (!this.movement || !this.movement.modifiers || !this.movement.modifiers.pace) {
       throw new Error('Action does not have movement data');
     }
+    // Table 5-5, workspace spec 077, decision D6: 100 activity points per check, 12 rounds of 4 AP a minute.
     switch (this.movement.modifiers.pace) {
       case 'jog':
-        // check every 5 min
-        return 0.14;
+        // check every 5 min: 100 / 240 AP
+        return 0.42;
       case 'run':
-        // check every 1 min
-        return 4.16;
+        // check every 1 min: 100 / 48 AP
+        return 2.08;
       case 'sprint':
         // check every 2 rounds
         return 12.5;

@@ -1,5 +1,8 @@
-/** Weapon kind for the light weapon bonuses of multiple attacks (Table 9-7b). */
-export type WeaponCategory = 'standard' | 'light' | 'dagger' | 'natural';
+/**
+ * Weapon kind for the light weapon bonuses of multiple attacks (Table 9-7b). `unarmed`: an attack with an unarmed skill
+ * (`unarmed-st`, `unarmed-ag`) that strategic builds (workspace spec 076, A8); it counts as a natural weapon.
+ */
+export type WeaponCategory = 'standard' | 'light' | 'dagger' | 'natural' | 'unarmed';
 
 export class ActorRoundAttack {
   attackName: string;
@@ -70,12 +73,17 @@ export class ActorRoundAttack {
   }
 
   calculateRangeBonus(range: number): number {
+    return this.findRange(range).bonus;
+  }
+
+  /** The bracket of the distance: its bonus and the part of it the traits gave (workspace spec 079, D1). */
+  findRange(range: number): AttackRange {
     if (!this.ranges || this.ranges.length === 0) {
       throw new Error('No ranges defined for this attack');
     }
     for (const attackRange of this.ranges) {
       if (range >= attackRange.from && range <= attackRange.to) {
-        return attackRange.bonus;
+        return attackRange;
       }
     }
     throw new Error('Invalid range for this attack');
@@ -91,5 +99,12 @@ export class BoModifiers {
 export class AttackRange {
   from: number;
   to: number;
+  /** OB modifier of the range, with the reduction of the traits of the sheet already applied. */
   bonus: number;
+  /** Workspace spec 079, D1: the part of `bonus` Deadeye gave, shown apart in the breakdown. Missing: 0. */
+  traitBonus?: number;
 }
+
+/** An attack of the body, which a disarmed actor keeps. */
+export const isBodyAttack = (attack: ActorRoundAttack): boolean =>
+  attack.weaponCategory === 'natural' || attack.weaponCategory === 'unarmed' || !!attack.skillId?.startsWith('unarmed');

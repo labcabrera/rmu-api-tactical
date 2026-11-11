@@ -103,13 +103,10 @@ describe('CombatModifierBag', () => {
     expect(capped.sum()).toBe(0);
   });
 
-  it('adds a negative skill whole, as a further penalty', () => {
+  it('ignores a negative skill: it does not add to the penalty', () => {
     const bag = CombatModifierBag.from().addWithSkill('restricted-quarters', -100, -15);
 
-    expect(bag.toArray().map(({ key, value }) => [key, value])).toEqual([
-      ['restricted-quarters', -100],
-      ['restricted-quarters-skill', -15],
-    ]);
+    expect(bag.toArray().map(({ key, value }) => [key, value])).toEqual([['restricted-quarters', -100]]);
   });
 
   it('adds nothing for a zero modifier and no skill entry without skill', () => {

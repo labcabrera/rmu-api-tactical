@@ -1,5 +1,6 @@
 import type { MedicalDeclaration } from '../../services/medical/medical-action.service.js';
 import type { ActionType } from '../../../domain/value-objects/action-type.vo.js';
+import type { OtherActionKind } from '../../../domain/value-objects/action-ap-profile.vo.js';
 import type { ForceReason } from '../../../domain/value-objects/action-resolution.vo.js';
 import type { ManeuverType } from '../../../domain/value-objects/maneuver-type.vo.js';
 
@@ -24,6 +25,14 @@ export class CreateActionCommand {
     public readonly useItem?: CreateActionCommandUseItem,
     /** The declaration goes on despite its warnings that need a confirmation (workspace spec 068). */
     public readonly confirm?: boolean,
+    /** The weapon of a `draw_and_load` action (workspace spec 076). */
+    public readonly drawAndLoad?: CreateActionCommandDrawAndLoad,
+    /** The foe and ranged weapon of an `aim` action (workspace spec 076). */
+    public readonly aim?: CreateActionCommandAim,
+    /** The fixed-cost subtype of an `other` action (workspace spec 079). */
+    public readonly otherAction?: CreateActionCommandOther,
+    /** Declared by the game master in a past phase of the round (workspace spec 089). */
+    public readonly retroactive?: boolean,
   ) {}
 }
 
@@ -42,6 +51,22 @@ export class CreateActionCommandSpell {
 export class CreateActionCommandForced {
   reason: ForceReason;
   note?: string;
+  /** `reaction` (workspace spec 076): the `reaction-available` alert of the actor it is declared from. */
+  alertId?: string;
+}
+
+export class CreateActionCommandOther {
+  kind: OtherActionKind;
+  attackName?: string;
+}
+
+export class CreateActionCommandAim {
+  targetActorId: string;
+  itemId: string;
+}
+
+export class CreateActionCommandDrawAndLoad {
+  itemId?: string;
 }
 
 export class CreateActionCommandManeuver {

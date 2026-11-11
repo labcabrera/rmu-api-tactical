@@ -84,6 +84,12 @@ export class CriticalDto {
   })
   styleOption?: CriticalStyleOptionDto;
 
+  @ApiProperty({ type: Number, nullable: true, required: false, description: 'First roll of a critical rolled again (spec 076)' })
+  originalRoll?: number | null;
+
+  @ApiProperty({ type: String, required: false, enum: ['offense', 'defense'], description: 'Who rolled the critical again (spec 076)' })
+  rerolledBy?: 'offense' | 'defense';
+
   static fromEntity(entity: Critical): CriticalDto {
     const dto = new CriticalDto();
     dto.key = entity.key;
@@ -92,6 +98,8 @@ export class CriticalDto {
     dto.criticalSeverity = entity.criticalSeverity;
     dto.adjustedRoll = entity.adjustedRoll;
     dto.styleOption = entity.styleOption ? { ...entity.styleOption } : undefined;
+    if (entity.originalRoll !== undefined && entity.originalRoll !== null) dto.originalRoll = entity.originalRoll;
+    if (entity.rerolledBy) dto.rerolledBy = entity.rerolledBy;
     dto.result = entity.result
       ? {
           text: entity.result.text,

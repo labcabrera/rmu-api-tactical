@@ -1,7 +1,12 @@
 import { ActionParry } from '../../../domain/value-objects/action-attack-parry.vo.js';
 import type { ProtectPosition } from '../../../domain/value-objects/action-attack-modifiers.vo.js';
 import type { ParryType } from '../../../domain/value-objects/parry-type.vo.js';
-import type { ParryBreakdown, ParryExclusion } from '../../../domain/value-objects/action-attack-parry.vo.js';
+import type {
+  ParryBreakdown,
+  ParryExclusion,
+  ParryManeuver,
+  ParryPositional,
+} from '../../../domain/value-objects/action-attack-parry.vo.js';
 import type { ModifierParams } from '../../../domain/value-objects/key-value-modifier.vo.js';
 
 /** Where the most an actor can parry comes from (spec 051). */
@@ -62,6 +67,13 @@ export class ActionParryDto {
   fullParry: boolean | undefined;
   /** Where the available parry comes from (spec 051). */
   breakdown: ParryBreakdownDto | undefined;
+  /** Flank or rear attacker: the penalty of the parry and the defender's Reverse Strike (spec 079). */
+  positional: ParryPositional | null;
+  /** The Combat Training maneuver of a parry against a further foe of the round (spec 079). */
+  parryManeuver: ParryManeuver | null;
+
+  /** Combat Training of the weapon the actor parries with (spec 084). */
+  maneuverSkill?: number;
 
   static fromEntity(entity: ActionParry): ActionParryDto {
     const dto = new ActionParryDto();
@@ -76,6 +88,9 @@ export class ActionParryDto {
     dto.carriedOver = entity.carriedOver;
     dto.fullParry = entity.fullParry;
     dto.breakdown = entity.breakdown ? ParryBreakdownDto.fromEntity(entity.breakdown) : undefined;
+    dto.positional = entity.positional ? { ...entity.positional } : null;
+    dto.parryManeuver = entity.parryManeuver ? { ...entity.parryManeuver } : null;
+    dto.maneuverSkill = entity.maneuverSkill;
     return dto;
   }
 }

@@ -8,6 +8,7 @@ import { AuthModule } from '../shared/infrastructure/security/auth.module.js';
 import { SharedModule } from '../shared/shared.module.js';
 import { StrategicModule } from '../strategic/strategic.module.js';
 import { FearCheckHandler } from './application/cqrs/handlers/fear-check.handler.js';
+import { FearEaseHandler } from './application/cqrs/handlers/fear-ease.handler.js';
 import { MoraleCheckHandler, RallyCheckHandler } from './application/cqrs/handlers/leader-checks.handler.js';
 import { ResistanceRollHandler } from './application/cqrs/handlers/resistance-roll.handler.js';
 import { PSYCHOLOGY_TABLES_PORT } from './application/ports/psychology-tables.port.js';
@@ -32,6 +33,7 @@ import { ResistanceRollController } from './interfaces/http/resistance-roll.cont
     ResistanceRollHandler,
     GroupCheckService,
     FearCheckHandler,
+    FearEaseHandler,
     MoraleCheckHandler,
     RallyCheckHandler,
     ApplyFearEffectHandler,

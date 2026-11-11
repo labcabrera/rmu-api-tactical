@@ -1,4 +1,7 @@
-import type { FrenzyPurpose } from '../../../domain/value-objects/frenzy-purpose.vo.js';
+import type { ManeuverPurpose, PrecisionPosition } from '../../../domain/value-objects/maneuver-purpose.vo.js';
+import type { AdrenalManeuverOutcome, GrappleEscapeResult, ManeuverRollTalent } from '../../../domain/value-objects/action-maneuver.vo.js';
+import type { ComplementaryChoice, SimilarityChoice } from '../../../domain/services/skill-aids.js';
+import type { FeatOfStrengthChoices, FeatOfStrengthResult } from '../../../domain/services/feat-of-strength.js';
 import { Prop, Schema } from '@nestjs/mongoose';
 import { Schema as MongooseSchema } from 'mongoose';
 import type { Difficulty } from '../../../domain/value-objects/difficulty.vo.js';
@@ -47,7 +50,37 @@ export class ActionManeuverModifiers {
   passiveSkillId: string | undefined;
 
   @Prop({ type: String, required: false })
-  purpose: FrenzyPurpose | undefined;
+  purpose: ManeuverPurpose | undefined;
+
+  @Prop({ type: String, required: false })
+  foeActorId: string | undefined;
+
+  @Prop({ type: Number, required: false })
+  foeLevel: number | undefined;
+
+  @Prop({ type: String, required: false })
+  position: PrecisionPosition | undefined;
+
+  @Prop({ type: Number, required: false })
+  obPenalty: number | undefined;
+
+  /** Workspace spec 079, decision B1. */
+  @Prop({ type: Object, required: false })
+  similarity: SimilarityChoice | undefined;
+
+  @Prop({ type: [Object], required: false, default: undefined })
+  complementary: ComplementaryChoice[] | undefined;
+
+  /** Workspace spec 079, decision B2. */
+  @Prop({ type: Object, required: false })
+  featOfStrength: FeatOfStrengthChoices | undefined;
+
+  /** Workspace spec 079, D3. */
+  @Prop({ type: [String], required: false, default: undefined })
+  situationalTraits: string[] | undefined;
+
+  @Prop({ type: String, required: false })
+  senseTargetActorId: string | undefined;
 }
 
 @Schema({ _id: false })
@@ -102,6 +135,25 @@ export class ActionManeuverResult {
 
   @Prop({ type: Number, required: false })
   moraleModifierDays: number | undefined;
+
+  @Prop({ type: String, required: false })
+  rollTalent: ManeuverRollTalent | undefined;
+
+  /** Workspace spec 077, decision A3.3: the roll against each grapple of an escape. */
+  @Prop({ type: [Object], required: false })
+  grappleEscape: GrappleEscapeResult[] | undefined;
+
+  /** Workspace spec 077, decision D4: severity steps of a fall-control maneuver. */
+  @Prop({ type: Number, required: false })
+  fallControlSteps: number | undefined;
+
+  /** Workspace spec 079, decision B2: the difficulty of a feat of strength. */
+  @Prop({ type: Object, required: false })
+  featOfStrength: FeatOfStrengthResult | undefined;
+
+  /** Workspace spec 079, decisions B3-B4: the outcome of an adrenal or Fortitude maneuver. */
+  @Prop({ type: Object, required: false })
+  adrenal: AdrenalManeuverOutcome | undefined;
 }
 
 @Schema({ _id: false })

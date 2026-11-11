@@ -5,11 +5,17 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import type { Connection } from 'mongoose';
 import request from 'supertest';
 import { configureHttp } from '../../../src/bootstrap/http.js';
-import { ATTACK_TABLE_PORT, type AttackTableLookupRequest } from '../../../src/modules/actions/application/ports/attack-table.port.js';
+import {
+  ATTACK_TABLE_MODIFIERS_PORT,
+  ATTACK_TABLE_PORT,
+  type AttackTableLookupRequest,
+  type AttackTableModifiers,
+} from '../../../src/modules/actions/application/ports/attack-table.port.js';
 import {
   CRITICAL_TABLE_PORT,
   type CriticalTableLookupRequest,
 } from '../../../src/modules/actions/application/ports/critical-table.port.js';
+import { CRITICAL_LOCATION_PORT } from '../../../src/modules/actions/application/ports/critical-location.port.js';
 import { FUMBLE_TABLE_PORT, type FumbleTableLookupRequest } from '../../../src/modules/actions/application/ports/fumble-table.port.js';
 import { MANEUVER_PORT } from '../../../src/modules/actions/application/ports/maneuver.port.js';
 import { SKILL_CATALOG_PORT } from '../../../src/modules/actions/application/ports/skill-catalog.port.js';
@@ -32,6 +38,7 @@ import type { PsychologyTables } from '../../../src/modules/psychology/domain/va
 import { POISON_TABLES_PORT } from '../../../src/modules/poisons/application/ports/poison-tables.port.js';
 import type { PoisonTables } from '../../../src/modules/actor-rounds/domain/value-objects/poison.vo.js';
 import { PSYCHOLOGY_TABLES } from '../../fixtures/psychology-tables.js';
+import { fakeCriticalLocationPort } from '../../fixtures/critical-locations.js';
 import { NPC_PORT, type Npc } from '../../../src/modules/npcs/application/ports/npc.port.js';
 import { REALM_PORT, type Realm } from '../../../src/modules/games/application/ports/realm.port.js';
 import { FACTION_PORT, type StrategicFaction } from '../../../src/modules/strategic/application/ports/faction.port.js';
@@ -80,6 +87,8 @@ export type World = {
   realms: Map<string, Realm>;
   /** The attack table answers this entry to every lookup. */
   attackEntry: AttackTableEntry;
+  /** Disarm and subdual modifiers of every attack table (workspace spec 079), made up. */
+  attackTableModifiers: AttackTableModifiers;
   critical: CriticalResult;
   fumble: Fumble;
   /** Treatment tables of core's healing tables (workspace spec 022); null is a core without them. */
@@ -125,6 +134,7 @@ const newWorld = (): World => ({
   factions: new Map(),
   realms: new Map(),
   attackEntry: new AttackTableEntry('12CS', 12, 'S', 'C'),
+  attackTableModifiers: { disarm: { melee: -40, ranged: -90 }, subdual: { melee: -30, ranged: -60 } },
   critical: new CriticalResult('Strike to the leg.', 6, 'leg', [], undefined),
   fumble: new Fumble('completed', 'Off balance.', undefined, 0, []),
   treatmentTables: null,
@@ -214,10 +224,13 @@ function fakePorts(world: World) {
       {
         lookup: (lookup: AttackTableLookupRequest) => {
           world.lookups.attack.push(lookup);
-          return Promise.resolve(world.attackEntry);
+          // A copy: the resolver scales and shifts the entry it gets.
+          const entry = world.attackEntry;
+          return Promise.resolve(new AttackTableEntry(entry.text, entry.damage, entry.criticalType, entry.criticalSeverity));
         },
       },
     ],
+    [ATTACK_TABLE_MODIFIERS_PORT, { modifiers: () => Promise.resolve(world.attackTableModifiers) }],
     [
       CRITICAL_TABLE_PORT,
       {
@@ -227,6 +240,8 @@ function fakePorts(world: World) {
         },
       },
     ],
+    // Workspace spec 077, B2: the made-up roll → location map of the critical tables.
+    [CRITICAL_LOCATION_PORT, fakeCriticalLocationPort()],
     [
       FUMBLE_TABLE_PORT,
       {
@@ -306,7 +321,7 @@ function fakePorts(world: World) {
 
 /**
  * Boots the whole AppModule as main.ts does (configureHttp) against an in-memory Mongo and a local JWKS. The ports of
- * the other APIs (core, strategic, npcs, attack-tables) and the event publisher are replaced by in-memory fakes, and
+ * the other APIs (core, strategic, npcs, attack-tables, with the critical locations of test/fixtures) and the event publisher are replaced by in-memory fakes, and
  * the Kafka producer by a no-op. AppModule is imported after setting the environment, because ConfigModule.forRoot()
  * reads it when the module is evaluated.
  */

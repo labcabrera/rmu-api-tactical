@@ -5,6 +5,7 @@ import type { ActionStatus } from '../../../domain/value-objects/action-status.v
 import type { ActionType } from '../../../domain/value-objects/action-type.vo.js';
 import type { ActionSpell } from '../../../domain/value-objects/action-spell.vo.js';
 import type { ActionMedical, ActionUseItem } from '../../../domain/value-objects/action-medical.vo.js';
+import type { ActionAim, ActionDrawAndLoad, ActionOther, ActionStrayShot, ActionReaction } from '../../../domain/aggregates/action.js';
 import { ActionAttack } from './action-attack.model.js';
 import { ActionManeuver } from './action-maneuver.model.js';
 import { ActionMovement } from './action-movement.model.js';
@@ -82,6 +83,10 @@ export class ActionModel {
   @Prop({ type: Number, required: false })
   carriedAp?: number | null;
 
+  /** Workspace spec 089: declared by the game master in a past phase of the round. */
+  @Prop({ type: Boolean, required: false })
+  retroactive?: boolean;
+
   /** Spec 030: the spell of a `cast_spell` action, stored as the domain value object. */
   @Prop({ type: Object, required: false })
   spell?: ActionSpell | null;
@@ -93,6 +98,26 @@ export class ActionModel {
   /** Workspace spec 068: the item of a `use_item` action. */
   @Prop({ type: Object, required: false })
   useItem?: ActionUseItem | null;
+
+  /** Workspace spec 076: the reaction of an attack forced as `reaction`. */
+  @Prop({ type: Object, required: false })
+  reaction?: ActionReaction | null;
+
+  /** Workspace spec 076: the weapon of a `draw_and_load` action. */
+  @Prop({ type: Object, required: false })
+  drawAndLoad?: ActionDrawAndLoad | null;
+
+  /** Workspace spec 076: the foe and weapon of an `aim` action. */
+  @Prop({ type: Object, required: false })
+  aim?: ActionAim | null;
+
+  /** Workspace spec 079: the fixed-cost subtype of an `other` action (Table 8-1). */
+  @Prop({ type: Object, required: false })
+  otherAction?: ActionOther | null;
+
+  /** Workspace spec 079: the stray shot an attack forced as `stray-shot` comes from. */
+  @Prop({ type: Object, required: false })
+  strayShot?: ActionStrayShot | null;
 
   @Prop({ required: true })
   owner: string;

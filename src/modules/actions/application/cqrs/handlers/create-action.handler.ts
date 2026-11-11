@@ -9,9 +9,10 @@ import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-rou
 import { type GameRepository, GAME_REPOSITORY } from '../../../../games/application/ports/game-repository.port.js';
 import { Game } from '../../../../games/domain/aggregates/game.js';
 import { ConflictError, ValidationError, NotFoundError } from '../../../../shared/domain/errors/errors.js';
-import { Action } from '../../../domain/aggregates/action.js';
+import { quickCasterApRange } from '../../../domain/services/spell-talents.js';
+import { Action, type ActionAim, type ActionOther, type ActionStrayShot } from '../../../domain/aggregates/action.js';
 import { ActionUpdatedEvent } from '../../../domain/events/action.events.js';
-import { ActionApProfile } from '../../../domain/value-objects/action-ap-profile.vo.js';
+import { ActionApProfile, OTHER_ACTION_KINDS } from '../../../domain/value-objects/action-ap-profile.vo.js';
 import { ActionManeuver } from '../../../domain/value-objects/action-maneuver.vo.js';
 import { ActionResolution } from '../../../domain/value-objects/action-resolution.vo.js';
 import type { ManeuverActionPoints } from '../../../domain/value-objects/maneuver-profile.vo.js';
@@ -25,6 +26,14 @@ import { type HealingTablesPort, HEALING_TABLES_PORT } from '../../../../actor-r
 import { MedicalAbortService } from '../../../../actor-rounds/application/services/medical-abort.service.js';
 import type { ActionWarning } from '../../../domain/value-objects/action-medical.vo.js';
 import { MedicalActionService } from '../../services/medical/medical-action.service.js';
+import {
+  ActorRoundTrait,
+  QUICKDRAW,
+  SHARPSHOOTER,
+  SLOW_ON_THE_DRAW,
+} from '../../../../actor-rounds/domain/value-objects/actor-round-trait.vo.js';
+import { AIMING, SURPRISED } from '../../../../actor-rounds/domain/value-objects/actor-round-effect.vo.js';
+import { keepsAimingOnDeclaration } from '../../../domain/services/aiming.js';
 
 /**
  * Declares an action (spec 011, §2): it records its AP in the ledger of the actor round and closes as `interrupted`
@@ -58,14 +67,29 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     const round = game.round;
     const [actorRound, roundActions] = await Promise.all([this.readActorRound(command, round), this.readRoundActions(command, round)]);
     const actorActions = roundActions.filter(action => action.actorId === command.actorId);
+    // Workspace spec 077, decision A2.1: the held actions of the actor are concentration foci.
+    const heldChanged = actorRound.syncHeldActions(actorActions);
 
+    const otherAction = CreateActionHandler.otherAction(command, actorRound);
+    const draw = this.drawAndLoad(command, actorRound);
+    const aim = command.actionType === 'aim' ? await this.declareAim(command, actorRound) : null;
+    const freeAction = draw?.freeAction ?? command.freeAction;
     const plan = Action.checkDeclaration(
       actorRound,
       actorActions,
-      { actionType: command.actionType, phaseStart: command.phaseStart, freeAction: command.freeAction, forced: command.forced?.reason },
+      {
+        actionType: command.actionType,
+        phaseStart: command.phaseStart,
+        freeAction,
+        forced: command.forced?.reason,
+        zeroCost: draw?.zeroCost,
+        retroactive: command.retroactive,
+      },
       currentPhase,
       roundActions,
     );
+    const reaction = command.forced?.reason === 'reaction' ? this.declareReaction(command, actorRound, game) : null;
+    const strayShot = command.forced?.reason === 'stray-shot' ? CreateActionHandler.declareStrayShot(command, actorRound, game) : null;
     const warnings = this.declarationWarnings(command, actorRound, plan.interrupted);
     if (!command.confirm && warnings.some(warning => warning.requiresConfirm)) {
       throw new ConflictError('The declaration needs a confirmation: send it again with confirm: true', 'err-action-confirm-required', {
@@ -73,26 +97,35 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
       });
     }
     const { maneuver, apRange: maneuverRange } = await this.mapManeuver(command);
-    const apRange = maneuverRange ?? (await this.standUpRange(command, actorRound)) ?? (await this.useItemRange(command));
+    const apRange = maneuverRange ?? draw?.apRange ?? (await this.standUpRange(command, actorRound)) ?? (await this.useItemRange(command));
     const spell =
       command.actionType === 'cast_spell'
         ? await this.spellCasting.declare(actorRound, actorActions, command.spell!.listCode, command.spell!.spellId, command.freeAction)
         : null;
     const resolution = command.forced ? ActionResolution.forced(command.forced.reason, command.forced.note) : ActionResolution.normal();
+    // Workspace spec 077, decision C4: Quick-Caster for the list of the spell shortens the AP range of the cast.
+    const spellRange = spell ? quickCasterApRange(actorRound.traits, spell.spell) : null;
     const action = Action.create(
       command.gameId,
       command.actorId,
       round,
       command.actionType,
-      command.freeAction,
+      freeAction,
       command.forced ? currentPhase : command.phaseStart,
       maneuver,
       command.description,
       command.userId,
       resolution,
-      apRange,
+      apRange ?? spellRange,
     );
+    action.retroactive = !!command.retroactive;
     action.spell = spell;
+    action.reaction = reaction;
+    action.strayShot = strayShot;
+    action.drawAndLoad = draw?.drawAndLoad ?? null;
+    action.aim = aim;
+    action.otherAction = otherAction;
+    const aimingLost = CreateActionHandler.loseAiming(command.actionType, actorRound);
     if (command.actionType === 'medical') {
       action.medical = await this.medicalActions.declare(actorRound, command.medical, action.id);
     }
@@ -103,13 +136,25 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
     // Workspace spec 068: interrupted medical actions abort their treatment; exertion reopens a completed pressure
     const aborted = await this.medicalAbort.abort(plan.interrupted, { known: [actorRound] });
     const reopened = Action.isExertion(command.actionType) ? actorRound.reopenWounds('exertion') : [];
+    // Workspace spec 079, decision A3: with total penalties of -100 or worse an action with effort asks for an endurance roll.
+    const penaltyAlert = Action.isEffort(command.actionType, otherAction?.kind) && actorRound.addPenaltyExertionAlert();
     action.warnings = warnings;
     if (command.forced) {
       this.logger.log(`Action ${action.id} of ${command.actorId} forced: ${command.forced.reason} ${command.forced.note ?? ''}`);
     }
 
     const saved = await this.actionRepository.save(action);
-    if (plan.spend || plan.interrupted.length > 0 || aborted.length > 0 || reopened.length > 0) {
+    if (
+      plan.spend ||
+      plan.interrupted.length > 0 ||
+      aborted.length > 0 ||
+      reopened.length > 0 ||
+      reaction?.alertId ||
+      strayShot ||
+      aimingLost ||
+      heldChanged ||
+      penaltyAlert
+    ) {
       await this.actorRoundRepository.update(actorRound);
     }
     for (const interrupted of plan.interrupted) {
@@ -153,8 +198,161 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
           requiresConfirm: false,
         }),
       );
+      // Workspace spec 079, C1: a lost arm is useless for good
+      actorRound
+        .lostArms()
+        .forEach(limb =>
+          warnings.push({ code: 'limb-lost', params: { location: limb.location, side: limb.side }, requiresConfirm: false }),
+        );
     }
     return warnings;
+  }
+
+  /**
+   * Workspace spec 076, decision B1: the reaction of an attack forced as `reaction`, always from its alert, which must be
+   * the actor's, pending and of this round and phase (`err-reaction-not-available`): it is resolved. Reactions work as
+   * the other roll alerts (breakage...): the server raises them and someone takes or dismisses them.
+   */
+  private declareReaction(command: CreateActionCommand, actorRound: ActorRound, game: Game) {
+    const forced = command.forced!;
+    const alert = forced.alertId ? actorRound.pendingReactionAlert(forced.alertId) : undefined;
+    const data = alert?.reaction;
+    if (!alert || !data || data.round !== game.round || data.phase !== game.phase) {
+      throw new ValidationError(`The reaction ${forced.alertId ?? ''} is not available to the actor`, 'err-reaction-not-available');
+    }
+    // Workspace spec 087: the attack it declared is in the round log too
+    actorRound.closeAlert(alert, Game.effectPhaseIn(game, actorRound.round), { outcome: 'declared' });
+    return { traitId: data.traitId, triggerActionId: data.triggerActionId, obOverride: data.obOverride ?? null, alertId: alert.id };
+  }
+
+  /**
+   * Workspace spec 079, decision A6 (§9.7 Firing into Melee): the second attack of a missed shot into a melee, forced as
+   * `stray-shot` from the pending `stray-shot` alert of the attacker of this round (`err-stray-shot-not-available`): it
+   * is resolved, and the attack goes against the combatant it chose with the same weapon.
+   */
+  static declareStrayShot(command: CreateActionCommand, actorRound: ActorRound, game: Game): ActionStrayShot {
+    const alertId = command.forced?.alertId;
+    const alert = alertId ? actorRound.pendingStrayShotAlert(alertId) : undefined;
+    const targetActorId = alert?.getModifierText('targetActorId');
+    const attackName = alert?.getModifierText('attackName');
+    const triggerActionId = alert?.getModifierText('actionId');
+    if (!alert || !targetActorId || !attackName || !triggerActionId || alert.getModifierValue('round') !== game.round) {
+      throw new ValidationError(`The stray shot ${alertId ?? ''} is not available to the actor`, 'err-stray-shot-not-available');
+    }
+    actorRound.closeAlert(alert, Game.effectPhaseIn(game, actorRound.round), { outcome: 'declared' });
+    return { alertId: alert.id, triggerActionId, attackName, targetActorId };
+  }
+
+  /**
+   * Workspace spec 079, decision A5: the fixed-cost subtype of an `other` action (Table 8-1), only on `other` actions and
+   * never instantaneous (`err-other-action-invalid`, with `details.reason`). Loading a crossbow names the attack of the
+   * weapon: its attack table must be a crossbow one, and a heavy crossbow (`heavy` in the attack, item type or item name)
+   * takes 14 AP instead of 6. Without a subtype an `other` action takes 1 AP, as before.
+   */
+  static otherAction(command: CreateActionCommand, actorRound: ActorRound): ActionOther | null {
+    const declared = command.otherAction;
+    if (!declared) {
+      return null;
+    }
+    const invalid = (reason: string, message: string) =>
+      new ValidationError(message, 'err-other-action-invalid', { reason, kind: declared.kind });
+    if (command.actionType !== 'other') {
+      throw invalid('not-other', 'Only an other action takes a subtype of Table 8-1');
+    }
+    if (!OTHER_ACTION_KINDS.includes(declared.kind)) {
+      throw invalid('unknown-kind', `Unknown other action ${declared.kind}`);
+    }
+    if (command.freeAction) {
+      throw invalid('free', 'A fixed-cost action of Table 8-1 cannot be instantaneous');
+    }
+    const attackName = declared.attackName ?? null;
+    const attack = attackName ? actorRound.attacks.find(each => each.attackName === attackName) : undefined;
+    if (attackName && !attack) {
+      throw invalid('attack-not-found', `Attack ${attackName} not found on actor`);
+    }
+    let heavy = false;
+    if (declared.kind === 'load-crossbow') {
+      if (!attack || !attack.attackTable?.includes('crossbow')) {
+        throw invalid('not-crossbow', 'Loading a crossbow names an attack of the actor on a crossbow table');
+      }
+      const item = attack.itemId ? (actorRound.items ?? []).find(each => each.itemId === attack.itemId) : undefined;
+      heavy = [attack.attackName, attack.attackTable, item?.itemTypeId, item?.name].some(text => !!text && /heavy/i.test(text));
+    }
+    return { kind: declared.kind, attackName, ap: ActionApProfile.otherAp(declared.kind, heavy) };
+  }
+
+  /**
+   * Workspace spec 076, decision B4: the AP of a `draw_and_load`. Its weapon must be an item of the actor
+   * (`err-item-not-equipped`). With Quickdraw for that weapon it costs 0 AP and is not an instantaneous action of the
+   * round; with Slow on the Draw while surprised, 2 AP (it cannot be instantaneous). Otherwise, as any other.
+   */
+  private drawAndLoad(command: CreateActionCommand, actorRound: ActorRound) {
+    if (command.actionType !== 'draw_and_load') {
+      return undefined;
+    }
+    const itemId = command.drawAndLoad?.itemId ?? null;
+    if (itemId && !(actorRound.items ?? []).some(item => item.itemId === itemId && !item.dropped)) {
+      throw new ValidationError(`Item ${itemId} is not in the equipment of the actor`, 'err-item-not-equipped', { itemId });
+    }
+    const skillId = itemId ? (actorRound.attacks.find(attack => attack.itemId === itemId)?.skillId ?? null) : null;
+    const quickdraw = !!itemId && ActorRoundTrait.tierForSkill(actorRound.traits, QUICKDRAW, skillId) > 0;
+    const slowOnTheDraw = ActorRoundTrait.tierOf(actorRound.traits, SLOW_ON_THE_DRAW) > 0 && actorRound.hasEffect(SURPRISED);
+    const profile = ActionApProfile.forAction('draw_and_load', { draw: { quickdraw, slowOnTheDraw } });
+    const changed = quickdraw || slowOnTheDraw;
+    return {
+      drawAndLoad: { itemId },
+      apRange: changed ? { min: profile.min, max: profile.max } : null,
+      zeroCost: profile.max === 0,
+      freeAction: quickdraw ? true : slowOnTheDraw ? false : undefined,
+    };
+  }
+
+  /**
+   * Workspace spec 076, decision B6: an `aim` action aims a ranged weapon of the actor whose skill matches its
+   * Sharpshooter (`err-aim-not-allowed`, with `details.reason`) at a foe of the round. It takes the whole round, so it
+   * cannot be instantaneous.
+   */
+  private async declareAim(command: CreateActionCommand, actorRound: ActorRound): Promise<ActionAim> {
+    const aim = command.aim;
+    if (!aim?.targetActorId || !aim.itemId) {
+      throw new ValidationError('An aim action needs its foe and its ranged weapon', 'err-aim-not-allowed', { reason: 'missing' });
+    }
+    if (command.freeAction) {
+      throw new ValidationError('Aiming takes the whole round: it cannot be instantaneous', 'err-action-free-not-allowed');
+    }
+    const attack = (actorRound.attacks || []).find(each => each.itemId === aim.itemId && each.type === 'ranged');
+    if (!attack) {
+      throw new ValidationError(`Item ${aim.itemId} is not a ranged weapon of the actor`, 'err-aim-not-allowed', {
+        reason: 'not-ranged',
+        itemId: aim.itemId,
+      });
+    }
+    if (ActorRoundTrait.tierForSkill(actorRound.traits, SHARPSHOOTER, attack.skillId) === 0) {
+      throw new ValidationError(`The actor has no Sharpshooter for ${attack.attackName}`, 'err-aim-not-allowed', {
+        reason: 'no-sharpshooter',
+        itemId: aim.itemId,
+      });
+    }
+    if (aim.targetActorId === actorRound.actorId) {
+      throw new ValidationError('An actor cannot aim at itself', 'err-aim-not-allowed', { reason: 'self' });
+    }
+    const target = await this.actorRoundRepository.findByActorIdAndRound(command.gameId, aim.targetActorId, actorRound.round);
+    if (!target) throw new NotFoundError('Target actor', aim.targetActorId, 'err-target-not-found');
+    return { targetActorId: aim.targetActorId, itemId: aim.itemId };
+  }
+
+  /**
+   * Workspace spec 076, §2.7 (decision B6): declaring any action other than aiming or a ranged attack, free or instant
+   * ones too, loses the aiming of the actor (a ranged attack against another foe or with another weapon loses it when
+   * it is applied). Answers whether it was lost.
+   */
+  static loseAiming(actionType: CreateActionCommand['actionType'], actorRound: ActorRound): boolean {
+    if (keepsAimingOnDeclaration(actionType)) {
+      return false;
+    }
+    const aiming = (actorRound.effects || []).filter(effect => effect.status === AIMING).map(effect => effect.id);
+    actorRound.consumeEffects(aiming);
+    return aiming.length > 0;
   }
 
   /** A `use_item` action takes core's AP of a healing item in combat (decision 7). */
@@ -246,7 +444,7 @@ export class CreateActionHandler implements ICommandHandler<CreateActionCommand,
         difficulty: 'm',
         customBonus: 0,
         lightModifier: 'none',
-        light: 'no_shadows',
+        // No light at declaration: the resolution falls back to the game's ambient light (spec 076).
       },
       progress: maneuverType === 'percent' ? (continued?.maneuver?.progress ?? 0) : undefined,
       continuesActionId: continued?.id,

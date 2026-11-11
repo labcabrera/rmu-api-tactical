@@ -1,5 +1,6 @@
 import type { HpBySource, HpLogEntry } from '../../../actor-rounds/domain/value-objects/hp-log-entry.vo.js';
 import type { CharacterCondition, Injury } from '../../../actor-rounds/domain/value-objects/injury.vo.js';
+import type { LostLimb } from '../../../actor-rounds/domain/value-objects/lost-limb.vo.js';
 import type { TacticalItemOutcome } from '../../../games/domain/value-objects/tactical-game-outcome.vo.js';
 
 /** One character of a finished tactical game, as the strategic API takes it (spec 013, §3 and §4). */
@@ -10,6 +11,8 @@ export interface TacticalOutcomeRequest {
   characterId: string;
   name: string;
   hp: { start: number; end: number; delta: number };
+  /** Workspace spec 077, decision D10: strategic sets fatiguePenalty to clamp(current + delta, 0, 50); missing keeps it. */
+  fatigue?: { start: number; end: number; delta: number };
   /** Every change of the hits in the game (spec 013, §1.1): strategic keeps it in the healing log, not the character. */
   hpLog?: HpLogEntry[];
   hpBySource?: HpBySource;
@@ -21,6 +24,8 @@ export interface TacticalOutcomeRequest {
   fate?: 'dead' | 'permanent-unconscious';
   /** Spec 019: the lasting breakage of its items; strategic adds it by modifier uuid. */
   items?: TacticalItemOutcome[];
+  /** Workspace spec 079, C1: every limb lost at the end of the game. */
+  lostLimbs?: LostLimb[];
 }
 
 export interface TacticalOutcomePort {

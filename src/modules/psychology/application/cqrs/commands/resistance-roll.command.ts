@@ -15,6 +15,8 @@ export class ResistanceRollCommand extends AuthenticatedCommand {
     roles: string[],
     /** Workspace spec 040: the RR of a frenzy-dying actor, which kills it when failed. */
     public readonly reason?: ResistanceReason,
+    /** Workspace spec 087: the `frenzy-dying` or `revulsion-rr` alert the RR answers. */
+    public readonly alertId?: string,
   ) {
     super(userId, roles);
   }

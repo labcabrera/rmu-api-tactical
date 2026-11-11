@@ -1,3 +1,6 @@
+import type { ActorRoundBoReservation } from '../value-objects/actor-round-bo-reservation.vo.js';
+import type { LostLimb } from '../value-objects/lost-limb.vo.js';
+import type { ActorRoundBreath } from '../value-objects/actor-round-breath.vo.js';
 import { ActorRoundAlert } from '../value-objects/actor-round-alert.vo.js';
 import { ActorRoundAttack } from '../value-objects/actor-round-attack.vo.js';
 import { ActorRoundDefenseMode } from '../value-objects/actor-round-defense-mode.vo.js';
@@ -21,12 +24,16 @@ import type { ActorRoundItem } from '../value-objects/actor-round-item.vo.js';
 import type { ActorRoundActiveStyle, ActorRoundFightingStyle } from '../value-objects/actor-round-fighting-style.vo.js';
 import type { ItemConsumed, TemporaryModifier } from '../value-objects/temporary-modifier.vo.js';
 import type { ActorRoundResistance } from '../value-objects/actor-round-resistance.vo.js';
+import type { HeldActionFocus } from '../value-objects/concentration-focus.vo.js';
+import type { ActorRoundHazard } from '../value-objects/actor-round-hazard.vo.js';
 
 /** What the actor brought into the game, taken when round 1 is built from its character (spec 013, §3). */
 export interface ActorRoundSnapshot {
   hp: number;
   injuryIds: string[];
   conditionIds: string[];
+  /** Workspace spec 077, decision D10: fatigue penalty points it brought (0-50). Missing in older actor rounds. */
+  fatigue?: number;
 }
 
 export interface ActorRoundProps {
@@ -51,6 +58,8 @@ export interface ActorRoundProps {
   defenseMode?: ActorRoundDefenseMode;
   attacks: ActorRoundAttack[];
   usedBo: ActorRoundUsedBo[];
+  boCeiling?: number | null;
+  boReservations?: ActorRoundBoReservation[];
   parries: number[];
   effects: ActorRoundEffect[];
   alerts: ActorRoundAlert[];
@@ -88,6 +97,28 @@ export interface ActorRoundProps {
   temporaryModifiers?: TemporaryModifier[];
   /** Workspace spec 068: fright level of an NPC (its stat block); null or missing: none. */
   frightLevel?: number | null;
+  /** Workspace spec 075: critical size of an NPC in steps, when it differs from its size; null or missing: none. */
+  criticalSize?: number | null;
+  /** Workspace spec 075: critical code I of an NPC. Missing in older actor rounds: false. */
+  reduceCriticalSeverity?: boolean;
+  /** Workspace spec 079, decision A3: critical code @ of an NPC (immune to stun). Missing in older actor rounds: false. */
+  stunImmune?: boolean;
+  /** Workspace spec 077, decision B1.2: Enc % of the worn armour. Missing in older actor rounds: 0. */
+  armorEncumbrance?: number;
+  /** Workspace spec 077: held actions of the actor, concentration foci. Missing in older actor rounds: none. */
+  heldActions?: HeldActionFocus[];
+  /** Workspace spec 077, decision D12: height of the actor in feet; null or missing: unknown (NPCs). */
+  height?: number | null;
+  /** Workspace spec 077, decision D2: falls and falling objects of this round. Missing in older actor rounds: none. */
+  hazards?: ActorRoundHazard[];
+  /** Workspace spec 079, C1: limbs lost for good. Missing in older actor rounds: none. */
+  lostLimbs?: LostLimb[];
+  /** Workspace spec 079, C6: the round the actor died in, for the departure of its soul. Null or missing: alive. */
+  deathRound?: number | null;
+  /** Workspace spec 079, C4: the breath the actor holds. Null or missing: it breathes. */
+  breath?: ActorRoundBreath | null;
+  /** Workspace spec 079, C3: protected from the extreme temperature of the environment. Missing: not protected. */
+  protectedFromEnvironment?: boolean;
   /** Only in the actor round built from the character (round 1, or the round it joined in). */
   snapshot?: ActorRoundSnapshot;
   imageUrl: string | undefined;

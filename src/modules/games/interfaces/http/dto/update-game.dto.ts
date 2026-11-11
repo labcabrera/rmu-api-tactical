@@ -1,10 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { UpdateGameCommand } from '../../../application/cqrs/commands/update-game.command.js';
-import { GameEnvironment } from '../../../domain/value-objects/game-environment.vo.js';
 import { GameEnvironmentDto } from './game-environment.dto.js';
 import { UpdateEnvironmentFactionDto } from './environment-faction.dto.js';
+import { PSYCHOLOGY_RULES, type PsychologyRules } from '../../../domain/value-objects/game-side.vo.js';
 
 export class UpdateGameDto {
   // Every field is optional: a PATCH changes what it sends (rmu-mfe-tactical sends only imageUrl) [F-tactical-12].
@@ -38,6 +38,15 @@ export class UpdateGameDto {
   @Type(() => UpdateEnvironmentFactionDto)
   environmentFaction?: UpdateEnvironmentFactionDto;
 
+  @ApiPropertyOptional({
+    type: String,
+    enum: PSYCHOLOGY_RULES,
+    description: 'Workspace spec 100: fear alerts by heads (book) or by levels (house); only in a created game (409 err-game-not-created)',
+  })
+  @IsOptional()
+  @IsIn(PSYCHOLOGY_RULES)
+  psychologyRules?: PsychologyRules;
+
   @ApiPropertyOptional({ description: 'Version the client read (from the GET); a different stored version is a 409', example: 3 })
   @Type(() => Number)
   @IsInt()
@@ -46,9 +55,7 @@ export class UpdateGameDto {
   version?: number;
 
   static toCommand(id: string, dto: UpdateGameDto, userId: string, roles: string[]) {
-    const env = dto.environment
-      ? new GameEnvironment(dto.environment.temperatureFatigueModifier, dto.environment.altitudeFatigueModifier)
-      : undefined;
+    const env = dto.environment ? GameEnvironmentDto.toEntity(dto.environment) : undefined;
     return new UpdateGameCommand(
       id,
       dto.name,
@@ -59,6 +66,7 @@ export class UpdateGameDto {
       roles,
       dto.version,
       dto.environmentFaction?.name,
+      dto.psychologyRules,
     );
   }
 }

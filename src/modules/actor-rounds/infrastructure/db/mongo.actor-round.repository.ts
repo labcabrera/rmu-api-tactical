@@ -1,3 +1,4 @@
+import { ActorRoundFatigue } from '../../domain/value-objects/actor-round-fatigue.vo.js';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -116,11 +117,17 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       initiative: doc.initiative,
       actionPoints: doc.actionPoints,
       hp: doc.hp,
-      fatigue: doc.fatigue,
+      fatigue: ActorRoundFatigue.from(doc.fatigue),
       penalty: penalty,
       defense: doc.defense,
       attacks: attacks,
       usedBo: doc.usedBo,
+      boCeiling: doc.boCeiling ?? null,
+      boReservations: (doc.boReservations ?? []).map(({ actionId, kind, parry, spends }) => ({
+        actionId,
+        kind,
+        ...(kind === 'parry' ? { parry } : { spends: (spends ?? []).map(({ attackName, bo }) => ({ attackName, bo })) }),
+      })),
       parries: doc.parries,
       effects: (doc.effects || []).map(
         e =>
@@ -136,16 +143,24 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
             e.source,
             e.fromRound ?? undefined,
             e.causeTreated ?? undefined,
+            e.data ?? undefined,
           ),
       ),
       traits: (doc.traits || []).map(trait => new ActorRoundTrait(trait.traitId, trait.tier || 1, trait.specialization ?? null)),
       alerts: (doc.alerts || []).map(alert => ActorRoundAlert.from(alert as unknown as ActorRoundAlertData)),
       defenseMode: doc.defenseMode
-        ? new ActorRoundDefenseMode(doc.defenseMode.dodge ?? 'none', doc.defenseMode.block ?? 'none')
+        ? new ActorRoundDefenseMode(doc.defenseMode.dodge ?? 'none', doc.defenseMode.block ?? 'none', doc.defenseMode.adrenal || undefined)
         : ActorRoundDefenseMode.none(),
       phaseLog: (doc.phaseLog || []).map(entry => new ActorRoundPhaseLog(entry.phase, entry.spentAp, entry.totalSpentAp)),
       apLedger: (doc.apLedger || []).map(
-        entry => new ApLedgerEntry(entry.phase, entry.actionId ?? undefined, entry.ap, entry.kind as ApLedgerKind),
+        entry =>
+          new ApLedgerEntry(
+            entry.phase,
+            entry.actionId ?? undefined,
+            entry.ap,
+            entry.kind as ApLedgerKind,
+            entry.concentrated || undefined,
+          ),
       ),
       injuries: (doc.injuries || []).map(injury => ({ ...injury, treatments: injury.treatments || [] })),
       poisonExposures: doc.poisonExposures || [],
@@ -161,8 +176,24 @@ export class MongoActorRoundRepository extends MongoBaseRepository<ActorRound, A
       itemsConsumed: (doc.itemsConsumed || []).map(each => ({ itemId: each.itemId, amount: each.amount })),
       temporaryModifiers: (doc.temporaryModifiers || []).map(each => ({ ...each })),
       frightLevel: doc.frightLevel ?? null,
+      criticalSize: doc.criticalSize ?? null,
+      reduceCriticalSeverity: doc.reduceCriticalSeverity ?? false,
+      stunImmune: doc.stunImmune ?? false,
+      armorEncumbrance: doc.armorEncumbrance ?? 0,
+      heldActions: (doc.heldActions || []).map(each => ({ actionId: each.actionId, since: each.since })),
+      height: doc.height ?? null,
+      hazards: doc.hazards || [],
+      lostLimbs: (doc.lostLimbs || []).map(limb => ({ ...limb })),
+      deathRound: doc.deathRound ?? null,
+      breath: doc.breath ? { ...doc.breath } : null,
+      protectedFromEnvironment: doc.protectedFromEnvironment ?? false,
       snapshot: doc.snapshot
-        ? { hp: doc.snapshot.hp, injuryIds: [...(doc.snapshot.injuryIds || [])], conditionIds: [...(doc.snapshot.conditionIds || [])] }
+        ? {
+            hp: doc.snapshot.hp,
+            injuryIds: [...(doc.snapshot.injuryIds || [])],
+            conditionIds: [...(doc.snapshot.conditionIds || [])],
+            ...(typeof doc.snapshot.fatigue === 'number' ? { fatigue: doc.snapshot.fatigue } : {}),
+          }
         : undefined,
       imageUrl: doc.imageUrl,
       owner: doc.owner,

@@ -1,10 +1,19 @@
 import { Prop, Schema } from '@nestjs/mongoose';
+import type { EffectivePace } from '../../../domain/services/free-movement-pace.js';
 import { Modifier } from '../../../../shared/infrastructure/persistence/models/modifier.model.js';
 import type { AttackType, ProtectPosition } from '../../../domain/value-objects/action-attack-modifiers.vo.js';
 import type { AttackLocation } from '../../../domain/value-objects/attack-location.vo.js';
 import type { ModifierGroup } from '../../../domain/value-objects/key-value-modifier.vo.js';
 import type { AttackStatus } from '../../../domain/value-objects/attack-status.vo.js';
+import type {
+  ActionAttackDisarm,
+  ActionAttackReaction,
+  DamageAdjustment,
+  SeverityAdjustment,
+  SubdualAdjustment,
+} from '../../../domain/value-objects/action-attack.vo.js';
 import { ActionAttackModifiers } from './action-attack-modifiers.model.js';
+import type { ShieldManeuver } from '../../../domain/value-objects/shield-maneuver.vo.js';
 
 @Schema({ _id: false })
 export class SkippedRuleModel {
@@ -52,6 +61,13 @@ export class ActionAttackCalculated {
 
   @Prop({ type: [SkippedRuleModel], required: false })
   public skipped: SkippedRuleModel[] | undefined;
+
+  @Prop({ type: Number, required: false })
+  public locationRoll: number | undefined;
+
+  /** Workspace spec 080: pace of the attack and where it comes from. */
+  @Prop({ type: Object, required: false })
+  public pace?: EffectivePace;
 }
 
 @Schema({ _id: false })
@@ -155,6 +171,13 @@ export class Critical {
 
   @Prop({ type: Object, required: false })
   public styleOption: { abilityId: string; originalType: string; originalSeverity: string } | undefined;
+
+  /** Workspace spec 076: the first roll of a critical rolled again, and who rolled it again. */
+  @Prop({ type: Number, required: false })
+  public originalRoll?: number | null;
+
+  @Prop({ type: String, required: false })
+  public rerolledBy?: 'offense' | 'defense';
 }
 
 @Schema({ _id: false })
@@ -185,6 +208,18 @@ export class ActionAttackResult {
 
   @Prop({ type: Fumble, required: false })
   public fumble: Fumble | undefined;
+
+  /** Workspace spec 075: the damage of the table before the attack size scaled it. */
+  @Prop({ type: Object, required: false })
+  public damageAdjustment?: DamageAdjustment;
+
+  /** Workspace spec 075: the critical severity of the table, the final one (null: none) and the steps. */
+  @Prop({ type: Object, required: false })
+  public severityAdjustment?: SeverityAdjustment;
+
+  /** Workspace spec 079: the hits and critical of the table before a subdual attack changed them. */
+  @Prop({ type: Object, required: false })
+  public subdualAdjustment?: SubdualAdjustment;
 }
 
 @Schema({ _id: false })
@@ -219,4 +254,16 @@ export class ActionAttack {
 
   @Prop({ type: Object, required: false })
   public protectorPositions?: Record<string, ProtectPosition>;
+
+  /** Workspace spec 076: the reaction the attack comes from. */
+  @Prop({ type: Object, required: false })
+  public reaction?: ActionAttackReaction | null;
+
+  /** Workspace spec 077, decision A1.2: the Shield maneuver of the defender. */
+  @Prop({ type: Object, required: false })
+  public shieldManeuver?: ShieldManeuver | null;
+
+  /** Workspace spec 079: the result of a disarm on Table 9-7a. */
+  @Prop({ type: Object, required: false })
+  public disarm?: ActionAttackDisarm | null;
 }

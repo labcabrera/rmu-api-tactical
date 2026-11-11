@@ -1,3 +1,4 @@
+import { OTHER_ACTION_KINDS, type OtherActionKind } from '../../../domain/value-objects/action-ap-profile.vo.js';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsBoolean, IsIn, IsInt, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
@@ -173,6 +174,47 @@ export class ForceActionDto {
   @IsOptional()
   @IsString()
   note?: string;
+
+  @ApiProperty({ description: 'reaction (spec 076) or stray-shot (spec 079): the alert of the actor it is declared from', required: false })
+  @IsOptional()
+  @IsString()
+  alertId?: string;
+}
+
+/** Workspace spec 076: the weapon of a `draw_and_load` action. */
+export class ActionDrawAndLoadCreationDto {
+  @ApiProperty({ description: 'Item of the actor drawn or loaded: Quickdraw makes it cost 0 AP', required: false })
+  @IsOptional()
+  @IsString()
+  itemId?: string;
+}
+
+/** Workspace spec 079, decision A5: the fixed-cost subtype of an `other` action (Table 8-1). */
+export class ActionOtherCreationDto {
+  @ApiProperty({ enum: OTHER_ACTION_KINDS, example: 'load-crossbow' })
+  @IsIn(OTHER_ACTION_KINDS)
+  kind: OtherActionKind;
+
+  @ApiProperty({
+    required: false,
+    description: 'Attack of the weapon strung or loaded; required to load a crossbow (a heavy one takes 14 AP)',
+  })
+  @IsOptional()
+  @IsString()
+  attackName?: string;
+}
+
+/** Workspace spec 076, decision B6: the foe and the ranged weapon of an `aim` action (Sharpshooter). */
+export class ActionAimCreationDto {
+  @ApiProperty({ description: 'Foe aimed at' })
+  @IsString()
+  @IsNotEmpty()
+  targetActorId: string;
+
+  @ApiProperty({ description: 'Ranged weapon of the actor, of the specialization of its Sharpshooter' })
+  @IsString()
+  @IsNotEmpty()
+  itemId: string;
 }
 
 export class CreateActionDto {
@@ -239,6 +281,27 @@ export class CreateActionDto {
   @IsObject()
   useItem?: ActionUseItemCreationDto;
 
+  @ApiProperty({ description: 'Weapon of a draw_and_load action (spec 076)', type: ActionDrawAndLoadCreationDto, required: false })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ActionDrawAndLoadCreationDto)
+  @IsObject()
+  drawAndLoad?: ActionDrawAndLoadCreationDto;
+
+  @ApiProperty({ description: 'Foe and ranged weapon of an aim action (spec 076)', type: ActionAimCreationDto, required: false })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ActionAimCreationDto)
+  @IsObject()
+  aim?: ActionAimCreationDto;
+
+  @ApiProperty({ description: 'Fixed-cost subtype of an other action (spec 079)', type: ActionOtherCreationDto, required: false })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ActionOtherCreationDto)
+  @IsObject()
+  otherAction?: ActionOtherCreationDto;
+
   @ApiProperty({
     description: 'Declare despite the warnings that need a confirmation (409 err-action-confirm-required lists them)',
     required: false,
@@ -247,6 +310,15 @@ export class CreateActionDto {
   @IsOptional()
   @IsBoolean()
   confirm?: boolean;
+
+  @ApiProperty({
+    description: 'Declared by a manager of the game in a past phase of the current round (workspace spec 089)',
+    required: false,
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  retroactive?: boolean;
 
   static toCommand(dto: CreateActionDto, userId: string, roles: string[]) {
     return new CreateActionCommand(
@@ -259,11 +331,21 @@ export class CreateActionDto {
       '',
       userId,
       roles,
-      dto.forced ? { reason: dto.forced.reason, note: dto.forced.note } : undefined,
+      dto.forced
+        ? {
+            reason: dto.forced.reason,
+            note: dto.forced.note,
+            alertId: dto.forced.alertId,
+          }
+        : undefined,
       dto.spell ? { listCode: dto.spell.listCode, spellId: dto.spell.spellId } : undefined,
       dto.medical ? { ...dto.medical } : undefined,
       dto.useItem ? { itemId: dto.useItem.itemId, targetActorId: dto.useItem.targetActorId, roll: dto.useItem.roll } : undefined,
       dto.confirm === true,
+      dto.drawAndLoad ? { itemId: dto.drawAndLoad.itemId } : undefined,
+      dto.aim ? { targetActorId: dto.aim.targetActorId, itemId: dto.aim.itemId } : undefined,
+      dto.otherAction ? { kind: dto.otherAction.kind, attackName: dto.otherAction.attackName } : undefined,
+      dto.retroactive === true,
     );
   }
 }
