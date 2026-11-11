@@ -67,7 +67,9 @@ export class ResistanceRollDto {
 
   @ApiProperty({
     required: false,
-    description: 'Workspace spec 087: the frenzy-dying or revulsion-rr alert the RR answers, closed with its result',
+    description:
+      'Workspace spec 087: the frenzy-dying, revulsion-rr, fear-surrounded or fear-alone (spec 100) alert the RR answers, ' +
+      'closed with its result',
   })
   @IsOptional()
   @IsString()

@@ -52,7 +52,13 @@ const setup = (extra: { round?: number; effects?: Record<string, ReturnType<type
     actor({ actorId: 'witch', character: true, factionId: 'mordor' }),
     actor({ actorId: 'troll', factionId: 'mordor' }),
   ];
-  const game = { id: 'game-1', name: 'Amon Hen', round: extra.round ?? 1, checkNotFinished: vi.fn() };
+  const game = {
+    id: 'game-1',
+    name: 'Amon Hen',
+    round: extra.round ?? 1,
+    checkNotFinished: vi.fn(),
+    allyFactionIds: (factionId: string) => [factionId],
+  };
   const games = { findById: vi.fn(() => Promise.resolve(game)) } as unknown as GameRepository;
   const update = vi.fn((round: ActorRound) => Promise.resolve(round));
   const actorRounds = { findByRsql: vi.fn(() => Promise.resolve({ content: rounds })), update } as unknown as ActorRoundRepository;
@@ -118,6 +124,13 @@ describe('FearCheckHandler (workspace spec 022, decision 9)', () => {
     expect(byId(result.actors, 'boromir').breakdown?.map(term => term.key)).toEqual(['roll', 'fear-rr', 'attack-level']);
     const npc = await fear({ intimidatorActorId: 'troll', intimidationRanks: 3, group: { actorIds: ['orc'] }, rolls: { orc: 90 } });
     expect(npc.frightLevel).toBe(3);
+  });
+
+  it('gives no leader bonus when the leader has fallen (workspace spec 100)', async () => {
+    const { fear } = setup({ effects: { aragorn: [effect('unconscious')] } });
+    const result = await fear({ frightLevel: 5, leader: { actorId: 'aragorn' }, rolls: { boromir: 50, orc: 50 } });
+    expect(result.leader?.fearRrBonus).toBe(0);
+    expect(byId(result.actors, 'boromir').breakdown?.map(term => term.key)).not.toContain('leader');
   });
 
   it('rolls for the actors the client did not', async () => {

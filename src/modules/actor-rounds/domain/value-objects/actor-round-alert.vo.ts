@@ -330,12 +330,61 @@ export class ActorRoundAlert {
     );
   }
 
-  /** Workspace spec 068, decision 16: a fear check is suggested to a faction; it is not rolled by itself. */
-  static buildFearCheckSuggested(factionId: string, frightLevel: number, fallenShare: number): ActorRoundAlert {
-    return new ActorRoundAlert(randomUUID(), 'fear-check-suggested', 'Fear check suggested', [
+  /**
+   * Workspace spec 068, decision 16: a fear check is suggested to a faction; it is not rolled by itself. Workspace spec
+   * 100: to a side, with its factions (`factionIds`, one modifier each), the rules and the new triggers (`triggers`, one
+   * modifier each); `factionId` stays the faction of the actor that gets it.
+   */
+  static buildFearCheckSuggested(
+    factionId: string,
+    frightLevel: number,
+    fallenShare: number,
+    side?: { sideId: string; factionIds: string[]; rules: string; triggers: string[] },
+  ): ActorRoundAlert {
+    const modifiers = [
       new ActorRoundAlertModifier('factionId', null, factionId),
       new ActorRoundAlertModifier('frightLevel', frightLevel, null),
       new ActorRoundAlertModifier('fallenShare', fallenShare, null),
+    ];
+    if (side) {
+      modifiers.push(
+        new ActorRoundAlertModifier('sideId', null, side.sideId),
+        ...side.factionIds.map(id => new ActorRoundAlertModifier('factionIds', null, id)),
+        new ActorRoundAlertModifier('rules', null, side.rules),
+        ...side.triggers.map(trigger => new ActorRoundAlertModifier('triggers', null, trigger)),
+      );
+    }
+    return new ActorRoundAlert(randomUUID(), 'fear-check-suggested', 'Fear check suggested', modifiers);
+  }
+
+  /**
+   * Workspace spec 100, decision 20: the fear RR of an actor surrounded (`attackerIds`, one modifier each) or the last
+   * standing of its side, at `level`. Like `revulsion-rr`, an individual RR answers it.
+   */
+  static buildIndividualFear(
+    type: 'fear-surrounded' | 'fear-alone',
+    sideId: string,
+    level: number,
+    attackerIds: string[] = [],
+  ): ActorRoundAlert {
+    const message = type === 'fear-surrounded' ? 'Fear RR: surrounded' : 'Fear RR: alone';
+    return new ActorRoundAlert(randomUUID(), type, message, [
+      new ActorRoundAlertModifier('resistance', null, 'fear'),
+      new ActorRoundAlertModifier('level', level, null),
+      new ActorRoundAlertModifier('sideId', null, sideId),
+      ...attackerIds.map(id => new ActorRoundAlertModifier('attackerIds', null, id)),
+    ]);
+  }
+
+  /**
+   * Workspace spec 100, decision 22: the side won the round; the game master may lift the balk and retreat of its
+   * standing members (`actorIds`) with `POST fear-ease`.
+   */
+  static buildFearEaseSuggested(sideId: string, factionIds: string[], actorIds: string[]): ActorRoundAlert {
+    return new ActorRoundAlert(randomUUID(), 'fear-ease-suggested', 'The side won the round: its fear may ease', [
+      new ActorRoundAlertModifier('sideId', null, sideId),
+      ...factionIds.map(id => new ActorRoundAlertModifier('factionIds', null, id)),
+      ...actorIds.map(id => new ActorRoundAlertModifier('actorIds', null, id)),
     ]);
   }
 

@@ -35,6 +35,8 @@ export interface LoadOptions {
   factionId?: string;
   /** Steps from medium; 1 (the empty actor round) by default. */
   size?: number;
+  /** Level of the actor (workspace spec 100); 0 (the empty actor round) by default. */
+  level?: number;
 }
 
 /** An actor round as the repository loads it. */
@@ -46,6 +48,7 @@ export const load = (options: LoadOptions = {}): ActorRound => {
     actorId: 'actor-1',
     round: options.round ?? 1,
     size: options.size ?? empty.size,
+    level: options.level ?? empty.level,
     actionPoints: 4,
     initiative: new ActorRoundInitiative(options.initiativeBase ?? 0, 0, undefined, undefined),
     hp: new ActorRoundHP(...(options.hp ?? [50, 50])),

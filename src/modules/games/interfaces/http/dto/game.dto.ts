@@ -8,6 +8,8 @@ import { TacticalGameOutcomeDto } from './tactical-game-outcome.dto.js';
 import { ActorDto } from './actor.dto.js';
 import { GameEnvironmentDto } from './game-environment.dto.js';
 import { EnvironmentFactionDto } from './environment-faction.dto.js';
+import { GameSideDto } from './game-side.dto.js';
+import { PSYCHOLOGY_RULES, type PsychologyRules } from '../../../domain/value-objects/game-side.vo.js';
 import type { TacticalGameAccess } from '../../../domain/value-objects/strategic-member.vo.js';
 
 export class GameDto {
@@ -42,6 +44,22 @@ export class GameDto {
   })
   factions: string[];
 
+  @ApiProperty({
+    type: [GameSideDto],
+    description: 'Workspace spec 100: the sides of the game; without sides defined, one per faction (id = faction id, name null)',
+  })
+  sides: GameSideDto[];
+
+  @ApiProperty({ description: 'Workspace spec 100: the game master defined the sides (false: one side per faction)' })
+  sidesDefined: boolean;
+
+  @ApiProperty({
+    type: String,
+    enum: PSYCHOLOGY_RULES,
+    description: 'Workspace spec 100: fear alerts of the upkeep by heads (book) or by levels (house)',
+  })
+  psychologyRules: PsychologyRules;
+
   @ApiProperty({ description: 'Actors involved in the game', type: [ActorDto] })
   actors: ActorDto[];
 
@@ -57,7 +75,9 @@ export class GameDto {
 
   @ApiProperty({
     type: Object,
-    description: 'Workspace spec 068: thresholds of fallen allies already alerted by faction (`{factionId: [key]}`)',
+    description:
+      'Fear triggers already alerted (spec 068): by side `side:<sideId>` and by actor `actor:<actorId>` since spec 100; ' +
+      'older games keep keys by faction id',
   })
   fearThresholdsAlerted: Record<string, string[]>;
 
@@ -105,6 +125,9 @@ export class GameDto {
     dto.phase = entity.phase;
     dto.round = entity.round;
     dto.factions = entity.factions;
+    dto.sides = entity.effectiveSides().map(side => GameSideDto.fromEntity(side));
+    dto.sidesDefined = entity.sidesDefined();
+    dto.psychologyRules = entity.psychologyRulesOrDefault();
     dto.actors = entity.actors.map(actor => ActorDto.fromEntity(actor));
     dto.environment = entity.environment ? GameEnvironmentDto.fromEntity(entity.environment) : undefined;
     dto.environmentFaction = entity.environmentFaction ? EnvironmentFactionDto.fromEntity(entity.environmentFaction) : null;

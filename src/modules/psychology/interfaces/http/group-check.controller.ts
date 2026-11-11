@@ -11,6 +11,9 @@ import type { FrightLevels } from '../../application/cqrs/handlers/fear-effect.h
 import { FrightLevelsDto } from './dto/fear-effect.dto.js';
 import { FearCheckCommand, MoraleCheckCommand, RallyCheckCommand } from '../../application/cqrs/commands/group-check.commands.js';
 import type { GroupCheckResult } from '../../application/cqrs/group-check.result.js';
+import { FearEaseCommand } from '../../application/cqrs/commands/fear-ease.command.js';
+import type { FearEaseResult } from '../../application/cqrs/handlers/fear-ease.handler.js';
+import { FearEaseDto, FearEaseResultDto } from './dto/fear-ease.dto.js';
 import { FearCheckDto, GroupCheckResultDto, LeaderRollDto, MoraleCheckDto } from './dto/group-check.dto.js';
 
 /** Fear, morale and rally checks of a group of a tactical game (workspace spec 022): game managers only; the fright levels for any reader. */
@@ -32,6 +35,18 @@ export class GroupCheckController {
   async fearCheck(@Param('id') id: string, @Body() dto: FearCheckDto, @CurrentUser() user: AuthenticatedUser) {
     const result = await this.commandBus.execute<FearCheckCommand, GroupCheckResult>(new FearCheckCommand(id, dto, user.id, user.roles));
     return GroupCheckResultDto.from(result);
+  }
+
+  /** Workspace spec 100, decision 22: a side won the round, its standing members lose their balk and retreat. */
+  @GameAccess('manage')
+  @Post(':id/fear-ease')
+  @HttpCode(200)
+  @ApiOkResponse({ type: FearEaseResultDto, description: 'Success' })
+  @ApiOperation({ operationId: 'fearEase', summary: 'Lift the balk and retreat of the standing members of a side' })
+  @ApiErrors({ 400: 'Game not started', 404: 'Game or side not found' })
+  async fearEase(@Param('id') id: string, @Body() dto: FearEaseDto, @CurrentUser() user: AuthenticatedUser) {
+    const command = new FearEaseCommand(id, dto.sideId, user.id, user.roles);
+    return FearEaseResultDto.from(await this.commandBus.execute<FearEaseCommand, FearEaseResult>(command));
   }
 
   @GameAccess('manage')

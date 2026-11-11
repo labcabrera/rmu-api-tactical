@@ -29,7 +29,7 @@ export class FearCheckHandler implements ICommandHandler<FearCheckCommand, Group
     this.logger.log(`Execute << ${JSON.stringify(command)}`);
     const request = command.request;
     const { game, rounds } = await this.groupCheckService.load(command.gameId);
-    const members = GroupCheckService.group(rounds, request.group, request.leader?.actorId);
+    const members = GroupCheckService.group(rounds, request.group, request.leader?.actorId, factionId => game.allyFactionIds(factionId));
     const leader = request.leader ? await this.groupCheckService.leader(rounds, request.leader) : undefined;
     const frightLevel = await this.frightLevel(command, rounds);
     const tables = await this.psychologyTables.find();

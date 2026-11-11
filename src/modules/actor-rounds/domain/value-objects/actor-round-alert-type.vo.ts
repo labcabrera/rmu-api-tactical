@@ -9,7 +9,9 @@
  * a fall, decision D5). Workspace spec 079: `death-threshold` (total penalties of -300 or worse: the game master confirms
  * the death, decision A3), `knocked-back` (a critical knocked the actor back, decision A4) and `stray-shot` (a ranged
  * attack into a melee missed: it may hit a combatant in the way, decision A6) and `breath-check` (an actor past the
- * rounds it holds its breath makes an absolute Endurance maneuver, C4).
+ * rounds it holds its breath makes an absolute Endurance maneuver, C4). Workspace spec 100 (house rules):
+ * `fear-surrounded` and `fear-alone` (the individual fear RR of an actor surrounded or last standing of its side) and
+ * `fear-ease-suggested` (a side won the round: the game master may lift the balk and retreat of its members).
  */
 export type ActorRoundAlertType =
   | 'endurance'
@@ -28,4 +30,7 @@ export type ActorRoundAlertType =
   | 'death-threshold'
   | 'knocked-back'
   | 'stray-shot'
-  | 'breath-check';
+  | 'breath-check'
+  | 'fear-surrounded'
+  | 'fear-alone'
+  | 'fear-ease-suggested';

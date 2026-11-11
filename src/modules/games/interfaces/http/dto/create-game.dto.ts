@@ -7,6 +7,7 @@ import { GameExtremeTemperatureDto } from './game-environment.dto.js';
 import { CreateGameCommand, CreateGameCommandActor } from '../../../application/cqrs/commands/create-game.command.js';
 import type { ActorType } from '../../../domain/value-objects/actor-type.vo.js';
 import { CreateEnvironmentFactionDto, GameNpcRequestDto } from './environment-faction.dto.js';
+import { PSYCHOLOGY_RULES, type PsychologyRules } from '../../../domain/value-objects/game-side.vo.js';
 
 export class CreateGameActorDto {
   constructor(id: string, type: ActorType, faction: string | undefined) {
@@ -142,6 +143,15 @@ export class CreateGameDto {
   @Type(() => CreateEnvironmentFactionDto)
   environmentFaction?: CreateEnvironmentFactionDto;
 
+  @ApiPropertyOptional({
+    type: String,
+    enum: PSYCHOLOGY_RULES,
+    description: 'Workspace spec 100: fear alerts by heads (book) or by levels (house, the default of new games)',
+  })
+  @IsOptional()
+  @IsIn(PSYCHOLOGY_RULES)
+  psychologyRules?: PsychologyRules;
+
   static toCommand(dto: CreateGameDto, userId: string, roles: string[]) {
     const actors: CreateGameCommandActor[] | undefined = dto.actors
       ? dto.actors.map(actor => new CreateGameCommandActor(actor.id, actor.type, actor.faction))
@@ -173,6 +183,7 @@ export class CreateGameDto {
             npcs: dto.environmentFaction.npcs.map(npc => ({ npcId: npc.npcId, count: npc.count, name: npc.name })),
           }
         : undefined,
+      dto.psychologyRules,
     );
   }
 }
