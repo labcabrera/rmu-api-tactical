@@ -1,3 +1,66 @@
+# [0.9.0](https://github.com/labcabrera/rmu-api-tactical/compare/0.8.0...0.9.0) (2026-11-11)
+
+
+* feat!: attack size scales damage and records the critical shift (spec 075) ([1dde527](https://github.com/labcabrera/rmu-api-tactical/commit/1dde5271498f60fcaea3a9048179b8b0640521cf))
+
+
+### Bug Fixes
+
+* **actions:** drop the unknown animal-training skill from Animal Empathy (spec 079, phase 9) ([deb3a96](https://github.com/labcabrera/rmu-api-tactical/commit/deb3a96d94f6ba5f3aff7598298da52ee5cc05ac))
+* **actions:** free movement adds fatigue per phase spanned (spec 080) ([cd0557b](https://github.com/labcabrera/rmu-api-tactical/commit/cd0557baa85f20577a2bb7d96c63820d3e849e02))
+* **actions:** free movement AP profile is 0-0 (spec 080, phase 3) ([42fc203](https://github.com/labcabrera/rmu-api-tactical/commit/42fc2035537957d046693eb6f0083e029d3d24fe))
+* aiming lost on any other declaration and used only by the aimed shot (spec 076) ([60b1652](https://github.com/labcabrera/rmu-api-tactical/commit/60b165211b0e7c898f6b486dc297a94ba7bc4c3d))
+* **combat:** a negative skill adds no further penalty to a modifier ([8853d9b](https://github.com/labcabrera/rmu-api-tactical/commit/8853d9be6f101ebae303d3c3d8ab2a2e298cc467))
+* **combat:** negative Footwork does not add to the pace penalty ([91555d4](https://github.com/labcabrera/rmu-api-tactical/commit/91555d4c9ecbb65d15080659387f1b404ef06427))
+* endurance roll takes the armor maneuver penalty of the sheet (spec 077, phase 4) ([152a9f3](https://github.com/labcabrera/rmu-api-tactical/commit/152a9f32a6439291251ffb194d6ed653887fc6f5))
+* maneuvers default to the ambient light of the game (spec 076) ([2fd5e47](https://github.com/labcabrera/rmu-api-tactical/commit/2fd5e475f57f45639c6bd44000957120c4406f5b))
+* **psychology:** a fallen leader gives no fear bonus ([cdfc402](https://github.com/labcabrera/rmu-api-tactical/commit/cdfc4021b7401cad309a23f59cf117a1a88b5769))
+* unbalancing critical for failed moving maneuvers and 12-round poison minute (spec 079, phase 1) ([f77bb98](https://github.com/labcabrera/rmu-api-tactical/commit/f77bb98b27e4aeba539162a624e8fae011b3cc92))
+
+
+### Features
+
+* accept global npcs in tactical games (spec 073) ([eb2a416](https://github.com/labcabrera/rmu-api-tactical/commit/eb2a4162eabd79cd9d8c4f64f73878206783b527))
+* **actions:** declare retroactively in a past phase of the round ([5ccd95d](https://github.com/labcabrera/rmu-api-tactical/commit/5ccd95df1f568cb117677676ec0632f6c07b7398))
+* **actions:** free movement without AP or instant, run cap and auto pace penalty (spec 080) ([10f969d](https://github.com/labcabrera/rmu-api-tactical/commit/10f969dd1cf4c3580a5d8b4dcc06aad65f1335d1))
+* **actions:** no attack without OB, a parry lowers prepared attacks (spec 082) ([0603c3d](https://github.com/labcabrera/rmu-api-tactical/commit/0603c3dca42f6a88fd2528a90379f72305f0a37e))
+* **actions:** normal movement by AP, dash rules, round limit, backwards and prone (spec 081) ([a15c20a](https://github.com/labcabrera/rmu-api-tactical/commit/a15c20a78e93901f51a122819570cc5b37bf2e99))
+* **actor-rounds:** shared OB margin for several attacks and parries (spec 082) ([125e737](https://github.com/labcabrera/rmu-api-tactical/commit/125e737f1dfaf48d07ab8fd6b75ce3368d3e5def))
+* **alerts:** resolved alerts stay in their round with their result (workspace spec 087) ([937c1cc](https://github.com/labcabrera/rmu-api-tactical/commit/937c1cc5f6806aa4536f2382bd17bb18fcc2e6fc))
+* armor encumbrance and effective size from the sheet (spec 077, phase 1) ([7897d7f](https://github.com/labcabrera/rmu-api-tactical/commit/7897d7f7f2355203ecf5a3292d790d80d0e5e030))
+* combat gaps of block A of Core Law (spec 079, phase 2) ([aa66e9d](https://github.com/labcabrera/rmu-api-tactical/commit/aa66e9d8031958aa5109377eb42508c1350f90a5))
+* combat talent maneuvers, aiming, roll profile and luck talents (spec 076, phase 3) ([ffe6d96](https://github.com/labcabrera/rmu-api-tactical/commit/ffe6d966e42372e011ccbd5fb43e06f2accf3ada))
+* **combat:** count OB from when it is committed and lower initiative ([20ac6c4](https://github.com/labcabrera/rmu-api-tactical/commit/20ac6c43b162934989ba9207e7d4cf94dc577fc6))
+* **combat:** roll the Combat Training maneuver of a parry ([a937b52](https://github.com/labcabrera/rmu-api-tactical/commit/a937b527acd62145faa3d8838fd75f90ca1f9033))
+* concentration doubles the AP of other actions (spec 077, phase 2) ([202504c](https://github.com/labcabrera/rmu-api-tactical/commit/202504c9aa5fa17526dd386b941e22ae5e2343c5))
+* critical location decides the armor of piecemeal targets (spec 077, phase 1) ([084ae47](https://github.com/labcabrera/rmu-api-tactical/commit/084ae475cb79de403a36b751fd206929200bfa39))
+* extra sense against unseen targets and light sensitivity in combat (spec 076, phase 4) ([1dc21ee](https://github.com/labcabrera/rmu-api-tactical/commit/1dc21ee11a823927e003f7dd0046e407b0d6e0a2))
+* extreme temperatures, held breath and suffocation, and fog (spec 079, phase 6) ([9ec2676](https://github.com/labcabrera/rmu-api-tactical/commit/9ec26760f89a7037273132e9bd0c5033b8745796))
+* falls and falling objects as hazard attacks (spec 077, phase 4) ([a4a84b3](https://github.com/labcabrera/rmu-api-tactical/commit/a4a84b31402da6df1991e7ac19a81fde3c755aa7))
+* fatigue recovery and round trip with strategic (spec 077, phase 4) ([411c12f](https://github.com/labcabrera/rmu-api-tactical/commit/411c12fbd273b21a587491ed53cf3a05790cd6c7))
+* firing into melee, disarm and subdual attacks (spec 079, phase 3) ([6580808](https://github.com/labcabrera/rmu-api-tactical/commit/65808085780a9fb1f9d45d7582c43933646e0c2e))
+* **games:** sides of a tactical game and psychology rules option ([4f225ac](https://github.com/labcabrera/rmu-api-tactical/commit/4f225acc66bc190af98a62baea55e044f94de963))
+* **games:** strategic members and faction players in tactical games ([7befc20](https://github.com/labcabrera/rmu-api-tactical/commit/7befc2043f2bd0d66e39e06e431bde8f8b82b043))
+* grapple penalty, escape and release (spec 077, phase 2) ([d9d72f8](https://github.com/labcabrera/rmu-api-tactical/commit/d9d72f8dc846c15d5bf686c99b996bb7635d6add))
+* lost limbs, emergency amputation and revival of the dead (spec 079, phase 5) ([ceb87fa](https://github.com/labcabrera/rmu-api-tactical/commit/ceb87fa3283bce1c3617df917673a1777d081431))
+* magical talents in spell casting and Iron Will (spec 077, phase 3) ([1b54cd3](https://github.com/labcabrera/rmu-api-tactical/commit/1b54cd33e55af8abb85edc77f9be764dca2227b2))
+* **movement:** a normal movement may choose its pace ([b06c9df](https://github.com/labcabrera/rmu-api-tactical/commit/b06c9df3fd848829b44be3f0fe12b732d3049e17))
+* npc talents with a catalog id become actor round traits (spec 076, phase 4) ([07d477e](https://github.com/labcabrera/rmu-api-tactical/commit/07d477ea89c669aa6ddb93ff6466f9e68ad72228))
+* **psychology:** fear by side, house triggers and the end of the fear ([aec92e1](https://github.com/labcabrera/rmu-api-tactical/commit/aec92e1e0c70677c191e0375b933cfea3e89dbb3))
+* reactions, draw costs, combat effects and critical reroll (spec 076, phase 2) ([0b5e66e](https://github.com/labcabrera/rmu-api-tactical/commit/0b5e66ea2157fdbe8861b6344b6ff5a7f98e856a))
+* resolvable critical alerts (spec 077, phase 4) ([b22f6b4](https://github.com/labcabrera/rmu-api-tactical/commit/b22f6b480722bc8f624db009a15a025c375f7714))
+* senses, vision talents and ambient light in perception, tracking and movement (spec 076) ([65d855f](https://github.com/labcabrera/rmu-api-tactical/commit/65d855fab299de2b0de53fd4f487d635f797a54c))
+* shield maneuver from the second attack (spec 077, phase 2) ([206d257](https://github.com/labcabrera/rmu-api-tactical/commit/206d2571420d81bfaf01c490f6221e6085e44443))
+* skill aids, feats of strength, adrenal moves and Magical Expertise (spec 079, phase 4) ([61c5bef](https://github.com/labcabrera/rmu-api-tactical/commit/61c5bef822adff0befde8578221ffcd9cee6b4ea))
+* talents block D in combat, maneuvers and environment (spec 079, phase 7) ([a6e5ce5](https://github.com/labcabrera/rmu-api-tactical/commit/a6e5ce51e12ed6e9be4d277fe10abcdff5f945a5))
+
+
+### BREAKING CHANGES
+
+* the attack table damage is now multiplied by the Hit Multiplier of
+the attack size (spec 007 and spec 033 left it unscaled), and attackTableEntry
+stores the scaled damage and the shifted severity.
+
 # [0.8.0](https://github.com/labcabrera/rmu-api-tactical/compare/0.7.2...0.8.0) (2026-11-02)
 
 

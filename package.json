@@ -1,6 +1,6 @@
 {
   "name": "rmu-api-tactical",
-  "version": "0.8.1-SNAPSHOT",
+  "version": "0.9.0",
   "description": "Tactical API for RMU",
   "author": {
     "name": "Luis Cabrera",
