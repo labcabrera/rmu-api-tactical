@@ -142,7 +142,11 @@ describe('fear effects and fright levels (workspace spec 068)', () => {
   });
 
   it('takes the fright level of an NPC to the fear check, and alerts the suggested check once per threshold', async () => {
-    const gameId = await createGame(['merry', 'pippin'], { environmentFaction: { name: 'Downs', npcs: [{ npcId: 'shade', count: 1 }] } });
+    // Workspace spec 100: the thresholds of the book (new games take the house rules by default)
+    const gameId = await createGame(['merry', 'pippin'], {
+      psychologyRules: 'book',
+      environmentFaction: { name: 'Downs', npcs: [{ npcId: 'shade', count: 1 }] },
+    });
     const rounds = await roundsOf(gameId);
     const shade = rounds.find(each => each.actorType === 'npc')!;
     expect(shade.frightLevel).toBe(6);
@@ -171,10 +175,13 @@ describe('fear effects and fright levels (workspace spec 068)', () => {
         expect.objectContaining({ key: 'factionId', modifier: 'faction-1' }),
         expect.objectContaining({ key: 'frightLevel', value: 6 }),
         expect.objectContaining({ key: 'fallenShare', value: 0.5 }),
+        expect.objectContaining({ key: 'sideId', modifier: 'faction-1' }),
+        expect.objectContaining({ key: 'rules', modifier: 'book' }),
       ]),
     );
     const game = (await as('owner').get(`/v1/tactical-games/${gameId}`)).body as { fearThresholdsAlerted: Record<string, string[]> };
-    expect(game.fearThresholdsAlerted['faction-1']).toEqual(['0.4', '0.4+']);
+    // Workspace spec 100: by side; without sides defined, the side of a faction has its id
+    expect(game.fearThresholdsAlerted['side:faction-1']).toEqual(['0.4', '0.4+']);
     // The next upkeep does not alert it again
     await as('owner').post(`/v1/tactical-games/${gameId}/rounds/start`);
     const again = (await roundsOf(gameId, 2)).find(each => each.actorId === 'merry')!.alerts;

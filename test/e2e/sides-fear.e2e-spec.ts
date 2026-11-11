@@ -4,6 +4,8 @@ import { character, startApp, USERS, type E2eApp, type UserName } from './suppor
 type Side = { id: string; name: string | null; factionIds: string[]; leaderActorId: string | null };
 type GameBody = { id: string; version: number; sides: Side[]; sidesDefined: boolean; psychologyRules: string; factions: string[] };
 type ErrorBody = { code: string };
+type Alert = { id: string; type: string; status: string; modifiers?: { key: string; value?: number | null; modifier?: string | null }[] };
+type ActorRoundBody = { id: string; actorId: string; effects: { status: string }[]; alerts: Alert[] };
 
 let e2e: E2eApp;
 
@@ -109,5 +111,74 @@ describe('sides of a tactical game (workspace spec 100, phase 1)', () => {
       { id: 'fellowship', name: 'Fellowship', factionIds: ['faction-2'], leaderActorId: null },
       sides[1],
     ]);
+  });
+});
+
+const roundsOf = async (gameId: string, round: number) =>
+  Object.fromEntries(
+    ((await as('owner').get(`/v1/actor-rounds?q=gameId==${gameId};round==${round}`)).body as { content: ActorRoundBody[] }).content.map(
+      actorRound => [actorRound.actorId, actorRound],
+    ),
+  );
+const texts = (alert: Alert, key: string) => (alert.modifiers ?? []).filter(each => each.key === key).map(each => each.modifier);
+const value = (alert: Alert, key: string) => alert.modifiers?.find(each => each.key === key)?.value;
+
+describe('fear by side with the house rules (workspace spec 100, phase 2)', () => {
+  it('alerts the side and the actor left alone, and eases the fear of the side that wins a round', async () => {
+    const game = await createGame();
+    await as('owner').put(`/v1/tactical-games/${game.id}/sides`, { sides });
+    expect((await as('owner').post(`/v1/tactical-games/${game.id}/rounds/start`)).status).toBe(200);
+    const first = await roundsOf(game.id, 1);
+    expect((await as('owner').post(`/v1/actor-rounds/${first.aragorn.id}/effects`, { status: 'unconscious' })).status).toBe(201);
+    await as('owner').post(`/v1/tactical-games/${game.id}/rounds/start`);
+
+    // Round 1 upkeep: Aragorn (3 of 6 levels, the leader) is down
+    const afterFirst = await roundsOf(game.id, 1);
+    const suggested = afterFirst.boromir.alerts.find(alert => alert.type === 'fear-check-suggested')!;
+    expect(suggested.modifiers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: 'factionId', modifier: 'faction-2' }),
+        expect.objectContaining({ key: 'sideId', modifier: 'fellowship' }),
+        expect.objectContaining({ key: 'rules', modifier: 'house' }),
+        expect.objectContaining({ key: 'frightLevel', value: 5 }),
+        expect.objectContaining({ key: 'fallenShare', value: 0.5 }),
+      ]),
+    );
+    expect(texts(suggested, 'factionIds')).toEqual(['faction-1', 'faction-2']);
+    expect(texts(suggested, 'triggers')).toEqual(['strength-50', 'leader-down']);
+    const alone = afterFirst.boromir.alerts.find(alert => alert.type === 'fear-alone')!;
+    expect([alone.status, value(alone, 'level'), texts(alone, 'sideId')]).toEqual(['pending', 10, ['fellowship']]);
+    const read = (await as('owner').get(`/v1/tactical-games/${game.id}`)).body as { fearThresholdsAlerted: Record<string, string[]> };
+    expect(read.fearThresholdsAlerted).toMatchObject({ 'side:fellowship': ['strength-50', 'leader-down'], 'actor:boromir': ['alone'] });
+
+    // An individual RR answers the alert, carried to round 2
+    const second = await roundsOf(game.id, 2);
+    const carried = second.boromir.alerts.find(alert => alert.type === 'fear-alone')!;
+    const rr = await as('owner').post(`/v1/actor-rounds/${second.boromir.id}/resistance-rolls`, {
+      kind: 'fear',
+      attackLevel: 10,
+      roll: 5,
+      bonus: 20,
+      alertId: carried.id,
+    });
+    expect(rr.status).toBe(200);
+    expect((await roundsOf(game.id, 2)).boromir.alerts.find(alert => alert.id === carried.id)!.status).toBe('resolved');
+
+    // Round 2: Lurtz dies and Boromir balks: the fellowship won the round
+    await as('owner').post(`/v1/actor-rounds/${second.lurtz.id}/effects`, { status: 'dead' });
+    await as('owner').post(`/v1/actor-rounds/${second.boromir.id}/fear-effects`, { severity: 'mild' });
+    await as('owner').post(`/v1/tactical-games/${game.id}/rounds/start`);
+    const ease = (await roundsOf(game.id, 2)).boromir.alerts.find(alert => alert.type === 'fear-ease-suggested')!;
+    expect(texts(ease, 'sideId')).toEqual(['fellowship']);
+    expect(texts(ease, 'actorIds')).toEqual(['boromir']);
+
+    expect((await as('other').post(`/v1/tactical-games/${game.id}/fear-ease`, { sideId: 'fellowship' })).status).toBe(403);
+    const unknown = await as('owner').post(`/v1/tactical-games/${game.id}/fear-ease`, { sideId: 'mordor' });
+    expect([unknown.status, (unknown.body as ErrorBody).code]).toEqual([404, 'err-side-not-found']);
+    const eased = await as('owner').post(`/v1/tactical-games/${game.id}/fear-ease`, { sideId: 'fellowship' });
+    expect([eased.status, eased.body]).toEqual([200, { actorIds: ['boromir'] }]);
+    const third = (await roundsOf(game.id, 3)).boromir;
+    expect(third.effects.map(effect => effect.status)).not.toContain('fear-balk');
+    expect(third.alerts.find(alert => alert.type === 'fear-ease-suggested')).toMatchObject({ status: 'resolved' });
   });
 });

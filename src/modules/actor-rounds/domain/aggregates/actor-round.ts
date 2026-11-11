@@ -46,6 +46,7 @@ import {
   FEAR_BROKEN,
   FEAR_EFFECTS,
   FEAR_NO_ATTACK_EFFECTS,
+  FEAR_ROUTED,
   FLATFOOTED,
   FRENZY,
   FRENZY_DYING,
@@ -285,6 +286,10 @@ const MANUALLY_RESOLVED_ALERTS: string[] = [
   'wound-reopened',
   'fear-check-suggested',
   'revulsion-rr',
+  // Workspace spec 100: the house fear alerts, also closed by an RR or by `fear-ease`
+  'fear-surrounded',
+  'fear-alone',
+  'fear-ease-suggested',
 ];
 
 /** What the upkeep of an actor round reads besides the actor (workspace specs 068, 077 and 079). */
@@ -3142,6 +3147,19 @@ export class ActorRound extends BaseAggregateRoot<ActorRoundProps> {
   /** Dead, dying, unconscious, incapacitated or paralyzed: the actor's open actions cannot go on (spec 011, §5). */
   isIncapacitated(): boolean {
     return this.isDead() || [DYING, UNCONSCIOUS, INCAPACITATED, PARALYZED].some(status => this.hasEffect(status));
+  }
+
+  /** Routed or broken: the actor flees the fight (workspace spec 100, decision 10). */
+  isFled(): boolean {
+    return this.hasEffect(FEAR_ROUTED) || this.hasEffect(FEAR_BROKEN);
+  }
+
+  /**
+   * Workspace spec 100, decision 10: the one definition of fallen, shared by the fear alerts and the strength of the
+   * sides: incapacitated (dead, dying, unconscious, incapacitated or paralyzed) or fled (routed or broken).
+   */
+  isFallen(): boolean {
+    return this.isIncapacitated() || this.isFled();
   }
 
   /** The actor can carry on an action: it is not incapacitated and has some AP this round (spec 011, §5). */

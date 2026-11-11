@@ -11,7 +11,7 @@ import {
 import { ActorRound } from '../../../../actor-rounds/domain/aggregates/actor-round.js';
 import { ActorRoundAlert } from '../../../../actor-rounds/domain/value-objects/actor-round-alert.vo.js';
 import { type PsychologyTablesPort, PSYCHOLOGY_TABLES_PORT } from '../../../../psychology/application/ports/psychology-tables.port.js';
-import { FearUpkeep } from '../../../../psychology/domain/services/fear-upkeep.js';
+import { type AppliedAttack, FearUpkeep } from '../../../../psychology/domain/services/fear-upkeep.js';
 import type { PsychologyTables } from '../../../../psychology/domain/value-objects/psychology-tables.vo.js';
 import { MedicalAbortService } from '../../../../actor-rounds/application/services/medical-abort.service.js';
 import { NotFoundError } from '../../../../shared/domain/errors/errors.js';
@@ -136,32 +136,81 @@ export class StartRoundHandler implements ICommandHandler<StartRoundCommand, Gam
   }
 
   /**
-   * Workspace spec 068, decisions 16 and 18: after the upkeep, the fear check a faction's fallen allies suggest (once
-   * per threshold and game) and the fear RR of Revulsion. Without the psychology tables of core nothing is alerted.
+   * Workspace spec 068, decisions 16 and 18: after the upkeep, the fear check the fallen allies of a side suggest (once
+   * per trigger and game) and the fear RR of Revulsion. Workspace spec 100: by side, with the rules of the game; with
+   * `house`, also the individual triggers (surrounded, alone) and the end of the fear of the side that won the round.
+   * Without the psychology tables of core only the house triggers, which do not read them, are alerted.
    */
   private async addFearAlerts(game: Game): Promise<void> {
-    let tables: PsychologyTables;
+    let tables: PsychologyTables | null = null;
     try {
       tables = await this.psychologyTables.find();
     } catch (error) {
-      this.logger.warn(`No fear alerts in the upkeep, psychology tables not available: ${(error as Error).message}`);
+      this.logger.warn(`No fear alerts of the tables in the upkeep, psychology tables not available: ${(error as Error).message}`);
+    }
+    const rules = game.psychologyRulesOrDefault();
+    if (!tables && rules !== 'house') {
       return;
     }
     const rsql = `gameId==${game.id};round==${game.round}`;
     const actorRounds = (await this.actorRoundRepository.findByRsql(rsql, 0, MAX_PAGE_SIZE)).content;
+    const sides = game.effectiveSides();
     const changed = new Set<ActorRound>();
-    for (const check of FearUpkeep.suggestedChecks(actorRounds, tables.fallenThresholds, game.fearThresholdsAlerted)) {
-      check.actorRound.alerts.push(ActorRoundAlert.buildFearCheckSuggested(check.factionId, check.frightLevel, check.fallenShare));
-      game.markFearThresholds(check.factionId, check.keys);
+    for (const check of FearUpkeep.suggestedChecks(actorRounds, sides, rules, tables?.fallenThresholds, game.fearThresholdsAlerted)) {
+      check.actorRound.alerts.push(
+        ActorRoundAlert.buildFearCheckSuggested(check.factionId, check.frightLevel, check.fallenShare, {
+          sideId: check.sideId,
+          factionIds: check.factionIds,
+          rules: check.rules,
+          triggers: check.triggers,
+        }),
+      );
+      game.markFearThresholds(check.alertKey, check.keys);
       changed.add(check.actorRound);
     }
-    for (const check of FearUpkeep.revulsionChecks(actorRounds, tables)) {
-      check.actorRound.alerts.push(ActorRoundAlert.buildRevulsionRr(check.level));
-      changed.add(check.actorRound);
+    if (tables) {
+      for (const check of FearUpkeep.revulsionChecks(actorRounds, tables)) {
+        check.actorRound.alerts.push(ActorRoundAlert.buildRevulsionRr(check.level));
+        changed.add(check.actorRound);
+      }
+    }
+    if (rules === 'house') {
+      const attacks = await this.appliedAttacks(game);
+      for (const check of FearUpkeep.individualChecks(actorRounds, sides, attacks, game.fearThresholdsAlerted)) {
+        const type = check.trigger === 'surrounded' ? 'fear-surrounded' : 'fear-alone';
+        check.actorRound.alerts.push(ActorRoundAlert.buildIndividualFear(type, check.sideId, check.frightLevel, check.attackerIds));
+        game.markFearThresholds(check.alertKey, [check.trigger]);
+        changed.add(check.actorRound);
+      }
+      const ease = FearUpkeep.easeChecks(actorRounds, sides, game.sideFallenLevels);
+      for (const suggestion of ease.suggestions) {
+        suggestion.actorRound.alerts.push(
+          ActorRoundAlert.buildFearEaseSuggested(suggestion.sideId, suggestion.factionIds, suggestion.actorIds),
+        );
+        changed.add(suggestion.actorRound);
+      }
+      game.recordSideFallenLevels(ease.fallen);
     }
     for (const actorRound of changed) {
       await this.actorRoundRepository.update(actorRound);
     }
+  }
+
+  /**
+   * Workspace spec 100, decision 20: the attacks applied in the round that ends, with the attacker, the target and the
+   * position of the attacker (`positionalTarget`: flank or rear of the target).
+   */
+  private async appliedAttacks(game: Game): Promise<AppliedAttack[]> {
+    const actions = (await this.actionRepository.findByRsql(`gameId==${game.id};round==${game.round}`, 0, MAX_PAGE_SIZE)).content;
+    return actions.flatMap(action =>
+      (action.attacks ?? [])
+        .filter(attack => attack.status === 'completed' && !!attack.modifiers?.targetId)
+        .map(attack => ({
+          attackerId: action.actorId,
+          targetId: attack.modifiers.targetId!,
+          position: attack.modifiers.positionalTarget ?? null,
+        })),
+    );
   }
 
   /** Workspace spec 079, C3: the critical of the extreme temperature of the game; a stored one gone invalid is skipped. */

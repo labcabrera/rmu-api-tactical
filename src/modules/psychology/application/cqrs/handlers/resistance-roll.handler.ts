@@ -13,8 +13,8 @@ import { type PsychologyTablesPort, PSYCHOLOGY_TABLES_PORT } from '../../ports/p
 import { ResistanceRollCommand } from '../commands/resistance-roll.command.js';
 import { Game } from '../../../../games/domain/aggregates/game.js';
 
-/** Alerts an RR answers (workspace spec 087). */
-const RR_ALERTS: string[] = ['frenzy-dying', 'revulsion-rr'];
+/** Alerts an RR answers (workspace spec 087; the individual fear alerts of workspace spec 100). */
+const RR_ALERTS: string[] = ['frenzy-dying', 'revulsion-rr', 'fear-surrounded', 'fear-alone'];
 
 export interface ActorResistanceRoll {
   actorRound: ActorRound;
