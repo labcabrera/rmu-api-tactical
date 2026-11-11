@@ -126,6 +126,13 @@ describe('FearCheckHandler (workspace spec 022, decision 9)', () => {
     expect(npc.frightLevel).toBe(3);
   });
 
+  it('gives no leader bonus when the leader has fallen (workspace spec 100)', async () => {
+    const { fear } = setup({ effects: { aragorn: [effect('unconscious')] } });
+    const result = await fear({ frightLevel: 5, leader: { actorId: 'aragorn' }, rolls: { boromir: 50, orc: 50 } });
+    expect(result.leader?.fearRrBonus).toBe(0);
+    expect(byId(result.actors, 'boromir').breakdown?.map(term => term.key)).not.toContain('leader');
+  });
+
   it('rolls for the actors the client did not', async () => {
     const result = await setup().fear({ frightLevel: 1, group: { actorIds: ['boromir'] } });
     expect(result.actors[0].rolledByServer).toBe(true);

@@ -120,7 +120,10 @@ export class GroupCheckService {
     const leadershipBonus = request.leadershipBonus ?? skill?.totalBonus ?? 0;
     const lookOfEaglesTier = actorRound.traitTier(LOOK_OF_EAGLES);
     const recognized = request.recognized !== false;
-    const fearRrBonus = recognized ? leadershipRanks + LOOK_OF_EAGLES_FEAR_RR_PER_TIER * lookOfEaglesTier : 0;
+    // Workspace spec 100: a fallen leader (dead, dying, unconscious, incapacitated, paralyzed, routed or broken) gives
+    // no bonus, recognized or not.
+    const inspiring = recognized && !actorRound.isFallen();
+    const fearRrBonus = inspiring ? leadershipRanks + LOOK_OF_EAGLES_FEAR_RR_PER_TIER * lookOfEaglesTier : 0;
     return { actorRound, recognized, leadershipRanks, leadershipBonus, lookOfEaglesTier, fearRrBonus };
   }
 
