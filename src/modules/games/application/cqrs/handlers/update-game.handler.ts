@@ -22,7 +22,14 @@ export class UpdateGameHandler {
       throw new NotFoundError('Game', command.gameId);
     }
     game.checkVersion(command.expectedVersion);
-    game.update(command.name, command.description, command.environment, command.imageUrl, command.environmentFactionName);
+    game.update(
+      command.name,
+      command.description,
+      command.environment,
+      command.imageUrl,
+      command.environmentFactionName,
+      command.psychologyRules,
+    );
     // Nothing changed: no write and no event (spec 021, decision 9).
     if (!game.hasChanges()) return game;
     const updated = await this.gameRepository.update(game);

@@ -52,7 +52,13 @@ const setup = (extra: { round?: number; effects?: Record<string, ReturnType<type
     actor({ actorId: 'witch', character: true, factionId: 'mordor' }),
     actor({ actorId: 'troll', factionId: 'mordor' }),
   ];
-  const game = { id: 'game-1', name: 'Amon Hen', round: extra.round ?? 1, checkNotFinished: vi.fn() };
+  const game = {
+    id: 'game-1',
+    name: 'Amon Hen',
+    round: extra.round ?? 1,
+    checkNotFinished: vi.fn(),
+    allyFactionIds: (factionId: string) => [factionId],
+  };
   const games = { findById: vi.fn(() => Promise.resolve(game)) } as unknown as GameRepository;
   const update = vi.fn((round: ActorRound) => Promise.resolve(round));
   const actorRounds = { findByRsql: vi.fn(() => Promise.resolve({ content: rounds })), update } as unknown as ActorRoundRepository;

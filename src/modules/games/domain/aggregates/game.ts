@@ -22,6 +22,13 @@ import type { StrategicMember } from '../value-objects/strategic-member.vo.js';
 import type { GameStatus } from '../value-objects/game-status.vo.js';
 import type { TacticalGameOutcome, TacticalGameOutcomeCharacter } from '../value-objects/tactical-game-outcome.vo.js';
 import type { GameProps } from './game-props.js';
+import {
+  DEFAULT_PSYCHOLOGY_RULES,
+  type GameSide,
+  GameSides,
+  LEGACY_PSYCHOLOGY_RULES,
+  type PsychologyRules,
+} from '../value-objects/game-side.vo.js';
 
 export class Game extends BaseAggregateRoot<GameProps> {
   private static readonly phaseTransitions: Map<GamePhase, GamePhase> = new Map([
@@ -75,6 +82,21 @@ export class Game extends BaseAggregateRoot<GameProps> {
   /** Workspace spec 072, decision 13: the players of each strategic faction (`{factionId: [userId]}`). */
   public factionPlayers: Record<string, string[]> = {};
 
+  /**
+   * Workspace spec 100, decision 1: the sides the game master defined. Empty means one side per faction (see
+   * `effectiveSides`), as in the games stored before it.
+   */
+  public sides: GameSide[] = [];
+
+  /** Workspace spec 100, decision 18: how the fear of the upkeep is alerted; missing in older games, which keep `book`. */
+  public psychologyRules: PsychologyRules | undefined;
+
+  /**
+   * Workspace spec 100, decision 22: the fallen levels of each side at the end of the last upkeep, to know which side won
+   * the round (`house` rules only).
+   */
+  public sideFallenLevels: Record<string, number> = {};
+
   static create(
     strategicGameId: string,
     name: string,
@@ -89,6 +111,7 @@ export class Game extends BaseAggregateRoot<GameProps> {
     environmentFaction?: EnvironmentFaction | null,
     strategicMembers?: StrategicMember[],
     factionPlayers?: Record<string, string[]>,
+    psychologyRules?: PsychologyRules,
   ) {
     const game = new Game(
       randomUUID(),
@@ -111,6 +134,7 @@ export class Game extends BaseAggregateRoot<GameProps> {
     game.environmentFaction = environmentFaction ? EnvironmentFactions.copy(environmentFaction) : null;
     game.strategicMembers = (strategicMembers ?? []).map(member => ({ ...member }));
     game.factionPlayers = structuredClone(factionPlayers ?? {});
+    game.psychologyRules = psychologyRules ?? DEFAULT_PSYCHOLOGY_RULES;
     game.syncEnvironmentFaction();
     game.apply(new GameCreatedEvent(game));
     return game;
@@ -140,6 +164,9 @@ export class Game extends BaseAggregateRoot<GameProps> {
     game.fearThresholdsAlerted = props.fearThresholdsAlerted ? structuredClone(props.fearThresholdsAlerted) : {};
     game.strategicMembers = (props.strategicMembers ?? []).map(member => ({ userId: member.userId, role: member.role }));
     game.factionPlayers = props.factionPlayers ? structuredClone(props.factionPlayers) : {};
+    game.sides = (props.sides ?? []).map(side => GameSides.copy(side));
+    game.psychologyRules = props.psychologyRules ?? undefined;
+    game.sideFallenLevels = props.sideFallenLevels ? { ...props.sideFallenLevels } : {};
     return game;
   }
 
@@ -202,7 +229,9 @@ export class Game extends BaseAggregateRoot<GameProps> {
     environment: GameEnvironment | undefined,
     imageUrl: string | undefined,
     environmentFactionName?: string,
+    psychologyRules?: PsychologyRules,
   ) {
+    if (psychologyRules !== undefined) this.changePsychologyRules(psychologyRules);
     if (name) this.name = name;
     if (description) this.description = description;
     if (environment) {
@@ -232,6 +261,7 @@ export class Game extends BaseAggregateRoot<GameProps> {
       }
     }
     this.factions.push(...factions);
+    this.reconcileSides();
     this.updatedAt = new Date();
     this.apply(new GameUpdatedEvent(this));
   }
@@ -254,6 +284,7 @@ export class Game extends BaseAggregateRoot<GameProps> {
     if (factions.includes(ENVIRONMENT_FACTION_ID) && this.environmentFaction) {
       this.environmentFaction.npcs = [];
     }
+    this.reconcileSides();
     this.updatedAt = new Date();
     this.apply(new GameUpdatedEvent(this));
   }
@@ -282,6 +313,7 @@ export class Game extends BaseAggregateRoot<GameProps> {
       }
     }
     this.actors.push(...actors);
+    this.reconcileSides();
     this.updatedAt = new Date();
     this.apply(new GameUpdatedEvent(this));
   }
@@ -303,6 +335,7 @@ export class Game extends BaseAggregateRoot<GameProps> {
       }
     });
     this.syncEnvironmentFaction();
+    this.reconcileSides();
     this.updatedAt = new Date();
     this.apply(new GameUpdatedEvent(this));
   }
@@ -334,6 +367,96 @@ export class Game extends BaseAggregateRoot<GameProps> {
     } else if (!hasNpcs && listed) {
       this.factions = this.factions.filter(faction => faction !== ENVIRONMENT_FACTION_ID);
     }
+    this.reconcileSides();
+  }
+
+  /**
+   * Workspace spec 100, decision 1: the sides of the game. Without sides defined, each faction is a side of its own,
+   * with the id of the faction and no name.
+   */
+  effectiveSides(): GameSide[] {
+    if (this.sides.length === 0) {
+      return this.factions.map(factionId => GameSides.single(factionId));
+    }
+    return this.sides.map(side => GameSides.copy(side));
+  }
+
+  /** The game master defined the sides (workspace spec 100). */
+  sidesDefined(): boolean {
+    return this.sides.length > 0;
+  }
+
+  /** The id of the side of a faction, undefined for a faction not in the game. */
+  sideOf(factionId: string): string | undefined {
+    return this.effectiveSides().find(side => side.factionIds.includes(factionId))?.id;
+  }
+
+  /** The factions of a side; none for an unknown side. */
+  sideFactionIds(sideId: string): string[] {
+    return this.effectiveSides().find(side => side.id === sideId)?.factionIds ?? [];
+  }
+
+  /** The factions in the side of `factionId`, itself included; only itself when it is in no side. */
+  allyFactionIds(factionId: string): string[] {
+    const sideId = this.sideOf(factionId);
+    const factionIds = sideId ? this.sideFactionIds(sideId) : [];
+    return factionIds.length > 0 ? factionIds : [factionId];
+  }
+
+  /** Workspace spec 100, decision 18: `book` for the games stored before the field existed. */
+  psychologyRulesOrDefault(): PsychologyRules {
+    return this.psychologyRules ?? LEGACY_PSYCHOLOGY_RULES;
+  }
+
+  /**
+   * Workspace spec 100, decisions 4 and 5: the game master sets every side at once, only while the game is `created`
+   * (`err-sides-locked`). An empty list goes back to one side per faction.
+   */
+  setSides(sides: GameSide[]): void {
+    this.checkNotFinished();
+    if (this.status !== 'created') {
+      throw new ConflictError(`The sides of game ${this.id} cannot change once it started`, 'err-sides-locked');
+    }
+    this.sides = GameSides.validate(sides, this.factions, actorId => this.actors.find(actor => actor.id === actorId)?.faction.id);
+    if (!this.hasChanges()) return;
+    this.updatedAt = new Date();
+    this.apply(new GameUpdatedEvent(this));
+  }
+
+  /** Workspace spec 100, decision 18: the rules only change while the game is `created`. */
+  private changePsychologyRules(rules: PsychologyRules): void {
+    if (rules === this.psychologyRulesOrDefault()) return;
+    if (this.status !== 'created') {
+      throw new ConflictError(`The psychology rules of game ${this.id} cannot change once it started`, 'err-game-not-created');
+    }
+    this.psychologyRules = rules;
+  }
+
+  /**
+   * Workspace spec 100, decisions 2 and 3: with sides defined, a new faction (the environment too, even in a game
+   * started) gets a side of its own, a faction gone leaves its side, an empty side is deleted and a leader no longer in
+   * the side is dropped.
+   */
+  private reconcileSides(): void {
+    if (this.sides.length === 0) return;
+    const sides = this.sides
+      .map(side => ({ ...side, factionIds: side.factionIds.filter(factionId => this.factions.includes(factionId)) }))
+      .filter(side => side.factionIds.length > 0)
+      .map(side => {
+        const leader = side.leaderActorId ? this.actors.find(actor => actor.id === side.leaderActorId) : undefined;
+        return { ...side, leaderActorId: leader && side.factionIds.includes(leader.faction.id) ? side.leaderActorId : null };
+      });
+    for (const factionId of this.factions) {
+      if (!sides.some(side => side.factionIds.includes(factionId))) {
+        sides.push(GameSides.single(factionId, GameSides.freeId(sides, factionId)));
+      }
+    }
+    this.sides = sides;
+  }
+
+  /** Workspace spec 100, decision 22: records the fallen levels of each side at the end of the upkeep. */
+  recordSideFallenLevels(levels: Record<string, number>): void {
+    this.sideFallenLevels = { ...levels };
   }
 
   startRound() {
@@ -380,10 +503,13 @@ export class Game extends BaseAggregateRoot<GameProps> {
     this.factionPlayers = { ...this.factionPlayers, ...structuredClone(players) };
   }
 
-  /** Records the thresholds of fallen allies a faction crossed (decision 16). */
-  markFearThresholds(factionId: string, keys: string[]): void {
-    const alerted = new Set([...(this.fearThresholdsAlerted[factionId] ?? []), ...keys]);
-    this.fearThresholdsAlerted = { ...this.fearThresholdsAlerted, [factionId]: [...alerted] };
+  /**
+   * Records the fear triggers already alerted (decision 16 of spec 068): by side since workspace spec 100
+   * (`side:<sideId>`) and by actor for the individual ones (`actor:<actorId>`); older games keep keys by faction.
+   */
+  markFearThresholds(key: string, keys: string[]): void {
+    const alerted = new Set([...(this.fearThresholdsAlerted[key] ?? []), ...keys]);
+    this.fearThresholdsAlerted = { ...this.fearThresholdsAlerted, [key]: [...alerted] };
   }
 
   getEffectPhase(): number {
@@ -432,6 +558,9 @@ export class Game extends BaseAggregateRoot<GameProps> {
       fearThresholdsAlerted: this.fearThresholdsAlerted,
       strategicMembers: this.strategicMembers,
       factionPlayers: this.factionPlayers,
+      sides: this.sides,
+      psychologyRules: this.psychologyRules,
+      sideFallenLevels: this.sideFallenLevels,
       description: this.description,
       imageUrl: this.imageUrl,
       owner: this.owner,

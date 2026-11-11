@@ -4,6 +4,7 @@ import { GameEnvironment } from '../value-objects/game-environment.vo.js';
 import type { GamePhase } from '../value-objects/game-phase.vo.js';
 import type { StrategicMember } from '../value-objects/strategic-member.vo.js';
 import type { GameStatus } from '../value-objects/game-status.vo.js';
+import type { GameSide, PsychologyRules } from '../value-objects/game-side.vo.js';
 import type { TacticalGameOutcome } from '../value-objects/tactical-game-outcome.vo.js';
 
 export type GameProps = {
@@ -37,6 +38,12 @@ export type GameProps = {
   strategicMembers?: StrategicMember[] | null;
   /** Workspace spec 072, decision 13: the players of each strategic faction (`{factionId: [userId]}`). */
   factionPlayers?: Record<string, string[]> | null;
+  /** Workspace spec 100: the sides defined by the game master; missing or empty means one side per faction. */
+  sides?: GameSide[] | null;
+  /** Workspace spec 100: missing in older games, which keep the rules of the book. */
+  psychologyRules?: PsychologyRules | null;
+  /** Workspace spec 100, decision 22: fallen levels of each side at the end of the last upkeep. */
+  sideFallenLevels?: Record<string, number> | null;
   /** Set when the game is finished (spec 013, §3). */
   outcome?: TacticalGameOutcome;
   createdAt: Date;

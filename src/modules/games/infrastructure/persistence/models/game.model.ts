@@ -4,6 +4,7 @@ import type { GamePhase } from '../../../domain/value-objects/game-phase.vo.js';
 import type { GameStatus } from '../../../domain/value-objects/game-status.vo.js';
 import type { EnvironmentFaction } from '../../../domain/value-objects/environment-faction.vo.js';
 import type { StrategicMember } from '../../../domain/value-objects/strategic-member.vo.js';
+import type { GameSide, PsychologyRules } from '../../../domain/value-objects/game-side.vo.js';
 import type { TacticalGameOutcome } from '../../../domain/value-objects/tactical-game-outcome.vo.js';
 import { Actor, GameEnvironment } from './game-childs.model.js';
 
@@ -74,6 +75,29 @@ export class GameModel {
   /** Workspace spec 072: players of each strategic faction, `{factionId: [userId]}`. Missing in games not migrated yet. */
   @Prop({ type: Object, required: false })
   factionPlayers?: Record<string, string[]> | null;
+
+  /** Workspace spec 100: sides `[{id, name, factionIds, leaderActorId}]`; missing or empty means one per faction. */
+  @Prop({
+    type: [
+      {
+        _id: false,
+        id: { type: String, required: true },
+        name: { type: String, required: false, default: null },
+        factionIds: { type: [String], required: true },
+        leaderActorId: { type: String, required: false, default: null },
+      },
+    ],
+    required: false,
+  })
+  sides?: GameSide[] | null;
+
+  /** Workspace spec 100: `book` or `house`; missing in older games (`book`). */
+  @Prop({ type: String, required: false })
+  psychologyRules?: PsychologyRules | null;
+
+  /** Workspace spec 100: fallen levels of each side at the end of the last upkeep. */
+  @Prop({ type: Object, required: false })
+  sideFallenLevels?: Record<string, number> | null;
 
   /** Spec 013: set when the game is finished. */
   @Prop({ type: Object, required: false })

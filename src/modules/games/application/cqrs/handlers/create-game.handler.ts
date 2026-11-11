@@ -89,6 +89,7 @@ export class CreateGameHandler implements ICommandHandler<CreateGameCommand, Gam
       // Workspace spec 072: the members and faction players, until the events of strategic change them.
       StrategicMembers.fromEvent(strategicGame.members),
       await factionPlayersOf(this.factionPort, factions),
+      command.psychologyRules,
     );
     const saved = await this.gameRepository.save(game);
     const events = game.getUncommittedEvents();

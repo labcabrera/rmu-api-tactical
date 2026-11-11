@@ -50,7 +50,7 @@ const loadLeaderContext = async (
     throw new ValidationError('A morale or rally check needs a leader', 'err-leader-required');
   }
   const { game, rounds } = await service.load(gameId);
-  const members = GroupCheckService.group(rounds, request.group, request.leader.actorId);
+  const members = GroupCheckService.group(rounds, request.group, request.leader.actorId, factionId => game.allyFactionIds(factionId));
   const leader = await service.leader(rounds, request.leader);
   const others = members.filter(member => member.actorId !== leader.actorRound.actorId);
   return {
